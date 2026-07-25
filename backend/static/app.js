@@ -47747,7 +47747,7 @@ async function triggerFsFullAudit() {
     }
 }
 
-function appendFsChatMessage(sender, text, useTypewriter = false) {
+function appendFsChatMessage(sender, text, useTypewriter = false, llmMeta = null) {
     const history = document.getElementById('fs-chat-history');
     if (!history) return;
     
@@ -51149,7 +51149,13 @@ window.renderReturnsComparisonCard = function(profile) {
     // Reset current returns data when stock profile changes
     window.currentReturnsData = null;
 
+    let hasValidBenchmarks = false;
     if (activeProf && activeProf.returns_comparison && activeProf.returns_comparison.matrix && Object.keys(activeProf.returns_comparison.matrix).length > 0) {
+        const m = activeProf.returns_comparison.matrix;
+        hasValidBenchmarks = Object.values(m).some(row => (row.nifty50 && row.nifty50 !== 0) || (row.sensex && row.sensex !== 0) || (row.industry && row.industry !== 0));
+    }
+
+    if (hasValidBenchmarks) {
         window.currentReturnsData = activeProf.returns_comparison;
         if (!window.currentReturnsData.symbol) window.currentReturnsData.symbol = compName;
         window.renderReturnsView(window.activeReturnsPeriod);
@@ -51168,6 +51174,7 @@ window.renderReturnsComparisonCard = function(profile) {
             });
     }
 };
+
 
 
 window.renderReturnsView = function(period) {

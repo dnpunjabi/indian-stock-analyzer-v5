@@ -276,7 +276,7 @@ def _call_gemini_with_rotation(task_type: str,
         "contents": contents,
         "generationConfig": {
             "temperature": temperature,
-            "maxOutputTokens": min(max_tokens, 4096)
+            "maxOutputTokens": min(max_tokens, 16384)
         }
     }
     
@@ -299,19 +299,23 @@ def _call_gemini_with_rotation(task_type: str,
         
         try:
             print(f"[LLM Rotation] Requesting {model} with key {mask} (Attempt {attempt+1})...")
-            res = requests.post(url, headers=headers, json=payload, timeout=20.0)
+            res = requests.post(url, headers=headers, json=payload, timeout=25.0)
             
             if res.status_code == 200:
                 res_json = res.json()
                 if "candidates" in res_json and len(res_json["candidates"]) > 0:
                     candidate = res_json["candidates"][0]
+                    finish_reason = candidate.get("finishReason")
+                    if finish_reason and finish_reason != "STOP":
+                        print(f"[LLM Rotation Warning] Candidate finishReason: {finish_reason}")
                     parts = candidate.get("content", {}).get("parts", [])
-                    text = "".join([p.get("text", "") for p in parts if "text" in p])
+                    text = "".join([p.get("text", "") for p in parts if "text" in p and not p.get("thought", False)])
                     if text:
                         label = config["heavy_label"] if task_type == TASK_HEAVY else config["fast_label"]
                         _set_last_llm_meta(label, "gemini", start_time, is_fallback=False)
                         return text, True
                     print(f"[LLM Rotation] No text parts found in Gemini response candidate")
+
                     
             elif res.status_code == 429:
                 print(f"[LLM Rotation] Key {mask} rate-limited (429). Placing on 5s cooldown.")
@@ -383,7 +387,7 @@ def _stream_gemini_with_rotation(task_type: str,
         "contents": contents,
         "generationConfig": {
             "temperature": temperature,
-            "maxOutputTokens": min(max_tokens, 4096)
+            "maxOutputTokens": min(max_tokens, 16384)
         }
     }
     
@@ -404,7 +408,7 @@ def _stream_gemini_with_rotation(task_type: str,
         
         try:
             print(f"[LLM Rotation] Requesting streaming {model} with key {mask} (Attempt {attempt+1})...")
-            res = requests.post(url, headers=headers, json=payload, timeout=20.0, stream=True)
+            res = requests.post(url, headers=headers, json=payload, timeout=30.0, stream=True)
             
             if res.status_code == 200:
                 decoder = json.JSONDecoder()
@@ -424,17 +428,43 @@ def _stream_gemini_with_rotation(task_type: str,
                         try:
                             obj, idx = decoder.raw_decode(buffer)
                             try:
-                                text = obj["candidates"][0]["content"]["parts"][0]["text"]
-                                yield text
+                                candidate = obj.get("candidates", [{}])[0]
+                                finish_reason = candidate.get("finishReason")
+                                if finish_reason and finish_reason != "STOP":
+                                    print(f"[LLM Stream] Candidate finishReason: {finish_reason}")
+                                parts = candidate.get("content", {}).get("parts", [])
+                                text_parts = [p.get("text", "") for p in parts if "text" in p and not p.get("thought", False)]
+                                text = "".join(text_parts)
+                                if text:
+                                    yield text
                             except (KeyError, IndexError):
                                 pass
                             
                             buffer = buffer[idx:].strip()
                             if buffer.startswith(","):
                                 buffer = buffer[1:].strip()
+                            if buffer.startswith("]"):
+                                buffer = buffer[1:].strip()
                         except json.JSONDecodeError:
                             break
+
+                # Final flush for trailing unparsed buffer
+                buffer = buffer.strip()
+                if buffer.startswith(","): buffer = buffer[1:].strip()
+                if buffer.startswith("]"): buffer = buffer[1:].strip()
+                if buffer:
+                    try:
+                        obj, idx = decoder.raw_decode(buffer)
+                        candidate = obj.get("candidates", [{}])[0]
+                        parts = candidate.get("content", {}).get("parts", [])
+                        text_parts = [p.get("text", "") for p in parts if "text" in p and not p.get("thought", False)]
+                        text = "".join(text_parts)
+                        if text:
+                            yield text
+                    except Exception:
+                        pass
                 return
+
                 
             elif res.status_code == 429:
                 print(f"[LLM Rotation] Key {mask} streaming rate-limited (429). Placing on 5s cooldown.")

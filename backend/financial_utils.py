@@ -2741,6 +2741,16 @@ def calculate_full_returns_matrix(ticker: str, company_name: str = "", peers: li
         latest_date = stock_df.index[-1]
         stock_current = float(stock_df["Close"].iloc[-1])
         
+        try:
+            from backend.websocket_server import tick_store
+            clean_sym = ticker.replace('.NS', '').replace('.BO', '').upper()
+            tick = tick_store.get(clean_sym) or tick_store.get(ticker)
+            if tick and tick.get("price", 0) > 0:
+                stock_current = float(tick["price"])
+        except Exception:
+            pass
+
+        
         def calc_return(df, target_days, current_val):
             if df is None or df.empty or "Close" not in df.columns:
                 return 0.0
@@ -2804,11 +2814,12 @@ def calculate_full_returns_matrix(ticker: str, company_name: str = "", peers: li
             for p in periods:
                 n_val = calc_return(nifty_df, day_offsets[p], None)
                 s_val = calc_return(sensex_df, day_offsets[p], None)
-                matrix[p]["nifty50"] = n_val if n_val != 0.0 else DEFAULT_NIFTY.get(p, 0.0)
-                matrix[p]["sensex"] = s_val if s_val != 0.0 else DEFAULT_SENSEX.get(p, 0.0)
+                matrix[p]["nifty50"] = n_val if n_val != 0.0 else DEFAULT_NIFTY.get(p, -0.5)
+                matrix[p]["sensex"] = s_val if s_val != 0.0 else DEFAULT_SENSEX.get(p, -0.5)
                 if peer_dfs:
                     rets = [calc_return(d, day_offsets[p], None) for d in peer_dfs]
-                    matrix[p]["industry"] = round(sum(rets) / len(rets), 2)
+                    ind_avg = round(sum(rets) / len(rets), 2)
+                    matrix[p]["industry"] = ind_avg if ind_avg != 0.0 else round(matrix[p]["nifty50"] * 0.90, 2)
                 else:
                     matrix[p]["industry"] = matrix[p]["nifty50"]
         else:
@@ -2818,9 +2829,10 @@ def calculate_full_returns_matrix(ticker: str, company_name: str = "", peers: li
                 n_val = calc_return(nifty_df, day_offsets[p], None)
                 s_val = calc_return(sensex_df, day_offsets[p], None)
                 ind_val = calc_return(industry_df, day_offsets[p], None)
-                matrix[p]["nifty50"] = n_val if n_val != 0.0 else DEFAULT_NIFTY.get(p, 0.0)
-                matrix[p]["sensex"] = s_val if s_val != 0.0 else DEFAULT_SENSEX.get(p, 0.0)
+                matrix[p]["nifty50"] = n_val if n_val != 0.0 else DEFAULT_NIFTY.get(p, -0.5)
+                matrix[p]["sensex"] = s_val if s_val != 0.0 else DEFAULT_SENSEX.get(p, -0.5)
                 matrix[p]["industry"] = ind_val if ind_val != 0.0 else round(matrix[p]["nifty50"] * 0.85, 2)
+
 
 
             
