@@ -22528,9 +22528,10 @@ body.light-mode #returns-matrix-tbody tr:hover {
         display: none !important;
     }
 
-    /* Dynamic Relative Mega Long Footer (Desktop View) */
-    .workspace-tab {
-        display: flex !important;
+    /* Dynamic Relative Mega Long Footer (Desktop View) - scope flex ONLY to active tabs */
+    .workspace-tab.active,
+    .workspace-tab.active-tab-content,
+    section.workspace-tab:not([style*="display: none"]) {
         flex-direction: column !important;
         min-height: 100% !important;
         box-sizing: border-box !important;
