@@ -8697,7 +8697,172 @@
                     obs.observe(listEl, { childList: true, subtree: true });
                 }
             };
-            setupSectorStocksHeatmapObserver();
+            // ==================== RICH DESKTOP PROFILE POPOVER TOGGLE ====================
+            window.toggleDesktopProfilePopover = function(e) {
+                if (e) {
+                    if (e.stopPropagation) e.stopPropagation();
+                    if (e.preventDefault) e.preventDefault();
+                }
+                const popover = document.getElementById('desktop-profile-popover');
+                if (!popover) return;
+                const isCurrentlyVisible = popover.style.display === 'block';
+                popover.style.display = isCurrentlyVisible ? 'none' : 'block';
+            };
+
+            // Global click listener to close profile popover when clicking outside
+            document.addEventListener('click', function(e) {
+                const popover = document.getElementById('desktop-profile-popover');
+                const profileBtn = document.getElementById('desktop-profile-btn');
+                if (popover && popover.style.display === 'block') {
+                    if (profileBtn && profileBtn.contains(e.target)) return;
+                    if (!popover.contains(e.target)) {
+                        popover.style.display = 'none';
+                    }
+                }
+            });
+
+            // Sync Popover Controls with Sidebar Inputs
+            const popoverHorizon = document.getElementById('popover-horizon');
+            const profileHorizon = document.getElementById('profile-horizon');
+            if (popoverHorizon && profileHorizon) {
+                popoverHorizon.value = profileHorizon.value;
+                popoverHorizon.addEventListener('change', () => {
+                    profileHorizon.value = popoverHorizon.value;
+                    const event = new Event('change', { bubbles: true });
+                    profileHorizon.dispatchEvent(event);
+                });
+            }
+
+            const popoverRisk = document.getElementById('popover-risk');
+            const profileRisk = document.getElementById('profile-risk');
+            if (popoverRisk && profileRisk) {
+                popoverRisk.value = profileRisk.value;
+                popoverRisk.addEventListener('change', () => {
+                    profileRisk.value = popoverRisk.value;
+                    const event = new Event('change', { bubbles: true });
+                    profileRisk.dispatchEvent(event);
+                });
+            }
+
+            // ==================== UNIFIED CENTRAL SEARCH ENGINE ====================
+            const desktopSearch = document.getElementById('desktop-global-search');
+            const globalAnalyzeBtn = document.getElementById('desktop-global-analyze-btn');
+            const globalVoiceBtn = document.getElementById('desktop-global-voice-btn');
+            const globalSuggestions = document.getElementById('desktop-global-suggestions');
+
+            const triggerUnifiedAnalysis = (queryText) => {
+                const query = (queryText || (desktopSearch ? desktopSearch.value : '')).trim();
+                if (!query) return;
+
+                const analyzerInput = document.getElementById('analyzer-search-input') || document.getElementById('search-input');
+                const analyzerBtn = document.getElementById('analyzer-search-btn') || document.getElementById('search-btn');
+
+                if (analyzerInput) analyzerInput.value = query;
+
+                if (typeof window.switchTab === 'function') {
+                    window.switchTab('analyzer');
+                } else {
+                    window.location.hash = '#analyzer';
+                }
+
+                if (analyzerBtn) {
+                    setTimeout(() => analyzerBtn.click(), 50);
+                }
+                if (globalSuggestions) globalSuggestions.style.display = 'none';
+            };
+
+            if (desktopSearch) {
+                document.addEventListener('keydown', (e) => {
+                    if (e.key === '/' && document.activeElement.tagName !== 'INPUT' && document.activeElement.tagName !== 'TEXTAREA') {
+                        e.preventDefault();
+                        desktopSearch.focus();
+                    }
+                });
+
+                desktopSearch.addEventListener('keydown', (e) => {
+                    if (e.key === 'Enter') {
+                        e.preventDefault();
+                        triggerUnifiedAnalysis();
+                    }
+                });
+
+                let autocompleteTimeout = null;
+                desktopSearch.addEventListener('input', () => {
+                    const query = desktopSearch.value.trim();
+                    if (autocompleteTimeout) clearTimeout(autocompleteTimeout);
+
+                    if (query.length < 2) {
+                        if (globalSuggestions) globalSuggestions.style.display = 'none';
+                        return;
+                    }
+
+                    autocompleteTimeout = setTimeout(async () => {
+                        try {
+                            const apiBaseUrl = window.location.origin;
+                            const res = await fetch(apiBaseUrl + `/api/search/suggestions?q=${encodeURIComponent(query)}`);
+                            if (res.ok) {
+                                const suggestions = await res.json();
+                                if (globalSuggestions && Array.isArray(suggestions) && suggestions.length > 0) {
+                                    globalSuggestions.innerHTML = '';
+                                    suggestions.forEach(s => {
+                                        const item = document.createElement('div');
+                                        item.className = 'watchlist-autocomplete-item';
+                                        item.style.padding = '8px 12px';
+                                        item.style.cursor = 'pointer';
+                                        item.style.borderBottom = '1px solid var(--border-glass)';
+                                        item.style.fontSize = '12px';
+                                        item.style.display = 'flex';
+                                        item.style.justifyContent = 'space-between';
+                                        item.innerHTML = `<strong>${s.symbol || s.name}</strong> <span style="color:var(--text-muted); font-size:10px;">${s.name || ''}</span>`;
+                                        item.addEventListener('click', () => {
+                                            desktopSearch.value = s.symbol || s.name;
+                                            triggerUnifiedAnalysis(s.symbol || s.name);
+                                        });
+                                        globalSuggestions.appendChild(item);
+                                    });
+                                    globalSuggestions.style.display = 'block';
+                                } else if (globalSuggestions) {
+                                    globalSuggestions.style.display = 'none';
+                                }
+                            }
+                        } catch (e) {}
+                    }, 200);
+                });
+
+                document.addEventListener('click', (e) => {
+                    if (globalSuggestions && e.target !== desktopSearch && !globalSuggestions.contains(e.target)) {
+                        globalSuggestions.style.display = 'none';
+                    }
+                });
+            }
+
+            if (globalAnalyzeBtn) {
+                globalAnalyzeBtn.addEventListener('click', () => triggerUnifiedAnalysis());
+            }
+
+            if (globalVoiceBtn && ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window)) {
+                const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+                const recognition = new SpeechRecognition();
+                recognition.continuous = false;
+                recognition.interimResults = false;
+                recognition.lang = 'en-IN';
+
+                globalVoiceBtn.addEventListener('click', () => {
+                    globalVoiceBtn.style.transform = 'scale(1.3)';
+                    recognition.start();
+                });
+
+                recognition.onresult = (event) => {
+                    const transcript = event.results[0][0].transcript;
+                    if (desktopSearch) desktopSearch.value = transcript;
+                    triggerUnifiedAnalysis(transcript);
+                    globalVoiceBtn.style.transform = 'scale(1)';
+                };
+
+                recognition.onerror = () => {
+                    globalVoiceBtn.style.transform = 'scale(1)';
+                };
+            }
 
             // Global trigger to redraw all active elements once isinMapping is ready
             window.decorateAllActiveElements = () => {
@@ -8719,6 +8884,30 @@
                 if (typeof window.decorateSectorRadar === 'function') window.decorateSectorRadar();
                 if (typeof window.decorateCompare === 'function') window.decorateCompare();
                 if (typeof window.decorateSectorStocksHeatmap === 'function') window.decorateSectorStocksHeatmap();
+            };
+
+            // ==================== DESKTOP NAVBAR SWITCH TAB SYNC WRAPPER ====================
+            const originalSwitchTab = window.switchTab;
+            window.switchTab = function(tabKey) {
+                if (typeof originalSwitchTab === 'function') {
+                    originalSwitchTab(tabKey);
+                } else {
+                    const sections = document.querySelectorAll('.tab-content, .content-section, [id^="tab-"]');
+                    sections.forEach(s => {
+                        if (s.id === `tab-${tabKey}`) s.style.display = 'block';
+                    });
+                }
+
+                // Update active state on desktop navbar buttons
+                const desktopBtns = document.querySelectorAll('.desktop-navbar .nav-btn');
+                desktopBtns.forEach(btn => {
+                    const btnKey = btn.getAttribute('data-tab-key');
+                    if (btnKey === tabKey || btn.id === `tab-${tabKey}-btn-desktop`) {
+                        btn.classList.add('active');
+                    } else {
+                        btn.classList.remove('active');
+                    }
+                });
             };
         } catch(e) {
             console.error("Error invoking additions:", e);

@@ -524,6 +524,7 @@ function connectLiveTicksWS() {
                     const st = (msg.source === 'angel') ? 'live' : 'polling';
                     updateConnectionIndicator(st, msg.source);
                 }
+                if (typeof window.pulseWsDot === 'function') window.pulseWsDot();
                 handleLiveTickMessage(msg.data);
             } else if (msg.type === 'alert_triggered') {
                 handleWsAlertTriggered(msg.alert);
@@ -2179,6 +2180,17 @@ function switchTab(tabKey) {
             }
         }
     });
+
+    // Force scroll to top immediately after DOM display update
+    try {
+        window.scrollTo(0, 0);
+        document.documentElement.scrollTop = 0;
+        document.body.scrollTop = 0;
+        const mainContentEl = document.querySelector('.main-content');
+        if (mainContentEl) mainContentEl.scrollTop = 0;
+        const workspaceTabEl = document.querySelector('.workspace-tab');
+        if (workspaceTabEl) workspaceTabEl.scrollTop = 0;
+    } catch(e) {}
 
     if (tabKey === 'analyzer') {
         const hasStock = activeStockProfile && activeStockProfile.ticker;
