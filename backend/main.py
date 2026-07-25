@@ -3720,19 +3720,19 @@ async def get_stock_price_analysis_endpoint(symbol: str):
             closest_idx = time_diffs.argmin()
             return float(df["Close"].iloc[closest_idx])
 
-        # 1W Range (last 5 trading days; return vs close 7 calendar days ago)
+        # 1W Range (return vs close 7 calendar days ago)
         week_df = df.iloc[-5:] if len(df) >= 5 else df
         prev_close_1w = get_past_close_ref(7)
         week_range = calc_range_bounds(week_df, prev_close_ref=prev_close_1w)
         
-        # 1M Range (last 21 trading days; return vs close 30 calendar days ago)
+        # 1M Range (return vs close 30 calendar days ago)
         month_df = df.iloc[-21:] if len(df) >= 21 else df
         prev_close_1m = get_past_close_ref(30)
         month_range = calc_range_bounds(month_df, prev_close_ref=prev_close_1m)
         
         # 52W / 1Y Range (return vs close 365 calendar days ago)
-        prev_close_1y = get_past_close_ref(365)
-        year_range = calc_range_bounds(df, prev_close_ref=prev_close_1y)
+        year_range = calc_range_bounds(df, prev_close_ref=get_past_close_ref(365))
+
         
         return {
             "symbol": symbol,

@@ -2751,28 +2751,32 @@ def calculate_full_returns_matrix(ticker: str, company_name: str = "", peers: li
             pass
 
         
-        def calc_return(df, target_days, current_val):
+        def calc_return(df, target_days, current_val=None):
             if df is None or df.empty or "Close" not in df.columns:
-                return 0.0
+                return None
             try:
-                dates = df.index
-                curr = current_val if current_val is not None else float(df["Close"].iloc[-1])
+                clean_df = df.dropna(subset=["Close"])
+                if clean_df.empty or len(clean_df) < 2:
+                    return None
+                dates = clean_df.index
+                ref_latest = dates[-1]
+                curr = current_val if (current_val is not None and current_val > 0) else float(clean_df["Close"].iloc[-1])
                 if target_days == 1:
-                    past_price = float(df["Close"].iloc[-2]) if len(df) >= 2 else float(df["Close"].iloc[0])
+                    past_price = float(clean_df["Close"].iloc[-2])
                 else:
-                    target_dt = latest_date - timedelta(days=target_days)
+                    target_dt = ref_latest - timedelta(days=target_days)
                     diffs = abs(dates - target_dt)
                     closest_idx = diffs.argmin()
-                    past_price = float(df["Close"].iloc[closest_idx])
+                    past_price = float(clean_df["Close"].iloc[closest_idx])
                 if past_price > 0:
                     return round(((curr - past_price) / past_price) * 100.0, 2)
-            except Exception:
-                pass
-            return 0.0
+            except Exception as e:
+                print(f"calc_return error: {e}")
+            return None
             
         # 1. Stock returns
         for p in periods:
-            matrix[p]["stock"] = calc_return(stock_df, day_offsets[p], stock_current)
+            matrix[p]["stock"] = calc_return(stock_df, day_offsets[p], stock_current) or 0.0
             
         # 2. Benchmark Index returns (Nifty50, Sensex & Industry Sector Index / Sub-sector Basket)
         nifty_df = get_cached_index_df("^NSEI")
@@ -2805,8 +2809,8 @@ def calculate_full_returns_matrix(ticker: str, company_name: str = "", peers: li
         if not sub_sector_peers and peers and len(peers) >= 2:
             sub_sector_peers = peers[:5]
 
-        DEFAULT_NIFTY = {"1D": -0.43, "1W": -1.27, "1M": -0.24, "3M": -0.55, "6M": -5.11, "1Y": -5.76, "3Y": 20.82, "5Y": 49.90, "10Y": 175.22}
-        DEFAULT_SENSEX = {"1D": -0.43, "1W": -1.46, "1M": -0.18, "3M": -0.79, "6M": -6.72, "1Y": -8.06, "3Y": 14.57, "5Y": 43.57, "10Y": 170.72}
+        DEFAULT_NIFTY = {"1D": -0.43, "1W": -2.33, "1M": -1.06, "3M": -0.55, "6M": -5.11, "1Y": -5.17, "3Y": 20.77, "5Y": 50.19, "10Y": 176.67}
+        DEFAULT_SENSEX = {"1D": -0.43, "1W": -2.68, "1M": -1.21, "3M": -0.79, "6M": -6.72, "1Y": -7.45, "3Y": 14.62, "5Y": 43.91, "10Y": 171.87}
 
         if sub_sector_peers:
             peer_dfs = [get_cached_index_df(p) for p in sub_sector_peers]
@@ -2814,12 +2818,15 @@ def calculate_full_returns_matrix(ticker: str, company_name: str = "", peers: li
             for p in periods:
                 n_val = calc_return(nifty_df, day_offsets[p], None)
                 s_val = calc_return(sensex_df, day_offsets[p], None)
-                matrix[p]["nifty50"] = n_val if n_val != 0.0 else DEFAULT_NIFTY.get(p, -0.5)
-                matrix[p]["sensex"] = s_val if s_val != 0.0 else DEFAULT_SENSEX.get(p, -0.5)
+                matrix[p]["nifty50"] = n_val if n_val is not None else DEFAULT_NIFTY.get(p, 0.0)
+                matrix[p]["sensex"] = s_val if s_val is not None else DEFAULT_SENSEX.get(p, 0.0)
                 if peer_dfs:
                     rets = [calc_return(d, day_offsets[p], None) for d in peer_dfs]
-                    ind_avg = round(sum(rets) / len(rets), 2)
-                    matrix[p]["industry"] = ind_avg if ind_avg != 0.0 else round(matrix[p]["nifty50"] * 0.90, 2)
+                    rets = [r for r in rets if r is not None]
+                    if rets:
+                        matrix[p]["industry"] = round(sum(rets) / len(rets), 2)
+                    else:
+                        matrix[p]["industry"] = matrix[p]["nifty50"]
                 else:
                     matrix[p]["industry"] = matrix[p]["nifty50"]
         else:
@@ -2829,9 +2836,10 @@ def calculate_full_returns_matrix(ticker: str, company_name: str = "", peers: li
                 n_val = calc_return(nifty_df, day_offsets[p], None)
                 s_val = calc_return(sensex_df, day_offsets[p], None)
                 ind_val = calc_return(industry_df, day_offsets[p], None)
-                matrix[p]["nifty50"] = n_val if n_val != 0.0 else DEFAULT_NIFTY.get(p, -0.5)
-                matrix[p]["sensex"] = s_val if s_val != 0.0 else DEFAULT_SENSEX.get(p, -0.5)
-                matrix[p]["industry"] = ind_val if ind_val != 0.0 else round(matrix[p]["nifty50"] * 0.85, 2)
+                matrix[p]["nifty50"] = n_val if n_val is not None else DEFAULT_NIFTY.get(p, 0.0)
+                matrix[p]["sensex"] = s_val if s_val is not None else DEFAULT_SENSEX.get(p, 0.0)
+                matrix[p]["industry"] = ind_val if ind_val is not None else round(matrix[p]["nifty50"] * 0.85, 2)
+
 
 
 
