@@ -4554,8 +4554,9 @@ function renderPePriceTrendChart(period = '3y', isModal = false) {
     // Update titles
     const titleEl = document.getElementById(isModal ? 'pe-modal-stock-title' : 'pe-chart-stock-title');
     if (titleEl) {
-        titleEl.innerText = isModal ? `${tickerName} - PE TTM Price to Earnings` : `${tickerName} - PE TTM Price to Earnings`;
+        titleEl.innerText = `${tickerName} - PE TTM Price to Earnings`;
     }
+
 
     const peBands = profile.pe_bands || {};
     let rawHistory = peBands.pe_history || [];
@@ -4854,8 +4855,9 @@ function renderPegPriceTrendChart(period = '3y', isModal = false) {
     // Update titles
     const titleEl = document.getElementById(isModal ? 'peg-modal-stock-title' : 'peg-chart-stock-title');
     if (titleEl) {
-        titleEl.innerHTML = isModal ? `${tickerName} - PEG TTM PE to Growth <span style="font-size: 13px;">👑</span>` : `${tickerName} - PEG TTM PE to Growth <span style="font-size: 13px;">👑</span>`;
+        titleEl.innerHTML = `${tickerName} - PEG TTM PE to Growth <span style="font-size: 13px;">👑</span>`;
     }
+
 
     const peBands = profile.pe_bands || {};
     let rawHistory = peBands.pe_history || [];
@@ -17701,6 +17703,10 @@ function refreshChartThemeColors() {
     if (typeof updateLightweightChartsThemeColors === 'function') {
         updateLightweightChartsThemeColors();
     }
+    if (typeof window.redrawFinancialTrendChart === 'function') {
+        window.redrawFinancialTrendChart();
+    }
+
     // Re-render the advanced TradingView widget if active to match theme toggle
     const activeSubtabBtn = document.querySelector('.subtab-btn.active');
     if (activeSubtabBtn && activeSubtabBtn.getAttribute('data-subtab') === 'tv-advanced') {
@@ -51216,7 +51222,7 @@ window.renderReturnsView = function(period) {
             <div style="display: flex; flex-direction: column; gap: 14px; padding: 10px 4px 4px 4px; width: 100%; box-sizing: border-box; position: relative;">
                 
                 <!-- Theme-Adaptive Background Dashed Gridlines (Visible in both Light & Dark Theme) -->
-                <div style="position: absolute; top: 10px; bottom: 26px; left: 65px; right: 15px; z-index: 1; pointer-events: none;">
+                <div style="position: absolute; top: 10px; bottom: 26px; left: 56px; right: 40px; z-index: 1; pointer-events: none;">
                     <div style="position: absolute; left: 0%; top: 0; bottom: 0; border-left: 1px dashed var(--text-muted); opacity: 0.25;"></div>
                     <div style="position: absolute; left: 49%; top: 0; bottom: 0; border-left: 1.5px dashed var(--text-muted); opacity: 0.35;"></div>
                     <div style="position: absolute; left: 66%; top: 0; bottom: 0; border-left: 1.5px dashed var(--text-muted); opacity: 0.35;"></div>
@@ -51231,8 +51237,8 @@ window.renderReturnsView = function(period) {
             const valStr = `${item.val.toFixed(2)}%`;
             const color = isPos ? '#00b050' : '#ff4d4d'; // Solid Trendlyne Emerald Green & Crimson Red
 
-            // Width scaling (32% space for negative, 68% for positive)
-            const pctWidth = isPos ? Math.min((absVal / maxPos) * 60, 60) : Math.min((absVal / maxNeg) * 24, 24);
+            // Width scaling (32% space for negative, 68% space for positive - 48% max bar width to leave room for text labels)
+            const pctWidth = isPos ? Math.min((absVal / maxPos) * 48, 48) : Math.min((absVal / maxNeg) * 22, 22);
 
             const isStock = item.label === 'Stock';
             const tooltipHtml = isStock ? `
@@ -51251,19 +51257,19 @@ window.renderReturnsView = function(period) {
                     white-space: nowrap;
                     z-index: 10;
                 ">
-                    Stock ${period}: ${item.val.toFixed(2)}
+                    Stock ${period}: ${item.val.toFixed(2)}%
                 </div>
             ` : '';
 
             chartHtml += `
                 <div style="display: flex; align-items: center; height: 26px; width: 100%; position: relative; z-index: 4;">
-                    <!-- Responsive 65px Left Row Label Column -->
-                    <div style="width: 65px; min-width: 65px; text-align: right; padding-right: 8px; color: var(--text-primary); font-size: 10.5px; font-weight: 700; font-family: var(--font-heading); box-sizing: border-box; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                    <!-- Responsive 56px Left Row Label Column -->
+                    <div style="width: 56px; min-width: 56px; text-align: right; padding-right: 6px; color: var(--text-primary); font-size: 10px; font-weight: 700; font-family: var(--font-heading); box-sizing: border-box; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
                         ${item.label}
                     </div>
                     
                     <!-- Track Area Container -->
-                    <div style="flex: 1; position: relative; height: 100%; display: flex; align-items: center; box-sizing: border-box; margin-right: 15px;">
+                    <div style="flex: 1; position: relative; height: 100%; display: flex; align-items: center; box-sizing: border-box; margin-right: 40px;">
                         
                         <!-- Theme-Adaptive Solid Vertical Zero Reference Line (Passes cleanly down 32%) -->
                         <div style="
@@ -51295,9 +51301,9 @@ window.renderReturnsView = function(period) {
                         <!-- Value Text Label Placement -->
                         <span style="
                             position: absolute;
-                            ${isPos ? `left: calc(32% + ${pctWidth}% + 6px);` : `right: calc(68% + ${pctWidth}% + 6px);`}
+                            ${isPos ? `left: calc(32% + ${pctWidth}% + 4px);` : `right: calc(68% + ${pctWidth}% + 4px);`}
                             color: ${color};
-                            font-size: 10.5px;
+                            font-size: 10px;
                             font-weight: 800;
                             white-space: nowrap;
                             transition: all 0.4s ease-out;
@@ -51309,7 +51315,7 @@ window.renderReturnsView = function(period) {
 
         // X-Axis Numeric Tick Labels at Bottom (100% aligned with Zero Line & Gridlines)
         chartHtml += `
-                <div style="position: relative; margin-left: 65px; margin-right: 15px; height: 18px; font-size: 9.5px; color: var(--text-secondary); font-weight: 700; border-top: 1px solid var(--border-glass); padding-top: 4px; margin-top: 4px;">
+                <div style="position: relative; margin-left: 56px; margin-right: 40px; height: 18px; font-size: 9px; color: var(--text-secondary); font-weight: 700; border-top: 1px solid var(--border-glass); padding-top: 4px; margin-top: 4px;">
                     <span style="position: absolute; left: 0%; transform: translateX(0%);">-${maxNeg.toFixed(0)}</span>
                     <span style="position: absolute; left: 32%; transform: translateX(-50%); color: var(--text-primary); font-weight: 800;">0</span>
                     <span style="position: absolute; left: 49%; transform: translateX(-50%);">${(maxPos * 0.25).toFixed(0)}</span>
@@ -51322,6 +51328,7 @@ window.renderReturnsView = function(period) {
 
         barsWrapper.innerHTML = chartHtml;
     }
+
 
     // 4. Render Returns Matrix Table (5 Columns: PERIOD, STOCK, NIFTY50, SENSEX, INDUSTRY)
     const tbody = document.getElementById('returns-matrix-tbody');

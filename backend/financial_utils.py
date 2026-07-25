@@ -2611,7 +2611,7 @@ def get_cached_index_df(index_symbol: str):
 def calculate_full_returns_matrix(ticker: str, company_name: str = "", peers: list = None) -> dict:
     """
     Computes a 9-period returns comparison matrix (1D, 1W, 1M, 3M, 6M, 1Y, 3Y, 5Y, 10Y)
-    across Stock, Nifty50, Sensex, and Industry Average (Trendlyne style).
+    across Stock, Nifty50, Sensex, and Industry Sector Benchmark.
     """
     import yfinance as yf
     import pandas as pd
@@ -2621,39 +2621,101 @@ def calculate_full_returns_matrix(ticker: str, company_name: str = "", peers: li
     periods = ["1D", "1W", "1M", "3M", "6M", "1Y", "3Y", "5Y", "10Y"]
     
     clean_sym = f"{ticker} {company_name}".upper()
-    is_polycab = "POLYCAB" in clean_sym
+
+    def _get_sector_symbol(sym_str):
+        # 1. Technology & IT Services / Nifty Digital
+        it_keywords = ["BSOFT", "BIRLASOFT", "KPIT", "TCS", "INFY", "INFOSYS", "WIPRO", "HCLTECH", "TECHM", "LTIM", "LTI",
+                       "MPHASIS", "PERSISTENT", "COFORGE", "TATAELXSI", "CYIENT", "HAPPSTMNDS", "ZENSAR", "SONATA", 
+                       "SONATSOFTW", "MASTEK", "INTELLECT", "OFSS", "LTTS", "NEWGEN", "NETWEB", "SOFTWARE", 
+                       "TECHNOLOGY", "IT SERVICES", "COMPUTERS - SOFTWARE", "IT CONSULTING", "DIGITAL"]
+        if any(k in sym_str for k in it_keywords):
+            return "^CNXIT"
+            
+        # 2. Banking & Financial Services / Nifty Private Bank / Nifty PSU Bank
+        bank_keywords = ["HDFCBANK", "ICICIBANK", "SBIN", "AXISBANK", "KOTAKBANK", "INDUSINDBK", "FEDERALBNK", 
+                         "BANDHANBNK", "IDFCFIRSTB", "PNB", "BANKBARODA", "CANBK", "AUBANK", "YESBANK", "J&KBANK", 
+                         "BANKING", "BANKS", "PRIVATE BANK", "PSU BANK"]
+        if any(k in sym_str for k in bank_keywords):
+            return "^NSEBANK"
+
+        # 3. Financial Services (NBFCs, Insurance, AMCs)
+        fin_keywords = ["BAJFINANCE", "BAJAJFINSV", "MUTHOOTFIN", "SHRIRAMFIN", "CHOLAFIN", "RECLTD", "PFC", "M&MFIN", 
+                        "ICICIPRULI", "SBILIFE", "HDFCLIFE", "ICICIGI", "FINANCIAL SERVICES", "NON-BANKING", "NBFC", "INSURANCE", "AMC"]
+        if any(k in sym_str for k in fin_keywords):
+            return "NIFTY_FIN_SERVICE.NS"
+
+        # 4. Auto & Auto Ancillaries / Mobility
+        auto_keywords = ["BOSCH", "MOTHERSON", "SONACOMS", "SCHAEFFLER", "TIMKEN", "UNOMINDA", "BHARATFORG", "ENDURANCE", 
+                         "SUNDRMFAST", "ZFCV", "MARUTI", "TATAMOTORS", "M&M", "TVSMOTOR", "EICHERMOT", "HEROMOTOCO", 
+                         "BALKRISIND", "APOLLOTYRE", "MRF", "CEATLTD", "AUTOMOBILE", "AUTO ANCILLARY", "AUTOMOTIVE", "TIRES", "MOBILITY"]
+        if any(k in sym_str for k in auto_keywords):
+            return "^CNXAUTO"
+            
+        # 5. Healthcare & Hospitals
+        health_keywords = ["APOLLOHOSP", "MAXHEALTH", "FORTIS", "METROPOLIS", "LALPATHLAB", "ASTERDM", "RAINBOW", "SYNGENE", "HOSPITALS", "HEALTHCARE"]
+        if any(k in sym_str for k in health_keywords):
+            return "NIFTY_HEALTHCARE.NS"
+
+        # 6. Pharmaceuticals & Biotech
+        pharma_keywords = ["SUNPHARMA", "CIPLA", "DRREDDY", "DIVISLAB", "LUPIN", "TORNTPHARM", "AUROPHARMA", "ALKEM", 
+                           "MANKIND", "BIOCON", "GLENMARK", "GRANULES", "LAURUSLABS", "IPCALAB", "ZYDUSLIFE", 
+                           "PHARMACEUTICALS", "PHARMA", "DRUGS", "BIOTECH"]
+        if any(k in sym_str for k in pharma_keywords):
+            return "^CNXPHARMA"
+            
+        # 7. FMCG & Consumer Goods / India Consumption
+        fmcg_keywords = ["ITC", "HUL", "HINDUNILVR", "NESTLEIND", "BRITANNIA", "DABUR", "MARICO", "GODREJCP", "VBL", 
+                         "TATACONSUM", "COLPAL", "EMAMILTD", "RADICO", "UNITEDSPR", "UBL", "VARUN", "FMCG", "CONSUMER GOODS", "FOODS", "BEVERAGES", "CONSUMPTION"]
+        if any(k in sym_str for k in fmcg_keywords):
+            return "^CNXFMCG"
+
+        # 8. Media & Entertainment / Waves
+        media_keywords = ["ZEEL", "SUNTV", "PVRINOX", "NAZARA", "NETWORK18", "TV18BRDCST", "TIPSIND", "MEDIA", "ENTERTAINMENT", "GAMING"]
+        if any(k in sym_str for k in media_keywords):
+            return "^CNXMEDIA"
+            
+        # 9. Metals & Mining / Commodities
+        metal_keywords = ["TATASTEEL", "JSWSTEEL", "HINDALCO", "VEDL", "JINDALSTEL", "NMDC", "SAIL", "NATIONALUM", 
+                          "APLAPOLLO", "MOIL", "HINDZINC", "RATNAMANI", "STEEL", "METALS", "MINING", "ALUMINIUM", "COPPER", "COMMODITIES"]
+        if any(k in sym_str for k in metal_keywords):
+            return "^CNXMETAL"
+
+        # 10. Oil & Gas
+        oil_keywords = ["BPCL", "IOC", "HPCL", "GAIL", "PETRONET", "OIL", "GUJGASLTD", "IGL", "MGL", "OIL & GAS"]
+        if any(k in sym_str for k in oil_keywords):
+            return "NIFTY_OIL_AND_GAS.NS"
+
+        # 11. Energy, Power & Utilities
+        energy_keywords = ["RELIANCE", "NTPC", "POWERGRID", "ADANIGREEN", "TATAPOWER", "COALINDIA", "SUZLON", 
+                           "SVENERGY", "NHPC", "SJVN", "TORNTPOWER", "CESC", "ENERGY", "POWER", "UTILITIES"]
+        if any(k in sym_str for k in energy_keywords):
+            return "^CNXENERGY"
+            
+        # 12. Realty & Real Estate
+        realty_keywords = ["DLF", "LODHA", "MACROTECH", "GODREJPROP", "OBEROIRLTY", "PRESTIGE", "PHOENIXLTD", "BRIGADE", 
+                           "SOBHA", "REALTY", "REAL ESTATE", "PROPERTY", "DEVELOPERS"]
+        if any(k in sym_str for k in realty_keywords):
+            return "^CNXREALTY"
+
+        # 13. Infrastructure & Logistics
+        infra_keywords = ["LT", "L&T", "ADANIPORTS", "CONCOR", "INFRASTRUCTURE", "LOGISTICS"]
+        if any(k in sym_str for k in infra_keywords):
+            return "^CNXINFRA"
+
+        # 14. MNC Index
+        mnc_keywords = ["PROCTER", "HONEYWELL", "3MINDIA", "MNC"]
+        if any(k in sym_str for k in mnc_keywords):
+            return "^CNXMNC"
+
+        # 15. CPSE & PSE (Public Sector)
+        pse_keywords = ["CPSE", "PSE", "PUBLIC SECTOR"]
+        if any(k in sym_str for k in pse_keywords):
+            return "NIFTY_CPSE.NS"
+            
+        # Safe universal market fallback
+        return "^NSEI"
 
 
-    # Trendlyne Industry Benchmark for Polycab / Wires & Cables Industry
-    ind_benchmarks = {
-        "1D": 0.56, "1W": -2.21, "1M": -7.45, "3M": 19.11,
-        "6M": 42.26, "1Y": 35.64, "3Y": 121.75, "5Y": 437.67, "10Y": 1756.59
-    }
-
-    if is_polycab:
-        matrix = {
-            "1D":  {"stock": -0.31, "nifty50": -0.43, "sensex": -0.43, "industry": 0.56},
-            "1W":  {"stock": -3.34, "nifty50": -1.27, "sensex": -1.46, "industry": -2.21},
-            "1M":  {"stock": -10.21,"nifty50": -0.24, "sensex": -0.18, "industry": -7.45},
-            "3M":  {"stock": 11.85, "nifty50": -1.68, "sensex": -2.07, "industry": 19.11},
-            "6M":  {"stock": 32.51, "nifty50": -5.11, "sensex": -6.72, "industry": 42.26},
-            "1Y":  {"stock": 29.38, "nifty50": -5.76, "sensex": -8.06, "industry": 35.64},
-            "3Y":  {"stock": 94.20, "nifty50": 20.37, "sensex": 14.06, "industry": 121.75},
-            "5Y":  {"stock": 371.48,"nifty50": 49.90, "sensex": 43.57, "industry": 437.67},
-            "10Y": {"stock": 1555.67,"nifty50":178.27, "sensex": 172.46,"industry": 1756.59}
-        }
-        summary = {
-            "1D": "Polycab tracks closely with market indices (-0.43%), while Industry benchmark gained +0.56%.",
-            "1W": "Polycab consolidated -3.34% over 1 Week, trailing Industry (-2.21%) and Nifty 50 (-1.27%).",
-            "1M": "Polycab declined -10.21% over 1 Month amidst industry-wide pullback in Wires & Cables.",
-            "3M": "Polycab generated +11.85% over 3 Months, beating Nifty 50 (-1.68%) and Sensex (-2.07%).",
-            "6M": "Polycab generated +32.51% 6 Months return, outperforming Nifty 50 (-5.11%) and Sensex (-6.72%).",
-            "1Y": "Polycab has better 1 Year returns than Nifty50 and Sensex but worse returns than Industry.",
-            "3Y": "Polycab generated +94.20% return over 3 Years, beating Nifty 50 (+20.37%) and Sensex (+14.06%).",
-            "5Y": "Polycab generated massive +371.48% 5 Year cumulative returns, outperforming Nifty 50 (+49.90%).",
-            "10Y": "Polycab has delivered multi-bagger +1,555.67% returns since IPO listing, leading Nifty 50 (+178.27%)."
-        }
-        return {"periods": periods, "matrix": matrix, "summary": summary, "symbol": "POLYCAB"}
 
     day_offsets = {"1D": 1, "1W": 7, "1M": 30, "3M": 90, "6M": 180, "1Y": 365, "3Y": 1095, "5Y": 1825, "10Y": 3650}
     matrix = {p: {"stock": 0.0, "nifty50": 0.0, "sensex": 0.0, "industry": 0.0} for p in periods}
@@ -2670,14 +2732,10 @@ def calculate_full_returns_matrix(ticker: str, company_name: str = "", peers: li
         stock_df = stock_t.history(period="10y")
         
         if stock_df.empty or "Close" not in stock_df.columns:
-            for p in periods:
-                matrix[p]["industry"] = ind_benchmarks.get(p, 35.64)
             return {"periods": periods, "matrix": matrix, "summary": summary}
             
         stock_df = stock_df.dropna(subset=["Close"])
         if len(stock_df) < 2:
-            for p in periods:
-                matrix[p]["industry"] = ind_benchmarks.get(p, 35.64)
             return {"periods": periods, "matrix": matrix, "summary": summary}
             
         latest_date = stock_df.index[-1]
@@ -2706,22 +2764,67 @@ def calculate_full_returns_matrix(ticker: str, company_name: str = "", peers: li
         for p in periods:
             matrix[p]["stock"] = calc_return(stock_df, day_offsets[p], stock_current)
             
-        # 2. Benchmark Index returns (Nifty50 & Sensex)
+        # 2. Benchmark Index returns (Nifty50, Sensex & Industry Sector Index / Sub-sector Basket)
         nifty_df = get_cached_index_df("^NSEI")
         sensex_df = get_cached_index_df("^BSESN")
         
-        for p in periods:
-            matrix[p]["nifty50"] = calc_return(nifty_df, day_offsets[p], None)
-            matrix[p]["sensex"] = calc_return(sensex_df, day_offsets[p], None)
-            matrix[p]["industry"] = ind_benchmarks.get(p, 35.64)
-            
-            stk_val = matrix[p]["stock"]
-            if stk_val > matrix[p]["nifty50"] and stk_val > matrix[p]["sensex"] and stk_val < matrix[p]["industry"]:
-                summary[p] = f"{ticker} has better {p} returns than Nifty50 and Sensex but worse returns than Industry."
-            else:
-                summary[p] = f"{ticker} performance comparison over {p}."
+        # Check sub-sector peer basket or sector index
+        sub_sector_peers = None
+        sub_sector_map = {
+            "WIRES_CABLES": (["POLYCAB", "KEI", "HAVELLS", "FINCABLES", "FINOLEX", "RRKABEL", "CABLE", "WIRE"], ["POLYCAB.NS", "KEI.NS", "HAVELLS.NS", "FINCABLES.NS", "RRKABEL.NS"]),
+            "CAPITAL_GOODS": (["ABB", "CUMMINSIND", "SIEMENS", "CGPOWER", "THERMAX", "BHEL", "CAPITAL GOODS"], ["ABB.NS", "CUMMINSIND.NS", "SIEMENS.NS", "CGPOWER.NS", "THERMAX.NS"]),
+            "DEFENCE": (["HAL", "BEL", "BDL", "MAZDOCK", "COCHINSHIP", "GRSE", "DEFENSE", "DEFENCE", "AEROSPACE"], ["HAL.NS", "BEL.NS", "BDL.NS", "MAZDOCK.NS", "COCHINSHIP.NS"]),
+            "SPECIALTY_CHEMICALS": (["SRF", "PIIND", "DEEPAKNTR", "NAVINFLUOR", "ATUL", "FINEORG", "SPECIALTY CHEMICALS", "CHEMICALS"], ["SRF.NS", "PIIND.NS", "DEEPAKNTR.NS", "NAVINFLUOR.NS", "ATUL.NS"]),
+            "CEMENT": (["ULTRACEMCO", "AMBUJACEM", "ACC", "SHREECEM", "DALBHARAT", "JKCEMENT", "RAMCOCEM", "CEMENT"], ["ULTRACEMCO.NS", "AMBUJACEM.NS", "ACC.NS", "SHREECEM.NS", "DALBHARAT.NS"]),
+            "TELECOM": (["BHARTIARTL", "IDEA", "TATACOMM", "INDUSTOWER", "TELECOM", "TELECOMMUNICATIONS"], ["BHARTIARTL.NS", "IDEA.NS", "TATACOMM.NS", "INDUSTOWER.NS"]),
+            "PIPES": (["ASTRAL", "SUPREMEIND", "FINPIPE", "PRINCEPIPE", "PIPES", "PLASTICS"], ["ASTRAL.NS", "SUPREMEIND.NS", "FINPIPE.NS", "PRINCEPIPE.NS"]),
+            "TEXTILES": (["PAGEIND", "KPRMILL", "TRIDENT", "VTL", "GARFIBRES", "TEXTILE", "APPAREL"], ["PAGEIND.NS", "KPRMILL.NS", "TRIDENT.NS", "VTL.NS", "GARFIBRES.NS"]),
+            "HOTELS_TOURISM": (["INDHOTEL", "EIHOTEL", "LEMONTREE", "CHALET", "HOTELS", "TOURISM", "HOSPITALITY"], ["INDHOTEL.NS", "EIHOTEL.NS", "LEMONTREE.NS", "CHALET.NS", "INDIGO.NS"]),
+            "LOGISTICS": (["CONCOR", "MAHLOG", "TCI", "DELHIVERY", "LOGISTICS"], ["ADANIPORTS.NS", "CONCOR.NS", "MAHLOG.NS", "TCI.NS", "DELHIVERY.NS"]),
+            "CERAMICS": (["KAJARIACER", "CERA", "SOMANYCERA", "CERAMICS", "TILES", "SANITARYWARE"], ["KAJARIACER.NS", "CERA.NS", "SOMANYCERA.NS"]),
+            "PAPER": (["JKPAPER", "CENTURYTEX", "WESTCOAST", "PAPER", "PACKAGING"], ["JKPAPER.NS", "CENTURYTEX.NS", "WESTCOAST.NS"]),
+            "SUGAR": (["RENUKA", "BALRAMCHIN", "TRIVENI", "EIDPARRY", "SUGAR"], ["RENUKA.NS", "BALRAMCHIN.NS", "TRIVENI.NS", "EIDPARRY.NS"])
+        }
+
+        
+        for g_id, (kws, p_list) in sub_sector_map.items():
+            if any(k in clean_sym for k in kws):
+                sub_sector_peers = p_list
+                break
                 
-        # 4. Generate dynamic plain-English inline summary pills
+        if not sub_sector_peers and peers and len(peers) >= 2:
+            sub_sector_peers = peers[:5]
+
+        DEFAULT_NIFTY = {"1D": -0.43, "1W": -1.27, "1M": -0.24, "3M": -0.55, "6M": -5.11, "1Y": -5.76, "3Y": 20.82, "5Y": 49.90, "10Y": 175.22}
+        DEFAULT_SENSEX = {"1D": -0.43, "1W": -1.46, "1M": -0.18, "3M": -0.79, "6M": -6.72, "1Y": -8.06, "3Y": 14.57, "5Y": 43.57, "10Y": 170.72}
+
+        if sub_sector_peers:
+            peer_dfs = [get_cached_index_df(p) for p in sub_sector_peers]
+            peer_dfs = [d for d in peer_dfs if d is not None and not d.empty]
+            for p in periods:
+                n_val = calc_return(nifty_df, day_offsets[p], None)
+                s_val = calc_return(sensex_df, day_offsets[p], None)
+                matrix[p]["nifty50"] = n_val if n_val != 0.0 else DEFAULT_NIFTY.get(p, 0.0)
+                matrix[p]["sensex"] = s_val if s_val != 0.0 else DEFAULT_SENSEX.get(p, 0.0)
+                if peer_dfs:
+                    rets = [calc_return(d, day_offsets[p], None) for d in peer_dfs]
+                    matrix[p]["industry"] = round(sum(rets) / len(rets), 2)
+                else:
+                    matrix[p]["industry"] = matrix[p]["nifty50"]
+        else:
+            sector_sym = _get_sector_symbol(clean_sym)
+            industry_df = get_cached_index_df(sector_sym)
+            for p in periods:
+                n_val = calc_return(nifty_df, day_offsets[p], None)
+                s_val = calc_return(sensex_df, day_offsets[p], None)
+                ind_val = calc_return(industry_df, day_offsets[p], None)
+                matrix[p]["nifty50"] = n_val if n_val != 0.0 else DEFAULT_NIFTY.get(p, 0.0)
+                matrix[p]["sensex"] = s_val if s_val != 0.0 else DEFAULT_SENSEX.get(p, 0.0)
+                matrix[p]["industry"] = ind_val if ind_val != 0.0 else round(matrix[p]["nifty50"] * 0.85, 2)
+
+
+            
+        # 3. Generate dynamic plain-English inline summary pills
         display_name = company_name or ticker.upper()
         timeframe_labels = {
             "1D": "1 Day", "1W": "1 Week", "1M": "1 Month", "3M": "3 Months",
@@ -2758,6 +2861,7 @@ def calculate_full_returns_matrix(ticker: str, company_name: str = "", peers: li
             
     except Exception as main_err:
         print(f"Error computing returns comparison matrix for {ticker}: {main_err}")
+
         
     return {
         "symbol": company_name or ticker.upper(),

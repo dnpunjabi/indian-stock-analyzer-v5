@@ -21980,12 +21980,38 @@ body.light-mode #returns-matrix-tbody tr:hover {
     border-radius: 4px !important;
 }
 
-@media (max-width: 480px) {
+@media (max-width: 600px) {
+    .returns-timeline-switcher {
+        display: flex !important;
+        overflow-x: auto !important;
+        white-space: nowrap !important;
+        scrollbar-width: none !important;
+        -webkit-overflow-scrolling: touch !important;
+        padding: 4px !important;
+        gap: 4px !important;
+    }
+    .returns-timeline-switcher::-webkit-scrollbar {
+        display: none !important;
+    }
     .returns-tab-btn {
-        font-size: 8.5px !important;
-        padding: 4px 0px !important;
+        flex: 0 0 auto !important;
+        min-width: 38px !important;
+        padding: 6px 10px !important;
+        font-size: 11px !important;
+        font-weight: 700 !important;
+    }
+    .returns-table-wrapper table th,
+    .returns-table-wrapper table td {
+        padding: 7px 6px !important;
+        font-size: 10.5px !important;
+        white-space: nowrap !important;
+    }
+    #returns-inline-pill {
+        flex-wrap: wrap !important;
+        padding: 8px 10px !important;
     }
 }
+
 
 
 

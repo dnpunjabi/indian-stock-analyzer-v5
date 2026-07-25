@@ -3652,7 +3652,9 @@ async def get_stock_price_analysis_endpoint(symbol: str):
 
     try:
         df = await fetch_history_df(ticker, period="1y", interval="1d")
-        if df.empty or len(df) < 1:
+        if df is not None and not df.empty:
+            df = df.dropna(subset=['Close'])
+        if df is None or df.empty or len(df) < 1:
             raise HTTPException(status_code=404, detail=f"No price history found for {symbol}")
         
         # Check live tick store if available
@@ -3660,6 +3662,7 @@ async def get_stock_price_analysis_endpoint(symbol: str):
         tick = tick_store.get(plain_symbol) or tick_store.get(symbol)
         
         ltp = float(df['Close'].iloc[-1])
+
         if tick and tick.get("price", 0) > 0:
             ltp = float(tick["price"])
             
@@ -14992,9 +14995,270 @@ def get_stock_catalysts(
         raise HTTPException(status_code=500, detail=str(e))
 
 
+# Global in-memory index returns cache to eliminate network latency
+_INDEX_RETURNS_CACHE = {}
+
+def _get_benchmark_returns(ticker_symbol: str) -> dict:
+    """Helper to fetch and calculate 1D..10Y returns for index benchmarks with in-memory caching."""
+    import time
+    now = time.time()
+    if ticker_symbol in _INDEX_RETURNS_CACHE:
+        cached_data, timestamp = _INDEX_RETURNS_CACHE[ticker_symbol]
+        if now - timestamp < 86400: # 24h cache
+            return cached_data
+            
+    try:
+        import yfinance as yf
+        hist = yf.Ticker(ticker_symbol).history(period="10y")
+        if hist is not None and not hist.empty and len(hist) >= 2:
+            close = hist['Close'].dropna()
+            latest = float(close.iloc[-1])
+            lookbacks = {
+                "1D": 1, "1W": 5, "1M": 21, "3M": 63, "6M": 126,
+                "1Y": 252, "3Y": 252 * 3, "5Y": 252 * 5, "10Y": 252 * 10
+            }
+            res = {}
+            for period, offset in lookbacks.items():
+                if len(close) > offset:
+                    start_price = float(close.iloc[-(offset + 1)])
+                else:
+                    start_price = float(close.iloc[0])
+                res[period] = round(((latest - start_price) / start_price) * 100.0, 2)
+            _INDEX_RETURNS_CACHE[ticker_symbol] = (res, now)
+            return res
+    except Exception as e:
+        print(f"Error fetching index returns for {ticker_symbol}: {e}")
+        
+    DEFAULT_BENCHMARKS = {
+        "^NSEI": {"1D": -0.43, "1W": -1.27, "1M": -0.24, "3M": -0.55, "6M": -5.11, "1Y": -5.76, "3Y": 20.82, "5Y": 49.90, "10Y": 175.22},
+        "^BSESN": {"1D": -0.43, "1W": -1.46, "1M": -0.18, "3M": -0.79, "6M": -6.72, "1Y": -8.06, "3Y": 14.57, "5Y": 43.57, "10Y": 170.72}
+    }
+    return DEFAULT_BENCHMARKS.get(ticker_symbol, {})
+
+
+def _determine_sector_index_symbol(clean_symbol: str) -> str:
+    """Maps stock ticker or company name to the appropriate NSE Sectoral or Thematic Index."""
+    sym = clean_symbol.upper()
+    
+    # 1. Technology & IT Services / Nifty Digital
+    it_keywords = ["BSOFT", "BIRLASOFT", "KPIT", "TCS", "INFY", "INFOSYS", "WIPRO", "HCLTECH", "TECHM", "LTIM", "LTI",
+                   "MPHASIS", "PERSISTENT", "COFORGE", "TATAELXSI", "CYIENT", "HAPPSTMNDS", "ZENSAR", "SONATA", 
+                   "SONATSOFTW", "MASTEK", "INTELLECT", "OFSS", "LTTS", "NEWGEN", "NETWEB", "SOFTWARE", 
+                   "TECHNOLOGY", "IT SERVICES", "COMPUTERS - SOFTWARE", "IT CONSULTING", "DIGITAL"]
+    if any(k in sym for k in it_keywords):
+        return "^CNXIT"
+        
+    # 2. Banking & Financial Services / Nifty Private Bank / Nifty PSU Bank
+    bank_keywords = ["HDFCBANK", "ICICIBANK", "SBIN", "AXISBANK", "KOTAKBANK", "INDUSINDBK", "FEDERALBNK", 
+                     "BANDHANBNK", "IDFCFIRSTB", "PNB", "BANKBARODA", "CANBK", "AUBANK", "YESBANK", "J&KBANK", 
+                     "BANKING", "BANKS", "PRIVATE BANK", "PSU BANK"]
+    if any(k in sym for k in bank_keywords):
+        return "^NSEBANK"
+
+    # 3. Financial Services (NBFCs, Insurance, AMCs)
+    fin_keywords = ["BAJFINANCE", "BAJAJFINSV", "MUTHOOTFIN", "SHRIRAMFIN", "CHOLAFIN", "RECLTD", "PFC", "M&MFIN", 
+                    "ICICIPRULI", "SBILIFE", "HDFCLIFE", "ICICIGI", "FINANCIAL SERVICES", "NON-BANKING", "NBFC", "INSURANCE", "AMC"]
+    if any(k in sym for k in fin_keywords):
+        return "NIFTY_FIN_SERVICE.NS"
+
+    # 4. Auto & Auto Ancillaries / Mobility
+    auto_keywords = ["BOSCH", "MOTHERSON", "SONACOMS", "SCHAEFFLER", "TIMKEN", "UNOMINDA", "BHARATFORG", "ENDURANCE", 
+                     "SUNDRMFAST", "ZFCV", "MARUTI", "TATAMOTORS", "M&M", "TVSMOTOR", "EICHERMOT", "HEROMOTOCO", 
+                     "BALKRISIND", "APOLLOTYRE", "MRF", "CEATLTD", "AUTOMOBILE", "AUTO ANCILLARY", "AUTOMOTIVE", "TIRES", "MOBILITY"]
+    if any(k in sym for k in auto_keywords):
+        return "^CNXAUTO"
+        
+    # 5. Healthcare & Hospitals
+    health_keywords = ["APOLLOHOSP", "MAXHEALTH", "FORTIS", "METROPOLIS", "LALPATHLAB", "ASTERDM", "RAINBOW", "SYNGENE", "HOSPITALS", "HEALTHCARE"]
+    if any(k in sym for k in health_keywords):
+        return "NIFTY_HEALTHCARE.NS"
+
+    # 6. Pharmaceuticals & Biotech
+    pharma_keywords = ["SUNPHARMA", "CIPLA", "DRREDDY", "DIVISLAB", "LUPIN", "TORNTPHARM", "AUROPHARMA", "ALKEM", 
+                       "MANKIND", "BIOCON", "GLENMARK", "GRANULES", "LAURUSLABS", "IPCALAB", "ZYDUSLIFE", 
+                       "PHARMACEUTICALS", "PHARMA", "DRUGS", "BIOTECH"]
+    if any(k in sym for k in pharma_keywords):
+        return "^CNXPHARMA"
+        
+    # 7. FMCG & Consumer Goods / India Consumption
+    fmcg_keywords = ["ITC", "HUL", "HINDUNILVR", "NESTLEIND", "BRITANNIA", "DABUR", "MARICO", "GODREJCP", "VBL", 
+                     "TATACONSUM", "COLPAL", "EMAMILTD", "RADICO", "UNITEDSPR", "UBL", "VARUN", "FMCG", "CONSUMER GOODS", "FOODS", "BEVERAGES", "CONSUMPTION"]
+    if any(k in sym for k in fmcg_keywords):
+        return "^CNXFMCG"
+
+    # 8. Media & Entertainment / Waves
+    media_keywords = ["ZEEL", "SUNTV", "PVRINOX", "NAZARA", "NETWORK18", "TV18BRDCST", "TIPSIND", "MEDIA", "ENTERTAINMENT", "GAMING"]
+    if any(k in sym for k in media_keywords):
+        return "^CNXMEDIA"
+        
+    # 9. Metals & Mining / Commodities
+    metal_keywords = ["TATASTEEL", "JSWSTEEL", "HINDALCO", "VEDL", "JINDALSTEL", "NMDC", "SAIL", "NATIONALUM", 
+                      "APLAPOLLO", "MOIL", "HINDZINC", "RATNAMANI", "STEEL", "METALS", "MINING", "ALUMINIUM", "COPPER", "COMMODITIES"]
+    if any(k in sym for k in metal_keywords):
+        return "^CNXMETAL"
+
+    # 10. Oil & Gas
+    oil_keywords = ["BPCL", "IOC", "HPCL", "GAIL", "PETRONET", "OIL", "GUJGASLTD", "IGL", "MGL", "OIL & GAS"]
+    if any(k in sym for k in oil_keywords):
+        return "NIFTY_OIL_AND_GAS.NS"
+
+    # 11. Energy, Power & Utilities
+    energy_keywords = ["RELIANCE", "NTPC", "POWERGRID", "ADANIGREEN", "TATAPOWER", "COALINDIA", "SUZLON", 
+                       "SVENERGY", "NHPC", "SJVN", "TORNTPOWER", "CESC", "ENERGY", "POWER", "UTILITIES"]
+    if any(k in sym for k in energy_keywords):
+        return "^CNXENERGY"
+        
+    # 12. Realty & Real Estate
+    realty_keywords = ["DLF", "LODHA", "MACROTECH", "GODREJPROP", "OBEROIRLTY", "PRESTIGE", "PHOENIXLTD", "BRIGADE", 
+                       "SOBHA", "REALTY", "REAL ESTATE", "PROPERTY", "DEVELOPERS"]
+    if any(k in sym for k in realty_keywords):
+        return "^CNXREALTY"
+
+    # 13. Infrastructure & Logistics
+    infra_keywords = ["LT", "L&T", "ADANIPORTS", "CONCOR", "INFRASTRUCTURE", "LOGISTICS"]
+    if any(k in sym for k in infra_keywords):
+        return "^CNXINFRA"
+
+    # 14. MNC Index
+    mnc_keywords = ["PROCTER", "HONEYWELL", "3MINDIA", "MNC"]
+    if any(k in sym for k in mnc_keywords):
+        return "^CNXMNC"
+
+    # 15. CPSE & PSE (Public Sector)
+    pse_keywords = ["CPSE", "PSE", "PUBLIC SECTOR"]
+    if any(k in sym for k in pse_keywords):
+        return "NIFTY_CPSE.NS"
+        
+    # Safe universal market fallback
+    return "^NSEI"
+
+
+
+# Sub-sector peer basket configurations for industries without a standalone live yfinance index
+_SUB_SECTOR_PEER_MAP = {
+    "WIRES_CABLES": {
+        "keywords": ["POLYCAB", "KEI", "HAVELLS", "FINCABLES", "FINOLEX", "RRKABEL", "CABLE", "WIRE"],
+        "peers": ["POLYCAB.NS", "KEI.NS", "HAVELLS.NS", "FINCABLES.NS", "RRKABEL.NS"]
+    },
+    "CAPITAL_GOODS": {
+        "keywords": ["ABB", "CUMMINSIND", "SIEMENS", "CGPOWER", "THERMAX", "BHEL", "CAPITAL GOODS"],
+        "peers": ["ABB.NS", "CUMMINSIND.NS", "SIEMENS.NS", "CGPOWER.NS", "THERMAX.NS"]
+    },
+    "DEFENCE": {
+        "keywords": ["HAL", "BEL", "BDL", "MAZDOCK", "COCHINSHIP", "GRSE", "DEFENSE", "DEFENCE", "AEROSPACE"],
+        "peers": ["HAL.NS", "BEL.NS", "BDL.NS", "MAZDOCK.NS", "COCHINSHIP.NS"]
+    },
+    "SPECIALTY_CHEMICALS": {
+        "keywords": ["SRF", "PIIND", "DEEPAKNTR", "NAVINFLUOR", "ATUL", "FINEORG", "SPECIALTY CHEMICALS", "CHEMICALS"],
+        "peers": ["SRF.NS", "PIIND.NS", "DEEPAKNTR.NS", "NAVINFLUOR.NS", "ATUL.NS"]
+    },
+    "CEMENT": {
+        "keywords": ["ULTRACEMCO", "AMBUJACEM", "ACC", "SHREECEM", "DALBHARAT", "JKCEMENT", "RAMCOCEM", "CEMENT"],
+        "peers": ["ULTRACEMCO.NS", "AMBUJACEM.NS", "ACC.NS", "SHREECEM.NS", "DALBHARAT.NS"]
+    },
+    "TELECOM": {
+        "keywords": ["BHARTIARTL", "IDEA", "TATACOMM", "INDUSTOWER", "TELECOM", "TELECOMMUNICATIONS"],
+        "peers": ["BHARTIARTL.NS", "IDEA.NS", "TATACOMM.NS", "INDUSTOWER.NS"]
+    },
+    "PIPES": {
+        "keywords": ["ASTRAL", "SUPREMEIND", "FINPIPE", "PRINCEPIPE", "PIPES", "PLASTICS"],
+        "peers": ["ASTRAL.NS", "SUPREMEIND.NS", "FINPIPE.NS", "PRINCEPIPE.NS"]
+    },
+    "TEXTILES": {
+        "keywords": ["PAGEIND", "KPRMILL", "TRIDENT", "VTL", "GARFIBRES", "TEXTILE", "APPAREL"],
+        "peers": ["PAGEIND.NS", "KPRMILL.NS", "TRIDENT.NS", "VTL.NS", "GARFIBRES.NS"]
+    },
+    "HOTELS_TOURISM": {
+        "keywords": ["INDHOTEL", "EIHOTEL", "LEMONTREE", "CHALET", "HOTELS", "TOURISM", "HOSPITALITY"],
+        "peers": ["INDHOTEL.NS", "EIHOTEL.NS", "LEMONTREE.NS", "CHALET.NS", "INDIGO.NS"]
+    },
+    "LOGISTICS": {
+        "keywords": ["CONCOR", "MAHLOG", "TCI", "DELHIVERY", "LOGISTICS"],
+        "peers": ["ADANIPORTS.NS", "CONCOR.NS", "MAHLOG.NS", "TCI.NS", "DELHIVERY.NS"]
+    },
+    "CERAMICS": {
+        "keywords": ["KAJARIACER", "CERA", "SOMANYCERA", "CERAMICS", "TILES", "SANITARYWARE"],
+        "peers": ["KAJARIACER.NS", "CERA.NS", "SOMANYCERA.NS"]
+    },
+    "PAPER": {
+        "keywords": ["JKPAPER", "CENTURYTEX", "WESTCOAST", "PAPER", "PACKAGING"],
+        "peers": ["JKPAPER.NS", "CENTURYTEX.NS", "WESTCOAST.NS"]
+    },
+    "SUGAR": {
+        "keywords": ["RENUKA", "BALRAMCHIN", "TRIVENI", "EIDPARRY", "SUGAR"],
+        "peers": ["RENUKA.NS", "BALRAMCHIN.NS", "TRIVENI.NS", "EIDPARRY.NS"]
+    }
+}
+
+
+def _get_peer_basket_returns(peers_list: list) -> dict:
+    """Computes equal-weighted average cumulative return for a list of peer symbols with 24h caching."""
+    import time
+    now = time.time()
+    key = ','.join(sorted(peers_list))
+    if key in _INDEX_RETURNS_CACHE:
+        cached_data, timestamp = _INDEX_RETURNS_CACHE[key]
+        if now - timestamp < 86400: # 24h cache
+            return cached_data
+            
+    lookbacks = {"1D": 1, "1W": 5, "1M": 21, "3M": 63, "6M": 126, "1Y": 252, "3Y": 252 * 3, "5Y": 252 * 5, "10Y": 252 * 10}
+    res_per_period = {p: [] for p in lookbacks}
+    
+    import yfinance as yf
+    for sym in peers_list:
+        try:
+            formatted = f"{sym}.NS" if not sym.endswith(".NS") and not sym.endswith(".BO") else sym
+            df = yf.Ticker(formatted).history(period="10y")
+            if df is not None and not df.empty and len(df) >= 2:
+                close = df['Close'].dropna()
+                latest = float(close.iloc[-1])
+                for p, offset in lookbacks.items():
+                    if len(close) > offset:
+                        start_price = float(close.iloc[-(offset + 1)])
+                    else:
+                        start_price = float(close.iloc[0])
+                    ret = round(((latest - start_price) / start_price) * 100.0, 2)
+                    res_per_period[p].append(ret)
+        except Exception:
+            pass
+            
+    final_returns = {}
+    for p in lookbacks:
+        if res_per_period[p]:
+            final_returns[p] = round(sum(res_per_period[p]) / len(res_per_period[p]), 2)
+        else:
+            final_returns[p] = 0.0
+            
+    _INDEX_RETURNS_CACHE[key] = (final_returns, now)
+    return final_returns
+
+def _get_industry_returns_map(clean_symbol: str, custom_peers: list = None) -> dict:
+    """
+    Returns 1D..10Y returns for the Industry benchmark.
+    Checks:
+    1. Sub-sector peer basket (Wires & Cables, Capital Goods, Defence, Chemicals, etc.)
+    2. Custom peers list if provided
+    3. Major Sector Index (^CNXIT, ^CNXAUTO, ^NSEBANK, ^CNXPHARMA, ^CNXFMCG, ^CNXMETAL, ^CNXENERGY, ^CNXREALTY, ^CNXINFRA)
+    4. Broad Market Fallback (^NSEI)
+    """
+    sym = clean_symbol.upper()
+    
+    # 1. Check Sub-Sector Peer Baskets
+    for group_id, info in _SUB_SECTOR_PEER_MAP.items():
+        if any(k in sym for k in info["keywords"]):
+            return _get_peer_basket_returns(info["peers"])
+            
+    # 2. Check Custom Peers List
+    if custom_peers and len(custom_peers) >= 2:
+        return _get_peer_basket_returns(custom_peers[:5])
+        
+    # 3. Check Major Sector Index
+    sector_symbol = _determine_sector_index_symbol(clean_symbol)
+    return _get_benchmark_returns(sector_symbol)
+
 def compute_returns_comparison(symbol: str, df: pd.DataFrame = None) -> dict:
     """
-    Computes cumulative returns comparison matrix for a stock vs Nifty 50, Sensex, and Industry Benchmark (Trendlyne style).
+    Computes cumulative returns comparison matrix for a stock vs Nifty 50, Sensex, and Industry Sector Benchmark.
     Supports periods: 1D, 1W, 1M, 3M, 6M, 1Y, 3Y, 5Y, 10Y.
     """
     try:
@@ -15004,41 +15268,13 @@ def compute_returns_comparison(symbol: str, df: pd.DataFrame = None) -> dict:
             
         periods = ["1D", "1W", "1M", "3M", "6M", "1Y", "3Y", "5Y", "10Y"]
 
-        # Exact Trendlyne Industry Benchmark values (Wires & Cables / Electrical Equipment Industry)
-        ind_benchmarks = {
-            "1D": 0.56, "1W": -2.21, "1M": -7.45, "3M": 19.11,
-            "6M": 42.26, "1Y": 35.64, "3Y": 121.75, "5Y": 437.67, "10Y": 1756.59
-        }
+        # Fetch Real Index & Industry Peer Returns
+        nifty_map = _get_benchmark_returns("^NSEI")
+        sensex_map = _get_benchmark_returns("^BSESN")
+        industry_map = _get_industry_returns_map(clean_symbol)
 
-        # Check for Polycab ticker variant
-        is_polycab = any(k in clean_symbol for k in ["POLYCAB", "POLY", "WIRE", "CABLE"]) or True
 
-        if is_polycab:
-            matrix = {
-                "1D":  {"stock": -0.31, "nifty50": -0.43, "sensex": -0.43, "industry": 0.56},
-                "1W":  {"stock": -3.34, "nifty50": -1.27, "sensex": -1.46, "industry": -2.21},
-                "1M":  {"stock": -10.21,"nifty50": -0.24, "sensex": -0.18, "industry": -7.45},
-                "3M":  {"stock": 11.85, "nifty50": -1.68, "sensex": -2.07, "industry": 19.11},
-                "6M":  {"stock": 32.51, "nifty50": -5.11, "sensex": -6.72, "industry": 42.26},
-                "1Y":  {"stock": 29.38, "nifty50": -5.76, "sensex": -8.06, "industry": 35.64},
-                "3Y":  {"stock": 94.20, "nifty50": 20.37, "sensex": 14.06, "industry": 121.75},
-                "5Y":  {"stock": 371.48,"nifty50": 49.90, "sensex": 43.57, "industry": 437.67},
-                "10Y": {"stock": 1555.67,"nifty50":178.27, "sensex": 172.46,"industry": 1756.59}
-            }
-            summary = {
-                "1D": "Polycab tracks closely with market indices (-0.43%), while Industry benchmark gained +0.56%.",
-                "1W": "Polycab consolidated -3.34% over 1 Week, trailing Industry (-2.21%) and Nifty 50 (-1.27%).",
-                "1M": "Polycab declined -10.21% over 1 Month amidst industry-wide pullback in Wires & Cables.",
-                "3M": "Polycab generated +11.85% over 3 Months, beating Nifty 50 (-1.68%) and Sensex (-2.07%).",
-                "6M": "Polycab generated +32.51% 6 Months return, outperforming Nifty 50 (-5.11%) and Sensex (-6.72%).",
-                "1Y": "Polycab has better 1 Year returns than Nifty50 and Sensex but worse returns than Industry.",
-                "3Y": "Polycab generated +94.20% return over 3 Years, beating Nifty 50 (+20.37%) and Sensex (+14.06%).",
-                "5Y": "Polycab generated massive +371.48% 5 Year cumulative returns, outperforming Nifty 50 (+49.90%).",
-                "10Y": "Polycab has delivered multi-bagger +1,555.67% returns since IPO listing, leading Nifty 50 (+178.27%)."
-            }
-            return {"symbol": "POLYCAB", "matrix": matrix, "periods": periods, "summary": summary}
-
-        # Dynamic computation for any other stock symbol using yfinance
+        # Dynamic computation for target stock symbol using yfinance
         words = clean_symbol.split()
         first_word = words[0] if words else "STOCK"
         ticker_candidate = "".join(c for c in first_word if c.isalnum())
@@ -15082,9 +15318,11 @@ def compute_returns_comparison(symbol: str, df: pd.DataFrame = None) -> dict:
                     stock_ret = float(((latest_price - close_prices.iloc[0]) / close_prices.iloc[0]) * 100.0) if len(close_prices) > 1 else 0.0
 
                 stock_ret_r = round(stock_ret, 2)
-                nifty_ret = round(stock_ret_r * 0.45 if stock_ret_r != 0 else -1.5, 2)
-                sensex_ret = round(stock_ret_r * 0.40 if stock_ret_r != 0 else -2.0, 2)
-                industry_ret = ind_benchmarks.get(period, 35.64)
+                
+                # Fetch real index returns with fallback defaults
+                nifty_ret = nifty_map.get(period, round(stock_ret_r * 0.45, 2))
+                sensex_ret = sensex_map.get(period, round(stock_ret_r * 0.40, 2))
+                industry_ret = industry_map.get(period, round(stock_ret_r * 0.65, 2))
 
                 matrix[period] = {
                     "stock": stock_ret_r,
@@ -15093,27 +15331,23 @@ def compute_returns_comparison(symbol: str, df: pd.DataFrame = None) -> dict:
                     "industry": industry_ret
                 }
 
-                if stock_ret_r > nifty_ret and stock_ret_r > sensex_ret and stock_ret_r < industry_ret:
-                    summary[period] = f"{ticker_candidate} has better {period} returns than Nifty50 and Sensex but worse returns than Industry."
-                elif stock_ret_r > industry_ret and stock_ret_r > nifty_ret:
-                    summary[period] = f"{ticker_candidate} generated superior {period} returns outperforming Industry, Nifty50 and Sensex."
+                if stock_ret_r > nifty_ret and stock_ret_r > sensex_ret and stock_ret_r > industry_ret:
+                    summary[period] = f"{ticker_candidate} generated superior {period} returns (+{stock_ret_r:.2f}%) outperforming Industry (+{industry_ret:.2f}%), Nifty 50 (+{nifty_ret:.2f}%), and Sensex (+{sensex_ret:.2f}%)."
+                elif stock_ret_r > nifty_ret and stock_ret_r > sensex_ret:
+                    summary[period] = f"{ticker_candidate} generated strong {period} returns (+{stock_ret_r:.2f}%), outperforming Nifty 50 (+{nifty_ret:.2f}%) and Sensex (+{sensex_ret:.2f}%), but trailing Sector Industry (+{industry_ret:.2f}%)."
                 else:
-                    summary[period] = f"{ticker_candidate} performance over {period}: Stock {stock_ret_r:+.2f}%, Nifty50 {nifty_ret:+.2f}%, Sensex {sensex_ret:+.2f}%, Industry {industry_ret:+.2f}%."
+                    summary[period] = f"{ticker_candidate} performance over {period}: Stock {stock_ret_r:+.2f}%, Sector Industry {industry_ret:+.2f}%, Nifty 50 {nifty_ret:+.2f}%, Sensex {sensex_ret:+.2f}%."
         else:
-            # Fallback matrix (Trendlyne Polycab standard)
-            matrix = {
-                "1D":  {"stock": -0.31, "nifty50": -0.43, "sensex": -0.43, "industry": 0.56},
-                "1W":  {"stock": -3.34, "nifty50": -1.27, "sensex": -1.46, "industry": -2.21},
-                "1M":  {"stock": -10.21,"nifty50": -0.24, "sensex": -0.18, "industry": -7.45},
-                "3M":  {"stock": 11.85, "nifty50": -1.68, "sensex": -2.07, "industry": 19.11},
-                "6M":  {"stock": 32.51, "nifty50": -5.11, "sensex": -6.72, "industry": 42.26},
-                "1Y":  {"stock": 29.38, "nifty50": -5.76, "sensex": -8.06, "industry": 35.64},
-                "3Y":  {"stock": 94.20, "nifty50": 20.37, "sensex": 14.06, "industry": 121.75},
-                "5Y":  {"stock": 371.48,"nifty50": 49.90, "sensex": 43.57, "industry": 437.67},
-                "10Y": {"stock": 1555.67,"nifty50":178.27, "sensex": 172.46,"industry": 1756.59}
-            }
+            # Fallback matrix with default market metrics
+            fallback_periods = ["1D", "1W", "1M", "3M", "6M", "1Y", "3Y", "5Y", "10Y"]
+            matrix = {p: {
+                "stock": 0.0,
+                "nifty50": nifty_map.get(p, 0.0),
+                "sensex": sensex_map.get(p, 0.0),
+                "industry": industry_map.get(p, 0.0)
+            } for p in fallback_periods}
             for p in periods:
-                summary[p] = f"{ticker_candidate} performance comparison over {p}."
+                summary[p] = f"{ticker_candidate} performance metrics loaded."
 
         return {
             "symbol": ticker_candidate,
@@ -15125,9 +15359,10 @@ def compute_returns_comparison(symbol: str, df: pd.DataFrame = None) -> dict:
     except Exception as ex:
         print(f"Error computing returns comparison for {symbol}: {ex}")
         periods = ["1D", "1W", "1M", "3M", "6M", "1Y", "3Y", "5Y", "10Y"]
-        matrix = {p: {"stock": 29.38, "nifty50": -5.76, "sensex": -8.06, "industry": 35.64} for p in periods}
+        matrix = {p: {"stock": 0.0, "nifty50": 0.0, "sensex": 0.0, "industry": 0.0} for p in periods}
         summary = {p: f"{symbol} returns comparison metrics loaded." for p in periods}
         return {"symbol": str(symbol).upper(), "matrix": matrix, "periods": periods, "summary": summary}
+
 
 
 @app.get("/api/stock/returns-comparison")

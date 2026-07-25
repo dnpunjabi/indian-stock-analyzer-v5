@@ -6961,6 +6961,14 @@
 
     // ==================== QUARTERLY FINANCIAL PERFORMANCE TRENDS ====================
     window.drawFinancialTrendChart = function(data) {
+        if (data) {
+            window._lastFinancialTrendData = data;
+        } else if (window._lastFinancialTrendData) {
+            data = window._lastFinancialTrendData;
+        } else {
+            return;
+        }
+
         const canvas = document.getElementById('financial-trend-canvas');
         if (!canvas || !data || !data.quarters) return;
         const quarters = data.quarters;
@@ -6971,6 +6979,24 @@
 
         // Clear canvas
         ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        // Detect Theme Mode (Light vs Dark)
+        const themeMode = document.documentElement.getAttribute('data-mode') || document.body.getAttribute('data-mode') || '';
+        const themeAttr = document.documentElement.getAttribute('data-theme') || document.body.getAttribute('data-theme') || '';
+        const isLight = themeMode === 'light' || themeAttr === 'light' || document.documentElement.classList.contains('light-theme') || document.body.classList.contains('light-theme');
+
+        // High contrast theme adaptive colors
+        const gridColor = isLight ? 'rgba(0, 0, 0, 0.08)' : 'rgba(255, 255, 255, 0.06)';
+        const textColor = isLight ? '#1e293b' : 'rgba(255, 255, 255, 0.75)';
+        const salesBarFill = isLight ? 'rgba(37, 99, 235, 0.75)' : 'rgba(59, 130, 246, 0.65)';
+        const salesBarStroke = isLight ? 'rgba(29, 78, 216, 0.9)' : 'rgba(96, 165, 250, 0.8)';
+        const profitBarFill = isLight ? 'rgba(16, 185, 129, 0.75)' : 'rgba(16, 185, 129, 0.65)';
+        const profitBarStroke = isLight ? 'rgba(4, 120, 87, 0.9)' : 'rgba(52, 211, 153, 0.8)';
+        const opmLineColor = isLight ? '#d97706' : '#f59e0b';
+        const opmDotFill = isLight ? '#b45309' : '#fbbf24';
+        const opmBadgeBg = isLight ? 'rgba(255, 255, 255, 0.92)' : 'rgba(15, 23, 42, 0.88)';
+        const opmBadgeBorder = isLight ? 'rgba(217, 119, 6, 0.45)' : 'rgba(245, 158, 11, 0.45)';
+        const opmTextColor = isLight ? '#92400e' : '#fef08a';
 
         const isMobile = window.innerWidth < 480;
         const rawHeaders = quarters.headers.slice(1);
@@ -6995,7 +7021,7 @@
 
         // Set dimensions & scale for high density displays
         const dpr = window.devicePixelRatio || 1;
-        const W = canvas.parentElement.clientWidth;
+        const W = canvas.parentElement ? canvas.parentElement.clientWidth : 320;
         const H = 200;
         canvas.width = W * dpr;
         canvas.height = H * dpr;
@@ -7003,22 +7029,21 @@
         canvas.style.height = H + 'px';
         ctx.scale(dpr, dpr);
 
-        const paddingLeft = 40;
-        const paddingRight = 40;
-        const paddingTop = 25;
-        const paddingBottom = 25;
-        const chartW = W - paddingLeft - paddingRight;
-        const chartH = H - paddingTop - paddingBottom;
+        const paddingLeft = 45;
+        const paddingRight = 45;
+        const paddingTop = 28;
+        const paddingBottom = 28;
+        const chartW = Math.max(W - paddingLeft - paddingRight, 100);
+        const chartH = Math.max(H - paddingTop - paddingBottom, 50);
 
-        const maxSales = Math.max(...salesValues) * 1.15 || 100;
-        const maxProfit = Math.max(...profitValues) * 1.15 || 10;
-        const maxOPM = opmValues.length > 0 ? Math.max(...opmValues) * 1.15 || 100 : 100;
+        const maxSales = Math.max(...salesValues, 1) * 1.18;
+        const maxOPM = opmValues.length > 0 ? Math.max(...opmValues, 10) * 1.25 : 100;
 
         // Draw grid lines
-        ctx.strokeStyle = 'rgba(255,255,255,0.06)';
+        ctx.strokeStyle = gridColor;
         ctx.lineWidth = 1;
-        ctx.fillStyle = 'rgba(255,255,255,0.4)';
-        ctx.font = '8px sans-serif';
+        ctx.fillStyle = textColor;
+        ctx.font = isLight ? '600 10px sans-serif' : '500 9.5px sans-serif';
         ctx.textAlign = 'center';
 
         const numPeriods = headers.length;
@@ -7031,8 +7056,9 @@
             ctx.lineTo(x, paddingTop + chartH);
             ctx.stroke();
 
-            // X label
-            ctx.fillText(headers[i], x, paddingTop + chartH + 12);
+            // X label (Quarters e.g. Jun 2024)
+            ctx.fillStyle = textColor;
+            ctx.fillText(headers[i], x, paddingTop + chartH + 15);
         }
 
         // Draw horizontal grid & left Y scale
@@ -7045,57 +7071,104 @@
             ctx.stroke();
 
             const valSales = (r / 4) * maxSales;
-            ctx.fillText(Math.round(valSales), paddingLeft - 8, y + 3);
+            let displaySales = Math.round(valSales);
+            if (displaySales >= 1000) {
+                displaySales = (displaySales / 1000).toFixed(1) + 'k';
+            }
+            ctx.fillStyle = textColor;
+            ctx.fillText(displaySales, paddingLeft - 8, y + 3.5);
         }
 
         // Draw Revenue & Profit Bars
         const barSpacing = stepX * 0.15;
-        const barWidth = (stepX - barSpacing * 3) / 2;
+        const barWidth = Math.max((stepX - barSpacing * 3) / 2, 4);
 
         for (let i = 0; i < numPeriods; i++) {
             const xSales = paddingLeft + i * stepX + barSpacing;
             const valSales = salesValues[i];
             const barH = (valSales / maxSales) * chartH;
-            ctx.fillStyle = 'rgba(59, 130, 246, 0.65)'; 
+            ctx.fillStyle = salesBarFill;
             ctx.fillRect(xSales, paddingTop + chartH - barH, barWidth, barH);
+            ctx.strokeStyle = salesBarStroke;
+            ctx.lineWidth = 1;
+            ctx.strokeRect(xSales, paddingTop + chartH - barH, barWidth, barH);
 
             const xProfit = xSales + barWidth + barSpacing;
             const valProfit = profitValues[i];
-            const profitH = (valProfit / maxSales) * chartH; 
-            ctx.fillStyle = 'rgba(16, 185, 129, 0.65)'; 
+            const profitH = (valProfit / maxSales) * chartH;
+            ctx.fillStyle = profitBarFill;
             ctx.fillRect(xProfit, paddingTop + chartH - profitH, barWidth, profitH);
+            ctx.strokeStyle = profitBarStroke;
+            ctx.lineWidth = 1;
+            ctx.strokeRect(xProfit, paddingTop + chartH - profitH, barWidth, profitH);
         }
 
         // Draw OPM Line Graph
         if (opmValues.length > 0) {
-            ctx.strokeStyle = '#f59e0b'; 
-            ctx.lineWidth = 2;
+            ctx.strokeStyle = opmLineColor;
+            ctx.lineWidth = 2.5;
             ctx.beginPath();
 
             for (let i = 0; i < numPeriods; i++) {
                 const x = paddingLeft + i * stepX + stepX / 2;
                 const valOPM = opmValues[i];
-                const y = paddingTop + chartH - (valOPM / 100) * chartH; 
+                const y = paddingTop + chartH - (valOPM / maxOPM) * chartH;
                 if (i === 0) ctx.moveTo(x, y);
                 else ctx.lineTo(x, y);
             }
             ctx.stroke();
 
-            // OPM Points & Text
-            ctx.fillStyle = '#f59e0b';
-            ctx.font = 'bold 7.5px sans-serif';
-            ctx.textAlign = 'center';
+            // OPM Points & Text Badges
             for (let i = 0; i < numPeriods; i++) {
                 const x = paddingLeft + i * stepX + stepX / 2;
                 const valOPM = opmValues[i];
-                const y = paddingTop + chartH - (valOPM / 100) * chartH;
+                const y = paddingTop + chartH - (valOPM / maxOPM) * chartH;
+                
+                // Dot
                 ctx.beginPath();
-                ctx.arc(x, y, 2.5, 0, 2 * Math.PI);
+                ctx.arc(x, y, 3.5, 0, 2 * Math.PI);
+                ctx.fillStyle = opmDotFill;
                 ctx.fill();
-                ctx.fillText(Math.round(valOPM) + '%', x, y - 6);
+                ctx.strokeStyle = isLight ? '#ffffff' : '#0f172a';
+                ctx.lineWidth = 1.5;
+                ctx.stroke();
+
+                // Text Badge Pill
+                const text = Math.round(valOPM) + '%';
+                ctx.font = 'bold 9px sans-serif';
+                const textWidth = ctx.measureText(text).width;
+                const badgeW = textWidth + 8;
+                const badgeH = 13;
+                const badgeX = x - badgeW / 2;
+                const badgeY = y - 18;
+
+                ctx.fillStyle = opmBadgeBg;
+                ctx.strokeStyle = opmBadgeBorder;
+                ctx.lineWidth = 1;
+                
+                // Rounded rect pill
+                ctx.beginPath();
+                if (typeof ctx.roundRect === 'function') {
+                    ctx.roundRect(badgeX, badgeY, badgeW, badgeH, 4);
+                } else {
+                    ctx.rect(badgeX, badgeY, badgeW, badgeH);
+                }
+                ctx.fill();
+                ctx.stroke();
+
+                ctx.fillStyle = opmTextColor;
+                ctx.textAlign = 'center';
+                ctx.fillText(text, x, badgeY + 9.5);
             }
         }
     };
+
+    window.redrawFinancialTrendChart = function() {
+        if (typeof window.drawFinancialTrendChart === 'function') {
+            window.drawFinancialTrendChart();
+        }
+    };
+
 
     // ==================== MOBILE SOLVENCY HUD TAB CONTROLLER ====================
     window.initSolvencyHUD = function() {
