@@ -591,7 +591,7 @@ def call_llm(task_type: str,
     temperature = config["temperature"]
 
     # Prevent token truncation: scale max_tokens up to allow headroom for thinking logs
-    safe_max_tokens = min(4096, max(max_tokens, 2000))
+    safe_max_tokens = min(16384, max(max_tokens, 4096))
 
     try:
         print(f"[LLM] Calling {label} (model: {model}, task: {task_type}, tokens: {safe_max_tokens})...")
@@ -726,7 +726,7 @@ def call_llm_stream(task_type: str,
 
     model = config["heavy_model"] if task_type == TASK_HEAVY else config["fast_model"]
     temperature = config["temperature"]
-    safe_max_tokens = min(4096, max(max_tokens, 2000))
+    safe_max_tokens = min(16384, max(max_tokens, 4096))
 
     try:
         chat_completion = client.chat.completions.create(

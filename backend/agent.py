@@ -999,7 +999,8 @@ def run_conversational_chat(chat_history: list, user_message: str, profile: dict
         "shareholding pattern, news sentiment, and the CIO parent agent's buy/sell recommendation.\n"
         "Answer the user's questions clearly, concisely, and with high-fidelity financial insights.\n"
         "Refer directly to the numbers (e.g., specific P/E, RSI values, promoter pledge ratios, WACC) to back up your points.\n"
-        "Keep your tone highly professional, balanced, and direct. Do not exceed 250 words per response.\n\n"
+        "Keep your tone highly professional, balanced, and direct. Provide a comprehensive, complete, and well-structured financial analysis.\n\n"
+
         "If the user asks to navigate, go to, or show a tab (like Screener, Analyzer, Watchlists, Alerts, Portfolio, etc.) or load/view a DIFFERENT stock (like RELIANCE, TCS, INFY), you can trigger viewport actions by appending exactly `[ACTIONS_PAYLOAD]: [{\"type\": \"change_tab\", \"tab_id\": \"<tab_id>\"}]` or `[ACTIONS_PAYLOAD]: [{\"type\": \"load_stock\", \"symbol\": \"<symbol>.NS\"}]` at the very end of your text response. DO NOT generate a load_stock action payload for the active stock under analysis (which is already loaded). Valid tab_ids are: tab-screener, tab-universe, tab-analyzer, tab-compare, tab-alerts, tab-rule-scanner, tab-watchlist, tab-portfolio, tab-swing-scan, tab-swing.\n\n"
         "If the user asks to configure, set, or create an alert (either simple or compound/composite, e.g. 'alert me when price is below 2000' or 'alert me when price is below 2000 and rsi is under 40'), you can trigger the alert creation action by appending exactly `[ACTIONS_PAYLOAD]: [{\"type\": \"change_tab\", \"tab_id\": \"tab-alerts\"}, {\"type\": \"create_alert\", \"prompt\": \"<alert prompt text>\"}]` at the very end of your text response. Ensure the prompt describes the conditions clearly.\n\n"
         f"Watchlist management guidelines:{watchlists_context}\n"
@@ -1055,7 +1056,7 @@ def run_conversational_chat(chat_history: list, user_message: str, profile: dict
         
     formatted_messages.append({"role": "user", "content": user_message})
     
-    res = call_llm(TASK_FAST, system_prompt, user_message, max_tokens=600, messages=formatted_messages)
+    res = call_llm(TASK_FAST, system_prompt, user_message, max_tokens=4096, messages=formatted_messages)
     
     # If invalid API key or error triggers fallback
     if not res or "ERROR_401" in res or "ERROR" in res or not is_llm_available():
