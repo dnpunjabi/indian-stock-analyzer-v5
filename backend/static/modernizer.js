@@ -8886,6 +8886,27 @@
                 if (typeof window.decorateSectorStocksHeatmap === 'function') window.decorateSectorStocksHeatmap();
             };
 
+            // Dynamic Footer Reparenting Helper
+            window.attachDynamicFooterToActiveTab = function() {
+                const footer = document.querySelector('.mega-footer');
+                if (!footer) return;
+
+                let targetTab = document.querySelector('section.workspace-tab.active-tab-content, .workspace-tab.active, section.workspace-tab:not([style*="display: none"])');
+                if (!targetTab) {
+                    const allTabs = document.querySelectorAll('section.workspace-tab, .workspace-tab');
+                    for (let i = 0; i < allTabs.length; i++) {
+                        if (window.getComputedStyle(allTabs[i]).display !== 'none') {
+                            targetTab = allTabs[i];
+                            break;
+                        }
+                    }
+                }
+
+                if (targetTab && footer.parentElement !== targetTab) {
+                    targetTab.appendChild(footer);
+                }
+            };
+
             // ==================== DESKTOP NAVBAR SWITCH TAB SYNC WRAPPER ====================
             const originalSwitchTab = window.switchTab;
             window.switchTab = function(tabKey) {
@@ -8908,7 +8929,13 @@
                         btn.classList.remove('active');
                     }
                 });
+
+                // Attach dynamic footer to active tab
+                setTimeout(window.attachDynamicFooterToActiveTab, 50);
             };
+
+            // Initial dynamic footer attachment
+            setTimeout(window.attachDynamicFooterToActiveTab, 100);
         } catch(e) {
             console.error("Error invoking additions:", e);
         }

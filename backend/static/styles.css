@@ -22528,12 +22528,20 @@ body.light-mode #returns-matrix-tbody tr:hover {
         display: none !important;
     }
 
-    /* Multi-Column Mega Long Footer (Desktop) */
+    /* Dynamic Relative Mega Long Footer (Desktop View) */
+    .workspace-tab {
+        display: flex !important;
+        flex-direction: column !important;
+        min-height: 100% !important;
+        box-sizing: border-box !important;
+    }
+
     .mega-footer {
         display: block !important;
         position: relative !important;
         width: 100% !important;
-        margin-top: 50px !important;
+        margin-top: auto !important;
+        flex-shrink: 0 !important;
         background: #080c18 !important;
         border-top: 1px solid rgba(255, 255, 255, 0.08) !important;
         padding: 40px 30px 20px 30px !important;
