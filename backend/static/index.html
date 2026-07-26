@@ -2459,19 +2459,19 @@
                     <div style="display: grid; grid-template-columns: 240px 1fr 280px; gap: 18px; align-items: stretch;">
                         
                         <!-- Column 1: Market Regime Gauge Meter Card -->
-                        <div style="background: rgba(0, 0, 0, 0.3); border: 1px solid rgba(16, 185, 129, 0.3); border-radius: 12px; padding: 14px; display: flex; flex-direction: column; justify-content: space-between; position: relative;">
+                        <div style="background: rgba(0, 0, 0, 0.3); border: 1px solid rgba(56, 189, 248, 0.3); border-radius: 12px; padding: 14px; display: flex; flex-direction: column; justify-content: space-between; position: relative;">
                             <div style="display: flex; justify-content: space-between; align-items: center;">
                                 <span style="font-size: 10.5px; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.05em;">MARKET REGIME DIAL</span>
-                                <span id="quant-banner-risk-badge" style="font-size: 10px; background: rgba(16, 185, 129, 0.2); color: #10b981; padding: 2px 6px; border-radius: 4px; font-weight: 700;">LOW RISK</span>
+                                <span id="quant-banner-risk-badge" style="font-size: 10px; background: rgba(56, 189, 248, 0.2); color: #38bdf8; padding: 2px 6px; border-radius: 4px; font-weight: 700;">BALANCED</span>
                             </div>
                             <div style="display: flex; align-items: center; gap: 14px; margin: 10px 0;">
-                                <div id="quant-banner-dial-ring" style="width: 54px; height: 54px; border-radius: 50%; background: conic-gradient(#10b981 0% 78%, rgba(255,255,255,0.1) 78% 100%); display: flex; align-items: center; justify-content: center; position: relative; box-shadow: 0 0 14px rgba(16, 185, 129, 0.3); flex-shrink: 0;">
-                                    <div style="width: 40px; height: 40px; border-radius: 50%; background: #0f172a; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 800; color: #10b981; font-family: monospace;" id="quant-banner-regime-score">78</div>
+                                <div id="quant-banner-dial-ring" style="width: 54px; height: 54px; border-radius: 50%; background: conic-gradient(#38bdf8 0% 50%, rgba(255,255,255,0.1) 50% 100%); display: flex; align-items: center; justify-content: center; position: relative; box-shadow: 0 0 14px rgba(56, 189, 248, 0.3); flex-shrink: 0;">
+                                    <div style="width: 40px; height: 40px; border-radius: 50%; background: #0f172a; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 800; color: #38bdf8; font-family: monospace;" id="quant-banner-regime-score">--</div>
                                 </div>
                                 <div>
-                                    <div id="quant-banner-regime-label" style="font-size: 12px; font-weight: 800; color: #10b981; line-height: 1.2;">BULLISH ACCUMULATION</div>
+                                    <div id="quant-banner-regime-label" style="font-size: 12px; font-weight: 800; color: #38bdf8; line-height: 1.2;">NEUTRAL CONSOLIDATION</div>
                                     <div style="font-size: 10.5px; color: var(--text-secondary); margin-top: 3px;">India VIX: <strong id="quant-banner-vix-val" style="color:#e2e8f0;">13.2</strong></div>
-                                    <div style="font-size: 10.5px; color: var(--text-secondary);">Advance Ratio: <strong id="quant-banner-adv-ratio" style="color:#10b981;">1.54x</strong></div>
+                                    <div style="font-size: 10.5px; color: var(--text-secondary);">Advance Ratio: <strong id="quant-banner-adv-ratio" style="color:#38bdf8;">--</strong></div>
                                 </div>
                             </div>
                             <div style="font-size: 9.5px; color: var(--text-muted); border-top: 1px solid rgba(255,255,255,0.06); padding-top: 6px;">Real-time NSE Nifty 500 Confluence</div>
@@ -2483,37 +2483,9 @@
                                 <span>⚡ TOP QUANT ALPHA OPPORTUNITIES (AI SYNTHESIS)</span>
                             </div>
                             <div id="quant-banner-alpha-cards" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;">
-                                
-                                <!-- Card 1 -->
-                                <div onclick="if(window.loadStockAnalyzer){ window.loadStockAnalyzer('RELIANCE'); }" style="background: rgba(0, 0, 0, 0.25); border: 1px solid rgba(59, 130, 246, 0.25); border-radius: 10px; padding: 10px 12px; cursor: pointer; transition: all 0.2s;" onmouseover="this.style.borderColor='#3b82f6'; this.style.transform='translateY(-2px)';" onmouseout="this.style.borderColor='rgba(59, 130, 246, 0.25)'; this.style.transform='none';">
-                                    <div style="display: flex; justify-content: space-between; align-items: center;">
-                                        <span style="font-weight: 800; font-size: 12px; color: #ffffff;">RELIANCE</span>
-                                        <span style="font-size: 9px; background: rgba(16, 185, 129, 0.2); color: #34d399; padding: 1px 5px; border-radius: 3px; font-weight: 700;">+18% DCF</span>
-                                    </div>
-                                    <div style="font-size: 10px; color: #94a3b8; margin-top: 4px; line-height: 1.3;">RSI 48 Golden Cross • Undervalued</div>
-                                    <div style="font-size: 10px; color: #38bdf8; font-weight: 700; margin-top: 6px; display: flex; align-items: center; gap: 3px;">Analyze ➔</div>
+                                <div style="background: rgba(0, 0, 0, 0.2); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 10px; padding: 12px; font-size: 10px; color: var(--text-muted); text-align: center; grid-column: span 3;">
+                                    ⚡ Syncing live quant alpha opportunities from NSE engine...
                                 </div>
-
-                                <!-- Card 2 -->
-                                <div onclick="if(window.loadStockAnalyzer){ window.loadStockAnalyzer('TCS'); }" style="background: rgba(0, 0, 0, 0.25); border: 1px solid rgba(16, 185, 129, 0.25); border-radius: 10px; padding: 10px 12px; cursor: pointer; transition: all 0.2s;" onmouseover="this.style.borderColor='#10b981'; this.style.transform='translateY(-2px)';" onmouseout="this.style.borderColor='rgba(16, 185, 129, 0.25)'; this.style.transform='none';">
-                                    <div style="display: flex; justify-content: space-between; align-items: center;">
-                                        <span style="font-weight: 800; font-size: 12px; color: #ffffff;">TCS</span>
-                                        <span style="font-size: 9px; background: rgba(59, 130, 246, 0.2); color: #60a5fa; padding: 1px 5px; border-radius: 3px; font-weight: 700;">FII BUYING</span>
-                                    </div>
-                                    <div style="font-size: 10px; color: #94a3b8; margin-top: 4px; line-height: 1.3;">+₹420Cr Net Inflow • IT Outperformer</div>
-                                    <div style="font-size: 10px; color: #34d399; font-weight: 700; margin-top: 6px; display: flex; align-items: center; gap: 3px;">Analyze ➔</div>
-                                </div>
-
-                                <!-- Card 3 -->
-                                <div onclick="if(window.loadStockAnalyzer){ window.loadStockAnalyzer('TATAMOTORS'); }" style="background: rgba(0, 0, 0, 0.25); border: 1px solid rgba(245, 158, 11, 0.25); border-radius: 10px; padding: 10px 12px; cursor: pointer; transition: all 0.2s;" onmouseover="this.style.borderColor='#f59e0b'; this.style.transform='translateY(-2px)';" onmouseout="this.style.borderColor='rgba(245, 158, 11, 0.25)'; this.style.transform='none';">
-                                    <div style="display: flex; justify-content: space-between; align-items: center;">
-                                        <span style="font-weight: 800; font-size: 12px; color: #ffffff;">TATAMOTORS</span>
-                                        <span style="font-size: 9px; background: rgba(245, 158, 11, 0.2); color: #fbbf24; padding: 1px 5px; border-radius: 3px; font-weight: 700;">VOL BREAKOUT</span>
-                                    </div>
-                                    <div style="font-size: 10px; color: #94a3b8; margin-top: 4px; line-height: 1.3;">2.4x Avg Volume • Triangle Squeeze</div>
-                                    <div style="font-size: 10px; color: #fbbf24; font-weight: 700; margin-top: 6px; display: flex; align-items: center; gap: 3px;">Analyze ➔</div>
-                                </div>
-
                             </div>
                         </div>
 

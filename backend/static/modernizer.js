@@ -9254,7 +9254,8 @@
                 }
             };
 
-            setTimeout(window.updateQuantCockpitBanner, 300);
+            window.updateQuantCockpitBanner();
+            setTimeout(window.updateQuantCockpitBanner, 500);
             setInterval(window.updateQuantCockpitBanner, 60000);
 
         } catch(e) {
