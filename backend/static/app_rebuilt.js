@@ -14037,6 +14037,7 @@ function setupThemeToggle() {
 
 function setWorkstationMode(mode) {
     document.documentElement.setAttribute('data-mode', mode);
+    document.body.setAttribute('data-mode', mode);
 
     let activeAccent;
     if (mode === 'light') {
@@ -14051,6 +14052,7 @@ function setWorkstationMode(mode) {
 
     localStorage.setItem('theme-mode', mode);
     localStorage.setItem('theme', mode); // legacy support
+    localStorage.setItem('apex_theme_mode', mode);
 
     const modeSelect = document.getElementById('setting-theme-mode');
     if (modeSelect) modeSelect.value = mode;
@@ -14058,9 +14060,23 @@ function setWorkstationMode(mode) {
     const accentSelect = document.getElementById('setting-theme-accent');
     if (accentSelect) accentSelect.value = activeAccent;
 
+    // Sync quick-theme segmented pill buttons
+    const btnDark = document.getElementById('btn-quick-theme-dark');
+    const btnLight = document.getElementById('btn-quick-theme-light');
+    if (btnDark && btnLight) {
+        if (mode === 'light') {
+            btnLight.classList.add('active');
+            btnDark.classList.remove('active');
+        } else {
+            btnDark.classList.add('active');
+            btnLight.classList.remove('active');
+        }
+    }
+
     showToast(`Workstation Mode set to ${mode === 'light' ? 'Light Mode' : 'Dark Mode'}`, 'success');
 
     refreshChartThemeColors();
+}
 window.setWorkstationMode = setWorkstationMode;
 
 function setWorkstationAccent(accent) {
@@ -31533,21 +31549,21 @@ function initInstitutionalFooter() {
 
 // Header Quick Theme Switcher Pill Controller
 function setQuickThemeMode(mode) {
-    const btnDark = document.getElementById('btn-quick-theme-dark');
-    const btnLight = document.getElementById('btn-quick-theme-light');
-    
-    if (mode === 'light') {
-        document.body.setAttribute('data-mode', 'light');
-        document.documentElement.setAttribute('data-mode', 'light');
-        if (btnLight) btnLight.classList.add('active');
-        if (btnDark) btnDark.classList.remove('active');
-        localStorage.setItem('apex_theme_mode', 'light');
+    if (typeof setWorkstationMode === 'function') {
+        setWorkstationMode(mode);
     } else {
-        document.body.setAttribute('data-mode', 'dark');
-        document.documentElement.setAttribute('data-mode', 'dark');
-        if (btnDark) btnDark.classList.add('active');
-        if (btnLight) btnLight.classList.remove('active');
-        localStorage.setItem('apex_theme_mode', 'dark');
+        document.body.setAttribute('data-mode', mode);
+        document.documentElement.setAttribute('data-mode', mode);
+        localStorage.setItem('apex_theme_mode', mode);
+        const btnDark = document.getElementById('btn-quick-theme-dark');
+        const btnLight = document.getElementById('btn-quick-theme-light');
+        if (mode === 'light') {
+            if (btnLight) btnLight.classList.add('active');
+            if (btnDark) btnDark.classList.remove('active');
+        } else {
+            if (btnDark) btnDark.classList.add('active');
+            if (btnLight) btnLight.classList.remove('active');
+        }
     }
 }
 window.setQuickThemeMode = setQuickThemeMode;
