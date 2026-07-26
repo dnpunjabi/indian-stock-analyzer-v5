@@ -1174,9 +1174,57 @@
 
             <!-- SECTION: SECTOR MOMENTUM RADAR -->
             <section class="workspace-tab" id="tab-sector-radar" style="display: none; font-family: 'Inter', sans-serif;">
-                <div class="section-header">
-                    <h2>Sector Momentum Radar</h2>
-                    <p>Track relative strength standings, rotational shifts, and tactical outperformance regimes across NSE industry sectors.</p>
+                <!-- Ultra-Institutional Sector Radar Cyber Hero Header Banner -->
+                <div class="sector-radar-hero-header no-print" style="margin-bottom: 24px; border-radius: 16px; background: linear-gradient(135deg, rgba(15, 23, 42, 0.95), rgba(30, 41, 59, 0.92), rgba(15, 23, 42, 0.95)); border: 1px solid rgba(249, 115, 22, 0.35); backdrop-filter: blur(20px); padding: 22px 28px; box-shadow: 0 12px 32px -4px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.1); position: relative; overflow: hidden; font-family: 'Outfit', 'Inter', sans-serif;">
+                    
+                    <!-- Ambient Cyber Glows -->
+                    <div style="position: absolute; top: -50px; right: -50px; width: 260px; height: 260px; background: radial-gradient(circle, rgba(249, 115, 22, 0.25), transparent 70%); pointer-events: none; border-radius: 50%;"></div>
+                    <div style="position: absolute; bottom: -60px; left: -60px; width: 230px; height: 230px; background: radial-gradient(circle, rgba(56, 189, 248, 0.22), transparent 70%); pointer-events: none; border-radius: 50%;"></div>
+
+                    <!-- Sector Rotational Heatmap Matrix Overlay SVG Background -->
+                    <svg style="position: absolute; right: 0; bottom: 0; width: 55%; height: 100%; opacity: 0.22; pointer-events: none;" viewBox="0 0 400 120" preserveAspectRatio="none">
+                        <!-- Rotational Arcs -->
+                        <path d="M 200 110 A 90 90 0 0 1 380 110" fill="none" stroke="#f97316" stroke-width="1.5" stroke-dasharray="4,4"/>
+                        <path d="M 230 110 A 60 60 0 0 1 350 110" fill="none" stroke="#38bdf8" stroke-width="1.2"/>
+                        <!-- Heatmap Node Rectangles -->
+                        <rect x="240" y="25" width="28" height="20" rx="4" fill="rgba(249, 115, 22, 0.4)" stroke="#f97316" stroke-width="1"/>
+                        <rect x="274" y="25" width="28" height="20" rx="4" fill="rgba(16, 185, 129, 0.4)" stroke="#10b981" stroke-width="1"/>
+                        <rect x="308" y="25" width="28" height="20" rx="4" fill="rgba(56, 189, 248, 0.4)" stroke="#38bdf8" stroke-width="1"/>
+                        <rect x="342" y="25" width="28" height="20" rx="4" fill="rgba(239, 68, 68, 0.4)" stroke="#ef4444" stroke-width="1"/>
+                        <rect x="240" y="50" width="28" height="20" rx="4" fill="rgba(168, 85, 247, 0.4)" stroke="#a855f7" stroke-width="1"/>
+                        <rect x="274" y="50" width="28" height="20" rx="4" fill="rgba(249, 115, 22, 0.4)" stroke="#f97316" stroke-width="1"/>
+                        <rect x="308" y="50" width="28" height="20" rx="4" fill="rgba(16, 185, 129, 0.4)" stroke="#10b981" stroke-width="1"/>
+                        <rect x="342" y="50" width="28" height="20" rx="4" fill="rgba(56, 189, 248, 0.4)" stroke="#38bdf8" stroke-width="1"/>
+                    </svg>
+
+                    <!-- Header Content -->
+                    <div style="position: relative; z-index: 2; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px;">
+                        <div>
+                            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px;">
+                                <div style="background: rgba(249, 115, 22, 0.15); border: 1px solid rgba(249, 115, 22, 0.4); padding: 3px 8px; border-radius: 5px; display: inline-flex; align-items: center; gap: 6px;">
+                                    <span class="status-indicator" style="width: 7px; height: 7px; border-radius: 50%; background-color: #f97316; box-shadow: 0 0 8px #f97316;"></span>
+                                    <span style="font-size: 10px; font-weight: 800; color: #fb923c; letter-spacing: 0.08em; text-transform: uppercase;">NSE SECTOR ROTATION & RELATIVE STRENGTH MATRIX</span>
+                                </div>
+                                <span style="font-size: 11px; color: rgba(255,255,255,0.4); font-weight: 600;">• Live Heatmap</span>
+                            </div>
+                            <h2 style="margin: 0; font-size: 22px; font-weight: 800; color: #ffffff; letter-spacing: -0.02em; font-family: 'Outfit', sans-serif;">Sector Momentum Radar</h2>
+                            <p style="margin: 6px 0 0 0; font-size: 12.5px; color: #94a3b8; line-height: 1.5; max-width: 660px;">Track relative strength standings, capital flow rotational shifts, and tactical outperformance regimes across all major NSE industry sectors.</p>
+                        </div>
+
+                        <!-- Quick Control Metrics Pills -->
+                        <div style="display: flex; align-items: center; gap: 12px; background: rgba(0, 0, 0, 0.35); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 12px; padding: 10px 16px;">
+                            <div style="display: flex; flex-direction: column; align-items: flex-end;">
+                                <span style="font-size: 9.5px; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.05em;">Rotational Shift</span>
+                                <span style="font-size: 15px; font-weight: 800; color: #fb923c; font-family: monospace;">ACTIVE</span>
+                            </div>
+                            <div style="width: 1px; height: 28px; background: rgba(255,255,255,0.1);"></div>
+                            <div style="display: flex; flex-direction: column; align-items: flex-end;">
+                                <span style="font-size: 9.5px; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.05em;">Status</span>
+                                <span style="font-size: 11px; font-weight: 800; color: #34d399; background: rgba(16, 185, 129, 0.2); padding: 2px 8px; border-radius: 4px; display: inline-block;">LIVE TRACKING</span>
+                            </div>
+                        </div>
+                    </div>
+
                 </div>
 
                 <div class="card" style="padding: 24px; box-sizing: border-box; display: flex; flex-direction: column; gap: 20px;">
@@ -2388,9 +2436,54 @@
 
             <!-- SECTION: INSTITUTIONAL & PROMOTER DEALS SWEEP -->
             <section class="workspace-tab" id="tab-trades" style="display: none; font-family: 'Inter', sans-serif;">
-                <div class="section-header">
-                    <h2 style="margin: 0 0 6px 0; font-size: 18px; font-weight: 700; color: var(--text-primary); text-transform: uppercase; letter-spacing: 0.5px;">Institutional & Promoter Deals Sweep</h2>
-                    <p style="margin: 0; font-size: 11.5px; color: var(--text-muted);">Scan large volume promoter acquisitions, bulk disposals, block transactions, and SAST disclosures across active Indian equities.</p>
+                <!-- Ultra-Institutional Deals Cyber Hero Header Banner -->
+                <div class="trades-hero-header no-print" style="margin-bottom: 24px; border-radius: 16px; background: linear-gradient(135deg, rgba(15, 23, 42, 0.95), rgba(30, 41, 59, 0.92), rgba(15, 23, 42, 0.95)); border: 1px solid rgba(234, 179, 8, 0.35); backdrop-filter: blur(20px); padding: 22px 28px; box-shadow: 0 12px 32px -4px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.1); position: relative; overflow: hidden; font-family: 'Outfit', 'Inter', sans-serif;">
+                    
+                    <!-- Ambient Cyber Glows -->
+                    <div style="position: absolute; top: -50px; right: -50px; width: 260px; height: 260px; background: radial-gradient(circle, rgba(234, 179, 8, 0.25), transparent 70%); pointer-events: none; border-radius: 50%;"></div>
+                    <div style="position: absolute; bottom: -60px; left: -60px; width: 230px; height: 230px; background: radial-gradient(circle, rgba(16, 185, 129, 0.22), transparent 70%); pointer-events: none; border-radius: 50%;"></div>
+
+                    <!-- Institutional Block Deal Vault & Order Flow Vectors SVG Background -->
+                    <svg style="position: absolute; right: 0; bottom: 0; width: 55%; height: 100%; opacity: 0.22; pointer-events: none;" viewBox="0 0 400 120" preserveAspectRatio="none">
+                        <!-- Iso 3D Vault Cubes -->
+                        <polygon points="260,30 290,15 320,30 290,45" fill="rgba(234, 179, 8, 0.3)" stroke="#eab308" stroke-width="1"/>
+                        <polygon points="260,30 260,60 290,75 290,45" fill="rgba(234, 179, 8, 0.2)" stroke="#eab308" stroke-width="1"/>
+                        <polygon points="290,45 290,75 320,60 320,30" fill="rgba(234, 179, 8, 0.4)" stroke="#eab308" stroke-width="1"/>
+                        <!-- Connected Order Beams -->
+                        <line x1="120" y1="90" x2="260" y2="60" stroke="#10b981" stroke-width="1.5" stroke-dasharray="3,3"/>
+                        <line x1="140" y1="30" x2="290" y2="15" stroke="#eab308" stroke-width="1.5"/>
+                        <circle cx="120" cy="90" r="5" fill="#34d399"/>
+                        <circle cx="140" cy="30" r="5" fill="#facc15"/>
+                    </svg>
+
+                    <!-- Header Content -->
+                    <div style="position: relative; z-index: 2; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px;">
+                        <div>
+                            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px;">
+                                <div style="background: rgba(234, 179, 8, 0.15); border: 1px solid rgba(234, 179, 8, 0.4); padding: 3px 8px; border-radius: 5px; display: inline-flex; align-items: center; gap: 6px;">
+                                    <span class="status-indicator" style="width: 7px; height: 7px; border-radius: 50%; background-color: #eab308; box-shadow: 0 0 8px #eab308;"></span>
+                                    <span style="font-size: 10px; font-weight: 800; color: #facc15; letter-spacing: 0.08em; text-transform: uppercase;">FII / DII & PROMOTER BIG-HANDS RADAR</span>
+                                </div>
+                                <span style="font-size: 11px; color: rgba(255,255,255,0.4); font-weight: 600;">• Bulk & Block Sweep</span>
+                            </div>
+                            <h2 style="margin: 0; font-size: 22px; font-weight: 800; color: #ffffff; letter-spacing: -0.02em; font-family: 'Outfit', sans-serif;">Institutional & Promoter Deals Sweep</h2>
+                            <p style="margin: 6px 0 0 0; font-size: 12.5px; color: #94a3b8; line-height: 1.5; max-width: 660px;">Scan large volume promoter acquisitions, bulk disposals, block transactions, and SAST disclosures across active Indian equities.</p>
+                        </div>
+
+                        <!-- Quick Control Metrics Pills -->
+                        <div style="display: flex; align-items: center; gap: 12px; background: rgba(0, 0, 0, 0.35); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 12px; padding: 10px 16px;">
+                            <div style="display: flex; flex-direction: column; align-items: flex-end;">
+                                <span style="font-size: 9.5px; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.05em;">Order Flow</span>
+                                <span style="font-size: 15px; font-weight: 800; color: #facc15; font-family: monospace;">Institutional</span>
+                            </div>
+                            <div style="width: 1px; height: 28px; background: rgba(255,255,255,0.1);"></div>
+                            <div style="display: flex; flex-direction: column; align-items: flex-end;">
+                                <span style="font-size: 9.5px; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.05em;">Status</span>
+                                <span style="font-size: 11px; font-weight: 800; color: #34d399; background: rgba(16, 185, 129, 0.2); padding: 2px 8px; border-radius: 4px; display: inline-block;">LIVE MONITORING</span>
+                            </div>
+                        </div>
+                    </div>
+
                 </div>
 
                 <!-- Global Insider & Large Market Deals Scanner Card -->
@@ -2482,9 +2575,55 @@
 
             <!-- SECTION: GLOBAL MARKET NEWS TERMINAL -->
             <section class="workspace-tab" id="tab-market-news" style="display: none; font-family: 'Inter', sans-serif;">
-                <div class="section-header">
-                    <h2>Global Market News Terminal</h2>
-                    <p>Real-time financial intelligence feed aggregating catalysts, bulletins, and indices across major active publishers.</p>
+                <!-- Ultra-Institutional Market News Cyber Hero Header Banner -->
+                <div class="news-hero-header no-print" style="margin-bottom: 24px; border-radius: 16px; background: linear-gradient(135deg, rgba(15, 23, 42, 0.95), rgba(30, 41, 59, 0.92), rgba(15, 23, 42, 0.95)); border: 1px solid rgba(56, 189, 248, 0.35); backdrop-filter: blur(20px); padding: 22px 28px; box-shadow: 0 12px 32px -4px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.1); position: relative; overflow: hidden; font-family: 'Outfit', 'Inter', sans-serif;">
+                    
+                    <!-- Ambient Cyber Glows -->
+                    <div style="position: absolute; top: -50px; right: -50px; width: 260px; height: 260px; background: radial-gradient(circle, rgba(56, 189, 248, 0.25), transparent 70%); pointer-events: none; border-radius: 50%;"></div>
+                    <div style="position: absolute; bottom: -60px; left: -60px; width: 230px; height: 230px; background: radial-gradient(circle, rgba(16, 185, 129, 0.22), transparent 70%); pointer-events: none; border-radius: 50%;"></div>
+
+                    <!-- Radio Broadcast Signal & Ticker Wire Overlay SVG Background -->
+                    <svg style="position: absolute; right: 0; bottom: 0; width: 55%; height: 100%; opacity: 0.22; pointer-events: none;" viewBox="0 0 400 120" preserveAspectRatio="none">
+                        <!-- Broadcast Tower Antenna -->
+                        <line x1="320" y1="110" x2="320" y2="40" stroke="#38bdf8" stroke-width="2"/>
+                        <circle cx="320" cy="40" r="5" fill="#38bdf8"/>
+                        <!-- Signal Broadcast Arcs -->
+                        <path d="M 300 40 A 20 20 0 0 1 340 40" fill="none" stroke="#38bdf8" stroke-width="1.5"/>
+                        <path d="M 285 40 A 35 35 0 0 1 355 40" fill="none" stroke="#38bdf8" stroke-width="1.2" stroke-dasharray="3,3"/>
+                        <path d="M 270 40 A 50 50 0 0 1 370 40" fill="none" stroke="#38bdf8" stroke-width="1" stroke-dasharray="2,4"/>
+                        <!-- Wire Ticker Streams -->
+                        <line x1="40" y1="90" x2="260" y2="90" stroke="#10b981" stroke-width="1.5"/>
+                        <circle cx="260" cy="90" r="4" fill="#34d399"/>
+                    </svg>
+
+                    <!-- Header Content -->
+                    <div style="position: relative; z-index: 2; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px;">
+                        <div>
+                            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px;">
+                                <div style="background: rgba(56, 189, 248, 0.15); border: 1px solid rgba(56, 189, 248, 0.4); padding: 3px 8px; border-radius: 5px; display: inline-flex; align-items: center; gap: 6px;">
+                                    <span class="status-indicator" style="width: 7px; height: 7px; border-radius: 50%; background-color: #38bdf8; box-shadow: 0 0 8px #38bdf8;"></span>
+                                    <span style="font-size: 10px; font-weight: 800; color: #38bdf8; letter-spacing: 0.08em; text-transform: uppercase;">REAL-TIME FINANCIAL NEWS WIRE</span>
+                                </div>
+                                <span style="font-size: 11px; color: rgba(255,255,255,0.4); font-weight: 600;">• Institutional Feed</span>
+                            </div>
+                            <h2 style="margin: 0; font-size: 22px; font-weight: 800; color: #ffffff; letter-spacing: -0.02em; font-family: 'Outfit', sans-serif;">Global Market News Terminal</h2>
+                            <p style="margin: 6px 0 0 0; font-size: 12.5px; color: #94a3b8; line-height: 1.5; max-width: 660px;">Real-time financial intelligence feed aggregating catalysts, macroeconomic bulletins, regulatory updates, and sector indices across major publishers.</p>
+                        </div>
+
+                        <!-- Quick Control Metrics Pills -->
+                        <div style="display: flex; align-items: center; gap: 12px; background: rgba(0, 0, 0, 0.35); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 12px; padding: 10px 16px;">
+                            <div style="display: flex; flex-direction: column; align-items: flex-end;">
+                                <span style="font-size: 9.5px; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.05em;">Feed Aggregator</span>
+                                <span style="font-size: 15px; font-weight: 800; color: #38bdf8; font-family: monospace;">Active</span>
+                            </div>
+                            <div style="width: 1px; height: 28px; background: rgba(255,255,255,0.1);"></div>
+                            <div style="display: flex; flex-direction: column; align-items: flex-end;">
+                                <span style="font-size: 9.5px; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.05em;">Status</span>
+                                <span style="font-size: 11px; font-weight: 800; color: #34d399; background: rgba(16, 185, 129, 0.2); padding: 2px 8px; border-radius: 4px; display: inline-block;">STREAMING BULLETINS</span>
+                            </div>
+                        </div>
+                    </div>
+
                 </div>
 
                 <!-- Flash News Marquee Ticker -->
@@ -2586,9 +2725,57 @@
 
             <!-- SECTION: MARKET-WIDE EVENTS CALENDAR -->
             <section class="workspace-tab" id="tab-events" style="display: none; font-family: 'Inter', sans-serif;">
-                <div class="section-header">
-                    <h2 style="margin: 0 0 6px 0; font-size: 18px; font-weight: 700; color: var(--text-primary); text-transform: uppercase; letter-spacing: 0.5px;">Market-Wide Events Calendar</h2>
-                    <p style="margin: 0; font-size: 11.5px; color: var(--text-muted);">Track upcoming earnings, results, dividends, splits, bonuses, and board meetings across all NSE and indexed companies.</p>
+                <!-- Ultra-Institutional Events Calendar Cyber Hero Header Banner -->
+                <div class="events-hero-header no-print" style="margin-bottom: 24px; border-radius: 16px; background: linear-gradient(135deg, rgba(15, 23, 42, 0.95), rgba(30, 41, 59, 0.92), rgba(15, 23, 42, 0.95)); border: 1px solid rgba(168, 85, 247, 0.35); backdrop-filter: blur(20px); padding: 22px 28px; box-shadow: 0 12px 32px -4px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.1); position: relative; overflow: hidden; font-family: 'Outfit', 'Inter', sans-serif;">
+                    
+                    <!-- Ambient Cyber Glows -->
+                    <div style="position: absolute; top: -50px; right: -50px; width: 260px; height: 260px; background: radial-gradient(circle, rgba(168, 85, 247, 0.25), transparent 70%); pointer-events: none; border-radius: 50%;"></div>
+                    <div style="position: absolute; bottom: -60px; left: -60px; width: 230px; height: 230px; background: radial-gradient(circle, rgba(56, 189, 248, 0.22), transparent 70%); pointer-events: none; border-radius: 50%;"></div>
+
+                    <!-- 3D Calendar Grid & Event Pulsing Marker Vectors SVG Background -->
+                    <svg style="position: absolute; right: 0; bottom: 0; width: 55%; height: 100%; opacity: 0.22; pointer-events: none;" viewBox="0 0 400 120" preserveAspectRatio="none">
+                        <!-- Calendar Outline -->
+                        <rect x="250" y="20" width="120" height="85" rx="8" fill="rgba(168, 85, 247, 0.1)" stroke="#a855f7" stroke-width="1.2"/>
+                        <line x1="250" y1="42" x2="370" y2="42" stroke="#a855f7" stroke-width="1.2"/>
+                        <!-- Calendar Grid Dots -->
+                        <circle cx="270" cy="60" r="3" fill="#38bdf8"/>
+                        <circle cx="295" cy="60" r="3" fill="rgba(255,255,255,0.3)"/>
+                        <circle cx="320" cy="60" r="3" fill="#c084fc"/>
+                        <circle cx="345" cy="60" r="3" fill="rgba(255,255,255,0.3)"/>
+                        <circle cx="270" cy="80" r="3" fill="rgba(255,255,255,0.3)"/>
+                        <circle cx="295" cy="80" r="3" fill="#10b981"/>
+                        <circle cx="320" cy="80" r="3" fill="rgba(255,255,255,0.3)"/>
+                        <circle cx="345" cy="80" r="3" fill="#38bdf8"/>
+                    </svg>
+
+                    <!-- Header Content -->
+                    <div style="position: relative; z-index: 2; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px;">
+                        <div>
+                            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px;">
+                                <div style="background: rgba(168, 85, 247, 0.15); border: 1px solid rgba(168, 85, 247, 0.4); padding: 3px 8px; border-radius: 5px; display: inline-flex; align-items: center; gap: 6px;">
+                                    <span class="status-indicator" style="width: 7px; height: 7px; border-radius: 50%; background-color: #a855f7; box-shadow: 0 0 8px #a855f7;"></span>
+                                    <span style="font-size: 10px; font-weight: 800; color: #c084fc; letter-spacing: 0.08em; text-transform: uppercase;">NSE CORPORATE ACTIONS & EARNINGS TIMELINE</span>
+                                </div>
+                                <span style="font-size: 11px; color: rgba(255,255,255,0.4); font-weight: 600;">• Live Schedule</span>
+                            </div>
+                            <h2 style="margin: 0; font-size: 22px; font-weight: 800; color: #ffffff; letter-spacing: -0.02em; font-family: 'Outfit', sans-serif;">Market-Wide Events Calendar</h2>
+                            <p style="margin: 6px 0 0 0; font-size: 12.5px; color: #94a3b8; line-height: 1.5; max-width: 660px;">Track upcoming earnings declarations, quarterly results, cash dividends, stock splits, bonus issues, and board meetings across indexed equities.</p>
+                        </div>
+
+                        <!-- Quick Control Metrics Pills -->
+                        <div style="display: flex; align-items: center; gap: 12px; background: rgba(0, 0, 0, 0.35); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 12px; padding: 10px 16px;">
+                            <div style="display: flex; flex-direction: column; align-items: flex-end;">
+                                <span style="font-size: 9.5px; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.05em;">Event Engine</span>
+                                <span style="font-size: 15px; font-weight: 800; color: #c084fc; font-family: monospace;">Synchronized</span>
+                            </div>
+                            <div style="width: 1px; height: 28px; background: rgba(255,255,255,0.1);"></div>
+                            <div style="display: flex; flex-direction: column; align-items: flex-end;">
+                                <span style="font-size: 9.5px; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.05em;">Status</span>
+                                <span style="font-size: 11px; font-weight: 800; color: #38bdf8; background: rgba(56, 189, 248, 0.2); padding: 2px 8px; border-radius: 4px; display: inline-block;">MONITORING CALENDAR</span>
+                            </div>
+                        </div>
+                    </div>
+
                 </div>
 
                 <div class="card no-print" id="events-calendar-card" style="display: flex; flex-direction: column; gap: 0;">
@@ -3039,29 +3226,64 @@
                 <!-- Research Panel Starter & Stock Recommendations -->
                 <div id="analyzer-empty-state" class="analyzer-empty-recommendation-panel" style="padding: 24px 0; width: 100%; box-sizing: border-box;">
                     <!-- Research Terminal Hero Banner -->
-                    <div class="card research-hero-card" style="background: linear-gradient(135deg, #0f172a, #1e293b); border: 1px solid rgba(59, 130, 246, 0.3); border-radius: 12px; padding: 24px; margin-bottom: 24px; position: relative; overflow: visible; backdrop-filter: blur(12px); box-shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.3);">
-                        <div style="position: absolute; top: -30px; right: -30px; width: 180px; height: 180px; background: radial-gradient(circle, rgba(59, 130, 246, 0.25), transparent 70%); pointer-events: none; border-radius: 12px;"></div>
+                    <!-- Ultra-Institutional Research Terminal Cyber Hero Header Banner -->
+                    <div class="card research-hero-card no-print" style="margin-bottom: 24px; border-radius: 16px; background: linear-gradient(135deg, rgba(15, 23, 42, 0.95), rgba(30, 41, 59, 0.92), rgba(15, 23, 42, 0.95)); border: 1px solid rgba(59, 130, 246, 0.35); backdrop-filter: blur(20px); padding: 24px; box-shadow: 0 12px 32px -4px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.1); position: relative; overflow: hidden; font-family: 'Outfit', 'Inter', sans-serif;">
                         
-                        <div style="display: flex; align-items: center; gap: 14px; margin-bottom: 12px;">
-                            <div style="width: 44px; height: 44px; border-radius: 10px; background: rgba(59, 130, 246, 0.2); border: 1px solid rgba(59, 130, 246, 0.4); display: flex; align-items: center; justify-content: center; font-size: 22px;">📊</div>
+                        <!-- Ambient Cyber Glows -->
+                        <div style="position: absolute; top: -50px; right: -50px; width: 260px; height: 260px; background: radial-gradient(circle, rgba(59, 130, 246, 0.25), transparent 70%); pointer-events: none; border-radius: 50%;"></div>
+                        <div style="position: absolute; bottom: -60px; left: -60px; width: 230px; height: 230px; background: radial-gradient(circle, rgba(168, 85, 247, 0.22), transparent 70%); pointer-events: none; border-radius: 50%;"></div>
+
+                        <!-- 3D Financial Valuation Mesh Overlay SVG Background -->
+                        <svg style="position: absolute; right: 0; bottom: 0; width: 55%; height: 100%; opacity: 0.22; pointer-events: none;" viewBox="0 0 400 120" preserveAspectRatio="none">
+                            <path d="M 180 110 L 240 70 L 300 85 L 380 20" fill="none" stroke="#3b82f6" stroke-width="2.5"/>
+                            <circle cx="380" cy="20" r="5" fill="#60a5fa"/>
+                            <!-- Financial Bar Columns -->
+                            <rect x="220" y="70" width="12" height="40" rx="2" fill="rgba(59, 130, 246, 0.3)"/>
+                            <rect x="250" y="55" width="12" height="55" rx="2" fill="rgba(59, 130, 246, 0.4)"/>
+                            <rect x="280" y="40" width="12" height="70" rx="2" fill="rgba(59, 130, 246, 0.5)"/>
+                            <rect x="310" y="25" width="12" height="85" rx="2" fill="rgba(16, 185, 129, 0.6)"/>
+                        </svg>
+
+                        <!-- Header Content -->
+                        <div style="position: relative; z-index: 2; display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 16px;">
                             <div>
-                                <h2 style="margin: 0; font-size: 20px; font-weight: 700; font-family: var(--font-heading, 'Outfit', sans-serif); color: #ffffff !important; letter-spacing: -0.02em;">Equity Research & Valuation Terminal</h2>
-                                <p style="margin: 4px 0 0 0; font-size: 13px; color: rgba(255, 255, 255, 0.8) !important; line-height: 1.5;">Select a recommended stock below or search any NSE/BSE ticker above for institutional fundamental valuation, DCF model, AI risk audit, and analyst targets.</p>
+                                <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px;">
+                                    <div style="background: rgba(59, 130, 246, 0.15); border: 1px solid rgba(59, 130, 246, 0.4); padding: 3px 8px; border-radius: 5px; display: inline-flex; align-items: center; gap: 6px;">
+                                        <span class="status-indicator" style="width: 7px; height: 7px; border-radius: 50%; background-color: #3b82f6; box-shadow: 0 0 8px #3b82f6;"></span>
+                                        <span style="font-size: 10px; font-weight: 800; color: #60a5fa; letter-spacing: 0.08em; text-transform: uppercase;">INSTITUTIONAL VALUATION & DCF AUDITOR HUB</span>
+                                    </div>
+                                    <span style="font-size: 11px; color: rgba(255,255,255,0.4); font-weight: 600;">• Multi-Factor Prospectus</span>
+                                </div>
+                                <h2 style="margin: 0; font-size: 22px; font-weight: 800; color: #ffffff; letter-spacing: -0.02em; font-family: 'Outfit', sans-serif;">Equity Research & Valuation Terminal</h2>
+                                <p style="margin: 6px 0 0 0; font-size: 12.5px; color: #94a3b8; line-height: 1.5; max-width: 660px;">Select a recommended stock below or search any NSE/BSE ticker to generate institutional fundamental valuation, DCF models, AI risk audits, and analyst targets.</p>
+                            </div>
+
+                            <!-- Quick Control Metrics Pills -->
+                            <div style="display: flex; align-items: center; gap: 12px; background: rgba(0, 0, 0, 0.35); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 12px; padding: 10px 16px;">
+                                <div style="display: flex; flex-direction: column; align-items: flex-end;">
+                                    <span style="font-size: 9.5px; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.05em;">Valuation Engine</span>
+                                    <span style="font-size: 15px; font-weight: 800; color: #60a5fa; font-family: monospace;">DCF & Multiples</span>
+                                </div>
+                                <div style="width: 1px; height: 28px; background: rgba(255,255,255,0.1);"></div>
+                                <div style="display: flex; flex-direction: column; align-items: flex-end;">
+                                    <span style="font-size: 9.5px; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.05em;">Status</span>
+                                    <span style="font-size: 11px; font-weight: 800; color: #34d399; background: rgba(16, 185, 129, 0.2); padding: 2px 8px; border-radius: 4px; display: inline-block;">READY FOR AUDIT</span>
+                                </div>
                             </div>
                         </div>
 
-                        <!-- Quick Ticker Search Bar inside empty state -->
-                        <div style="margin-top: 18px; display: flex; gap: 10px; max-width: 640px; position: relative;">
+                        <!-- Quick Ticker Search Bar inside hero state -->
+                        <div style="margin-top: 20px; display: flex; gap: 10px; max-width: 680px; position: relative; z-index: 2;">
                             <div style="position: relative; flex: 1;">
                                 <span style="position: absolute; left: 14px; top: 50%; transform: translateY(-50%); font-size: 14px; color: #94a3b8; pointer-events: none;">🔍</span>
                                 <input type="text" id="research-empty-search-input" placeholder="Type stock name or ticker (e.g. RELIANCE, TCS, TATAMOTORS, HDFCBANK)..." 
-                                       style="width: 100%; box-sizing: border-box; padding: 10px 14px 10px 42px !important; font-size: 13px; background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 8px; color: #ffffff !important; outline: none; transition: all 0.2s;"
+                                       style="width: 100%; box-sizing: border-box; padding: 11px 14px 11px 42px !important; font-size: 13px; background: rgba(0, 0, 0, 0.4); border: 1px solid rgba(255, 255, 255, 0.15); border-radius: 8px; color: #ffffff !important; outline: none; transition: all 0.2s;"
                                        autocomplete="off"
                                        onkeydown="if(event.key === 'Enter' && this.value.trim()){ loadStockAnalyzer(this.value.trim()); }" />
                                 <div id="research-empty-suggestions" class="watchlist-autocomplete-box" style="display:none; position:absolute; top:calc(100% + 6px); left:0; right:0; z-index:9999; max-height:260px; overflow-y:auto;"></div>
                             </div>
                             <button onclick="const val = document.getElementById('research-empty-search-input').value.trim(); if(val) loadStockAnalyzer(val);" 
-                                    style="background: linear-gradient(135deg, #3b82f6, #2563eb); color: white; border: none; border-radius: 8px; padding: 0 20px; font-size: 13px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 6px; transition: all 0.2s; white-space: nowrap;">
+                                    style="background: linear-gradient(135deg, #3b82f6, #2563eb); color: white; border: none; border-radius: 8px; padding: 0 22px; font-size: 13px; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 6px; transition: all 0.2s; white-space: nowrap; box-shadow: 0 4px 14px rgba(37, 99, 235, 0.4);">
                                 ⚡ Analyze Stock
                             </button>
                         </div>
@@ -7171,9 +7393,53 @@
 
             <!-- SECTION 4: ALERT CENTER -->
             <section class="workspace-tab" id="tab-alerts" style="display: none;">
-                <div class="section-header">
-                    <h2>Institutional Alert Center</h2>
-                    <p>Configure custom valuation and technical threshold triggers. The database backend audits conditions in real-time.</p>
+                <!-- Ultra-Institutional Alert Center Cyber Hero Header Banner -->
+                <div class="alerts-hero-header no-print" style="margin-bottom: 24px; border-radius: 16px; background: linear-gradient(135deg, rgba(15, 23, 42, 0.95), rgba(30, 41, 59, 0.92), rgba(15, 23, 42, 0.95)); border: 1px solid rgba(244, 63, 94, 0.35); backdrop-filter: blur(20px); padding: 22px 28px; box-shadow: 0 12px 32px -4px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.1); position: relative; overflow: hidden; font-family: 'Outfit', 'Inter', sans-serif;">
+                    
+                    <!-- Ambient Cyber Glows -->
+                    <div style="position: absolute; top: -50px; right: -50px; width: 260px; height: 260px; background: radial-gradient(circle, rgba(244, 63, 94, 0.25), transparent 70%); pointer-events: none; border-radius: 50%;"></div>
+                    <div style="position: absolute; bottom: -60px; left: -60px; width: 230px; height: 230px; background: radial-gradient(circle, rgba(234, 179, 8, 0.22), transparent 70%); pointer-events: none; border-radius: 50%;"></div>
+
+                    <!-- Bell Wave & Dynamic Threshold Waves SVG Background -->
+                    <svg style="position: absolute; right: 0; bottom: 0; width: 55%; height: 100%; opacity: 0.22; pointer-events: none;" viewBox="0 0 400 120" preserveAspectRatio="none">
+                        <!-- Bell Radiating Signal Rings -->
+                        <circle cx="320" cy="50" r="15" fill="none" stroke="#f43f5e" stroke-width="1.5"/>
+                        <circle cx="320" cy="50" r="30" fill="none" stroke="#f43f5e" stroke-width="1.2" stroke-dasharray="3,3"/>
+                        <circle cx="320" cy="50" r="45" fill="none" stroke="#f43f5e" stroke-width="1" stroke-dasharray="2,4"/>
+                        <!-- Trigger Threshold Boundary -->
+                        <line x1="80" y1="40" x2="260" y2="40" stroke="#eab308" stroke-width="1.5" stroke-dasharray="4,4"/>
+                        <path d="M 80 80 Q 150 90 200 40 T 260 20" fill="none" stroke="#f43f5e" stroke-width="2"/>
+                        <circle cx="200" cy="40" r="5" fill="#f43f5e"/>
+                    </svg>
+
+                    <!-- Header Content -->
+                    <div style="position: relative; z-index: 2; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px;">
+                        <div>
+                            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px;">
+                                <div style="background: rgba(244, 63, 94, 0.15); border: 1px solid rgba(244, 63, 94, 0.4); padding: 3px 8px; border-radius: 5px; display: inline-flex; align-items: center; gap: 6px;">
+                                    <span class="status-indicator" style="width: 7px; height: 7px; border-radius: 50%; background-color: #f43f5e; box-shadow: 0 0 8px #f43f5e;"></span>
+                                    <span style="font-size: 10px; font-weight: 800; color: #fb7185; letter-spacing: 0.08em; text-transform: uppercase;">REAL-TIME THRESHOLD & QUANT SENTINEL HUB</span>
+                                </div>
+                                <span style="font-size: 11px; color: rgba(255,255,255,0.4); font-weight: 600;">• Continuous Audit</span>
+                            </div>
+                            <h2 style="margin: 0; font-size: 22px; font-weight: 800; color: #ffffff; letter-spacing: -0.02em; font-family: 'Outfit', sans-serif;">Institutional Alert Center</h2>
+                            <p style="margin: 6px 0 0 0; font-size: 12.5px; color: #94a3b8; line-height: 1.5; max-width: 660px;">Configure custom valuation and technical threshold triggers. The backend database sentinel audits conditions in real-time with instant notifications.</p>
+                        </div>
+
+                        <!-- Quick Control Metrics Pills -->
+                        <div style="display: flex; align-items: center; gap: 12px; background: rgba(0, 0, 0, 0.35); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 12px; padding: 10px 16px;">
+                            <div style="display: flex; flex-direction: column; align-items: flex-end;">
+                                <span style="font-size: 9.5px; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.05em;">Sentinel Status</span>
+                                <span style="font-size: 15px; font-weight: 800; color: #fb7185; font-family: monospace;">ACTIVE</span>
+                            </div>
+                            <div style="width: 1px; height: 28px; background: rgba(255,255,255,0.1);"></div>
+                            <div style="display: flex; flex-direction: column; align-items: flex-end;">
+                                <span style="font-size: 9.5px; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.05em;">Status</span>
+                                <span style="font-size: 11px; font-weight: 800; color: #34d399; background: rgba(16, 185, 129, 0.2); padding: 2px 8px; border-radius: 4px; display: inline-block;">REAL-TIME AUDIT</span>
+                            </div>
+                        </div>
+                    </div>
+
                 </div>
 
                 <!-- Sonar Sentinel Callout Panel -->
@@ -8520,8 +8786,54 @@
             </section>
 
             <section class="workspace-tab" id="tab-watchlist" style="display: none;">
-                <div class="section-header">
-                     <h2>Watchlist Registry</h2>
+                <!-- Ultra-Institutional Watchlist Registry Cyber Hero Header Banner -->
+                <div class="watchlist-hero-header no-print" style="margin-bottom: 24px; border-radius: 16px; background: linear-gradient(135deg, rgba(15, 23, 42, 0.95), rgba(30, 41, 59, 0.92), rgba(15, 23, 42, 0.95)); border: 1px solid rgba(45, 212, 191, 0.35); backdrop-filter: blur(20px); padding: 22px 28px; box-shadow: 0 12px 32px -4px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.1); position: relative; overflow: hidden; font-family: 'Outfit', 'Inter', sans-serif;">
+                    
+                    <!-- Ambient Cyber Glows -->
+                    <div style="position: absolute; top: -50px; right: -50px; width: 260px; height: 260px; background: radial-gradient(circle, rgba(45, 212, 191, 0.25), transparent 70%); pointer-events: none; border-radius: 50%;"></div>
+                    <div style="position: absolute; bottom: -60px; left: -60px; width: 230px; height: 230px; background: radial-gradient(circle, rgba(16, 185, 129, 0.22), transparent 70%); pointer-events: none; border-radius: 50%;"></div>
+
+                    <!-- Star Constellation & Watchlist Target Radar SVG Background -->
+                    <svg style="position: absolute; right: 0; bottom: 0; width: 55%; height: 100%; opacity: 0.22; pointer-events: none;" viewBox="0 0 400 120" preserveAspectRatio="none">
+                        <!-- Star Points & Connected Polygon -->
+                        <circle cx="250" cy="30" r="4" fill="#2dd4bf"/>
+                        <circle cx="310" cy="20" r="5" fill="#facc15"/>
+                        <circle cx="360" cy="60" r="4" fill="#2dd4bf"/>
+                        <circle cx="280" cy="85" r="4" fill="#34d399"/>
+                        <line x1="250" y1="30" x2="310" y2="20" stroke="#2dd4bf" stroke-width="1.5" stroke-dasharray="2,2"/>
+                        <line x1="310" y1="20" x2="360" y2="60" stroke="#2dd4bf" stroke-width="1.5"/>
+                        <line x1="360" y1="60" x2="280" y2="85" stroke="#34d399" stroke-width="1.5"/>
+                        <line x1="280" y1="85" x2="250" y2="30" stroke="#2dd4bf" stroke-width="1.5"/>
+                    </svg>
+
+                    <!-- Header Content -->
+                    <div style="position: relative; z-index: 2; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px;">
+                        <div>
+                            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px;">
+                                <div style="background: rgba(45, 212, 191, 0.15); border: 1px solid rgba(45, 212, 191, 0.4); padding: 3px 8px; border-radius: 5px; display: inline-flex; align-items: center; gap: 6px;">
+                                    <span class="status-indicator" style="width: 7px; height: 7px; border-radius: 50%; background-color: #2dd4bf; box-shadow: 0 0 8px #2dd4bf;"></span>
+                                    <span style="font-size: 10px; font-weight: 800; color: #2dd4bf; letter-spacing: 0.08em; text-transform: uppercase;">PERSONAL EQUITIES REGISTRY</span>
+                                </div>
+                                <span style="font-size: 11px; color: rgba(255,255,255,0.4); font-weight: 600;">• Real-Time Telemetry & Target Radar</span>
+                            </div>
+                            <h2 style="margin: 0; font-size: 22px; font-weight: 800; color: #ffffff; letter-spacing: -0.02em; font-family: 'Outfit', sans-serif;">Watchlist Registry</h2>
+                            <p style="margin: 6px 0 0 0; font-size: 12.5px; color: #94a3b8; line-height: 1.5; max-width: 660px;">Manage curated stock watchlists, monitor portfolio sector dispersion, track margin-of-safety targets, and receive continuous valuation updates.</p>
+                        </div>
+
+                        <!-- Quick Control Metrics Pills -->
+                        <div style="display: flex; align-items: center; gap: 12px; background: rgba(0, 0, 0, 0.35); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 12px; padding: 10px 16px;">
+                            <div style="display: flex; flex-direction: column; align-items: flex-end;">
+                                <span style="font-size: 9.5px; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.05em;">Registry Telemetry</span>
+                                <span style="font-size: 15px; font-weight: 800; color: #2dd4bf; font-family: monospace;">Live</span>
+                            </div>
+                            <div style="width: 1px; height: 28px; background: rgba(255,255,255,0.1);"></div>
+                            <div style="display: flex; flex-direction: column; align-items: flex-end;">
+                                <span style="font-size: 9.5px; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.05em;">Status</span>
+                                <span style="font-size: 11px; font-weight: 800; color: #34d399; background: rgba(16, 185, 129, 0.2); padding: 2px 8px; border-radius: 4px; display: inline-block;">REAL-TIME TRACKING</span>
+                            </div>
+                        </div>
+                    </div>
+
                 </div>
 
                 <!-- Watchlist Telemetry Grid -->
@@ -8814,9 +9126,51 @@
                     </div>
                 </div>
 
-                <div class="section-header">
-                    <h2>Portfolio Optimization Doctor</h2>
-                    <p>Orchestrate institutional-grade diagnostic audits, analyze concentration indices, measure sector exposure, and receive active mathematical rebalancing strategies compiled by the AI agent.</p>
+                <!-- Ultra-Institutional Portfolio Doctor Cyber Hero Header Banner -->
+                <div class="portfolio-hero-header no-print" style="margin-bottom: 24px; border-radius: 16px; background: linear-gradient(135deg, rgba(15, 23, 42, 0.95), rgba(30, 41, 59, 0.92), rgba(15, 23, 42, 0.95)); border: 1px solid rgba(16, 185, 129, 0.35); backdrop-filter: blur(20px); padding: 22px 28px; box-shadow: 0 12px 32px -4px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.1); position: relative; overflow: hidden; font-family: 'Outfit', 'Inter', sans-serif;">
+                    
+                    <!-- Ambient Cyber Glows -->
+                    <div style="position: absolute; top: -50px; right: -50px; width: 260px; height: 260px; background: radial-gradient(circle, rgba(16, 185, 129, 0.25), transparent 70%); pointer-events: none; border-radius: 50%;"></div>
+                    <div style="position: absolute; bottom: -60px; left: -60px; width: 230px; height: 230px; background: radial-gradient(circle, rgba(56, 189, 248, 0.22), transparent 70%); pointer-events: none; border-radius: 50%;"></div>
+
+                    <!-- 3D Security Shield & Portfolio Growth Mesh SVG Background -->
+                    <svg style="position: absolute; right: 0; bottom: 0; width: 55%; height: 100%; opacity: 0.22; pointer-events: none;" viewBox="0 0 400 120" preserveAspectRatio="none">
+                        <!-- Shield Outline -->
+                        <path d="M 320 25 L 360 40 V 75 Q 360 100 320 110 Q 280 100 280 75 V 40 Z" fill="rgba(16, 185, 129, 0.1)" stroke="#10b981" stroke-width="1.5"/>
+                        <path d="M 305 60 L 317 72 L 338 48" fill="none" stroke="#34d399" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+                        <!-- Growth Wave Line -->
+                        <path d="M 40 95 Q 120 70 180 85 T 260 30" fill="none" stroke="#38bdf8" stroke-width="1.8"/>
+                        <circle cx="260" cy="30" r="4" fill="#38bdf8"/>
+                    </svg>
+
+                    <!-- Header Content -->
+                    <div style="position: relative; z-index: 2; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px;">
+                        <div>
+                            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px;">
+                                <div style="background: rgba(16, 185, 129, 0.15); border: 1px solid rgba(16, 185, 129, 0.4); padding: 3px 8px; border-radius: 5px; display: inline-flex; align-items: center; gap: 6px;">
+                                    <span class="status-indicator" style="width: 7px; height: 7px; border-radius: 50%; background-color: #10b981; box-shadow: 0 0 8px #10b981;"></span>
+                                    <span style="font-size: 10px; font-weight: 800; color: #34d399; letter-spacing: 0.08em; text-transform: uppercase;">INSTITUTIONAL ASSET ALLOCATION & RISK AUDITOR</span>
+                                </div>
+                                <span style="font-size: 11px; color: rgba(255,255,255,0.4); font-weight: 600;">• Encrypted Ledger</span>
+                            </div>
+                            <h2 style="margin: 0; font-size: 22px; font-weight: 800; color: #ffffff; letter-spacing: -0.02em; font-family: 'Outfit', sans-serif;">Portfolio Optimization Doctor</h2>
+                            <p style="margin: 6px 0 0 0; font-size: 12.5px; color: #94a3b8; line-height: 1.5; max-width: 660px;">Orchestrate institutional diagnostic audits, analyze concentration indices, measure sector exposure, run stress scenarios, and generate optimal Sharpe ratio rebalancing strategies.</p>
+                        </div>
+
+                        <!-- Quick Control Metrics Pills -->
+                        <div style="display: flex; align-items: center; gap: 12px; background: rgba(0, 0, 0, 0.35); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 12px; padding: 10px 16px;">
+                            <div style="display: flex; flex-direction: column; align-items: flex-end;">
+                                <span style="font-size: 9.5px; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.05em;">Portfolio Doctor</span>
+                                <span style="font-size: 15px; font-weight: 800; color: #34d399; font-family: monospace;">Active</span>
+                            </div>
+                            <div style="width: 1px; height: 28px; background: rgba(255,255,255,0.1);"></div>
+                            <div style="display: flex; flex-direction: column; align-items: flex-end;">
+                                <span style="font-size: 9.5px; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.05em;">Status</span>
+                                <span style="font-size: 11px; font-weight: 800; color: #38bdf8; background: rgba(56, 189, 248, 0.2); padding: 2px 8px; border-radius: 4px; display: inline-block;">ENCRYPTED AUDIT</span>
+                            </div>
+                        </div>
+                    </div>
+
                 </div>
                 <!-- Portfolio Doctor Sub-navigation Tabs -->
                 <div class="portfolio-subtabs-wrapper no-print" style="display: flex; gap: 10px; margin-top: 15px; margin-bottom: 5px;">
@@ -9637,19 +9991,60 @@
 
             <!-- SECTION 8A: SWING SETUP SCANNER -->
             <section class="workspace-tab" id="tab-swing-scan" style="display: none; font-family: 'Inter', sans-serif;">
-                <div class="section-header no-print" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-                    <div>
-                        <h2 style="display: flex; align-items: center; gap: 8px;">
-                            ⚡ Swing Setup Scanner 
-                            <span id="swing-scan-nifty-badge" class="header-badge" style="font-size: 11px; padding: 2px 8px; border-radius: 99px; font-weight: 700; background: rgba(16, 185, 129, 0.15); color: #10b981; border: 1px solid rgba(16, 185, 129, 0.25);">Nifty 50: --</span>
-                            <span id="swing-scan-horizon-badge" class="header-badge" style="font-size: 11px; padding: 2px 8px; border-radius: 99px; font-weight: 700; background: rgba(59, 130, 246, 0.15); color: #3b82f6; border: 1px solid rgba(59, 130, 246, 0.25);">Short-Term (5-15 Days)</span>
-                        </h2>
-                        <p>Identify breakout signals, support zones, and technical setups across cap segments.</p>
-                        <!-- Global Bearish Index Warning Banner -->
-                        <div id="swing-scan-regime-warning" class="no-print" style="display: none; margin-top: 10px; padding: 10px 14px; border-radius: 8px; background: rgba(239, 68, 68, 0.08); border: 1px solid rgba(239, 68, 68, 0.25); color: #f87171; font-size: 11.5px; align-items: center; gap: 8px; width: 100%; box-sizing: border-box;">
-                            <span>⚠️</span> <strong>Bearish Market Regime Alert</strong>: Nifty 50 is currently trading below its daily 20 EMA. Breakout strategies are highly restricted. Focus on defensive setups or cash preservation.
+                <!-- Ultra-Institutional Swing Setup Scanner Cyber Hero Header Banner -->
+                <div class="swing-scan-hero-header no-print" style="margin-bottom: 24px; border-radius: 16px; background: linear-gradient(135deg, rgba(15, 23, 42, 0.95), rgba(30, 41, 59, 0.92), rgba(15, 23, 42, 0.95)); border: 1px solid rgba(245, 158, 11, 0.35); backdrop-filter: blur(20px); padding: 22px 28px; box-shadow: 0 12px 32px -4px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.1); position: relative; overflow: hidden; font-family: 'Outfit', 'Inter', sans-serif;">
+                    
+                    <!-- Ambient Cyber Glows -->
+                    <div style="position: absolute; top: -50px; right: -50px; width: 260px; height: 260px; background: radial-gradient(circle, rgba(245, 158, 11, 0.25), transparent 70%); pointer-events: none; border-radius: 50%;"></div>
+                    <div style="position: absolute; bottom: -60px; left: -60px; width: 230px; height: 230px; background: radial-gradient(circle, rgba(168, 85, 247, 0.22), transparent 70%); pointer-events: none; border-radius: 50%;"></div>
+
+                    <!-- 3D Momentum Breakout Candlestick Rays SVG Background -->
+                    <svg style="position: absolute; right: 0; bottom: 0; width: 55%; height: 100%; opacity: 0.22; pointer-events: none;" viewBox="0 0 400 120" preserveAspectRatio="none">
+                        <!-- Breakout Candlesticks -->
+                        <line x1="240" y1="80" x2="240" y2="30" stroke="#f59e0b" stroke-width="1.2"/>
+                        <rect x="235" y="45" width="10" height="25" fill="#f59e0b" rx="1"/>
+                        <line x1="280" y1="70" x2="280" y2="20" stroke="#10b981" stroke-width="1.2"/>
+                        <rect x="275" y="30" width="10" height="30" fill="#10b981" rx="1"/>
+                        <line x1="320" y1="60" x2="320" y2="10" stroke="#a855f7" stroke-width="1.2"/>
+                        <rect x="315" y="15" width="10" height="35" fill="#a855f7" rx="1"/>
+                        <!-- Lightning Breakout Bolt Line -->
+                        <path d="M 120 100 L 200 65 L 180 65 L 260 20" fill="none" stroke="#facc15" stroke-width="2.5" stroke-linejoin="round"/>
+                    </svg>
+
+                    <!-- Header Content -->
+                    <div style="position: relative; z-index: 2; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px;">
+                        <div>
+                            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px;">
+                                <div style="background: rgba(245, 158, 11, 0.15); border: 1px solid rgba(245, 158, 11, 0.4); padding: 3px 8px; border-radius: 5px; display: inline-flex; align-items: center; gap: 6px;">
+                                    <span class="status-indicator" style="width: 7px; height: 7px; border-radius: 50%; background-color: #f59e0b; box-shadow: 0 0 8px #f59e0b;"></span>
+                                    <span style="font-size: 10px; font-weight: 800; color: #fbbf24; letter-spacing: 0.08em; text-transform: uppercase;">TECHNICAL BREAKOUT & MOMENTUM SCANNER</span>
+                                </div>
+                                <span id="swing-scan-horizon-badge" style="font-size: 11px; color: rgba(255,255,255,0.4); font-weight: 600;">• Short-Term Horizon (5-15 Days)</span>
+                                <span id="swing-scan-nifty-badge" style="font-size: 10px; padding: 2px 8px; border-radius: 99px; font-weight: 700; background: rgba(16, 185, 129, 0.15); color: #10b981; border: 1px solid rgba(16, 185, 129, 0.25);">Nifty 50: --</span>
+                            </div>
+                            <h2 style="margin: 0; font-size: 22px; font-weight: 800; color: #ffffff; letter-spacing: -0.02em; font-family: 'Outfit', sans-serif;">⚡ Swing Setup Scanner</h2>
+                            <p style="margin: 6px 0 0 0; font-size: 12.5px; color: #94a3b8; line-height: 1.5; max-width: 660px;">Identify high-probability breakout signals, support confluence zones, volume surges, and technical chart setups across Large, Mid, and Small Cap segments.</p>
+                            <!-- Global Bearish Index Warning Banner -->
+                            <div id="swing-scan-regime-warning" class="no-print" style="display: none; margin-top: 10px; padding: 10px 14px; border-radius: 8px; background: rgba(239, 68, 68, 0.08); border: 1px solid rgba(239, 68, 68, 0.25); color: #f87171; font-size: 11.5px; align-items: center; gap: 8px; width: 100%; box-sizing: border-box;">
+                                <span>⚠️</span> <strong>Bearish Market Regime Alert</strong>: Nifty 50 is currently trading below its daily 20 EMA. Breakout strategies are highly restricted. Focus on defensive setups or cash preservation.
+                            </div>
+                        </div>
+
+                        <!-- Quick Control Metrics Pills -->
+                        <div style="display: flex; align-items: center; gap: 12px; background: rgba(0, 0, 0, 0.35); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 12px; padding: 10px 16px;">
+                            <div style="display: flex; flex-direction: column; align-items: flex-end;">
+                                <span style="font-size: 9.5px; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.05em;">Breakout Engine</span>
+                                <span style="font-size: 15px; font-weight: 800; color: #fbbf24; font-family: monospace;">Calibrated</span>
+                            </div>
+                            <div style="width: 1px; height: 28px; background: rgba(255,255,255,0.1);"></div>
+                            <div style="display: flex; flex-direction: column; align-items: flex-end;">
+                                <span style="font-size: 9.5px; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.05em;">Status</span>
+                                <span style="font-size: 11px; font-weight: 800; color: #34d399; background: rgba(16, 185, 129, 0.2); padding: 2px 8px; border-radius: 4px; display: inline-block;">READY TO AUDIT</span>
+                            </div>
                         </div>
                     </div>
+
+                </div>
                     <!-- Horizon Segmented Switch -->
                     <div class="horizon-toggle" style="display: flex; gap: 4px; background: rgba(255, 255, 255, 0.03); border: 1px solid var(--border-glass); padding: 3px; border-radius: 8px; box-shadow: inset 0 1px 2px rgba(0,0,0,0.15);">
                         <button class="btn-secondary active" id="swing-scan-horizon-short-btn" style="font-size: 10px; padding: 6px 12px; height: auto; border: none; border-radius: 6px; font-weight: 700; transition: all 0.2s;" data-horizon="short">⚡ Short-Term (5-15 Days)</button>
@@ -9763,18 +10158,61 @@
 
             <!-- SECTION 8: SWING TRADING WORKSPACE -->
             <section class="workspace-tab" id="tab-swing" style="display: none; font-family: 'Inter', sans-serif;">
-                <div class="section-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 10px;">
-                    <div>
-                        <h2>🎯 Swing Trading Workspace & Risk Sizer</h2>
-                        <p>Analyze entry boundaries, optimize risk position sizing, run backtest simulations, and review corporate dockets.</p>
+                <!-- Ultra-Institutional Swing Trading Workspace Cyber Hero Header Banner -->
+                <div class="swing-hero-header no-print" style="margin-bottom: 24px; border-radius: 16px; background: linear-gradient(135deg, rgba(15, 23, 42, 0.95), rgba(30, 41, 59, 0.92), rgba(15, 23, 42, 0.95)); border: 1px solid rgba(249, 115, 22, 0.35); backdrop-filter: blur(20px); padding: 22px 28px; box-shadow: 0 12px 32px -4px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.1); position: relative; overflow: hidden; font-family: 'Outfit', 'Inter', sans-serif;">
+                    
+                    <!-- Ambient Cyber Glows -->
+                    <div style="position: absolute; top: -50px; right: -50px; width: 260px; height: 260px; background: radial-gradient(circle, rgba(249, 115, 22, 0.25), transparent 70%); pointer-events: none; border-radius: 50%;"></div>
+                    <div style="position: absolute; bottom: -60px; left: -60px; width: 230px; height: 230px; background: radial-gradient(circle, rgba(56, 189, 248, 0.22), transparent 70%); pointer-events: none; border-radius: 50%;"></div>
+
+                    <!-- Target Crosshair & Risk Boundary Grid SVG Background -->
+                    <svg style="position: absolute; right: 0; bottom: 0; width: 55%; height: 100%; opacity: 0.22; pointer-events: none;" viewBox="0 0 400 120" preserveAspectRatio="none">
+                        <!-- Crosshair Target Rings -->
+                        <circle cx="300" cy="50" r="18" fill="none" stroke="#f97316" stroke-width="1.5"/>
+                        <circle cx="300" cy="50" r="35" fill="none" stroke="#f97316" stroke-width="1" stroke-dasharray="3,3"/>
+                        <line x1="260" y1="50" x2="340" y2="50" stroke="#f97316" stroke-width="1"/>
+                        <line x1="300" y1="10" x2="300" y2="90" stroke="#f97316" stroke-width="1"/>
+                        <!-- Stop Loss & Profit Target Boundaries -->
+                        <line x1="60" y1="30" x2="220" y2="30" stroke="#10b981" stroke-width="1.5" stroke-dasharray="4,4"/>
+                        <line x1="60" y1="85" x2="220" y2="85" stroke="#ef4444" stroke-width="1.5" stroke-dasharray="4,4"/>
+                    </svg>
+
+                    <!-- Header Content -->
+                    <div style="position: relative; z-index: 2; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px;">
+                        <div>
+                            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px;">
+                                <div style="background: rgba(249, 115, 22, 0.15); border: 1px solid rgba(249, 115, 22, 0.4); padding: 3px 8px; border-radius: 5px; display: inline-flex; align-items: center; gap: 6px;">
+                                    <span class="status-indicator" style="width: 7px; height: 7px; border-radius: 50%; background-color: #f97316; box-shadow: 0 0 8px #f97316;"></span>
+                                    <span style="font-size: 10px; font-weight: 800; color: #fb923c; letter-spacing: 0.08em; text-transform: uppercase;">POSITION SIZING & RISK ARCHITECT</span>
+                                </div>
+                                <div id="swing-workspace-horizon-badge" style="font-size: 10.5px; padding: 2px 8px; border-radius: 99px; font-weight: 700; background: rgba(59, 130, 246, 0.15); color: #3b82f6; border: 1px solid rgba(59, 130, 246, 0.25); display: inline-flex; align-items: center; gap: 4px;">
+                                    <span>⚡</span> Short-Term Swing (5-15 Days)
+                                </div>
+                            </div>
+                            <h2 style="margin: 0; font-size: 22px; font-weight: 800; color: #ffffff; letter-spacing: -0.02em; font-family: 'Outfit', sans-serif;">🎯 Swing Trading Workspace & Risk Sizer</h2>
+                            <p style="margin: 6px 0 0 0; font-size: 12.5px; color: #94a3b8; line-height: 1.5; max-width: 660px;">Analyze precise entry boundaries, compute Kelly & fixed-fractional risk position sizing, run backtest simulations, and generate institutional execution dockets.</p>
+                        </div>
+
+                        <!-- Quick Control Buttons & Metrics Pills -->
+                        <div style="display: flex; align-items: center; gap: 12px;">
+                            <button class="btn-primary" id="print-swing-trade-btn" style="display: inline-flex; align-items: center; gap: 6px; padding: 10px 16px; border-radius: 10px; font-weight: 700; background: linear-gradient(135deg, #f97316, #ea580c); box-shadow: 0 4px 12px rgba(249, 115, 22, 0.3);">
+                                <span>🖨️</span> Print Swing Trade Docket
+                            </button>
+
+                            <div style="display: flex; align-items: center; gap: 12px; background: rgba(0, 0, 0, 0.35); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 12px; padding: 10px 16px;">
+                                <div style="display: flex; flex-direction: column; align-items: flex-end;">
+                                    <span style="font-size: 9.5px; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.05em;">Risk Sizer</span>
+                                    <span style="font-size: 15px; font-weight: 800; color: #fb923c; font-family: monospace;">Active</span>
+                                </div>
+                                <div style="width: 1px; height: 28px; background: rgba(255,255,255,0.1);"></div>
+                                <div style="display: flex; flex-direction: column; align-items: flex-end;">
+                                    <span style="font-size: 9.5px; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.05em;">Status</span>
+                                    <span style="font-size: 11px; font-weight: 800; color: #34d399; background: rgba(16, 185, 129, 0.2); padding: 2px 8px; border-radius: 4px; display: inline-block;">READY FOR EXECUTION</span>
+                                </div>
+                            </div>
+                        </div>
                     </div>
-                    <!-- Strategy Horizon Status Badge -->
-                    <div id="swing-workspace-horizon-badge" class="no-print" style="font-size: 10.5px; padding: 5px 12px; border-radius: 99px; font-weight: 700; background: rgba(59, 130, 246, 0.15); color: #3b82f6; border: 1px solid rgba(59, 130, 246, 0.25); display: inline-flex; align-items: center; gap: 6px;">
-                        <span>⚡</span> Short-Term Swing (5-15 Days)
-                    </div>
-                    <button class="btn-primary no-print" id="print-swing-trade-btn" style="display: inline-flex; align-items: center; gap: 6px;">
-                        <span>🖨️</span> Print Swing Trade Docket
-                    </button>
+
                 </div>
 
                 <!-- Empty Active State placeholder -->
@@ -9966,6 +10404,56 @@
 
             <!-- SECTION: LEARNING ACADEMY -->
             <section class="workspace-tab" id="tab-learning" style="display: none; font-family: 'Inter', sans-serif;">
+                <!-- Ultra-Institutional Quant Trading Academy Cyber Hero Header Banner -->
+                <div class="learning-hero-header no-print" style="margin-bottom: 24px; border-radius: 16px; background: linear-gradient(135deg, rgba(15, 23, 42, 0.95), rgba(30, 41, 59, 0.92), rgba(15, 23, 42, 0.95)); border: 1px solid rgba(168, 85, 247, 0.35); backdrop-filter: blur(20px); padding: 22px 28px; box-shadow: 0 12px 32px -4px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.1); position: relative; overflow: hidden; font-family: 'Outfit', 'Inter', sans-serif;">
+                    
+                    <!-- Ambient Cyber Glows -->
+                    <div style="position: absolute; top: -50px; right: -50px; width: 260px; height: 260px; background: radial-gradient(circle, rgba(168, 85, 247, 0.25), transparent 70%); pointer-events: none; border-radius: 50%;"></div>
+                    <div style="position: absolute; bottom: -60px; left: -60px; width: 230px; height: 230px; background: radial-gradient(circle, rgba(250, 204, 21, 0.22), transparent 70%); pointer-events: none; border-radius: 50%;"></div>
+
+                    <!-- Open Codex & Neural Knowledge Grid SVG Background -->
+                    <svg style="position: absolute; right: 0; bottom: 0; width: 55%; height: 100%; opacity: 0.22; pointer-events: none;" viewBox="0 0 400 120" preserveAspectRatio="none">
+                        <!-- Open Book/Codex Outline -->
+                        <path d="M 240 75 Q 290 60 340 75 V 25 Q 290 10 240 25 Z" fill="none" stroke="#a855f7" stroke-width="1.5"/>
+                        <path d="M 240 75 Q 190 60 140 75 V 25 Q 190 10 240 25 Z" fill="none" stroke="#a855f7" stroke-width="1.5"/>
+                        <line x1="240" y1="25" x2="240" y2="75" stroke="#facc15" stroke-width="2"/>
+                        <!-- Neural Constellation Lines -->
+                        <circle cx="100" cy="40" r="4" fill="#a855f7"/>
+                        <circle cx="150" cy="20" r="3" fill="#facc15"/>
+                        <circle cx="80" cy="80" r="3" fill="#a855f7"/>
+                        <line x1="100" y1="40" x2="150" y2="20" stroke="#a855f7" stroke-width="1" stroke-dasharray="2,2"/>
+                        <line x1="100" y1="40" x2="80" y2="80" stroke="#a855f7" stroke-width="1"/>
+                    </svg>
+
+                    <!-- Header Content -->
+                    <div style="position: relative; z-index: 2; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px;">
+                        <div>
+                            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px;">
+                                <div style="background: rgba(168, 85, 247, 0.15); border: 1px solid rgba(168, 85, 247, 0.4); padding: 3px 8px; border-radius: 5px; display: inline-flex; align-items: center; gap: 6px;">
+                                    <span class="status-indicator" style="width: 7px; height: 7px; border-radius: 50%; background-color: #a855f7; box-shadow: 0 0 8px #a855f7;"></span>
+                                    <span style="font-size: 10px; font-weight: 800; color: #c084fc; letter-spacing: 0.08em; text-transform: uppercase;">QUANTITATIVE TRADING & FINANCIAL ACADEMY</span>
+                                </div>
+                                <span style="font-size: 11px; color: rgba(255,255,255,0.4); font-weight: 600;">• Interactive Curricula & Quizzes</span>
+                            </div>
+                            <h2 style="margin: 0; font-size: 22px; font-weight: 800; color: #ffffff; letter-spacing: -0.02em; font-family: 'Outfit', sans-serif;">🎓 Quant Academy & Knowledge Base</h2>
+                            <p style="margin: 6px 0 0 0; font-size: 12.5px; color: #94a3b8; line-height: 1.5; max-width: 660px;">Master financial analysis, technical indicators, valuation modeling, portfolio mathematics, and risk management through structured modules and interactive testing.</p>
+                        </div>
+
+                        <!-- Quick Control Metrics Pills -->
+                        <div style="display: flex; align-items: center; gap: 12px; background: rgba(0, 0, 0, 0.35); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 12px; padding: 10px 16px;">
+                            <div style="display: flex; flex-direction: column; align-items: flex-end;">
+                                <span style="font-size: 9.5px; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.05em;">Learning Hub</span>
+                                <span style="font-size: 15px; font-weight: 800; color: #c084fc; font-family: monospace;">Active</span>
+                            </div>
+                            <div style="width: 1px; height: 28px; background: rgba(255,255,255,0.1);"></div>
+                            <div style="display: flex; flex-direction: column; align-items: flex-end;">
+                                <span style="font-size: 9.5px; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.05em;">Status</span>
+                                <span style="font-size: 11px; font-weight: 800; color: #facc15; background: rgba(250, 204, 21, 0.2); padding: 2px 8px; border-radius: 4px; display: inline-block;">KNOWLEDGE MATRIX</span>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
                 <!-- Progress HUD Dashboard -->
                 <details class="academy-hud-collapsible" id="academy-hud-details" style="margin-bottom: 12px; border: 1px solid var(--border-glass); border-radius: 12px; background: var(--bg-card); overflow: hidden; backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);">
                     <summary class="academy-hud-summary" style="display: flex; justify-content: space-between; align-items: center; padding: 12px 20px; cursor: pointer; outline: none; list-style: none; user-select: none;">
