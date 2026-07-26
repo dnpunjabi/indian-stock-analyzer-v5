@@ -51637,4 +51637,111 @@ function initInstitutionalFooter() {
     }
 }
 
+// Header Quick Theme Switcher Pill Controller
+function setQuickThemeMode(mode) {
+    const btnDark = document.getElementById('btn-quick-theme-dark');
+    const btnLight = document.getElementById('btn-quick-theme-light');
+    
+    if (mode === 'light') {
+        document.body.setAttribute('data-mode', 'light');
+        document.documentElement.setAttribute('data-mode', 'light');
+        if (btnLight) btnLight.classList.add('active');
+        if (btnDark) btnDark.classList.remove('active');
+        localStorage.setItem('apex_theme_mode', 'light');
+    } else {
+        document.body.setAttribute('data-mode', 'dark');
+        document.documentElement.setAttribute('data-mode', 'dark');
+        if (btnDark) btnDark.classList.add('active');
+        if (btnLight) btnLight.classList.remove('active');
+        localStorage.setItem('apex_theme_mode', 'dark');
+    }
+}
+window.setQuickThemeMode = setQuickThemeMode;
+
+// Keyboard Search Shortcut ('/' Key) & Header Sticky Scroll Shrink
+function initStickyHeaderAndShortcuts() {
+    // 1. Restore saved theme mode
+    const savedMode = localStorage.getItem('apex_theme_mode');
+    if (savedMode === 'light') {
+        setQuickThemeMode('light');
+    }
+
+    // 2. Keyboard shortcut for search
+    document.addEventListener('keydown', (e) => {
+        if (e.key === '/' && document.activeElement && document.activeElement.tagName !== 'INPUT' && document.activeElement.tagName !== 'TEXTAREA') {
+            e.preventDefault();
+            const searchInput = document.getElementById('desktop-global-search') || document.getElementById('global-stock-search');
+            if (searchInput) {
+                searchInput.focus();
+                searchInput.select();
+            }
+        }
+    });
+
+    // Helper to get active scroll top across window or inner .workspace-tab container
+    const getActiveScrollTop = () => {
+        const activeTab = document.querySelector('.workspace-tab.active-tab-content') || document.querySelector('.workspace-tab');
+        const tabScroll = activeTab ? activeTab.scrollTop : 0;
+        const winScroll = window.scrollY || document.documentElement.scrollTop || 0;
+        return Math.max(tabScroll, winScroll);
+    };
+
+    // 3. Compact Sticky Header Shrink on Scroll & Scroll-To-Top Button Visibility
+    const handleScroll = () => {
+        const scrollTop = getActiveScrollTop();
+        const desktopHeader = document.querySelector('.desktop-header');
+        if (desktopHeader) {
+            if (scrollTop > 20) {
+                desktopHeader.classList.add('scrolled');
+                document.body.classList.add('header-is-scrolled');
+            } else {
+                desktopHeader.classList.remove('scrolled');
+                document.body.classList.remove('header-is-scrolled');
+            }
+        }
+
+        const scrollToTopBtns = document.querySelectorAll('.scroll-top-glass-btn, #footer-scroll-top-btn, #btn-scroll-to-top');
+        scrollToTopBtns.forEach(btn => {
+            if (scrollTop > 200) {
+                btn.classList.add('visible');
+            } else {
+                btn.classList.remove('visible');
+            }
+        });
+    };
+
+    // Attach scroll listener capturing all scroll events on window or inner elements
+    window.addEventListener('scroll', handleScroll, { passive: true, capture: true });
+    document.addEventListener('scroll', handleScroll, { passive: true, capture: true });
+
+    // Also attach directly to all .workspace-tab containers
+    const tabs = document.querySelectorAll('.workspace-tab');
+    tabs.forEach(tab => {
+        tab.addEventListener('scroll', handleScroll, { passive: true });
+    });
+
+    handleScroll();
+
+    // 4. Global Scroll To Top Button Click Handler
+    document.addEventListener('click', (e) => {
+        const topBtn = e.target.closest('.scroll-top-glass-btn, #footer-scroll-top-btn, #btn-scroll-to-top, .footer-back-to-top-btn');
+        if (topBtn) {
+            e.preventDefault();
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+            document.documentElement.scrollTo({ top: 0, behavior: 'smooth' });
+            document.body.scrollTo({ top: 0, behavior: 'smooth' });
+            const activeTab = document.querySelector('.workspace-tab.active-tab-content') || document.querySelector('.workspace-tab');
+            if (activeTab) {
+                activeTab.scrollTo({ top: 0, behavior: 'smooth' });
+            }
+        }
+    });
+}
+
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initStickyHeaderAndShortcuts);
+} else {
+    initStickyHeaderAndShortcuts();
+}
+
 
