@@ -4985,12 +4985,12 @@ body.chat-drawer-active {
     position: absolute;
     top: 38px;
     right: 0;
-    background: var(--bg-sidebar);
+    background: #0f172a !important;
     border: 1px solid var(--border-glass);
     border-radius: 8px;
     width: 300px;
     box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
-    z-index: 10000;
+    z-index: 100000 !important;
     cursor: default;
     animation: dropdownFadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
@@ -22881,7 +22881,7 @@ body.light-mode #returns-matrix-tbody tr:hover {
     border: 1px solid var(--border-glass);
     border-radius: 12px;
     box-shadow: 0 16px 36px rgba(0, 0, 0, 0.5), 0 0 12px rgba(99, 102, 241, 0.12);
-    z-index: 10000;
+    z-index: 100000 !important;
     overflow: hidden;
     color: var(--text-primary);
 }
@@ -22914,7 +22914,7 @@ body.light-mode #returns-matrix-tbody tr:hover {
     align-items: center;
     justify-content: space-between;
     padding: 12px 14px;
-    background: rgba(255, 255, 255, 0.03);
+    background: #1e293b !important;
     border-bottom: 1px solid var(--border-glass);
     font-size: 11px;
     font-weight: 700;
@@ -22922,8 +22922,9 @@ body.light-mode #returns-matrix-tbody tr:hover {
     color: var(--text-primary);
 }
 
-[data-mode="light"] .dropdown-header {
-    background: rgba(241, 245, 249, 0.8) !important;
+[data-mode="light"] .dropdown-header,
+[data-theme="light"] .dropdown-header {
+    background: #f1f5f9 !important;
     border-bottom-color: #e2e8f0 !important;
     color: #0f172a !important;
 }
