@@ -22246,6 +22246,8 @@ body.light-mode #returns-matrix-tbody tr:hover {
         padding: 8px 20px !important;
         gap: 20px !important;
         border-bottom: 1px solid rgba(255, 255, 255, 0.05) !important;
+        position: relative !important;
+        z-index: 100 !important;
     }
 
     [data-theme="light"] .desktop-top-bar,
@@ -22368,6 +22370,7 @@ body.light-mode #returns-matrix-tbody tr:hover {
     /* Desktop Profile Button & Popover */
     .desktop-profile-wrapper {
         position: relative !important;
+        z-index: 1000 !important;
     }
 
     .desktop-profile-trigger {
@@ -22554,6 +22557,7 @@ body.light-mode #returns-matrix-tbody tr:hover {
         overflow-x: auto !important;
         scrollbar-width: none !important;
         position: relative !important;
+        z-index: 1 !important;
     }
 
     .desktop-navbar::-webkit-scrollbar {
@@ -22819,6 +22823,7 @@ body.light-mode #returns-matrix-tbody tr:hover {
 .header-settings-wrapper,
 .header-chat-wrapper {
     position: relative;
+    z-index: 1000 !important;
     display: inline-flex;
     align-items: center;
     justify-content: center;
