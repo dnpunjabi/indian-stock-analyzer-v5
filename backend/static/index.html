@@ -1283,9 +1283,52 @@
 
             <!-- SECTION: TECHNICAL SCANS & BREAKOUTS -->
             <section class="workspace-tab" id="tab-technical-scans" style="display: none; font-family: 'Inter', sans-serif;">
-                <div class="section-header">
-                    <h2 style="margin: 0 0 6px 0; font-size: 18px; font-weight: 700; color: var(--text-primary); text-transform: uppercase; letter-spacing: 0.5px;">Technical Scans & Breakouts</h2>
-                    <p style="margin: 0; font-size: 11.5px; color: var(--text-muted);">Real-time alerts and setups for stocks approaching key visual support, resistance, 52-week boundaries, or showing opening gaps.</p>
+                <!-- Ultra-Institutional Technical Scans Cyber Hero Header Banner -->
+                <div class="tech-scans-hero-header no-print" style="margin-bottom: 24px; border-radius: 16px; background: linear-gradient(135deg, rgba(15, 23, 42, 0.95), rgba(30, 41, 59, 0.92), rgba(15, 23, 42, 0.95)); border: 1px solid rgba(234, 179, 8, 0.35); backdrop-filter: blur(20px); padding: 22px 28px; box-shadow: 0 12px 32px -4px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.1); position: relative; overflow: hidden; font-family: 'Outfit', 'Inter', sans-serif;">
+                    
+                    <!-- Ambient Cyber Glows -->
+                    <div style="position: absolute; top: -50px; right: -50px; width: 260px; height: 260px; background: radial-gradient(circle, rgba(234, 179, 8, 0.25), transparent 70%); pointer-events: none; border-radius: 50%;"></div>
+                    <div style="position: absolute; bottom: -60px; left: -60px; width: 230px; height: 230px; background: radial-gradient(circle, rgba(16, 185, 129, 0.22), transparent 70%); pointer-events: none; border-radius: 50%;"></div>
+
+                    <!-- Resistance Breakout & Lightning Sparkline Overlay SVG Background -->
+                    <svg style="position: absolute; right: 0; bottom: 0; width: 55%; height: 100%; opacity: 0.22; pointer-events: none;" viewBox="0 0 400 120" preserveAspectRatio="none">
+                        <!-- Horizontal Resistance Breakout Line -->
+                        <line x1="20" y1="45" x2="380" y2="45" stroke="#eab308" stroke-width="1.2" stroke-dasharray="5,5"/>
+                        <!-- Price Trajectory Piercing Resistance -->
+                        <path d="M 30 110 L 100 85 L 170 95 L 250 45 L 340 10" fill="none" stroke="#10b981" stroke-width="2.5"/>
+                        <!-- Lightning Breakout Symbol -->
+                        <polygon points="260,15 245,50 265,50 250,90 285,40 265,40" fill="#facc15" stroke="#eab308" stroke-width="1"/>
+                        <circle cx="340" cy="10" r="5" fill="#34d399"/>
+                    </svg>
+
+                    <!-- Header Content -->
+                    <div style="position: relative; z-index: 2; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px;">
+                        <div>
+                            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px;">
+                                <div style="background: rgba(234, 179, 8, 0.15); border: 1px solid rgba(234, 179, 8, 0.4); padding: 3px 8px; border-radius: 5px; display: inline-flex; align-items: center; gap: 6px;">
+                                    <span class="status-indicator" style="width: 7px; height: 7px; border-radius: 50%; background-color: #eab308; box-shadow: 0 0 8px #eab308;"></span>
+                                    <span style="font-size: 10px; font-weight: 800; color: #facc15; letter-spacing: 0.08em; text-transform: uppercase;">REAL-TIME TECHNICAL BREAKOUT ENGINE</span>
+                                </div>
+                                <span style="font-size: 11px; color: rgba(255,255,255,0.4); font-weight: 600;">• 52W Boundaries & Gaps</span>
+                            </div>
+                            <h2 style="margin: 0; font-size: 22px; font-weight: 800; color: #ffffff; letter-spacing: -0.02em; font-family: 'Outfit', sans-serif;">⚡ Technical Scans & Breakouts</h2>
+                            <p style="margin: 6px 0 0 0; font-size: 12.5px; color: #94a3b8; line-height: 1.5; max-width: 660px;">Real-time alerts and setups for stocks approaching key visual support, resistance levels, 52-week boundaries, or showing opening gaps.</p>
+                        </div>
+
+                        <!-- Quick Control Metrics Pills -->
+                        <div style="display: flex; align-items: center; gap: 12px; background: rgba(0, 0, 0, 0.35); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 12px; padding: 10px 16px;">
+                            <div style="display: flex; flex-direction: column; align-items: flex-end;">
+                                <span style="font-size: 9.5px; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.05em;">Trigger Engine</span>
+                                <span style="font-size: 15px; font-weight: 800; color: #facc15; font-family: monospace;">52W & Gaps</span>
+                            </div>
+                            <div style="width: 1px; height: 28px; background: rgba(255,255,255,0.1);"></div>
+                            <div style="display: flex; flex-direction: column; align-items: flex-end;">
+                                <span style="font-size: 9.5px; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.05em;">Status</span>
+                                <span style="font-size: 11px; font-weight: 800; color: #34d399; background: rgba(16, 185, 129, 0.2); padding: 2px 8px; border-radius: 4px; display: inline-block;">SCANNING LIVE</span>
+                            </div>
+                        </div>
+                    </div>
+
                 </div>
 
                 <div class="card" style="padding: 24px; box-sizing: border-box; display: flex; flex-direction: column; gap: 20px;">
