@@ -2326,6 +2326,18 @@ function switchTab(tabKey) {
 
 function showHomepageView() {
     window.forceHomepageMode = true;
+
+    if (typeof resetWorkspace === 'function') {
+        resetWorkspace();
+    } else {
+        activeStockProfile = null;
+    }
+
+    ['desktop-global-search', 'analyzer-search-input', 'search-input'].forEach(id => {
+        const input = document.getElementById(id);
+        if (input) input.value = '';
+    });
+
     const sidebar = document.getElementById('sidebar');
     if (sidebar) sidebar.classList.remove('open');
 
@@ -2350,17 +2362,31 @@ window.showHomepageView = showHomepageView;
 window.showTerminalView = showTerminalView;
 
 function setupBrandReset() {
-    const brandIds = ['logo-brand-reset', 'mobile-logo-reset', 'desktop-logo-reset'];
-    brandIds.forEach(id => {
-        const el = document.getElementById(id);
-        if (el) {
-            el.addEventListener('click', (e) => {
-                e.preventDefault();
-                showHomepageView();
-            });
-        }
+    const brandSelectors = [
+        '#logo-brand-reset',
+        '#mobile-logo-reset',
+        '#desktop-logo-reset',
+        '.desktop-brand',
+        '.mobile-logo',
+        '#meta-company-name'
+    ];
+    brandSelectors.forEach(selector => {
+        document.querySelectorAll(selector).forEach(el => {
+            if (el && !el.dataset.brandResetBound) {
+                el.dataset.brandResetBound = 'true';
+                el.style.cursor = 'pointer';
+                el.setAttribute('title', 'Return to Home Page');
+                el.addEventListener('click', (e) => {
+                    if (e.target.closest('a, button, input')) return;
+                    e.preventDefault();
+                    e.stopPropagation();
+                    showHomepageView();
+                });
+            }
+        });
     });
 }
+window.setupBrandReset = setupBrandReset;
 
 function resetWorkspace() {
     if (activeStockProfile && activeStockProfile.ticker) {

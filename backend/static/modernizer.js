@@ -7899,6 +7899,9 @@
                         header.style.alignItems = 'center';
                         header.insertBefore(logoWrapper, header.firstChild);
                     }
+                    if (typeof window.setupBrandReset === 'function') {
+                        window.setupBrandReset();
+                    }
                 };
 
                 const tickerSpan = document.getElementById('meta-ticker');
