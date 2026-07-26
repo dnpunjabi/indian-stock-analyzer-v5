@@ -8871,6 +8871,122 @@
                 });
             }
 
+            // ==================== RESEARCH TERMINAL HERO SEARCH ENGINE ====================
+            const researchEmptyInput = document.getElementById('research-empty-search-input');
+            const researchEmptySuggestions = document.getElementById('research-empty-suggestions');
+
+            if (researchEmptyInput && researchEmptySuggestions) {
+                const PRELOADED_STOCKS = [
+                    { symbol: 'BOSCHLTD', name: 'Bosch Limited', sector: 'Auto Ancillaries' },
+                    { symbol: 'RELIANCE', name: 'Reliance Industries', sector: 'Energy & Oil' },
+                    { symbol: 'TCS', name: 'Tata Consultancy Services', sector: 'IT & Software' },
+                    { symbol: 'HDFCBANK', name: 'HDFC Bank Ltd', sector: 'Banking' },
+                    { symbol: 'TATAMOTORS', name: 'Tata Motors Ltd', sector: 'Auto & EV' },
+                    { symbol: 'INFY', name: 'Infosys Limited', sector: 'IT & Cloud' },
+                    { symbol: 'ICICIBANK', name: 'ICICI Bank Ltd', sector: 'Banking' },
+                    { symbol: 'LT', name: 'Larsen & Toubro', sector: 'Infrastructure' },
+                    { symbol: 'BHARTIARTL', name: 'Bharti Airtel', sector: 'Telecom' },
+                    { symbol: 'MARUTI', name: 'Maruti Suzuki India', sector: 'Auto' }
+                ];
+
+                const renderResearchItems = (items) => {
+                    if (!items || items.length === 0) {
+                        researchEmptySuggestions.style.display = 'none';
+                        return;
+                    }
+
+                    const showLogos = localStorage.getItem('settings-show-logos') !== 'false';
+                    researchEmptySuggestions.innerHTML = '';
+                    items.forEach(s => {
+                        const item = document.createElement('div');
+                        item.className = 'watchlist-autocomplete-item';
+                        item.style.padding = '10px 14px';
+                        item.style.cursor = 'pointer';
+                        item.style.borderBottom = '1px solid var(--border-glass)';
+                        item.style.fontSize = '13px';
+                        item.style.display = 'flex';
+                        item.style.alignItems = 'center';
+                        item.style.justifyContent = 'space-between';
+
+                        const rawSym = s.symbol || s.base_symbol || s.name || '';
+                        const cleanSym = rawSym.replace(/\.(NS|BO)$/i, '').trim();
+
+                        let logoHtml = '';
+                        if (showLogos && cleanSym) {
+                            const logoFmp = `https://images.financialmodelingprep.com/symbol/${cleanSym}.png`;
+                            const logoTv = `https://s3-symbol-logo.tradingview.com/${cleanSym.toLowerCase()}.svg`;
+                            logoHtml = `<img src="${logoFmp}" onerror="this.onerror=null; this.src='${logoTv}'; this.onerror=function(){ this.style.display='none'; };" style="width:20px; height:20px; border-radius:50%; object-fit:contain; background:#ffffff; padding:1px; border:1px solid rgba(255,255,255,0.15); margin-right:10px; flex-shrink:0;" />`;
+                        }
+
+                        item.innerHTML = `
+                            <div style="display:flex; align-items:center;">
+                                ${logoHtml}
+                                <div>
+                                    <strong style="color:var(--text-primary); font-family:'Outfit', sans-serif; font-size:13px;">${s.symbol || s.base_symbol || s.name}</strong>
+                                    ${s.name && s.name !== s.symbol ? `<span style="color:var(--text-muted); font-size:11px; margin-left:6px;">(${s.name})</span>` : ''}
+                                </div>
+                            </div>
+                            ${s.sector ? `<span style="font-size:10px; color:var(--text-muted);">${s.sector}</span>` : ''}
+                        `;
+
+                        item.addEventListener('click', (e) => {
+                            e.stopPropagation();
+                            researchEmptyInput.value = s.symbol || s.base_symbol || s.name;
+                            researchEmptySuggestions.style.display = 'none';
+                            if (typeof window.loadStockAnalyzer === 'function') {
+                                window.loadStockAnalyzer(s.symbol || s.base_symbol || s.name);
+                            }
+                        });
+
+                        researchEmptySuggestions.appendChild(item);
+                    });
+                    researchEmptySuggestions.style.display = 'block';
+                };
+
+                let researchTimeout = null;
+                const handleResearchInput = () => {
+                    const query = researchEmptyInput.value.trim().toUpperCase();
+                    if (researchTimeout) clearTimeout(researchTimeout);
+
+                    if (!query) {
+                        renderResearchItems(PRELOADED_STOCKS);
+                        return;
+                    }
+
+                    const localFiltered = PRELOADED_STOCKS.filter(s => 
+                        s.symbol.includes(query) || (s.name && s.name.toUpperCase().includes(query))
+                    );
+                    if (localFiltered.length > 0) {
+                        renderResearchItems(localFiltered);
+                    }
+
+                    researchTimeout = setTimeout(async () => {
+                        try {
+                            const apiBaseUrl = window.location.origin;
+                            const res = await fetch(apiBaseUrl + `/api/search/suggestions?q=${encodeURIComponent(query)}`);
+                            if (res.ok) {
+                                const suggestions = await res.json();
+                                if (Array.isArray(suggestions) && suggestions.length > 0) {
+                                    renderResearchItems(suggestions);
+                                } else if (localFiltered.length === 0) {
+                                    researchEmptySuggestions.style.display = 'none';
+                                }
+                            }
+                        } catch (e) {}
+                    }, 150);
+                };
+
+                researchEmptyInput.addEventListener('focus', handleResearchInput);
+                researchEmptyInput.addEventListener('click', handleResearchInput);
+                researchEmptyInput.addEventListener('input', handleResearchInput);
+
+                document.addEventListener('click', (e) => {
+                    if (researchEmptySuggestions && e.target !== researchEmptyInput && !researchEmptySuggestions.contains(e.target)) {
+                        researchEmptySuggestions.style.display = 'none';
+                    }
+                });
+            }
+
             if (globalAnalyzeBtn) {
                 globalAnalyzeBtn.addEventListener('click', () => triggerUnifiedAnalysis());
             }

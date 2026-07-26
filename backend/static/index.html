@@ -2634,8 +2634,8 @@
                 <!-- Research Panel Starter & Stock Recommendations -->
                 <div id="analyzer-empty-state" class="analyzer-empty-recommendation-panel" style="padding: 24px 0; width: 100%; box-sizing: border-box;">
                     <!-- Research Terminal Hero Banner -->
-                    <div class="card research-hero-card" style="background: linear-gradient(135deg, #0f172a, #1e293b); border: 1px solid rgba(59, 130, 246, 0.3); border-radius: 12px; padding: 24px; margin-bottom: 24px; position: relative; overflow: hidden; backdrop-filter: blur(12px); box-shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.3);">
-                        <div style="position: absolute; top: -30px; right: -30px; width: 180px; height: 180px; background: radial-gradient(circle, rgba(59, 130, 246, 0.25), transparent 70%); pointer-events: none;"></div>
+                    <div class="card research-hero-card" style="background: linear-gradient(135deg, #0f172a, #1e293b); border: 1px solid rgba(59, 130, 246, 0.3); border-radius: 12px; padding: 24px; margin-bottom: 24px; position: relative; overflow: visible; backdrop-filter: blur(12px); box-shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.3);">
+                        <div style="position: absolute; top: -30px; right: -30px; width: 180px; height: 180px; background: radial-gradient(circle, rgba(59, 130, 246, 0.25), transparent 70%); pointer-events: none; border-radius: 12px;"></div>
                         
                         <div style="display: flex; align-items: center; gap: 14px; margin-bottom: 12px;">
                             <div style="width: 44px; height: 44px; border-radius: 10px; background: rgba(59, 130, 246, 0.2); border: 1px solid rgba(59, 130, 246, 0.4); display: flex; align-items: center; justify-content: center; font-size: 22px;">📊</div>
@@ -2646,12 +2646,14 @@
                         </div>
 
                         <!-- Quick Ticker Search Bar inside empty state -->
-                        <div style="margin-top: 18px; display: flex; gap: 10px; max-width: 640px;">
+                        <div style="margin-top: 18px; display: flex; gap: 10px; max-width: 640px; position: relative;">
                             <div style="position: relative; flex: 1;">
-                                <span style="position: absolute; left: 14px; top: 50%; transform: translateY(-50%); font-size: 14px; color: #94a3b8;">🔍</span>
+                                <span style="position: absolute; left: 14px; top: 50%; transform: translateY(-50%); font-size: 14px; color: #94a3b8; pointer-events: none;">🔍</span>
                                 <input type="text" id="research-empty-search-input" placeholder="Type stock name or ticker (e.g. RELIANCE, TCS, TATAMOTORS, HDFCBANK)..." 
-                                       style="width: 100%; box-sizing: border-box; padding: 10px 14px 10px 38px; font-size: 13px; background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 8px; color: #ffffff !important; outline: none; transition: all 0.2s;"
+                                       style="width: 100%; box-sizing: border-box; padding: 10px 14px 10px 42px !important; font-size: 13px; background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 8px; color: #ffffff !important; outline: none; transition: all 0.2s;"
+                                       autocomplete="off"
                                        onkeydown="if(event.key === 'Enter' && this.value.trim()){ loadStockAnalyzer(this.value.trim()); }" />
+                                <div id="research-empty-suggestions" class="watchlist-autocomplete-box" style="display:none; position:absolute; top:calc(100% + 6px); left:0; right:0; z-index:9999; max-height:260px; overflow-y:auto;"></div>
                             </div>
                             <button onclick="const val = document.getElementById('research-empty-search-input').value.trim(); if(val) loadStockAnalyzer(val);" 
                                     style="background: linear-gradient(135deg, #3b82f6, #2563eb); color: white; border: none; border-radius: 8px; padding: 0 20px; font-size: 13px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 6px; transition: all 0.2s; white-space: nowrap;">
