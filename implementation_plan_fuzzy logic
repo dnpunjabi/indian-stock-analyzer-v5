@@ -1,0 +1,96 @@
+# Implementation Plan - APEX Fuzzy-Multi-Agent Decision Engine (FMADE)
+
+We will build the **APEX Fuzzy-Multi-Agent Decision Engine (FMADE)** inside the FastAPI backend, exposing it via REST APIs and rendering results on a new premium **Fuzzy Intelligence** dashboard subtab under the Screener.
+
+---
+
+## Proposed Changes
+
+### Backend Logic & APIs
+
+#### [NEW] [fuzzy_engine.py](file:///c:/Users/dheer/Desktop/AI/indian-stock-analyzer%20-%204.0/backend/fuzzy_engine.py)
+- **Math Utilities**: Implement standard triangular and trapezoidal membership grade membership calculators:
+  - `triangle(x, a, b, c)`
+  - `trapezoid(x, a, b, c, d)`
+- **Fuzzification Definitions**:
+  - **Operating Margin Trajectory ($\Delta_{OPM}$)**: Compressing ($[-5, -5, -2, 0]$), Stable ($[-1, 0, 1]$), Expanding ($[0, 2, 5, 5]$).
+  - **Capital Efficiency Trajectory ($\Delta_{ROE}$)**: Deteriorating ($[-5, -5, -2, 0]$), Flat ($[-1, 0, 1]$), Improving ($[0, 2, 5, 5]$).
+  - **Debt Trajectory ($\Delta_{Debt}$)**: Deleveraging ($[-2, -2, -0.5, 0]$), Stable ($[-0.2, 0, 0.2]$), Borrowing ($[0, 0.5, 2, 2]$).
+  - **RSI(14)**: Oversold ($[0, 0, 30, 40]$), Neutral ($[35, 50, 65]$), Overbought ($[60, 70, 100, 100]$).
+  - **200-DMA Proximity**: Below-Average ($[-15, -15, -5, 0]$), Near-Average ($[-2, 0, 2]$), Above-Average ($[0, 5, 15, 15]$).
+  - **ADX**: Weak-Trend ($[0, 0, 15, 20]$), Moderate-Trend ($[18, 25, 32]$), Strong-Trend ($[30, 40, 100, 100]$).
+- **Mamdani Rules Engine**:
+  - Rule 101 (Breakout): `IF Stage-2 AND RSI is Neutral AND ADX is Strong, THEN Buy is Active`
+  - Rule 102 (Turnaround Accumulation): `IF Stage-1 AND RSI is Oversold AND Volatility is High, THEN Buy is Active`
+  - Rule 201 (Quality Expansion): `IF ROE is Improving AND OPM is Expanding AND Debt is Deleveraging, THEN Quality is Accelerating`
+  - Rule 202 (Early Bird): `IF Quality is Accelerating AND Stage-1, THEN Buy is Active`
+  - Rule 301 (Avoid Value Trap): `IF OPM is Compressing AND Debt is Borrowing AND Altman Z-Score is Distress, THEN Avoid is Active`
+  - **Advanced False-Positive Safeguards**:
+    - **Rule 401 (Insider Alignment)**: `IF technical breakout is active AND promoter pledging is increasing OR DIIs are selling, THEN penalize Buy conviction (reduces false breakouts).`
+    - **Rule 402 (Volume Confluence)**: `IF price breakout occurs AND volume is below 20-day average, THEN mark as low-liquidity speculation and penalize Buy conviction.`
+    - **Rule 403 (Solvency Cap)**: `IF Altman Z-Score is Distress (< 1.8) OR Piotroski F-Score is Low (< 4), THEN cap final Buy Conviction score to a maximum of 20% (forces credit-risk avoidance).`
+    - **Rule 404 (Sector Rotation Guard)**: `IF stock is breaking out BUT parent sector is in Stage-4 Markdown, THEN apply 40% discount penalty to Buy conviction.`
+- **Defuzzification (Centroid COG)**:
+  - Discretize output range $[-100, 100]$ in intervals of 5.
+  - Apply center-of-gravity integration on active membership curves (`Sell`, `Hold`, `Buy`) to output a single conviction score.
+
+#### [MODIFY] [main.py](file:///c:/Users/dheer/Desktop/AI/indian-stock-analyzer%20-%204.0/backend/main.py)
+- Import `fuzzy_engine` modules.
+- Add endpoint `GET /api/fuzzy/evaluate?symbol=...`
+  - Hydrates stock properties from `cached_profiles` and parses `cached_financial_statements` quarterly row trends to calculate trajectories.
+  - Returns fuzzy memberships, fired rule trail, regime status, and the final Centroid rating.
+- Add endpoint `GET /api/fuzzy/universe-standings`
+  - Runs evaluations for all active watchlist items or constituents and returns sorted top buy/sell candidate rosters.
+
+---
+
+### Screener & Scanner UI
+
+#### [MODIFY] [index.html](file:///c:/Users/dheer/Desktop/AI/indian-stock-analyzer%20-%204.0/backend/static/index.html)
+- Add a new iOS-style subtab tab controller button **"Fuzzy Intelligence"** inside the Screener view.
+- Create container markup for:
+  - **Overall Standings lists**: Side-by-side lists of top Mamdani Buy recommendations and Sell warnings.
+  - **Fuzzy Detail Auditor Widget**: Shows the centroid needle gauge ($-100\%$ to $+100\%$), active membership graph meters, and a rule-activation timeline for the selected stock.
+
+#### [MODIFY] [app.js](file:///c:/Users/dheer/Desktop/AI/indian-stock-analyzer%20-%204.0/backend/static/app.js)
+- Bind click listener for the new Fuzzy subtab.
+- Implement UI rendering routines for fuzzy standings and evaluation scoreboards.
+- Add custom micro-animations (e.g. gauge filling, neon glow state transitions).
+
+---
+
+### Home Page Integration (Desktop & Mobile)
+
+#### [MODIFY] [index.html](file:///c:/Users/dheer/Desktop/AI/indian-stock-analyzer%20-%204.0/backend/static/index.html)
+- Add a **Fuzzy Radar Quick-View** card inside both the desktop command center layout grid (`#desktop-home`) and the mobile dashboard landing view.
+- Displays a quick-list of the top 3 active Buy recommendations and Sell warning alerts from the Mamdani engine.
+
+#### [MODIFY] [app.js](file:///c:/Users/dheer/Desktop/AI/indian-stock-analyzer%20-%204.0/backend/static/app.js)
+- Fetch `/api/fuzzy/universe-standings?limit=3` on app boot-up and dynamically populate the desktop/mobile home page quick-view widgets.
+
+---
+
+## 📈 Future Extensions Roadmap
+
+### 1. Interactive Rule-Trail Console
+- Visual graphs rendering trapezoidal overlaps inside the Screener tab's sub-widget, showing the user exactly how variables are mapped (e.g. `RSI: 70% Neutral, 30% Overbought`).
+
+### 2. WhatsApp/Telegram Alert Trigger
+- Add alert checking conditions based on fuzzy ratings in the alert runner loop (`/api/alerts/check`), notifying users if score transitions cross configurable boundaries (e.g. $> 75\%$).
+
+### 3. Portfolio Doctor Auto-Swap
+- Scan active portfolio holdings inside the Portfolio Doctor. Underperforming assets (fuzzy rating $< -40\%$) will show a warning and suggest high-conviction swaps in the same sector.
+
+---
+
+## Verification Plan
+
+### Automated Tests
+- Run backend verification unit tests:
+  `pytest backend/test_fuzzy.py`
+
+### Manual Verification
+- View the Screener page on desktop and mobile.
+- Click the "Fuzzy Intelligence" subtab.
+- Confirm top rankings display and selecting a stock hydrates the conviction gauge and active rule trail list.
+- Verify home page quick-view widgets load on launch.

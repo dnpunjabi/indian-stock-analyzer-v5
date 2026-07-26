@@ -51570,6 +51570,71 @@ window.setupReturnsComparisonEvents = function() {
 
 document.addEventListener('DOMContentLoaded', () => {
     setTimeout(window.setupReturnsComparisonEvents, 400);
+    initInstitutionalFooter();
 });
+
+// Institutional Footer Controller (Live IST Clock, NSE Market Hours & Scroll to Top)
+function initInstitutionalFooter() {
+    const clockEl = document.getElementById('footer-ist-clock');
+    const badgeEl = document.getElementById('footer-market-status-badge');
+
+    function updateFooterMarketClock() {
+        if (!clockEl && !badgeEl) return;
+        const now = new Date();
+
+        // Convert current time to IST (UTC + 5:30)
+        const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
+        const istDate = new Date(utc + (3600000 * 5.5));
+
+        const hours = istDate.getHours();
+        const minutes = istDate.getMinutes();
+        const seconds = istDate.getSeconds();
+        const day = istDate.getDay(); // 0 = Sun, 6 = Sat
+
+        const formattedTime = [
+            hours.toString().padStart(2, '0'),
+            minutes.toString().padStart(2, '0'),
+            seconds.toString().padStart(2, '0')
+        ].join(':') + ' IST';
+
+        if (clockEl) clockEl.textContent = formattedTime;
+
+        // NSE Trading Hours: Mon (1) to Fri (5), 09:15 to 15:30 IST
+        const currentMinutes = hours * 60 + minutes;
+        const marketOpenMinutes = 9 * 60 + 15;  // 09:15
+        const marketCloseMinutes = 15 * 60 + 30; // 15:30
+        const isWeekday = (day >= 1 && day <= 5);
+        const isMarketHours = (currentMinutes >= marketOpenMinutes && currentMinutes < marketCloseMinutes);
+
+        if (badgeEl) {
+            if (isWeekday && isMarketHours) {
+                badgeEl.className = 'market-badge market-open';
+                badgeEl.textContent = '🟢 Market Open';
+            } else {
+                badgeEl.className = 'market-badge market-closed';
+                badgeEl.textContent = '🔴 Market Closed';
+            }
+        }
+    }
+
+    updateFooterMarketClock();
+    setInterval(updateFooterMarketClock, 1000);
+
+    // Scroll to Top Glass Button Logic
+    const scrollTopBtn = document.getElementById('footer-scroll-top-btn');
+    if (scrollTopBtn) {
+        window.addEventListener('scroll', () => {
+            if (window.scrollY > 280) {
+                scrollTopBtn.classList.add('visible');
+            } else {
+                scrollTopBtn.classList.remove('visible');
+            }
+        }, { passive: true });
+
+        scrollTopBtn.addEventListener('click', () => {
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        });
+    }
+}
 
 
