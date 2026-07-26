@@ -1574,58 +1574,92 @@ function setupSidebarAccordions() {
 // Enterprise Header & Footer Controllers
 function setupEnterpriseHeader() {
     const bellBtn = document.getElementById('header-bell-btn');
+    const bellBtnDesktop = document.getElementById('header-bell-btn-desktop');
     const settingsBtn = document.getElementById('header-settings-btn');
     const linksBtn = document.getElementById('header-links-btn');
     const notifDropdown = document.getElementById('notification-dropdown-panel');
     const settingsDropdown = document.getElementById('settings-dropdown-panel');
     const linksDropdown = document.getElementById('links-dropdown-panel');
 
-    if (!bellBtn || !settingsBtn || !notifDropdown || !settingsDropdown || !linksBtn || !linksDropdown) return;
+    if (!notifDropdown) return;
 
-    // Toggle Notification panel
-    bellBtn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        notifDropdown.style.display = notifDropdown.style.display === 'none' ? 'block' : 'none';
-        settingsDropdown.style.display = 'none'; // Close other dropdown
-        linksDropdown.style.display = 'none'; // Close other dropdown
-    });
+    // Unified Toggle Notification Panel
+    window.toggleNotificationDropdown = (e) => {
+        if (e) e.stopPropagation();
+        
+        // Prevent toggle if clicking inside dropdown panel itself
+        if (e && e.target && notifDropdown.contains(e.target) && e.target !== notifDropdown) {
+            return;
+        }
+
+        const currentDisp = window.getComputedStyle(notifDropdown).display;
+        const willShow = (currentDisp === 'none');
+        
+        notifDropdown.style.display = willShow ? 'block' : 'none';
+        if (settingsDropdown) settingsDropdown.style.display = 'none';
+        if (linksDropdown) linksDropdown.style.display = 'none';
+
+        if (willShow) {
+            if (typeof updateNotificationBell === 'function') {
+                updateNotificationBell(lastAlertsList);
+            }
+            if (typeof fetchAlertsList === 'function' && (!lastAlertsList || lastAlertsList.length === 0)) {
+                fetchAlertsList();
+            }
+        }
+    };
+
+    // Assign onclick handler directly to prevent double-firing from duplicate addEventListener calls
+    if (bellBtn) bellBtn.onclick = (e) => window.toggleNotificationDropdown(e);
+    if (bellBtnDesktop) bellBtnDesktop.onclick = (e) => window.toggleNotificationDropdown(e);
 
     // Toggle Settings panel
-    settingsBtn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        settingsDropdown.style.display = settingsDropdown.style.display === 'none' ? 'block' : 'none';
-        notifDropdown.style.display = 'none'; // Close other dropdown
-        linksDropdown.style.display = 'none'; // Close other dropdown
-    });
+    if (settingsBtn && settingsDropdown) {
+        settingsBtn.onclick = (e) => {
+            if (e) e.stopPropagation();
+            const currentDisp = window.getComputedStyle(settingsDropdown).display;
+            settingsDropdown.style.display = (currentDisp === 'none') ? 'block' : 'none';
+            notifDropdown.style.display = 'none';
+            if (linksDropdown) linksDropdown.style.display = 'none';
+        };
+    }
 
     // Toggle Links panel
-    linksBtn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        linksDropdown.style.display = linksDropdown.style.display === 'none' ? 'block' : 'none';
-        notifDropdown.style.display = 'none'; // Close other dropdown
-        settingsDropdown.style.display = 'none'; // Close other dropdown
-    });
+    if (linksBtn && linksDropdown) {
+        linksBtn.onclick = (e) => {
+            if (e) e.stopPropagation();
+            const currentDisp = window.getComputedStyle(linksDropdown).display;
+            linksDropdown.style.display = (currentDisp === 'none') ? 'block' : 'none';
+            notifDropdown.style.display = 'none';
+            if (settingsDropdown) settingsDropdown.style.display = 'none';
+        };
+    }
 
     // Prevent auto-closing when clicking inside dropdowns
-    notifDropdown.addEventListener('click', (e) => {
+    notifDropdown.onclick = (e) => {
         e.stopPropagation();
-    });
-    settingsDropdown.addEventListener('click', (e) => {
-        e.stopPropagation();
-    });
-    linksDropdown.addEventListener('click', (e) => {
-        e.stopPropagation();
-    });
+    };
+    if (settingsDropdown) {
+        settingsDropdown.onclick = (e) => {
+            e.stopPropagation();
+        };
+    }
+    if (linksDropdown) {
+        linksDropdown.onclick = (e) => {
+            e.stopPropagation();
+        };
+    }
 
     // Close on click outside
     document.addEventListener('click', (e) => {
-        if (!bellBtn.contains(e.target) && !notifDropdown.contains(e.target)) {
+        const isClickInsideBell = (bellBtn && bellBtn.contains(e.target)) || (bellBtnDesktop && bellBtnDesktop.contains(e.target));
+        if (!isClickInsideBell && !notifDropdown.contains(e.target)) {
             notifDropdown.style.display = 'none';
         }
-        if (!settingsBtn.contains(e.target) && !settingsDropdown.contains(e.target)) {
+        if (settingsBtn && settingsDropdown && !settingsBtn.contains(e.target) && !settingsDropdown.contains(e.target)) {
             settingsDropdown.style.display = 'none';
         }
-        if (!linksBtn.contains(e.target) && !linksDropdown.contains(e.target)) {
+        if (linksBtn && linksDropdown && !linksBtn.contains(e.target) && !linksDropdown.contains(e.target)) {
             linksDropdown.style.display = 'none';
         }
     });
@@ -11659,6 +11693,7 @@ function playAlertSound(style = null) {
 function updateNotificationBell(list) {
     const notifBody = document.getElementById('notification-list-body');
     const badge = document.getElementById('bell-badge-count');
+    const desktopBadge = document.getElementById('bell-badge-count-desktop');
     const sidebarBadge = document.getElementById('sidebar-alerts-badge');
     if (!notifBody) return;
 
@@ -11669,21 +11704,28 @@ function updateNotificationBell(list) {
         dismissedIds = [];
     }
 
-    const activeTriggers = list.filter(item => item.triggered && !dismissedIds.includes(item.id));
+    const activeTriggers = (list || []).filter(item => item.triggered && !dismissedIds.includes(item.id));
     
     // Sort by trigger date descending
     activeTriggers.sort((a, b) => new Date(b.trigger_date || 0) - new Date(a.trigger_date || 0));
 
+    const updateBadgeEl = (el, count) => {
+        if (!el) return;
+        if (count > 0) {
+            el.innerText = count;
+            el.style.display = 'flex';
+        } else {
+            el.style.display = 'none';
+            el.innerText = '0';
+        }
+    };
+
+    updateBadgeEl(badge, activeTriggers.length);
+    updateBadgeEl(desktopBadge, activeTriggers.length);
+    updateBadgeEl(sidebarBadge, activeTriggers.length);
+
     if (activeTriggers.length === 0) {
         notifBody.innerHTML = '<div style="font-size:10px; color:var(--text-muted); padding:20px; text-align:center;">No new system notifications.</div>';
-        if (badge) {
-            badge.style.display = 'none';
-            badge.innerText = '0';
-        }
-        if (sidebarBadge) {
-            sidebarBadge.style.display = 'none';
-            sidebarBadge.innerText = '0';
-        }
         return;
     }
 
@@ -11693,9 +11735,19 @@ function updateNotificationBell(list) {
         const notifEl = document.createElement('div');
         notifEl.className = 'notification-item';
         notifEl.style.borderLeft = '3px solid var(--color-crimson, #ef4444)';
+        notifEl.style.padding = '8px 12px';
+        notifEl.style.marginBottom = '4px';
+        notifEl.style.borderRadius = '0 6px 6px 0';
+        notifEl.style.background = 'rgba(255, 255, 255, 0.02)';
+        notifEl.style.cursor = 'pointer';
+        notifEl.style.transition = 'all 0.15s ease';
+
+        notifEl.onmouseover = () => { notifEl.style.background = 'rgba(239, 68, 68, 0.08)'; };
+        notifEl.onmouseout = () => { notifEl.style.background = 'rgba(255, 255, 255, 0.02)'; };
+
         notifEl.innerHTML = `
-            <div class="notif-header">
-                <span class="notif-badge badge-red" style="background: rgba(239, 68, 68, 0.15); color: #f87171; border: 1px solid rgba(239,68,68,0.3); font-size: 8px; padding: 2px 4px; border-radius: 3px; font-weight: 700;">TRIGGERED</span>
+            <div class="notif-header" style="display: flex; justify-content: space-between; align-items: center;">
+                <span class="notif-badge badge-red" style="background: rgba(239, 68, 68, 0.2); color: #f87171; border: 1px solid rgba(239,68,68,0.4); font-size: 8.5px; padding: 2px 5px; border-radius: 3px; font-weight: 700;">${item.ticker} TRIGGERED</span>
                 <span class="notif-time" style="font-size: 9.5px; color: var(--text-secondary);">${item.trigger_date || 'Just Now'}</span>
             </div>
             <div class="notif-text" style="color: var(--text-primary); font-weight: 500; font-size: 11px; margin-top: 4px;">
@@ -11703,16 +11755,42 @@ function updateNotificationBell(list) {
             </div>
             ${item.ai_context ? `<div class="notif-subtext" style="font-size: 10px; color: var(--text-secondary); margin-top: 4px; font-style: italic; line-height: 1.3;">🤖 ${item.ai_context}</div>` : ''}
         `;
+
+        notifEl.onclick = (e) => {
+            if (e) e.stopPropagation();
+            if (typeof window.switchTab === 'function') {
+                window.switchTab('alerts');
+            } else {
+                const alertsBtn = document.getElementById('tab-alerts-btn-desktop') || document.getElementById('tab-alerts-btn');
+                if (alertsBtn) alertsBtn.click();
+            }
+            const notifDropdown = document.getElementById('notification-dropdown-panel');
+            if (notifDropdown) notifDropdown.style.display = 'none';
+        };
+
         notifBody.appendChild(notifEl);
     });
 
-    if (badge) {
-        badge.innerText = activeTriggers.length;
-        badge.style.display = 'flex';
-    }
-    if (sidebarBadge) {
-        sidebarBadge.innerText = activeTriggers.length;
-        sidebarBadge.style.display = 'flex';
+    // Bind Clear All button
+    const clearBtn = document.getElementById('clear-all-alerts-btn');
+    if (clearBtn) {
+        clearBtn.onclick = (e) => {
+            if (e) e.stopPropagation();
+            let dismissed = [];
+            try {
+                dismissed = JSON.parse(localStorage.getItem('dismissed-alert-ids') || '[]');
+            } catch (err) {
+                dismissed = [];
+            }
+            activeTriggers.forEach(t => {
+                if (!dismissed.includes(t.id)) dismissed.push(t.id);
+            });
+            localStorage.setItem('dismissed-alert-ids', JSON.stringify(dismissed));
+            updateNotificationBell(list);
+            if (typeof showToast === 'function') {
+                showToast("All notifications cleared.", "success");
+            }
+        };
     }
 }
 
@@ -17576,14 +17654,19 @@ function setWorkstationMode(mode) {
 
     const modeSelect = document.getElementById('setting-theme-mode');
     if (modeSelect) modeSelect.value = mode;
+    const modeSelectOld = document.getElementById('setting-theme-mode-old');
+    if (modeSelectOld) modeSelectOld.value = mode;
 
     const accentSelect = document.getElementById('setting-theme-accent');
     if (accentSelect) accentSelect.value = activeAccent;
+    const accentSelectOld = document.getElementById('setting-theme-accent-old');
+    if (accentSelectOld) accentSelectOld.value = activeAccent;
 
     showToast(`Workstation Mode set to ${mode === 'light' ? 'Light Mode' : 'Dark Mode'}`, 'success');
 
     refreshChartThemeColors();
 }
+window.setWorkstationMode = setWorkstationMode;
 
 function setWorkstationAccent(accent) {
     const isLightAccent = LIGHT_THEMES.includes(accent);
@@ -17605,30 +17688,40 @@ function setWorkstationAccent(accent) {
 
     const modeSelect = document.getElementById('setting-theme-mode');
     if (modeSelect) modeSelect.value = mode;
+    const modeSelectOld = document.getElementById('setting-theme-mode-old');
+    if (modeSelectOld) modeSelectOld.value = mode;
 
     const accentSelect = document.getElementById('setting-theme-accent');
+    let textLabel = accent;
     if (accentSelect) {
         accentSelect.value = accent;
-        const textLabel = accentSelect.options[accentSelect.selectedIndex].text;
-        showToast(`Visual Theme set to ${textLabel}`, 'success');
-    } else {
-        showToast(`Visual Theme set to ${accent}`, 'success');
+        textLabel = accentSelect.options[accentSelect.selectedIndex]?.text || accent;
     }
+    const accentSelectOld = document.getElementById('setting-theme-accent-old');
+    if (accentSelectOld) accentSelectOld.value = accent;
+
+    showToast(`Visual Theme set to ${textLabel}`, 'success');
 
     refreshChartThemeColors();
 }
+window.setWorkstationAccent = setWorkstationAccent;
 
 function setTypographyPreset(preset) {
     document.documentElement.setAttribute('data-typography', preset);
     localStorage.setItem('typography-preset', preset);
+
     const typographySelect = document.getElementById('setting-typography-preset');
     if (typographySelect) typographySelect.value = preset;
+    const typographySelectOld = document.getElementById('setting-typography-preset-old');
+    if (typographySelectOld) typographySelectOld.value = preset;
     
     let label = 'Apex Modern';
     if (preset === 'terminal') label = 'Institutional';
     if (preset === 'developer') label = 'Quantitative';
+    if (preset === 'paytm') label = 'Paytm Clean';
     showToast(`Typography set to ${label}`, 'success');
 }
+window.setTypographyPreset = setTypographyPreset;
 
 function refreshChartThemeColors() {
     const isLight = document.documentElement.getAttribute('data-mode') === 'light';

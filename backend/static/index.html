@@ -9,15 +9,15 @@
     <!-- Fonts from Google -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@300;400;500;600;700;800&family=IBM+Plex+Sans:wght@300;400;500;600;700&family=JetBrains+Mono:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@300;400;500;600;700;800&family=IBM+Plex+Sans:wght@300;400;500;600;700&family=JetBrains+Mono:wght@300;400;500;600;700&family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
     <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <!-- TradingView Lightweight Charts -->
     <script src="https://unpkg.com/lightweight-charts@4.1.1/dist/lightweight-charts.standalone.production.js"></script>
     <!-- TradingView Advanced Widget -->
     <script type="text/javascript" src="https://s3.tradingview.com/tv.js"></script>
-    <link rel="stylesheet" href="styles.css?v=4.0.5">
-    <link rel="stylesheet" href="modernizer.css?v=4.0.5">
+    <link rel="stylesheet" href="styles.css?v=4.0.8">
+    <link rel="stylesheet" href="modernizer.css?v=4.0.8">
     <style>
         /* Light mode strategy guides visibility override */
         [data-mode="light"] #rule-scanner-strategy-guide,
@@ -425,6 +425,23 @@
             <div class="desktop-top-controls">
                 <div id="desktop-ws-dot" class="mobile-ws-dot-indicator" title="WebSocket Live Status" style="width: 10px; height: 10px; border-radius: 50%; background: #10b981; box-shadow: 0 0 8px #10b981; margin-right: 4px; cursor: pointer; transition: transform 0.15s ease, background 0.3s ease;"></div>
 
+                <!-- Desktop Notification Bell -->
+                <div class="header-bell-wrapper" id="header-bell-btn-desktop" title="View Institutional Alerts" style="position: relative;" onclick="window.toggleNotificationDropdown && window.toggleNotificationDropdown(event)">
+                    <span class="bell-icon">🔔</span>
+                    <span class="bell-badge" id="bell-badge-count-desktop" style="display: none;">0</span>
+
+                    <!-- Bell dropdown panel -->
+                    <div class="header-dropdown notification-dropdown" id="notification-dropdown-panel" style="display: none;">
+                        <div class="dropdown-header">
+                            <span>🔔 INSTITUTIONAL ALERTS</span>
+                            <button id="clear-all-alerts-btn" class="clear-alerts-btn">CLEAR ALL</button>
+                        </div>
+                        <div class="dropdown-body" id="notification-list-body">
+                            <div style="font-size:10px; color:var(--text-muted); padding:20px; text-align:center;">No new system notifications.</div>
+                        </div>
+                    </div>
+                </div>
+
                 <button id="desktop-theme-toggle" class="theme-toggle-btn" title="Toggle Light/Dark Theme" onclick="document.getElementById('theme-toggle-btn') && document.getElementById('theme-toggle-btn').click()">🌓</button>
 
                 <!-- Rich User Profile Dropdown Button -->
@@ -440,7 +457,8 @@
                     
                     <!-- Popover Dropdown -->
                     <div id="desktop-profile-popover" class="desktop-profile-card" style="display: none;">
-                        <div class="popover-section-header">👤 INVESTOR PROFILE</div>
+                        <!-- Section 1: Investor Profile -->
+                        <div class="popover-section-header">👤 INVESTOR PROFILE & RISK</div>
                         <div class="popover-field">
                             <label for="popover-horizon">Investment Horizon</label>
                             <select id="popover-horizon">
@@ -468,41 +486,114 @@
                         </div>
 
                         <div class="popover-divider"></div>
-                        <div class="popover-section-header">⚙️ PREFERENCES</div>
+
+                        <!-- Section 2: Display & Workstation Preferences -->
+                        <div class="popover-section-header">⚙️ WORKSTATION PREFERENCES</div>
                         <div class="popover-checkbox-row">
-                            <label for="popover-audio">Audio Cue Signals</label>
-                            <input type="checkbox" id="popover-audio" checked>
+                            <label for="setting-logos-toggle">Show Company Logo</label>
+                            <input type="checkbox" id="setting-logos-toggle" checked style="cursor:pointer; transform: scale(1.15);">
                         </div>
                         <div class="popover-checkbox-row">
-                            <label for="popover-alerts">AI Background Alerts</label>
-                            <input type="checkbox" id="popover-alerts" checked>
+                            <label for="setting-audio-toggle">Audio Signals</label>
+                            <input type="checkbox" id="setting-audio-toggle" checked style="cursor:pointer; transform: scale(1.15);">
+                        </div>
+                        <div class="popover-checkbox-row">
+                            <label for="setting-alerts-toggle">AI Background Alerts</label>
+                            <input type="checkbox" id="setting-alerts-toggle" checked style="cursor:pointer; transform: scale(1.15);">
+                        </div>
+                        <div class="popover-field" style="margin-top: 6px;">
+                            <label for="setting-refresh-interval">Refresh Cycle</label>
+                            <select id="setting-refresh-interval">
+                                <option value="manual">Manual only</option>
+                                <option value="60s">60s interval</option>
+                                <option value="300s" selected>5m interval</option>
+                            </select>
+                        </div>
+                        <div class="popover-field">
+                            <label for="setting-theme-accent">Visual Theme</label>
+                            <select id="setting-theme-accent" onchange="window.setWorkstationAccent && window.setWorkstationAccent(this.value)">
+                                <optgroup label="Classic & Corporate">
+                                    <option value="classic" selected>💎 Apex Classic</option>
+                                    <option value="bloomberg">🏛️ Bloomberg Amber</option>
+                                    <option value="github-dark">🐙 GitHub Dark</option>
+                                    <option value="one-dark">🔷 One Dark Pro</option>
+                                    <option value="azure-midnight">☁️ Azure Midnight</option>
+                                    <option value="jetbrains-dark">💻 JetBrains Dark</option>
+                                    <option value="vercel-dark">⚡ Vercel Dark</option>
+                                    <option value="paytm-money">💰 Paytm Money</option>
+                                </optgroup>
+                                <optgroup label="High-Aesthetic & Modern">
+                                    <option value="slate-quantitative">📈 Slate Quantitative</option>
+                                    <option value="tokyo-night">🗼 Tokyo Night</option>
+                                    <option value="dracula">🧛 Dracula Dark</option>
+                                    <option value="cyberpunk">🌌 Cyberpunk Neon</option>
+                                    <option value="ayu-mirage">🎨 Ayu Mirage</option>
+                                </optgroup>
+                                <optgroup label="Premium Accents">
+                                    <option value="obsidian-gold">🪙 Obsidian Gold</option>
+                                    <option value="forest-nocturnal">🌲 Forest Nocturnal</option>
+                                    <option value="nord-ice">❄️ Nord Ice</option>
+                                    <option value="solarized-paper">☀️ Solarized Paper</option>
+                                    <option value="alabaster-dark">🥛 Alabaster Dark</option>
+                                </optgroup>
+                                <optgroup label="Light Themes">
+                                    <option value="light">🕊️ Alabaster Day</option>
+                                    <option value="geist-light">⚡ Geist Light</option>
+                                    <option value="nord-light">❄️ Nord Light</option>
+                                    <option value="solarized-light">☀️ Solarized Light</option>
+                                    <option value="github-light">🐙 GitHub Light</option>
+                                </optgroup>
+                            </select>
+                        </div>
+                        <div class="popover-field">
+                            <label for="setting-typography-preset">Typography Mode</label>
+                            <select id="setting-typography-preset" onchange="window.setTypographyPreset && window.setTypographyPreset(this.value)">
+                                <option value="modern" selected>📐 Apex Modern</option>
+                                <option value="terminal">🏛️ Institutional</option>
+                                <option value="developer">💻 Quantitative</option>
+                                <option value="paytm">💳 Paytm Clean (Roboto)</option>
+                            </select>
+                        </div>
+                        <div class="popover-checkbox-row">
+                            <label for="setting-security-shield-toggle">Portfolio Shield</label>
+                            <input type="checkbox" id="setting-security-shield-toggle" checked style="cursor:pointer; transform: scale(1.15);">
+                        </div>
+                        <div class="popover-field" style="margin-top: 6px;">
+                            <label for="setting-search-horizon">Search Horizon</label>
+                            <select id="setting-search-horizon">
+                                <option value="1d">Past 24 Hours</option>
+                                <option value="7d" selected>Past 1 Week</option>
+                                <option value="14d">Past 2 Weeks</option>
+                                <option value="30d">Past 1 Month</option>
+                            </select>
+                        </div>
+                        <div class="popover-field" style="margin-top: 6px;">
+                            <label for="screener-session-cookie">Screener.in Cookie</label>
+                            <div style="display: flex; gap: 6px; width: 100%;">
+                                <input type="password" id="screener-session-cookie" placeholder="sessionid cookie value" style="flex-grow: 1; background: rgba(0,0,0,0.3); color: var(--text-primary); border: 1px solid var(--border-glass); border-radius: 4px; padding: 4px 8px; font-size: 10.5px; height: 26px; outline: none; box-sizing: border-box;">
+                                <button id="save-screener-cookie-btn" style="background: var(--color-primary); color: white; border: none; border-radius: 4px; padding: 0 10px; font-size: 10px; font-weight: 700; cursor: pointer; height: 26px;">Save</button>
+                            </div>
                         </div>
 
                         <div class="popover-divider"></div>
-                        <div class="popover-section-header">🔗 MARKET RESOURCES</div>
-                        <a href="https://www.moneycontrol.com/markets/technical-trends/?tab=uptrend&trend=bullish&index=NIFTY%20500&indexId=7&ex=N" target="_blank" class="popover-action-row" style="text-decoration:none;">
-                            <span>📈 Bullish Trends</span>
-                            <span class="badge-pill">Moneycontrol</span>
-                        </a>
-                        <a href="https://www.moneycontrol.com/stocksmarketsindia/heat-map-advance-decline-ratio-nse-bse" target="_blank" class="popover-action-row" style="text-decoration:none;">
-                            <span>🔥 Market Heatmap</span>
-                            <span class="badge-pill">Moneycontrol</span>
-                        </a>
-                        <a href="https://www.screener.in" target="_blank" class="popover-action-row" style="text-decoration:none;">
-                            <span>💼 Screener.in Portal</span>
-                            <span class="badge-pill">Screener</span>
-                        </a>
+
+                        <!-- Section 3: Market Resources Dropdown List -->
+                        <div class="popover-section-header">🔗 MARKET RESOURCES LIST</div>
+                        <div class="popover-field">
+                            <select id="popover-market-resources-select" onchange="if(this.value){ window.open(this.value, '_blank'); this.selectedIndex=0; }">
+                                <option value="" selected disabled>-- Select Market Resource Portal --</option>
+                                <option value="https://www.moneycontrol.com/markets/technical-trends/?tab=uptrend&trend=bullish&index=NIFTY%20500&indexId=7&ex=N">📈 Bullish Technical Trends (Moneycontrol)</option>
+                                <option value="https://www.moneycontrol.com/stocksmarketsindia/heat-map-advance-decline-ratio-nse-bse">🔥 NSE/BSE Market Heatmap (Moneycontrol)</option>
+                                <option value="https://www.screener.in">💼 Screener.in Financial Portal (Screener)</option>
+                                <option value="https://www.nseindia.com">🏛️ NSE India Official Terminal (NSE)</option>
+                                <option value="https://www.bseindia.com">📊 BSE India Market Data (BSE)</option>
+                                <option value="https://economictimes.indiatimes.com/markets">📰 Economic Times Markets (ET Markets)</option>
+                                <option value="https://trendlyne.com">⚡ Trendlyne Super Screener (Trendlyne)</option>
+                                <option value="https://chartink.com">🎯 Chartink Technical Scans (Chartink)</option>
+                            </select>
+                        </div>
                     </div>
-                    <script>
-                        document.addEventListener('DOMContentLoaded', function() {
-                            var btn = document.getElementById('desktop-profile-btn');
-                            if (btn) {
-                                btn.addEventListener('click', function(e) {
-                                    if (window.toggleDesktopProfilePopover) window.toggleDesktopProfilePopover(e);
-                                });
-                            }
-                        });
-                    </script>
+
                 </div>
             </div>
         </div>
@@ -786,19 +877,9 @@
                 <!-- Utilities cog, bells and controls -->
                 <div class="header-utils">
                     <!-- Notifications bell -->
-                    <div class="header-bell-wrapper" id="header-bell-btn" title="View Institutional Alerts">
+                    <div class="header-bell-wrapper" id="header-bell-btn" title="View Institutional Alerts" onclick="window.toggleNotificationDropdown && window.toggleNotificationDropdown(event)">
                         <span class="bell-icon">🔔</span>
                         <span class="bell-badge" id="bell-badge-count" style="display: none;">0</span>
-                        <!-- Bell dropdown panel -->
-                        <div class="header-dropdown notification-dropdown" id="notification-dropdown-panel" style="display: none;">
-                            <div class="dropdown-header">
-                                <span>🔔 INSTITUTIONAL ALERTS</span>
-                                <button id="clear-all-alerts-btn" class="clear-alerts-btn">Clear All</button>
-                            </div>
-                            <div class="dropdown-body" id="notification-list-body">
-                                <div style="font-size:10px; color:var(--text-muted); padding:20px; text-align:center;">No new system notifications.</div>
-                            </div>
-                        </div>
                     </div>
 
                     <!-- Important Links Dropdown -->
@@ -850,27 +931,27 @@
                             <div class="dropdown-body">
                                 <div class="setting-row">
                                     <label>Audio Signals</label>
-                                    <input type="checkbox" id="setting-audio-toggle" checked style="cursor:pointer; transform: scale(1.15);">
+                                    <input type="checkbox" id="setting-audio-toggle-old" checked style="cursor:pointer; transform: scale(1.15);">
                                 </div>
                                 <div class="setting-row">
                                     <label>AI Background Alerts</label>
-                                    <input type="checkbox" id="setting-alerts-toggle" checked style="cursor:pointer; transform: scale(1.15);">
+                                    <input type="checkbox" id="setting-alerts-toggle-old" checked style="cursor:pointer; transform: scale(1.15);">
                                 </div>
                                 <div class="setting-row">
                                     <label>Regulatory Disclaimers</label>
-                                    <input type="checkbox" id="setting-disclaimers-toggle" checked style="cursor:pointer; transform: scale(1.15);">
+                                    <input type="checkbox" id="setting-disclaimers-toggle-old" checked style="cursor:pointer; transform: scale(1.15);">
                                 </div>
                                 <div class="setting-row">
                                     <label>Show Company Logos</label>
-                                    <input type="checkbox" id="setting-logos-toggle" checked style="cursor:pointer; transform: scale(1.15);">
+                                    <input type="checkbox" id="setting-logos-toggle-old" checked style="cursor:pointer; transform: scale(1.15);">
                                 </div>
                                 <div class="setting-row">
                                     <label>System Telemetry</label>
-                                    <input type="checkbox" id="setting-telemetry-toggle" checked style="cursor:pointer; transform: scale(1.15);">
+                                    <input type="checkbox" id="setting-telemetry-toggle-old" checked style="cursor:pointer; transform: scale(1.15);">
                                 </div>
                                 <div class="setting-row">
                                     <label>Refresh Cycle</label>
-                                    <select id="setting-refresh-interval" style="background:#000; color:#fff; border:1px solid var(--border-glass); border-radius:4px; padding:2px 4px; font-size:10px;">
+                                    <select id="setting-refresh-interval-old" style="background:#000; color:#fff; border:1px solid var(--border-glass); border-radius:4px; padding:2px 4px; font-size:10px;">
                                         <option value="manual">Manual only</option>
                                         <option value="60s">60s interval</option>
                                         <option value="300s" selected>5m interval</option>
@@ -878,14 +959,14 @@
                                 </div>
                                 <div class="setting-row">
                                     <label>Workstation Mode</label>
-                                    <select id="setting-theme-mode" style="background:#000; color:#fff; border:1px solid var(--border-glass); border-radius:4px; padding:2px 4px; font-size:10px; cursor: pointer;">
+                                    <select id="setting-theme-mode-old" onchange="window.setWorkstationMode && window.setWorkstationMode(this.value)" style="background:#000; color:#fff; border:1px solid var(--border-glass); border-radius:4px; padding:2px 4px; font-size:10px; cursor: pointer;">
                                         <option value="dark" selected>🌙 Dark Mode</option>
                                         <option value="light">☀️ Light Mode</option>
                                     </select>
                                 </div>
                                 <div class="setting-row">
                                     <label>Visual Theme</label>
-                                    <select id="setting-theme-accent" style="background:#000; color:#fff; border:1px solid var(--border-glass); border-radius:4px; padding:2px 4px; font-size:10px; cursor: pointer;">
+                                    <select id="setting-theme-accent-old" onchange="window.setWorkstationAccent && window.setWorkstationAccent(this.value)" style="background:#000; color:#fff; border:1px solid var(--border-glass); border-radius:4px; padding:2px 4px; font-size:10px; cursor: pointer;">
                                         <optgroup label="Classic & Corporate">
                                             <option value="classic" selected>💎 Apex Classic</option>
                                             <option value="bloomberg">🏛️ Bloomberg Amber</option>
@@ -896,32 +977,11 @@
                                             <option value="vercel-dark">⚡ Vercel Dark</option>
                                             <option value="paytm-money">💰 Paytm Money</option>
                                         </optgroup>
-                                        <optgroup label="High-Aesthetic & Modern">
-                                            <option value="slate-quantitative">📈 Slate Quantitative</option>
-                                            <option value="tokyo-night">🗼 Tokyo Night</option>
-                                            <option value="dracula">🧛 Dracula Dark</option>
-                                            <option value="cyberpunk">🌌 Cyberpunk Neon</option>
-                                            <option value="ayu-mirage">🎨 Ayu Mirage</option>
-                                        </optgroup>
-                                        <optgroup label="Premium Accents">
-                                            <option value="obsidian-gold">🪙 Obsidian Gold</option>
-                                            <option value="forest-nocturnal">🌲 Forest Nocturnal</option>
-                                            <option value="nord-ice">❄️ Nord Ice</option>
-                                            <option value="solarized-paper">☀️ Solarized Paper</option>
-                                            <option value="alabaster-dark">🥛 Alabaster Dark</option>
-                                        </optgroup>
-                                        <optgroup label="Light Themes">
-                                            <option value="light">🕊️ Alabaster Day</option>
-                                            <option value="geist-light">⚡ Geist Light</option>
-                                            <option value="nord-light">❄️ Nord Light</option>
-                                            <option value="solarized-light">☀️ Solarized Light</option>
-                                            <option value="github-light">🐙 GitHub Light</option>
-                                        </optgroup>
                                     </select>
                                 </div>
                                 <div class="setting-row">
                                     <label>Typography Mode</label>
-                                    <select id="setting-typography-preset" style="background:#000; color:#fff; border:1px solid var(--border-glass); border-radius:4px; padding:2px 4px; font-size:10px; cursor: pointer;">
+                                    <select id="setting-typography-preset-old" onchange="window.setTypographyPreset && window.setTypographyPreset(this.value)" style="background:#000; color:#fff; border:1px solid var(--border-glass); border-radius:4px; padding:2px 4px; font-size:10px; cursor: pointer;">
                                         <option value="modern" selected>📐 Apex Modern</option>
                                         <option value="terminal">🏛️ Institutional</option>
                                         <option value="developer">💻 Quantitative</option>
@@ -930,18 +990,18 @@
                                 </div>
                                 <div class="setting-row">
                                     <label>Portfolio Shield</label>
-                                    <input type="checkbox" id="setting-security-shield-toggle" checked style="cursor:pointer; transform: scale(1.15);">
+                                    <input type="checkbox" id="setting-security-shield-toggle-old" checked style="cursor:pointer; transform: scale(1.15);">
                                 </div>
                                 <div class="setting-row">
                                     <label>Catalyst AI Engine</label>
-                                    <select id="setting-catalyst-ai" style="background:#000; color:#fff; border:1px solid var(--border-glass); border-radius:4px; padding:2px 4px; font-size:10px; cursor: pointer;">
+                                    <select id="setting-catalyst-ai-old" style="background:#000; color:#fff; border:1px solid var(--border-glass); border-radius:4px; padding:2px 4px; font-size:10px; cursor: pointer;">
                                         <option value="gemini" selected>♊ Gemini (Auto-Fallback)</option>
                                         <option value="groq">🔥 Groq Llama 3.3</option>
                                     </select>
                                 </div>
                                 <div class="setting-row">
                                     <label>Search Horizon</label>
-                                    <select id="setting-search-horizon" style="background:#000; color:#fff; border:1px solid var(--border-glass); border-radius:4px; padding:2px 4px; font-size:10px; cursor: pointer;">
+                                    <select id="setting-search-horizon-old" style="background:#000; color:#fff; border:1px solid var(--border-glass); border-radius:4px; padding:2px 4px; font-size:10px; cursor: pointer;">
                                         <option value="1d">Past 24 Hours</option>
                                         <option value="7d" selected>Past 1 Week</option>
                                         <option value="14d">Past 2 Weeks</option>
@@ -950,15 +1010,15 @@
                                 </div>
                                 <div class="setting-row">
                                     <label>Use Tavily Search</label>
-                                    <input type="checkbox" id="setting-tavily-search-toggle" style="cursor:pointer; transform: scale(1.15);" title="Enable Tavily search API (uses 1,000 free searches/month).">
+                                    <input type="checkbox" id="setting-tavily-search-toggle-old" style="cursor:pointer; transform: scale(1.15);" title="Enable Tavily search API (uses 1,000 free searches/month).">
                                 </div>
                                 <div class="setting-row">
                                     <label>Use SerpApi</label>
-                                    <input type="checkbox" id="setting-serpapi-toggle" style="cursor:pointer; transform: scale(1.15);" title="Enable SerpApi (Google Search & AI Overviews).">
+                                    <input type="checkbox" id="setting-serpapi-toggle-old" style="cursor:pointer; transform: scale(1.15);" title="Enable SerpApi (Google Search & AI Overviews).">
                                 </div>
                                 <div class="setting-row">
                                     <label>Use Brave Search</label>
-                                    <input type="checkbox" id="setting-brave-toggle" style="cursor:pointer; transform: scale(1.15);" title="Enable Brave Search (supports LLM context & $5 free monthly credit).">
+                                    <input type="checkbox" id="setting-brave-toggle-old" style="cursor:pointer; transform: scale(1.15);" title="Enable Brave Search (supports LLM context & $5 free monthly credit).">
                                 </div>
                                 <div class="setting-row">
                                     <label>SEBI Tier Mode</label>
@@ -967,37 +1027,37 @@
                                 <div class="setting-row" style="flex-direction: column; align-items: flex-start; gap: 6px; border-top: 1px solid var(--border-glass); padding-top: 10px; margin-top: 10px;">
                                     <label style="font-size: 10px; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.04em;">Screener.in Cookie</label>
                                     <div style="display: flex; gap: 6px; width: 100%;">
-                                        <input type="password" id="screener-session-cookie" placeholder="sessionid cookie value" style="flex-grow: 1; background: var(--bg-glass-input); color: var(--text-primary); border: 1px solid var(--border-glass); border-radius: 4px; padding: 4px 8px; font-size: 10px; outline: none; box-sizing: border-box; height: 26px;">
-                                        <button id="save-screener-cookie-btn" style="background: var(--color-primary); color: white; border: none; border-radius: 4px; padding: 0 10px; font-size: 10px; font-weight: 700; cursor: pointer; height: 26px;">Save</button>
+                                        <input type="password" id="screener-session-cookie-old" placeholder="sessionid cookie value" style="flex-grow: 1; background: var(--bg-glass-input); color: var(--text-primary); border: 1px solid var(--border-glass); border-radius: 4px; padding: 4px 8px; font-size: 10px; outline: none; box-sizing: border-box; height: 26px;">
+                                        <button id="save-screener-cookie-btn-old" style="background: var(--color-primary); color: white; border: none; border-radius: 4px; padding: 0 10px; font-size: 10px; font-weight: 700; cursor: pointer; height: 26px;">Save</button>
                                     </div>
                                 </div>
                                 <div class="setting-row" style="flex-direction: column; align-items: flex-start; gap: 6px; border-top: 1px solid var(--border-glass); padding-top: 10px; margin-top: 10px;">
                                     <label style="font-size: 10px; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.04em;">Gemini Key Rotation Pool</label>
                                     <div style="display: flex; gap: 6px; width: 100%;">
-                                        <input type="password" id="gemini-new-key" placeholder="Paste Gemini API key to add" style="flex-grow: 1; background: var(--bg-glass-input); color: var(--text-primary); border: 1px solid var(--border-glass); border-radius: 4px; padding: 4px 8px; font-size: 10px; outline: none; box-sizing: border-box; height: 26px;">
-                                        <button id="add-gemini-key-btn" style="background: var(--color-primary); color: white; border: none; border-radius: 4px; padding: 0 10px; font-size: 10px; font-weight: 700; cursor: pointer; height: 26px;">+ Add</button>
+                                        <input type="password" id="gemini-new-key-old" placeholder="Paste Gemini API key to add" style="flex-grow: 1; background: var(--bg-glass-input); color: var(--text-primary); border: 1px solid var(--border-glass); border-radius: 4px; padding: 4px 8px; font-size: 10px; outline: none; box-sizing: border-box; height: 26px;">
+                                        <button id="add-gemini-key-btn-old" style="background: var(--color-primary); color: white; border: none; border-radius: 4px; padding: 0 10px; font-size: 10px; font-weight: 700; cursor: pointer; height: 26px;">+ Add</button>
                                     </div>
-                                    <div id="gemini-keys-container" style="display: flex; flex-direction: column; gap: 6px; width: 100%; margin-top: 4px; max-height: 120px; overflow-y: auto;">
+                                    <div id="gemini-keys-container-old" style="display: flex; flex-direction: column; gap: 6px; width: 100%; margin-top: 4px; max-height: 120px; overflow-y: auto;">
                                         <!-- Masked keys will be dynamically inserted here -->
                                     </div>
                                 </div>
                                 <div class="setting-row" style="flex-direction: column; align-items: flex-start; gap: 6px; border-top: 1px solid var(--border-glass); padding-top: 10px; margin-top: 10px;">
                                     <label style="font-size: 10px; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.04em;">SerpApi Key Pool</label>
                                     <div style="display: flex; gap: 6px; width: 100%;">
-                                        <input type="password" id="serpapi-new-key" placeholder="Paste SerpApi API key to add" style="flex-grow: 1; background: var(--bg-glass-input); color: var(--text-primary); border: 1px solid var(--border-glass); border-radius: 4px; padding: 4px 8px; font-size: 10px; outline: none; box-sizing: border-box; height: 26px;">
-                                        <button id="add-serpapi-key-btn" style="background: var(--color-primary); color: white; border: none; border-radius: 4px; padding: 0 10px; font-size: 10px; font-weight: 700; cursor: pointer; height: 26px;">+ Add</button>
+                                        <input type="password" id="serpapi-new-key-old" placeholder="Paste SerpApi API key to add" style="flex-grow: 1; background: var(--bg-glass-input); color: var(--text-primary); border: 1px solid var(--border-glass); border-radius: 4px; padding: 4px 8px; font-size: 10px; outline: none; box-sizing: border-box; height: 26px;">
+                                        <button id="add-serpapi-key-btn-old" style="background: var(--color-primary); color: white; border: none; border-radius: 4px; padding: 0 10px; font-size: 10px; font-weight: 700; cursor: pointer; height: 26px;">+ Add</button>
                                     </div>
-                                    <div id="serpapi-keys-container" style="display: flex; flex-direction: column; gap: 6px; width: 100%; margin-top: 4px; max-height: 80px; overflow-y: auto;">
+                                    <div id="serpapi-keys-container-old" style="display: flex; flex-direction: column; gap: 6px; width: 100%; margin-top: 4px; max-height: 80px; overflow-y: auto;">
                                         <!-- Masked keys will be dynamically inserted here -->
                                     </div>
                                 </div>
                                 <div class="setting-row" style="flex-direction: column; align-items: flex-start; gap: 6px; border-top: 1px solid var(--border-glass); padding-top: 10px; margin-top: 10px;">
                                     <label style="font-size: 10px; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.04em;">Tavily Key Pool</label>
                                     <div style="display: flex; gap: 6px; width: 100%;">
-                                        <input type="password" id="tavily-new-key" placeholder="Paste Tavily API key to add" style="flex-grow: 1; background: var(--bg-glass-input); color: var(--text-primary); border: 1px solid var(--border-glass); border-radius: 4px; padding: 4px 8px; font-size: 10px; outline: none; box-sizing: border-box; height: 26px;">
-                                        <button id="add-tavily-key-btn" style="background: var(--color-primary); color: white; border: none; border-radius: 4px; padding: 0 10px; font-size: 10px; font-weight: 700; cursor: pointer; height: 26px;">+ Add</button>
+                                        <input type="password" id="tavily-new-key-old" placeholder="Paste Tavily API key to add" style="flex-grow: 1; background: var(--bg-glass-input); color: var(--text-primary); border: 1px solid var(--border-glass); border-radius: 4px; padding: 4px 8px; font-size: 10px; outline: none; box-sizing: border-box; height: 26px;">
+                                        <button id="add-tavily-key-btn-old" style="background: var(--color-primary); color: white; border: none; border-radius: 4px; padding: 0 10px; font-size: 10px; font-weight: 700; cursor: pointer; height: 26px;">+ Add</button>
                                     </div>
-                                    <div id="tavily-keys-container" style="display: flex; flex-direction: column; gap: 6px; width: 100%; margin-top: 4px; max-height: 80px; overflow-y: auto;">
+                                    <div id="tavily-keys-container-old" style="display: flex; flex-direction: column; gap: 6px; width: 100%; margin-top: 4px; max-height: 80px; overflow-y: auto;">
                                         <!-- Masked keys will be dynamically inserted here -->
                                     </div>
                                 </div>
@@ -9971,68 +10031,70 @@
 
     <!-- Multi-Column Mega Long Footer (Desktop View) -->
     <footer class="mega-footer no-print">
-                <div class="footer-grid">
-                    <div class="footer-col brand-col">
-                        <div class="footer-brand">
-                            <span class="footer-logo-icon">▲</span>
-                            <span>APEX QUANT AI</span>
-                        </div>
-                        <p class="footer-desc">Institutional-grade Equities AI Advisory, Quantitative Discovery, Volatility Modeling & Real-Time Financial Statement Intelligence Terminal.</p>
-                        <div class="footer-badge">SEBI Advisory Standard Terminal</div>
+        <div class="footer-inner-card">
+            <div class="footer-grid">
+                <div class="footer-col brand-col">
+                    <div class="footer-brand">
+                        <span class="footer-logo-icon">▲</span>
+                        <span>APEX QUANT AI</span>
                     </div>
-                    
-                    <div class="footer-col">
-                        <h4>Quick Links & Research</h4>
-                        <ul>
-                            <li><a href="#analyzer" onclick="window.switchTab && window.switchTab('analyzer')">📈 Equity Research Terminal</a></li>
-                            <li><a href="#screener" onclick="window.switchTab && window.switchTab('screener')">🔍 Quant Screener & Scanner</a></li>
-                            <li><a href="#fuzzy" onclick="window.switchTab && window.switchTab('fuzzy')">🧠 Fuzzy Intelligence Engine</a></li>
-                            <li><a href="#compare" onclick="window.switchTab && window.switchTab('compare')">⚖️ Peer Benchmarking Arena</a></li>
-                            <li><a href="#universe" onclick="window.switchTab && window.switchTab('universe')">🗄️ Index Universe Registry</a></li>
-                            <li><a href="#movers" onclick="window.switchTab && window.switchTab('movers')">🚀 Market Movers Today</a></li>
-                        </ul>
-                    </div>
-
-                    <div class="footer-col">
-                        <h4>Tactical Scans & Tools</h4>
-                        <ul>
-                            <li><a href="#swing-scan" onclick="window.switchTab && window.switchTab('swing-scan')">⚡ Swing Setup Scanner</a></li>
-                            <li><a href="#technical-scans" onclick="window.switchTab && window.switchTab('technical-scans')">📊 Technical Scans & Breakouts</a></li>
-                            <li><a href="#sector-radar" onclick="window.switchTab && window.switchTab('sector-radar')">🔥 Sector Momentum Radar</a></li>
-                            <li><a href="#trades" onclick="window.switchTab && window.switchTab('trades')">🤝 Promoter & Insider Deals</a></li>
-                            <li><a href="#events" onclick="window.switchTab && window.switchTab('events')">📅 Market Events Calendar</a></li>
-                            <li><a href="#rule-scanner" onclick="window.switchTab && window.switchTab('rule-scanner')">📡 Quantitative Rule Scanner</a></li>
-                        </ul>
-                    </div>
-
-                    <div class="footer-col">
-                        <h4>Personal Workspaces</h4>
-                        <ul>
-                            <li><a href="#watchlist" onclick="window.switchTab && window.switchTab('watchlist')">📋 Watchlist Registry</a></li>
-                            <li><a href="#portfolio" onclick="window.switchTab && window.switchTab('portfolio')">💼 Portfolio Doctor</a></li>
-                            <li><a href="#alerts" onclick="window.switchTab && window.switchTab('alerts')">🚨 Institutional Alert Center</a></li>
-                            <li><a href="#learning" onclick="window.switchTab && window.switchTab('learning')">🎓 Quantitative Learning Academy</a></li>
-                            <li><a href="javascript:void(0)" onclick="window.toggleDesktopProfilePopover && window.toggleDesktopProfilePopover(event)">👤 Investor Profile Settings</a></li>
-                        </ul>
-                    </div>
-
-                    <div class="footer-col">
-                        <h4>System & Compliance</h4>
-                        <ul>
-                            <li><span class="footer-status-dot"></span> Live WebSocket Engine Active</li>
-                            <li><span class="footer-status-dot"></span> Gemini 1.5 Flash Connected</li>
-                            <li><span>🛡️ Biometric Security Active</span></li>
-                            <li><span>📜 SEBI Advisory Disclaimer</span></li>
-                            <li><span>🔒 256-Bit Encrypted Workstation</span></li>
-                        </ul>
-                    </div>
+                    <p class="footer-desc">Institutional-grade Equities AI Advisory, Quantitative Discovery, Volatility Modeling & Real-Time Financial Statement Intelligence Terminal.</p>
+                    <div class="footer-badge">SEBI Advisory Standard Terminal</div>
+                </div>
+                
+                <div class="footer-col">
+                    <h4>Quick Links & Research</h4>
+                    <ul>
+                        <li><a href="#analyzer" onclick="window.switchTab && window.switchTab('analyzer')">📈 Equity Research Terminal</a></li>
+                        <li><a href="#screener" onclick="window.switchTab && window.switchTab('screener')">🔍 Quant Screener & Scanner</a></li>
+                        <li><a href="#fuzzy" onclick="window.switchTab && window.switchTab('fuzzy')">🧠 Fuzzy Intelligence Engine</a></li>
+                        <li><a href="#compare" onclick="window.switchTab && window.switchTab('compare')">⚖️ Peer Benchmarking Arena</a></li>
+                        <li><a href="#universe" onclick="window.switchTab && window.switchTab('universe')">🗄️ Index Universe Registry</a></li>
+                        <li><a href="#movers" onclick="window.switchTab && window.switchTab('movers')">🚀 Market Movers Today</a></li>
+                    </ul>
                 </div>
 
-                <div class="footer-bottom">
-                    <div>Copyright © 2026 APEX QUANT AI Ltd. All Rights Reserved.</div>
-                    <div>For Educational & Institutional Research Purposes Only • SEBI Registration No: INH000022507</div>
+                <div class="footer-col">
+                    <h4>Tactical Scans & Tools</h4>
+                    <ul>
+                        <li><a href="#swing-scan" onclick="window.switchTab && window.switchTab('swing-scan')">⚡ Swing Setup Scanner</a></li>
+                        <li><a href="#technical-scans" onclick="window.switchTab && window.switchTab('technical-scans')">📊 Technical Scans & Breakouts</a></li>
+                        <li><a href="#sector-radar" onclick="window.switchTab && window.switchTab('sector-radar')">🔥 Sector Momentum Radar</a></li>
+                        <li><a href="#trades" onclick="window.switchTab && window.switchTab('trades')">🤝 Promoter & Insider Deals</a></li>
+                        <li><a href="#events" onclick="window.switchTab && window.switchTab('events')">📅 Market Events Calendar</a></li>
+                        <li><a href="#rule-scanner" onclick="window.switchTab && window.switchTab('rule-scanner')">📡 Quantitative Rule Scanner</a></li>
+                    </ul>
                 </div>
-            </footer>
+
+                <div class="footer-col">
+                    <h4>Personal Workspaces</h4>
+                    <ul>
+                        <li><a href="#watchlist" onclick="window.switchTab && window.switchTab('watchlist')">📋 Watchlist Registry</a></li>
+                        <li><a href="#portfolio" onclick="window.switchTab && window.switchTab('portfolio')">💼 Portfolio Doctor</a></li>
+                        <li><a href="#alerts" onclick="window.switchTab && window.switchTab('alerts')">🚨 Institutional Alert Center</a></li>
+                        <li><a href="#learning" onclick="window.switchTab && window.switchTab('learning')">🎓 Quantitative Learning Academy</a></li>
+                        <li><a href="javascript:void(0)" onclick="window.toggleDesktopProfilePopover && window.toggleDesktopProfilePopover(event)">👤 Investor Profile Settings</a></li>
+                    </ul>
+                </div>
+
+                <div class="footer-col">
+                    <h4>System & Compliance</h4>
+                    <ul>
+                        <li><span class="footer-status-dot"></span> Live WebSocket Engine Active</li>
+                        <li><span class="footer-status-dot"></span> Gemini 1.5 Flash Connected</li>
+                        <li><span>🛡️ Biometric Security Active</span></li>
+                        <li><span>📜 SEBI Advisory Disclaimer</span></li>
+                        <li><span>🔒 256-Bit Encrypted Workstation</span></li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="footer-bottom">
+                <div>Copyright © 2026 APEX QUANT AI Ltd. All Rights Reserved.</div>
+                <div>For Educational & Institutional Research Purposes Only • SEBI Registration No: INH000022507</div>
+            </div>
+        </div>
+    </footer>
         </main>
 
     <!-- Financial Statement Trend Chart Overlay Modal -->
@@ -10112,7 +10174,7 @@
     </div>
 
     <!-- Modernization Custom Layer -->
-    <script src="modernizer.js?v=8.34"></script>
+    <script src="modernizer.js?v=8.35"></script>
 
     <!-- Mobile Frosted Glass Slide-up Details Bottom Sheet -->
     <div id="mobile-details-bottom-sheet" class="mobile-bottom-sheet no-print" style="display: none;">

@@ -623,26 +623,14 @@
         const originalSetWorkstationMode = window.setWorkstationMode;
         if (originalSetWorkstationMode) {
             window.setWorkstationMode = function(mode) {
-                if (document.startViewTransition) {
-                    document.startViewTransition(() => {
-                        originalSetWorkstationMode(mode);
-                    });
-                } else {
-                    originalSetWorkstationMode(mode);
-                }
+                originalSetWorkstationMode(mode);
             };
         }
 
         const originalSetWorkstationAccent = window.setWorkstationAccent;
         if (originalSetWorkstationAccent) {
             window.setWorkstationAccent = function(accent) {
-                if (document.startViewTransition) {
-                    document.startViewTransition(() => {
-                        originalSetWorkstationAccent(accent);
-                    });
-                } else {
-                    originalSetWorkstationAccent(accent);
-                }
+                originalSetWorkstationAccent(accent);
             };
         }
     }
@@ -2094,24 +2082,37 @@
         // Intercept Connection Status Dot updates
         const originalUpdateIndicator = window.updateConnectionIndicator;
         if (originalUpdateIndicator) {
-            window.updateConnectionIndicator = function(status) {
-                originalUpdateIndicator(status);
-                const mobileDot = document.getElementById('mobile-ws-dot');
-                if (mobileDot) {
-                    mobileDot.style.display = 'inline-block';
+            window.updateConnectionIndicator = function(status, source) {
+                originalUpdateIndicator(status, source);
+                const dots = [document.getElementById('mobile-ws-dot'), document.getElementById('desktop-ws-dot')].filter(Boolean);
+                dots.forEach(dot => {
+                    dot.style.display = 'inline-block';
                     if (status === 'live') {
-                        mobileDot.style.background = '#10b981';
-                        mobileDot.style.boxShadow = '0 0 8px #10b981';
+                        dot.style.background = '#10b981';
+                        dot.style.boxShadow = '0 0 8px #10b981';
+                        dot.title = 'WebSocket Live: Angel One real-time stream connected';
                     } else if (status === 'polling') {
-                        mobileDot.style.background = '#f59e0b';
-                        mobileDot.style.boxShadow = '0 0 8px #f59e0b';
+                        dot.style.background = '#f59e0b';
+                        dot.style.boxShadow = '0 0 8px #f59e0b';
+                        dot.title = 'WebSocket Polling: Fallback yfinance feed active';
                     } else {
-                        mobileDot.style.background = '#ef4444';
-                        mobileDot.style.boxShadow = '0 0 8px #ef4444';
+                        dot.style.background = '#ef4444';
+                        dot.style.boxShadow = '0 0 8px #ef4444';
+                        dot.title = 'WebSocket Offline: Reconnecting...';
                     }
-                }
+                });
             };
         }
+
+        window.pulseWsDot = function() {
+            const dots = [document.getElementById('mobile-ws-dot'), document.getElementById('desktop-ws-dot')].filter(Boolean);
+            dots.forEach(dot => {
+                dot.style.transform = 'scale(1.4)';
+                setTimeout(() => {
+                    dot.style.transform = 'scale(1)';
+                }, 150);
+            });
+        };
 
         // 6. Landscape chart orientation mode
         function initLandscapeChartMode() {
@@ -8705,8 +8706,9 @@
                 }
                 const popover = document.getElementById('desktop-profile-popover');
                 if (!popover) return;
-                const isCurrentlyVisible = popover.style.display === 'block';
-                popover.style.display = isCurrentlyVisible ? 'none' : 'block';
+                const computed = window.getComputedStyle(popover).display;
+                const isHidden = popover.style.display === 'none' || computed === 'none';
+                popover.style.display = isHidden ? 'block' : 'none';
             };
 
             // Global click listener to close profile popover when clicking outside
@@ -8886,27 +8888,6 @@
                 if (typeof window.decorateSectorStocksHeatmap === 'function') window.decorateSectorStocksHeatmap();
             };
 
-            // Dynamic Footer Reparenting Helper
-            window.attachDynamicFooterToActiveTab = function() {
-                const footer = document.querySelector('.mega-footer');
-                if (!footer) return;
-
-                let targetTab = document.querySelector('section.workspace-tab.active-tab-content, .workspace-tab.active, section.workspace-tab:not([style*="display: none"])');
-                if (!targetTab) {
-                    const allTabs = document.querySelectorAll('section.workspace-tab, .workspace-tab');
-                    for (let i = 0; i < allTabs.length; i++) {
-                        if (window.getComputedStyle(allTabs[i]).display !== 'none') {
-                            targetTab = allTabs[i];
-                            break;
-                        }
-                    }
-                }
-
-                if (targetTab && footer.parentElement !== targetTab) {
-                    targetTab.appendChild(footer);
-                }
-            };
-
             // ==================== DESKTOP NAVBAR SWITCH TAB SYNC WRAPPER ====================
             const originalSwitchTab = window.switchTab;
             window.switchTab = function(tabKey) {
@@ -8929,13 +8910,7 @@
                         btn.classList.remove('active');
                     }
                 });
-
-                // Attach dynamic footer to active tab
-                setTimeout(window.attachDynamicFooterToActiveTab, 50);
             };
-
-            // Initial dynamic footer attachment
-            setTimeout(window.attachDynamicFooterToActiveTab, 100);
         } catch(e) {
             console.error("Error invoking additions:", e);
         }
