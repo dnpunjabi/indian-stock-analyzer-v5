@@ -2640,8 +2640,8 @@
                         <div style="display: flex; align-items: center; gap: 14px; margin-bottom: 12px;">
                             <div style="width: 44px; height: 44px; border-radius: 10px; background: rgba(59, 130, 246, 0.2); border: 1px solid rgba(59, 130, 246, 0.4); display: flex; align-items: center; justify-content: center; font-size: 22px;">📊</div>
                             <div>
-                                <h2 style="margin: 0; font-size: 20px; font-weight: 700; font-family: var(--font-heading, 'Outfit', sans-serif); color: #ffffff !important; letter-spacing: -0.02em;">Equity Research & Valuation Terminal</h2>
-                                <p style="margin: 4px 0 0 0; font-size: 13px; color: rgba(255, 255, 255, 0.8) !important; line-height: 1.5;">Select a recommended stock below or search any NSE/BSE ticker above for institutional fundamental valuation, DCF model, AI risk audit, and analyst targets.</p>
+                                <h2 class="research-hero-title" style="margin: 0; font-size: 20px; font-weight: 700; font-family: var(--font-heading, 'Outfit', sans-serif); letter-spacing: -0.02em;">Equity Research & Valuation Terminal</h2>
+                                <p class="research-hero-sub" style="margin: 4px 0 0 0; font-size: 13px; line-height: 1.5;">Select a recommended stock below or search any NSE/BSE ticker above for institutional fundamental valuation, DCF model, AI risk audit, and analyst targets.</p>
                             </div>
                         </div>
 
@@ -2650,7 +2650,7 @@
                             <div style="position: relative; flex: 1;">
                                 <span style="position: absolute; left: 14px; top: 50%; transform: translateY(-50%); font-size: 14px; color: #94a3b8; pointer-events: none;">🔍</span>
                                 <input type="text" id="research-empty-search-input" placeholder="Type stock name or ticker (e.g. RELIANCE, TCS, TATAMOTORS, HDFCBANK)..." 
-                                       style="width: 100%; box-sizing: border-box; padding: 10px 14px 10px 42px !important; font-size: 13px; background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 8px; color: #ffffff !important; outline: none; transition: all 0.2s;"
+                                       style="width: 100%; box-sizing: border-box; padding: 10px 14px 10px 42px !important; font-size: 13px; background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 8px; outline: none; transition: all 0.2s;"
                                        autocomplete="off"
                                        onkeydown="if(event.key === 'Enter' && this.value.trim()){ loadStockAnalyzer(this.value.trim()); }" />
                                 <div id="research-empty-suggestions" class="watchlist-autocomplete-box" style="display:none; position:absolute; top:calc(100% + 6px); left:0; right:0; z-index:9999; max-height:260px; overflow-y:auto;"></div>

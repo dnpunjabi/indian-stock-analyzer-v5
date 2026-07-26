@@ -18417,6 +18417,9 @@ select option {
         -webkit-backdrop-filter: none !important;
     }
     
+    #research-empty-search-input {
+        color: #ffffff;
+    }
     #research-empty-search-input::placeholder {
         color: #94a3b8 !important;
         opacity: 0.9;
@@ -18425,6 +18428,13 @@ select option {
         border-color: #3b82f6 !important;
         box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.3) !important;
         background: rgba(255, 255, 255, 0.12) !important;
+    }
+
+    .research-hero-title {
+        color: #ffffff;
+    }
+    .research-hero-sub {
+        color: rgba(255, 255, 255, 0.8);
     }
 
     .research-rec-card {
@@ -18438,6 +18448,81 @@ select option {
     }
 
     /* Light mode adaptations for Research Terminal empty state */
+    [data-mode="light"] .research-hero-card,
+    [data-theme="light"] .research-hero-card,
+    body.light-mode .research-hero-card,
+    html[data-mode="light"] .research-hero-card {
+        background: linear-gradient(135deg, #ffffff, #f8fafc) !important;
+        border: 1px solid #cbd5e1 !important;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.06) !important;
+    }
+    [data-mode="light"] .research-hero-title,
+    [data-theme="light"] .research-hero-title,
+    body.light-mode .research-hero-title,
+    html[data-mode="light"] .research-hero-title {
+        color: #0f172a !important;
+    }
+    [data-mode="light"] .research-hero-sub,
+    [data-theme="light"] .research-hero-sub,
+    body.light-mode .research-hero-sub,
+    html[data-mode="light"] .research-hero-sub {
+        color: #334155 !important;
+    }
+
+    [data-mode="light"] #research-empty-search-input,
+    [data-theme="light"] #research-empty-search-input,
+    body.light-mode #research-empty-search-input,
+    html[data-mode="light"] #research-empty-search-input {
+        background: #ffffff !important;
+        border: 1px solid #cbd5e1 !important;
+        color: #0f172a !important; /* Crisp Dark Black text for Light Mode */
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06) !important;
+    }
+    [data-mode="light"] #research-empty-search-input::placeholder,
+    [data-theme="light"] #research-empty-search-input::placeholder,
+    body.light-mode #research-empty-search-input::placeholder,
+    html[data-mode="light"] #research-empty-search-input::placeholder {
+        color: #64748b !important;
+        opacity: 1 !important;
+    }
+    [data-mode="light"] #research-empty-search-input:focus,
+    [data-theme="light"] #research-empty-search-input:focus,
+    body.light-mode #research-empty-search-input:focus,
+    html[data-mode="light"] #research-empty-search-input:focus {
+        background: #ffffff !important;
+        border-color: #0284c7 !important;
+        color: #0f172a !important;
+        box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.2) !important;
+    }
+
+    [data-mode="light"] #research-empty-suggestions,
+    [data-theme="light"] #research-empty-suggestions,
+    body.light-mode #research-empty-suggestions,
+    html[data-mode="light"] #research-empty-suggestions {
+        background: #ffffff !important;
+        border: 1px solid #cbd5e1 !important;
+        box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.12) !important;
+    }
+    [data-mode="light"] #research-empty-suggestions .watchlist-autocomplete-item,
+    [data-theme="light"] #research-empty-suggestions .watchlist-autocomplete-item,
+    body.light-mode #research-empty-suggestions .watchlist-autocomplete-item,
+    html[data-mode="light"] #research-empty-suggestions .watchlist-autocomplete-item {
+        border-bottom: 1px solid #f1f5f9 !important;
+        color: #0f172a !important;
+    }
+    [data-mode="light"] #research-empty-suggestions .watchlist-autocomplete-item strong,
+    [data-theme="light"] #research-empty-suggestions .watchlist-autocomplete-item strong,
+    body.light-mode #research-empty-suggestions .watchlist-autocomplete-item strong,
+    html[data-mode="light"] #research-empty-suggestions .watchlist-autocomplete-item strong {
+        color: #0f172a !important;
+    }
+    [data-mode="light"] #research-empty-suggestions .watchlist-autocomplete-item:hover,
+    [data-theme="light"] #research-empty-suggestions .watchlist-autocomplete-item:hover,
+    body.light-mode #research-empty-suggestions .watchlist-autocomplete-item:hover,
+    html[data-mode="light"] #research-empty-suggestions .watchlist-autocomplete-item:hover {
+        background: #f1f5f9 !important;
+    }
+
     [data-mode="light"] .research-rec-card,
     [data-theme="light"] .research-rec-card,
     body.light-mode .research-rec-card {
