@@ -18409,23 +18409,40 @@ select option {
     }
 
     #tab-analyzer #analyzer-empty-state {
-        padding: 0 !important;
         margin: 0 !important;
         border: none !important;
         background: transparent !important;
         box-shadow: none !important;
         backdrop-filter: none !important;
         -webkit-backdrop-filter: none !important;
-        min-height: auto !important;
-        display: none;
     }
-    .homepage-active #tab-analyzer #analyzer-empty-state {
-        display: block !important;
+    
+    .research-rec-card {
+        transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
     }
-    #tab-analyzer #analyzer-empty-state:hover {
-        transform: none !important;
-        box-shadow: none !important;
-        border-color: transparent !important;
+    .research-rec-card:hover {
+        background: rgba(59, 130, 246, 0.08) !important;
+        border-color: rgba(59, 130, 246, 0.4) !important;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25);
+    }
+
+    .pill-chip {
+        background: rgba(255, 255, 255, 0.04);
+        border: 1px solid var(--border-glass);
+        color: var(--text-primary);
+        padding: 5px 12px;
+        font-size: 11px;
+        border-radius: 6px;
+        cursor: pointer;
+        font-weight: 600;
+        transition: all 0.2s;
+    }
+    .pill-chip:hover {
+        background: rgba(59, 130, 246, 0.15);
+        border-color: rgba(59, 130, 246, 0.4);
+        color: #38bdf8;
+        transform: translateY(-1px);
     }
 
 

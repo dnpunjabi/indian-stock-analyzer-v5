@@ -1382,6 +1382,7 @@ let ruleScanFilterMaxDE = 500;
 
 // DOM Elements
 const tabs = {
+    home: document.getElementById('tab-home') || document.getElementById('tab-analyzer'),
     screener: document.getElementById('tab-screener'),
     fuzzy: document.getElementById('tab-fuzzy'),
     universe: document.getElementById('tab-universe'),
@@ -1403,10 +1404,11 @@ const tabs = {
 };
 
 const tabBtns = {
-    screener: document.getElementById('tab-screener-btn'),
-    fuzzy: document.getElementById('tab-fuzzy-btn'),
-    universe: document.getElementById('tab-universe-btn'),
-    analyzer: document.getElementById('tab-analyzer-btn'),
+    home: document.getElementById('tab-home-btn') || document.getElementById('tab-home-btn-desktop'),
+    screener: document.getElementById('tab-screener-btn') || document.getElementById('tab-screener-btn-desktop'),
+    fuzzy: document.getElementById('tab-fuzzy-btn') || document.getElementById('tab-fuzzy-btn-desktop'),
+    universe: document.getElementById('tab-universe-btn') || document.getElementById('tab-universe-btn-desktop'),
+    analyzer: document.getElementById('tab-analyzer-btn') || document.getElementById('tab-analyzer-btn-desktop'),
     compare: document.getElementById('tab-compare-btn'),
     alerts: document.getElementById('tab-alerts-btn'),
     'rule-scanner': document.getElementById('tab-rule-scanner-btn'),
@@ -2219,13 +2221,18 @@ function switchTab(tabKey) {
                 el.classList.remove('active-tab-content');
             }
         }
-        if (btn) {
+        const btns = [
+            document.getElementById('tab-' + k + '-btn'),
+            document.getElementById('tab-' + k + '-btn-desktop')
+        ].filter(Boolean);
+
+        btns.forEach(b => {
             if (k === tabKey) {
-                btn.classList.add('active');
+                b.classList.add('active');
             } else {
-                btn.classList.remove('active');
+                b.classList.remove('active');
             }
-        }
+        });
     });
 
     // Force scroll to top immediately after DOM display update
@@ -2239,35 +2246,29 @@ function switchTab(tabKey) {
         if (workspaceTabEl) workspaceTabEl.scrollTop = 0;
     } catch(e) {}
 
-    if (tabKey === 'analyzer') {
-        const hasStock = activeStockProfile && activeStockProfile.ticker;
-        if (hasStock && !window.forceHomepageMode) {
-            const dashboard = document.getElementById('analyzer-dashboard');
-            if (dashboard) dashboard.style.display = 'block';
-            const emptyState = document.getElementById('analyzer-empty-state');
-            if (emptyState) emptyState.style.display = 'none';
-            const analyzerTab = document.getElementById('tab-analyzer');
-            if (analyzerTab) analyzerTab.classList.remove('homepage-active');
-            document.body.classList.remove('homepage-active');
-            const cc = document.getElementById('mobile-homepage-command-center');
-            if (cc) cc.style.display = 'none';
-        } else {
-            const dashboard = document.getElementById('analyzer-dashboard');
-            if (dashboard) dashboard.style.display = 'none';
-            const emptyState = document.getElementById('analyzer-empty-state');
-            if (emptyState) emptyState.style.display = 'block';
-            const analyzerTab = document.getElementById('tab-analyzer');
-            if (analyzerTab) analyzerTab.classList.add('homepage-active');
-            document.body.classList.add('homepage-active');
-            const cc = document.getElementById('mobile-homepage-command-center');
-            if (cc) {
-                cc.style.display = 'block';
-                if (typeof renderMobileHomepageCommandCenter === 'function') {
-                    renderMobileHomepageCommandCenter();
-                }
+    if (tabKey === 'home') {
+        document.body.classList.add('homepage-active');
+        const cc = document.getElementById('mobile-homepage-command-center');
+        if (cc) {
+            cc.style.display = 'block';
+            if (typeof renderMobileHomepageCommandCenter === 'function') {
+                renderMobileHomepageCommandCenter();
             }
         }
-        window.forceHomepageMode = false;
+    } else if (tabKey === 'analyzer') {
+        document.body.classList.remove('homepage-active');
+        const hasStock = activeStockProfile && activeStockProfile.ticker;
+        const dashboard = document.getElementById('analyzer-dashboard');
+        const emptyState = document.getElementById('analyzer-empty-state');
+        if (hasStock) {
+            if (dashboard) dashboard.style.display = 'block';
+            if (emptyState) emptyState.style.display = 'none';
+        } else {
+            if (dashboard) dashboard.style.display = 'none';
+            if (emptyState) emptyState.style.display = 'block';
+        }
+    } else {
+        document.body.classList.remove('homepage-active');
     }
 
     // Expose switchTab globally
@@ -2325,32 +2326,18 @@ function switchTab(tabKey) {
 }
 
 function showHomepageView() {
-    window.forceHomepageMode = true;
-
-    if (typeof resetWorkspace === 'function') {
-        resetWorkspace();
-    } else {
-        activeStockProfile = null;
-    }
-
-    ['desktop-global-search', 'analyzer-search-input', 'search-input'].forEach(id => {
-        const input = document.getElementById(id);
-        if (input) input.value = '';
-    });
-
     const sidebar = document.getElementById('sidebar');
     if (sidebar) sidebar.classList.remove('open');
 
     if (window.switchTab) {
-        window.switchTab('analyzer');
+        window.switchTab('home');
     } else {
-        switchTab('analyzer');
+        switchTab('home');
     }
     window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
 function showTerminalView() {
-    window.forceHomepageMode = false;
     if (window.switchTab) {
         window.switchTab('analyzer');
     } else {
@@ -6046,7 +6033,6 @@ async function loadStockAnalyzer(query, force_llm = false, silent = false) {
         );
 
         // Switch to analyzer tab immediately and load skeletons for instant feedback
-        window.forceHomepageMode = false;
         if (!activeStockProfile) {
             activeStockProfile = { ticker: query.toUpperCase() };
         } else {
@@ -51804,5 +51790,3 @@ if (document.readyState === 'loading') {
 } else {
     initStickyHeaderAndShortcuts();
 }
-
-

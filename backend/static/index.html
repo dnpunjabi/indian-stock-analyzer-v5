@@ -607,7 +607,10 @@
         <!-- Tier 3: Workspace Category Horizontal Navbar -->
         <nav class="desktop-navbar">
             <div class="desktop-nav-group common-group">
-                <button class="nav-btn active" id="tab-analyzer-btn-desktop" data-tab-key="analyzer" onclick="window.switchTab && window.switchTab('analyzer')" title="Equity Research Terminal">
+                <button class="nav-btn active" id="tab-home-btn-desktop" data-tab-key="home" onclick="window.switchTab && window.switchTab('home')" title="Market Command Center & Overview">
+                    <span class="btn-icon">🏠</span><span class="btn-text">Home</span>
+                </button>
+                <button class="nav-btn" id="tab-analyzer-btn-desktop" data-tab-key="analyzer" onclick="window.switchTab && window.switchTab('analyzer')" title="Equity Research Terminal">
                     <span class="btn-icon">📈</span><span class="btn-text">Research</span>
                 </button>
                 <button class="nav-btn" id="tab-screener-btn-desktop" data-tab-key="screener" onclick="window.switchTab && window.switchTab('screener')" title="Quant Screener & Scanner">
@@ -687,7 +690,10 @@
             
             <nav class="nav-menu">
                 <div class="nav-category-header">📊 Equities Workspace</div>
-                <button class="nav-btn active" id="tab-analyzer-btn" data-title="Equity Research Terminal">
+                <button class="nav-btn active" id="tab-home-btn" data-title="Market Home Command Center">
+                    <span class="btn-icon">🏠</span> <span class="btn-text">Home</span>
+                </button>
+                <button class="nav-btn" id="tab-analyzer-btn" data-title="Equity Research Terminal">
                     <span class="btn-icon">📈</span> <span class="btn-text">Equity Research Terminal</span>
                 </button>
                 <button class="nav-btn" id="tab-screener-btn" data-title="Quant Screener & Scanner">
@@ -2342,10 +2348,10 @@
             </section>
 
 
-            <!-- SECTION 2: SINGLE STOCK WORKSPACE (ANALYZER) -->
-            <section class="workspace-tab" id="tab-analyzer">
-                <!-- Empty State -->
-                <div class="empty-state-card" id="analyzer-empty-state">
+            <!-- SECTION 1: HOME WORKSPACE DASHBOARD -->
+            <section class="workspace-tab active" id="tab-home">
+                <!-- Market Overview Command Center -->
+                <div class="empty-state-card" id="home-dashboard-container">
                     <!-- Desktop & Shared Institutional Hero Command Center -->
                     <div class="desktop-empty-state inst-hero-card">
                         <!-- Two-Column Dashboard Cockpit Grid -->
@@ -2368,10 +2374,9 @@
                                             <div id="market-breadth-advances-bar" style="height: 100%; width: 50%; background: linear-gradient(90deg, #047857, #10b981); transition: width 0.6s cubic-bezier(0.16, 1, 0.3, 1);"></div>
                                             <div id="market-breadth-declines-bar" style="height: 100%; width: 50%; background: linear-gradient(90deg, #ef4444, #b91c1c); transition: width 0.6s cubic-bezier(0.16, 1, 0.3, 1);"></div>
                                         </div>
-                                        <div class="market-breadth-labels" style="display: flex; justify-content: space-between; align-items: center; margin-top: 8px; font-size: 11px; font-weight: 600;">
-                                            <span style="color: #10b981; display: flex; align-items: center; gap: 4px;">🟢 <span id="market-breadth-advances-text">-- Advances</span></span>
-                                            <span style="color: var(--text-secondary);" id="market-breadth-neutral-text">-- Neutral</span>
-                                            <span style="color: #ef4444; display: flex; align-items: center; gap: 4px;"><span id="market-breadth-declines-text">-- Declines</span> 🔴</span>
+                                        <div class="market-breadth-stats" style="display: flex; justify-content: space-between; font-size: 11px; margin-top: 6px; font-weight: 600;">
+                                            <span id="market-breadth-advances-text" style="color: #10b981;">Advances: --</span>
+                                            <span id="market-breadth-declines-text" style="color: #ef4444;">Declines: --</span>
                                         </div>
                                     </div>
                                 </div>
@@ -2621,6 +2626,223 @@
                     </div>
                     <!-- Mobile-only Command Center Dashboard -->
                     <div id="mobile-homepage-command-center" style="display: none;"></div>
+                </div>
+            </section>
+
+            <!-- SECTION 2: EQUITY RESEARCH TERMINAL -->
+            <section class="workspace-tab" id="tab-analyzer" style="display: none;">
+                <!-- Research Panel Starter & Stock Recommendations -->
+                <div id="analyzer-empty-state" class="analyzer-empty-recommendation-panel" style="padding: 24px 0; width: 100%; box-sizing: border-box;">
+                    <!-- Research Terminal Hero Banner -->
+                    <div class="card" style="background: linear-gradient(135deg, rgba(15, 23, 42, 0.8), rgba(30, 41, 59, 0.6)); border: 1px solid var(--border-glass); border-radius: 12px; padding: 24px; margin-bottom: 24px; position: relative; overflow: hidden; backdrop-filter: blur(12px);">
+                        <div style="position: absolute; top: -30px; right: -30px; width: 180px; height: 180px; background: radial-gradient(circle, rgba(59, 130, 246, 0.15), transparent 70%); pointer-events: none;"></div>
+                        
+                        <div style="display: flex; align-items: center; gap: 14px; margin-bottom: 12px;">
+                            <div style="width: 44px; height: 44px; border-radius: 10px; background: rgba(59, 130, 246, 0.15); border: 1px solid rgba(59, 130, 246, 0.3); display: flex; align-items: center; justify-content: center; font-size: 22px;">📊</div>
+                            <div>
+                                <h2 style="margin: 0; font-size: 20px; font-weight: 700; font-family: var(--font-heading, 'Outfit', sans-serif); color: var(--text-primary); letter-spacing: -0.02em;">Equity Research & Valuation Terminal</h2>
+                                <p style="margin: 4px 0 0 0; font-size: 13px; color: var(--text-secondary);">Select a recommended stock below or search any NSE/BSE ticker above for institutional fundamental valuation, DCF model, AI risk audit, and analyst targets.</p>
+                            </div>
+                        </div>
+
+                        <!-- Quick Ticker Search Bar inside empty state -->
+                        <div style="margin-top: 18px; display: flex; gap: 10px; max-width: 640px;">
+                            <div style="position: relative; flex: 1;">
+                                <span style="position: absolute; left: 14px; top: 50%; transform: translateY(-50%); font-size: 14px; color: var(--text-muted);">🔍</span>
+                                <input type="text" id="research-empty-search-input" placeholder="Type stock name or ticker (e.g. RELIANCE, TCS, TATAMOTORS, HDFCBANK)..." 
+                                       style="width: 100%; box-sizing: border-box; padding: 10px 14px 10px 38px; font-size: 13px; background: rgba(0, 0, 0, 0.25); border: 1px solid var(--border-glass); border-radius: 8px; color: var(--text-primary); outline: none; transition: all 0.2s;"
+                                       onkeydown="if(event.key === 'Enter' && this.value.trim()){ loadStockProfile(this.value.trim()); }" />
+                            </div>
+                            <button onclick="const val = document.getElementById('research-empty-search-input').value.trim(); if(val) loadStockProfile(val);" 
+                                    style="background: linear-gradient(135deg, #3b82f6, #2563eb); color: white; border: none; border-radius: 8px; padding: 0 20px; font-size: 13px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 6px; transition: all 0.2s; white-space: nowrap;">
+                                ⚡ Analyze Stock
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Quick Starter Recommendations Section -->
+                    <div style="margin-bottom: 24px;">
+                        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
+                            <div style="display: flex; align-items: center; gap: 8px;">
+                                <span style="font-size: 14px;">🔥</span>
+                                <h3 style="margin: 0; font-size: 14px; font-weight: 700; font-family: var(--font-heading); color: var(--text-primary); text-transform: uppercase; letter-spacing: 0.05em;">Popular Market Favorites (Instant Load)</h3>
+                            </div>
+                            <span style="font-size: 11px; color: var(--text-muted);">Click any ticker to launch full deep-dive prospectus</span>
+                        </div>
+
+                        <!-- Ticker Chips Grid -->
+                        <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 12px;">
+                            <!-- Stock Card 1: RELIANCE -->
+                            <div class="research-rec-card" onclick="loadStockProfile('RELIANCE')" style="background: rgba(255,255,255,0.02); border: 1px solid var(--border-glass); border-radius: 10px; padding: 12px 14px; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; justify-content: space-between;">
+                                <div>
+                                    <div style="font-weight: 700; font-size: 13px; color: var(--text-primary);">RELIANCE.NS</div>
+                                    <div style="font-size: 11px; color: var(--text-secondary); margin-top: 2px;">Reliance Industries</div>
+                                    <div style="font-size: 10px; color: var(--color-primary-light); margin-top: 4px; font-weight: 600;">Energy & Oil</div>
+                                </div>
+                                <span style="font-size: 16px; opacity: 0.7;">⚡</span>
+                            </div>
+
+                            <!-- Stock Card 2: TCS -->
+                            <div class="research-rec-card" onclick="loadStockProfile('TCS')" style="background: rgba(255,255,255,0.02); border: 1px solid var(--border-glass); border-radius: 10px; padding: 12px 14px; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; justify-content: space-between;">
+                                <div>
+                                    <div style="font-weight: 700; font-size: 13px; color: var(--text-primary);">TCS.NS</div>
+                                    <div style="font-size: 11px; color: var(--text-secondary); margin-top: 2px;">Tata Consultancy</div>
+                                    <div style="font-size: 10px; color: #10b981; margin-top: 4px; font-weight: 600;">IT & Software</div>
+                                </div>
+                                <span style="font-size: 16px; opacity: 0.7;">💻</span>
+                            </div>
+
+                            <!-- Stock Card 3: TATAMOTORS -->
+                            <div class="research-rec-card" onclick="loadStockProfile('TATAMOTORS')" style="background: rgba(255,255,255,0.02); border: 1px solid var(--border-glass); border-radius: 10px; padding: 12px 14px; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; justify-content: space-between;">
+                                <div>
+                                    <div style="font-weight: 700; font-size: 13px; color: var(--text-primary);">TATAMOTORS.NS</div>
+                                    <div style="font-size: 11px; color: var(--text-secondary); margin-top: 2px;">Tata Motors Ltd</div>
+                                    <div style="font-size: 10px; color: #f59e0b; margin-top: 4px; font-weight: 600;">Auto & EV</div>
+                                </div>
+                                <span style="font-size: 16px; opacity: 0.7;">🚗</span>
+                            </div>
+
+                            <!-- Stock Card 4: HDFCBANK -->
+                            <div class="research-rec-card" onclick="loadStockProfile('HDFCBANK')" style="background: rgba(255,255,255,0.02); border: 1px solid var(--border-glass); border-radius: 10px; padding: 12px 14px; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; justify-content: space-between;">
+                                <div>
+                                    <div style="font-weight: 700; font-size: 13px; color: var(--text-primary);">HDFCBANK.NS</div>
+                                    <div style="font-size: 11px; color: var(--text-secondary); margin-top: 2px;">HDFC Bank Ltd</div>
+                                    <div style="font-size: 10px; color: #3b82f6; margin-top: 4px; font-weight: 600;">Private Banking</div>
+                                </div>
+                                <span style="font-size: 16px; opacity: 0.7;">🏦</span>
+                            </div>
+
+                            <!-- Stock Card 5: INFY -->
+                            <div class="research-rec-card" onclick="loadStockProfile('INFY')" style="background: rgba(255,255,255,0.02); border: 1px solid var(--border-glass); border-radius: 10px; padding: 12px 14px; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; justify-content: space-between;">
+                                <div>
+                                    <div style="font-weight: 700; font-size: 13px; color: var(--text-primary);">INFY.NS</div>
+                                    <div style="font-size: 11px; color: var(--text-secondary); margin-top: 2px;">Infosys Limited</div>
+                                    <div style="font-size: 10px; color: #10b981; margin-top: 4px; font-weight: 600;">IT & Cloud</div>
+                                </div>
+                                <span style="font-size: 16px; opacity: 0.7;">☁️</span>
+                            </div>
+
+                            <!-- Stock Card 6: ICICIBANK -->
+                            <div class="research-rec-card" onclick="loadStockProfile('ICICIBANK')" style="background: rgba(255,255,255,0.02); border: 1px solid var(--border-glass); border-radius: 10px; padding: 12px 14px; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; justify-content: space-between;">
+                                <div>
+                                    <div style="font-weight: 700; font-size: 13px; color: var(--text-primary);">ICICIBANK.NS</div>
+                                    <div style="font-size: 11px; color: var(--text-secondary); margin-top: 2px;">ICICI Bank Ltd</div>
+                                    <div style="font-size: 10px; color: #3b82f6; margin-top: 4px; font-weight: 600;">Banking & Credit</div>
+                                </div>
+                                <span style="font-size: 16px; opacity: 0.7;">💳</span>
+                            </div>
+
+                            <!-- Stock Card 7: BHARTIARTL -->
+                            <div class="research-rec-card" onclick="loadStockProfile('BHARTIARTL')" style="background: rgba(255,255,255,0.02); border: 1px solid var(--border-glass); border-radius: 10px; padding: 12px 14px; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; justify-content: space-between;">
+                                <div>
+                                    <div style="font-weight: 700; font-size: 13px; color: var(--text-primary);">BHARTIARTL.NS</div>
+                                    <div style="font-size: 11px; color: var(--text-secondary); margin-top: 2px;">Bharti Airtel</div>
+                                    <div style="font-size: 10px; color: #a855f7; margin-top: 4px; font-weight: 600;">Telecom & 5G</div>
+                                </div>
+                                <span style="font-size: 16px; opacity: 0.7;">📡</span>
+                            </div>
+
+                            <!-- Stock Card 8: LT -->
+                            <div class="research-rec-card" onclick="loadStockProfile('LT')" style="background: rgba(255,255,255,0.02); border: 1px solid var(--border-glass); border-radius: 10px; padding: 12px 14px; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; justify-content: space-between;">
+                                <div>
+                                    <div style="font-weight: 700; font-size: 13px; color: var(--text-primary);">LT.NS</div>
+                                    <div style="font-size: 11px; color: var(--text-secondary); margin-top: 2px;">Larsen & Toubro</div>
+                                    <div style="font-size: 10px; color: #f97316; margin-top: 4px; font-weight: 600;">Infrastructure</div>
+                                </div>
+                                <span style="font-size: 16px; opacity: 0.7;">🏗️</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Sector Quick Starter Clusters -->
+                    <div style="margin-bottom: 24px;">
+                        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
+                            <span style="font-size: 14px;">🎯</span>
+                            <h3 style="margin: 0; font-size: 14px; font-weight: 700; font-family: var(--font-heading); color: var(--text-primary); text-transform: uppercase; letter-spacing: 0.05em;">Browse Tickers by Sector Leaders</h3>
+                        </div>
+
+                        <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 14px;">
+                            <!-- Cluster 1: Tech & IT -->
+                            <div class="card" style="background: rgba(255,255,255,0.015); border: 1px solid var(--border-glass); border-radius: 10px; padding: 14px;">
+                                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; border-bottom: 1px solid var(--border-glass); padding-bottom: 6px;">
+                                    <span style="font-weight: 700; font-size: 12px; color: #10b981; display: flex; align-items: center; gap: 6px;">💻 Technology & IT</span>
+                                    <span style="font-size: 10px; color: var(--text-muted);">4 Bluechips</span>
+                                </div>
+                                <div style="display: flex; flex-wrap: wrap; gap: 6px;">
+                                    <button class="pill-chip" onclick="loadStockProfile('TCS')">TCS</button>
+                                    <button class="pill-chip" onclick="loadStockProfile('INFY')">INFY</button>
+                                    <button class="pill-chip" onclick="loadStockProfile('WIPRO')">WIPRO</button>
+                                    <button class="pill-chip" onclick="loadStockProfile('HCLTECH')">HCLTECH</button>
+                                </div>
+                            </div>
+
+                            <!-- Cluster 2: Banking & Financials -->
+                            <div class="card" style="background: rgba(255,255,255,0.015); border: 1px solid var(--border-glass); border-radius: 10px; padding: 14px;">
+                                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; border-bottom: 1px solid var(--border-glass); padding-bottom: 6px;">
+                                    <span style="font-weight: 700; font-size: 12px; color: #3b82f6; display: flex; align-items: center; gap: 6px;">🏦 Banking & Financials</span>
+                                    <span style="font-size: 10px; color: var(--text-muted);">4 Bluechips</span>
+                                </div>
+                                <div style="display: flex; flex-wrap: wrap; gap: 6px;">
+                                    <button class="pill-chip" onclick="loadStockProfile('HDFCBANK')">HDFCBANK</button>
+                                    <button class="pill-chip" onclick="loadStockProfile('ICICIBANK')">ICICIBANK</button>
+                                    <button class="pill-chip" onclick="loadStockProfile('SBIN')">SBIN</button>
+                                    <button class="pill-chip" onclick="loadStockProfile('KOTAKBANK')">KOTAKBANK</button>
+                                </div>
+                            </div>
+
+                            <!-- Cluster 3: Auto & Mobility -->
+                            <div class="card" style="background: rgba(255,255,255,0.015); border: 1px solid var(--border-glass); border-radius: 10px; padding: 14px;">
+                                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; border-bottom: 1px solid var(--border-glass); padding-bottom: 6px;">
+                                    <span style="font-weight: 700; font-size: 12px; color: #f59e0b; display: flex; align-items: center; gap: 6px;">🚗 Auto & Mobility</span>
+                                    <span style="font-size: 10px; color: var(--text-muted);">4 Bluechips</span>
+                                </div>
+                                <div style="display: flex; flex-wrap: wrap; gap: 6px;">
+                                    <button class="pill-chip" onclick="loadStockProfile('TATAMOTORS')">TATAMOTORS</button>
+                                    <button class="pill-chip" onclick="loadStockProfile('M&M')">M&M</button>
+                                    <button class="pill-chip" onclick="loadStockProfile('MARUTI')">MARUTI</button>
+                                    <button class="pill-chip" onclick="loadStockProfile('BAJAJ-AUTO')">BAJAJ-AUTO</button>
+                                </div>
+                            </div>
+
+                            <!-- Cluster 4: Energy & Infra -->
+                            <div class="card" style="background: rgba(255,255,255,0.015); border: 1px solid var(--border-glass); border-radius: 10px; padding: 14px;">
+                                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; border-bottom: 1px solid var(--border-glass); padding-bottom: 6px;">
+                                    <span style="font-weight: 700; font-size: 12px; color: #ec4899; display: flex; align-items: center; gap: 6px;">⚡ Energy & Infrastructure</span>
+                                    <span style="font-size: 10px; color: var(--text-muted);">4 Bluechips</span>
+                                </div>
+                                <div style="display: flex; flex-wrap: wrap; gap: 6px;">
+                                    <button class="pill-chip" onclick="loadStockProfile('RELIANCE')">RELIANCE</button>
+                                    <button class="pill-chip" onclick="loadStockProfile('NTPC')">NTPC</button>
+                                    <button class="pill-chip" onclick="loadStockProfile('POWERGRID')">POWERGRID</button>
+                                    <button class="pill-chip" onclick="loadStockProfile('LT')">L&T</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Analytics Capabilities Grid -->
+                    <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 14px;">
+                        <div class="card" style="background: rgba(255,255,255,0.01); border: 1px solid var(--border-glass); border-radius: 10px; padding: 14px;">
+                            <div style="font-size: 20px; margin-bottom: 8px;">📈</div>
+                            <div style="font-weight: 700; font-size: 12px; color: var(--text-primary); margin-bottom: 4px;">DCF Intrinsic Valuation</div>
+                            <div style="font-size: 11px; color: var(--text-secondary); line-height: 1.4;">Automated 2-Stage DCF model with terminal growth & margin of safety metrics.</div>
+                        </div>
+                        <div class="card" style="background: rgba(255,255,255,0.01); border: 1px solid var(--border-glass); border-radius: 10px; padding: 14px;">
+                            <div style="font-size: 20px; margin-bottom: 8px;">🧠</div>
+                            <div style="font-weight: 700; font-size: 12px; color: var(--text-primary); margin-bottom: 4px;">Fuzzy AI Risk & Audit</div>
+                            <div style="font-size: 11px; color: var(--text-secondary); line-height: 1.4;">Forensic accounting checks on promoter pledging, debt, and auditor notes.</div>
+                        </div>
+                        <div class="card" style="background: rgba(255,255,255,0.01); border: 1px solid var(--border-glass); border-radius: 10px; padding: 14px;">
+                            <div style="font-size: 20px; margin-bottom: 8px;">🎯</div>
+                            <div style="font-weight: 700; font-size: 12px; color: var(--text-primary); margin-bottom: 4px;">Analyst Consensus Targets</div>
+                            <div style="font-size: 11px; color: var(--text-secondary); line-height: 1.4;">Aggregated institutional price targets, upside projections, and rating distributions.</div>
+                        </div>
+                        <div class="card" style="background: rgba(255,255,255,0.01); border: 1px solid var(--border-glass); border-radius: 10px; padding: 14px;">
+                            <div style="font-size: 20px; margin-bottom: 8px;">🤖</div>
+                            <div style="font-weight: 700; font-size: 12px; color: var(--text-primary); margin-bottom: 4px;">AI Prospectus Synthesis</div>
+                            <div style="font-size: 11px; color: var(--text-secondary); line-height: 1.4;">LLM executive summaries, bull/bear theses, and catalyst monitoring.</div>
+                        </div>
+                    </div>
                 </div>
 
                 <!-- Active Dashboard -->
