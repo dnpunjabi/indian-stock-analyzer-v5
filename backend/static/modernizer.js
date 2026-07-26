@@ -2268,11 +2268,15 @@
                                 }
                             }, 300);
                         }
-                        wrappedSwitch(tabKey);
+                        if (typeof wrappedSwitch === 'function') wrappedSwitch(tabKey);
                         return;
                     }
                 }
-                wrappedSwitch(tabKey);
+                if (typeof wrappedSwitch === 'function') {
+                    wrappedSwitch(tabKey);
+                } else if (typeof window._originalSwitchTab === 'function') {
+                    window._originalSwitchTab(tabKey);
+                }
             };
 
             // Enhance biometric trigger to unlock mobile overlay
