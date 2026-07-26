@@ -2634,23 +2634,23 @@
                 <!-- Research Panel Starter & Stock Recommendations -->
                 <div id="analyzer-empty-state" class="analyzer-empty-recommendation-panel" style="padding: 24px 0; width: 100%; box-sizing: border-box;">
                     <!-- Research Terminal Hero Banner -->
-                    <div class="card" style="background: linear-gradient(135deg, rgba(15, 23, 42, 0.8), rgba(30, 41, 59, 0.6)); border: 1px solid var(--border-glass); border-radius: 12px; padding: 24px; margin-bottom: 24px; position: relative; overflow: hidden; backdrop-filter: blur(12px);">
-                        <div style="position: absolute; top: -30px; right: -30px; width: 180px; height: 180px; background: radial-gradient(circle, rgba(59, 130, 246, 0.15), transparent 70%); pointer-events: none;"></div>
+                    <div class="card research-hero-card" style="background: linear-gradient(135deg, #0f172a, #1e293b); border: 1px solid rgba(59, 130, 246, 0.3); border-radius: 12px; padding: 24px; margin-bottom: 24px; position: relative; overflow: hidden; backdrop-filter: blur(12px); box-shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.3);">
+                        <div style="position: absolute; top: -30px; right: -30px; width: 180px; height: 180px; background: radial-gradient(circle, rgba(59, 130, 246, 0.25), transparent 70%); pointer-events: none;"></div>
                         
                         <div style="display: flex; align-items: center; gap: 14px; margin-bottom: 12px;">
-                            <div style="width: 44px; height: 44px; border-radius: 10px; background: rgba(59, 130, 246, 0.15); border: 1px solid rgba(59, 130, 246, 0.3); display: flex; align-items: center; justify-content: center; font-size: 22px;">📊</div>
+                            <div style="width: 44px; height: 44px; border-radius: 10px; background: rgba(59, 130, 246, 0.2); border: 1px solid rgba(59, 130, 246, 0.4); display: flex; align-items: center; justify-content: center; font-size: 22px;">📊</div>
                             <div>
-                                <h2 style="margin: 0; font-size: 20px; font-weight: 700; font-family: var(--font-heading, 'Outfit', sans-serif); color: var(--text-primary); letter-spacing: -0.02em;">Equity Research & Valuation Terminal</h2>
-                                <p style="margin: 4px 0 0 0; font-size: 13px; color: var(--text-secondary);">Select a recommended stock below or search any NSE/BSE ticker above for institutional fundamental valuation, DCF model, AI risk audit, and analyst targets.</p>
+                                <h2 style="margin: 0; font-size: 20px; font-weight: 700; font-family: var(--font-heading, 'Outfit', sans-serif); color: #ffffff !important; letter-spacing: -0.02em;">Equity Research & Valuation Terminal</h2>
+                                <p style="margin: 4px 0 0 0; font-size: 13px; color: rgba(255, 255, 255, 0.8) !important; line-height: 1.5;">Select a recommended stock below or search any NSE/BSE ticker above for institutional fundamental valuation, DCF model, AI risk audit, and analyst targets.</p>
                             </div>
                         </div>
 
                         <!-- Quick Ticker Search Bar inside empty state -->
                         <div style="margin-top: 18px; display: flex; gap: 10px; max-width: 640px;">
                             <div style="position: relative; flex: 1;">
-                                <span style="position: absolute; left: 14px; top: 50%; transform: translateY(-50%); font-size: 14px; color: var(--text-muted);">🔍</span>
+                                <span style="position: absolute; left: 14px; top: 50%; transform: translateY(-50%); font-size: 14px; color: #94a3b8;">🔍</span>
                                 <input type="text" id="research-empty-search-input" placeholder="Type stock name or ticker (e.g. RELIANCE, TCS, TATAMOTORS, HDFCBANK)..." 
-                                       style="width: 100%; box-sizing: border-box; padding: 10px 14px 10px 38px; font-size: 13px; background: rgba(0, 0, 0, 0.25); border: 1px solid var(--border-glass); border-radius: 8px; color: var(--text-primary); outline: none; transition: all 0.2s;"
+                                       style="width: 100%; box-sizing: border-box; padding: 10px 14px 10px 38px; font-size: 13px; background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 8px; color: #ffffff !important; outline: none; transition: all 0.2s;"
                                        onkeydown="if(event.key === 'Enter' && this.value.trim()){ loadStockAnalyzer(this.value.trim()); }" />
                             </div>
                             <button onclick="const val = document.getElementById('research-empty-search-input').value.trim(); if(val) loadStockAnalyzer(val);" 
