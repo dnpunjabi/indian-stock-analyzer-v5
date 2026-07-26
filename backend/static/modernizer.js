@@ -9139,6 +9139,21 @@
                     }
                 });
             };
+            // Setup PDF Sections Accordion Toggle in Desktop Profile Popover
+            const pdfSectionsToggle = document.getElementById('popover-pdf-sections-toggle');
+            const pdfSectionsContent = document.getElementById('popover-pdf-sections-content');
+            const pdfSectionsArrow = document.getElementById('popover-pdf-sections-arrow');
+
+            if (pdfSectionsToggle && pdfSectionsContent) {
+                pdfSectionsToggle.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const isHidden = pdfSectionsContent.style.display === 'none';
+                    pdfSectionsContent.style.display = isHidden ? 'block' : 'none';
+                    if (pdfSectionsArrow) {
+                        pdfSectionsArrow.style.transform = isHidden ? 'rotate(180deg)' : 'rotate(0deg)';
+                    }
+                });
+            }
         } catch(e) {
             console.error("Error invoking additions:", e);
         }

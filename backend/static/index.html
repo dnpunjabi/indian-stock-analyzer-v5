@@ -619,6 +619,56 @@
 
                         <div class="popover-divider"></div>
 
+                        <!-- Section: PDF Report Sections (Collapsible) -->
+                        <div class="popover-section-header popover-collapsible-header" id="popover-pdf-sections-toggle" style="cursor: pointer; user-select: none; display: flex; align-items: center; justify-content: space-between;">
+                            <span style="display: flex; align-items: center; gap: 6px;">
+                                📄 PDF REPORT SECTIONS
+                            </span>
+                            <span id="popover-pdf-sections-arrow" style="font-size: 9px; color: var(--text-muted); transition: transform 0.25s ease;">▼</span>
+                        </div>
+                        <div id="popover-pdf-sections-content" class="popover-collapsible-content" style="display: block; margin-top: 8px;">
+                            <div style="display: flex; flex-direction: column; gap: 6px; background: rgba(0, 0, 0, 0.25); border: 1px solid var(--border-glass); border-radius: 8px; padding: 10px 12px; font-size: 11.5px; max-height: 220px; overflow-y: auto;">
+                                <label class="pdf-checklist-item" style="display: flex; align-items: center; gap: 8px; cursor: pointer; color: var(--text-secondary); font-size: 11px;">
+                                    <input type="checkbox" class="print-toggle" data-target="tech-timing-card" style="cursor: pointer;"> Technical Timing & SMAs
+                                </label>
+                                <label class="pdf-checklist-item" style="display: flex; align-items: center; gap: 8px; cursor: pointer; color: var(--text-secondary); font-size: 11px;">
+                                    <input type="checkbox" class="print-toggle" data-target="tech-fib-card" checked style="cursor: pointer;"> Technical Fibonacci Levels
+                                </label>
+                                <label class="pdf-checklist-item" style="display: flex; align-items: center; gap: 8px; cursor: pointer; color: var(--text-secondary); font-size: 11px;">
+                                    <input type="checkbox" class="print-toggle" data-target="tech-volatility-card" checked style="cursor: pointer;"> Volatility & Momentum
+                                </label>
+                                <label class="pdf-checklist-item" style="display: flex; align-items: center; gap: 8px; cursor: pointer; color: var(--text-secondary); font-size: 11px;">
+                                    <input type="checkbox" class="print-toggle" data-target="volume-dynamics-card" checked style="cursor: pointer;"> Price Volume Dynamics
+                                </label>
+                                <label class="pdf-checklist-item" style="display: flex; align-items: center; gap: 8px; cursor: pointer; color: var(--text-secondary); font-size: 11px;">
+                                    <input type="checkbox" class="print-toggle" data-target="drawdown-card" style="cursor: pointer;"> Peak-to-Trough Drawdown
+                                </label>
+                                <label class="pdf-checklist-item" style="display: flex; align-items: center; gap: 8px; cursor: pointer; color: var(--text-secondary); font-size: 11px;">
+                                    <input type="checkbox" class="print-toggle" data-target="sandbox-card" checked style="cursor: pointer;"> DCF Intrinsic Valuation
+                                </label>
+                                <label class="pdf-checklist-item" style="display: flex; align-items: center; gap: 8px; cursor: pointer; color: var(--text-secondary); font-size: 11px;">
+                                    <input type="checkbox" class="print-toggle" data-target="historical-bands-card" checked style="cursor: pointer;"> Historical Valuation Bands
+                                </label>
+                                <label class="pdf-checklist-item" style="display: flex; align-items: center; gap: 8px; cursor: pointer; color: var(--text-secondary); font-size: 11px;">
+                                    <input type="checkbox" class="print-toggle" data-target="consensus-comparator-card" checked style="cursor: pointer;"> Consensus Analyst Estimates
+                                </label>
+                                <label class="pdf-checklist-item" style="display: flex; align-items: center; gap: 8px; cursor: pointer; color: var(--text-secondary); font-size: 11px;">
+                                    <input type="checkbox" class="print-toggle" data-target="peers-card" checked style="cursor: pointer;"> Peer Benchmarking
+                                </label>
+                                <label class="pdf-checklist-item" style="display: flex; align-items: center; gap: 8px; cursor: pointer; color: var(--text-secondary); font-size: 11px;">
+                                    <input type="checkbox" class="print-toggle" data-target="shareholding-card" checked style="cursor: pointer;"> Shareholding & Ownership
+                                </label>
+                                <label class="pdf-checklist-item" style="display: flex; align-items: center; gap: 8px; cursor: pointer; color: var(--text-secondary); font-size: 11px;">
+                                    <input type="checkbox" class="print-toggle" data-target="earnings-quality-card" checked style="cursor: pointer;"> Earnings Quality & Solvency
+                                </label>
+                                <label class="pdf-checklist-item" style="display: flex; align-items: center; gap: 8px; cursor: pointer; color: var(--text-secondary); font-size: 11px;">
+                                    <input type="checkbox" class="print-toggle" data-target="strategical-audit-card" style="cursor: pointer;"> Multi-Agent Strategy Audit
+                                </label>
+                            </div>
+                        </div>
+
+                        <div class="popover-divider"></div>
+
                         <!-- Section 3: Market Resources Dropdown List -->
                         <div class="popover-section-header">🔗 MARKET RESOURCES LIST</div>
                         <div class="popover-field">
