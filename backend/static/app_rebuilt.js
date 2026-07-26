@@ -237,10 +237,7 @@ let _wsSubscribedSymbols = new Set();
 let activePortfolioLedgerItems = [];
 
 async function fetchRealtimeIndices() {
-    if (liveTicksConnected && liveTicksWS && liveTicksWS.readyState === WebSocket.OPEN) {
-        return;
-    }
-    const indexSymbols = ["^NSEI", "^BSESN", "^NSEBANK", "^CNXIT", "^CNXINFRA", "^CNXAUTO", "RELIANCE.NS", "TCS.NS", "HDFCBANK.NS", "INFY.NS", "BAJFINANCE.NS", "BHARTIARTL.NS"];
+    const indexSymbols = ["^NSEI", "^BSESN", "^NSEBANK", "^CNXIT", "^CNXINFRA", "^CNXAUTO", "SPOTGOLD", "SPOTSILVER", "USDINR=X", "CL=F", "RELIANCE.NS", "TCS.NS", "HDFCBANK.NS", "INFY.NS", "BAJFINANCE.NS", "BHARTIARTL.NS"];
     try {
         const response = await fetch('/api/batch-quotes', {
             method: 'POST',
@@ -371,6 +368,8 @@ function handleLiveTickMessage(ticksData) {
         '^CNXAUTO': { textElId: 'ticker-niftyauto', desktopId: 'desktop-ticker-niftyauto', label: 'NIFTY AUTO' },
         'SPOTGOLD': { textElId: 'ticker-spotgold', desktopId: 'desktop-ticker-spotgold', label: 'SPOT GOLD' },
         'SPOTSILVER': { textElId: 'ticker-spotsilver', desktopId: 'desktop-ticker-spotsilver', label: 'SPOT SILVER' },
+        'USDINR=X': { textElId: 'ticker-usdinr', desktopId: 'desktop-ticker-usdinr', label: 'USD/INR' },
+        'CL=F': { textElId: 'ticker-crude', desktopId: 'desktop-ticker-crude', label: 'CRUDE OIL' },
         'RELIANCE.NS': { textElId: 'ticker-reliance', desktopId: 'desktop-ticker-reliance', label: 'RELIANCE' },
         'TCS.NS': { textElId: 'ticker-tcs', desktopId: 'desktop-ticker-tcs', label: 'TCS' },
         'HDFCBANK.NS': { textElId: 'ticker-hdfcbank', desktopId: 'desktop-ticker-hdfcbank', label: 'HDFCBANK' },
@@ -1473,10 +1472,8 @@ function setupEnterpriseHeader() {
         fetchRealtimeIndices();
 
         setInterval(() => {
-            if (!liveTicksConnected) {
-                fetchRealtimeIndices();
-            }
-        }, 3000);
+            fetchRealtimeIndices();
+        }, 10000);
 
         // Initialize Meta Banner Dropdowns & Collapse controls
         setupMetaBannerToggles();

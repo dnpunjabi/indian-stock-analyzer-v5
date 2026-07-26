@@ -9277,14 +9277,48 @@ async def batch_quotes(data: BatchQuotesRequest):
         # Remove found symbols — only fetch missing ones from yfinance
         raw_symbols = [s for s in raw_symbols if s not in found_symbols]
 
-    # ── Strategy 2: yfinance batch download (fallback) ──
+    # ── Strategy 2: Commodity Spot Scraper for SPOTGOLD / SPOTSILVER ──
+    if "SPOTGOLD" in raw_symbols or "SPOTSILVER" in raw_symbols:
+        try:
+            from backend.commodity_scraper import CommodityScraper
+            spots = await CommodityScraper.get_prices()
+            if "SPOTGOLD" in raw_symbols and "gold_24k" in spots:
+                g24 = spots["gold_24k"]
+                if g24.get("price", 0) > 0:
+                    quotes["SPOTGOLD"] = {
+                        "price": g24["price"],
+                        "change": g24.get("change", 0),
+                        "change_pct": round(g24.get("change_pct", 0), 2),
+                        "high": g24["price"],
+                        "low": g24["price"]
+                    }
+                    raw_symbols = [s for s in raw_symbols if s != "SPOTGOLD"]
+            if "SPOTSILVER" in raw_symbols and "silver_1kg" in spots:
+                sil = spots["silver_1kg"]
+                if sil.get("price", 0) > 0:
+                    quotes["SPOTSILVER"] = {
+                        "price": sil["price"],
+                        "change": sil.get("change", 0),
+                        "change_pct": round(sil.get("change_pct", 0), 2),
+                        "high": sil["price"],
+                        "low": sil["price"]
+                    }
+                    raw_symbols = [s for s in raw_symbols if s != "SPOTSILVER"]
+        except Exception as e:
+            logger.warning(f"Failed to fetch commodity spots in batch_quotes: {e}")
+
+    # ── Strategy 3: yfinance batch download (fallback) ──
     if raw_symbols:
         # Map original symbols to yfinance tickers (.NS suffix for NSE)
         sym_to_yf = {}
         yf_symbols = []
         for sym in raw_symbols:
-            if '.' in sym or sym.startswith('^'):
-                yf_sym = sym  # Already has exchange suffix or is an index
+            if '.' in sym or sym.startswith('^') or '=' in sym or '-' in sym:
+                yf_sym = sym  # Already has exchange suffix, currency format, index or futures ticker
+            elif sym == "SPOTGOLD":
+                yf_sym = "GC=F"
+            elif sym == "SPOTSILVER":
+                yf_sym = "SI=F"
             else:
                 yf_sym = f"{sym}.NS"  # Default to NSE
             sym_to_yf[sym] = yf_sym
