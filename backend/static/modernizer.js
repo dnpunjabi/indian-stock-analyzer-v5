@@ -8756,21 +8756,25 @@
                 const query = (queryText || (desktopSearch ? desktopSearch.value : '')).trim();
                 if (!query) return;
 
-                const analyzerInput = document.getElementById('analyzer-search-input') || document.getElementById('search-input');
-                const analyzerBtn = document.getElementById('analyzer-search-btn') || document.getElementById('search-btn');
+                if (globalSuggestions) globalSuggestions.style.display = 'none';
+                if (desktopSearch) desktopSearch.blur();
 
+                const analyzerInput = document.getElementById('analyzer-search-input') || document.getElementById('search-input');
                 if (analyzerInput) analyzerInput.value = query;
 
-                if (typeof window.switchTab === 'function') {
-                    window.switchTab('analyzer');
+                if (typeof window.loadStockAnalyzer === 'function') {
+                    window.loadStockAnalyzer(query);
                 } else {
-                    window.location.hash = '#analyzer';
+                    if (typeof window.switchTab === 'function') {
+                        window.switchTab('analyzer');
+                    } else {
+                        window.location.hash = '#analyzer';
+                    }
+                    const analyzerBtn = document.getElementById('analyzer-search-btn') || document.getElementById('search-btn');
+                    if (analyzerBtn) {
+                        setTimeout(() => analyzerBtn.click(), 50);
+                    }
                 }
-
-                if (analyzerBtn) {
-                    setTimeout(() => analyzerBtn.click(), 50);
-                }
-                if (globalSuggestions) globalSuggestions.style.display = 'none';
             };
 
             if (desktopSearch) {
@@ -8804,6 +8808,7 @@
                             const res = await fetch(apiBaseUrl + `/api/search/suggestions?q=${encodeURIComponent(query)}`);
                             if (res.ok) {
                                 const suggestions = await res.json();
+                                const showLogos = localStorage.getItem('settings-show-logos') !== 'false';
                                 if (globalSuggestions && Array.isArray(suggestions) && suggestions.length > 0) {
                                     globalSuggestions.innerHTML = '';
                                     suggestions.forEach(s => {
@@ -8814,8 +8819,29 @@
                                         item.style.borderBottom = '1px solid var(--border-glass)';
                                         item.style.fontSize = '12px';
                                         item.style.display = 'flex';
+                                        item.style.alignItems = 'center';
                                         item.style.justifyContent = 'space-between';
-                                        item.innerHTML = `<strong>${s.symbol || s.name}</strong> <span style="color:var(--text-muted); font-size:10px;">${s.name || ''}</span>`;
+
+                                        const rawSym = s.symbol || s.base_symbol || s.name || '';
+                                        const cleanSym = rawSym.replace(/\.(NS|BO)$/i, '').trim();
+
+                                        let logoHtml = '';
+                                        if (showLogos && cleanSym) {
+                                            const logoFmp = `https://images.financialmodelingprep.com/symbol/${cleanSym}.png`;
+                                            const logoTv = `https://s3-symbol-logo.tradingview.com/${cleanSym.toLowerCase()}.svg`;
+                                            logoHtml = `<img src="${logoFmp}" onerror="this.onerror=null; this.src='${logoTv}'; this.onerror=function(){ this.style.display='none'; };" style="width:20px; height:20px; border-radius:50%; object-fit:contain; background:#ffffff; padding:1px; border:1px solid rgba(255,255,255,0.15); margin-right:8px; flex-shrink:0;" />`;
+                                        }
+
+                                        item.innerHTML = `
+                                            <div style="display:flex; align-items:center;">
+                                                ${logoHtml}
+                                                <div>
+                                                    <strong style="color:var(--text-primary); font-family:'Outfit'; font-size:12px;">${s.symbol || s.name}</strong>
+                                                    ${s.name && s.name !== s.symbol ? `<span style="color:var(--text-muted); font-size:10px; margin-left:4px;">(${s.name})</span>` : ''}
+                                                </div>
+                                            </div>
+                                            ${s.sector ? `<span style="font-size:9.5px; color:var(--text-muted);">${s.sector}</span>` : ''}
+                                        `;
                                         item.addEventListener('click', () => {
                                             desktopSearch.value = s.symbol || s.name;
                                             triggerUnifiedAnalysis(s.symbol || s.name);

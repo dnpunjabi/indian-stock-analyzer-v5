@@ -3352,11 +3352,25 @@ function setupAnalyzerControls() {
                             else if (capText.includes('MID')) capColor = 'var(--color-amber)';
                             else if (capText.includes('SMALL')) capColor = 'var(--color-primary)';
 
+                            const showLogos = localStorage.getItem('settings-show-logos') !== 'false';
+                            const rawSym = item.base_symbol || item.symbol || '';
+                            const cleanSym = rawSym.replace(/\.(NS|BO)$/i, '').trim();
+
+                            let logoHtml = '';
+                            if (showLogos && cleanSym) {
+                                const logoFmp = `https://images.financialmodelingprep.com/symbol/${cleanSym}.png`;
+                                const logoTv = `https://s3-symbol-logo.tradingview.com/${cleanSym.toLowerCase()}.svg`;
+                                logoHtml = `<img src="${logoFmp}" onerror="this.onerror=null; this.src='${logoTv}'; this.onerror=function(){ this.style.display='none'; };" style="width:20px; height:20px; border-radius:50%; object-fit:contain; background:#ffffff; padding:1px; border:1px solid rgba(255,255,255,0.15); margin-right:8px; flex-shrink:0;" />`;
+                            }
+
                             div.innerHTML = `
                                 <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
-                                    <div>
-                                        <span style="color:var(--text-primary); font-weight:700; font-family:'Outfit';">${item.base_symbol}</span>
-                                        <span style="color:var(--text-muted); font-size: 10px;">(${item.name})</span>
+                                    <div style="display:flex; align-items:center;">
+                                        ${logoHtml}
+                                        <div>
+                                            <span style="color:var(--text-primary); font-weight:700; font-family:'Outfit';">${item.base_symbol}</span>
+                                            <span style="color:var(--text-muted); font-size: 10px;">(${item.name})</span>
+                                        </div>
                                     </div>
                                     <div style="display: flex; gap: 8px; align-items: center;">
                                         <span style="font-size:9.5px; color:var(--text-muted);">${item.sector}</span>
@@ -6008,12 +6022,20 @@ async function loadStockAnalyzer(query, force_llm = false, silent = false) {
         );
 
         // Switch to analyzer tab immediately and load skeletons for instant feedback
+        window.forceHomepageMode = false;
+        if (!activeStockProfile) {
+            activeStockProfile = { ticker: query.toUpperCase() };
+        } else {
+            activeStockProfile.ticker = query.toUpperCase();
+        }
+
+        switchTab('analyzer');
+
         const emptyStateEl = document.getElementById('analyzer-empty-state');
         if (emptyStateEl) emptyStateEl.style.display = 'none';
         const dashboardEl = document.getElementById('analyzer-dashboard');
         if (dashboardEl) dashboardEl.style.display = 'block';
 
-        switchTab('analyzer');
         applyCardSkeletons(true);
     }
 
