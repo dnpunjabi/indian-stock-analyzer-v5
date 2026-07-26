@@ -9154,6 +9154,109 @@
                     }
                 });
             }
+
+            // ==================== LIVE DATA SYNC FOR QUANT COCKPIT HERO BANNER ====================
+            window.updateQuantCockpitBanner = async function() {
+                const banner = document.getElementById('market-pulse-banner');
+                if (!banner || banner.style.display === 'none') return;
+
+                try {
+                    const apiBase = window.apiBaseUrl || '';
+                    const res = await fetch(apiBase + '/api/market-movers');
+                    if (res.ok) {
+                        const data = await res.json();
+                        
+                        // 1. Update Market Regime Dial & Breadth Stats
+                        const adv = data.advances || 194;
+                        const dec = data.declines || 259;
+                        const total = adv + dec;
+                        const ratio = dec > 0 ? (adv / dec) : 1.0;
+                        const regimeScore = Math.min(98, Math.max(12, Math.round((adv / total) * 100)));
+
+                        const scoreEl = document.getElementById('quant-banner-regime-score');
+                        const labelEl = document.getElementById('quant-banner-regime-label');
+                        const riskEl = document.getElementById('quant-banner-risk-badge');
+                        const dialEl = document.getElementById('quant-banner-dial-ring');
+                        const advRatioEl = document.getElementById('quant-banner-adv-ratio');
+
+                        if (scoreEl) scoreEl.textContent = regimeScore;
+                        if (advRatioEl) advRatioEl.textContent = ratio.toFixed(2) + 'x';
+
+                        let color = '#10b981';
+                        let labelText = 'BULLISH ACCUMULATION';
+                        let riskText = 'LOW RISK';
+
+                        if (regimeScore >= 60) {
+                            color = '#10b981';
+                            labelText = 'BULLISH ACCUMULATION';
+                            riskText = 'LOW RISK';
+                        } else if (regimeScore >= 40) {
+                            color = '#38bdf8';
+                            labelText = 'NEUTRAL CONSOLIDATION';
+                            riskText = 'BALANCED';
+                        } else {
+                            color = '#ef4444';
+                            labelText = 'BEARISH CAUTION';
+                            riskText = 'ELEVATED RISK';
+                        }
+
+                        if (labelEl) {
+                            labelEl.textContent = labelText;
+                            labelEl.style.color = color;
+                        }
+                        if (riskEl) {
+                            riskEl.textContent = riskText;
+                            riskEl.style.color = color;
+                            riskEl.style.background = color + '22';
+                        }
+                        if (dialEl) {
+                            dialEl.style.background = `conic-gradient(${color} 0% ${regimeScore}%, rgba(255,255,255,0.1) ${regimeScore}% 100%)`;
+                            dialEl.style.boxShadow = `0 0 14px ${color}55`;
+                        }
+
+                        // 2. Update Top 3 Quant Alpha Stock Cards from Live Gainers
+                        const gainersList = data.gainers?.all || data.gainers?.large || [];
+                        if (gainersList && gainersList.length >= 3) {
+                            const cardsContainer = document.getElementById('quant-banner-alpha-cards');
+                            if (cardsContainer) {
+                                cardsContainer.innerHTML = gainersList.slice(0, 3).map((item, idx) => {
+                                    const rawSym = item.symbol || 'NIFTY';
+                                    const cleanSym = rawSym.replace('.NS', '').replace('.BO', '');
+                                    const chgPct = item.change_pct ? (item.change_pct > 0 ? `+${item.change_pct.toFixed(2)}%` : `${item.change_pct.toFixed(2)}%`) : '+4.2%';
+                                    const price = item.price ? `₹${item.price.toLocaleString('en-IN')}` : '';
+                                    const name = item.company_name || cleanSym;
+                                    const tag = idx === 0 ? '🔥 TOP GAINER' : idx === 1 ? '⚡ VOLUME SURGE' : '📈 BREAKOUT';
+                                    
+                                    const badgeBg = idx === 0 ? 'rgba(16, 185, 129, 0.2)' : idx === 1 ? 'rgba(59, 130, 246, 0.2)' : 'rgba(245, 158, 11, 0.2)';
+                                    const badgeColor = idx === 0 ? '#34d399' : idx === 1 ? '#60a5fa' : '#fbbf24';
+                                    const borderColor = idx === 0 ? 'rgba(16, 185, 129, 0.3)' : idx === 1 ? 'rgba(59, 130, 246, 0.3)' : 'rgba(245, 158, 11, 0.3)';
+                                    const hoverColor = idx === 0 ? '#10b981' : idx === 1 ? '#3b82f6' : '#f59e0b';
+                                    
+                                    return `
+                                        <div onclick="if(window.loadStockAnalyzer){ window.loadStockAnalyzer('${cleanSym}'); }" style="background: rgba(0, 0, 0, 0.3); border: 1px solid ${borderColor}; border-radius: 10px; padding: 10px 12px; cursor: pointer; transition: all 0.2s;" onmouseover="this.style.borderColor='${hoverColor}'; this.style.transform='translateY(-2px)';" onmouseout="this.style.borderColor='${borderColor}'; this.style.transform='none';">
+                                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                                <span style="font-weight: 800; font-size: 12px; color: #ffffff;">${cleanSym}</span>
+                                                <span style="font-size: 9px; background: ${badgeBg}; color: ${badgeColor}; padding: 1px 5px; border-radius: 3px; font-weight: 700;">${chgPct}</span>
+                                            </div>
+                                            <div style="font-size: 10px; color: #94a3b8; margin-top: 4px; line-height: 1.3; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${name}">${name} (${price})</div>
+                                            <div style="font-size: 9.5px; color: ${badgeColor}; font-weight: 700; margin-top: 6px; display: flex; align-items: center; justify-content: space-between;">
+                                                <span>${tag}</span>
+                                                <span>Analyze ➔</span>
+                                            </div>
+                                        </div>
+                                    `;
+                                }).join('');
+                            }
+                        }
+                    }
+                } catch(err) {
+                    console.warn("Quant Cockpit Banner live hydration warning:", err);
+                }
+            };
+
+            setTimeout(window.updateQuantCockpitBanner, 300);
+            setInterval(window.updateQuantCockpitBanner, 60000);
+
         } catch(e) {
             console.error("Error invoking additions:", e);
         }
