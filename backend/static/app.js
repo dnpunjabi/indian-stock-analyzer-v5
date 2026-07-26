@@ -451,7 +451,7 @@ async function fetchRealtimeIndices() {
     if (liveTicksConnected && liveTicksWS && liveTicksWS.readyState === WebSocket.OPEN) {
         return;
     }
-    const indexSymbols = ["^NSEI", "^BSESN", "^NSEBANK", "^CNXIT", "^CNXINFRA", "^CNXAUTO"];
+    const indexSymbols = ["^NSEI", "^BSESN", "^NSEBANK", "^CNXIT", "^CNXINFRA", "^CNXAUTO", "RELIANCE.NS", "TCS.NS", "HDFCBANK.NS", "INFY.NS", "BAJFINANCE.NS", "BHARTIARTL.NS"];
     try {
         const response = await fetch('/api/batch-quotes', {
             method: 'POST',
@@ -578,28 +578,44 @@ function handleLiveTickMessage(ticksData) {
 
     // Update marquee elements dynamically from live index ticks
     const indexMappings = {
-        '^NSEI': { textElId: 'ticker-nifty', label: 'NIFTY 50' },
-        '^BSESN': { textElId: 'ticker-sensex', label: 'SENSEX' },
-        '^NSEBANK': { textElId: 'ticker-banknifty', label: 'BANK NIFTY' },
-        '^CNXIT': { textElId: 'ticker-niftyit', label: 'NIFTY IT' },
-        '^CNXINFRA': { textElId: 'ticker-niftyinfra', label: 'NIFTY INFRA' },
-        '^CNXAUTO': { textElId: 'ticker-niftyauto', label: 'NIFTY AUTO' },
-        'SPOTGOLD': { textElId: 'ticker-spotgold', label: 'SPOT GOLD' },
-        'SPOTSILVER': { textElId: 'ticker-spotsilver', label: 'SPOT SILVER' }
+        '^NSEI': { textElId: 'ticker-nifty', desktopId: 'desktop-ticker-nifty', label: 'NIFTY 50' },
+        '^BSESN': { textElId: 'ticker-sensex', desktopId: 'desktop-ticker-sensex', label: 'SENSEX' },
+        '^NSEBANK': { textElId: 'ticker-banknifty', desktopId: 'desktop-ticker-banknifty', label: 'BANK NIFTY' },
+        '^CNXIT': { textElId: 'ticker-niftyit', desktopId: 'desktop-ticker-niftyit', label: 'NIFTY IT' },
+        '^CNXINFRA': { textElId: 'ticker-niftyinfra', desktopId: 'desktop-ticker-niftyinfra', label: 'NIFTY INFRA' },
+        '^CNXAUTO': { textElId: 'ticker-niftyauto', desktopId: 'desktop-ticker-niftyauto', label: 'NIFTY AUTO' },
+        'SPOTGOLD': { textElId: 'ticker-spotgold', desktopId: 'desktop-ticker-spotgold', label: 'SPOT GOLD' },
+        'SPOTSILVER': { textElId: 'ticker-spotsilver', desktopId: 'desktop-ticker-spotsilver', label: 'SPOT SILVER' },
+        'RELIANCE.NS': { textElId: 'ticker-reliance', desktopId: 'desktop-ticker-reliance', label: 'RELIANCE' },
+        'TCS.NS': { textElId: 'ticker-tcs', desktopId: 'desktop-ticker-tcs', label: 'TCS' },
+        'HDFCBANK.NS': { textElId: 'ticker-hdfcbank', desktopId: 'desktop-ticker-hdfcbank', label: 'HDFCBANK' },
+        'INFY.NS': { textElId: 'ticker-infy', desktopId: 'desktop-ticker-infy', label: 'INFY' },
+        'BAJFINANCE.NS': { textElId: 'ticker-bajfinance', desktopId: 'desktop-ticker-bajfinance', label: 'BAJFINANCE' },
+        'BHARTIARTL.NS': { textElId: 'ticker-bhartiartl', desktopId: 'desktop-ticker-bhartiartl', label: 'BHARTIARTL' }
     };
 
     for (const [sym, cfg] of Object.entries(indexMappings)) {
-        const q = ticksData[sym];
+        const q = ticksData[sym] || ticksData[sym.replace('.NS', '')];
         if (q && q.price > 0) {
-            const els = document.querySelectorAll(`[id="${cfg.textElId}"]`);
-            els.forEach(el => {
-                const isPositive = q.change >= 0;
-                const sign = isPositive ? '+' : '';
-                const changeClass = isPositive ? 'change green-text' : 'change red-text';
-                const changeArrow = isPositive ? '▲' : '▼';
-                const formattedPrice = q.price.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-                const absChange = q.change !== undefined && q.change !== null ? Math.abs(q.change).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '--';
-                el.innerHTML = `${cfg.label}: <strong class="val">${formattedPrice}</strong> <span class="${changeClass}">${changeArrow} ${sign}${absChange} (${sign}${q.change_pct.toFixed(2)}%)</span>`;
+            const targets = [cfg.textElId, cfg.desktopId].filter(Boolean);
+            targets.forEach(id => {
+                const els = document.querySelectorAll(`[id="${id}"]`);
+                els.forEach(el => {
+                    const isPositive = q.change >= 0;
+                    const sign = isPositive ? '+' : '';
+                    const changeClass = isPositive ? 'change green-text' : 'change red-text';
+                    const changeBadgeClass = isPositive ? 'change green-badge' : 'change red-badge';
+                    const changeArrow = isPositive ? '▲' : '▼';
+                    const formattedPrice = q.price.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                    const absChange = (q.change !== undefined && q.change !== null) ? Math.abs(q.change).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '--';
+                    const pctVal = (q.change_pct !== undefined && q.change_pct !== null) ? `${sign}${q.change_pct.toFixed(2)}%` : '--';
+                    
+                    if (id.startsWith('desktop-ticker-')) {
+                        el.innerHTML = `${cfg.label}: <strong class="val">${formattedPrice}</strong> <span class="${changeBadgeClass}">${changeArrow} ${sign}${absChange} (${pctVal})</span>`;
+                    } else {
+                        el.innerHTML = `${cfg.label}: <strong class="val">${formattedPrice}</strong> <span class="${changeClass}">${changeArrow} ${sign}${absChange} (${pctVal})</span>`;
+                    }
+                });
             });
         }
     }
