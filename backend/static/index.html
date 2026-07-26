@@ -2646,18 +2646,12 @@
                         </div>
 
                         <!-- Quick Ticker Search Bar inside empty state -->
-                        <div style="margin-top: 18px; display: flex; gap: 10px; max-width: 640px; position: relative;">
+                        <div style="margin-top: 18px; display: flex; gap: 10px; max-width: 640px;">
                             <div style="position: relative; flex: 1;">
-                                <span style="position: absolute; left: 14px; top: 50%; transform: translateY(-50%); font-size: 14px; color: #94a3b8; pointer-events: none; z-index: 2;">🔍</span>
+                                <span style="position: absolute; left: 14px; top: 50%; transform: translateY(-50%); font-size: 14px; color: #94a3b8;">🔍</span>
                                 <input type="text" id="research-empty-search-input" placeholder="Type stock name or ticker (e.g. RELIANCE, TCS, TATAMOTORS, HDFCBANK)..." 
-                                       autocomplete="off"
-                                       style="width: 100%; box-sizing: border-box; padding: 10px 14px 10px 38px; font-size: 13px; border-radius: 8px; outline: none; transition: all 0.2s;"
+                                       style="width: 100%; box-sizing: border-box; padding: 10px 14px 10px 38px; font-size: 13px; background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 8px; color: #ffffff !important; outline: none; transition: all 0.2s;"
                                        onkeydown="if(event.key === 'Enter' && this.value.trim()){ loadStockAnalyzer(this.value.trim()); }" />
-                                
-                                <!-- Research Empty Search Suggestions Dropdown -->
-                                <div id="research-empty-suggestions" class="search-suggestions-dropdown" 
-                                     style="display: none; position: absolute; top: calc(100% + 6px); left: 0; right: 0; z-index: 9999; max-height: 280px; overflow-y: auto; border-radius: 8px; backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);">
-                                </div>
                             </div>
                             <button onclick="const val = document.getElementById('research-empty-search-input').value.trim(); if(val) loadStockAnalyzer(val);" 
                                     style="background: linear-gradient(135deg, #3b82f6, #2563eb); color: white; border: none; border-radius: 8px; padding: 0 20px; font-size: 13px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 6px; transition: all 0.2s; white-space: nowrap;">

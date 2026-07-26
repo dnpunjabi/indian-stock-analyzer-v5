@@ -3454,88 +3454,119 @@ function setupAnalyzerControls() {
         });
     }
 
-    // Autocomplete online suggestions for Research Empty State Search Input
+    // Autocomplete online & preloaded suggestions for Research Empty State Search Input
     const researchEmptyInput = document.getElementById('research-empty-search-input');
     const researchEmptySuggestionsDiv = document.getElementById('research-empty-suggestions');
     let researchActiveIndex = -1;
 
+    const PRELOADED_STOCKS = [
+        { base_symbol: 'BOSCHLTD', name: 'Bosch Limited', sector: 'Auto Ancillaries', cap_type: 'Large Cap' },
+        { base_symbol: 'RELIANCE', name: 'Reliance Industries', sector: 'Energy & Oil', cap_type: 'Large Cap' },
+        { base_symbol: 'TCS', name: 'Tata Consultancy Services', sector: 'IT & Software', cap_type: 'Large Cap' },
+        { base_symbol: 'HDFCBANK', name: 'HDFC Bank Ltd', sector: 'Banking', cap_type: 'Large Cap' },
+        { base_symbol: 'TATAMOTORS', name: 'Tata Motors Ltd', sector: 'Auto & EV', cap_type: 'Large Cap' },
+        { base_symbol: 'INFY', name: 'Infosys Limited', sector: 'IT & Cloud', cap_type: 'Large Cap' },
+        { base_symbol: 'ICICIBANK', name: 'ICICI Bank Ltd', sector: 'Banking', cap_type: 'Large Cap' },
+        { base_symbol: 'LT', name: 'Larsen & Toubro', sector: 'Infrastructure', cap_type: 'Large Cap' },
+        { base_symbol: 'BHARTIARTL', name: 'Bharti Airtel', sector: 'Telecom', cap_type: 'Large Cap' },
+        { base_symbol: 'MARUTI', name: 'Maruti Suzuki India', sector: 'Auto', cap_type: 'Large Cap' }
+    ];
+
     if (researchEmptyInput && researchEmptySuggestionsDiv) {
-        researchEmptyInput.addEventListener('input', async () => {
-            const query = researchEmptyInput.value.trim();
-            if (query.length < 2) {
+        const renderSuggestions = (data) => {
+            researchActiveIndex = -1;
+            if (!data || data.length === 0) {
                 researchEmptySuggestionsDiv.style.display = 'none';
-                researchActiveIndex = -1;
                 return;
+            }
+
+            researchEmptySuggestionsDiv.innerHTML = '';
+            data.forEach((item, index) => {
+                const div = document.createElement('div');
+                div.style.padding = '10px 14px';
+                div.style.cursor = 'pointer';
+                div.style.borderBottom = '1px solid var(--border-glass)';
+                div.style.transition = 'background 0.2s';
+                div.className = 'suggestion-item';
+                div.setAttribute('data-index', index);
+
+                const capText = item.cap_type ? item.cap_type.toUpperCase() : 'ALL';
+                let capColor = 'var(--text-muted)';
+                if (capText.includes('LARGE')) capColor = 'var(--neon-green)';
+                else if (capText.includes('MID')) capColor = 'var(--color-amber)';
+                else if (capText.includes('SMALL')) capColor = 'var(--color-primary)';
+
+                const showLogos = localStorage.getItem('settings-show-logos') !== 'false';
+                const rawSym = item.base_symbol || item.symbol || '';
+                const cleanSym = rawSym.replace(/\.(NS|BO)$/i, '').trim();
+
+                let logoHtml = '';
+                if (showLogos && cleanSym) {
+                    const logoFmp = `https://images.financialmodelingprep.com/symbol/${cleanSym}.png`;
+                    const logoTv = `https://s3-symbol-logo.tradingview.com/${cleanSym.toLowerCase()}.svg`;
+                    logoHtml = `<img src="${logoFmp}" onerror="this.onerror=null; this.src='${logoTv}'; this.onerror=function(){ this.style.display='none'; };" style="width:22px; height:22px; border-radius:50%; object-fit:contain; background:#ffffff; padding:1px; border:1px solid rgba(255,255,255,0.15); margin-right:10px; flex-shrink:0;" />`;
+                }
+
+                div.innerHTML = `
+                    <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+                        <div style="display:flex; align-items:center;">
+                            ${logoHtml}
+                            <div>
+                                <span style="font-weight:700; font-family:'Outfit', sans-serif; font-size:13px;">${item.base_symbol}</span>
+                                <span style="font-size: 11px; opacity:0.75; margin-left: 6px;">${item.name || ''}</span>
+                            </div>
+                        </div>
+                        <div style="display: flex; gap: 8px; align-items: center;">
+                            <span style="font-size:10px; opacity:0.7;">${item.sector || ''}</span>
+                            <span style="font-size:9px; font-weight:800; border: 1px solid ${capColor}40; color:${capColor}; padding:2px 6px; border-radius:4px; background:${capColor}12;">${capText}</span>
+                        </div>
+                    </div>
+                `;
+
+                div.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    researchEmptyInput.value = item.base_symbol;
+                    researchEmptySuggestionsDiv.style.display = 'none';
+                    researchActiveIndex = -1;
+                    loadStockAnalyzer(item.base_symbol);
+                });
+
+                researchEmptySuggestionsDiv.appendChild(div);
+            });
+            researchEmptySuggestionsDiv.style.display = 'block';
+        };
+
+        const updateSuggestions = async () => {
+            const query = researchEmptyInput.value.trim().toUpperCase();
+            if (!query) {
+                renderSuggestions(PRELOADED_STOCKS);
+                return;
+            }
+
+            const localFiltered = PRELOADED_STOCKS.filter(s => 
+                s.base_symbol.includes(query) || (s.name && s.name.toUpperCase().includes(query))
+            );
+            if (localFiltered.length > 0) {
+                renderSuggestions(localFiltered);
             }
 
             try {
                 const res = await fetch(`/api/search/suggestions?q=${encodeURIComponent(query)}`);
                 if (res.ok) {
-                    const data = await res.json();
-                    researchActiveIndex = -1;
-
-                    if (data.length > 0) {
-                        researchEmptySuggestionsDiv.innerHTML = '';
-                        data.forEach((item, index) => {
-                            const div = document.createElement('div');
-                            div.style.padding = '8px 12px';
-                            div.style.cursor = 'pointer';
-                            div.style.borderBottom = '1px solid var(--border-glass)';
-                            div.style.transition = 'background 0.2s';
-                            div.className = 'suggestion-item';
-                            div.setAttribute('data-index', index);
-
-                            const capText = item.cap_type ? item.cap_type.toUpperCase() : 'ALL';
-                            let capColor = 'var(--text-muted)';
-                            if (capText.includes('LARGE')) capColor = 'var(--neon-green)';
-                            else if (capText.includes('MID')) capColor = 'var(--color-amber)';
-                            else if (capText.includes('SMALL')) capColor = 'var(--color-primary)';
-
-                            const showLogos = localStorage.getItem('settings-show-logos') !== 'false';
-                            const rawSym = item.base_symbol || item.symbol || '';
-                            const cleanSym = rawSym.replace(/\.(NS|BO)$/i, '').trim();
-
-                            let logoHtml = '';
-                            if (showLogos && cleanSym) {
-                                const logoFmp = `https://images.financialmodelingprep.com/symbol/${cleanSym}.png`;
-                                const logoTv = `https://s3-symbol-logo.tradingview.com/${cleanSym.toLowerCase()}.svg`;
-                                logoHtml = `<img src="${logoFmp}" onerror="this.onerror=null; this.src='${logoTv}'; this.onerror=function(){ this.style.display='none'; };" style="width:20px; height:20px; border-radius:50%; object-fit:contain; background:#ffffff; padding:1px; border:1px solid rgba(255,255,255,0.15); margin-right:8px; flex-shrink:0;" />`;
-                            }
-
-                            div.innerHTML = `
-                                <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
-                                    <div style="display:flex; align-items:center;">
-                                        ${logoHtml}
-                                        <div>
-                                            <span style="color:var(--text-primary); font-weight:700; font-family:'Outfit';">${item.base_symbol}</span>
-                                            <span style="color:var(--text-muted); font-size: 10px;">(${item.name})</span>
-                                        </div>
-                                    </div>
-                                    <div style="display: flex; gap: 8px; align-items: center;">
-                                        <span style="font-size:9.5px; color:var(--text-muted);">${item.sector}</span>
-                                        <span style="font-size:8px; font-weight:800; border: 1px solid ${capColor}40; color:${capColor}; padding:1px 4px; border-radius:3px; background:${capColor}08;">${capText}</span>
-                                    </div>
-                                </div>
-                            `;
-
-                            div.addEventListener('click', () => {
-                                researchEmptyInput.value = item.base_symbol;
-                                researchEmptySuggestionsDiv.style.display = 'none';
-                                researchActiveIndex = -1;
-                                loadStockAnalyzer(item.base_symbol);
-                            });
-
-                            researchEmptySuggestionsDiv.appendChild(div);
-                        });
-                        researchEmptySuggestionsDiv.style.display = 'block';
-                    } else {
+                    const apiData = await res.json();
+                    if (apiData && apiData.length > 0) {
+                        renderSuggestions(apiData);
+                    } else if (localFiltered.length === 0) {
                         researchEmptySuggestionsDiv.style.display = 'none';
                     }
                 }
             } catch (err) {
-                console.error("Research empty suggestions error:", err);
+                console.error("Research empty suggestions fetch error:", err);
             }
-        });
+        };
+
+        researchEmptyInput.addEventListener('focus', updateSuggestions);
+        researchEmptyInput.addEventListener('input', updateSuggestions);
 
         researchEmptyInput.addEventListener('keydown', (e) => {
             const items = researchEmptySuggestionsDiv.querySelectorAll('.suggestion-item');
@@ -3581,6 +3612,7 @@ function setupAnalyzerControls() {
     }
 
     // Call the newly extracted card-specific controllers
+
     setupPeersControls();
     setupCapturePeriodControl();
 }
@@ -51756,6 +51788,166 @@ function initInstitutionalFooter() {
         const now = new Date();
 
         // Convert current time to IST (UTC + 5:30)
+        const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
+        const istDate = new Date(utc + (3600000 * 5.5));
+
+        const hours = istDate.getHours();
+        const minutes = istDate.getMinutes();
+        const seconds = istDate.getSeconds();
+        const day = istDate.getDay(); // 0 = Sun, 6 = Sat
+
+        const formattedTime = [
+            hours.toString().padStart(2, '0'),
+            minutes.toString().padStart(2, '0'),
+            seconds.toString().padStart(2, '0')
+        ].join(':') + ' IST';
+
+        if (clockEl) clockEl.textContent = formattedTime;
+
+        // NSE Trading Hours: Mon (1) to Fri (5), 09:15 to 15:30 IST
+        const currentMinutes = hours * 60 + minutes;
+        const marketOpenMinutes = 9 * 60 + 15;  // 09:15
+        const marketCloseMinutes = 15 * 60 + 30; // 15:30
+        const isWeekday = (day >= 1 && day <= 5);
+        const isMarketHours = (currentMinutes >= marketOpenMinutes && currentMinutes < marketCloseMinutes);
+
+        if (badgeEl) {
+            if (isWeekday && isMarketHours) {
+                badgeEl.className = 'market-badge market-open';
+                badgeEl.textContent = '🟢 Market Open';
+            } else {
+                badgeEl.className = 'market-badge market-closed';
+                badgeEl.textContent = '🔴 Market Closed';
+            }
+        }
+    }
+
+    updateFooterMarketClock();
+    setInterval(updateFooterMarketClock, 1000);
+
+    // Scroll to Top Glass Button Logic
+    const scrollTopBtn = document.getElementById('footer-scroll-top-btn');
+    if (scrollTopBtn) {
+        window.addEventListener('scroll', () => {
+            if (window.scrollY > 280) {
+                scrollTopBtn.classList.add('visible');
+            } else {
+                scrollTopBtn.classList.remove('visible');
+            }
+        }, { passive: true });
+
+        scrollTopBtn.addEventListener('click', () => {
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        });
+    }
+}
+
+// Header Quick Theme Switcher Pill Controller
+function setQuickThemeMode(mode) {
+    if (typeof setWorkstationMode === 'function') {
+        setWorkstationMode(mode);
+    } else {
+        document.body.setAttribute('data-mode', mode);
+        document.documentElement.setAttribute('data-mode', mode);
+        localStorage.setItem('apex_theme_mode', mode);
+        const btnDark = document.getElementById('btn-quick-theme-dark');
+        const btnLight = document.getElementById('btn-quick-theme-light');
+        if (mode === 'light') {
+            if (btnLight) btnLight.classList.add('active');
+            if (btnDark) btnDark.classList.remove('active');
+        } else {
+            if (btnDark) btnDark.classList.add('active');
+            if (btnLight) btnLight.classList.remove('active');
+        }
+    }
+}
+window.setQuickThemeMode = setQuickThemeMode;
+
+// Keyboard Search Shortcut ('/' Key) & Header Sticky Scroll Shrink
+function initStickyHeaderAndShortcuts() {
+    // 1. Restore saved theme mode
+    const savedMode = localStorage.getItem('apex_theme_mode');
+    if (savedMode === 'light') {
+        setQuickThemeMode('light');
+    }
+
+    // 2. Keyboard shortcut for search
+    document.addEventListener('keydown', (e) => {
+        if (e.key === '/' && document.activeElement && document.activeElement.tagName !== 'INPUT' && document.activeElement.tagName !== 'TEXTAREA') {
+            e.preventDefault();
+            const searchInput = document.getElementById('desktop-global-search') || document.getElementById('global-stock-search');
+            if (searchInput) {
+                searchInput.focus();
+                searchInput.select();
+            }
+        }
+    });
+
+    // Helper to get active scroll top across window or inner .workspace-tab container
+    const getActiveScrollTop = () => {
+        const activeTab = document.querySelector('.workspace-tab.active-tab-content') || document.querySelector('.workspace-tab');
+        const tabScroll = activeTab ? activeTab.scrollTop : 0;
+        const winScroll = window.scrollY || document.documentElement.scrollTop || 0;
+        return Math.max(tabScroll, winScroll);
+    };
+
+    // 3. Compact Sticky Header Shrink on Scroll & Scroll-To-Top Button Visibility
+    const handleScroll = () => {
+        const scrollTop = getActiveScrollTop();
+        const desktopHeader = document.querySelector('.desktop-header');
+        if (desktopHeader) {
+            if (scrollTop > 20) {
+                desktopHeader.classList.add('scrolled');
+                document.body.classList.add('header-is-scrolled');
+            } else {
+                desktopHeader.classList.remove('scrolled');
+                document.body.classList.remove('header-is-scrolled');
+            }
+        }
+
+        const scrollToTopBtns = document.querySelectorAll('.scroll-top-glass-btn, #footer-scroll-top-btn, #btn-scroll-to-top');
+        scrollToTopBtns.forEach(btn => {
+            if (scrollTop > 200) {
+                btn.classList.add('visible');
+            } else {
+                btn.classList.remove('visible');
+            }
+        });
+    };
+
+    // Attach scroll listener capturing all scroll events on window or inner elements
+    window.addEventListener('scroll', handleScroll, { passive: true, capture: true });
+    document.addEventListener('scroll', handleScroll, { passive: true, capture: true });
+
+    // Also attach directly to all .workspace-tab containers
+    const tabs = document.querySelectorAll('.workspace-tab');
+    tabs.forEach(tab => {
+        tab.addEventListener('scroll', handleScroll, { passive: true });
+    });
+
+    handleScroll();
+
+    // 4. Global Scroll To Top Button Click Handler
+    document.addEventListener('click', (e) => {
+        const topBtn = e.target.closest('.scroll-top-glass-btn, #footer-scroll-top-btn, #btn-scroll-to-top, .footer-back-to-top-btn');
+        if (topBtn) {
+            e.preventDefault();
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+            document.documentElement.scrollTo({ top: 0, behavior: 'smooth' });
+            document.body.scrollTo({ top: 0, behavior: 'smooth' });
+            const activeTab = document.querySelector('.workspace-tab.active-tab-content') || document.querySelector('.workspace-tab');
+            if (activeTab) {
+                activeTab.scrollTo({ top: 0, behavior: 'smooth' });
+            }
+        }
+    });
+}
+
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initStickyHeaderAndShortcuts);
+} else {
+    initStickyHeaderAndShortcuts();
+}
         const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
         const istDate = new Date(utc + (3600000 * 5.5));
 
