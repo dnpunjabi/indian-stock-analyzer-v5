@@ -2651,9 +2651,9 @@
                                 <span style="position: absolute; left: 14px; top: 50%; transform: translateY(-50%); font-size: 14px; color: var(--text-muted);">🔍</span>
                                 <input type="text" id="research-empty-search-input" placeholder="Type stock name or ticker (e.g. RELIANCE, TCS, TATAMOTORS, HDFCBANK)..." 
                                        style="width: 100%; box-sizing: border-box; padding: 10px 14px 10px 38px; font-size: 13px; background: rgba(0, 0, 0, 0.25); border: 1px solid var(--border-glass); border-radius: 8px; color: var(--text-primary); outline: none; transition: all 0.2s;"
-                                       onkeydown="if(event.key === 'Enter' && this.value.trim()){ loadStockProfile(this.value.trim()); }" />
+                                       onkeydown="if(event.key === 'Enter' && this.value.trim()){ loadStockAnalyzer(this.value.trim()); }" />
                             </div>
-                            <button onclick="const val = document.getElementById('research-empty-search-input').value.trim(); if(val) loadStockProfile(val);" 
+                            <button onclick="const val = document.getElementById('research-empty-search-input').value.trim(); if(val) loadStockAnalyzer(val);" 
                                     style="background: linear-gradient(135deg, #3b82f6, #2563eb); color: white; border: none; border-radius: 8px; padding: 0 20px; font-size: 13px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 6px; transition: all 0.2s; white-space: nowrap;">
                                 ⚡ Analyze Stock
                             </button>
@@ -2673,7 +2673,7 @@
                         <!-- Ticker Chips Grid -->
                         <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 12px;">
                             <!-- Stock Card 1: RELIANCE -->
-                            <div class="research-rec-card" onclick="loadStockProfile('RELIANCE')" style="background: rgba(255,255,255,0.02); border: 1px solid var(--border-glass); border-radius: 10px; padding: 12px 14px; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; justify-content: space-between;">
+                            <div class="research-rec-card" onclick="loadStockAnalyzer('RELIANCE')" style="background: rgba(255,255,255,0.02); border: 1px solid var(--border-glass); border-radius: 10px; padding: 12px 14px; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; justify-content: space-between;">
                                 <div>
                                     <div style="font-weight: 700; font-size: 13px; color: var(--text-primary);">RELIANCE.NS</div>
                                     <div style="font-size: 11px; color: var(--text-secondary); margin-top: 2px;">Reliance Industries</div>
@@ -2683,7 +2683,7 @@
                             </div>
 
                             <!-- Stock Card 2: TCS -->
-                            <div class="research-rec-card" onclick="loadStockProfile('TCS')" style="background: rgba(255,255,255,0.02); border: 1px solid var(--border-glass); border-radius: 10px; padding: 12px 14px; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; justify-content: space-between;">
+                            <div class="research-rec-card" onclick="loadStockAnalyzer('TCS')" style="background: rgba(255,255,255,0.02); border: 1px solid var(--border-glass); border-radius: 10px; padding: 12px 14px; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; justify-content: space-between;">
                                 <div>
                                     <div style="font-weight: 700; font-size: 13px; color: var(--text-primary);">TCS.NS</div>
                                     <div style="font-size: 11px; color: var(--text-secondary); margin-top: 2px;">Tata Consultancy</div>
@@ -2693,7 +2693,7 @@
                             </div>
 
                             <!-- Stock Card 3: TATAMOTORS -->
-                            <div class="research-rec-card" onclick="loadStockProfile('TATAMOTORS')" style="background: rgba(255,255,255,0.02); border: 1px solid var(--border-glass); border-radius: 10px; padding: 12px 14px; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; justify-content: space-between;">
+                            <div class="research-rec-card" onclick="loadStockAnalyzer('TATAMOTORS')" style="background: rgba(255,255,255,0.02); border: 1px solid var(--border-glass); border-radius: 10px; padding: 12px 14px; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; justify-content: space-between;">
                                 <div>
                                     <div style="font-weight: 700; font-size: 13px; color: var(--text-primary);">TATAMOTORS.NS</div>
                                     <div style="font-size: 11px; color: var(--text-secondary); margin-top: 2px;">Tata Motors Ltd</div>
@@ -2703,7 +2703,7 @@
                             </div>
 
                             <!-- Stock Card 4: HDFCBANK -->
-                            <div class="research-rec-card" onclick="loadStockProfile('HDFCBANK')" style="background: rgba(255,255,255,0.02); border: 1px solid var(--border-glass); border-radius: 10px; padding: 12px 14px; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; justify-content: space-between;">
+                            <div class="research-rec-card" onclick="loadStockAnalyzer('HDFCBANK')" style="background: rgba(255,255,255,0.02); border: 1px solid var(--border-glass); border-radius: 10px; padding: 12px 14px; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; justify-content: space-between;">
                                 <div>
                                     <div style="font-weight: 700; font-size: 13px; color: var(--text-primary);">HDFCBANK.NS</div>
                                     <div style="font-size: 11px; color: var(--text-secondary); margin-top: 2px;">HDFC Bank Ltd</div>
@@ -2713,7 +2713,7 @@
                             </div>
 
                             <!-- Stock Card 5: INFY -->
-                            <div class="research-rec-card" onclick="loadStockProfile('INFY')" style="background: rgba(255,255,255,0.02); border: 1px solid var(--border-glass); border-radius: 10px; padding: 12px 14px; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; justify-content: space-between;">
+                            <div class="research-rec-card" onclick="loadStockAnalyzer('INFY')" style="background: rgba(255,255,255,0.02); border: 1px solid var(--border-glass); border-radius: 10px; padding: 12px 14px; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; justify-content: space-between;">
                                 <div>
                                     <div style="font-weight: 700; font-size: 13px; color: var(--text-primary);">INFY.NS</div>
                                     <div style="font-size: 11px; color: var(--text-secondary); margin-top: 2px;">Infosys Limited</div>
@@ -2723,7 +2723,7 @@
                             </div>
 
                             <!-- Stock Card 6: ICICIBANK -->
-                            <div class="research-rec-card" onclick="loadStockProfile('ICICIBANK')" style="background: rgba(255,255,255,0.02); border: 1px solid var(--border-glass); border-radius: 10px; padding: 12px 14px; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; justify-content: space-between;">
+                            <div class="research-rec-card" onclick="loadStockAnalyzer('ICICIBANK')" style="background: rgba(255,255,255,0.02); border: 1px solid var(--border-glass); border-radius: 10px; padding: 12px 14px; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; justify-content: space-between;">
                                 <div>
                                     <div style="font-weight: 700; font-size: 13px; color: var(--text-primary);">ICICIBANK.NS</div>
                                     <div style="font-size: 11px; color: var(--text-secondary); margin-top: 2px;">ICICI Bank Ltd</div>
@@ -2733,7 +2733,7 @@
                             </div>
 
                             <!-- Stock Card 7: BHARTIARTL -->
-                            <div class="research-rec-card" onclick="loadStockProfile('BHARTIARTL')" style="background: rgba(255,255,255,0.02); border: 1px solid var(--border-glass); border-radius: 10px; padding: 12px 14px; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; justify-content: space-between;">
+                            <div class="research-rec-card" onclick="loadStockAnalyzer('BHARTIARTL')" style="background: rgba(255,255,255,0.02); border: 1px solid var(--border-glass); border-radius: 10px; padding: 12px 14px; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; justify-content: space-between;">
                                 <div>
                                     <div style="font-weight: 700; font-size: 13px; color: var(--text-primary);">BHARTIARTL.NS</div>
                                     <div style="font-size: 11px; color: var(--text-secondary); margin-top: 2px;">Bharti Airtel</div>
@@ -2743,7 +2743,7 @@
                             </div>
 
                             <!-- Stock Card 8: LT -->
-                            <div class="research-rec-card" onclick="loadStockProfile('LT')" style="background: rgba(255,255,255,0.02); border: 1px solid var(--border-glass); border-radius: 10px; padding: 12px 14px; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; justify-content: space-between;">
+                            <div class="research-rec-card" onclick="loadStockAnalyzer('LT')" style="background: rgba(255,255,255,0.02); border: 1px solid var(--border-glass); border-radius: 10px; padding: 12px 14px; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; justify-content: space-between;">
                                 <div>
                                     <div style="font-weight: 700; font-size: 13px; color: var(--text-primary);">LT.NS</div>
                                     <div style="font-size: 11px; color: var(--text-secondary); margin-top: 2px;">Larsen & Toubro</div>
@@ -2769,10 +2769,10 @@
                                     <span style="font-size: 10px; color: var(--text-muted);">4 Bluechips</span>
                                 </div>
                                 <div style="display: flex; flex-wrap: wrap; gap: 6px;">
-                                    <button class="pill-chip" onclick="loadStockProfile('TCS')">TCS</button>
-                                    <button class="pill-chip" onclick="loadStockProfile('INFY')">INFY</button>
-                                    <button class="pill-chip" onclick="loadStockProfile('WIPRO')">WIPRO</button>
-                                    <button class="pill-chip" onclick="loadStockProfile('HCLTECH')">HCLTECH</button>
+                                    <button class="pill-chip" onclick="loadStockAnalyzer('TCS')">TCS</button>
+                                    <button class="pill-chip" onclick="loadStockAnalyzer('INFY')">INFY</button>
+                                    <button class="pill-chip" onclick="loadStockAnalyzer('WIPRO')">WIPRO</button>
+                                    <button class="pill-chip" onclick="loadStockAnalyzer('HCLTECH')">HCLTECH</button>
                                 </div>
                             </div>
 
@@ -2783,10 +2783,10 @@
                                     <span style="font-size: 10px; color: var(--text-muted);">4 Bluechips</span>
                                 </div>
                                 <div style="display: flex; flex-wrap: wrap; gap: 6px;">
-                                    <button class="pill-chip" onclick="loadStockProfile('HDFCBANK')">HDFCBANK</button>
-                                    <button class="pill-chip" onclick="loadStockProfile('ICICIBANK')">ICICIBANK</button>
-                                    <button class="pill-chip" onclick="loadStockProfile('SBIN')">SBIN</button>
-                                    <button class="pill-chip" onclick="loadStockProfile('KOTAKBANK')">KOTAKBANK</button>
+                                    <button class="pill-chip" onclick="loadStockAnalyzer('HDFCBANK')">HDFCBANK</button>
+                                    <button class="pill-chip" onclick="loadStockAnalyzer('ICICIBANK')">ICICIBANK</button>
+                                    <button class="pill-chip" onclick="loadStockAnalyzer('SBIN')">SBIN</button>
+                                    <button class="pill-chip" onclick="loadStockAnalyzer('KOTAKBANK')">KOTAKBANK</button>
                                 </div>
                             </div>
 
@@ -2797,10 +2797,10 @@
                                     <span style="font-size: 10px; color: var(--text-muted);">4 Bluechips</span>
                                 </div>
                                 <div style="display: flex; flex-wrap: wrap; gap: 6px;">
-                                    <button class="pill-chip" onclick="loadStockProfile('TATAMOTORS')">TATAMOTORS</button>
-                                    <button class="pill-chip" onclick="loadStockProfile('M&M')">M&M</button>
-                                    <button class="pill-chip" onclick="loadStockProfile('MARUTI')">MARUTI</button>
-                                    <button class="pill-chip" onclick="loadStockProfile('BAJAJ-AUTO')">BAJAJ-AUTO</button>
+                                    <button class="pill-chip" onclick="loadStockAnalyzer('TATAMOTORS')">TATAMOTORS</button>
+                                    <button class="pill-chip" onclick="loadStockAnalyzer('M&M')">M&M</button>
+                                    <button class="pill-chip" onclick="loadStockAnalyzer('MARUTI')">MARUTI</button>
+                                    <button class="pill-chip" onclick="loadStockAnalyzer('BAJAJ-AUTO')">BAJAJ-AUTO</button>
                                 </div>
                             </div>
 
@@ -2811,10 +2811,10 @@
                                     <span style="font-size: 10px; color: var(--text-muted);">4 Bluechips</span>
                                 </div>
                                 <div style="display: flex; flex-wrap: wrap; gap: 6px;">
-                                    <button class="pill-chip" onclick="loadStockProfile('RELIANCE')">RELIANCE</button>
-                                    <button class="pill-chip" onclick="loadStockProfile('NTPC')">NTPC</button>
-                                    <button class="pill-chip" onclick="loadStockProfile('POWERGRID')">POWERGRID</button>
-                                    <button class="pill-chip" onclick="loadStockProfile('LT')">L&T</button>
+                                    <button class="pill-chip" onclick="loadStockAnalyzer('RELIANCE')">RELIANCE</button>
+                                    <button class="pill-chip" onclick="loadStockAnalyzer('NTPC')">NTPC</button>
+                                    <button class="pill-chip" onclick="loadStockAnalyzer('POWERGRID')">POWERGRID</button>
+                                    <button class="pill-chip" onclick="loadStockAnalyzer('LT')">L&T</button>
                                 </div>
                             </div>
                         </div>
