@@ -8987,6 +8987,85 @@
                 });
             }
 
+            // ==================== POPOVER UNIVERSE STATUS LOGIC ====================
+            const popoverUnivToggle = document.getElementById('popover-universe-toggle');
+            const popoverUnivContent = document.getElementById('popover-universe-content');
+            const popoverUnivArrow = document.getElementById('popover-universe-arrow');
+            const popoverRebalanceBtn = document.getElementById('popover-rebalance-now-btn');
+
+            if (popoverUnivToggle && popoverUnivContent) {
+                popoverUnivToggle.addEventListener('click', (e) => {
+                    if (e.target.closest('#popover-rebalance-now-btn')) return;
+                    
+                    const isHidden = popoverUnivContent.style.display === 'none';
+                    popoverUnivContent.style.display = isHidden ? 'block' : 'none';
+                    if (popoverUnivArrow) {
+                        popoverUnivArrow.style.transform = isHidden ? 'rotate(0deg)' : 'rotate(-90deg)';
+                    }
+                });
+            }
+
+            const syncPopoverUniverseStatus = async () => {
+                try {
+                    const res = await fetch('/api/admin/rebalance-status');
+                    if (!res.ok) return;
+                    const data = await res.json();
+
+                    let ts = data.last_rebalanced || 'Never';
+                    if (ts !== 'Never') {
+                        try {
+                            const d = new Date(ts);
+                            ts = d.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: '2-digit' })
+                               + ' ' + d.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: false });
+                        } catch(e) {}
+                    }
+
+                    ['popover-rebalance-last-ts', 'rebalance-last-ts'].forEach(id => {
+                        const el = document.getElementById(id);
+                        if (el) el.textContent = ts;
+                    });
+
+                    ['popover-rebalance-universe-count', 'rebalance-universe-count'].forEach(id => {
+                        const el = document.getElementById(id);
+                        if (el) el.textContent = data.universe_count ?? '—';
+                    });
+
+                    ['popover-rebalance-cached-count', 'rebalance-cached-count'].forEach(id => {
+                        const el = document.getElementById(id);
+                        if (el) el.textContent = data.cached_count ?? '—';
+                    });
+                } catch (e) {}
+            };
+
+            window.syncPopoverUniverseStatus = syncPopoverUniverseStatus;
+            syncPopoverUniverseStatus();
+
+            if (popoverRebalanceBtn) {
+                popoverRebalanceBtn.addEventListener('click', async (e) => {
+                    e.stopPropagation();
+                    if (popoverRebalanceBtn.classList.contains('syncing')) return;
+
+                    popoverRebalanceBtn.classList.add('syncing');
+                    popoverRebalanceBtn.textContent = '↻...';
+
+                    try {
+                        const res = await fetch('/api/admin/rebalance', { method: 'POST' });
+                        const data = await res.json();
+                        if (typeof window.showToast === 'function') {
+                            window.showToast(data.message || 'Universe synced successfully!', 'success');
+                        }
+                        await syncPopoverUniverseStatus();
+                    } catch (err) {
+                        if (typeof window.showToast === 'function') {
+                            window.showToast('Sync failed: ' + err.message, 'error');
+                        }
+                    } finally {
+                        popoverRebalanceBtn.classList.remove('syncing');
+                        popoverRebalanceBtn.textContent = '↻ SYNC';
+                    }
+                });
+            }
+
             if (globalAnalyzeBtn) {
                 globalAnalyzeBtn.addEventListener('click', () => triggerUnifiedAnalysis());
             }
