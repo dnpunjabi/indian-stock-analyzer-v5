@@ -397,7 +397,7 @@
         <!-- Tier 2: Main Brand Logo, Central Unified Search & Profile Controls Bar -->
         <div class="desktop-top-bar">
             <!-- Brand Logo -->
-            <div class="desktop-brand" id="desktop-logo-reset" style="cursor: pointer;" title="Return to Home (Research Terminal)" onclick="if(window.switchTab){ window.switchTab('analyzer'); window.scrollTo({top: 0, behavior: 'smooth'}); } else { window.location.hash = '#analyzer'; }">
+            <div class="desktop-brand" id="desktop-logo-reset" style="cursor: pointer;" title="Return to Home Page" onclick="if(window.showHomepageView){ window.showHomepageView(); } else if(window.switchTab){ window.switchTab('analyzer'); }">
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                     <path d="M 4 20 L 20 4 L 20 20 L 11 20" stroke="url(#brandGradDesktop)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" />
                     <path d="M 11 20 L 20 11" stroke="url(#brandGradDesktop)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" />

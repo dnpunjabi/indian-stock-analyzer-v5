@@ -2334,6 +2334,7 @@ function showHomepageView() {
     } else {
         switchTab('analyzer');
     }
+    window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
 function showTerminalView() {
@@ -2349,19 +2350,16 @@ window.showHomepageView = showHomepageView;
 window.showTerminalView = showTerminalView;
 
 function setupBrandReset() {
-    const brand = document.getElementById('logo-brand-reset');
-    if (brand) {
-        brand.addEventListener('click', () => {
-            showHomepageView();
-        });
-    }
-
-    const mobileBrand = document.getElementById('mobile-logo-reset');
-    if (mobileBrand) {
-        mobileBrand.addEventListener('click', () => {
-            showHomepageView();
-        });
-    }
+    const brandIds = ['logo-brand-reset', 'mobile-logo-reset', 'desktop-logo-reset'];
+    brandIds.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) {
+            el.addEventListener('click', (e) => {
+                e.preventDefault();
+                showHomepageView();
+            });
+        }
+    });
 }
 
 function resetWorkspace() {
