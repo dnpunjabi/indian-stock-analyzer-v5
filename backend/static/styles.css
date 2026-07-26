@@ -6110,7 +6110,7 @@ tr:hover .champion-cell {
 
 /* Autocomplete suggestions panel */
 .watchlist-autocomplete-box {
-    background: var(--bg-card, rgba(15, 23, 42, 0.95)) !important;
+    background: #0f172a !important;
     backdrop-filter: blur(24px) !important;
     -webkit-backdrop-filter: blur(24px) !important;
     border: 1px solid rgba(var(--primary-rgb, 59, 130, 246), 0.2) !important;
@@ -6125,7 +6125,7 @@ tr:hover .champion-cell {
 
 [data-mode="light"] .watchlist-autocomplete-box,
 [data-theme="light"] .watchlist-autocomplete-box {
-    background: var(--bg-card, rgba(255, 255, 255, 0.98)) !important;
+    background: #ffffff !important;
     border: 1px solid rgba(var(--primary-rgb, 59, 130, 246), 0.2) !important;
     box-shadow: 0 12px 40px rgba(15, 23, 42, 0.12) !important;
 }
@@ -22436,7 +22436,7 @@ body.light-mode #returns-matrix-tbody tr:hover {
         width: 380px !important;
         max-height: 82vh !important;
         overflow-y: auto !important;
-        background: var(--bg-card, rgba(15, 23, 42, 0.98)) !important;
+        background: #0f172a !important;
         backdrop-filter: blur(24px) !important;
         -webkit-backdrop-filter: blur(24px) !important;
         border: 1px solid rgba(var(--primary-rgb, 59, 130, 246), 0.35) !important;
@@ -22449,7 +22449,7 @@ body.light-mode #returns-matrix-tbody tr:hover {
 
     [data-mode="light"] .desktop-profile-card,
     [data-theme="light"] .desktop-profile-card {
-        background: var(--bg-card, #ffffff) !important;
+        background: #ffffff !important;
         border-color: rgba(var(--primary-rgb, 59, 130, 246), 0.2) !important;
         box-shadow: 0 20px 40px rgba(15, 23, 42, 0.15), 0 0 20px rgba(var(--primary-rgb, 59, 130, 246), 0.08) !important;
     }
@@ -22875,7 +22875,7 @@ body.light-mode #returns-matrix-tbody tr:hover {
     right: 0;
     width: 330px;
     max-height: 420px;
-    background: rgba(15, 23, 42, 0.95);
+    background: #0f172a !important;
     backdrop-filter: blur(16px);
     -webkit-backdrop-filter: blur(16px);
     border: 1px solid var(--border-glass);
@@ -22886,8 +22886,9 @@ body.light-mode #returns-matrix-tbody tr:hover {
     color: var(--text-primary);
 }
 
-[data-mode="light"] .header-dropdown {
-    background: rgba(255, 255, 255, 0.96) !important;
+[data-mode="light"] .header-dropdown,
+[data-theme="light"] .header-dropdown {
+    background: #ffffff !important;
     border: 1px solid rgba(203, 213, 225, 0.8) !important;
     box-shadow: 0 16px 36px rgba(0, 0, 0, 0.12), 0 2px 8px rgba(0, 0, 0, 0.06) !important;
     color: #0f172a !important;
