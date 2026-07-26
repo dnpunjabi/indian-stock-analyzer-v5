@@ -3454,6 +3454,132 @@ function setupAnalyzerControls() {
         });
     }
 
+    // Autocomplete online suggestions for Research Empty State Search Input
+    const researchEmptyInput = document.getElementById('research-empty-search-input');
+    const researchEmptySuggestionsDiv = document.getElementById('research-empty-suggestions');
+    let researchActiveIndex = -1;
+
+    if (researchEmptyInput && researchEmptySuggestionsDiv) {
+        researchEmptyInput.addEventListener('input', async () => {
+            const query = researchEmptyInput.value.trim();
+            if (query.length < 2) {
+                researchEmptySuggestionsDiv.style.display = 'none';
+                researchActiveIndex = -1;
+                return;
+            }
+
+            try {
+                const res = await fetch(`/api/search/suggestions?q=${encodeURIComponent(query)}`);
+                if (res.ok) {
+                    const data = await res.json();
+                    researchActiveIndex = -1;
+
+                    if (data.length > 0) {
+                        researchEmptySuggestionsDiv.innerHTML = '';
+                        data.forEach((item, index) => {
+                            const div = document.createElement('div');
+                            div.style.padding = '8px 12px';
+                            div.style.cursor = 'pointer';
+                            div.style.borderBottom = '1px solid var(--border-glass)';
+                            div.style.transition = 'background 0.2s';
+                            div.className = 'suggestion-item';
+                            div.setAttribute('data-index', index);
+
+                            const capText = item.cap_type ? item.cap_type.toUpperCase() : 'ALL';
+                            let capColor = 'var(--text-muted)';
+                            if (capText.includes('LARGE')) capColor = 'var(--neon-green)';
+                            else if (capText.includes('MID')) capColor = 'var(--color-amber)';
+                            else if (capText.includes('SMALL')) capColor = 'var(--color-primary)';
+
+                            const showLogos = localStorage.getItem('settings-show-logos') !== 'false';
+                            const rawSym = item.base_symbol || item.symbol || '';
+                            const cleanSym = rawSym.replace(/\.(NS|BO)$/i, '').trim();
+
+                            let logoHtml = '';
+                            if (showLogos && cleanSym) {
+                                const logoFmp = `https://images.financialmodelingprep.com/symbol/${cleanSym}.png`;
+                                const logoTv = `https://s3-symbol-logo.tradingview.com/${cleanSym.toLowerCase()}.svg`;
+                                logoHtml = `<img src="${logoFmp}" onerror="this.onerror=null; this.src='${logoTv}'; this.onerror=function(){ this.style.display='none'; };" style="width:20px; height:20px; border-radius:50%; object-fit:contain; background:#ffffff; padding:1px; border:1px solid rgba(255,255,255,0.15); margin-right:8px; flex-shrink:0;" />`;
+                            }
+
+                            div.innerHTML = `
+                                <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+                                    <div style="display:flex; align-items:center;">
+                                        ${logoHtml}
+                                        <div>
+                                            <span style="color:var(--text-primary); font-weight:700; font-family:'Outfit';">${item.base_symbol}</span>
+                                            <span style="color:var(--text-muted); font-size: 10px;">(${item.name})</span>
+                                        </div>
+                                    </div>
+                                    <div style="display: flex; gap: 8px; align-items: center;">
+                                        <span style="font-size:9.5px; color:var(--text-muted);">${item.sector}</span>
+                                        <span style="font-size:8px; font-weight:800; border: 1px solid ${capColor}40; color:${capColor}; padding:1px 4px; border-radius:3px; background:${capColor}08;">${capText}</span>
+                                    </div>
+                                </div>
+                            `;
+
+                            div.addEventListener('click', () => {
+                                researchEmptyInput.value = item.base_symbol;
+                                researchEmptySuggestionsDiv.style.display = 'none';
+                                researchActiveIndex = -1;
+                                loadStockAnalyzer(item.base_symbol);
+                            });
+
+                            researchEmptySuggestionsDiv.appendChild(div);
+                        });
+                        researchEmptySuggestionsDiv.style.display = 'block';
+                    } else {
+                        researchEmptySuggestionsDiv.style.display = 'none';
+                    }
+                }
+            } catch (err) {
+                console.error("Research empty suggestions error:", err);
+            }
+        });
+
+        researchEmptyInput.addEventListener('keydown', (e) => {
+            const items = researchEmptySuggestionsDiv.querySelectorAll('.suggestion-item');
+            if (researchEmptySuggestionsDiv.style.display === 'none' || items.length === 0) {
+                return;
+            }
+
+            if (e.key === 'ArrowDown') {
+                e.preventDefault();
+                researchActiveIndex = (researchActiveIndex + 1) % items.length;
+                highlightResearchSuggestion(items);
+            } else if (e.key === 'ArrowUp') {
+                e.preventDefault();
+                researchActiveIndex = (researchActiveIndex - 1 + items.length) % items.length;
+                highlightResearchSuggestion(items);
+            } else if (e.key === 'Enter') {
+                if (researchActiveIndex >= 0 && researchActiveIndex < items.length) {
+                    e.preventDefault();
+                    items[researchActiveIndex].click();
+                }
+            } else if (e.key === 'Escape') {
+                researchEmptySuggestionsDiv.style.display = 'none';
+                researchActiveIndex = -1;
+            }
+        });
+
+        function highlightResearchSuggestion(items) {
+            items.forEach((item, index) => {
+                if (index === researchActiveIndex) {
+                    item.classList.add('active-suggestion');
+                    item.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+                } else {
+                    item.classList.remove('active-suggestion');
+                }
+            });
+        }
+
+        document.addEventListener('click', (e) => {
+            if (e.target !== researchEmptyInput && !researchEmptySuggestionsDiv.contains(e.target)) {
+                researchEmptySuggestionsDiv.style.display = 'none';
+            }
+        });
+    }
+
     // Call the newly extracted card-specific controllers
     setupPeersControls();
     setupCapturePeriodControl();

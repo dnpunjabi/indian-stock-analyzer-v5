@@ -18417,14 +18417,88 @@ select option {
         -webkit-backdrop-filter: none !important;
     }
     
+    /* Research Hero Card & Search Input Styling */
+    .research-hero-card {
+        background: linear-gradient(135deg, #0f172a, #1e293b);
+        border: 1px solid rgba(59, 130, 246, 0.3);
+        box-shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.3);
+    }
+    .research-hero-card h2 {
+        color: #ffffff !important;
+    }
+    .research-hero-card p {
+        color: rgba(255, 255, 255, 0.8) !important;
+    }
+
+    #research-empty-search-input {
+        background: rgba(15, 23, 42, 0.7) !important;
+        border: 1px solid rgba(255, 255, 255, 0.25) !important;
+        color: #ffffff !important;
+    }
     #research-empty-search-input::placeholder {
         color: #94a3b8 !important;
         opacity: 0.9;
     }
     #research-empty-search-input:focus {
         border-color: #3b82f6 !important;
-        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.3) !important;
-        background: rgba(255, 255, 255, 0.12) !important;
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.35) !important;
+        background: rgba(15, 23, 42, 0.85) !important;
+    }
+
+    #research-empty-suggestions {
+        background: #0f172a !important;
+        border: 1px solid rgba(59, 130, 246, 0.4) !important;
+        box-shadow: 0 14px 40px rgba(0, 0, 0, 0.6) !important;
+        color: #f8fafc !important;
+    }
+
+    /* Light mode overrides for Research Terminal Hero Card & Input */
+    [data-mode="light"] .research-hero-card,
+    [data-theme="light"] .research-hero-card,
+    body.light-mode .research-hero-card {
+        background: linear-gradient(135deg, #ffffff, #f8fafc) !important;
+        border: 1px solid #cbd5e1 !important;
+        box-shadow: 0 6px 24px rgba(15, 23, 42, 0.06) !important;
+    }
+    [data-mode="light"] .research-hero-card h2,
+    [data-theme="light"] .research-hero-card h2,
+    body.light-mode .research-hero-card h2 {
+        color: #0f172a !important;
+    }
+    [data-mode="light"] .research-hero-card p,
+    [data-theme="light"] .research-hero-card p,
+    body.light-mode .research-hero-card p {
+        color: #475569 !important;
+    }
+
+    [data-mode="light"] #research-empty-search-input,
+    [data-theme="light"] #research-empty-search-input,
+    body.light-mode #research-empty-search-input {
+        background: #ffffff !important;
+        border: 1px solid #cbd5e1 !important;
+        color: #0f172a !important;
+        box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.05) !important;
+    }
+    [data-mode="light"] #research-empty-search-input::placeholder,
+    [data-theme="light"] #research-empty-search-input::placeholder,
+    body.light-mode #research-empty-search-input::placeholder {
+        color: #64748b !important;
+    }
+    [data-mode="light"] #research-empty-search-input:focus,
+    [data-theme="light"] #research-empty-search-input:focus,
+    body.light-mode #research-empty-search-input:focus {
+        border-color: #2563eb !important;
+        box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.2) !important;
+        background: #ffffff !important;
+    }
+
+    [data-mode="light"] #research-empty-suggestions,
+    [data-theme="light"] #research-empty-suggestions,
+    body.light-mode #research-empty-suggestions {
+        background: #ffffff !important;
+        border: 1px solid #cbd5e1 !important;
+        box-shadow: 0 12px 36px rgba(15, 23, 42, 0.15) !important;
+        color: #0f172a !important;
     }
 
     .research-rec-card {
