@@ -1164,11 +1164,12 @@ async function fetchLLMConfig() {
         const config = await res.json();
         window.llmConfig = config;
         
-        // Update sidebar label
-        const statusLabel = document.getElementById('llm-status-label');
-        if (statusLabel) {
-            statusLabel.textContent = config.active_label || config.heavy_label || 'Active LLM';
-        }
+        // Update status labels
+        const activeLLMName = config.active_label || config.heavy_label || 'Gemini Flash Latest';
+        ['llm-status-label', 'popover-llm-status-label'].forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.textContent = activeLLMName;
+        });
         
         // Update status indicator color based on active provider
         const indicator = document.querySelector('#llm-connection-status .status-indicator');
