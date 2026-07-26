@@ -3289,20 +3289,27 @@ function renderScreenerResults(results, isSorted = false) {
 }
 
 function setupAnalyzerControls() {
-    document.getElementById('analyzer-search-btn').addEventListener('click', (e) => {
-        const q = document.getElementById('analyzer-search-input').value.trim();
-        if (q) {
-            fireAnalyzeParticles(e);
-            loadStockAnalyzer(q);
-        }
-    });
+    const analyzerSearchBtn = document.getElementById('analyzer-search-btn');
+    if (analyzerSearchBtn) {
+        analyzerSearchBtn.addEventListener('click', (e) => {
+            const searchInput = document.getElementById('analyzer-search-input');
+            const q = searchInput ? searchInput.value.trim() : '';
+            if (q) {
+                fireAnalyzeParticles(e);
+                loadStockAnalyzer(q);
+            }
+        });
+    }
 
-    document.getElementById('analyzer-search-input').addEventListener('keypress', (e) => {
-        if (e.key === 'Enter') {
-            const q = document.getElementById('analyzer-search-input').value.trim();
-            if (q) loadStockAnalyzer(q);
-        }
-    });
+    const analyzerSearchInput = document.getElementById('analyzer-search-input');
+    if (analyzerSearchInput) {
+        analyzerSearchInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                const q = analyzerSearchInput.value.trim();
+                if (q) loadStockAnalyzer(q);
+            }
+        });
+    }
 
     // Autocomplete online suggestions for Single Stock Workspace
     const searchInput = document.getElementById('analyzer-search-input');
