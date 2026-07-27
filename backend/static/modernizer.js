@@ -1561,7 +1561,7 @@
             `;
             document.body.appendChild(bottomNav);
 
-            document.getElementById('nav-terminal').addEventListener('click', () => window.switchTab('home'));
+            document.getElementById('nav-terminal').addEventListener('click', () => window.switchTab('analyzer'));
             document.getElementById('nav-screener').addEventListener('click', () => window.switchTab('screener'));
             document.getElementById('nav-watchlist').addEventListener('click', () => window.switchTab('watchlist'));
             document.getElementById('nav-portfolio').addEventListener('click', () => window.switchTab('portfolio'));
@@ -3476,7 +3476,9 @@
                     return;
                 }
 
-                if (emptyState.style.display !== 'none') {
+                const currentHash = location.hash ? location.hash.substring(1) : 'home';
+
+                if (currentHash === 'home') {
                     analyzerTab.classList.add('homepage-active');
                     document.body.classList.add('homepage-active');
                     const cc = document.getElementById('mobile-homepage-command-center');
@@ -3484,11 +3486,8 @@
                         cc.style.display = 'block';
                         renderMobileHomepageCommandCenter();
                     }
-                    // Explicit JS Safeguards: hide dashboard and reset search input text
                     const dashboard = document.getElementById('analyzer-dashboard');
-                    if (dashboard) dashboard.style.display = 'none';
-                    const mobileSearchInput = document.getElementById('mobile-home-search-input');
-                    if (mobileSearchInput) mobileSearchInput.value = '';
+                    if (dashboard && emptyState.style.display !== 'none') dashboard.style.display = 'none';
                 } else {
                     analyzerTab.classList.remove('homepage-active');
                     document.body.classList.remove('homepage-active');
@@ -3509,8 +3508,9 @@
             // Initial call (immediate, no debounce)
             toggleActiveMode();
             
-            // Re-check on resize (debounced)
+            // Re-check on resize and hashchange
             window.addEventListener('resize', debouncedToggle);
+            window.addEventListener('hashchange', debouncedToggle);
         }
 
         function deriveMarketBreadthGreeting() {
