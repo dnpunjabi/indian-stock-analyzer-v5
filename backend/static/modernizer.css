@@ -1559,3 +1559,60 @@ body.light-theme .llm-execution-badge .badge-latency,
     }
 }
 
+/* Sector Rotation Cards - Light & Dark Theme Adaptation */
+.sector-deck-row {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+    border-top: 1px solid rgba(255, 255, 255, 0.06);
+    border-right: 1px solid rgba(255, 255, 255, 0.06);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    transition: all 0.25s ease;
+}
+
+.sector-deck-row .sector-card-overlay {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    backdrop-filter: blur(2px);
+    -webkit-backdrop-filter: blur(2px);
+    background: linear-gradient(90deg, rgba(11, 15, 25, 0.92) 0%, rgba(15, 23, 42, 0.78) 60%, rgba(15, 23, 42, 0.88) 100%);
+}
+
+.sector-deck-row .sector-card-title {
+    color: #ffffff !important;
+}
+
+.sector-deck-row .sector-icon-box {
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+/* Light Theme Overrides for Sector Rotation Cards */
+[data-mode="light"] .sector-deck-row,
+[data-theme="light"] .sector-deck-row,
+body.light-theme .sector-deck-row {
+    border-top: 1px solid rgba(0, 0, 0, 0.08) !important;
+    border-right: 1px solid rgba(0, 0, 0, 0.08) !important;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.08) !important;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.06) !important;
+}
+
+[data-mode="light"] .sector-deck-row .sector-card-overlay,
+[data-theme="light"] .sector-deck-row .sector-card-overlay,
+body.light-theme .sector-deck-row .sector-card-overlay {
+    background: linear-gradient(90deg, rgba(255, 255, 255, 0.95) 0%, rgba(248, 250, 252, 0.88) 60%, rgba(241, 245, 249, 0.93) 100%) !important;
+}
+
+[data-mode="light"] .sector-deck-row .sector-card-title,
+[data-theme="light"] .sector-deck-row .sector-card-title,
+body.light-theme .sector-deck-row .sector-card-title {
+    color: #0f172a !important;
+}
+
+[data-mode="light"] .sector-deck-row .sector-icon-box,
+[data-theme="light"] .sector-deck-row .sector-icon-box,
+body.light-theme .sector-deck-row .sector-icon-box {
+    background: rgba(0, 0, 0, 0.05) !important;
+    border: 1px solid rgba(0, 0, 0, 0.08) !important;
+}
+
+

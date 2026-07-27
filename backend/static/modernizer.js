@@ -5116,16 +5116,16 @@
                                 const meta = getSectorMeta(item.sector);
 
                                 secDeckHtml += `
-                                    <div class="cyber-stock-card-row sector-deck-row" onclick="if(typeof playHaptic==='function') playHaptic(10); if(window.switchTab) window.switchTab('sector-radar');" style="position:relative; display:flex; align-items:center; justify-content:space-between; cursor:pointer; overflow:hidden; border-radius:10px; padding:10px 12px; border-left:3px solid ${meta.accent}; background:${meta.bg}; background-size:cover; background-position:center; box-shadow:0 4px 12px rgba(0,0,0,0.4); border-top:1px solid rgba(255,255,255,0.06); border-right:1px solid rgba(255,255,255,0.06); border-bottom:1px solid rgba(255,255,255,0.06);">
-                                        <!-- Dark Gradient Glass Overlay for perfect text contrast -->
-                                        <div style="position:absolute; inset:0; background:linear-gradient(90deg, rgba(11,15,25,0.92) 0%, rgba(15,23,42,0.78) 60%, rgba(15,23,42,0.88) 100%); z-index:1; backdrop-filter:blur(2px); -webkit-backdrop-filter:blur(2px);"></div>
+                                    <div class="cyber-stock-card-row sector-deck-row" onclick="if(typeof playHaptic==='function') playHaptic(10); if(window.switchTab) window.switchTab('sector-radar');" style="position:relative; display:flex; align-items:center; justify-content:space-between; cursor:pointer; overflow:hidden; border-radius:10px; padding:10px 12px; border-left:3px solid ${meta.accent}; background:${meta.bg}; background-size:cover; background-position:center;">
+                                        <!-- Gradient Glass Overlay for contrast (Theme Responsive) -->
+                                        <div class="sector-card-overlay"></div>
                                         
                                         <div style="position:relative; z-index:2; display:flex; align-items:center; gap:10px; flex:1; min-width:0; padding-right:8px;">
-                                            <div style="width:32px; height:32px; border-radius:8px; background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.12); display:flex; align-items:center; justify-content:center; font-size:15px; flex-shrink:0;">
+                                            <div class="sector-icon-box" style="width:32px; height:32px; border-radius:8px; display:flex; align-items:center; justify-content:center; font-size:15px; flex-shrink:0;">
                                                 ${meta.icon}
                                             </div>
                                             <div style="flex:1; min-width:0;">
-                                                <strong style="font-weight:800; font-size:13px; color:var(--text-primary); font-family:'Outfit', sans-serif; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; display:block;">${item.sector}</strong>
+                                                <strong class="sector-card-title" style="font-weight:800; font-size:13px; font-family:'Outfit', sans-serif; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; display:block;">${item.sector}</strong>
                                                 <div style="font-size:9px; font-weight:800; color:${meta.accent}; margin-top:1px; letter-spacing:0.04em; text-transform:uppercase;">${meta.badge}</div>
                                             </div>
                                         </div>
