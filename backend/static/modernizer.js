@@ -3560,7 +3560,8 @@
             const analyzerTab = document.getElementById('tab-analyzer');
             if (!emptyState || !analyzerTab) return;
 
-            // MutationObserver to watch empty state visibility and toggle homepage-active class
+            // Debounced MutationObserver to watch empty state visibility and toggle homepage-active class
+            let _toggleDebounceTimer = null;
             const toggleActiveMode = () => {
                 if (!isMobile()) {
                     analyzerTab.classList.remove('homepage-active');
@@ -3591,14 +3592,20 @@
                 }
             };
 
-            const observer = new MutationObserver(toggleActiveMode);
+            // Debounce wrapper: coalesce rapid MutationObserver fires into a single call
+            const debouncedToggle = () => {
+                if (_toggleDebounceTimer) clearTimeout(_toggleDebounceTimer);
+                _toggleDebounceTimer = setTimeout(toggleActiveMode, 300);
+            };
+
+            const observer = new MutationObserver(debouncedToggle);
             observer.observe(emptyState, { attributes: true, attributeFilter: ['style'] });
             
-            // Initial call
+            // Initial call (immediate, no debounce)
             toggleActiveMode();
             
-            // Re-check on resize
-            window.addEventListener('resize', toggleActiveMode);
+            // Re-check on resize (debounced)
+            window.addEventListener('resize', debouncedToggle);
         }
 
         function deriveMarketBreadthGreeting() {
@@ -4548,6 +4555,8 @@
                 });
             }
 
+            // === PARALLEL FETCH: Fire movers, sectors, and news concurrently ===
+            const _moversPromise = (async () => {
             // 2. Fetch & Render Gainers and Losers
             if (gainersContainer && losersContainer) {
                 if (typeof window.switchMoversTab === 'function') {
@@ -4765,7 +4774,7 @@
                                 gHtml += `</div>`;
                                 gainersContainer.innerHTML = gHtml;
 
-                                // Draw Gainer Sparklines and bind clicks
+                                // Draw Gainer Sparklines and bind clicks (deferred to avoid blocking initial paint)
                                 gainersList.forEach(item => {
                                     const sym = item.symbol.replace(".NS", "");
                                     const card = gainersContainer.querySelector(`.gainer-deck-card[data-symbol="${sym}"]`);
@@ -4784,43 +4793,49 @@
                                             }
                                         };
                                     }
-                                    const canvas = document.getElementById(`gainer-sparkline-${sym}`);
-                                    if (canvas) {
-                                        const ctx = canvas.getContext('2d');
-                                        ctx.clearRect(0, 0, canvas.width, canvas.height);
-                                        
-                                        const points = [10, 12, 9, 15, 17];
-                                        const step = canvas.width / (points.length - 1);
-                                        
-                                        const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
-                                        gradient.addColorStop(0, 'rgba(16, 185, 129, 0.25)');
-                                        gradient.addColorStop(1, 'rgba(16, 185, 129, 0.0)');
-                                        
-                                        ctx.beginPath();
-                                        points.forEach((val, i) => {
-                                            const x = i * step;
-                                            const y = canvas.height - (val / 20) * canvas.height;
-                                            if (i === 0) ctx.moveTo(x, y);
-                                            else ctx.lineTo(x, y);
-                                        });
-                                        ctx.lineTo(canvas.width, canvas.height);
-                                        ctx.lineTo(0, canvas.height);
-                                        ctx.closePath();
-                                        ctx.fillStyle = gradient;
-                                        ctx.fill();
+                                });
+                                // Defer sparkline canvas draws off main thread
+                                requestAnimationFrame(() => {
+                                    gainersList.forEach(item => {
+                                        const sym = item.symbol.replace(".NS", "");
+                                        const canvas = document.getElementById(`gainer-sparkline-${sym}`);
+                                        if (canvas) {
+                                            const ctx = canvas.getContext('2d');
+                                            ctx.clearRect(0, 0, canvas.width, canvas.height);
+                                            
+                                            const points = [10, 12, 9, 15, 17];
+                                            const step = canvas.width / (points.length - 1);
+                                            
+                                            const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
+                                            gradient.addColorStop(0, 'rgba(16, 185, 129, 0.25)');
+                                            gradient.addColorStop(1, 'rgba(16, 185, 129, 0.0)');
+                                            
+                                            ctx.beginPath();
+                                            points.forEach((val, i) => {
+                                                const x = i * step;
+                                                const y = canvas.height - (val / 20) * canvas.height;
+                                                if (i === 0) ctx.moveTo(x, y);
+                                                else ctx.lineTo(x, y);
+                                            });
+                                            ctx.lineTo(canvas.width, canvas.height);
+                                            ctx.lineTo(0, canvas.height);
+                                            ctx.closePath();
+                                            ctx.fillStyle = gradient;
+                                            ctx.fill();
 
-                                        ctx.beginPath();
-                                        ctx.lineWidth = 1.8;
-                                        ctx.strokeStyle = '#10b981';
-                                        ctx.lineJoin = 'round';
-                                        points.forEach((val, i) => {
-                                            const x = i * step;
-                                            const y = canvas.height - (val / 20) * canvas.height;
-                                            if (i === 0) ctx.moveTo(x, y);
-                                            else ctx.lineTo(x, y);
-                                        });
-                                        ctx.stroke();
-                                    }
+                                            ctx.beginPath();
+                                            ctx.lineWidth = 1.8;
+                                            ctx.strokeStyle = '#10b981';
+                                            ctx.lineJoin = 'round';
+                                            points.forEach((val, i) => {
+                                                const x = i * step;
+                                                const y = canvas.height - (val / 20) * canvas.height;
+                                                if (i === 0) ctx.moveTo(x, y);
+                                                else ctx.lineTo(x, y);
+                                            });
+                                            ctx.stroke();
+                                        }
+                                    });
                                 });
                             } else {
                                 gainersContainer.innerHTML = '';
@@ -4858,7 +4873,7 @@
                                 lHtml += `</div>`;
                                 losersContainer.innerHTML = lHtml;
 
-                                // Draw Loser Sparklines and bind clicks
+                                // Draw Loser Sparklines and bind clicks (deferred to avoid blocking initial paint)
                                 losersList.forEach(item => {
                                     const sym = item.symbol.replace(".NS", "");
                                     const card = losersContainer.querySelector(`.loser-deck-card[data-symbol="${sym}"]`);
@@ -4877,43 +4892,49 @@
                                             }
                                         };
                                     }
-                                    const canvas = document.getElementById(`loser-sparkline-${sym}`);
-                                    if (canvas) {
-                                        const ctx = canvas.getContext('2d');
-                                        ctx.clearRect(0, 0, canvas.width, canvas.height);
-                                        
-                                        const points = [16, 13, 14, 9, 7];
-                                        const step = canvas.width / (points.length - 1);
-                                        
-                                        const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
-                                        gradient.addColorStop(0, 'rgba(239, 68, 68, 0.25)');
-                                        gradient.addColorStop(1, 'rgba(239, 68, 68, 0.0)');
-                                        
-                                        ctx.beginPath();
-                                        points.forEach((val, i) => {
-                                            const x = i * step;
-                                            const y = canvas.height - (val / 20) * canvas.height;
-                                            if (i === 0) ctx.moveTo(x, y);
-                                            else ctx.lineTo(x, y);
-                                        });
-                                        ctx.lineTo(canvas.width, canvas.height);
-                                        ctx.lineTo(0, canvas.height);
-                                        ctx.closePath();
-                                        ctx.fillStyle = gradient;
-                                        ctx.fill();
+                                });
+                                // Defer sparkline canvas draws off main thread
+                                requestAnimationFrame(() => {
+                                    losersList.forEach(item => {
+                                        const sym = item.symbol.replace(".NS", "");
+                                        const canvas = document.getElementById(`loser-sparkline-${sym}`);
+                                        if (canvas) {
+                                            const ctx = canvas.getContext('2d');
+                                            ctx.clearRect(0, 0, canvas.width, canvas.height);
+                                            
+                                            const points = [16, 13, 14, 9, 7];
+                                            const step = canvas.width / (points.length - 1);
+                                            
+                                            const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
+                                            gradient.addColorStop(0, 'rgba(239, 68, 68, 0.25)');
+                                            gradient.addColorStop(1, 'rgba(239, 68, 68, 0.0)');
+                                            
+                                            ctx.beginPath();
+                                            points.forEach((val, i) => {
+                                                const x = i * step;
+                                                const y = canvas.height - (val / 20) * canvas.height;
+                                                if (i === 0) ctx.moveTo(x, y);
+                                                else ctx.lineTo(x, y);
+                                            });
+                                            ctx.lineTo(canvas.width, canvas.height);
+                                            ctx.lineTo(0, canvas.height);
+                                            ctx.closePath();
+                                            ctx.fillStyle = gradient;
+                                            ctx.fill();
 
-                                        ctx.beginPath();
-                                        ctx.lineWidth = 1.8;
-                                        ctx.strokeStyle = '#ef4444';
-                                        ctx.lineJoin = 'round';
-                                        points.forEach((val, i) => {
-                                            const x = i * step;
-                                            const y = canvas.height - (val / 20) * canvas.height;
-                                            if (i === 0) ctx.moveTo(x, y);
-                                            else ctx.lineTo(x, y);
-                                        });
-                                        ctx.stroke();
-                                    }
+                                            ctx.beginPath();
+                                            ctx.lineWidth = 1.8;
+                                            ctx.strokeStyle = '#ef4444';
+                                            ctx.lineJoin = 'round';
+                                            points.forEach((val, i) => {
+                                                const x = i * step;
+                                                const y = canvas.height - (val / 20) * canvas.height;
+                                                if (i === 0) ctx.moveTo(x, y);
+                                                else ctx.lineTo(x, y);
+                                            });
+                                            ctx.stroke();
+                                        }
+                                    });
                                 });
                             }
 
@@ -4967,7 +4988,9 @@
                     console.error("Error loading movers:", e);
                 }
             }
+            })(); // end _moversPromise
 
+            const _sectorsPromise = (async () => {
             // 2. Fetch & Render Sectors Leader and Laggard
             if (sectorsContainer) {
                 sectorsContainer.innerHTML = `
@@ -5040,7 +5063,7 @@
                                     return {
                                         icon: '🎬',
                                         badge: 'MEDIA & ENT',
-                                        bg: 'url("https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=400&auto=format&fit=crop&q=60")',
+                                        bg: 'radial-gradient(ellipse at 20% 50%, rgba(236, 72, 153, 0.15) 0%, rgba(15, 23, 42, 0.95) 70%)',
                                         accent: '#ec4899'
                                     };
                                 }
@@ -5048,7 +5071,7 @@
                                     return {
                                         icon: '💻',
                                         badge: 'IT & TECH',
-                                        bg: 'url("https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?w=400&auto=format&fit=crop&q=60")',
+                                        bg: 'radial-gradient(ellipse at 20% 50%, rgba(59, 130, 246, 0.15) 0%, rgba(15, 23, 42, 0.95) 70%)',
                                         accent: '#3b82f6'
                                     };
                                 }
@@ -5056,7 +5079,7 @@
                                     return {
                                         icon: '🏢',
                                         badge: 'REALTY & URBAN',
-                                        bg: 'url("https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?w=400&auto=format&fit=crop&q=60")',
+                                        bg: 'radial-gradient(ellipse at 20% 50%, rgba(168, 85, 247, 0.15) 0%, rgba(15, 23, 42, 0.95) 70%)',
                                         accent: '#a855f7'
                                     };
                                 }
@@ -5064,7 +5087,7 @@
                                     return {
                                         icon: '🏥',
                                         badge: 'HEALTHCARE',
-                                        bg: 'url("https://images.unsplash.com/photo-1532938911079-1b06ac7ceec7?w=400&auto=format&fit=crop&q=60")',
+                                        bg: 'radial-gradient(ellipse at 20% 50%, rgba(16, 185, 129, 0.15) 0%, rgba(15, 23, 42, 0.95) 70%)',
                                         accent: '#10b981'
                                     };
                                 }
@@ -5072,7 +5095,7 @@
                                     return {
                                         icon: '🛒',
                                         badge: 'CONSUMER & RETAIL',
-                                        bg: 'url("https://images.unsplash.com/photo-1472851294608-062f824d29cc?w=400&auto=format&fit=crop&q=60")',
+                                        bg: 'radial-gradient(ellipse at 20% 50%, rgba(245, 158, 11, 0.15) 0%, rgba(15, 23, 42, 0.95) 70%)',
                                         accent: '#f59e0b'
                                     };
                                 }
@@ -5080,7 +5103,7 @@
                                     return {
                                         icon: '🚗',
                                         badge: 'AUTOMOBILE',
-                                        bg: 'url("https://images.unsplash.com/photo-1503376780353-7e6692767b70?w=400&auto=format&fit=crop&q=60")',
+                                        bg: 'radial-gradient(ellipse at 20% 50%, rgba(239, 68, 68, 0.15) 0%, rgba(15, 23, 42, 0.95) 70%)',
                                         accent: '#ef4444'
                                     };
                                 }
@@ -5088,7 +5111,7 @@
                                     return {
                                         icon: '🏦',
                                         badge: 'BANKING & FIN',
-                                        bg: 'url("https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?w=400&auto=format&fit=crop&q=60")',
+                                        bg: 'radial-gradient(ellipse at 20% 50%, rgba(6, 182, 212, 0.15) 0%, rgba(15, 23, 42, 0.95) 70%)',
                                         accent: '#06b6d4'
                                     };
                                 }
@@ -5096,7 +5119,7 @@
                                     return {
                                         icon: '⚡',
                                         badge: 'ENERGY & POWER',
-                                        bg: 'url("https://images.unsplash.com/photo-1473341304170-971dccb5ac1e?w=400&auto=format&fit=crop&q=60")',
+                                        bg: 'radial-gradient(ellipse at 20% 50%, rgba(234, 179, 8, 0.15) 0%, rgba(15, 23, 42, 0.95) 70%)',
                                         accent: '#eab308'
                                     };
                                 }
@@ -5104,7 +5127,7 @@
                                     return {
                                         icon: '⛓️',
                                         badge: 'METALS & MINING',
-                                        bg: 'url("https://images.unsplash.com/photo-1504917599217-d4dc5ebe6122?w=400&auto=format&fit=crop&q=60")',
+                                        bg: 'radial-gradient(ellipse at 20% 50%, rgba(148, 163, 184, 0.15) 0%, rgba(15, 23, 42, 0.95) 70%)',
                                         accent: '#94a3b8'
                                     };
                                 }
@@ -5112,14 +5135,14 @@
                                     return {
                                         icon: '📡',
                                         badge: 'TELECOM',
-                                        bg: 'url("https://images.unsplash.com/photo-1544197150-b99a580bb7a8?w=400&auto=format&fit=crop&q=60")',
+                                        bg: 'radial-gradient(ellipse at 20% 50%, rgba(139, 92, 246, 0.15) 0%, rgba(15, 23, 42, 0.95) 70%)',
                                         accent: '#8b5cf6'
                                     };
                                 }
                                 return {
                                     icon: '⚙️',
                                     badge: 'INDUSTRIALS & SERVICES',
-                                    bg: 'url("https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?w=400&auto=format&fit=crop&q=60")',
+                                    bg: 'radial-gradient(ellipse at 20% 50%, rgba(99, 102, 241, 0.15) 0%, rgba(15, 23, 42, 0.95) 70%)',
                                     accent: '#6366f1'
                                 };
                             };
@@ -5194,7 +5217,9 @@
                     console.error("Error loading sectors standings:", e);
                 }
             }
+            })(); // end _sectorsPromise
 
+            const _newsPromise = (async () => {
             // 3. Fetch & Render Bloomberg-style News Alerts
             if (newsContainer) {
                 if (!newsContainer.innerHTML.includes('bloomberg-news-card') && !newsContainer.innerHTML.includes('shimmer-sweep')) {
@@ -5323,8 +5348,12 @@
                     newsContainer.innerHTML = '';
                 }
             }
+            })(); // end _newsPromise
 
-            // 4. Update dynamic summaries
+            // Wait for all 3 fetches to settle in parallel (no waterfall)
+            await Promise.allSettled([_moversPromise, _sectorsPromise, _newsPromise]);
+
+            // 4. Update dynamic summaries (sync, runs after all fetches)
             const summaryEl = document.getElementById('mobile-home-copilot-summary');
             if (summaryEl) {
                 summaryEl.innerHTML = deriveMarketBreadthGreeting();
