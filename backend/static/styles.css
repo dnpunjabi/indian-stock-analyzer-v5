@@ -4213,13 +4213,10 @@ body.chat-drawer-active {
         padding-bottom: 0 !important;
     }
 
-    .main-footer {
-        margin: 30px 0 0 0 !important;
-        padding: 15px 0 !important;
-        background: transparent !important;
-        backdrop-filter: none !important;
-        -webkit-backdrop-filter: none !important;
-        border-top: 1px solid var(--border-glass) !important;
+    .main-footer,
+    .institutional-footer,
+    .mega-footer {
+        display: none !important;
     }
 
     .dashboard-grid {
@@ -23799,19 +23796,12 @@ body, .card, .desktop-header, .institutional-footer, .desktop-top-ticker-banner 
     }
 }
 
-
-
-
-
-
-
-
-
-
-        position: relative !important;
-        z-index: 90 !important;
-        clear: both !important;
-        flex-shrink: 0 !important;
+/* Hide Desktop Footers on Mobile & Tablet viewports (<= 1024px) */
+@media (max-width: 1024px) {
+    .institutional-footer,
+    .main-footer,
+    .mega-footer {
+        display: none !important;
     }
 }
 
