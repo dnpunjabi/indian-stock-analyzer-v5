@@ -1948,6 +1948,11 @@
             recents = [symbol, ...recents.filter(s => s !== symbol)].slice(0, 5);
             localStorage.setItem('recent-mobile-searches', JSON.stringify(recents));
 
+            // Switch to main Equity Research Terminal tab
+            if (window.switchTab) {
+                window.switchTab('analyzer');
+            }
+
             const searchInput = document.getElementById('analyzer-search-input');
             const searchBtn = document.getElementById('analyzer-search-btn');
             if (searchInput && searchBtn) {
@@ -1955,9 +1960,8 @@
                 searchBtn.click();
             }
 
-            sheetEl.classList.remove('active');
+            if (sheetEl) sheetEl.classList.remove('active');
             playHaptic(15);
-            window.switchTab('market-news');
         }
 
         function openCustomSelectBottomSheet(selectEl) {
