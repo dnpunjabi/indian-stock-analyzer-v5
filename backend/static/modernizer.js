@@ -1948,20 +1948,25 @@
             recents = [symbol, ...recents.filter(s => s !== symbol)].slice(0, 5);
             localStorage.setItem('recent-mobile-searches', JSON.stringify(recents));
 
-            // Switch to main Equity Research Terminal tab
-            if (window.switchTab) {
+            // 1. Switch to main Equity Research Terminal tab
+            if (typeof window.switchTab === 'function') {
                 window.switchTab('analyzer');
             }
 
-            const searchInput = document.getElementById('analyzer-search-input');
-            const searchBtn = document.getElementById('analyzer-search-btn');
-            if (searchInput && searchBtn) {
-                searchInput.value = symbol;
-                searchBtn.click();
+            // 2. Perform Equity Research analysis
+            if (typeof window.loadStockAnalyzer === 'function') {
+                window.loadStockAnalyzer(symbol);
+            } else {
+                const searchInput = document.getElementById('analyzer-search-input');
+                const searchBtn = document.getElementById('analyzer-search-btn');
+                if (searchInput && searchBtn) {
+                    searchInput.value = symbol;
+                    searchBtn.click();
+                }
             }
 
             if (sheetEl) sheetEl.classList.remove('active');
-            playHaptic(15);
+            if (typeof playHaptic === 'function') playHaptic(15);
         }
 
         function openCustomSelectBottomSheet(selectEl) {
