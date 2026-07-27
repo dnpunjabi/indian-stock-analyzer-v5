@@ -970,8 +970,8 @@ h1, h2, h3, h4, h5 {
         justify-content: space-between;
         flex-shrink: 0;
         transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-        box-shadow: 4px 0 24px rgba(0, 0, 0, 0.2);
         overflow-y: auto;
+    }
 }
 
 /* Hide redundant profile, universe status, PDF config cards, and LLM connection status from mobile sidebar drawer (consolidated in Pro Trader Settings Popover) */
@@ -23919,6 +23919,15 @@ body, .card, .desktop-header, .institutional-footer, .desktop-top-ticker-banner 
     }
 }
 
+/* Hide Desktop Footers & Desktop Header on Mobile/Tablet viewports (<= 1024px) */
+@media (max-width: 1024px) {
+    .institutional-footer,
+    .main-footer,
+    .mega-footer,
+    .desktop-header,
+    .desktop-top-ticker-banner {
+        display: none !important;
+    }
 }
 
 /* ==========================================================================
