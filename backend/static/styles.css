@@ -23887,13 +23887,14 @@ body, .card, .desktop-header, .institutional-footer, .desktop-top-ticker-banner 
     }
 }
 
-/* Definitive Mobile Hide Override for Desktop-Only Header Elements (<= 992px) */
+/* Definitive Mobile Hide Override for Desktop-Only Header Elements & Redundant Connection Pills (<= 992px) */
 @media (max-width: 992px) {
     header.desktop-header,
     .desktop-header,
     .desktop-top-ticker-banner,
     .desktop-top-bar,
-    .desktop-navbar {
+    .desktop-navbar,
+    #ws-connection-indicator {
         display: none !important;
     }
 }
