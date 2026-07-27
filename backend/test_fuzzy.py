@@ -93,10 +93,22 @@ def test_rule_405_cash_flow_and_solvency_safeguard():
     assert 405 in rule_ids # Solvency & Cash Flow Trap Cap
 
 def test_api_fuzzy_endpoints():
+    import json
     from fastapi.testclient import TestClient
-    from backend.main import app
+    from backend.main import app, get_db
     client = TestClient(app)
-    
+
+    # Insert test profile into db so evaluate endpoint finds it
+    with get_db() as conn:
+        mock_profile = {
+            "symbol": "CONSTRUCTIONMATERIALS.NS",
+            "fundamentals": {"opm_growth_3y": 1.0, "roe_growth_3y": 1.0, "debt_to_equity": 0.5, "altman_z_score": 4.0, "piotroski_f_score": 7, "promoter_holding": 55.0},
+            "technicals": {"rsi": 55.0, "dma_prox_pct": 4.0, "adx": 32.0, "stage": 2, "relative_volume": 1.5, "dma_stack_bullish": True, "fifty_two_week_prox": 0.92},
+            "earnings_quality": {}
+        }
+        conn.execute("INSERT OR REPLACE INTO cached_profiles (symbol, profile_json, updated_at) VALUES (?, ?, CURRENT_TIMESTAMP)", ("CONSTRUCTIONMATERIALS.NS", json.dumps(mock_profile)))
+        conn.commit()
+
     # Test universe standings
     response = client.get("/api/fuzzy/universe-standings?limit=2")
     assert response.status_code == 200

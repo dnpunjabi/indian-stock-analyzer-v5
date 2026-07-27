@@ -8705,7 +8705,6 @@
                     obs.observe(listEl, { childList: true, subtree: true });
                 }
             };
-            // ==================== RICH DESKTOP PROFILE POPOVER TOGGLE ====================
             window.toggleDesktopProfilePopover = function(e) {
                 if (e) {
                     if (e.stopPropagation) e.stopPropagation();
@@ -8715,15 +8714,36 @@
                 if (!popover) return;
                 const computed = window.getComputedStyle(popover).display;
                 const isHidden = popover.style.display === 'none' || computed === 'none';
-                popover.style.display = isHidden ? 'block' : 'none';
+                if (isHidden) {
+                    if (window.innerWidth > 992) {
+                        const btn = document.getElementById('desktop-profile-btn');
+                        if (btn) {
+                            const rect = btn.getBoundingClientRect();
+                            popover.style.position = 'fixed';
+                            popover.style.top = (rect.bottom + 8) + 'px';
+                            popover.style.right = Math.max(12, (window.innerWidth - rect.right)) + 'px';
+                            popover.style.left = 'auto';
+                        }
+                    } else {
+                        popover.style.position = 'fixed';
+                        popover.style.top = '54px';
+                        popover.style.right = '8px';
+                        popover.style.left = '8px';
+                    }
+                    popover.style.display = 'block';
+                } else {
+                    popover.style.display = 'none';
+                }
             };
 
             // Global click listener to close profile popover when clicking outside
             document.addEventListener('click', function(e) {
                 const popover = document.getElementById('desktop-profile-popover');
                 const profileBtn = document.getElementById('desktop-profile-btn');
+                const mobileProfileBtn = document.getElementById('mobile-pro-settings-btn');
                 if (popover && popover.style.display === 'block') {
                     if (profileBtn && profileBtn.contains(e.target)) return;
+                    if (mobileProfileBtn && mobileProfileBtn.contains(e.target)) return;
                     if (!popover.contains(e.target)) {
                         popover.style.display = 'none';
                     }

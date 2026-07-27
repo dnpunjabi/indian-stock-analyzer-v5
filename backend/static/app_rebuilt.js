@@ -1339,6 +1339,7 @@ function setupSidebarAccordions() {
 function setupEnterpriseHeader() {
     const bellBtn = document.getElementById('header-bell-btn');
     const bellBtnDesktop = document.getElementById('header-bell-btn-desktop');
+    const mobileBellBtn = document.getElementById('mobile-header-bell-btn');
     const settingsBtn = document.getElementById('header-settings-btn');
     const linksBtn = document.getElementById('header-links-btn');
     const notifDropdown = document.getElementById('notification-dropdown-panel');
@@ -1376,6 +1377,7 @@ function setupEnterpriseHeader() {
     // Assign onclick handler directly to prevent double-firing from duplicate addEventListener calls
     if (bellBtn) bellBtn.onclick = (e) => window.toggleNotificationDropdown(e);
     if (bellBtnDesktop) bellBtnDesktop.onclick = (e) => window.toggleNotificationDropdown(e);
+    if (mobileBellBtn) mobileBellBtn.onclick = (e) => window.toggleNotificationDropdown(e);
 
     // Toggle Settings panel
     if (settingsBtn && settingsDropdown) {
@@ -9259,6 +9261,7 @@ function updateNotificationBell(list) {
     const notifBody = document.getElementById('notification-list-body');
     const badge = document.getElementById('bell-badge-count');
     const desktopBadge = document.getElementById('bell-badge-count-desktop');
+    const mobileBadge = document.getElementById('bell-badge-count-mobile');
     const sidebarBadge = document.getElementById('sidebar-alerts-badge');
     if (!notifBody) return;
 
@@ -9287,6 +9290,7 @@ function updateNotificationBell(list) {
 
     updateBadgeEl(badge, activeTriggers.length);
     updateBadgeEl(desktopBadge, activeTriggers.length);
+    updateBadgeEl(mobileBadge, activeTriggers.length);
     updateBadgeEl(sidebarBadge, activeTriggers.length);
 
     if (activeTriggers.length === 0) {

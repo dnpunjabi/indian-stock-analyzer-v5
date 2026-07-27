@@ -310,11 +310,257 @@
             </span>
         </div>
         <button id="mobile-header-scans-btn" class="mobile-header-scan-pill" title="Technical Scans & Breakouts">⚡ Scans</button>
-        <div id="mobile-ws-dot" class="mobile-ws-dot-indicator" title="WebSocket Live Status" style="width: 8px; height: 8px; border-radius: 50%; background: #ef4444; box-shadow: 0 0 6px #ef4444; margin-left: auto; margin-right: 8px; display: inline-block;"></div>
-        <button id="mobile-theme-toggle" class="theme-toggle-btn" style="margin-left: 0;">🌓</button>
+        
+        <!-- Live WebSocket Status Indicator Dot -->
+        <div id="mobile-ws-dot" class="mobile-ws-dot-indicator" title="WebSocket Live Status" style="width: 8px; height: 8px; border-radius: 50%; background: #10b981; box-shadow: 0 0 6px #10b981; margin-left: auto; margin-right: 8px; display: inline-block;"></div>
+        
+        <!-- Mobile Institutional Alerts Bell Icon -->
+        <div class="header-bell-wrapper" id="mobile-header-bell-btn" title="View Institutional Alerts" style="position: relative; margin-right: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center;" onclick="window.toggleNotificationDropdown && window.toggleNotificationDropdown(event)">
+            <span class="bell-icon" style="font-size: 16px;">🔔</span>
+            <span class="bell-badge" id="bell-badge-count-mobile" style="display: none; position: absolute; top: -4px; right: -4px; background: #f59e0b; color: #000; font-size: 9px; font-weight: 800; border-radius: 50%; width: 15px; height: 15px; display: flex; align-items: center; justify-content: center; box-shadow: 0 0 8px rgba(245, 158, 11, 0.6);">0</span>
+        </div>
+
+        <button id="mobile-theme-toggle" class="theme-toggle-btn" style="margin-left: 0; margin-right: 6px;" title="Switch Theme Mode">🌓</button>
+
+        <!-- Mobile Pro Trader Institutional Settings Icon Button (Last in Row) -->
+        <button id="mobile-pro-settings-btn" class="theme-toggle-btn mobile-pro-settings-icon" title="Pro Trader & Institutional Settings" onclick="window.toggleDesktopProfilePopover && window.toggleDesktopProfilePopover(event)" style="margin-left: 0;">👑</button>
     </header>
 
-    <!-- Offline Alert Banner -->
+    <!-- Unified Shared Notification Dropdown Panel -->
+    <div class="header-dropdown notification-dropdown no-print" id="notification-dropdown-panel" style="display: none;">
+        <div class="dropdown-header">
+            <span>🔔 INSTITUTIONAL ALERTS</span>
+            <button id="clear-all-alerts-btn" class="clear-alerts-btn">CLEAR ALL</button>
+        </div>
+        <div class="dropdown-body" id="notification-list-body">
+            <div style="font-size:10px; color:var(--text-muted); padding:20px; text-align:center;">No new system notifications.</div>
+        </div>
+    </div>
+
+    <!-- Pro Trader & Institutional Settings Shared Popover Dropdown -->
+    <div id="desktop-profile-popover" class="desktop-profile-card no-print" style="display: none;">
+        <!-- Section 1: Investor Profile -->
+        <div class="popover-section-header">👤 INVESTOR PROFILE & RISK</div>
+        <div class="popover-field">
+            <label for="popover-horizon">Investment Horizon</label>
+            <select id="popover-horizon">
+                <option value="Short-term (< 1 year)">Short-term (&lt; 1 year)</option>
+                <option value="Medium-term (1-3 years)">Medium-term (1-3 years)</option>
+                <option value="Long-term (3+ years)" selected>Long-term (3+ years)</option>
+            </select>
+        </div>
+        <div class="popover-field">
+            <label for="popover-strategy">Investment Strategy</label>
+            <select id="popover-strategy">
+                <option value="Growth Capitalization" selected>Growth Capitalization</option>
+                <option value="Value & Margin of Safety">Value &amp; Margin of Safety</option>
+                <option value="Quantitative Momentum">Quantitative Momentum</option>
+                <option value="Dividend Yield & Income">Dividend Yield &amp; Income</option>
+            </select>
+        </div>
+        <div class="popover-field">
+            <label for="popover-risk">Risk Appetite</label>
+            <select id="popover-risk">
+                <option value="Conservative">Conservative</option>
+                <option value="Moderate" selected>Moderate</option>
+                <option value="Aggressive High-Beta">Aggressive High-Beta</option>
+            </select>
+        </div>
+
+        <div class="popover-divider"></div>
+
+        <!-- Section: Universe Data Engine Status (Collapsible) -->
+        <div class="popover-section-header popover-collapsible-header" id="popover-universe-toggle" style="cursor: pointer; user-select: none; display: flex; align-items: center; justify-content: space-between;">
+            <span style="display: flex; align-items: center; gap: 6px;">
+                🗄️ UNIVERSE STATUS
+            </span>
+            <div style="display: flex; align-items: center; gap: 8px;">
+                <button id="popover-rebalance-now-btn" class="rebalance-btn" title="Re-sync index constituents from NSE" style="background: rgba(59, 130, 246, 0.2); color: #38bdf8; border: 1px solid rgba(59, 130, 246, 0.4); border-radius: 4px; padding: 2px 10px; font-size: 10px; font-weight: 700; cursor: pointer; transition: all 0.2s;">↻ SYNC</button>
+                <span id="popover-universe-arrow" style="font-size: 9px; color: var(--text-muted); transition: transform 0.25s ease;">▼</span>
+            </div>
+        </div>
+        <div id="popover-universe-content" class="popover-collapsible-content" style="display: block; margin-top: 8px;">
+            <div class="rebalancer-stats" style="display: flex; flex-direction: column; gap: 6px; background: rgba(0, 0, 0, 0.25); border: 1px solid var(--border-glass); border-radius: 8px; padding: 10px 12px; font-size: 11.5px;">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <span style="color: var(--text-secondary); font-size: 11px;">⏱️ Last Synced</span>
+                    <span id="popover-rebalance-last-ts" style="color: var(--color-primary, #38bdf8); font-family: monospace; font-weight: 600; font-size: 11px;">Loading…</span>
+                </div>
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <span style="color: var(--text-secondary); font-size: 11px;">📊 Universe</span>
+                    <span style="color: var(--text-primary); font-weight: 600; font-size: 11px;"><span id="popover-rebalance-universe-count">500</span> stocks</span>
+                </div>
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <span style="color: var(--text-secondary); font-size: 11px;">🔥 Cached</span>
+                    <span style="color: var(--text-primary); font-weight: 600; font-size: 11px;"><span id="popover-rebalance-cached-count">529</span> profiles</span>
+                </div>
+                <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--border-glass, rgba(255,255,255,0.08)); padding-top: 6px; margin-top: 2px;">
+                    <span style="color: var(--text-secondary); font-size: 11px; display: flex; align-items: center; gap: 5px;">🤖 AI Engine</span>
+                    <div style="display: flex; align-items: center; gap: 6px;">
+                        <span class="status-indicator" style="width: 7px; height: 7px; border-radius: 50%; background-color: #10b981; box-shadow: 0 0 6px #10b981; display: inline-block;"></span>
+                        <span id="popover-llm-status-label" style="color: #10b981; font-weight: 700; font-size: 11px;">Gemini Flash Latest</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="popover-divider"></div>
+
+        <!-- Section 2: Display & Workstation Preferences -->
+        <div class="popover-section-header">⚙️ WORKSTATION PREFERENCES</div>
+        <div class="popover-checkbox-row">
+            <label for="setting-logos-toggle">Show Company Logo</label>
+            <input type="checkbox" id="setting-logos-toggle" checked style="cursor:pointer; transform: scale(1.15);">
+        </div>
+        <div class="popover-checkbox-row">
+            <label for="setting-audio-toggle">Audio Signals</label>
+            <input type="checkbox" id="setting-audio-toggle" checked style="cursor:pointer; transform: scale(1.15);">
+        </div>
+        <div class="popover-checkbox-row">
+            <label for="setting-alerts-toggle">AI Background Alerts</label>
+            <input type="checkbox" id="setting-alerts-toggle" checked style="cursor:pointer; transform: scale(1.15);">
+        </div>
+        <div class="popover-field" style="margin-top: 6px;">
+            <label for="setting-refresh-interval">Refresh Cycle</label>
+            <select id="setting-refresh-interval">
+                <option value="manual">Manual only</option>
+                <option value="60s">60s interval</option>
+                <option value="300s" selected>5m interval</option>
+            </select>
+        </div>
+        <div class="popover-field">
+            <label for="setting-theme-accent">Visual Theme</label>
+            <select id="setting-theme-accent" onchange="window.setWorkstationAccent && window.setWorkstationAccent(this.value)">
+                <optgroup label="Classic & Corporate">
+                    <option value="classic" selected>💎 Apex Classic</option>
+                    <option value="bloomberg">🏛️ Bloomberg Amber</option>
+                    <option value="github-dark">🐙 GitHub Dark</option>
+                    <option value="one-dark">🔷 One Dark Pro</option>
+                    <option value="azure-midnight">☁️ Azure Midnight</option>
+                    <option value="jetbrains-dark">💻 JetBrains Dark</option>
+                    <option value="vercel-dark">⚡ Vercel Dark</option>
+                    <option value="paytm-money">💰 Paytm Money</option>
+                </optgroup>
+                <optgroup label="High-Aesthetic & Modern">
+                    <option value="slate-quantitative">📈 Slate Quantitative</option>
+                    <option value="tokyo-night">🗼 Tokyo Night</option>
+                    <option value="dracula">🧛 Dracula Dark</option>
+                    <option value="cyberpunk">🌌 Cyberpunk Neon</option>
+                    <option value="ayu-mirage">🎨 Ayu Mirage</option>
+                </optgroup>
+                <optgroup label="Premium Accents">
+                    <option value="obsidian-gold">🪙 Obsidian Gold</option>
+                    <option value="forest-nocturnal">🌲 Forest Nocturnal</option>
+                    <option value="nord-ice">❄️ Nord Ice</option>
+                    <option value="solarized-paper">☀️ Solarized Paper</option>
+                    <option value="alabaster-dark">🥛 Alabaster Dark</option>
+                </optgroup>
+                <optgroup label="Light Themes">
+                    <option value="light">🕊️ Alabaster Day</option>
+                    <option value="geist-light">⚡ Geist Light</option>
+                    <option value="nord-light">❄️ Nord Light</option>
+                    <option value="solarized-light">☀️ Solarized Light</option>
+                    <option value="github-light">🐙 GitHub Light</option>
+                </optgroup>
+            </select>
+        </div>
+        <div class="popover-field">
+            <label for="setting-typography-preset">Typography Mode</label>
+            <select id="setting-typography-preset" onchange="window.setTypographyPreset && window.setTypographyPreset(this.value)">
+                <option value="modern" selected>📐 Apex Modern</option>
+                <option value="terminal">🏛️ Institutional</option>
+                <option value="developer">💻 Quantitative</option>
+                <option value="paytm">💳 Paytm Clean (Roboto)</option>
+            </select>
+        </div>
+        <div class="popover-checkbox-row">
+            <label for="setting-security-shield-toggle">Portfolio Shield</label>
+            <input type="checkbox" id="setting-security-shield-toggle" checked style="cursor:pointer; transform: scale(1.15);">
+        </div>
+        <div class="popover-field" style="margin-top: 6px;">
+            <label for="setting-search-horizon">Search Horizon</label>
+            <select id="setting-search-horizon">
+                <option value="1d">Past 24 Hours</option>
+                <option value="7d" selected>Past 1 Week</option>
+                <option value="14d">Past 2 Weeks</option>
+                <option value="30d">Past 1 Month</option>
+            </select>
+        </div>
+        <div class="popover-field" style="margin-top: 6px;">
+            <label for="screener-session-cookie">Screener.in Cookie</label>
+            <div style="display: flex; gap: 6px; width: 100%;">
+                <input type="password" id="screener-session-cookie" placeholder="sessionid cookie value" style="flex-grow: 1; background: rgba(0,0,0,0.3); color: var(--text-primary); border: 1px solid var(--border-glass); border-radius: 4px; padding: 4px 8px; font-size: 10.5px; height: 26px; outline: none; box-sizing: border-box;">
+                <button id="save-screener-cookie-btn" style="background: var(--color-primary); color: white; border: none; border-radius: 4px; padding: 0 10px; font-size: 10px; font-weight: 700; cursor: pointer; height: 26px;">Save</button>
+            </div>
+        </div>
+
+        <div class="popover-divider"></div>
+
+        <!-- Section: PDF Report Sections (Collapsible) -->
+        <div class="popover-section-header popover-collapsible-header" id="popover-pdf-sections-toggle" style="cursor: pointer; user-select: none; display: flex; align-items: center; justify-content: space-between;">
+            <span style="display: flex; align-items: center; gap: 6px;">
+                📄 PDF REPORT SECTIONS
+            </span>
+            <span id="popover-pdf-sections-arrow" style="font-size: 9px; color: var(--text-muted); transition: transform 0.25s ease;">▼</span>
+        </div>
+        <div id="popover-pdf-sections-content" class="popover-collapsible-content" style="display: block; margin-top: 8px;">
+            <div style="display: flex; flex-direction: column; gap: 6px; background: rgba(0, 0, 0, 0.25); border: 1px solid var(--border-glass); border-radius: 8px; padding: 10px 12px; font-size: 11.5px; max-height: 220px; overflow-y: auto;">
+                <label class="pdf-checklist-item" style="display: flex; align-items: center; gap: 8px; cursor: pointer; color: var(--text-secondary); font-size: 11px;">
+                    <input type="checkbox" class="print-toggle" data-target="tech-timing-card" style="cursor: pointer;"> Technical Timing & SMAs
+                </label>
+                <label class="pdf-checklist-item" style="display: flex; align-items: center; gap: 8px; cursor: pointer; color: var(--text-secondary); font-size: 11px;">
+                    <input type="checkbox" class="print-toggle" data-target="tech-fib-card" checked style="cursor: pointer;"> Technical Fibonacci Levels
+                </label>
+                <label class="pdf-checklist-item" style="display: flex; align-items: center; gap: 8px; cursor: pointer; color: var(--text-secondary); font-size: 11px;">
+                    <input type="checkbox" class="print-toggle" data-target="tech-volatility-card" checked style="cursor: pointer;"> Volatility & Momentum
+                </label>
+                <label class="pdf-checklist-item" style="display: flex; align-items: center; gap: 8px; cursor: pointer; color: var(--text-secondary); font-size: 11px;">
+                    <input type="checkbox" class="print-toggle" data-target="volume-dynamics-card" checked style="cursor: pointer;"> Price Volume Dynamics
+                </label>
+                <label class="pdf-checklist-item" style="display: flex; align-items: center; gap: 8px; cursor: pointer; color: var(--text-secondary); font-size: 11px;">
+                    <input type="checkbox" class="print-toggle" data-target="drawdown-card" style="cursor: pointer;"> Peak-to-Trough Drawdown
+                </label>
+                <label class="pdf-checklist-item" style="display: flex; align-items: center; gap: 8px; cursor: pointer; color: var(--text-secondary); font-size: 11px;">
+                    <input type="checkbox" class="print-toggle" data-target="sandbox-card" checked style="cursor: pointer;"> DCF Intrinsic Valuation
+                </label>
+                <label class="pdf-checklist-item" style="display: flex; align-items: center; gap: 8px; cursor: pointer; color: var(--text-secondary); font-size: 11px;">
+                    <input type="checkbox" class="print-toggle" data-target="historical-bands-card" checked style="cursor: pointer;"> Historical Valuation Bands
+                </label>
+                <label class="pdf-checklist-item" style="display: flex; align-items: center; gap: 8px; cursor: pointer; color: var(--text-secondary); font-size: 11px;">
+                    <input type="checkbox" class="print-toggle" data-target="consensus-comparator-card" checked style="cursor: pointer;"> Consensus Analyst Estimates
+                </label>
+                <label class="pdf-checklist-item" style="display: flex; align-items: center; gap: 8px; cursor: pointer; color: var(--text-secondary); font-size: 11px;">
+                    <input type="checkbox" class="print-toggle" data-target="peers-card" checked style="cursor: pointer;"> Peer Benchmarking
+                </label>
+                <label class="pdf-checklist-item" style="display: flex; align-items: center; gap: 8px; cursor: pointer; color: var(--text-secondary); font-size: 11px;">
+                    <input type="checkbox" class="print-toggle" data-target="shareholding-card" checked style="cursor: pointer;"> Shareholding & Ownership
+                </label>
+                <label class="pdf-checklist-item" style="display: flex; align-items: center; gap: 8px; cursor: pointer; color: var(--text-secondary); font-size: 11px;">
+                    <input type="checkbox" class="print-toggle" data-target="earnings-quality-card" checked style="cursor: pointer;"> Earnings Quality & Solvency
+                </label>
+                <label class="pdf-checklist-item" style="display: flex; align-items: center; gap: 8px; cursor: pointer; color: var(--text-secondary); font-size: 11px;">
+                    <input type="checkbox" class="print-toggle" data-target="strategical-audit-card" style="cursor: pointer;"> Multi-Agent Strategy Audit
+                </label>
+            </div>
+        </div>
+
+        <div class="popover-divider"></div>
+
+        <!-- Section 3: Market Resources Dropdown List -->
+        <div class="popover-section-header">🔗 MARKET RESOURCES LIST</div>
+        <div class="popover-field">
+            <select id="popover-market-resources-select" onchange="if(this.value){ window.open(this.value, '_blank'); this.selectedIndex=0; }">
+                <option value="" selected disabled>-- Select Market Resource Portal --</option>
+                <option value="https://www.moneycontrol.com/markets/technical-trends/?tab=uptrend&trend=bullish&index=NIFTY%20500&indexId=7&ex=N">📈 Bullish Technical Trends (Moneycontrol)</option>
+                <option value="https://www.moneycontrol.com/stocksmarketsindia/heat-map-advance-decline-ratio-nse-bse">🔥 NSE/BSE Market Heatmap (Moneycontrol)</option>
+                <option value="https://www.screener.in">💼 Screener.in Financial Portal (Screener)</option>
+                <option value="https://www.nseindia.com">🏛️ NSE India Official Terminal (NSE)</option>
+                <option value="https://www.bseindia.com">📊 BSE India Market Data (BSE)</option>
+                <option value="https://economictimes.indiatimes.com/markets">📰 Economic Times Markets (ET Markets)</option>
+                <option value="https://trendlyne.com">⚡ Trendlyne Super Screener (Trendlyne)</option>
+                <option value="https://chartink.com">🎯 Chartink Technical Scans (Chartink)</option>
+            </select>
+        </div>
+    </div>
     <div id="network-offline-banner" class="network-offline-banner">
         <span class="network-offline-dot"></span>
         <span>Network Connection Lost. Using cached data offline.</span>
@@ -351,21 +597,48 @@
     </div>
 
     <script>
-        window.toggleDesktopProfilePopover = window.toggleDesktopProfilePopover || function(e) {
+        window.toggleDesktopProfilePopover = function(e) {
             if (e) {
                 if (e.stopPropagation) e.stopPropagation();
                 if (e.preventDefault) e.preventDefault();
             }
             var pop = document.getElementById('desktop-profile-popover');
-            if (pop) {
-                var currentDisp = window.getComputedStyle(pop).display;
-                if (currentDisp === 'none' || pop.style.display === 'none') {
-                    pop.style.display = 'block';
+            if (!pop) return;
+            var computed = window.getComputedStyle(pop).display;
+            var isHidden = pop.style.display === 'none' || computed === 'none';
+            if (isHidden) {
+                if (window.innerWidth > 992) {
+                    var btn = document.getElementById('desktop-profile-btn');
+                    if (btn) {
+                        var rect = btn.getBoundingClientRect();
+                        pop.style.position = 'fixed';
+                        pop.style.top = (rect.bottom + 8) + 'px';
+                        pop.style.right = Math.max(12, (window.innerWidth - rect.right)) + 'px';
+                        pop.style.left = 'auto';
+                    }
                 } else {
-                    pop.style.display = 'none';
+                    pop.style.position = 'fixed';
+                    pop.style.top = '54px';
+                    pop.style.right = '8px';
+                    pop.style.left = '8px';
                 }
+                pop.style.display = 'block';
+            } else {
+                pop.style.display = 'none';
             }
         };
+
+        window.addEventListener('resize', function() {
+            var pop = document.getElementById('desktop-profile-popover');
+            if (pop && pop.style.display === 'block' && window.innerWidth > 992) {
+                var btn = document.getElementById('desktop-profile-btn');
+                if (btn) {
+                    var rect = btn.getBoundingClientRect();
+                    pop.style.top = (rect.bottom + 8) + 'px';
+                    pop.style.right = Math.max(12, (window.innerWidth - rect.right)) + 'px';
+                }
+            }
+        });
     </script>
 
     <!-- Desktop Header & Horizontal Navigation Bar (Desktop View Only > 992px) -->
@@ -432,17 +705,6 @@
                 <div class="header-bell-wrapper" id="header-bell-btn-desktop" title="View Institutional Alerts" style="position: relative;" onclick="window.toggleNotificationDropdown && window.toggleNotificationDropdown(event)">
                     <span class="bell-icon">🔔</span>
                     <span class="bell-badge" id="bell-badge-count-desktop" style="display: none;">0</span>
-
-                    <!-- Bell dropdown panel -->
-                    <div class="header-dropdown notification-dropdown" id="notification-dropdown-panel" style="display: none;">
-                        <div class="dropdown-header">
-                            <span>🔔 INSTITUTIONAL ALERTS</span>
-                            <button id="clear-all-alerts-btn" class="clear-alerts-btn">CLEAR ALL</button>
-                        </div>
-                        <div class="dropdown-body" id="notification-list-body">
-                            <div style="font-size:10px; color:var(--text-muted); padding:20px; text-align:center;">No new system notifications.</div>
-                        </div>
-                    </div>
                 </div>
 
                 <div class="quick-theme-pill" id="quick-theme-segmented-toggle" title="Switch Theme Mode">
@@ -460,231 +722,7 @@
                         </div>
                         <span class="dropdown-arrow">▼</span>
                     </button>
-                    
-                    <!-- Popover Dropdown -->
-                    <div id="desktop-profile-popover" class="desktop-profile-card" style="display: none;">
-                        <!-- Section 1: Investor Profile -->
-                        <div class="popover-section-header">👤 INVESTOR PROFILE & RISK</div>
-                        <div class="popover-field">
-                            <label for="popover-horizon">Investment Horizon</label>
-                            <select id="popover-horizon">
-                                <option value="Short-term (< 1 year)">Short-term (&lt; 1 year)</option>
-                                <option value="Medium-term (1-3 years)">Medium-term (1-3 years)</option>
-                                <option value="Long-term (3+ years)" selected>Long-term (3+ years)</option>
-                            </select>
-                        </div>
-                        <div class="popover-field">
-                            <label for="popover-strategy">Investment Strategy</label>
-                            <select id="popover-strategy">
-                                <option value="Growth Capitalization" selected>Growth Capitalization</option>
-                                <option value="Value & Margin of Safety">Value &amp; Margin of Safety</option>
-                                <option value="Quantitative Momentum">Quantitative Momentum</option>
-                                <option value="Dividend Yield & Income">Dividend Yield &amp; Income</option>
-                            </select>
-                        </div>
-                        <div class="popover-field">
-                            <label for="popover-risk">Risk Appetite</label>
-                            <select id="popover-risk">
-                                <option value="Conservative">Conservative</option>
-                                <option value="Moderate" selected>Moderate</option>
-                                <option value="Aggressive High-Beta">Aggressive High-Beta</option>
-                            </select>
-                        </div>
-
-                        <div class="popover-divider"></div>
-
-                        <!-- Section: Universe Data Engine Status (Collapsible) -->
-                        <div class="popover-section-header popover-collapsible-header" id="popover-universe-toggle" style="cursor: pointer; user-select: none; display: flex; align-items: center; justify-content: space-between;">
-                            <span style="display: flex; align-items: center; gap: 6px;">
-                                🗄️ UNIVERSE STATUS
-                            </span>
-                            <div style="display: flex; align-items: center; gap: 8px;">
-                                <button id="popover-rebalance-now-btn" class="rebalance-btn" title="Re-sync index constituents from NSE" style="background: rgba(59, 130, 246, 0.2); color: #38bdf8; border: 1px solid rgba(59, 130, 246, 0.4); border-radius: 4px; padding: 2px 10px; font-size: 10px; font-weight: 700; cursor: pointer; transition: all 0.2s;">↻ SYNC</button>
-                                <span id="popover-universe-arrow" style="font-size: 9px; color: var(--text-muted); transition: transform 0.25s ease;">▼</span>
-                            </div>
-                        </div>
-                        <div id="popover-universe-content" class="popover-collapsible-content" style="display: block; margin-top: 8px;">
-                            <div class="rebalancer-stats" style="display: flex; flex-direction: column; gap: 6px; background: rgba(0, 0, 0, 0.25); border: 1px solid var(--border-glass); border-radius: 8px; padding: 10px 12px; font-size: 11.5px;">
-                                <div style="display: flex; justify-content: space-between; align-items: center;">
-                                    <span style="color: var(--text-secondary); font-size: 11px;">⏱️ Last Synced</span>
-                                    <span id="popover-rebalance-last-ts" style="color: var(--color-primary, #38bdf8); font-family: monospace; font-weight: 600; font-size: 11px;">Loading…</span>
-                                </div>
-                                <div style="display: flex; justify-content: space-between; align-items: center;">
-                                    <span style="color: var(--text-secondary); font-size: 11px;">📊 Universe</span>
-                                    <span style="color: var(--text-primary); font-weight: 600; font-size: 11px;"><span id="popover-rebalance-universe-count">500</span> stocks</span>
-                                </div>
-                                <div style="display: flex; justify-content: space-between; align-items: center;">
-                                    <span style="color: var(--text-secondary); font-size: 11px;">🔥 Cached</span>
-                                    <span style="color: var(--text-primary); font-weight: 600; font-size: 11px;"><span id="popover-rebalance-cached-count">529</span> profiles</span>
-                                </div>
-                                <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--border-glass, rgba(255,255,255,0.08)); padding-top: 6px; margin-top: 2px;">
-                                    <span style="color: var(--text-secondary); font-size: 11px; display: flex; align-items: center; gap: 5px;">🤖 AI Engine</span>
-                                    <div style="display: flex; align-items: center; gap: 6px;">
-                                        <span class="status-indicator" style="width: 7px; height: 7px; border-radius: 50%; background-color: #10b981; box-shadow: 0 0 6px #10b981; display: inline-block;"></span>
-                                        <span id="popover-llm-status-label" style="color: #10b981; font-weight: 700; font-size: 11px;">Gemini Flash Latest</span>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="popover-divider"></div>
-
-                        <!-- Section 2: Display & Workstation Preferences -->
-                        <div class="popover-section-header">⚙️ WORKSTATION PREFERENCES</div>
-                        <div class="popover-checkbox-row">
-                            <label for="setting-logos-toggle">Show Company Logo</label>
-                            <input type="checkbox" id="setting-logos-toggle" checked style="cursor:pointer; transform: scale(1.15);">
-                        </div>
-                        <div class="popover-checkbox-row">
-                            <label for="setting-audio-toggle">Audio Signals</label>
-                            <input type="checkbox" id="setting-audio-toggle" checked style="cursor:pointer; transform: scale(1.15);">
-                        </div>
-                        <div class="popover-checkbox-row">
-                            <label for="setting-alerts-toggle">AI Background Alerts</label>
-                            <input type="checkbox" id="setting-alerts-toggle" checked style="cursor:pointer; transform: scale(1.15);">
-                        </div>
-                        <div class="popover-field" style="margin-top: 6px;">
-                            <label for="setting-refresh-interval">Refresh Cycle</label>
-                            <select id="setting-refresh-interval">
-                                <option value="manual">Manual only</option>
-                                <option value="60s">60s interval</option>
-                                <option value="300s" selected>5m interval</option>
-                            </select>
-                        </div>
-                        <div class="popover-field">
-                            <label for="setting-theme-accent">Visual Theme</label>
-                            <select id="setting-theme-accent" onchange="window.setWorkstationAccent && window.setWorkstationAccent(this.value)">
-                                <optgroup label="Classic & Corporate">
-                                    <option value="classic" selected>💎 Apex Classic</option>
-                                    <option value="bloomberg">🏛️ Bloomberg Amber</option>
-                                    <option value="github-dark">🐙 GitHub Dark</option>
-                                    <option value="one-dark">🔷 One Dark Pro</option>
-                                    <option value="azure-midnight">☁️ Azure Midnight</option>
-                                    <option value="jetbrains-dark">💻 JetBrains Dark</option>
-                                    <option value="vercel-dark">⚡ Vercel Dark</option>
-                                    <option value="paytm-money">💰 Paytm Money</option>
-                                </optgroup>
-                                <optgroup label="High-Aesthetic & Modern">
-                                    <option value="slate-quantitative">📈 Slate Quantitative</option>
-                                    <option value="tokyo-night">🗼 Tokyo Night</option>
-                                    <option value="dracula">🧛 Dracula Dark</option>
-                                    <option value="cyberpunk">🌌 Cyberpunk Neon</option>
-                                    <option value="ayu-mirage">🎨 Ayu Mirage</option>
-                                </optgroup>
-                                <optgroup label="Premium Accents">
-                                    <option value="obsidian-gold">🪙 Obsidian Gold</option>
-                                    <option value="forest-nocturnal">🌲 Forest Nocturnal</option>
-                                    <option value="nord-ice">❄️ Nord Ice</option>
-                                    <option value="solarized-paper">☀️ Solarized Paper</option>
-                                    <option value="alabaster-dark">🥛 Alabaster Dark</option>
-                                </optgroup>
-                                <optgroup label="Light Themes">
-                                    <option value="light">🕊️ Alabaster Day</option>
-                                    <option value="geist-light">⚡ Geist Light</option>
-                                    <option value="nord-light">❄️ Nord Light</option>
-                                    <option value="solarized-light">☀️ Solarized Light</option>
-                                    <option value="github-light">🐙 GitHub Light</option>
-                                </optgroup>
-                            </select>
-                        </div>
-                        <div class="popover-field">
-                            <label for="setting-typography-preset">Typography Mode</label>
-                            <select id="setting-typography-preset" onchange="window.setTypographyPreset && window.setTypographyPreset(this.value)">
-                                <option value="modern" selected>📐 Apex Modern</option>
-                                <option value="terminal">🏛️ Institutional</option>
-                                <option value="developer">💻 Quantitative</option>
-                                <option value="paytm">💳 Paytm Clean (Roboto)</option>
-                            </select>
-                        </div>
-                        <div class="popover-checkbox-row">
-                            <label for="setting-security-shield-toggle">Portfolio Shield</label>
-                            <input type="checkbox" id="setting-security-shield-toggle" checked style="cursor:pointer; transform: scale(1.15);">
-                        </div>
-                        <div class="popover-field" style="margin-top: 6px;">
-                            <label for="setting-search-horizon">Search Horizon</label>
-                            <select id="setting-search-horizon">
-                                <option value="1d">Past 24 Hours</option>
-                                <option value="7d" selected>Past 1 Week</option>
-                                <option value="14d">Past 2 Weeks</option>
-                                <option value="30d">Past 1 Month</option>
-                            </select>
-                        </div>
-                        <div class="popover-field" style="margin-top: 6px;">
-                            <label for="screener-session-cookie">Screener.in Cookie</label>
-                            <div style="display: flex; gap: 6px; width: 100%;">
-                                <input type="password" id="screener-session-cookie" placeholder="sessionid cookie value" style="flex-grow: 1; background: rgba(0,0,0,0.3); color: var(--text-primary); border: 1px solid var(--border-glass); border-radius: 4px; padding: 4px 8px; font-size: 10.5px; height: 26px; outline: none; box-sizing: border-box;">
-                                <button id="save-screener-cookie-btn" style="background: var(--color-primary); color: white; border: none; border-radius: 4px; padding: 0 10px; font-size: 10px; font-weight: 700; cursor: pointer; height: 26px;">Save</button>
-                            </div>
-                        </div>
-
-                        <div class="popover-divider"></div>
-
-                        <!-- Section: PDF Report Sections (Collapsible) -->
-                        <div class="popover-section-header popover-collapsible-header" id="popover-pdf-sections-toggle" style="cursor: pointer; user-select: none; display: flex; align-items: center; justify-content: space-between;">
-                            <span style="display: flex; align-items: center; gap: 6px;">
-                                📄 PDF REPORT SECTIONS
-                            </span>
-                            <span id="popover-pdf-sections-arrow" style="font-size: 9px; color: var(--text-muted); transition: transform 0.25s ease;">▼</span>
-                        </div>
-                        <div id="popover-pdf-sections-content" class="popover-collapsible-content" style="display: block; margin-top: 8px;">
-                            <div style="display: flex; flex-direction: column; gap: 6px; background: rgba(0, 0, 0, 0.25); border: 1px solid var(--border-glass); border-radius: 8px; padding: 10px 12px; font-size: 11.5px; max-height: 220px; overflow-y: auto;">
-                                <label class="pdf-checklist-item" style="display: flex; align-items: center; gap: 8px; cursor: pointer; color: var(--text-secondary); font-size: 11px;">
-                                    <input type="checkbox" class="print-toggle" data-target="tech-timing-card" style="cursor: pointer;"> Technical Timing & SMAs
-                                </label>
-                                <label class="pdf-checklist-item" style="display: flex; align-items: center; gap: 8px; cursor: pointer; color: var(--text-secondary); font-size: 11px;">
-                                    <input type="checkbox" class="print-toggle" data-target="tech-fib-card" checked style="cursor: pointer;"> Technical Fibonacci Levels
-                                </label>
-                                <label class="pdf-checklist-item" style="display: flex; align-items: center; gap: 8px; cursor: pointer; color: var(--text-secondary); font-size: 11px;">
-                                    <input type="checkbox" class="print-toggle" data-target="tech-volatility-card" checked style="cursor: pointer;"> Volatility & Momentum
-                                </label>
-                                <label class="pdf-checklist-item" style="display: flex; align-items: center; gap: 8px; cursor: pointer; color: var(--text-secondary); font-size: 11px;">
-                                    <input type="checkbox" class="print-toggle" data-target="volume-dynamics-card" checked style="cursor: pointer;"> Price Volume Dynamics
-                                </label>
-                                <label class="pdf-checklist-item" style="display: flex; align-items: center; gap: 8px; cursor: pointer; color: var(--text-secondary); font-size: 11px;">
-                                    <input type="checkbox" class="print-toggle" data-target="drawdown-card" style="cursor: pointer;"> Peak-to-Trough Drawdown
-                                </label>
-                                <label class="pdf-checklist-item" style="display: flex; align-items: center; gap: 8px; cursor: pointer; color: var(--text-secondary); font-size: 11px;">
-                                    <input type="checkbox" class="print-toggle" data-target="sandbox-card" checked style="cursor: pointer;"> DCF Intrinsic Valuation
-                                </label>
-                                <label class="pdf-checklist-item" style="display: flex; align-items: center; gap: 8px; cursor: pointer; color: var(--text-secondary); font-size: 11px;">
-                                    <input type="checkbox" class="print-toggle" data-target="historical-bands-card" checked style="cursor: pointer;"> Historical Valuation Bands
-                                </label>
-                                <label class="pdf-checklist-item" style="display: flex; align-items: center; gap: 8px; cursor: pointer; color: var(--text-secondary); font-size: 11px;">
-                                    <input type="checkbox" class="print-toggle" data-target="consensus-comparator-card" checked style="cursor: pointer;"> Consensus Analyst Estimates
-                                </label>
-                                <label class="pdf-checklist-item" style="display: flex; align-items: center; gap: 8px; cursor: pointer; color: var(--text-secondary); font-size: 11px;">
-                                    <input type="checkbox" class="print-toggle" data-target="peers-card" checked style="cursor: pointer;"> Peer Benchmarking
-                                </label>
-                                <label class="pdf-checklist-item" style="display: flex; align-items: center; gap: 8px; cursor: pointer; color: var(--text-secondary); font-size: 11px;">
-                                    <input type="checkbox" class="print-toggle" data-target="shareholding-card" checked style="cursor: pointer;"> Shareholding & Ownership
-                                </label>
-                                <label class="pdf-checklist-item" style="display: flex; align-items: center; gap: 8px; cursor: pointer; color: var(--text-secondary); font-size: 11px;">
-                                    <input type="checkbox" class="print-toggle" data-target="earnings-quality-card" checked style="cursor: pointer;"> Earnings Quality & Solvency
-                                </label>
-                                <label class="pdf-checklist-item" style="display: flex; align-items: center; gap: 8px; cursor: pointer; color: var(--text-secondary); font-size: 11px;">
-                                    <input type="checkbox" class="print-toggle" data-target="strategical-audit-card" style="cursor: pointer;"> Multi-Agent Strategy Audit
-                                </label>
-                            </div>
-                        </div>
-
-                        <div class="popover-divider"></div>
-
-                        <!-- Section 3: Market Resources Dropdown List -->
-                        <div class="popover-section-header">🔗 MARKET RESOURCES LIST</div>
-                        <div class="popover-field">
-                            <select id="popover-market-resources-select" onchange="if(this.value){ window.open(this.value, '_blank'); this.selectedIndex=0; }">
-                                <option value="" selected disabled>-- Select Market Resource Portal --</option>
-                                <option value="https://www.moneycontrol.com/markets/technical-trends/?tab=uptrend&trend=bullish&index=NIFTY%20500&indexId=7&ex=N">📈 Bullish Technical Trends (Moneycontrol)</option>
-                                <option value="https://www.moneycontrol.com/stocksmarketsindia/heat-map-advance-decline-ratio-nse-bse">🔥 NSE/BSE Market Heatmap (Moneycontrol)</option>
-                                <option value="https://www.screener.in">💼 Screener.in Financial Portal (Screener)</option>
-                                <option value="https://www.nseindia.com">🏛️ NSE India Official Terminal (NSE)</option>
-                                <option value="https://www.bseindia.com">📊 BSE India Market Data (BSE)</option>
-                                <option value="https://economictimes.indiatimes.com/markets">📰 Economic Times Markets (ET Markets)</option>
-                                <option value="https://trendlyne.com">⚡ Trendlyne Super Screener (Trendlyne)</option>
-                                <option value="https://chartink.com">🎯 Chartink Technical Scans (Chartink)</option>
-                            </select>
-                        </div>
-                    </div>
+                </div>
 
                 </div>
             </div>

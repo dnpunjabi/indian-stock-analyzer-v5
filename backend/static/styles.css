@@ -972,7 +972,15 @@ h1, h2, h3, h4, h5 {
         transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
         box-shadow: 4px 0 24px rgba(0, 0, 0, 0.2);
         overflow-y: auto;
-    }
+}
+
+/* Hide redundant profile, universe status, PDF config cards, and LLM connection status from mobile sidebar drawer (consolidated in Pro Trader Settings Popover) */
+#profile-sidebar-card,
+#rebalancer-status-card,
+#pdf-config-sidebar-card,
+.sidebar-footer,
+#llm-connection-status {
+    display: none !important;
 }
 
 .logo-area {
@@ -4933,9 +4941,7 @@ body.chat-drawer-active {
 
 /* Header Utilities Cog and Bell */
 .header-utils {
-    display: flex;
-    align-items: center;
-    gap: 12px;
+    display: none !important;
 }
 
 .header-bell-wrapper, .header-settings-wrapper, .header-links-wrapper, .header-chat-wrapper {
@@ -12706,8 +12712,7 @@ tr.active-peer-row td:first-child {
         box-sizing: border-box;
     }
     .header-utils {
-        width: 100%;
-        justify-content: flex-end;
+        display: none !important;
     }
     #tv-advanced-card {
         min-height: 480px !important;
@@ -22502,29 +22507,27 @@ body.light-mode #returns-matrix-tbody tr:hover {
         color: var(--color-primary, #00f2fe) !important;
     }
 
+    /* ==================== DESKTOP & SHARED PRO PROFILE POPOVER ==================== */
     .desktop-profile-card {
-        position: absolute !important;
-        right: 0 !important;
-        top: calc(100% + 8px) !important;
+        position: fixed !important;
+        right: 16px !important;
+        top: 70px !important;
         width: 380px !important;
         max-height: 82vh !important;
         overflow-y: auto !important;
         background: #0f172a !important;
-        backdrop-filter: blur(24px) !important;
-        -webkit-backdrop-filter: blur(24px) !important;
-        border: 1px solid rgba(var(--primary-rgb, 59, 130, 246), 0.35) !important;
+        background-color: #0f172a !important;
+        color: #f8fafc !important;
+        opacity: 1 !important;
+        backdrop-filter: none !important;
+        -webkit-backdrop-filter: none !important;
+        isolation: isolate !important;
+        border: 1px solid rgba(var(--primary-rgb, 59, 130, 246), 0.45) !important;
         border-radius: 14px !important;
-        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5), 0 0 20px rgba(var(--primary-rgb, 59, 130, 246), 0.15) !important;
+        box-shadow: 0 25px 60px rgba(0, 0, 0, 0.98), 0 0 25px rgba(var(--primary-rgb, 59, 130, 246), 0.2) !important;
         padding: 16px !important;
         z-index: 100000 !important;
         scrollbar-width: thin !important;
-    }
-
-    [data-mode="light"] .desktop-profile-card,
-    [data-theme="light"] .desktop-profile-card {
-        background: #ffffff !important;
-        border-color: rgba(var(--primary-rgb, 59, 130, 246), 0.2) !important;
-        box-shadow: 0 20px 40px rgba(15, 23, 42, 0.15), 0 0 20px rgba(var(--primary-rgb, 59, 130, 246), 0.08) !important;
     }
 
     .desktop-profile-card::-webkit-scrollbar {
@@ -22541,14 +22544,14 @@ body.light-mode #returns-matrix-tbody tr:hover {
         justify-content: space-between !important;
         font-size: 11px !important;
         padding: 4px 0 !important;
-        color: var(--text-primary) !important;
+        color: #e2e8f0 !important;
         font-weight: 500 !important;
     }
 
     .popover-section-header {
         font-size: 9.5px !important;
         font-weight: 800 !important;
-        color: var(--color-primary, #3b82f6) !important;
+        color: #38bdf8 !important;
         letter-spacing: 0.05em !important;
         margin-bottom: 8px !important;
     }
@@ -22560,38 +22563,136 @@ body.light-mode #returns-matrix-tbody tr:hover {
     .popover-field label {
         display: block !important;
         font-size: 10.5px !important;
-        color: var(--text-secondary) !important;
+        color: #cbd5e1 !important;
         margin-bottom: 4px !important;
         font-weight: 600 !important;
     }
 
     .popover-field select {
         width: 100% !important;
-        background: var(--bg-glass-input, rgba(0, 0, 0, 0.3)) !important;
-        border: 1px solid var(--border-glass, rgba(255, 255, 255, 0.1)) !important;
-        color: var(--text-primary) !important;
+        background: rgba(15, 23, 42, 0.9) !important;
+        border: 1px solid rgba(255, 255, 255, 0.15) !important;
+        color: #f8fafc !important;
         border-radius: 6px !important;
         padding: 5px 8px !important;
         font-size: 11px !important;
     }
 
-    [data-mode="light"] .popover-field select,
-    [data-theme="light"] .popover-field select {
-        background: var(--bg-glass-input, #f1f5f9) !important;
-        border-color: rgba(0, 0, 0, 0.12) !important;
-        color: var(--text-primary, #0f172a) !important;
-    }
-
-    [data-mode="light"] .popover-field select option,
-    [data-theme="light"] .popover-field select option {
-        background: #ffffff !important;
-        color: #0f172a !important;
+    .popover-field select option {
+        background: #0f172a !important;
+        color: #f8fafc !important;
     }
 
     .popover-divider {
         height: 1px !important;
-        background: var(--border-glass, rgba(255, 255, 255, 0.08)) !important;
+        background: rgba(255, 255, 255, 0.12) !important;
         margin: 10px 0 !important;
+    }
+
+    /* Light Mode Universal Theme Overrides for Popover */
+    [data-mode="light"] .desktop-profile-card,
+    [data-theme="light"] .desktop-profile-card,
+    [data-theme="geist-light"] .desktop-profile-card,
+    [data-theme="nord-light"] .desktop-profile-card,
+    [data-theme="solarized-light"] .desktop-profile-card,
+    [data-theme="github-light"] .desktop-profile-card,
+    body.light-mode .desktop-profile-card,
+    html.light-mode .desktop-profile-card {
+        background: #ffffff !important;
+        background-color: #ffffff !important;
+        color: #0f172a !important;
+        opacity: 1 !important;
+        backdrop-filter: none !important;
+        -webkit-backdrop-filter: none !important;
+        border: 1px solid rgba(203, 213, 225, 0.9) !important;
+        box-shadow: 0 25px 60px rgba(15, 23, 42, 0.25), 0 0 20px rgba(37, 99, 235, 0.12) !important;
+    }
+
+    [data-mode="light"] .popover-section-header,
+    [data-theme="light"] .popover-section-header,
+    [data-theme="geist-light"] .popover-section-header,
+    [data-theme="nord-light"] .popover-section-header,
+    [data-theme="solarized-light"] .popover-section-header,
+    [data-theme="github-light"] .popover-section-header,
+    body.light-mode .popover-section-header {
+        color: #1d4ed8 !important;
+    }
+
+    [data-mode="light"] .popover-field label,
+    [data-theme="light"] .popover-field label,
+    [data-theme="geist-light"] .popover-field label,
+    [data-theme="nord-light"] .popover-field label,
+    [data-theme="solarized-light"] .popover-field label,
+    [data-theme="github-light"] .popover-field label,
+    body.light-mode .popover-field label {
+        color: #334155 !important;
+    }
+
+    [data-mode="light"] .popover-checkbox-row label,
+    [data-theme="light"] .popover-checkbox-row label,
+    [data-mode="light"] .popover-checkbox-row,
+    [data-theme="light"] .popover-checkbox-row,
+    body.light-mode .popover-checkbox-row label {
+        color: #0f172a !important;
+    }
+
+    [data-mode="light"] .popover-field select,
+    [data-theme="light"] .popover-field select,
+    [data-theme="geist-light"] .popover-field select,
+    [data-theme="nord-light"] .popover-field select,
+    [data-theme="solarized-light"] .popover-field select,
+    [data-theme="github-light"] .popover-field select,
+    body.light-mode .popover-field select {
+        background: #ffffff !important;
+        border: 1px solid #cbd5e1 !important;
+        color: #0f172a !important;
+    }
+
+    [data-mode="light"] .popover-field select option,
+    [data-theme="light"] .popover-field select option,
+    body.light-mode .popover-field select option {
+        background: #ffffff !important;
+        color: #0f172a !important;
+    }
+
+    [data-mode="light"] .rebalancer-stats,
+    [data-theme="light"] .rebalancer-stats,
+    body.light-mode .rebalancer-stats {
+        background: #f1f5f9 !important;
+        border: 1px solid #e2e8f0 !important;
+        color: #0f172a !important;
+    }
+
+    [data-mode="light"] .rebalancer-stats span,
+    [data-theme="light"] .rebalancer-stats span,
+    body.light-mode .rebalancer-stats span {
+        color: #334155 !important;
+    }
+
+    [data-mode="light"] .rebalancer-stats strong,
+    [data-theme="light"] .rebalancer-stats strong,
+    body.light-mode .rebalancer-stats strong {
+        color: #0f172a !important;
+    }
+
+    [data-mode="light"] .pdf-checklist-item,
+    [data-theme="light"] .pdf-checklist-item,
+    body.light-mode .pdf-checklist-item {
+        color: #334155 !important;
+    }
+
+    [data-mode="light"] #screener-session-cookie,
+    [data-theme="light"] #screener-session-cookie,
+    body.light-mode #screener-session-cookie {
+        background: #ffffff !important;
+        border: 1px solid #cbd5e1 !important;
+        color: #0f172a !important;
+    }
+
+    [data-mode="light"] .popover-divider,
+    [data-theme="light"] .popover-divider,
+    body.light-mode .popover-divider {
+        background: rgba(0, 0, 0, 0.12) !important;
     }
 
     .popover-action-row {
@@ -23897,6 +23998,63 @@ body, .card, .desktop-header, .institutional-footer, .desktop-top-ticker-banner 
     #ws-connection-indicator {
         display: none !important;
     }
+
+    .desktop-profile-card {
+        position: fixed !important;
+        top: 54px !important;
+        right: 8px !important;
+        left: 8px !important;
+        width: auto !important;
+        max-width: 420px !important;
+        margin: 0 auto !important;
+        max-height: 85vh !important;
+        background: #0f172a !important;
+        background-color: #0f172a !important;
+        color: #f8fafc !important;
+        opacity: 1 !important;
+        backdrop-filter: none !important;
+        -webkit-backdrop-filter: none !important;
+        isolation: isolate !important;
+        z-index: 100000 !important;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.98), 0 0 25px rgba(245, 158, 11, 0.3) !important;
+    }
+
+    [data-mode="light"] .desktop-profile-card,
+    [data-theme="light"] .desktop-profile-card,
+    [data-theme="geist-light"] .desktop-profile-card,
+    [data-theme="nord-light"] .desktop-profile-card,
+    [data-theme="solarized-light"] .desktop-profile-card,
+    [data-theme="github-light"] .desktop-profile-card,
+    body.light-mode .desktop-profile-card,
+    html.light-mode .desktop-profile-card {
+        background: #ffffff !important;
+        background-color: #ffffff !important;
+        color: #0f172a !important;
+        box-shadow: 0 20px 60px rgba(15, 23, 42, 0.25), 0 0 25px rgba(37, 99, 235, 0.2) !important;
+    }
+}
+
+/* Mobile Pro Trader Institutional Settings Icon Button (Icon Only - Last in Row) */
+.mobile-pro-settings-icon {
+    background: linear-gradient(135deg, rgba(245, 158, 11, 0.22) 0%, rgba(236, 72, 153, 0.22) 100%) !important;
+    border: 1px solid rgba(245, 158, 11, 0.5) !important;
+    color: #fef08a !important;
+    box-shadow: 0 0 10px rgba(245, 158, 11, 0.25) !important;
+}
+
+.mobile-pro-settings-icon:hover,
+.mobile-pro-settings-icon:active {
+    background: linear-gradient(135deg, rgba(245, 158, 11, 0.38) 0%, rgba(236, 72, 153, 0.38) 100%) !important;
+    border-color: rgba(245, 158, 11, 0.85) !important;
+    box-shadow: 0 0 14px rgba(245, 158, 11, 0.45) !important;
+    transform: scale(1.08) !important;
+}
+
+[data-mode="light"] .mobile-pro-settings-icon,
+[data-theme="light"] .mobile-pro-settings-icon {
+    background: linear-gradient(135deg, rgba(245, 158, 11, 0.15) 0%, rgba(217, 70, 239, 0.15) 100%) !important;
+    border-color: rgba(217, 119, 6, 0.4) !important;
+    color: #9a3412 !important;
 }
 
 
