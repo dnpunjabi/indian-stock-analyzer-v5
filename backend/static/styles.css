@@ -17587,6 +17587,14 @@ select option {
 /* ==========================================================
    ENTERPRISE MOBILE APP UI STYLES (Screen size <= 768px)
    ========================================================== */
+@media (max-width: 992px) {
+    /* Hide Desktop-only Header & Footers */
+    .desktop-header,
+    .desktop-top-ticker-banner {
+        display: none !important;
+    }
+}
+
 @media (max-width: 768px) {
     /* Enable mobile elements */
     .mobile-header {
@@ -23796,12 +23804,86 @@ body, .card, .desktop-header, .institutional-footer, .desktop-top-ticker-banner 
     }
 }
 
-/* Hide Desktop Footers on Mobile & Tablet viewports (<= 1024px) */
+/* Hide Desktop Footers & Desktop Header on Mobile/Tablet viewports (<= 1024px) */
 @media (max-width: 1024px) {
     .institutional-footer,
     .main-footer,
-    .mega-footer {
+    .mega-footer,
+    .desktop-header,
+    .desktop-top-ticker-banner {
         display: none !important;
+    }
+}
+
+/* ==========================================================================
+   MARKET PULSE HERO BANNER BASE & MOBILE RESPONSIVE STYLES
+   ========================================================================== */
+.market-pulse-hero-banner {
+    margin-bottom: 24px;
+    border-radius: 16px;
+    background: linear-gradient(135deg, rgba(15, 23, 42, 0.95), rgba(30, 41, 59, 0.92), rgba(15, 23, 42, 0.95));
+    border: 1px solid rgba(56, 189, 248, 0.35);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    padding: 20px 24px;
+    box-shadow: 0 12px 32px -4px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+    position: relative;
+    overflow: hidden;
+    font-family: 'Outfit', 'Inter', sans-serif;
+    box-sizing: border-box;
+    width: 100%;
+}
+
+.market-pulse-hero-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    padding-bottom: 12px;
+    gap: 12px;
+}
+
+.market-pulse-hero-grid {
+    display: grid;
+    grid-template-columns: 240px 1fr 280px;
+    gap: 18px;
+    align-items: stretch;
+}
+
+#quant-banner-alpha-cards {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+}
+
+@media (max-width: 992px) {
+    .market-pulse-hero-banner {
+        padding: 14px 16px !important;
+        border-radius: 14px !important;
+        margin-bottom: 16px !important;
+    }
+
+    .market-pulse-hero-header {
+        flex-wrap: wrap !important;
+        gap: 8px !important;
+    }
+
+    .market-pulse-hero-grid {
+        grid-template-columns: 1fr !important;
+        gap: 14px !important;
+    }
+
+    #quant-banner-alpha-cards {
+        grid-template-columns: 1fr !important;
+        gap: 10px !important;
+    }
+}
+
+@media (max-width: 576px) {
+    .market-pulse-hero-banner {
+        padding: 12px !important;
+        border-radius: 12px !important;
     }
 }
 
