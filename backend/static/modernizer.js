@@ -1720,102 +1720,7 @@
             if (isMobile()) handleSwipeGesture(e);
         }, { passive: true });
 
-        // 3. Pull-To-Refresh Gestures
-        let pullStartX = 0;
-        let pullStartY = 0;
-        let isPulling = false;
-        let activePullContainer = null;
-        let pullIndicator = null;
-
-        function initPullToRefresh() {
-            if (!isMobile()) return;
-            pullIndicator = document.querySelector('.pull-to-refresh-indicator');
-            if (!pullIndicator) {
-                pullIndicator = document.createElement('div');
-                pullIndicator.className = 'pull-to-refresh-indicator';
-                pullIndicator.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg>`;
-                document.body.appendChild(pullIndicator);
-            }
-
-            document.addEventListener('touchstart', e => {
-                if (!isMobile()) return;
-                const targetContainer = e.target.closest('#watchlist-items-card, #portfolio-doctor-card, #movers-grid');
-                if (!targetContainer) return;
-
-                const scrollContainer = targetContainer.closest('.data-table-wrapper, .watchlist-scroll-wrapper, body');
-                if (scrollContainer && scrollContainer.scrollTop > 5) return;
-                if (window.scrollY > 5) return;
-
-                pullStartX = e.touches[0].clientX;
-                pullStartY = e.touches[0].clientY;
-                activePullContainer = targetContainer;
-                isPulling = false;
-            }, { passive: true });
-
-            document.addEventListener('touchmove', e => {
-                if (!activePullContainer || !pullIndicator) return;
-                const currentY = e.touches[0].clientY;
-                const currentX = e.touches[0].clientX;
-                const diffY = currentY - pullStartY;
-                const diffX = currentX - pullStartX;
-
-                if (diffY > 10 && Math.abs(diffY) > Math.abs(diffX) * 1.5) {
-                    isPulling = true;
-                    const pullDist = Math.min(diffY * 0.4, 75);
-                    pullIndicator.style.opacity = Math.min(pullDist / 40, 1);
-                    pullIndicator.style.transform = `translateX(-50%) translateY(${pullDist}px)`;
-                    
-                    const rotate = pullDist * 5;
-                    const spinner = pullIndicator.querySelector('svg');
-                    if (spinner) spinner.style.transform = `rotate(${rotate}deg)`;
-                }
-            }, { passive: true });
-
-            document.addEventListener('touchend', async e => {
-                if (!activePullContainer || !isPulling || !pullIndicator) {
-                    activePullContainer = null;
-                    isPulling = false;
-                    return;
-                }
-                const diffY = e.changedTouches[0].clientY - pullStartY;
-                activePullContainer = null;
-                isPulling = false;
-
-                if (diffY > 60) {
-                    pullIndicator.classList.add('refreshing');
-                    pullIndicator.style.transform = `translateX(-50%) translateY(40px)`;
-                    pullIndicator.style.opacity = '1';
-                    playHaptic(15);
-
-                    try {
-                        const currentHash = location.hash.substring(1) || 'analyzer';
-                        if (currentHash === 'watchlist') {
-                            const refreshBtn = document.getElementById('watchlist-refresh-btn');
-                            if (refreshBtn) refreshBtn.click();
-                        } else if (currentHash === 'portfolio') {
-                            const refreshBtn = document.getElementById('portfolio-refresh-btn');
-                            if (refreshBtn) refreshBtn.click();
-                        } else {
-                            window.location.reload();
-                        }
-                    } catch (err) {
-                        console.error("[Mobile Refresh] Failed:", err);
-                    } finally {
-                        setTimeout(() => {
-                            if (pullIndicator) {
-                                pullIndicator.classList.remove('refreshing');
-                                pullIndicator.style.transform = `translateX(-50%) translateY(-46px)`;
-                                pullIndicator.style.opacity = '0';
-                            }
-                        }, 1200);
-                    }
-                } else {
-                    pullIndicator.style.transform = `translateX(-50%) translateY(-46px)`;
-                    pullIndicator.style.opacity = '0';
-                }
-            });
-        }
-        initPullToRefresh();
+        // 3. Pull-To-Refresh gesture removed — manual "↻ Sync Data" button only (prevents scroll flicker on mobile WebView)
 
         // 4. Custom Mobile Bottom Sheets for Selector Dropdowns
         function initMobileSelects() {
@@ -3669,12 +3574,6 @@
             const derivedGreeting = deriveMarketBreadthGreeting();
 
             container.innerHTML = `
-                <!-- Pull-to-Refresh Indicator -->
-                <div class="pull-to-refresh-indicator" id="mobile-ptr-indicator">
-                    <div class="ptr-spinner"></div>
-                    <span>Refreshing data...</span>
-                </div>
-
                 <!-- Dynamic Greeting & Live Market Bias Summary -->
                 <div class="mobile-copilot-greeting mobile-glass-card has-hero-bg">
                     <h4 style="margin: 0 0 6px 0; font-size: 17px; font-weight: 800; color: var(--text-primary); letter-spacing: 0.02em; display: flex; justify-content: space-between; align-items: center;">
