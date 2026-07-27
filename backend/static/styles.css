@@ -24119,8 +24119,875 @@ body, .card, .desktop-header, .institutional-footer, .desktop-top-ticker-banner 
     color: #9a3412 !important;
 }
 
+/* ==========================================================================
+   ENTERPRISE MOBILE HOMEPAGE FULL-VIEWPORT DECK & CAROUSEL STYLES
+   ========================================================================== */
+
+/* Full Viewport Container Bleeding & Corner-to-Corner Alignment */
+@media (max-width: 992px) {
+    #home-dashboard-container.empty-state-card {
+        background: transparent !important;
+        border: none !important;
+        padding: 0 !important;
+        margin-top: 0 !important;
+        box-shadow: none !important;
+        backdrop-filter: none !important;
+        -webkit-backdrop-filter: none !important;
+    }
+
+    #mobile-homepage-command-center {
+        width: 100% !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        box-sizing: border-box !important;
+    }
+
+    #mobile-homepage-command-center .mobile-glass-card,
+    #mobile-homepage-command-center .movers-container {
+        width: 100% !important;
+        margin-left: 0 !important;
+        margin-right: 0 !important;
+        box-sizing: border-box !important;
+        border-radius: 14px !important;
+    }
+
+    .mobile-full-viewport-section {
+        width: 100% !important;
+        box-sizing: border-box !important;
+        padding: 0 !important;
+        margin: 0 !important;
+    }
+}
+
+/* Mobile Vertical Stacked List Container */
+.mobile-vertical-list-container {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.mobile-vertical-list-container[style*="display: none"],
+.mobile-vertical-list-container[style*="display:none"] {
+    display: none !important;
+}
+
+.mobile-vertical-list-row {
+    transition: background 0.2s ease, transform 0.15s ease !important;
+    border-radius: 8px !important;
+}
+
+.mobile-vertical-list-row:active {
+    background: rgba(59, 130, 246, 0.08) !important;
+    transform: scale(0.99) !important;
+}
+
+[data-mode="light"] .mobile-vertical-list-row:active,
+[data-theme="light"] .mobile-vertical-list-row:active {
+    background: rgba(226, 232, 240, 0.6) !important;
+}
+
+/* Cyber Stock Card Row - Hero Banner Aesthetic */
+.cyber-stock-card-row {
+    background: rgba(255, 255, 255, 0.025) !important;
+    border: 1px solid rgba(255, 255, 255, 0.07) !important;
+    border-radius: 12px !important;
+    padding: 10px 12px !important;
+    margin-bottom: 8px !important;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12) !important;
+}
+
+.cyber-stock-card-row:hover,
+.cyber-stock-card-row:active {
+    background: rgba(59, 130, 246, 0.07) !important;
+    border-color: rgba(59, 130, 246, 0.35) !important;
+    transform: translateY(-1px) scale(0.995) !important;
+    box-shadow: 0 4px 14px rgba(59, 130, 246, 0.15) !important;
+}
+
+[data-mode="light"] .cyber-stock-card-row,
+[data-theme="light"] .cyber-stock-card-row {
+    background: #ffffff !important;
+    border: 1px solid rgba(226, 232, 240, 0.9) !important;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04) !important;
+}
+
+[data-mode="light"] .cyber-stock-card-row:active,
+[data-theme="light"] .cyber-stock-card-row:active {
+    background: #f8fafc !important;
+    border-color: #3b82f6 !important;
+}
+
+/* Horizontal Snap-Scroll Carousel - Edge-to-Edge Alignment */
+.mobile-glass-card .mobile-full-viewport-section,
+.movers-container .mobile-full-viewport-section {
+    width: calc(100% + 24px) !important;
+    margin-left: -12px !important;
+    margin-right: -12px !important;
+    box-sizing: border-box !important;
+}
+
+.horizontal-snap-carousel {
+    display: flex !important;
+    gap: 10px !important;
+    overflow-x: auto !important;
+    scroll-snap-type: x mandatory !important;
+    -webkit-overflow-scrolling: touch !important;
+    scrollbar-width: none !important;
+    -ms-overflow-style: none !important;
+    padding: 4px 12px 14px 12px !important;
+    margin: 0 !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+}
+
+.horizontal-snap-carousel::-webkit-scrollbar {
+    display: none !important;
+}
+
+/* Mobile Snap Deck Card - Perfectly Proportioned Responsive Width */
+.mobile-deck-card {
+    scroll-snap-align: start !important;
+    flex: 0 0 calc(78vw - 16px) !important;
+    min-width: 210px !important;
+    max-width: 260px !important;
+    box-sizing: border-box !important;
+    background: rgba(15, 23, 42, 0.75) !important;
+    backdrop-filter: blur(20px) !important;
+    -webkit-backdrop-filter: blur(20px) !important;
+    border: 1px solid rgba(59, 130, 246, 0.22) !important;
+    border-radius: 14px !important;
+    padding: 14px !important;
+    box-shadow: 0 8px 24px -4px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.08) !important;
+    transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1) !important;
+    cursor: pointer !important;
+    position: relative !important;
+    overflow: hidden !important;
+}
+
+.mobile-deck-card:active {
+    transform: scale(0.97) !important;
+    border-color: rgba(59, 130, 246, 0.5) !important;
+}
+
+/* Light Mode Overrides for Mobile Deck Cards */
+[data-mode="light"] .mobile-deck-card,
+[data-theme="light"] .mobile-deck-card,
+body.light-mode .mobile-deck-card {
+    background: #ffffff !important;
+    border: 1px solid #e2e8f0 !important;
+    box-shadow: 0 6px 20px rgba(15, 23, 42, 0.06), inset 0 1px 0 #ffffff !important;
+    color: #0f172a !important;
+}
+
+/* Interactive Cyber Launchpad Rail */
+.mobile-cyber-launchpad-rail {
+    display: flex !important;
+    gap: 8px !important;
+    overflow-x: auto !important;
+    scrollbar-width: none !important;
+    -ms-overflow-style: none !important;
+    padding: 2px 0 12px 0 !important;
+    margin-bottom: 14px !important;
+}
+
+.mobile-cyber-launchpad-rail::-webkit-scrollbar {
+    display: none !important;
+}
+
+.launchpad-pill-btn {
+    flex-shrink: 0 !important;
+    background: rgba(15, 23, 42, 0.6) !important;
+    border: 1px solid rgba(255, 255, 255, 0.12) !important;
+    color: var(--text-primary) !important;
+    padding: 7px 13px !important;
+    border-radius: 20px !important;
+    font-size: 11.5px !important;
+    font-weight: 700 !important;
+    font-family: 'Outfit', sans-serif !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 6px !important;
+    cursor: pointer !important;
+    transition: all 0.2s ease !important;
+    white-space: nowrap !important;
+}
+
+.launchpad-pill-btn:active {
+    transform: scale(0.95) !important;
+    background: rgba(59, 130, 246, 0.2) !important;
+    border-color: rgba(59, 130, 246, 0.4) !important;
+}
+
+[data-mode="light"] .launchpad-pill-btn,
+[data-theme="light"] .launchpad-pill-btn {
+    background: #ffffff !important;
+    border: 1px solid #e2e8f0 !important;
+    color: #0f172a !important;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04) !important;
+}
+
+/* Sector Heatmap Tile Deck Grid & Ambient Glows */
+.sector-deck-tile {
+    scroll-snap-align: start !important;
+    flex: 0 0 145px !important;
+    min-width: 145px !important;
+    box-sizing: border-box !important;
+    background: rgba(15, 23, 42, 0.7) !important;
+    border: 1px solid rgba(255, 255, 255, 0.1) !important;
+    border-radius: 12px !important;
+    padding: 12px !important;
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: space-between !important;
+    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1) !important;
+    cursor: pointer !important;
+    position: relative !important;
+    overflow: hidden !important;
+}
+
+.sector-deck-tile.positive-glow {
+    background: radial-gradient(circle at 50% 0%, rgba(16, 185, 129, 0.18), rgba(15, 23, 42, 0.85)) !important;
+    border: 1px solid rgba(16, 185, 129, 0.35) !important;
+    box-shadow: 0 8px 24px -4px rgba(16, 185, 129, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.12) !important;
+}
+
+.sector-deck-tile.negative-glow {
+    background: radial-gradient(circle at 50% 0%, rgba(239, 68, 68, 0.18), rgba(15, 23, 42, 0.85)) !important;
+    border: 1px solid rgba(239, 68, 68, 0.35) !important;
+    box-shadow: 0 8px 24px -4px rgba(239, 68, 68, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.12) !important;
+}
+
+[data-mode="light"] .sector-deck-tile.positive-glow,
+[data-theme="light"] .sector-deck-tile.positive-glow {
+    background: radial-gradient(circle at 50% 0%, rgba(16, 185, 129, 0.15), #ffffff) !important;
+    border: 1px solid rgba(16, 185, 129, 0.3) !important;
+    box-shadow: 0 6px 18px rgba(16, 185, 129, 0.15) !important;
+}
+
+[data-mode="light"] .sector-deck-tile.negative-glow,
+[data-theme="light"] .sector-deck-tile.negative-glow {
+    background: radial-gradient(circle at 50% 0%, rgba(239, 68, 68, 0.15), #ffffff) !important;
+    border: 1px solid rgba(239, 68, 68, 0.3) !important;
+    box-shadow: 0 6px 18px rgba(239, 68, 68, 0.15) !important;
+}
+
+[data-mode="light"] .sector-deck-tile,
+[data-theme="light"] .sector-deck-tile {
+    background: #ffffff !important;
+    border: 1px solid #e2e8f0 !important;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04) !important;
+}
+
+/* Expandable Inline Touch Drawer */
+.mobile-inline-detail-drawer {
+    display: none;
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px dashed rgba(255, 255, 255, 0.12);
+    font-size: 11px;
+}
+
+[data-mode="light"] .mobile-inline-detail-drawer,
+[data-theme="light"] .mobile-inline-detail-drawer {
+    border-top-color: #cbd5e1;
+}
+
+.mobile-inline-detail-drawer.active {
+    display: block !important;
+    animation: fadeInDrawer 0.25s ease-out;
+}
+
+@keyframes fadeInDrawer {
+    from { opacity: 0; transform: translateY(-4px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* Ambient 3D Cyber Financial Grid & Order-Flow Waves Animation */
+@keyframes cyberParticleFloat {
+    0% { background-position: 0px 0px, 0px 0px; }
+    50% { background-position: 20px 40px, -20px -30px; }
+    100% { background-position: 0px 0px, 0px 0px; }
+}
+
+@keyframes orderFlowWavePulse {
+    0% { opacity: 0.2; transform: scale(0.98); }
+    50% { opacity: 0.45; transform: scale(1.03); }
+    100% { opacity: 0.2; transform: scale(0.98); }
+}
+
+#mobile-homepage-command-center {
+    position: relative;
+    overflow: hidden;
+}
+
+#mobile-homepage-command-center::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 0;
+    opacity: 0.3;
+    background-image: 
+        radial-gradient(circle, rgba(59, 130, 246, 0.18) 1px, transparent 1px),
+        linear-gradient(to right, rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+    background-size: 24px 24px, 48px 48px, 48px 48px;
+    animation: cyberParticleFloat 30s linear infinite;
+}
+
+/* Section Header Ambient Glow Backdrops */
+.header-ambient-glow {
+    position: absolute;
+    top: -20px;
+    left: -10px;
+    width: 220px;
+    height: 90px;
+    border-radius: 50%;
+    filter: blur(36px);
+    pointer-events: none;
+    z-index: 0;
+    opacity: 0.75;
+    animation: orderFlowWavePulse 6s ease-in-out infinite;
+}
+
+.header-ambient-glow.blue-ai-glow {
+    background: radial-gradient(circle, rgba(59, 130, 246, 0.25) 0%, transparent 70%);
+}
+
+.header-ambient-glow.emerald-gainers-glow {
+    background: radial-gradient(circle, rgba(16, 185, 129, 0.25) 0%, transparent 70%);
+}
+
+.header-ambient-glow.purple-breakouts-glow {
+    background: radial-gradient(circle, rgba(168, 85, 247, 0.25) 0%, transparent 70%);
+}
+
+.header-ambient-glow.gold-quant-glow {
+    background: radial-gradient(circle, rgba(245, 158, 11, 0.25) 0%, transparent 70%);
+}
+
+.header-ambient-glow.cyan-sector-glow {
+    background: radial-gradient(circle, rgba(6, 182, 212, 0.25) 0%, transparent 70%);
+}
+
+.header-ambient-glow.orange-news-glow {
+    background: radial-gradient(circle, rgba(249, 115, 22, 0.25) 0%, transparent 70%);
+}
+
+.header-ambient-glow.pink-events-glow {
+    background: radial-gradient(circle, rgba(236, 72, 153, 0.25) 0%, transparent 70%);
+}
+
+.header-ambient-glow.red-alerts-glow {
+    background: radial-gradient(circle, rgba(239, 68, 68, 0.25) 0%, transparent 70%);
+}
+
+.header-ambient-glow.amber-watchlist-glow {
+    background: radial-gradient(circle, rgba(245, 158, 11, 0.25) 0%, transparent 70%);
+}
+
+/* 3D Cybernetic Section Header Badges (Foreground Art) */
+.cyber-header-wrap {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 12px;
+    z-index: 1;
+}
+
+.cyber-header-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 15px;
+    font-weight: 800;
+    font-family: 'Outfit', sans-serif;
+    color: var(--text-primary);
+    letter-spacing: 0.02em;
+}
+
+.cyber-badge-emblem {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    border-radius: 8px;
+    font-size: 14px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+    backdrop-filter: blur(8px);
+    transition: transform 0.2s ease;
+}
+
+.cyber-badge-brain {
+    background: radial-gradient(circle at 30% 30%, rgba(59, 130, 246, 0.35), rgba(15, 23, 42, 0.85));
+    border-color: rgba(59, 130, 246, 0.45);
+    box-shadow: 0 0 12px rgba(59, 130, 246, 0.35);
+}
+
+.cyber-badge-bull {
+    background: radial-gradient(circle at 30% 30%, rgba(16, 185, 129, 0.35), rgba(15, 23, 42, 0.85));
+    border-color: rgba(16, 185, 129, 0.45);
+    box-shadow: 0 0 12px rgba(16, 185, 129, 0.35);
+}
+
+.cyber-badge-compass {
+    background: radial-gradient(circle at 30% 30%, rgba(6, 182, 212, 0.35), rgba(15, 23, 42, 0.85));
+    border-color: rgba(6, 182, 212, 0.45);
+    box-shadow: 0 0 12px rgba(6, 182, 212, 0.35);
+}
+
+.cyber-badge-lightning {
+    background: radial-gradient(circle at 30% 30%, rgba(168, 85, 247, 0.35), rgba(15, 23, 42, 0.85));
+    border-color: rgba(168, 85, 247, 0.45);
+    box-shadow: 0 0 12px rgba(168, 85, 247, 0.35);
+}
+
+.cyber-badge-quant {
+    background: radial-gradient(circle at 30% 30%, rgba(245, 158, 11, 0.35), rgba(15, 23, 42, 0.85));
+    border-color: rgba(245, 158, 11, 0.45);
+    box-shadow: 0 0 12px rgba(245, 158, 11, 0.35);
+}
+
+/* 🌓 Explicit Light Mode Dual Theme Rules ([data-theme="light"] / [data-mode="light"]) */
+[data-mode="light"] #mobile-homepage-command-center::before,
+[data-theme="light"] #mobile-homepage-command-center::before,
+body.light-mode #mobile-homepage-command-center::before {
+    opacity: 0.45 !important;
+    background-image: 
+        radial-gradient(circle, rgba(2, 132, 199, 0.15) 1px, transparent 1px),
+        linear-gradient(to right, rgba(0, 0, 0, 0.04) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(0, 0, 0, 0.04) 1px, transparent 1px) !important;
+}
+
+[data-mode="light"] .cyber-header-title,
+[data-theme="light"] .cyber-header-title,
+body.light-mode .cyber-header-title {
+    color: #0f172a !important;
+}
+
+[data-mode="light"] .cyber-badge-emblem,
+[data-theme="light"] .cyber-badge-emblem,
+body.light-mode .cyber-badge-emblem {
+    background: #ffffff !important;
+    border: 1px solid #cbd5e1 !important;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06) !important;
+    color: #0f172a !important;
+}
+
+[data-mode="light"] .tech-segmented-tab.active,
+[data-theme="light"] .tech-segmented-tab.active,
+body.light-mode .tech-segmented-tab.active {
+    background: #e0f2fe !important;
+    color: #0284c7 !important;
+    border: 1px solid #0284c7 !important;
+    font-weight: 800 !important;
+}
+
+[data-mode="light"] .breadth-gauge-wrap,
+[data-theme="light"] .breadth-gauge-wrap,
+body.light-mode .breadth-gauge-wrap {
+    background: #ffffff !important;
+    border: 1px solid #e2e8f0 !important;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04) !important;
+}
+
+[data-mode="light"] #conic-regime-score-num,
+[data-theme="light"] #conic-regime-score-num,
+body.light-mode #conic-regime-score-num {
+    color: #0284c7 !important;
+}
+
+/* Crisp Light Mode Separation Lines for Table Rows & List Items */
+[data-mode="light"] tr,
+[data-theme="light"] tr,
+body.light-mode tr,
+[data-mode="light"] .event-row-item,
+[data-theme="light"] .event-row-item,
+body.light-mode .event-row-item {
+    border-bottom-color: #e2e8f0 !important;
+}
+
+/* 📊 Gauge Ring & Progress Bar Track Backgrounds (Light vs Dark Mode) */
+:root {
+    --conic-track-bg: rgba(255, 255, 255, 0.12);
+    --bar-track-bg: rgba(255, 255, 255, 0.12);
+}
+
+[data-mode="light"],
+[data-theme="light"],
+body.light-mode {
+    --conic-track-bg: #e2e8f0 !important;
+    --bar-track-bg: #e2e8f0 !important;
+}
+
+[data-mode="light"] .conic-bg-track-path,
+[data-theme="light"] .conic-bg-track-path,
+body.light-mode .conic-bg-track-path {
+    stroke: #cbd5e1 !important;
+}
+
+/* 🏷️ Mobile Brand Logo Light Mode High-Contrast Rules */
+[data-mode="light"] .inst-brand-badge,
+[data-theme="light"] .inst-brand-badge,
+body.light-mode .inst-brand-badge {
+    background: #ffffff !important;
+    border: 1px solid #cbd5e1 !important;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08) !important;
+}
+
+[data-mode="light"] .brand-part-apex,
+[data-theme="light"] .brand-part-apex,
+body.light-mode .brand-part-apex {
+    background: linear-gradient(135deg, #0284c7 0%, #10b981 100%) !important;
+    -webkit-background-clip: text !important;
+    -webkit-text-fill-color: transparent !important;
+    font-weight: 900 !important;
+}
+
+[data-mode="light"] .brand-part-quant,
+[data-theme="light"] .brand-part-quant,
+body.light-mode .brand-part-quant {
+    background: linear-gradient(135deg, #0f172a 0%, #334155 100%) !important;
+    -webkit-background-clip: text !important;
+    -webkit-text-fill-color: transparent !important;
+    font-weight: 800 !important;
+}
 
 
+/* ============================================================
+   MOBILE HOMEPAGE ENHANCEMENTS - v5.1
+   ============================================================ */
+
+/* 1. Market Pulse Summary Strip */
+.market-pulse-strip {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 14px;
+    padding: 0;
+}
+
+.market-pulse-cell {
+    flex: 1;
+    background: rgba(255, 255, 255, 0.025);
+    border: 1px solid rgba(255, 255, 255, 0.07);
+    border-radius: 10px;
+    padding: 8px 10px;
+    text-align: center;
+    backdrop-filter: blur(8px);
+    transition: border-color 0.2s ease;
+}
+
+.market-pulse-cell:active {
+    border-color: rgba(59, 130, 246, 0.4);
+}
+
+.market-pulse-cell .pulse-label {
+    font-size: 8px;
+    font-weight: 800;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    letter-spacing: 0.04em;
+    margin-bottom: 2px;
+}
+
+.market-pulse-cell .pulse-price {
+    font-size: 13px;
+    font-weight: 900;
+    color: var(--text-primary);
+    font-family: 'Inter', monospace;
+    line-height: 1.2;
+}
+
+.market-pulse-cell .pulse-change {
+    font-size: 10px;
+    font-weight: 800;
+    font-family: 'Outfit', sans-serif;
+    margin-top: 1px;
+}
+
+.market-pulse-cell .pulse-change.positive { color: var(--neon-green, #10b981); }
+.market-pulse-cell .pulse-change.negative { color: var(--neon-red, #ef4444); }
+
+.market-pulse-cell .pulse-sparkline-wrap {
+    height: 16px;
+    margin-top: 4px;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+}
+
+[data-mode="light"] .market-pulse-cell,
+[data-theme="light"] .market-pulse-cell {
+    background: rgba(0, 0, 0, 0.02);
+    border-color: rgba(0, 0, 0, 0.08);
+}
+
+
+/* 2. Collapsible Sections */
+.cyber-header-wrap {
+    cursor: pointer;
+    user-select: none;
+    -webkit-user-select: none;
+}
+
+.section-collapse-chevron {
+    font-size: 12px;
+    color: var(--text-muted);
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    margin-left: 6px;
+    display: inline-block;
+}
+
+.section-collapse-chevron.collapsed {
+    transform: rotate(-90deg);
+}
+
+.section-collapsible-body {
+    overflow: hidden;
+    max-height: 2000px;
+    transition: max-height 0.4s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s ease, margin 0.3s ease;
+    opacity: 1;
+}
+
+.section-collapsible-body.collapsed {
+    max-height: 0 !important;
+    opacity: 0;
+    margin-top: 0 !important;
+    margin-bottom: 0 !important;
+    pointer-events: none;
+}
+
+
+/* 3. Skeleton Loading Rows (CSS-Only) */
+.skeleton-card-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    background: rgba(255, 255, 255, 0.025);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 12px;
+    margin-bottom: 8px;
+}
+
+.skeleton-card-row .skel-circle {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+.skeleton-card-row .skel-lines {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.skeleton-card-row .skel-line-short {
+    width: 60%;
+    height: 10px;
+    border-radius: 4px;
+}
+
+.skeleton-card-row .skel-line-long {
+    width: 40%;
+    height: 8px;
+    border-radius: 4px;
+}
+
+.skeleton-card-row .skel-price-block {
+    width: 55px;
+    height: 24px;
+    border-radius: 6px;
+    flex-shrink: 0;
+}
+
+.skel-circle,
+.skel-line-short,
+.skel-line-long,
+.skel-price-block {
+    background: linear-gradient(90deg, rgba(255,255,255,0.04) 25%, rgba(255,255,255,0.08) 50%, rgba(255,255,255,0.04) 75%);
+    background-size: 200% 100%;
+    animation: skeletonShimmer 1.5s infinite ease-in-out;
+}
+
+@keyframes skeletonShimmer {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+}
+
+[data-mode="light"] .skeleton-card-row,
+[data-theme="light"] .skeleton-card-row {
+    background: rgba(0, 0, 0, 0.02);
+    border-color: rgba(0, 0, 0, 0.06);
+}
+
+[data-mode="light"] .skel-circle,
+[data-mode="light"] .skel-line-short,
+[data-mode="light"] .skel-line-long,
+[data-mode="light"] .skel-price-block,
+[data-theme="light"] .skel-circle,
+[data-theme="light"] .skel-line-short,
+[data-theme="light"] .skel-line-long,
+[data-theme="light"] .skel-price-block {
+    background: linear-gradient(90deg, rgba(0,0,0,0.04) 25%, rgba(0,0,0,0.08) 50%, rgba(0,0,0,0.04) 75%);
+    background-size: 200% 100%;
+}
+
+
+/* 4. CSS Section Divider (no images needed) */
+.section-gradient-divider {
+    height: 1px;
+    margin: 8px 20px 0 20px;
+    background: linear-gradient(90deg, transparent 0%, rgba(6, 182, 212, 0.25) 30%, rgba(59, 130, 246, 0.3) 50%, rgba(6, 182, 212, 0.25) 70%, transparent 100%);
+    border: none;
+}
+
+[data-mode="light"] .section-gradient-divider,
+[data-theme="light"] .section-gradient-divider {
+    background: linear-gradient(90deg, transparent 0%, rgba(6, 182, 212, 0.15) 30%, rgba(59, 130, 246, 0.2) 50%, rgba(6, 182, 212, 0.15) 70%, transparent 100%);
+}
+
+
+/* 5. Card Entrance Micro-Animations */
+@keyframes cardFadeSlideUp {
+    from {
+        opacity: 0;
+        transform: translateY(12px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.mobile-vertical-list-container .cyber-stock-card-row,
+.mobile-vertical-list-container .sector-deck-row {
+    animation: cardFadeSlideUp 0.35s ease-out both;
+}
+
+.mobile-vertical-list-container .cyber-stock-card-row:nth-child(1) { animation-delay: 0ms; }
+.mobile-vertical-list-container .cyber-stock-card-row:nth-child(2) { animation-delay: 50ms; }
+.mobile-vertical-list-container .cyber-stock-card-row:nth-child(3) { animation-delay: 100ms; }
+.mobile-vertical-list-container .cyber-stock-card-row:nth-child(4) { animation-delay: 150ms; }
+.mobile-vertical-list-container .cyber-stock-card-row:nth-child(5) { animation-delay: 200ms; }
+.mobile-vertical-list-container .cyber-stock-card-row:nth-child(6) { animation-delay: 250ms; }
+
+
+/* 6. Pull-to-Refresh Indicator */
+.pull-to-refresh-indicator {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 10px 0;
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--text-muted);
+    font-family: 'Outfit', sans-serif;
+    overflow: hidden;
+    max-height: 0;
+    opacity: 0;
+    transition: max-height 0.3s ease, opacity 0.2s ease;
+}
+
+.pull-to-refresh-indicator.visible {
+    max-height: 50px;
+    opacity: 1;
+}
+
+.pull-to-refresh-indicator .ptr-spinner {
+    width: 18px;
+    height: 18px;
+    border: 2px solid rgba(59, 130, 246, 0.2);
+    border-top-color: #3b82f6;
+    border-radius: 50%;
+    animation: ptrSpin 0.8s linear infinite;
+}
+
+@keyframes ptrSpin {
+    to { transform: rotate(360deg); }
+}
+
+
+/* 7. Last Updated Timestamp */
+.mobile-last-updated {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    font-size: 9px;
+    font-weight: 700;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    margin-bottom: 10px;
+    font-family: 'Outfit', sans-serif;
+}
+
+.mobile-last-updated .freshness-dot {
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: #10b981;
+    box-shadow: 0 0 6px rgba(16, 185, 129, 0.5);
+    animation: freshnessPulse 2s infinite;
+}
+
+.mobile-last-updated .freshness-dot.stale {
+    background: #f59e0b;
+    box-shadow: 0 0 6px rgba(245, 158, 11, 0.5);
+}
+
+@keyframes freshnessPulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+}
+
+
+/* Hero Background Image */
+.mobile-copilot-greeting.has-hero-bg {
+    position: relative;
+    overflow: hidden;
+}
+
+.mobile-copilot-greeting.has-hero-bg::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image: url('/img/hero_bg.webp');
+    background-size: cover;
+    background-position: center;
+    opacity: 0.25;
+    pointer-events: none;
+    z-index: 0;
+}
+
+.mobile-copilot-greeting.has-hero-bg > * {
+    position: relative;
+    z-index: 1;
+}
+
+/* Bull/Bear Mood Icon */
+.market-mood-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+    object-fit: contain;
+    flex-shrink: 0;
+    filter: drop-shadow(0 0 8px rgba(16, 185, 129, 0.3));
+}
+
+.market-mood-icon.bearish {
+    filter: drop-shadow(0 0 8px rgba(239, 68, 68, 0.3));
+}
 
 
 

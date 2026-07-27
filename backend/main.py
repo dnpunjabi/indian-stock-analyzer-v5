@@ -974,7 +974,7 @@ async def run_background_market_movers_updater():
                 "^NSEI", "^BSESN", "^NSEBANK", "^CNXIT", "^CNXPHARMA", 
                 "^CNXFMCG", "^CNXMETAL", "^CNXAUTO", "^CNXREALTY", 
                 "^CNXINFRA", "^CNXENERGY", "^CNXFIN", "^CNXPSUBANK", 
-                "^CNXMEDIA", "^CNXCONSUM", "GC=F", "SI=F", "INR=X"
+                "^CNXMEDIA", "^CNXCONSUM", "GC=F", "SI=F", "INR=X", "^INDIAVIX"
             ]
             index_names = {
                 "^NSEI": "Nifty 50",
@@ -991,7 +991,8 @@ async def run_background_market_movers_updater():
                 "^CNXFIN": "Nifty Financial Services",
                 "^CNXPSUBANK": "Nifty PSU Bank",
                 "^CNXMEDIA": "Nifty Media",
-                "^CNXCONSUM": "Nifty Consumption"
+                "^CNXCONSUM": "Nifty Consumption",
+                "^INDIAVIX": "India VIX"
             }
             
             loop = asyncio.get_event_loop()
@@ -1187,11 +1188,15 @@ async def run_background_market_movers_updater():
             avg_mid = sum(mid_cap_changes) / len(mid_cap_changes) if mid_cap_changes else 0.0
             avg_small = sum(small_cap_changes) / len(small_cap_changes) if small_cap_changes else 0.0
             
+            vix_item = next((i for i in parsed_indices if i["symbol"] == "^INDIAVIX"), None)
+            india_vix_val = vix_item["price"] if (vix_item and vix_item.get("price")) else 13.2
+
             _MARKET_MOVERS_CACHE = {
                 "status": "success",
                 "last_updated": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
                 "advances": advances_cnt,
                 "declines": declines_cnt,
+                "india_vix": round(india_vix_val, 2),
                 "gainers": {
                     "all": gainers_all[:10],
                     "large": large_gainers,

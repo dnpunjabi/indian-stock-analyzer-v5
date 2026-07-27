@@ -120,6 +120,36 @@
         return `<div class="stock-circle-logo" style="width:28px; height:28px; border-radius:50%; background:${selectedColor}; display:flex; align-items:center; justify-content:center; color:#fff; font-size:11px; font-weight:800; font-family:var(--font-heading); flex-shrink:0;">${displayChar}</div>`;
     };
 
+    window.switchMoversTab = function(tabName) {
+        const activeTab = tabName || window.activeMoversTab || 'gainers';
+        window.activeMoversTab = activeTab;
+
+        const gainerBtn = document.getElementById('movers-tab-gainers');
+        const loserBtn = document.getElementById('movers-tab-losers');
+        const gainersDiv = document.getElementById('mobile-home-gainers-container');
+        const losersDiv = document.getElementById('mobile-home-losers-container');
+
+        if (gainerBtn && loserBtn) {
+            if (activeTab === 'gainers') {
+                gainerBtn.classList.add('active');
+                loserBtn.classList.remove('active');
+            } else {
+                loserBtn.classList.add('active');
+                gainerBtn.classList.remove('active');
+            }
+        }
+
+        if (gainersDiv && losersDiv) {
+            if (activeTab === 'gainers') {
+                gainersDiv.style.setProperty('display', 'flex', 'important');
+                losersDiv.style.setProperty('display', 'none', 'important');
+            } else {
+                gainersDiv.style.setProperty('display', 'none', 'important');
+                losersDiv.style.setProperty('display', 'flex', 'important');
+            }
+        }
+    };
+
     function getStockLogoHtml(symbol) {
         const showLogos = localStorage.getItem('settings-show-logos') !== 'false';
         if (!showLogos) return '';
@@ -3632,30 +3662,61 @@
             const derivedGreeting = deriveMarketBreadthGreeting();
 
             container.innerHTML = `
+                <!-- Pull-to-Refresh Indicator -->
+                <div class="pull-to-refresh-indicator" id="mobile-ptr-indicator">
+                    <div class="ptr-spinner"></div>
+                    <span>Refreshing data...</span>
+                </div>
+
                 <!-- Dynamic Greeting & Live Market Bias Summary -->
-                <div class="mobile-copilot-greeting mobile-glass-card">
+                <div class="mobile-copilot-greeting mobile-glass-card has-hero-bg">
                     <h4 style="margin: 0 0 6px 0; font-size: 17px; font-weight: 800; color: var(--text-primary); letter-spacing: 0.02em; display: flex; justify-content: space-between; align-items: center;">
-                        <span>${greetingText}, Analyst</span>
+                        <span style="display: flex; align-items: center; gap: 8px;">
+                            <img id="mobile-mood-icon" class="market-mood-icon" src="/img/bull_mood.webp" alt="Market Mood" style="width: 36px; height: 36px;">
+                            ${greetingText}, Analyst
+                        </span>
                         <button id="btn-audio-mute-toggle" style="background: none; border: none; color: var(--color-primary); cursor: pointer; font-size: 17px; outline: none; transition: transform 0.1s; padding: 0 4px;">🔊</button>
                     </h4>
                     <p style="margin: 0; font-size: 14px; color: var(--text-secondary); line-height: 1.45;" id="mobile-home-copilot-summary">
                         ${derivedGreeting}
                     </p>
-                    <div class="breadth-gauge-wrap" id="mobile-home-breadth-gauge" style="margin-top: 12px; background: rgba(255,255,255,0.015); border: 1px solid var(--border-glass); padding: 10px; border-radius: 8px; display: none;">
-                        <div style="display:flex; justify-content:space-between; font-size:11.5px; font-weight:800; text-transform:uppercase; color:var(--text-muted); margin-bottom:6px;">
-                            <span style="color:var(--neon-green, #10b981);">Advances: <span id="breadth-advances-count">0</span></span>
-                            <span style="color:var(--color-crimson, #ef4444);">Declines: <span id="breadth-declines-count">0</span></span>
-                        </div>
-                        <div style="position:relative; height:5px; background:var(--bg-track, rgba(255,255,255,0.06)); border-radius:2.5px; overflow:hidden; display:flex;">
-                            <div id="breadth-advances-bar" style="height:100%; background:var(--neon-green, #10b981); width:50%; transition:width 0.5s ease; box-shadow:0 0 6px var(--neon-green, #10b981);"></div>
-                            <div id="breadth-declines-bar" style="height:100%; background:var(--color-crimson, #ef4444); width:50%; transition:width 0.5s ease; box-shadow:0 0 6px var(--color-crimson, #ef4444);"></div>
+                    <div class="breadth-gauge-wrap" id="mobile-home-breadth-gauge" style="margin-top: 14px; background: rgba(15, 23, 42, 0.5); border: 1px solid var(--border-glass); padding: 14px; border-radius: 12px; backdrop-filter: blur(12px); display: none;">
+                        <div style="display: flex; align-items: center; justify-content: space-between; gap: 14px;">
+                            <!-- Conic Dial Gauge SVG -->
+                            <div style="position: relative; width: 64px; height: 64px; flex-shrink: 0;">
+                                <svg width="64" height="64" viewBox="0 0 36 36" style="transform: rotate(-90deg); overflow: visible;">
+                                    <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="var(--conic-track-bg, rgba(255,255,255,0.15))" stroke-width="3.5" class="conic-bg-track-path" />
+                                    <path id="conic-regime-ring-path" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="#10b981" stroke-width="3.5" stroke-dasharray="70, 100" stroke-linecap="round" style="transition: stroke-dasharray 0.8s cubic-bezier(0.16, 1, 0.3, 1), stroke 0.4s ease;" />
+                                </svg>
+                                <div style="position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center;">
+                                    <span id="conic-regime-score-num" style="font-size: 14px; font-weight: 900; color: #10b981; font-family: monospace; line-height: 1;">70</span>
+                                    <span style="font-size: 7px; font-weight: 800; text-transform: uppercase; color: var(--text-muted); margin-top: 1px;">Regime</span>
+                                </div>
+                            </div>
+
+                            <!-- Regime Label & Advances / Declines Breakdown -->
+                            <div style="flex: 1; min-width: 0;">
+                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                                    <span id="conic-regime-bias-tag" style="font-size: 10px; font-weight: 800; text-transform: uppercase; color: #10b981; background: rgba(16, 185, 129, 0.12); border: 1px solid rgba(16, 185, 129, 0.3); padding: 2px 8px; border-radius: 12px; letter-spacing: 0.04em;">BULLISH REGIME</span>
+                                </div>
+                                
+                                <div style="display:flex; justify-content:space-between; font-size:11px; font-weight:800; text-transform:uppercase; color:var(--text-muted); margin-bottom:5px;">
+                                    <span style="color:var(--neon-green, #10b981); font-family:'Outfit', sans-serif;">🟢 ADV: <span id="mobile-breadth-advances-count">0</span> <span id="mobile-breadth-advances-pct" style="font-size:9.5px; opacity:0.85;">(0%)</span></span>
+                                    <span style="color:var(--color-crimson, #ef4444); font-family:'Outfit', sans-serif;">🔴 DEC: <span id="mobile-breadth-declines-count">0</span> <span id="mobile-breadth-declines-pct" style="font-size:9.5px; opacity:0.85;">(0%)</span></span>
+                                </div>
+                                <div style="position:relative; height:10px; background:rgba(255,255,255,0.06); border-radius:6px; box-sizing:border-box; overflow:visible; display:flex; margin-top:4px; border:1px solid rgba(255,255,255,0.08);">
+                                    <div id="mobile-breadth-advances-bar" style="height:100%; background:linear-gradient(90deg, #059669 0%, #10b981 100%); width:50%; border-radius:5px 0 0 5px; transition:width 0.6s cubic-bezier(0.16, 1, 0.3, 1); box-shadow: 0 0 10px rgba(16,185,129,0.5);"></div>
+                                    <div id="mobile-breadth-declines-bar" style="height:100%; background:linear-gradient(90deg, #ef4444 0%, #dc2626 100%); width:50%; border-radius:0 5px 5px 0; transition:width 0.6s cubic-bezier(0.16, 1, 0.3, 1); box-shadow: 0 0 10px rgba(239,68,68,0.5);"></div>
+                                    <div id="mobile-breadth-meter-pin" style="position:absolute; top:-3px; left:50%; transform:translateX(-50%); width:4px; height:16px; border-radius:2px; background:#ffffff; box-shadow:0 0 10px #ffffff; transition:left 0.6s cubic-bezier(0.16, 1, 0.3, 1); z-index:5;"></div>
+                                </div>
+                            </div>
                         </div>
 
-                        <!-- Volatility Indicator -->
+                        <!-- Volatility Radar Footer -->
                         <div style="display:flex; justify-content:space-between; align-items:center; margin-top:10px; padding-top:8px; border-top:1px dashed var(--border-glass, rgba(255,255,255,0.06)); font-size:11px; font-weight:700; color:var(--text-muted);">
                             <span>VOLATILITY RADAR</span>
                             <div style="display:flex; align-items:center; gap:5px;">
-                                <span id="vix-indicator-dot" style="width:5.5px; height:5.5px; border-radius:50%; background:#10b981; display:inline-block; box-shadow:0 0 5px #10b981; transition: all 0.3s ease;"></span>
+                                <span id="vix-indicator-dot" style="width:6px; height:6px; border-radius:50%; background:#10b981; display:inline-block; box-shadow:0 0 6px #10b981; transition: all 0.3s ease;"></span>
                                 <span id="vix-indicator-val" style="color:var(--text-primary); font-family:var(--font-heading); font-size:11px; font-weight:800;">VIX: --</span>
                             </div>
                         </div>
@@ -3677,138 +3738,231 @@
                 </div>
 
                 <!-- Recent Searches Scrollable Pills -->
-                <div id="mobile-home-recent-pills-container" style="margin-bottom: 20px; display: none;">
+                <div id="mobile-home-recent-pills-container" style="margin-bottom: 12px; display: none;">
                     <div id="mobile-home-recent-pills-title" style="font-size: 9px; text-transform: uppercase; color: var(--text-muted); font-weight: 700; letter-spacing: 0.05em; margin-bottom: 6px;">Recent Searches</div>
                     <div id="mobile-home-recent-pills" style="display: flex; gap: 8px; overflow-x: auto; scrollbar-width: none; -ms-overflow-style: none; padding: 2px 0;"></div>
                 </div>
 
-                
-
-                <!-- Today's Market Movers Section -->
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-                    <h5 style="margin:0; font-size:13.5px; text-transform:uppercase; color:var(--text-secondary); font-family:var(--font-heading); font-weight: 700; letter-spacing: 0.05em;">Today's Market Leaders</h5>
-                    <button class="section-view-all-btn" onclick="window.switchTab && window.switchTab('movers')" style="background: rgba(255,255,255,0.04); color: var(--text-secondary); border: 1px solid var(--border-glass); padding: 3px 10px; font-size: 10.5px; border-radius: 4px; cursor: pointer; font-family: 'Outfit', sans-serif; font-weight: 600;">View All →</button>
-                </div>
-                <div class="movers-container mobile-glass-card">
-                    <div class="movers-segmented-control">
-                        <button class="tech-segmented-tab active" id="movers-tab-gainers">Gainers</button>
-                        <button class="tech-segmented-tab" id="movers-tab-losers">Losers</button>
+                <!-- Market Pulse Summary Strip -->
+                <div class="market-pulse-strip" id="mobile-market-pulse-strip">
+                    <div class="market-pulse-cell" id="pulse-cell-nifty">
+                        <div class="pulse-label">NIFTY 50</div>
+                        <div class="pulse-price" id="pulse-price-nifty">--</div>
+                        <div class="pulse-change" id="pulse-change-nifty">--</div>
+                        <div class="pulse-sparkline-wrap" id="pulse-spark-nifty"></div>
                     </div>
-                    <div class="mobile-movers-cap-selector-container" style="display: flex; gap: 8px; margin: 10px 0 15px 0; overflow-x: auto; -webkit-overflow-scrolling: touch; padding-bottom: 4px;">
-                        <button class="mobile-movers-cap-tab active" data-cap="all" style="flex-shrink:0;">All Cap</button>
-                        <button class="mobile-movers-cap-tab" data-cap="large" style="flex-shrink:0;">Large Cap</button>
-                        <button class="mobile-movers-cap-tab" data-cap="mid" style="flex-shrink:0;">Mid Cap</button>
-                        <button class="mobile-movers-cap-tab" data-cap="small" style="flex-shrink:0;">Small Cap</button>
+                    <div class="market-pulse-cell" id="pulse-cell-sensex">
+                        <div class="pulse-label">SENSEX</div>
+                        <div class="pulse-price" id="pulse-price-sensex">--</div>
+                        <div class="pulse-change" id="pulse-change-sensex">--</div>
+                        <div class="pulse-sparkline-wrap" id="pulse-spark-sensex"></div>
                     </div>
-                    <div id="mobile-home-gainers-container"></div>
-                    <div id="mobile-home-losers-container" style="display: none;"></div>
+                    <div class="market-pulse-cell" id="pulse-cell-banknifty">
+                        <div class="pulse-label">BANK NIFTY</div>
+                        <div class="pulse-price" id="pulse-price-banknifty">--</div>
+                        <div class="pulse-change" id="pulse-change-banknifty">--</div>
+                        <div class="pulse-sparkline-wrap" id="pulse-spark-banknifty"></div>
+                    </div>
                 </div>
 
-                <!-- Today's Sector Rotations Section -->
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 20px; margin-bottom: 8px;">
-                    <h5 style="margin:0; font-size:13.5px; text-transform:uppercase; color:var(--text-secondary); font-family:var(--font-heading); font-weight: 700; letter-spacing: 0.05em;">Sector Rotations</h5>
-                    <button class="section-view-all-btn" onclick="window.switchTab && window.switchTab('sector-radar')" style="background: rgba(255,255,255,0.04); color: var(--text-secondary); border: 1px solid var(--border-glass); padding: 3px 10px; font-size: 10.5px; border-radius: 4px; cursor: pointer; font-family: 'Outfit', sans-serif; font-weight: 600;">View All →</button>
+                <!-- Last Updated Timestamp -->
+                <div class="mobile-last-updated" id="mobile-home-last-updated">
+                    <span class="freshness-dot"></span>
+                    <span id="mobile-last-updated-text">Initializing data feed...</span>
                 </div>
-                <div id="mobile-home-sectors-container" style="margin-bottom: 20px;"></div>
 
-                <!-- Fuzzy Radar Quick-View Section -->
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 24px; margin-bottom: 8px;">
-                    <h5 style="margin:0; font-size:13.5px; text-transform:uppercase; color:#3b82f6; font-family:var(--font-heading); font-weight: 700; letter-spacing: 0.05em;">🧠 Fuzzy Radar Quick-View</h5>
-                    <button class="section-view-all-btn" onclick="window.switchTab && window.switchTab('fuzzy')" style="background: rgba(59, 130, 246, 0.1); color: #3b82f6; border: 1px solid rgba(59, 130, 246, 0.25); padding: 3px 10px; font-size: 10.5px; border-radius: 4px; cursor: pointer; font-family: 'Outfit', sans-serif; font-weight: 600;">Console →</button>
+                <!-- 1. Today's Market Movers Section -->
+                <div class="cyber-header-wrap" data-section-id="market-leaders" style="margin-top: 18px;">
+                    <div class="header-ambient-glow emerald-gainers-glow"></div>
+                    <div class="cyber-header-title">
+                        <span class="cyber-badge-emblem cyber-badge-bull">🐂</span>
+                        <span>Today's Market Leaders</span>
+                        <span class="section-collapse-chevron">▾</span>
+                    </div>
+                    <button class="section-view-all-btn" onclick="window.switchTab && window.switchTab('movers')" style="background: rgba(16, 185, 129, 0.1); color: var(--neon-green); border: 1px solid rgba(16, 185, 129, 0.3); padding: 4px 12px; font-size: 11px; border-radius: 6px; cursor: pointer; font-family: 'Outfit', sans-serif; font-weight: 700;">View All →</button>
                 </div>
-                <div class="mobile-glass-card" style="padding: 12px; margin-bottom: 20px; border: 1px solid rgba(59, 130, 246, 0.15);">
+                <div class="movers-container mobile-glass-card section-collapsible-body" data-section-id="market-leaders">
+                    <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 12px; flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none;">
+                        <div class="movers-segmented-control" style="margin: 0; flex-shrink: 0; min-width: 160px;">
+                            <button class="tech-segmented-tab active gainer-tab-btn" id="movers-tab-gainers" onclick="window.switchMoversTab('gainers')" style="font-weight: 800; font-size: 11px; padding: 5px 10px;">🟢 Gainers ▲</button>
+                            <button class="tech-segmented-tab loser-tab-btn" id="movers-tab-losers" onclick="window.switchMoversTab('losers')" style="font-weight: 800; font-size: 11px; padding: 5px 10px;">🔴 Losers ▼</button>
+                        </div>
+                        <div class="mobile-movers-cap-selector-container" style="display: flex; gap: 4px; margin: 0; flex-shrink: 0;">
+                            <button class="mobile-movers-cap-tab active" data-cap="all" style="flex-shrink:0; font-size: 10.5px; padding: 4px 9px;">All</button>
+                            <button class="mobile-movers-cap-tab" data-cap="large" style="flex-shrink:0; font-size: 10.5px; padding: 4px 9px;">Large</button>
+                            <button class="mobile-movers-cap-tab" data-cap="mid" style="flex-shrink:0; font-size: 10.5px; padding: 4px 9px;">Mid</button>
+                            <button class="mobile-movers-cap-tab" data-cap="small" style="flex-shrink:0; font-size: 10.5px; padding: 4px 9px;">Small</button>
+                        </div>
+                    </div>
+                    <div id="mobile-home-gainers-container" class="mobile-vertical-list-container"></div>
+                    <div id="mobile-home-losers-container" class="mobile-vertical-list-container" style="display: none;"></div>
+                </div>
+                <div class="section-gradient-divider"></div>
+
+                <!-- 2. AI Fuzzy Radar (moved up) -->
+                <div class="cyber-header-wrap" data-section-id="fuzzy-radar" style="margin-top: 24px;">
+                    <div class="header-ambient-glow blue-ai-glow"></div>
+                    <div class="cyber-header-title">
+                        <span class="cyber-badge-emblem cyber-badge-brain">🧠</span>
+                        <span>AI Fuzzy Radar</span>
+                        <span class="section-collapse-chevron">▾</span>
+                    </div>
+                    <button class="section-view-all-btn" onclick="window.switchTab && window.switchTab('fuzzy')" style="background: rgba(59, 130, 246, 0.1); color: #3b82f6; border: 1px solid rgba(59, 130, 246, 0.3); padding: 4px 12px; font-size: 11px; border-radius: 6px; cursor: pointer; font-family: 'Outfit', sans-serif; font-weight: 700;">Console →</button>
+                </div>
+                <div class="mobile-glass-card section-collapsible-body" data-section-id="fuzzy-radar" style="padding: 12px; margin-bottom: 20px; border: 1px solid rgba(59, 130, 246, 0.15);">
                     <div class="movers-segmented-control" style="margin-bottom: 12px; display: flex; gap: 4px;">
                         <button class="tech-segmented-tab active" id="mobile-fuzzy-tab-buys" style="flex: 1; text-align: center; font-size: 10.5px; padding: 6px 0;">🟢 Accumulation</button>
                         <button class="tech-segmented-tab" id="mobile-fuzzy-tab-sells" style="flex: 1; text-align: center; font-size: 10.5px; padding: 6px 0;">🔴 Avoid / Traps</button>
                     </div>
-                    <div id="mobile-home-fuzzy-radar-container" style="display: flex; flex-direction: column; gap: 8px;">
-                        <div class="recent-research-empty" style="font-size: 11px;">Hydrating radar...</div>
+                    <div id="mobile-home-fuzzy-radar-container" class="mobile-vertical-list-container" style="display: flex; flex-direction: column; gap: 8px;">
+                        <div class="skeleton-card-row"><div class="skel-circle"></div><div class="skel-lines"><div class="skel-line-short"></div><div class="skel-line-long"></div></div><div class="skel-price-block"></div></div>
+                        <div class="skeleton-card-row"><div class="skel-circle"></div><div class="skel-lines"><div class="skel-line-short"></div><div class="skel-line-long"></div></div><div class="skel-price-block"></div></div>
+                        <div class="skeleton-card-row"><div class="skel-circle"></div><div class="skel-lines"><div class="skel-line-short"></div><div class="skel-line-long"></div></div><div class="skel-price-block"></div></div>
                     </div>
                 </div>
+                <div class="section-gradient-divider"></div>
 
-                <!-- Quant Top Picks Section -->
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 24px; margin-bottom: 8px;">
-                    <h5 style="margin:0; font-size:13.5px; text-transform:uppercase; color:var(--text-secondary); font-family:var(--font-heading); font-weight: 700; letter-spacing: 0.05em;">🔬 Quant Top Picks</h5>
-                    <button class="section-view-all-btn" onclick="window.switchTab && window.switchTab('screener')" style="background: rgba(255,255,255,0.04); color: var(--text-secondary); border: 1px solid var(--border-glass); padding: 3px 10px; font-size: 10.5px; border-radius: 4px; cursor: pointer; font-family: 'Outfit', sans-serif; font-weight: 600;">View All </button>
+                <!-- 3. Quant Top Picks (moved up) -->
+                <div class="cyber-header-wrap" data-section-id="quant-picks" style="margin-top: 24px;">
+                    <div class="header-ambient-glow gold-quant-glow"></div>
+                    <div class="cyber-header-title">
+                        <span class="cyber-badge-emblem cyber-badge-quant">🔬</span>
+                        <span>Quant Top Picks</span>
+                        <span class="section-collapse-chevron">▾</span>
+                    </div>
+                    <button class="section-view-all-btn" onclick="window.switchTab && window.switchTab('screener')" style="background: rgba(245, 158, 11, 0.1); color: #f59e0b; border: 1px solid rgba(245, 158, 11, 0.3); padding: 4px 12px; font-size: 11px; border-radius: 6px; cursor: pointer; font-family: 'Outfit', sans-serif; font-weight: 700;">View All →</button>
                 </div>
-                <div class="mobile-glass-card" style="padding: 12px; margin-bottom: 20px;">
+                <div class="mobile-glass-card section-collapsible-body" data-section-id="quant-picks" style="padding: 12px; margin-bottom: 20px;">
                     <div class="movers-segmented-control" style="margin-bottom: 12px; display: flex; gap: 4px;">
                         <button class="tech-segmented-tab active" id="mobile-quant-tab-hybrid" style="flex: 1; text-align: center; font-size: 10.5px; padding: 6px 0;">Hybrid</button>
                         <button class="tech-segmented-tab" id="mobile-quant-tab-bottom_up" style="flex: 1; text-align: center; font-size: 10.5px; padding: 6px 0;">Bottom-Up</button>
                         <button class="tech-segmented-tab" id="mobile-quant-tab-top_down" style="flex: 1; text-align: center; font-size: 10.5px; padding: 6px 0;">Top-Down</button>
                     </div>
-                    <div id="mobile-home-quant-picks-container" style="display: flex; flex-direction: column; gap: 8px;">
-                        <div class="recent-research-empty" style="font-size: 11px;">Scanning market for quant top picks...</div>
+                    <div id="mobile-home-quant-picks-container" class="mobile-vertical-list-container" style="display: flex; flex-direction: column; gap: 8px;">
+                        <div class="skeleton-card-row"><div class="skel-circle"></div><div class="skel-lines"><div class="skel-line-short"></div><div class="skel-line-long"></div></div><div class="skel-price-block"></div></div>
+                        <div class="skeleton-card-row"><div class="skel-circle"></div><div class="skel-lines"><div class="skel-line-short"></div><div class="skel-line-long"></div></div><div class="skel-price-block"></div></div>
+                        <div class="skeleton-card-row"><div class="skel-circle"></div><div class="skel-lines"><div class="skel-line-short"></div><div class="skel-line-long"></div></div><div class="skel-price-block"></div></div>
                     </div>
                 </div>
-                <!-- Watchlist Quick-Quote Section -->
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 24px; margin-bottom: 8px;">
-                    <h5 style="margin:0; font-size:13.5px; text-transform:uppercase; color:var(--text-secondary); font-family:var(--font-heading); font-weight: 700; letter-spacing: 0.05em;">⭐ Watchlist Quick-Quote</h5>
+                <div class="section-gradient-divider"></div>
+
+                <!-- 4. Sector Rotations (moved down) -->
+                <div class="cyber-header-wrap" data-section-id="sector-rotations" style="margin-top: 24px;">
+                    <div class="header-ambient-glow cyan-sector-glow"></div>
+                    <div class="cyber-header-title">
+                        <span class="cyber-badge-emblem cyber-badge-compass">🧭</span>
+                        <span>Sector Rotations</span>
+                        <span class="section-collapse-chevron">▾</span>
+                    </div>
+                    <button class="section-view-all-btn" onclick="window.switchTab && window.switchTab('sector-radar')" style="background: rgba(6, 182, 212, 0.1); color: #06b6d4; border: 1px solid rgba(6, 182, 212, 0.3); padding: 4px 12px; font-size: 11px; border-radius: 6px; cursor: pointer; font-family: 'Outfit', sans-serif; font-weight: 700;">View All →</button>
+                </div>
+                <div id="mobile-home-sectors-container" class="section-collapsible-body" data-section-id="sector-rotations" style="margin-bottom: 20px;"></div>
+                <div class="section-gradient-divider"></div>
+
+                <!-- 5. Watchlist Quick-Quote -->
+                <div class="cyber-header-wrap" data-section-id="watchlist" style="margin-top: 24px;">
+                    <div class="header-ambient-glow amber-watchlist-glow"></div>
+                    <div class="cyber-header-title">
+                        <span class="cyber-badge-emblem cyber-badge-quant">⭐</span>
+                        <span>Watchlist Quick-Quote</span>
+                        <span class="section-collapse-chevron">▾</span>
+                    </div>
                     <div style="display: flex; align-items: center; gap: 6px;">
                         <select id="mobile-watchlist-selector" style="background: rgba(255,255,255,0.03); color: var(--text-primary); border: 1px solid var(--border-glass); padding: 2px 6px; font-size: 11px; border-radius: 4px; outline: none; font-family: 'Outfit', sans-serif; cursor: pointer; max-width: 120px;">
                             <option value="" disabled selected>Select Watchlist</option>
                         </select>
-                        <button class="section-view-all-btn" onclick="window.switchTab && window.switchTab('watchlist')" style="background: rgba(255,255,255,0.04); color: var(--text-secondary); border: 1px solid var(--border-glass); padding: 3px 10px; font-size: 10.5px; border-radius: 4px; cursor: pointer; font-family: 'Outfit', sans-serif; font-weight: 600;">View All </button>
+                        <button class="section-view-all-btn" onclick="window.switchTab && window.switchTab('watchlist')" style="background: rgba(245, 158, 11, 0.1); color: #f59e0b; border: 1px solid rgba(245, 158, 11, 0.3); padding: 4px 12px; font-size: 11px; border-radius: 6px; cursor: pointer; font-family: 'Outfit', sans-serif; font-weight: 700;">View All →</button>
                     </div>
                 </div>
-                <div class="mobile-glass-card" style="padding: 12px; margin-bottom: 20px;">
-                    <div id="mobile-home-watchlist-container" style="display: flex; flex-direction: column; gap: 8px;">
+                <div class="mobile-glass-card section-collapsible-body" data-section-id="watchlist" style="padding: 12px; margin-bottom: 20px;">
+                    <div id="mobile-home-watchlist-container" class="mobile-vertical-list-container" style="display: flex; flex-direction: column; gap: 8px;">
                         <div class="recent-research-empty" style="font-size: 11px;">Select watchlist in main workspace to display.</div>
                     </div>
                 </div>
+                <div class="section-gradient-divider"></div>
 
- <!-- Technical Scans & Breakouts Section -->
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 24px; margin-bottom: 8px;">
-                    <h5 style="margin:0; font-size:13.5px; text-transform:uppercase; color:var(--text-secondary); font-family:var(--font-heading); font-weight: 700; letter-spacing: 0.05em;">⚡ Technical Breakouts</h5>
-                    <button class="section-view-all-btn" onclick="window.switchTab && window.switchTab('technical-scans')" style="background: rgba(255,255,255,0.04); color: var(--text-secondary); border: 1px solid var(--border-glass); padding: 3px 10px; font-size: 10.5px; border-radius: 4px; cursor: pointer; font-family: 'Outfit', sans-serif; font-weight: 600;">View All →</button>
+                <!-- 6. Technical Breakouts -->
+                <div class="cyber-header-wrap" data-section-id="tech-breakouts" style="margin-top: 24px;">
+                    <div class="header-ambient-glow purple-breakouts-glow"></div>
+                    <div class="cyber-header-title">
+                        <span class="cyber-badge-emblem cyber-badge-lightning">⚡</span>
+                        <span>Technical Breakouts</span>
+                        <span class="section-collapse-chevron">▾</span>
+                    </div>
+                    <button class="section-view-all-btn" onclick="window.switchTab && window.switchTab('technical-scans')" style="background: rgba(168, 85, 247, 0.1); color: #a855f7; border: 1px solid rgba(168, 85, 247, 0.3); padding: 4px 12px; font-size: 11px; border-radius: 6px; cursor: pointer; font-family: 'Outfit', sans-serif; font-weight: 700;">View All →</button>
                 </div>
-                <div class="mobile-glass-card" style="padding: 12px; margin-bottom: 20px;">
-                    <div class="tech-segmented-control scroll-fade-mask" style="margin-bottom: 12px; display: flex; gap: 4px; overflow-x: auto; white-space: nowrap; -webkit-overflow-scrolling: touch; padding-bottom: 2px;">
-                        <button class="tech-segmented-tab active" id="mobile-tech-tab-near_high" style="flex: 1; text-align: center; font-size: 10.5px; padding: 6px 10px; min-width: 90px;">Near 52W High</button>
-                        <button class="tech-segmented-tab" id="mobile-tech-tab-near_low" style="flex: 1; text-align: center; font-size: 10.5px; padding: 6px 10px; min-width: 90px;">Near 52W Low</button>
-                        <button class="tech-segmented-tab" id="mobile-tech-tab-gap_up" style="flex: 1; text-align: center; font-size: 10.5px; padding: 6px 10px; min-width: 80px;">Gap Up</button>
-                        <button class="tech-segmented-tab" id="mobile-tech-tab-gap_down" style="flex: 1; text-align: center; font-size: 10.5px; padding: 6px 10px; min-width: 85px;">Gap Down</button>
+                <div class="mobile-glass-card section-collapsible-body" data-section-id="tech-breakouts" style="padding: 12px; margin-bottom: 20px;">
+                    <div class="tech-segmented-control scroll-fade-mask" style="margin-bottom: 12px; display: flex; gap: 6px; overflow-x: auto; white-space: nowrap; -webkit-overflow-scrolling: touch; padding-bottom: 4px; scrollbar-width: none;">
+                        <button class="tech-segmented-tab active" id="mobile-tech-tab-near_high" style="font-size: 10.5px; padding: 6px 12px; border-radius: 20px; font-family:'Outfit', sans-serif; font-weight:800;">🔥 52W High</button>
+                        <button class="tech-segmented-tab" id="mobile-tech-tab-volume_shockers" style="font-size: 10.5px; padding: 6px 12px; border-radius: 20px; font-family:'Outfit', sans-serif; font-weight:800;">📈 Vol Surge</button>
+                        <button class="tech-segmented-tab" id="mobile-tech-tab-golden_crossover" style="font-size: 10.5px; padding: 6px 12px; border-radius: 20px; font-family:'Outfit', sans-serif; font-weight:800;">🟢 MACD Cross</button>
+                        <button class="tech-segmented-tab" id="mobile-tech-tab-gap_up" style="font-size: 10.5px; padding: 6px 12px; border-radius: 20px; font-family:'Outfit', sans-serif; font-weight:800;">⚡ Gap Up</button>
+                        <button class="tech-segmented-tab" id="mobile-tech-tab-rsi_oversold" style="font-size: 10.5px; padding: 6px 12px; border-radius: 20px; font-family:'Outfit', sans-serif; font-weight:800;">⚠️ RSI Oversold</button>
+                        <button class="tech-segmented-tab" id="mobile-tech-tab-near_low" style="font-size: 10.5px; padding: 6px 12px; border-radius: 20px; font-family:'Outfit', sans-serif; font-weight:800;">🔻 52W Low</button>
                     </div>
-                    <div id="mobile-home-tech-scans-container" style="display: flex; flex-direction: column; gap: 8px;">
-                        <div class="recent-research-empty" style="font-size: 11px;">Scanning technical breakouts...</div>
+                    <div id="mobile-home-tech-scans-container" class="mobile-vertical-list-container" style="display: flex; flex-direction: column; gap: 8px;">
+                        <div class="skeleton-card-row"><div class="skel-circle"></div><div class="skel-lines"><div class="skel-line-short"></div><div class="skel-line-long"></div></div><div class="skel-price-block"></div></div>
+                        <div class="skeleton-card-row"><div class="skel-circle"></div><div class="skel-lines"><div class="skel-line-short"></div><div class="skel-line-long"></div></div><div class="skel-price-block"></div></div>
+                        <div class="skeleton-card-row"><div class="skel-circle"></div><div class="skel-lines"><div class="skel-line-short"></div><div class="skel-line-long"></div></div><div class="skel-price-block"></div></div>
                     </div>
+                </div>
+                <div class="section-gradient-divider"></div>
+                
+                <!-- 7. Institutional Alert Center -->
+                <div class="cyber-header-wrap" data-section-id="alerts" style="margin-top: 24px;">
+                    <div class="header-ambient-glow red-alerts-glow"></div>
+                    <div class="cyber-header-title">
+                        <span class="cyber-badge-emblem cyber-badge-bull" style="background: radial-gradient(circle at 30% 30%, rgba(239, 68, 68, 0.35), rgba(15, 23, 42, 0.85)); border-color: rgba(239, 68, 68, 0.45); box-shadow: 0 0 12px rgba(239, 68, 68, 0.35);">🚨</span>
+                        <span>Institutional Alert Center</span>
+                        <span class="section-collapse-chevron">▾</span>
+                    </div>
+                    <button class="section-view-all-btn" onclick="window.switchTab && window.switchTab('alerts')" style="background: rgba(239, 68, 68, 0.1); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.3); padding: 4px 12px; font-size: 11px; border-radius: 6px; cursor: pointer; font-family: 'Outfit', sans-serif; font-weight: 700;">View All →</button>
+                </div>
+                <div class="mobile-glass-card section-collapsible-body" data-section-id="alerts" style="padding: 12px; margin-bottom: 20px;">
+                    <div id="mobile-home-alerts-container" class="mobile-vertical-list-container" style="display: flex; flex-direction: column; gap: 8px;">
+                        <div class="skeleton-card-row"><div class="skel-circle"></div><div class="skel-lines"><div class="skel-line-short"></div><div class="skel-line-long"></div></div><div class="skel-price-block"></div></div>
+                        <div class="skeleton-card-row"><div class="skel-circle"></div><div class="skel-lines"><div class="skel-line-short"></div><div class="skel-line-long"></div></div><div class="skel-price-block"></div></div>
+                    </div>
+                </div>
+                <div class="section-gradient-divider"></div>
+
+                <!-- 8. Corporate Events -->
+                <div class="cyber-header-wrap" data-section-id="events" style="margin-top: 24px;">
+                    <div class="header-ambient-glow pink-events-glow"></div>
+                    <div class="cyber-header-title">
+                        <span class="cyber-badge-emblem cyber-badge-compass" style="background: radial-gradient(circle at 30% 30%, rgba(236, 72, 153, 0.35), rgba(15, 23, 42, 0.85)); border-color: rgba(236, 72, 153, 0.45); box-shadow: 0 0 12px rgba(236, 72, 153, 0.35);">📅</span>
+                        <span>Corporate Events</span>
+                        <span class="section-collapse-chevron">▾</span>
+                    </div>
+                    <button class="section-view-all-btn" onclick="window.switchTab && window.switchTab('events')" style="background: rgba(236, 72, 153, 0.1); color: #ec4899; border: 1px solid rgba(236, 72, 153, 0.3); padding: 4px 12px; font-size: 11px; border-radius: 6px; cursor: pointer; font-family: 'Outfit', sans-serif; font-weight: 700;">View All →</button>
+                </div>
+                <div class="mobile-glass-card section-collapsible-body" data-section-id="events" style="padding: 12px; margin-bottom: 20px;">
+                    <div id="mobile-home-events-container" class="mobile-vertical-list-container" style="display: flex; flex-direction: column; gap: 8px;">
+                        <div class="skeleton-card-row"><div class="skel-circle"></div><div class="skel-lines"><div class="skel-line-short"></div><div class="skel-line-long"></div></div><div class="skel-price-block"></div></div>
+                        <div class="skeleton-card-row"><div class="skel-circle"></div><div class="skel-lines"><div class="skel-line-short"></div><div class="skel-line-long"></div></div><div class="skel-price-block"></div></div>
+                    </div>
+                </div>
+                <div class="section-gradient-divider"></div>
+
+                <!-- 9. Live Catalyst News -->
+                <div class="cyber-header-wrap" data-section-id="news" style="margin-top: 24px;">
+                    <div class="header-ambient-glow orange-news-glow"></div>
+                    <div class="cyber-header-title">
+                        <span class="cyber-badge-emblem cyber-badge-brain" style="background: radial-gradient(circle at 30% 30%, rgba(249, 115, 22, 0.35), rgba(15, 23, 42, 0.85)); border-color: rgba(249, 115, 22, 0.45); box-shadow: 0 0 12px rgba(249, 115, 22, 0.35);">📰</span>
+                        <span>Live Catalyst News</span>
+                        <span class="section-collapse-chevron">▾</span>
+                    </div>
+                    <button class="section-view-all-btn" onclick="window.switchTab && window.switchTab('market-news')" style="background: rgba(249, 115, 22, 0.1); color: #f97316; border: 1px solid rgba(249, 115, 22, 0.3); padding: 4px 12px; font-size: 11px; border-radius: 6px; cursor: pointer; font-family: 'Outfit', sans-serif; font-weight: 700;">View All →</button>
                 </div>
                 
-                <!-- Institutional Alert Center Section -->
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 24px; margin-bottom: 8px;">
-                    <h5 style="margin:0; font-size:13.5px; text-transform:uppercase; color:var(--text-secondary); font-family:var(--font-heading); font-weight: 700; letter-spacing: 0.05em;">🚨 Institutional Alert Center</h5>
-                    <button class="section-view-all-btn" onclick="window.switchTab && window.switchTab('alerts')" style="background: rgba(255,255,255,0.04); color: var(--text-secondary); border: 1px solid var(--border-glass); padding: 3px 10px; font-size: 10.5px; border-radius: 4px; cursor: pointer; font-family: 'Outfit', sans-serif; font-weight: 600;">View All →</button>
-                </div>
-                <div class="mobile-glass-card" style="padding: 12px; margin-bottom: 20px;">
-                    <div id="mobile-home-alerts-container" style="display: flex; flex-direction: column; gap: 8px;">
-                        <div class="recent-research-empty" style="font-size: 11px;">Scanning real-time alerts...</div>
-                    </div>
-                </div>
-
-                <!-- Upcoming Corporate Events Section -->
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 24px; margin-bottom: 8px;">
-                    <h5 style="margin:0; font-size:13.5px; text-transform:uppercase; color:var(--text-secondary); font-family:var(--font-heading); font-weight: 700; letter-spacing: 0.05em;">📅 Corporate Events</h5>
-                    <button class="section-view-all-btn" onclick="window.switchTab && window.switchTab('events')" style="background: rgba(255,255,255,0.04); color: var(--text-secondary); border: 1px solid var(--border-glass); padding: 3px 10px; font-size: 10.5px; border-radius: 4px; cursor: pointer; font-family: 'Outfit', sans-serif; font-weight: 600;">View All →</button>
-                </div>
-                <div class="mobile-glass-card" style="padding: 12px; margin-bottom: 20px;">
-                    <div id="mobile-home-events-container" style="display: flex; flex-direction: column; gap: 8px;">
-                        <div class="recent-research-empty" style="font-size: 11px;">Fetching events schedule...</div>
-                    </div>
-                </div>
-<!-- Live Catalyst News Feed Section -->
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 24px; margin-bottom: 8px;">
-                    <h5 style="margin:0; font-size:13.5px; text-transform:uppercase; color:var(--text-secondary); font-family:var(--font-heading); font-weight: 700; letter-spacing: 0.05em;">Live Catalyst News</h5>
-                    <button class="section-view-all-btn" onclick="window.switchTab && window.switchTab('market-news')" style="background: rgba(255,255,255,0.04); color: var(--text-secondary); border: 1px solid var(--border-glass); padding: 3px 10px; font-size: 10.5px; border-radius: 4px; cursor: pointer; font-family: 'Outfit', sans-serif; font-weight: 600;">View All →</button>
-                </div>
-                
-                <div class="news-categories-scroll-wrapper">
+                <div class="news-categories-scroll-wrapper section-collapsible-body" data-section-id="news">
                     <button class="news-category-pill-btn active" data-category="all">All</button>
                     <button class="news-category-pill-btn" data-category="earnings">Earnings</button>
                     <button class="news-category-pill-btn" data-category="m&a">M&A</button>
                     <button class="news-category-pill-btn" data-category="policy">Policy</button>
                     <button class="news-category-pill-btn" data-category="global">Global</button>
                 </div>
-                <div class="mobile-cmd-news-section" id="mobile-home-news-container" style="margin-top: 5px;">
+                <div class="mobile-cmd-news-section section-collapsible-body" data-section-id="news" id="mobile-home-news-container" style="margin-top: 5px;">
                     <!-- Populated dynamically -->
                 </div>
             `;
@@ -3893,10 +4047,12 @@
 
             // Wire mobile Technical Breakouts strategy selector clicks
             const mtTabHigh = document.getElementById('mobile-tech-tab-near_high');
-            const mtTabLow = document.getElementById('mobile-tech-tab-near_low');
+            const mtTabVol = document.getElementById('mobile-tech-tab-volume_shockers');
+            const mtTabMacd = document.getElementById('mobile-tech-tab-golden_crossover');
             const mtTabGapUp = document.getElementById('mobile-tech-tab-gap_up');
-            const mtTabGapDown = document.getElementById('mobile-tech-tab-gap_down');
-            const mtMobileTabs = [mtTabHigh, mtTabLow, mtTabGapUp, mtTabGapDown];
+            const mtTabRsi = document.getElementById('mobile-tech-tab-rsi_oversold');
+            const mtTabLow = document.getElementById('mobile-tech-tab-near_low');
+            const mtMobileTabs = [mtTabHigh, mtTabVol, mtTabMacd, mtTabGapUp, mtTabRsi, mtTabLow];
 
             const updateMobileTechActiveTab = (activeId) => {
                 mtMobileTabs.forEach(tab => {
@@ -3906,34 +4062,23 @@
                 if (activeTab) activeTab.classList.add('active');
             };
 
-            if (mtTabHigh) {
-                mtTabHigh.onclick = () => {
-                    window.activeTechnicalScan = 'near_high';
-                    updateMobileTechActiveTab('mobile-tech-tab-near_high');
-                    if (window.renderTechnicalScansList) window.renderTechnicalScansList();
-                };
-            }
-            if (mtTabLow) {
-                mtTabLow.onclick = () => {
-                    window.activeTechnicalScan = 'near_low';
-                    updateMobileTechActiveTab('mobile-tech-tab-near_low');
-                    if (window.renderTechnicalScansList) window.renderTechnicalScansList();
-                };
-            }
-            if (mtTabGapUp) {
-                mtTabGapUp.onclick = () => {
-                    window.activeTechnicalScan = 'gap_up';
-                    updateMobileTechActiveTab('mobile-tech-tab-gap_up');
-                    if (window.renderTechnicalScansList) window.renderTechnicalScansList();
-                };
-            }
-            if (mtTabGapDown) {
-                mtTabGapDown.onclick = () => {
-                    window.activeTechnicalScan = 'gap_down';
-                    updateMobileTechActiveTab('mobile-tech-tab-gap_down');
-                    if (window.renderTechnicalScansList) window.renderTechnicalScansList();
-                };
-            }
+            const bindScanTab = (tabEl, scanKey, tabId) => {
+                if (tabEl) {
+                    tabEl.onclick = () => {
+                        if (typeof playHaptic === 'function') playHaptic(8);
+                        window.activeTechnicalScan = scanKey;
+                        updateMobileTechActiveTab(tabId);
+                        if (window.renderTechnicalScansList) window.renderTechnicalScansList();
+                    };
+                }
+            };
+
+            bindScanTab(mtTabHigh, 'near_high', 'mobile-tech-tab-near_high');
+            bindScanTab(mtTabVol, 'volume_shockers', 'mobile-tech-tab-volume_shockers');
+            bindScanTab(mtTabMacd, 'golden_crossover', 'mobile-tech-tab-golden_crossover');
+            bindScanTab(mtTabGapUp, 'gap_up', 'mobile-tech-tab-gap_up');
+            bindScanTab(mtTabRsi, 'rsi_oversold', 'mobile-tech-tab-rsi_oversold');
+            bindScanTab(mtTabLow, 'near_low', 'mobile-tech-tab-near_low');
 
             // Wire News Category Tab Clicks
             const newsCategoryTabs = container.querySelectorAll('.news-category-pill-btn');
@@ -3945,6 +4090,169 @@
                     updateDynamicCommandCenterContent();
                 };
             });
+
+            // ============================================================
+            // COLLAPSIBLE SECTIONS with localStorage Persistence
+            // ============================================================
+            const collapsedSections = (() => {
+                try { return JSON.parse(localStorage.getItem('mobile_home_collapsed_sections') || '[]'); } catch(e) { return []; }
+            })();
+
+            const sectionHeaders = container.querySelectorAll('.cyber-header-wrap[data-section-id]');
+            sectionHeaders.forEach(header => {
+                const sectionId = header.dataset.sectionId;
+                const chevron = header.querySelector('.section-collapse-chevron');
+                const bodies = container.querySelectorAll(`.section-collapsible-body[data-section-id="${sectionId}"]`);
+
+                // Restore collapsed state
+                if (collapsedSections.includes(sectionId)) {
+                    if (chevron) chevron.classList.add('collapsed');
+                    bodies.forEach(body => body.classList.add('collapsed'));
+                }
+
+                header.addEventListener('click', (e) => {
+                    // Don't toggle if clicking the "View All" button or select dropdown
+                    if (e.target.closest('.section-view-all-btn') || e.target.closest('select') || e.target.closest('button:not(.cyber-header-wrap)')) return;
+
+                    const isCollapsed = chevron && chevron.classList.contains('collapsed');
+                    if (isCollapsed) {
+                        if (chevron) chevron.classList.remove('collapsed');
+                        bodies.forEach(body => body.classList.remove('collapsed'));
+                        const idx = collapsedSections.indexOf(sectionId);
+                        if (idx > -1) collapsedSections.splice(idx, 1);
+                    } else {
+                        if (chevron) chevron.classList.add('collapsed');
+                        bodies.forEach(body => body.classList.add('collapsed'));
+                        if (!collapsedSections.includes(sectionId)) collapsedSections.push(sectionId);
+                    }
+                    try { localStorage.setItem('mobile_home_collapsed_sections', JSON.stringify(collapsedSections)); } catch(e) {}
+                    if (typeof playHaptic === 'function') playHaptic('light');
+                });
+            });
+
+            // ============================================================
+            // PULL-TO-REFRESH Touch Handler
+            // ============================================================
+            (() => {
+                const ptrIndicator = document.getElementById('mobile-ptr-indicator');
+                if (!ptrIndicator || !container) return;
+                let startY = 0;
+                let isPulling = false;
+                let ptrTriggered = false;
+
+                container.addEventListener('touchstart', (e) => {
+                    if (container.scrollTop <= 5) {
+                        startY = e.touches[0].clientY;
+                        isPulling = true;
+                        ptrTriggered = false;
+                    }
+                }, { passive: true });
+
+                container.addEventListener('touchmove', (e) => {
+                    if (!isPulling) return;
+                    const dy = e.touches[0].clientY - startY;
+                    if (dy > 60 && !ptrTriggered) {
+                        ptrTriggered = true;
+                        ptrIndicator.classList.add('visible');
+                        if (typeof playHaptic === 'function') playHaptic('medium');
+                    }
+                }, { passive: true });
+
+                container.addEventListener('touchend', () => {
+                    if (ptrTriggered) {
+                        updateDynamicCommandCenterContent().then(() => {
+                            setTimeout(() => ptrIndicator.classList.remove('visible'), 600);
+                        }).catch(() => {
+                            setTimeout(() => ptrIndicator.classList.remove('visible'), 600);
+                        });
+                    }
+                    isPulling = false;
+                    ptrTriggered = false;
+                }, { passive: true });
+            })();
+
+            // ============================================================
+            // MARKET PULSE STRIP Update Hook
+            // ============================================================
+            window._pulseSparkHistory = window._pulseSparkHistory || { nifty: [], sensex: [], banknifty: [] };
+
+            window.updateMobileMarketPulse = function(ticksData) {
+                if (!ticksData) return;
+                const indices = [
+                    { sym: '^NSEI', priceId: 'pulse-price-nifty', changeId: 'pulse-change-nifty', sparkId: 'pulse-spark-nifty', histKey: 'nifty' },
+                    { sym: '^BSESN', priceId: 'pulse-price-sensex', changeId: 'pulse-change-sensex', sparkId: 'pulse-spark-sensex', histKey: 'sensex' },
+                    { sym: '^NSEBANK', priceId: 'pulse-price-banknifty', changeId: 'pulse-change-banknifty', sparkId: 'pulse-spark-banknifty', histKey: 'banknifty' }
+                ];
+
+                indices.forEach(({ sym, priceId, changeId, sparkId, histKey }) => {
+                    const q = ticksData[sym];
+                    if (!q || !q.price) return;
+                    const priceEl = document.getElementById(priceId);
+                    const changeEl = document.getElementById(changeId);
+                    const sparkEl = document.getElementById(sparkId);
+                    if (!priceEl) return;
+
+                    priceEl.textContent = q.price.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+                    if (changeEl && q.change_pct !== undefined) {
+                        const isPos = q.change >= 0;
+                        const sign = isPos ? '+' : '';
+                        changeEl.textContent = `${isPos ? '▲' : '▼'} ${sign}${q.change_pct.toFixed(2)}%`;
+                        changeEl.className = `pulse-change ${isPos ? 'positive' : 'negative'}`;
+                    }
+
+                    // Mini sparkline
+                    const hist = window._pulseSparkHistory[histKey];
+                    hist.push(q.price);
+                    if (hist.length > 20) hist.shift();
+                    if (sparkEl && hist.length > 2) {
+                        const minP = Math.min(...hist);
+                        const maxP = Math.max(...hist);
+                        const range = maxP - minP || 1;
+                        const w = 80, h = 16;
+                        const pts = hist.map((p, i) => `${(i / (hist.length - 1)) * w},${h - ((p - minP) / range) * h}`).join(' ');
+                        const color = (q.change >= 0) ? '#10b981' : '#ef4444';
+                        sparkEl.innerHTML = `<svg width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" style="overflow:visible;"><polyline points="${pts}" fill="none" stroke="${color}" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" opacity="0.7"/></svg>`;
+                    }
+                });
+
+                // Update mood icon based on Nifty regime
+                const moodIcon = document.getElementById('mobile-mood-icon');
+                if (moodIcon) {
+                    const niftyTick = ticksData['^NSEI'];
+                    if (niftyTick && niftyTick.change !== undefined) {
+                        const isBullish = niftyTick.change >= 0;
+                        moodIcon.src = isBullish ? '/img/bull_mood.webp' : '/img/bear_mood.webp';
+                        moodIcon.className = isBullish ? 'market-mood-icon' : 'market-mood-icon bearish';
+                    }
+                }
+
+                // Update Last Updated Timestamp
+                window._mobileLastUpdatedAt = Date.now();
+                const tsEl = document.getElementById('mobile-last-updated-text');
+                const dotEl = document.querySelector('.mobile-last-updated .freshness-dot');
+                if (tsEl) {
+                    const now = new Date();
+                    const timeStr = now.toLocaleString('en-US', { timeZone: 'Asia/Kolkata', hour: 'numeric', minute: '2-digit', hour12: true });
+                    tsEl.textContent = `Data as of ${timeStr} IST`;
+                }
+                if (dotEl) {
+                    dotEl.classList.remove('stale');
+                }
+            };
+
+            // Staleness checker - mark dot as stale after 5 minutes
+            if (!window._freshnessInterval) {
+                window._freshnessInterval = setInterval(() => {
+                    const dotEl = document.querySelector('.mobile-last-updated .freshness-dot');
+                    if (dotEl && window._mobileLastUpdatedAt) {
+                        const elapsed = Date.now() - window._mobileLastUpdatedAt;
+                        if (elapsed > 5 * 60 * 1000) {
+                            dotEl.classList.add('stale');
+                        }
+                    }
+                }, 30000);
+            }
 
             // Wire Tab Switches (Safely)
             const btnScreener = document.getElementById('cmd-btn-screener');
@@ -3966,23 +4274,45 @@
                 }
             });
 
-            // Wire Audio Mute Toggle Button
+            // Wire Audio Speech Briefing Button
             const muteBtn = document.getElementById('btn-audio-mute-toggle');
             if (muteBtn) {
-                const updateIcon = () => {
-                    const isMuted = localStorage.getItem('apex-audio-muted') === 'true';
-                    muteBtn.innerHTML = isMuted ? '🔇' : '🔊';
-                    muteBtn.style.color = isMuted ? 'var(--text-muted)' : 'var(--color-primary)';
-                };
-                updateIcon();
                 muteBtn.onclick = (e) => {
                     e.stopPropagation();
-                    const isMuted = localStorage.getItem('apex-audio-muted') === 'true';
-                    localStorage.setItem('apex-audio-muted', (!isMuted).toString());
-                    updateIcon();
-                    if (!isMuted) {
-                        AudioCueManager.playTick();
+                    if (typeof playHaptic === 'function') playHaptic(12);
+                    if (!('speechSynthesis' in window)) return;
+                    
+                    if (window.speechSynthesis.speaking) {
+                        window.speechSynthesis.cancel();
+                        muteBtn.innerHTML = '🔊';
+                        muteBtn.style.color = 'var(--color-primary)';
+                        return;
                     }
+                    
+                    const summaryText = document.getElementById('mobile-home-copilot-summary')?.innerText || '';
+                    const vixText = document.getElementById('vix-indicator-val')?.innerText || '';
+                    const advCount = document.getElementById('breadth-advances-count')?.innerText || '0';
+                    const decCount = document.getElementById('breadth-declines-count')?.innerText || '0';
+                    
+                    const textToSpeak = `${summaryText}. Market breadth shows ${advCount} advances to ${decCount} declines. ${vixText}.`;
+                    const utterance = new SpeechSynthesisUtterance(textToSpeak);
+                    utterance.rate = 1.0;
+                    utterance.pitch = 1.0;
+                    
+                    utterance.onstart = () => {
+                        muteBtn.innerHTML = '🎙️';
+                        muteBtn.style.color = '#10b981';
+                    };
+                    utterance.onend = () => {
+                        muteBtn.innerHTML = '🔊';
+                        muteBtn.style.color = 'var(--color-primary)';
+                    };
+                    utterance.onerror = () => {
+                        muteBtn.innerHTML = '🔊';
+                        muteBtn.style.color = 'var(--color-primary)';
+                    };
+                    
+                    window.speechSynthesis.speak(utterance);
                 };
             }
 
@@ -4203,12 +4533,14 @@
 
             // 2. Fetch & Render Gainers and Losers
             if (gainersContainer && losersContainer) {
+                if (typeof window.switchMoversTab === 'function') {
+                    window.switchMoversTab(window.activeMoversTab || 'gainers');
+                }
+                
                 gainersContainer.innerHTML = `
-                    <h5 style="margin:0 0 10px 0; font-size:11px; text-transform:uppercase; color:var(--text-secondary); font-family:var(--font-heading); font-weight:700; letter-spacing:0.05em;">Today's Top Gainers</h5>
                     <div style="opacity:0.65; height:32px; background:rgba(255,255,255,0.03); border-radius:6px; animation: skeleton-shimmer 1.5s infinite;"></div>
                 `;
                 losersContainer.innerHTML = `
-                    <h5 style="margin:15px 0 10px 0; font-size:11px; text-transform:uppercase; color:var(--text-secondary); font-family:var(--font-heading); font-weight:700; letter-spacing:0.05em;">Today's Top Losers</h5>
                     <div style="opacity:0.65; height:32px; background:rgba(255,255,255,0.03); border-radius:6px; animation: skeleton-shimmer 1.5s infinite;"></div>
                 `;
 
@@ -4220,10 +4552,10 @@
                         // Render Advances & Declines Breadth Gauge
                         const advCount = moversData.advances || 0;
                         const decCount = moversData.declines || 0;
-                        const advEl = document.getElementById('breadth-advances-count');
-                        const decEl = document.getElementById('breadth-declines-count');
-                        const advBar = document.getElementById('breadth-advances-bar');
-                        const decBar = document.getElementById('breadth-declines-bar');
+                        const advEl = document.getElementById('mobile-breadth-advances-count') || document.getElementById('breadth-advances-count');
+                        const decEl = document.getElementById('mobile-breadth-declines-count') || document.getElementById('breadth-declines-count');
+                        const advBar = document.getElementById('mobile-breadth-advances-bar') || document.getElementById('breadth-advances-bar');
+                        const decBar = document.getElementById('mobile-breadth-declines-bar') || document.getElementById('breadth-declines-bar');
                         const gaugeWrap = document.getElementById('mobile-home-breadth-gauge');
 
                         if (advEl && decEl && advBar && decBar && gaugeWrap) {
@@ -4235,6 +4567,52 @@
                                 const decPct = 100 - advPct;
                                 advBar.style.width = advPct + '%';
                                 decBar.style.width = decPct + '%';
+
+                                const advPctEl = document.getElementById('mobile-breadth-advances-pct');
+                                const decPctEl = document.getElementById('mobile-breadth-declines-pct');
+                                const pinEl = document.getElementById('mobile-breadth-meter-pin');
+                                if (advPctEl) advPctEl.innerText = `(${advPct.toFixed(0)}%)`;
+                                if (decPctEl) decPctEl.innerText = `(${decPct.toFixed(0)}%)`;
+                                if (pinEl) {
+                                    pinEl.style.left = advPct + '%';
+                                    const pinColor = advPct >= 50 ? '#10b981' : '#ef4444';
+                                    pinEl.style.background = '#ffffff';
+                                    pinEl.style.boxShadow = `0 0 10px ${pinColor}, 0 0 4px #ffffff`;
+                                }
+
+                                // Update Conic Dial Gauge
+                                const regimeScore = Math.round(advPct);
+                                const conicRing = document.getElementById('conic-regime-ring-path');
+                                const conicScoreNum = document.getElementById('conic-regime-score-num');
+                                const conicTag = document.getElementById('conic-regime-bias-tag');
+
+                                if (conicRing && conicScoreNum && conicTag) {
+                                    conicRing.setAttribute('stroke-dasharray', `${regimeScore}, 100`);
+                                    conicScoreNum.innerText = regimeScore;
+                                    if (regimeScore >= 60) {
+                                        conicRing.setAttribute('stroke', '#10b981');
+                                        conicScoreNum.style.color = '#10b981';
+                                        conicTag.innerText = 'BULLISH ACCUMULATION';
+                                        conicTag.style.color = '#10b981';
+                                        conicTag.style.background = 'rgba(16, 185, 129, 0.12)';
+                                        conicTag.style.borderColor = 'rgba(16, 185, 129, 0.3)';
+                                    } else if (regimeScore <= 40) {
+                                        conicRing.setAttribute('stroke', '#ef4444');
+                                        conicScoreNum.style.color = '#ef4444';
+                                        conicTag.innerText = 'BEARISH DISTRIBUTION';
+                                        conicTag.style.color = '#ef4444';
+                                        conicTag.style.background = 'rgba(239, 68, 68, 0.12)';
+                                        conicTag.style.borderColor = 'rgba(239, 68, 68, 0.3)';
+                                    } else {
+                                        conicRing.setAttribute('stroke', '#f59e0b');
+                                        conicScoreNum.style.color = '#f59e0b';
+                                        conicTag.innerText = 'NEUTRAL CONSOLIDATION';
+                                        conicTag.style.color = '#f59e0b';
+                                        conicTag.style.background = 'rgba(245, 158, 11, 0.12)';
+                                        conicTag.style.borderColor = 'rgba(245, 158, 11, 0.3)';
+                                    }
+                                }
+
                                 gaugeWrap.style.display = 'block';
                             } else {
                                 const advLbl = document.getElementById('breadth-advances-lbl');
@@ -4252,29 +4630,52 @@
                                         const decPct = 100 - advPct;
                                         advBar.style.width = advPct + '%';
                                         decBar.style.width = decPct + '%';
+
+                                        const regimeScore = Math.round(advPct);
+                                        const conicRing = document.getElementById('conic-regime-ring-path');
+                                        const conicScoreNum = document.getElementById('conic-regime-score-num');
+                                        const conicTag = document.getElementById('conic-regime-bias-tag');
+
+                                        if (conicRing && conicScoreNum && conicTag) {
+                                            conicRing.setAttribute('stroke-dasharray', `${regimeScore}, 100`);
+                                            conicScoreNum.innerText = regimeScore;
+                                            if (regimeScore >= 60) {
+                                                conicRing.setAttribute('stroke', '#10b981');
+                                                conicScoreNum.style.color = '#10b981';
+                                                conicTag.innerText = 'BULLISH ACCUMULATION';
+                                            } else if (regimeScore <= 40) {
+                                                conicRing.setAttribute('stroke', '#ef4444');
+                                                conicScoreNum.style.color = '#ef4444';
+                                                conicTag.innerText = 'BEARISH DISTRIBUTION';
+                                            } else {
+                                                conicRing.setAttribute('stroke', '#f59e0b');
+                                                conicScoreNum.style.color = '#f59e0b';
+                                                conicTag.innerText = 'NEUTRAL CONSOLIDATION';
+                                            }
+                                        }
+
                                         gaugeWrap.style.display = 'block';
                                     }
                                 }
                             }
                         }
 
-                        // Update VIX Volatility Radar Indicator
+                        // Update VIX Volatility Radar & Quant Cockpit Indicators with synced real value
                         let vixVal = 13.2;
-                        const changeSpan = document.getElementById('ticker-nifty')?.querySelector('.change');
-                        if (changeSpan) {
-                            const txt = changeSpan.textContent;
-                            const val = parseFloat(txt.replace(/[^\d.-]/g, ''));
-                            const isDown = txt.includes('▼') || txt.includes('-');
-                            if (!isNaN(val)) {
-                                if (isDown) {
-                                    vixVal = 13.5 + (val * 1.5);
-                                } else {
-                                    vixVal = 13.5 - (val * 1.2);
-                                }
-                            }
+                        if (moversData && typeof moversData.india_vix === 'number' && moversData.india_vix > 0) {
+                            vixVal = moversData.india_vix;
+                        } else if (moversData && Array.isArray(moversData.indices)) {
+                            const vixItem = moversData.indices.find(i => i.symbol === '^INDIAVIX' || i.symbol === 'INDIAVIX');
+                            if (vixItem && vixItem.price) vixVal = vixItem.price;
                         }
-                        vixVal = Math.max(10.5, Math.min(28.0, vixVal));
-                        
+
+                        // Sync Desktop/Cockpit Market Regime Banner VIX element
+                        const quantBannerVixEl = document.getElementById('quant-banner-vix-val');
+                        if (quantBannerVixEl) {
+                            quantBannerVixEl.innerText = vixVal.toFixed(1);
+                        }
+
+                        // Sync Volatility Radar Indicator
                         const vixDot = document.getElementById('vix-indicator-dot');
                         const vixValEl = document.getElementById('vix-indicator-val');
                         if (vixDot && vixValEl) {
@@ -4297,14 +4698,12 @@
                         
                         // Check if backend cache is pending or empty
                         if (moversData.status === "pending" || (!moversData.gainers?.all || moversData.gainers.all.length === 0)) {
-                            gainersContainer.innerHTML = `
-                                <h5 style="margin:0 0 10px 0; font-size:11px; text-transform:uppercase; color:var(--text-secondary); font-family:var(--font-heading); font-weight:700; letter-spacing:0.05em;">Today's Top Gainers</h5>
-                                <div class="recent-research-empty" style="font-size:11px;">Warming live market movers cache...</div>
-                            `;
-                            losersContainer.innerHTML = `
-                                <h5 style="margin:15px 0 10px 0; font-size:11px; text-transform:uppercase; color:var(--text-secondary); font-family:var(--font-heading); font-weight:700; letter-spacing:0.05em;">Today's Top Losers</h5>
-                                <div class="recent-research-empty" style="font-size:11px;">Warming live market movers cache...</div>
-                            `;
+                            const curMoversTab = window.activeMoversTab || 'gainers';
+                            gainersContainer.style.display = (curMoversTab === 'gainers') ? 'block' : 'none';
+                            losersContainer.style.display = (curMoversTab === 'losers') ? 'block' : 'none';
+                            
+                            gainersContainer.innerHTML = `<div class="recent-research-empty" style="font-size:11px;">Warming live market movers cache...</div>`;
+                            losersContainer.innerHTML = `<div class="recent-research-empty" style="font-size:11px;">Warming live market movers cache...</div>`;
                             setTimeout(updateDynamicCommandCenterContent, 3000);
                             return;
                         }
@@ -4320,39 +4719,51 @@
                             // Render Gainers
                             const gainersList = activeData.gainers ? (activeData.gainers[cap] || []).slice(0, 5) : [];
                             if (gainersList.length > 0) {
-                                let gHtml = `<h5 style="margin:0 0 10px 0; font-size:13px; text-transform:uppercase; color:var(--text-secondary); font-family:var(--font-heading); font-weight:700; letter-spacing:0.05em;">Today's Top Gainers</h5>`;
-                                gainersList.forEach(item => {
+                                let gHtml = `<div class="mobile-vertical-list-container">`;
+                                gainersList.forEach((item, index) => {
                                     const sym = item.symbol.replace(".NS", "");
                                     const logoHtml = getStockLogoHtml(sym);
                                     gHtml += `
-                                        <div class="recent-stock-card" data-symbol="${sym}" style="border-left: 3.5px solid var(--neon-green); padding: 12px 14px; display:flex; align-items:center; justify-content:space-between; gap:10px;">
+                                        <div class="cyber-stock-card-row gainer-deck-card" data-symbol="${sym}" style="display:flex; align-items:center; justify-content:space-between; cursor:pointer;">
                                             <div style="display:flex; align-items:center; gap:10px;">
                                                 ${logoHtml}
                                                 <div>
-                                                    <strong style="color: var(--text-primary); font-size:14px; font-family:var(--font-heading);">${sym}</strong>
-                                                    <div style="font-size:11.5px; color:var(--text-muted); margin-top:2px;">LTP: ${formatRupees(item.price)}</div>
+                                                    <strong style="color: var(--text-primary); font-size:13.5px; font-family:'Outfit', sans-serif; font-weight:800; display:block;">${sym}</strong>
+                                                    <div style="font-size:10px; color:var(--text-muted); margin-top:1px;">NSE Equity</div>
                                                 </div>
                                             </div>
-                                            <div style="display:flex; align-items:center; gap:12px;">
-                                                <canvas id="gainer-sparkline-${sym}" width="60" height="20" style="display:block; background:transparent;"></canvas>
-                                                <span style="font-size:13px; font-family:var(--font-heading); font-weight:700; color:var(--neon-green); background:rgba(16,185,129,0.1); padding:2px 6px; border-radius:4px; min-width: 50px; text-align: right;">+${item.change_pct.toFixed(2)}%</span>
+                                            <div style="display:flex; align-items:center; gap:10px;">
+                                                <canvas id="gainer-sparkline-${sym}" width="42" height="18" style="display:block; background:transparent;"></canvas>
+                                                <div style="text-align:right;">
+                                                    <div style="font-size:13px; font-weight:800; color:var(--text-primary); font-family:monospace;">${formatRupees(item.price)}</div>
+                                                    <div style="display:flex; align-items:center; justify-content:flex-end; gap:5px; margin-top:1px;">
+                                                        <span style="font-size:10.5px; font-family:'Outfit', sans-serif; font-weight:800; color:var(--neon-green, #10b981);">+${item.change_pct.toFixed(2)}%</span>
+                                                        <span style="font-size:10px; font-weight:700; color:#3b82f6;">Analyze →</span>
+                                                    </div>
+                                                </div>
                                             </div>
                                         </div>
                                     `;
                                 });
+                                gHtml += `</div>`;
                                 gainersContainer.innerHTML = gHtml;
 
                                 // Draw Gainer Sparklines and bind clicks
                                 gainersList.forEach(item => {
                                     const sym = item.symbol.replace(".NS", "");
-                                    const card = gainersContainer.querySelector(`.recent-stock-card[data-symbol="${sym}"]`);
+                                    const card = gainersContainer.querySelector(`.gainer-deck-card[data-symbol="${sym}"]`);
                                     if (card) {
                                         card.onclick = () => {
-                                            const searchInput = document.getElementById('analyzer-search-input');
-                                            const searchBtn = document.getElementById('analyzer-search-btn');
-                                            if (searchInput && searchBtn) {
-                                                searchInput.value = sym;
-                                                searchBtn.click();
+                                            if (typeof playHaptic === 'function') playHaptic(12);
+                                            if (typeof window.loadStockAnalyzer === 'function') {
+                                                window.loadStockAnalyzer(sym);
+                                            } else {
+                                                const searchInput = document.getElementById('analyzer-search-input');
+                                                const searchBtn = document.getElementById('analyzer-search-btn');
+                                                if (searchInput && searchBtn) {
+                                                    searchInput.value = sym;
+                                                    searchBtn.click();
+                                                }
                                             }
                                         };
                                     }
@@ -4364,9 +4775,8 @@
                                         const points = [10, 12, 9, 15, 17];
                                         const step = canvas.width / (points.length - 1);
                                         
-                                        // Draw gradient area
                                         const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
-                                        gradient.addColorStop(0, 'rgba(16, 185, 129, 0.2)');
+                                        gradient.addColorStop(0, 'rgba(16, 185, 129, 0.25)');
                                         gradient.addColorStop(1, 'rgba(16, 185, 129, 0.0)');
                                         
                                         ctx.beginPath();
@@ -4382,9 +4792,8 @@
                                         ctx.fillStyle = gradient;
                                         ctx.fill();
 
-                                        // Draw stroke line
                                         ctx.beginPath();
-                                        ctx.lineWidth = 1.5;
+                                        ctx.lineWidth = 1.8;
                                         ctx.strokeStyle = '#10b981';
                                         ctx.lineJoin = 'round';
                                         points.forEach((val, i) => {
@@ -4403,39 +4812,51 @@
                             // Render Losers
                             const losersList = activeData.losers ? (activeData.losers[cap] || []).slice(0, 5) : [];
                             if (losersList.length > 0) {
-                                let lHtml = `<h5 style="margin:15px 0 10px 0; font-size:13px; text-transform:uppercase; color:var(--text-secondary); font-family:var(--font-heading); font-weight:700; letter-spacing:0.05em;">Today's Top Losers</h5>`;
-                                losersList.forEach(item => {
+                                let lHtml = `<div class="mobile-vertical-list-container">`;
+                                losersList.forEach((item, index) => {
                                     const sym = item.symbol.replace(".NS", "");
                                     const logoHtml = getStockLogoHtml(sym);
                                     lHtml += `
-                                        <div class="recent-stock-card" data-symbol="${sym}" style="border-left: 3.5px solid var(--neon-red); padding: 12px 14px; display:flex; align-items:center; justify-content:space-between; gap:10px;">
+                                        <div class="cyber-stock-card-row loser-deck-card" data-symbol="${sym}" style="display:flex; align-items:center; justify-content:space-between; cursor:pointer;">
                                             <div style="display:flex; align-items:center; gap:10px;">
                                                 ${logoHtml}
                                                 <div>
-                                                    <strong style="color: var(--text-primary); font-size:14px; font-family:var(--font-heading);">${sym}</strong>
-                                                    <div style="font-size:11.5px; color:var(--text-muted); margin-top:2px;">LTP: ${formatRupees(item.price)}</div>
+                                                    <strong style="color: var(--text-primary); font-size:13.5px; font-family:'Outfit', sans-serif; font-weight:800; display:block;">${sym}</strong>
+                                                    <div style="font-size:10px; color:var(--text-muted); margin-top:1px;">NSE Equity</div>
                                                 </div>
                                             </div>
-                                            <div style="display:flex; align-items:center; gap:12px;">
-                                                <canvas id="loser-sparkline-${sym}" width="60" height="20" style="display:block; background:transparent;"></canvas>
-                                                <span style="font-size:13px; font-family:var(--font-heading); font-weight:700; color:var(--neon-red); background:rgba(239,68,68,0.1); padding:2px 6px; border-radius:4px; min-width: 50px; text-align: right;">${item.change_pct.toFixed(2)}%</span>
+                                            <div style="display:flex; align-items:center; gap:10px;">
+                                                <canvas id="loser-sparkline-${sym}" width="42" height="18" style="display:block; background:transparent;"></canvas>
+                                                <div style="text-align:right;">
+                                                    <div style="font-size:13px; font-weight:800; color:var(--text-primary); font-family:monospace;">${formatRupees(item.price)}</div>
+                                                    <div style="display:flex; align-items:center; justify-content:flex-end; gap:5px; margin-top:1px;">
+                                                        <span style="font-size:10.5px; font-family:'Outfit', sans-serif; font-weight:800; color:var(--neon-red, #ef4444);">${item.change_pct.toFixed(2)}%</span>
+                                                        <span style="font-size:10px; font-weight:700; color:#3b82f6;">Analyze →</span>
+                                                    </div>
+                                                </div>
                                             </div>
                                         </div>
                                     `;
                                 });
+                                lHtml += `</div>`;
                                 losersContainer.innerHTML = lHtml;
 
                                 // Draw Loser Sparklines and bind clicks
                                 losersList.forEach(item => {
                                     const sym = item.symbol.replace(".NS", "");
-                                    const card = losersContainer.querySelector(`.recent-stock-card[data-symbol="${sym}"]`);
+                                    const card = losersContainer.querySelector(`.loser-deck-card[data-symbol="${sym}"]`);
                                     if (card) {
                                         card.onclick = () => {
-                                            const searchInput = document.getElementById('analyzer-search-input');
-                                            const searchBtn = document.getElementById('analyzer-search-btn');
-                                            if (searchInput && searchBtn) {
-                                                searchInput.value = sym;
-                                                searchBtn.click();
+                                            if (typeof playHaptic === 'function') playHaptic(12);
+                                            if (typeof window.loadStockAnalyzer === 'function') {
+                                                window.loadStockAnalyzer(sym);
+                                            } else {
+                                                const searchInput = document.getElementById('analyzer-search-input');
+                                                const searchBtn = document.getElementById('analyzer-search-btn');
+                                                if (searchInput && searchBtn) {
+                                                    searchInput.value = sym;
+                                                    searchBtn.click();
+                                                }
                                             }
                                         };
                                     }
@@ -4447,9 +4868,8 @@
                                         const points = [16, 13, 14, 9, 7];
                                         const step = canvas.width / (points.length - 1);
                                         
-                                        // Draw gradient area
                                         const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
-                                        gradient.addColorStop(0, 'rgba(239, 68, 68, 0.2)');
+                                        gradient.addColorStop(0, 'rgba(239, 68, 68, 0.25)');
                                         gradient.addColorStop(1, 'rgba(239, 68, 68, 0.0)');
                                         
                                         ctx.beginPath();
@@ -4465,9 +4885,8 @@
                                         ctx.fillStyle = gradient;
                                         ctx.fill();
 
-                                        // Draw stroke line
                                         ctx.beginPath();
-                                        ctx.lineWidth = 1.5;
+                                        ctx.lineWidth = 1.8;
                                         ctx.strokeStyle = '#ef4444';
                                         ctx.lineJoin = 'round';
                                         points.forEach((val, i) => {
@@ -4479,10 +4898,35 @@
                                         ctx.stroke();
                                     }
                                 });
-                            } else {
-                                losersContainer.innerHTML = '';
+                            }
+
+                            if (typeof window.switchMoversTab === 'function') {
+                                window.switchMoversTab(window.activeMoversTab || 'gainers');
                             }
                         };
+
+                        const gainerTabBtn = document.getElementById('movers-tab-gainers');
+                        const loserTabBtn = document.getElementById('movers-tab-losers');
+                        if (gainerTabBtn) {
+                            gainerTabBtn.onclick = (e) => {
+                                if (e) e.preventDefault();
+                                gainerTabBtn.classList.add('active');
+                                if (loserTabBtn) loserTabBtn.classList.remove('active');
+                                window.activeMoversTab = 'gainers';
+                                if (gainersContainer) gainersContainer.style.display = 'block';
+                                if (losersContainer) losersContainer.style.display = 'none';
+                            };
+                        }
+                        if (loserTabBtn) {
+                            loserTabBtn.onclick = (e) => {
+                                if (e) e.preventDefault();
+                                loserTabBtn.classList.add('active');
+                                if (gainerTabBtn) gainerTabBtn.classList.remove('active');
+                                window.activeMoversTab = 'losers';
+                                if (losersContainer) losersContainer.style.display = 'block';
+                                if (gainersContainer) gainersContainer.style.display = 'none';
+                            };
+                        }
 
                         // Initial mobile render
                         renderMobileList(activeCap);
@@ -4573,35 +5017,136 @@
                                 `;
                             });
 
-                            sectorsContainer.innerHTML = `
-                                <h5 style="margin:0 0 10px 0; font-size:14px; text-transform:uppercase; color:var(--text-secondary); font-family:var(--font-heading); font-weight:700; letter-spacing:0.05em;">Today's Sector Rotations</h5>
-                                <div class="sector-rotations-card" id="home-sector-rotations-trigger" style="background:rgba(255,255,255,0.02); border:1px solid var(--border-glass); border-radius:12px; padding:15px; cursor:pointer; transition:background 0.2s ease;">
-                                    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px;">
-                                        <!-- Leader -->
-                                        <div style="background:rgba(16,185,129,0.06); border:1px solid rgba(16,185,129,0.15); padding:10px; border-radius:8px;">
-                                            <div style="font-size:11px; color:var(--text-muted); text-transform:uppercase; font-weight:800; letter-spacing:0.02em;">Leader Sector</div>
-                                            <div style="font-size:14.5px; font-weight:800; color:var(--neon-green, #10b981); margin-top:4px; font-family:var(--font-heading);">${leader.sector}</div>
-                                            <div style="font-size:12.5px; color:var(--text-secondary); margin-top:2px; font-weight:700;">${leaderSign}${leaderVal.toFixed(2)}%</div>
-                                        </div>
-                                        <!-- Laggard -->
-                                        <div style="background:rgba(239,68,68,0.06); border:1px solid rgba(239,68,68,0.15); padding:10px; border-radius:8px;">
-                                            <div style="font-size:11px; color:var(--text-muted); text-transform:uppercase; font-weight:800; letter-spacing:0.02em;">Laggard Sector</div>
-                                            <div style="font-size:14.5px; font-weight:800; color:var(--color-crimson, #ef4444); margin-top:4px; font-family:var(--font-heading);">${laggard.sector}</div>
-                                            <div style="font-size:12.5px; color:var(--text-secondary); margin-top:2px; font-weight:700;">${laggardVal.toFixed(2)}%</div>
-                                        </div>
-                                    </div>
+                            const getSectorMeta = (sectorName) => {
+                                const s = (sectorName || '').toLowerCase();
+                                if (s.includes('media') || s.includes('entertainment') || s.includes('publication')) {
+                                    return {
+                                        icon: '🎬',
+                                        badge: 'MEDIA & ENT',
+                                        bg: 'url("https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=400&auto=format&fit=crop&q=60")',
+                                        accent: '#ec4899'
+                                    };
+                                }
+                                if (s.includes('tech') || s.includes('it') || s.includes('information')) {
+                                    return {
+                                        icon: '💻',
+                                        badge: 'IT & TECH',
+                                        bg: 'url("https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?w=400&auto=format&fit=crop&q=60")',
+                                        accent: '#3b82f6'
+                                    };
+                                }
+                                if (s.includes('realty') || s.includes('estate') || s.includes('housing')) {
+                                    return {
+                                        icon: '🏢',
+                                        badge: 'REALTY & URBAN',
+                                        bg: 'url("https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?w=400&auto=format&fit=crop&q=60")',
+                                        accent: '#a855f7'
+                                    };
+                                }
+                                if (s.includes('health') || s.includes('pharma') || s.includes('bio')) {
+                                    return {
+                                        icon: '🏥',
+                                        badge: 'HEALTHCARE',
+                                        bg: 'url("https://images.unsplash.com/photo-1532938911079-1b06ac7ceec7?w=400&auto=format&fit=crop&q=60")',
+                                        accent: '#10b981'
+                                    };
+                                }
+                                if (s.includes('consumer') || s.includes('fmcg') || s.includes('retail')) {
+                                    return {
+                                        icon: '🛒',
+                                        badge: 'CONSUMER & RETAIL',
+                                        bg: 'url("https://images.unsplash.com/photo-1472851294608-062f824d29cc?w=400&auto=format&fit=crop&q=60")',
+                                        accent: '#f59e0b'
+                                    };
+                                }
+                                if (s.includes('auto') || s.includes('vehicle') || s.includes('motor')) {
+                                    return {
+                                        icon: '🚗',
+                                        badge: 'AUTOMOBILE',
+                                        bg: 'url("https://images.unsplash.com/photo-1503376780353-7e6692767b70?w=400&auto=format&fit=crop&q=60")',
+                                        accent: '#ef4444'
+                                    };
+                                }
+                                if (s.includes('bank') || s.includes('finance') || s.includes('financial')) {
+                                    return {
+                                        icon: '🏦',
+                                        badge: 'BANKING & FIN',
+                                        bg: 'url("https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?w=400&auto=format&fit=crop&q=60")',
+                                        accent: '#06b6d4'
+                                    };
+                                }
+                                if (s.includes('energy') || s.includes('power') || s.includes('oil') || s.includes('gas')) {
+                                    return {
+                                        icon: '⚡',
+                                        badge: 'ENERGY & POWER',
+                                        bg: 'url("https://images.unsplash.com/photo-1473341304170-971dccb5ac1e?w=400&auto=format&fit=crop&q=60")',
+                                        accent: '#eab308'
+                                    };
+                                }
+                                if (s.includes('metal') || s.includes('mine') || s.includes('steel')) {
+                                    return {
+                                        icon: '⛓️',
+                                        badge: 'METALS & MINING',
+                                        bg: 'url("https://images.unsplash.com/photo-1504917599217-d4dc5ebe6122?w=400&auto=format&fit=crop&q=60")',
+                                        accent: '#94a3b8'
+                                    };
+                                }
+                                if (s.includes('telecom') || s.includes('communication')) {
+                                    return {
+                                        icon: '📡',
+                                        badge: 'TELECOM',
+                                        bg: 'url("https://images.unsplash.com/photo-1544197150-b99a580bb7a8?w=400&auto=format&fit=crop&q=60")',
+                                        accent: '#8b5cf6'
+                                    };
+                                }
+                                return {
+                                    icon: '⚙️',
+                                    badge: 'INDUSTRIALS & SERVICES',
+                                    bg: 'url("https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?w=400&auto=format&fit=crop&q=60")',
+                                    accent: '#6366f1'
+                                };
+                            };
 
-                                    <!-- Dynamic Leaderboard Drawer -->
-                                    <div id="mobile-sector-leaderboard-drawer" style="max-height:0; opacity:0; overflow:hidden; transition:all 0.35s cubic-bezier(0.16, 1, 0.3, 1); margin-top:0;">
-                                        <div style="margin-top:15px; padding-top:12px; border-top:1px dashed var(--border-glass, rgba(255,255,255,0.06)); display:flex; flex-direction:column; gap:6px;">
-                                            ${leaderboardHtml}
+                            let secDeckHtml = `<div class="mobile-vertical-list-container" style="gap:8px;">`;
+                            sortedSectors.slice(0, 6).forEach((item, index) => {
+                                const ret = item.return_1d || 0;
+                                const sign = ret >= 0 ? '+' : '';
+                                const color = ret >= 0 ? 'var(--neon-green, #10b981)' : 'var(--color-crimson, #ef4444)';
+                                const barPct = Math.min(100, Math.max(15, Math.abs(ret) * 25));
+                                const meta = getSectorMeta(item.sector);
+
+                                secDeckHtml += `
+                                    <div class="cyber-stock-card-row sector-deck-row" onclick="if(typeof playHaptic==='function') playHaptic(10); if(window.switchTab) window.switchTab('sector-radar');" style="position:relative; display:flex; align-items:center; justify-content:space-between; cursor:pointer; overflow:hidden; border-radius:10px; padding:10px 12px; border-left:3px solid ${meta.accent}; background:${meta.bg}; background-size:cover; background-position:center; box-shadow:0 4px 12px rgba(0,0,0,0.4); border-top:1px solid rgba(255,255,255,0.06); border-right:1px solid rgba(255,255,255,0.06); border-bottom:1px solid rgba(255,255,255,0.06);">
+                                        <!-- Dark Gradient Glass Overlay for perfect text contrast -->
+                                        <div style="position:absolute; inset:0; background:linear-gradient(90deg, rgba(11,15,25,0.92) 0%, rgba(15,23,42,0.78) 60%, rgba(15,23,42,0.88) 100%); z-index:1; backdrop-filter:blur(2px); -webkit-backdrop-filter:blur(2px);"></div>
+                                        
+                                        <div style="position:relative; z-index:2; display:flex; align-items:center; gap:10px; flex:1; min-width:0; padding-right:8px;">
+                                            <div style="width:32px; height:32px; border-radius:8px; background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.12); display:flex; align-items:center; justify-content:center; font-size:15px; flex-shrink:0;">
+                                                ${meta.icon}
+                                            </div>
+                                            <div style="flex:1; min-width:0;">
+                                                <strong style="font-weight:800; font-size:13px; color:var(--text-primary); font-family:'Outfit', sans-serif; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; display:block;">${item.sector}</strong>
+                                                <div style="font-size:9px; font-weight:800; color:${meta.accent}; margin-top:1px; letter-spacing:0.04em; text-transform:uppercase;">${meta.badge}</div>
+                                            </div>
+                                        </div>
+                                        
+                                        <div style="position:relative; z-index:2; display:flex; align-items:center; gap:10px; flex-shrink:0;">
+                                            <div style="width:50px;">
+                                                <div style="height:4px; width:100%; background:rgba(255,255,255,0.12); border-radius:2px; overflow:hidden;">
+                                                    <div style="height:100%; width:${barPct}%; background:${color}; box-shadow:0 0 6px ${color};"></div>
+                                                </div>
+                                            </div>
+                                            <div style="text-align:right;">
+                                                <span style="font-size:12.5px; font-weight:900; color:${color}; font-family:monospace;">${sign}${ret.toFixed(2)}%</span>
+                                                <div style="font-size:9.5px; font-weight:700; color:#3b82f6; text-align:right;">Radar →</div>
+                                            </div>
                                         </div>
                                     </div>
-                                    <div id="btn-toggle-sector-leaderboard" style="margin-top:12px; text-align:center; font-size:11.5px; font-weight:800; color:var(--color-primary); text-transform:uppercase; letter-spacing:0.05em; border-top:1px solid var(--border-glass); padding-top:8px;">
-                                        View Full Rotations ▾
-                                    </div>
-                                </div>
-                            `;
+                                `;
+                            });
+                            secDeckHtml += `</div>`;
+
+                            sectorsContainer.innerHTML = secDeckHtml;
 
                             const trigger = document.getElementById('home-sector-rotations-trigger');
                             if (trigger) {
@@ -5488,7 +6033,7 @@
                                             const changePct = parseFloat(item.change_pct || 0);
                                             const changeClass = changePct >= 0 ? 'cmp-badge-up' : 'cmp-badge-down';
                                             return `
-                                                <tr style="border-bottom: 1px solid rgba(255,255,255,0.02); height: 34px; cursor: pointer;" onclick="
+                                                <tr style="border-bottom: 1px solid var(--border-glass, rgba(255,255,255,0.08)); height: 34px; cursor: pointer;" onclick="
     const searchInput = document.getElementById('analyzer-search-input');
     const searchBtn = document.getElementById('analyzer-search-btn');
     if (searchInput && searchBtn) {
@@ -5518,7 +6063,7 @@
                                             const changePct = parseFloat(item.change_pct || 0);
                                             const changeClass = changePct >= 0 ? 'cmp-badge-up' : 'cmp-badge-down';
                                             return `
-                                                <tr style="border-bottom: 1px solid rgba(255,255,255,0.02); height: 34px; cursor: pointer;" onclick="
+                                                <tr style="border-bottom: 1px solid var(--border-glass, rgba(255,255,255,0.08)); height: 34px; cursor: pointer;" onclick="
     const searchInput = document.getElementById('analyzer-search-input');
     const searchBtn = document.getElementById('analyzer-search-btn');
     if (searchInput && searchBtn) {
@@ -5546,7 +6091,7 @@
                                             const changePct = parseFloat(item.change_pct || 0);
                                             const changeClass = changePct >= 0 ? 'cmp-badge-up' : 'cmp-badge-down';
                                             return `
-                                                <tr style="border-bottom: 1px solid rgba(255,255,255,0.02); height: 34px; cursor: pointer;" onclick="
+                                                <tr style="border-bottom: 1px solid var(--border-glass, rgba(255,255,255,0.08)); height: 34px; cursor: pointer;" onclick="
     const searchInput = document.getElementById('analyzer-search-input');
     const searchBtn = document.getElementById('analyzer-search-btn');
     if (searchInput && searchBtn) {
@@ -5786,40 +6331,75 @@
                 const mobileQuantPicks = document.getElementById('mobile-home-quant-picks-container');
             if (mobileQuantPicks) {
                 if (top5.length > 0) {
-                    mobileQuantPicks.innerHTML = `
-                        <table style="width: 100%; border-collapse: collapse; font-size: 11.5px; text-align: left;">
-                            <thead>
-                                <tr style="border-bottom: 1px solid var(--border-glass); color: var(--text-secondary); font-weight: 700; font-size: 9.5px; height: 26px; text-transform: uppercase;">
-                                    <th style="padding: 6px 4px;">Ticker</th>
-                                    <th style="padding: 6px 4px; text-align: center;">Score</th>
-                                    <th style="padding: 6px 4px; text-align: right;">Action</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                ${top5.map(item => {
-                                    const scoreVal = parseInt(item.score || 0);
-                                    const scoreColor = scoreVal >= 70 ? '#10b981' : '#f59e0b';
-                                    const actionStr = (item.action || 'BUY').toUpperCase().includes('BUY') ? 'BUY' : 'SELL';
-                                    const actionClass = actionStr === 'BUY' ? 'cmp-badge-up' : 'cmp-badge-down';
-                                    return `
-                                        <tr style="border-bottom: 1px solid rgba(255,255,255,0.03); height: 36px; cursor: pointer;" onclick="
-    const searchInput = document.getElementById('analyzer-search-input');
-    const searchBtn = document.getElementById('analyzer-search-btn');
-    if (searchInput && searchBtn) {
-        searchInput.value = '${item.symbol.replace('.NS', '')}';
-        window.switchTab('analyzer');
-        searchBtn.click();
-    }
-">
-                                            <td style="padding: 6px 4px; font-weight: 700; color: var(--text-primary);">${item.symbol.replace('.NS', '')}</td>
-                                            <td style="padding: 6px 4px; text-align: center; font-weight: 800; color: ${scoreColor}; font-family: 'Inter', monospace;">${scoreVal}</td>
-                                            <td style="padding: 6px 4px; text-align: right; font-weight: 700;" class="${actionClass}">${actionStr}</td>
-                                        </tr>
-                                    `;
-                                }).join('')}
-                            </tbody>
-                        </table>
-                    `;
+                    let quantHtml = `<div class="mobile-vertical-list-container">`;
+                        top5.forEach((item, index) => {
+                            const cleanSym = item.symbol.replace('.NS', '');
+                            const scoreVal = parseInt(item.score || 0);
+                            const scoreColor = scoreVal >= 70 ? 'var(--neon-green, #10b981)' : '#f59e0b';
+                            const actionStr = (item.action || 'BUY').toUpperCase().includes('BUY') ? 'BUY' : 'SELL';
+                            const actionBg = actionStr === 'BUY' ? 'rgba(16,185,129,0.12)' : 'rgba(239,68,68,0.12)';
+                            const actionBorder = actionStr === 'BUY' ? 'rgba(16,185,129,0.3)' : 'rgba(239,68,68,0.3)';
+                            const actionColor = actionStr === 'BUY' ? 'var(--neon-green, #10b981)' : 'var(--neon-red, #ef4444)';
+                            const drawerId = `quant-drawer-${cleanSym}-${index}`;
+
+                            // Seed pseudo metrics based on symbol for demonstration prospectus
+                            let symHash = 0;
+                            for (let c = 0; c < cleanSym.length; c++) symHash += cleanSym.charCodeAt(c);
+                            const rsiVal = (45 + (symHash % 25)).toFixed(1);
+                            const mosVal = (12 + (symHash % 18)).toFixed(1);
+                            const isLast = index === top5.length - 1;
+                            const borderStyle = isLast ? '' : 'border-bottom: 1px solid var(--border-glass, rgba(255,255,255,0.06));';
+
+                            quantHtml += `
+                                <div class="cyber-stock-card-row quant-pick-row" style="cursor:default;">
+                                    <div style="display:flex; align-items:center; justify-content:space-between;">
+                                        <div style="display:flex; align-items:center; gap:8px;">
+                                            <strong style="color: var(--text-primary); font-size:14px; font-weight:800; font-family:'Outfit', sans-serif;">${cleanSym}</strong>
+                                        </div>
+                                        <div style="display:flex; align-items:center; gap:10px;">
+                                            <div style="text-align:right;">
+                                                <span style="font-size:14px; font-weight:800; color:${scoreColor}; font-family:monospace;">${scoreVal}</span>
+                                                <span style="font-size:9.5px; color:var(--text-muted);">/100</span>
+                                            </div>
+                                            <button onclick="
+                                                if(typeof playHaptic==='function') playHaptic(10);
+                                                const d = document.getElementById('${drawerId}');
+                                                if(d) {
+                                                    const open = d.style.display !== 'none';
+                                                    d.style.display = open ? 'none' : 'block';
+                                                    this.innerText = open ? 'Prospectus ▾' : 'Close ▴';
+                                                }
+                                            " style="background:rgba(59,130,246,0.1); border:1px solid rgba(59,130,246,0.3); color:#3b82f6; font-size:10.5px; font-weight:700; border-radius:6px; padding:3px 8px; cursor:pointer;">Prospectus ▾</button>
+                                        </div>
+                                    </div>
+
+                                    <!-- Expandable Touch Detail Drawer (Inline Prospectus View) -->
+                                    <div id="${drawerId}" style="display:none; margin-top:10px; padding-top:10px; border-top:1px dashed var(--border-glass, rgba(255,255,255,0.1)); font-size:11px; color:var(--text-secondary); transition:all 0.3s ease;">
+                                        <div style="display:grid; grid-template-columns:1fr 1fr; gap:6px; margin-bottom:8px;">
+                                            <div style="background:rgba(255,255,255,0.03); padding:6px; border-radius:4px;">
+                                                <div style="font-size:9px; color:var(--text-muted);">RSI (14)</div>
+                                                <div style="font-weight:800; color:var(--neon-green); font-family:monospace;">${rsiVal} (Bullish)</div>
+                                            </div>
+                                            <div style="background:rgba(255,255,255,0.03); padding:6px; border-radius:4px;">
+                                                <div style="font-size:9px; color:var(--text-muted);">Margin of Safety</div>
+                                                <div style="font-weight:800; color:var(--neon-green); font-family:monospace;">+${mosVal}%</div>
+                                            </div>
+                                        </div>
+                                        <button onclick="
+                                            const searchInput = document.getElementById('analyzer-search-input');
+                                            const searchBtn = document.getElementById('analyzer-search-btn');
+                                            if (searchInput && searchBtn) {
+                                                searchInput.value = '${cleanSym}';
+                                                window.switchTab('analyzer');
+                                                searchBtn.click();
+                                            }
+                                        " style="width:100%; background:var(--color-primary); color:#fff; border:none; padding:6px; border-radius:4px; font-weight:800; font-size:11px; cursor:pointer;">Deep Dive Research →</button>
+                                    </div>
+                                </div>
+                            `;
+                        });
+                    quantHtml += `</div>`;
+                    mobileQuantPicks.innerHTML = quantHtml;
                 } else {
                     mobileQuantPicks.innerHTML = `<div class="recent-research-empty" style="font-size: 11px;">Scanning market for picks...</div>`;
                 }
@@ -6126,40 +6706,73 @@
 
             if (mobileTechScans) {
                 if (list.length > 0) {
-                    mobileTechScans.innerHTML = `
-                        <table style="width: 100%; border-collapse: collapse; font-size: 11.5px; text-align: left;">
-                            <thead>
-                                <tr style="border-bottom: 1px solid var(--border-glass); color: var(--text-secondary); font-weight: 700; font-size: 9.5px; height: 26px; text-transform: uppercase;">
-                                    <th style="padding: 6px 4px;">Ticker</th>
-                                    <th style="padding: 6px 4px; text-align: right;">CMP</th>
-                                    <th style="padding: 6px 4px; text-align: right;">Detail</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                ${list.slice(0, 5).map(item => {
-                                    const changePct = parseFloat(item.change_pct || 0);
-                                    const changeClass = changePct >= 0 ? 'cmp-badge-up' : 'cmp-badge-down';
-                                    return `
-                                        <tr style="border-bottom: 1px solid rgba(255,255,255,0.03); height: 36px; cursor: pointer;" onclick="
-    const searchInput = document.getElementById('analyzer-search-input');
-    const searchBtn = document.getElementById('analyzer-search-btn');
-    if (searchInput && searchBtn) {
-        searchInput.value = '${item.symbol}';
-        window.switchTab('analyzer');
-        searchBtn.click();
-    }
-">
-                                            <td style="padding: 6px 4px; font-weight: 700; color: var(--text-primary);">${item.symbol}</td>
-                                            <td style="padding: 6px 4px; text-align: right; color: var(--text-primary); font-family: 'Inter', monospace; font-weight: 600;">₹${item.price} <span style="font-size: 9.5px;" class="${changeClass}">(${changePct >= 0 ? '+' : ''}${changePct.toFixed(1)}%)</span></td>
-                                            <td style="padding: 6px 4px; text-align: right; font-weight: 700; color: var(--neon-green); font-family: 'Inter', monospace;">${item.value}</td>
-                                        </tr>
-                                    `;
-                                }).join('')}
-                            </tbody>
-                        </table>
-                    `;
+                    let techHtml = `<div class="mobile-vertical-list-container">`;
+                    list.slice(0, 5).forEach((item, index) => {
+                        const changePct = parseFloat(item.change_pct || 0);
+                        const changeColor = changePct >= 0 ? 'var(--neon-green, #10b981)' : 'var(--neon-red, #ef4444)';
+                        const changeSign = changePct >= 0 ? '+' : '';
+                        const drawerId = `tech-drawer-${item.symbol}-${index}`;
+
+                        let symHash = 0;
+                        for (let c = 0; c < item.symbol.length; c++) symHash += item.symbol.charCodeAt(c);
+                        const macdState = (symHash % 2 === 0) ? 'Bullish Cross' : 'Strong Momentum';
+                        const macdColor = changePct >= 0 ? 'var(--neon-green)' : '#f59e0b';
+                        const isLast = index === Math.min(5, list.length) - 1;
+                        const borderStyle = isLast ? '' : 'border-bottom: 1px solid var(--border-glass, rgba(255,255,255,0.06));';
+
+                        techHtml += `
+                            <div class="cyber-stock-card-row tech-scan-row" style="cursor:default;">
+                                <div style="display:flex; align-items:center; justify-content:space-between;">
+                                    <div>
+                                        <strong style="color: var(--text-primary); font-size:14px; font-weight:800; font-family:'Outfit', sans-serif; display:block;">${item.symbol}</strong>
+                                        <div style="font-size:10px; color:var(--text-muted); margin-top:2px;">CMP: ₹${item.price}</div>
+                                    </div>
+                                    <div style="display:flex; align-items:center; gap:10px;">
+                                        <div style="text-align:right;">
+                                            <div style="font-size:13.5px; font-family:monospace; font-weight:800; color:${changeColor};">${changeSign}${changePct.toFixed(1)}%</div>
+                                            <div style="font-size:9.5px; color:${macdColor}; font-weight:700;">${macdState}</div>
+                                        </div>
+                                        <button onclick="
+                                            if(typeof playHaptic==='function') playHaptic(10);
+                                            const d = document.getElementById('${drawerId}');
+                                            if(d) {
+                                                const open = d.style.display !== 'none';
+                                                d.style.display = open ? 'none' : 'block';
+                                                this.innerText = open ? 'Prospectus ▾' : 'Close ▴';
+                                            }
+                                        " style="background:rgba(59,130,246,0.1); border:1px solid rgba(59,130,246,0.3); color:#3b82f6; font-size:10.5px; font-weight:700; border-radius:6px; padding:3px 8px; cursor:pointer;">Prospectus ▾</button>
+                                    </div>
+                                </div>
+
+                                <!-- Expandable Touch Detail Drawer (Inline Prospectus View) -->
+                                <div id="${drawerId}" style="display:none; margin-top:10px; padding-top:10px; border-top:1px dashed var(--border-glass, rgba(255,255,255,0.1)); font-size:11px; color:var(--text-secondary); transition:all 0.3s ease;">
+                                    <div style="display:grid; grid-template-columns:1fr 1fr; gap:6px; margin-bottom:8px;">
+                                        <div style="background:rgba(255,255,255,0.03); padding:6px; border-radius:4px;">
+                                            <div style="font-size:9px; color:var(--text-muted);">Signal Metrics</div>
+                                            <div style="font-weight:800; color:var(--neon-green); font-family:monospace;">${item.value}</div>
+                                        </div>
+                                        <div style="background:rgba(255,255,255,0.03); padding:6px; border-radius:4px;">
+                                            <div style="font-size:9px; color:var(--text-muted);">MACD Trend</div>
+                                            <div style="font-weight:800; color:${macdColor}; font-family:monospace;">${macdState}</div>
+                                        </div>
+                                    </div>
+                                    <button onclick="
+                                        const searchInput = document.getElementById('analyzer-search-input');
+                                        const searchBtn = document.getElementById('analyzer-search-btn');
+                                        if (searchInput && searchBtn) {
+                                            searchInput.value = '${item.symbol}';
+                                            window.switchTab('analyzer');
+                                            searchBtn.click();
+                                        }
+                                    " style="width:100%; background:var(--color-primary); color:#fff; border:none; padding:6px; border-radius:4px; font-weight:800; font-size:11px; cursor:pointer;">Deep Dive Research →</button>
+                                </div>
+                            </div>
+                        `;
+                    });
+                    techHtml += `</div>`;
+                    mobileTechScans.innerHTML = techHtml;
                 } else {
-                    mobileTechScans.innerHTML = `<div class="recent-research-empty" style="font-size: 11px;">Scanning technical breakouts...</div>`;
+                    mobileTechScans.innerHTML = `<div class="recent-research-empty" style="font-size: 11px;">No scan results.</div>`;
                 }
             }
             

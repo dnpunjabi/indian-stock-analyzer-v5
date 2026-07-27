@@ -813,6 +813,9 @@ function handleLiveTickMessage(ticksData) {
 
     // Update Portfolio Ledger Real-time
     updatePortfolioLedgerRealtime(ticksData);
+
+    // Update Mobile Market Pulse Strip
+    if (window.updateMobileMarketPulse) window.updateMobileMarketPulse(ticksData);
 }
 
 function handleWsAlertTriggered(alertData) {
@@ -51229,12 +51232,40 @@ window.hydrateFuzzyRadarHomepage = async function() {
         if (mobileBuyRadar) setupRadarClickEvents('mobile-fuzzy-buy-radar');
         if (mobileSellRadar) setupRadarClickEvents('mobile-fuzzy-sell-radar');
 
-        // Mobile segmented tab renderer
+        // Mobile segmented tab renderer with horizontal snap carousel
         window.renderMobileFuzzyRadar = (mode) => {
             if (!mobileRadarContainer) return;
             const isBuy = mode !== 'sells';
             const items = isBuy ? (window.fuzzyHomepageData ? window.fuzzyHomepageData.top_buys : []) : (window.fuzzyHomepageData ? window.fuzzyHomepageData.top_sells : []);
-            mobileRadarContainer.innerHTML = renderRadarList(items, isBuy);
+            
+            if (!items || items.length === 0) {
+                mobileRadarContainer.innerHTML = `<div class="recent-research-empty" style="font-size: 11px; padding: 10px;">No radar alerts.</div>`;
+                return;
+            }
+            
+            const colorClass = isBuy ? '#10b981' : '#ef4444';
+            const bgClass = isBuy ? 'rgba(16, 185, 129, 0.08)' : 'rgba(239, 68, 68, 0.08)';
+            const borderClass = isBuy ? 'rgba(16, 185, 129, 0.25)' : 'rgba(239, 68, 68, 0.25)';
+            const sign = isBuy ? '+' : '';
+            const tagLabel = isBuy ? '🟢 Accumulation' : '🔴 Avoid / Trap';
+
+            let html = `<div class="mobile-vertical-list-container">`;
+            items.slice(0, 5).forEach((item, index) => {
+                const cleanSym = item.symbol.replace('.NS', '').replace('.BO', '');
+                html += `
+                    <div class="cyber-stock-card-row fuzzy-radar-row" data-symbol="${item.symbol}" style="display:flex; align-items:center; justify-content:space-between; cursor:pointer;">
+                        <div>
+                            <div style="font-size:14px; font-weight:800; color:var(--text-primary); font-family:'Outfit', sans-serif;">${cleanSym}</div>
+                        </div>
+                        <div style="text-align:right;">
+                            <div style="font-size:13.5px; font-weight:800; color:${colorClass}; font-family:monospace;">${sign}${item.fuzzy_score.toFixed(1)}%</div>
+                            <div style="font-size:10px; font-weight:700; color:#3b82f6; margin-top:2px;">Analyze →</div>
+                        </div>
+                    </div>
+                `;
+            });
+            html += `</div>`;
+            mobileRadarContainer.innerHTML = html;
             setupRadarClickEvents('mobile-home-fuzzy-radar-container');
         };
 
