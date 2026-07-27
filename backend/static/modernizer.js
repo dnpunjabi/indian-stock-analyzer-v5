@@ -8725,8 +8725,10 @@
                             popover.style.left = 'auto';
                         }
                     } else {
+                        const mobHeader = document.querySelector('.mobile-header');
+                        const topPos = mobHeader ? (mobHeader.getBoundingClientRect().bottom + 4) : 84;
                         popover.style.position = 'fixed';
-                        popover.style.top = '54px';
+                        popover.style.top = topPos + 'px';
                         popover.style.right = '8px';
                         popover.style.left = '8px';
                     }

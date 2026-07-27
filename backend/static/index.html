@@ -617,8 +617,10 @@
                         pop.style.left = 'auto';
                     }
                 } else {
+                    var mobHeader = document.querySelector('.mobile-header');
+                    var topPos = mobHeader ? (mobHeader.getBoundingClientRect().bottom + 4) : 84;
                     pop.style.position = 'fixed';
-                    pop.style.top = '54px';
+                    pop.style.top = topPos + 'px';
                     pop.style.right = '8px';
                     pop.style.left = '8px';
                 }

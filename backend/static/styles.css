@@ -23905,14 +23905,53 @@ body, .card, .desktop-header, .institutional-footer, .desktop-top-ticker-banner 
     }
 }
 
-/* Hide Desktop Footers & Desktop Header on Mobile/Tablet viewports (<= 1024px) */
-@media (max-width: 1024px) {
-    .institutional-footer,
-    .main-footer,
-    .mega-footer,
-    .desktop-header,
-    .desktop-top-ticker-banner {
-        display: none !important;
+}
+
+/* ==========================================================================
+   MOBILE HEADER SWAP STYLES (Row 1: Live Market Ticker, Row 2: Mobile Nav Header)
+   ========================================================================== */
+@media (max-width: 992px) {
+    .main-header,
+    header.main-header,
+    .main-header.no-print {
+        display: block !important;
+        position: fixed !important;
+        top: 0 !important;
+        left: 0 !important;
+        right: 0 !important;
+        height: 32px !important;
+        margin: 0 !important;
+        padding: 2px 10px !important;
+        background: rgba(10, 15, 30, 0.98) !important;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
+        z-index: 10001 !important;
+        box-sizing: border-box !important;
+    }
+
+    [data-theme="light"] .main-header,
+    [data-theme="light"] header.main-header {
+        background: rgba(248, 250, 252, 0.98) !important;
+        border-bottom: 1px solid rgba(0, 0, 0, 0.08) !important;
+    }
+
+    .mobile-header,
+    header.mobile-header {
+        display: flex !important;
+        position: fixed !important;
+        top: 32px !important;
+        left: 0 !important;
+        right: 0 !important;
+        height: 52px !important;
+        z-index: 10000 !important;
+        box-sizing: border-box !important;
+    }
+
+    body {
+        padding-top: 84px !important;
+    }
+    
+    .app-container {
+        padding-top: 0 !important;
     }
 }
 
