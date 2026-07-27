@@ -1586,6 +1586,11 @@ body.light-theme .llm-execution-badge .badge-latency,
     border: 1px solid rgba(255, 255, 255, 0.12);
 }
 
+.sector-deck-row .sector-bar-track {
+    background: rgba(255, 255, 255, 0.15);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
 /* Light Theme Overrides for Sector Rotation Cards */
 [data-mode="light"] .sector-deck-row,
 [data-theme="light"] .sector-deck-row,
@@ -1614,5 +1619,13 @@ body.light-theme .sector-deck-row .sector-icon-box {
     background: rgba(0, 0, 0, 0.05) !important;
     border: 1px solid rgba(0, 0, 0, 0.08) !important;
 }
+
+[data-mode="light"] .sector-deck-row .sector-bar-track,
+[data-theme="light"] .sector-deck-row .sector-bar-track,
+body.light-theme .sector-deck-row .sector-bar-track {
+    background: rgba(15, 23, 42, 0.1) !important;
+    border: 1px solid rgba(0, 0, 0, 0.08) !important;
+}
+
 
 

@@ -355,7 +355,7 @@
                     item.classList.remove('active');
                 });
                 let navId = 'nav-terminal';
-                if (tabKey === 'analyzer') navId = 'nav-terminal';
+                if (tabKey === 'analyzer' || tabKey === 'home') navId = 'nav-terminal';
                 else if (tabKey === 'screener') navId = 'nav-screener';
                 else if (tabKey === 'watchlist') navId = 'nav-watchlist';
                 else if (tabKey === 'portfolio') navId = 'nav-portfolio';
@@ -1561,7 +1561,7 @@
             `;
             document.body.appendChild(bottomNav);
 
-            document.getElementById('nav-terminal').addEventListener('click', () => window.switchTab('analyzer'));
+            document.getElementById('nav-terminal').addEventListener('click', () => window.switchTab('home'));
             document.getElementById('nav-screener').addEventListener('click', () => window.switchTab('screener'));
             document.getElementById('nav-watchlist').addEventListener('click', () => window.switchTab('watchlist'));
             document.getElementById('nav-portfolio').addEventListener('click', () => window.switchTab('portfolio'));
@@ -4369,12 +4369,34 @@
                 };
 
                 inputEl.addEventListener('blur', () => {
-                    setTimeout(dismissSearchFocus, 180);
+                    setTimeout(dismissSearchFocus, 250);
                 });
             }
 
             let searchDebounceTimer = null;
             if (inputEl && suggestionsDiv) {
+                const executeMobileSearch = (rawSymbol) => {
+                    if (!rawSymbol) return;
+                    const cleanSymbol = rawSymbol.trim().toUpperCase();
+                    saveRecentSearch(cleanSymbol);
+
+                    if (suggestionsDiv) suggestionsDiv.style.display = 'none';
+                    if (inputEl) {
+                        inputEl.value = '';
+                        inputEl.blur();
+                    }
+                    if (typeof dismissSearchFocus === 'function') dismissSearchFocus();
+
+                    if (typeof window.loadStockAnalyzer === 'function') {
+                        window.loadStockAnalyzer(cleanSymbol);
+                    } else {
+                        const desktopSearchInput = document.getElementById('analyzer-search-input');
+                        const desktopSearchBtn = document.getElementById('analyzer-search-btn');
+                        if (desktopSearchInput) desktopSearchInput.value = cleanSymbol;
+                        if (desktopSearchBtn) desktopSearchBtn.click();
+                    }
+                };
+
                 inputEl.addEventListener('input', () => {
                     clearTimeout(searchDebounceTimer);
                     const query = inputEl.value.trim();
@@ -4396,25 +4418,27 @@
                                     data.forEach(item => {
                                         const div = document.createElement('div');
                                         div.className = 'watchlist-autocomplete-item';
-                                        div.style.cssText = 'padding: 10px 14px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(255,255,255,0.03);';
+                                        div.style.cssText = 'padding: 10px 14px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(255,255,255,0.03); -webkit-tap-highlight-color: rgba(59,130,246,0.2);';
                                         div.innerHTML = `
                                             <div>
-                                                <span class="ticker-pill" style="font-weight: 700; color: #fff;">${item.base_symbol}</span>
+                                                <span class="ticker-pill" style="font-weight: 700; color: var(--text-primary, #fff);">${item.base_symbol}</span>
                                                 <span style="font-size: 10px; color: var(--text-muted); margin-left: 6px;">${item.name}</span>
                                             </div>
-                                            <span class="sector-pill">${item.sector || 'Equity'}</span>
+                                            <span class="sector-pill" style="font-size: 9.5px; opacity: 0.8;">${item.sector || 'Equity'}</span>
                                         `;
-                                        div.addEventListener('click', () => {
-                                            saveRecentSearch(item.base_symbol);
-                                            const searchInput = document.getElementById('analyzer-search-input');
-                                            const searchBtn = document.getElementById('analyzer-search-btn');
-                                            if (searchInput && searchBtn) {
-                                                searchInput.value = item.base_symbol;
-                                                searchBtn.click();
+
+                                        const handleItemSelect = (e) => {
+                                            if (e) {
+                                                e.preventDefault();
+                                                e.stopPropagation();
                                             }
-                                            suggestionsDiv.style.display = 'none';
-                                            inputEl.value = '';
-                                        });
+                                            executeMobileSearch(item.base_symbol || item.symbol);
+                                        };
+
+                                        div.addEventListener('pointerdown', handleItemSelect);
+                                        div.addEventListener('mousedown', handleItemSelect);
+                                        div.addEventListener('touchstart', handleItemSelect, { passive: false });
+                                        div.addEventListener('click', handleItemSelect);
                                         suggestionsDiv.appendChild(div);
                                     });
                                     suggestionsDiv.style.display = 'block';
@@ -4427,25 +4451,18 @@
                         }
                     }, 200);
                 });
- 
+
                 document.addEventListener('click', (e) => {
                     if (e.target !== inputEl && e.target !== suggestionsDiv && !suggestionsDiv.contains(e.target)) {
                         suggestionsDiv.style.display = 'none';
                     }
                 });
- 
+
                 inputEl.addEventListener('keypress', e => {
                     if (e.key === 'Enter') {
                         const val = inputEl.value.trim();
                         if (val) {
-                            saveRecentSearch(val);
-                            const searchInput = document.getElementById('analyzer-search-input');
-                            const searchBtn = document.getElementById('analyzer-search-btn');
-                            if (searchInput && searchBtn) {
-                                searchInput.value = val;
-                                searchBtn.click();
-                            }
-                            inputEl.value = '';
+                            executeMobileSearch(val);
                         }
                     }
                 });
@@ -5132,7 +5149,7 @@
                                         
                                         <div style="position:relative; z-index:2; display:flex; align-items:center; gap:10px; flex-shrink:0;">
                                             <div style="width:50px;">
-                                                <div style="height:4px; width:100%; background:rgba(255,255,255,0.12); border-radius:2px; overflow:hidden;">
+                                                <div class="sector-bar-track" style="height:5px; width:100%; border-radius:3px; overflow:hidden;">
                                                     <div style="height:100%; width:${barPct}%; background:${color}; box-shadow:0 0 6px ${color};"></div>
                                                 </div>
                                             </div>

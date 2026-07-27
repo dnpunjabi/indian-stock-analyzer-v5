@@ -998,7 +998,7 @@ async def run_background_market_movers_updater():
             loop = asyncio.get_event_loop()
             df_indices = await loop.run_in_executor(
                 None, 
-                lambda: yf.download(indices_tickers, period="5d", interval="1d", progress=False)
+                lambda: yf.download(indices_tickers, period="1mo", interval="1d", progress=False)
             )
             
             parsed_indices = []
@@ -1021,7 +1021,16 @@ async def run_background_market_movers_updater():
 
                         if not close_series.empty:
                             price = float(close_series.iloc[-1])
-                            prev_close = float(close_series.iloc[-2]) if len(close_series) >= 2 else price
+                            prev_close = float(close_series.iloc[-2]) if len(close_series) >= 2 else None
+                            if prev_close is None or abs(price - prev_close) < 1e-6:
+                                try:
+                                    fi_prev = yf.Ticker(ticker).fast_info.get('previousClose')
+                                    if fi_prev and not pd.isna(fi_prev) and float(fi_prev) > 0:
+                                        prev_close = float(fi_prev)
+                                except Exception:
+                                    pass
+                            if prev_close is None:
+                                prev_close = price
                             change = price - prev_close
                             change_pct = (change / prev_close * 100.0) if prev_close > 0 else 0.0
                             high = float(high_series.iloc[-1]) if not high_series.empty else price

@@ -1321,7 +1321,7 @@ function drawSparkline(svgId, dataPoints, color) {
 }
 
 // Application State
-let activeTab = 'analyzer';
+let activeTab = 'home';
 let activeScreenerStrategy = 'hybrid';
 let activeStockProfile = null;
 let activeChartInstance = null;
@@ -2172,7 +2172,7 @@ function setupTabNavigation() {
     if (initialTab && tabBtns[initialTab]) {
         switchTab(initialTab);
     } else {
-        switchTab('analyzer');
+        switchTab('home');
     }
 }
 
