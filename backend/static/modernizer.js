@@ -63,6 +63,21 @@
                            (location.port === '8000' || location.port === '8001' || location.port === '8002' || location.port === '5000') );
     const apiBaseUrl = isCapacitor ? 'https://my-stock-advisor.duckdns.org' : '';
 
+    // Resilient fetch helper: tries relative endpoint first (matching app.js tabs), falls back to apiBaseUrl
+    window.safeFetchJson = async function(endpoint) {
+        try {
+            const res = await fetch(endpoint);
+            if (res.ok) return await res.json();
+        } catch(e) {}
+        if (apiBaseUrl) {
+            try {
+                const res2 = await fetch(apiBaseUrl + endpoint);
+                if (res2.ok) return await res2.json();
+            } catch(e) {}
+        }
+        return null;
+    };
+
     let isinMapping = {};
     fetch(apiBaseUrl + '/isin_mapping.json?v=1.1')
         .then(res => res.json())
@@ -4154,13 +4169,15 @@
 
             // Wire Voice Catalyst Click
             const homeMic = document.getElementById('mobile-home-mic-btn');
-            homeMic.addEventListener('click', () => {
-                const originalMic = document.getElementById('analyzer-voice-search-btn');
-                if (originalMic) {
-                    window.activeSpeechRecognizerTarget = 'analyzer';
-                    originalMic.click();
-                }
-            });
+            if (homeMic) {
+                homeMic.addEventListener('click', () => {
+                    const originalMic = document.getElementById('analyzer-voice-search-btn');
+                    if (originalMic) {
+                        window.activeSpeechRecognizerTarget = 'analyzer';
+                        originalMic.click();
+                    }
+                });
+            }
 
             // Wire Audio Speech Briefing Button
             const muteBtn = document.getElementById('btn-audio-mute-toggle');
@@ -4452,9 +4469,8 @@
                 `;
 
                 try {
-                    const moversRes = await fetch(apiBaseUrl + '/api/market-movers');
-                    if (moversRes.ok) {
-                        const moversData = await moversRes.json();
+                    const moversData = await window.safeFetchJson('/api/market-movers');
+                    if (moversData) {
                         
                         // Render Advances & Declines Breadth Gauge
                         const advCount = moversData.advances || 0;
@@ -4880,9 +4896,8 @@
                 `;
 
                 try {
-                    const sectorRes = await fetch(apiBaseUrl + '/api/screener/sector-regime');
-                    if (sectorRes.ok) {
-                        const sectorsList = await sectorRes.json();
+                    const sectorsList = await window.safeFetchJson('/api/screener/sector-regime');
+                    if (sectorsList) {
                         if (Array.isArray(sectorsList) && sectorsList.length > 0) {
                             const sortedSectors = [...sectorsList].sort((a, b) => (b.return_1d || 0) - (a.return_1d || 0));
                             const leader = sortedSectors[0];
@@ -5112,9 +5127,8 @@
                 }
 
                 try {
-                    const newsRes = await fetch(apiBaseUrl + '/api/market-news?refresh=false&run_llm=false');
-                    if (newsRes.ok) {
-                        const newsData = await newsRes.json();
+                    const newsData = await window.safeFetchJson('/api/market-news?refresh=false&run_llm=false');
+                    if (newsData) {
                         if (newsData.news_items && newsData.news_items.length > 0) {
                             const activeCategory = window.activeMobileNewsCategory || 'all';
                             
