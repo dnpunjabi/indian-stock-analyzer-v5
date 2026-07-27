@@ -3629,25 +3629,7 @@
                     </div>
                 </div>
 
-                <!-- Central Search Experience -->
-                <div class="mobile-search-section-wrap" style="margin-bottom: 12px; position: relative; transition: all 0.25s ease;">
-                    <div class="search-glowing-aura"></div>
-                    <div style="position:relative; width:100%; display: flex; align-items: center;">
-                        <input type="text" id="mobile-home-search-input" placeholder="Search Indian Stocks (e.g. RELIANCE)..." style="width:100% !important; box-sizing:border-box !important; padding:13px 48px 13px 16px !important; font-size:13.5px !important; background:rgba(255,255,255,0.03) !important; border:1px solid var(--border-glass) !important; color:var(--text-primary) !important; border-radius:8px !important; outline:none !important; text-align:left;">
-                        <div class="voice-catalyst-wrap" style="position: absolute !important; right: 12px !important; margin: 0 !important; z-index: 20;">
-                            <button class="voice-catalyst-btn" id="mobile-home-mic-btn" title="Speak Ticker to Research" style="background: none !important; border: none !important; color: var(--color-primary) !important; cursor: pointer; padding: 4px !important; outline: none; font-size: 15px;">
-                                🎙️
-                            </button>
-                        </div>
-                        <div id="mobile-home-suggestions" class="watchlist-autocomplete-box" style="display:none; position:absolute; top:100%; left:0; right:0; z-index:9999; max-height:220px; overflow-y:auto; margin-top:4px;"></div>
-                    </div>
-                </div>
 
-                <!-- Recent Searches Scrollable Pills -->
-                <div id="mobile-home-recent-pills-container" style="margin-bottom: 12px; display: none;">
-                    <div id="mobile-home-recent-pills-title" style="font-size: 9px; text-transform: uppercase; color: var(--text-muted); font-weight: 700; letter-spacing: 0.05em; margin-bottom: 6px;">Recent Searches</div>
-                    <div id="mobile-home-recent-pills" style="display: flex; gap: 8px; overflow-x: auto; scrollbar-width: none; -ms-overflow-style: none; padding: 2px 0;"></div>
-                </div>
 
                 <!-- Market Pulse Summary Strip -->
                 <div class="market-pulse-strip" id="mobile-market-pulse-strip">
