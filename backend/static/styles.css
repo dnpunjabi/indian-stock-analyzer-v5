@@ -18071,111 +18071,115 @@ select option {
         padding-top: calc(50px + env(safe-area-inset-top)) !important;
     }
 
-    /* Hide non-essential watchlist columns on mobile to avoid horizontal scroll conflicts */
-    #tab-watchlist .data-table th:nth-child(2),
-    #tab-watchlist .data-table td:nth-child(2),
-    #tab-watchlist .data-table th:nth-child(4),
-    #tab-watchlist .data-table td:nth-child(4),
-    #tab-watchlist .data-table th:nth-child(6),
-    #tab-watchlist .data-table td:nth-child(6),
-    #tab-watchlist .data-table th:nth-child(7),
-    #tab-watchlist .data-table td:nth-child(7),
-    #tab-watchlist .data-table th:nth-child(8),
-    #tab-watchlist .data-table td:nth-child(8) {
-        display: none !important;
-    }
-
-    #tab-watchlist .table-scroll {
-        overflow-x: hidden !important; /* Disable horizontal table scrolling completely */
+    /* Mobile Horizontally & Vertically Scrollable Tables with 2D 3-Tier Sticky Matrix */
+    #tab-watchlist .table-scroll,
+    #tab-portfolio .ledger-table-wrap,
+    #financial-statements-card .table-scroll,
+    #fs-pop-table-container {
+        overflow-x: auto !important;
+        overflow-y: auto !important;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: thin;
+        position: relative;
     }
 
     #tab-watchlist .data-table {
-        table-layout: fixed !important;
+        table-layout: auto !important;
         width: 100% !important;
-        min-width: auto !important;
-    }
-
-    #tab-watchlist .data-table th:first-child,
-    #tab-watchlist .data-table td:first-child {
-        width: 50% !important;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-    }
-
-    /* Expansion rows must not inherit the fixed-cell overflow clipping */
-    #tab-watchlist .data-table .watchlist-details-row td {
-        width: 100% !important;
-        overflow: visible !important;
-        white-space: normal !important;
-        text-overflow: unset !important;
-    }
-
-    #tab-watchlist .data-table th:nth-child(3),
-    #tab-watchlist .data-table td:nth-child(3) {
-        width: 25% !important;
-        text-align: right !important;
-    }
-
-    #tab-watchlist .data-table th:nth-child(5),
-    #tab-watchlist .data-table td:nth-child(5) {
-        width: 25% !important;
-        text-align: right !important;
-    }
-
-    /* Hide non-essential portfolio ledger columns on mobile */
-    #tab-portfolio .ledger-table-wrap th:nth-child(2),
-    #tab-portfolio .ledger-table-wrap td:nth-child(2),
-    #tab-portfolio .ledger-table-wrap th:nth-child(3),
-    #tab-portfolio .ledger-table-wrap td:nth-child(3),
-    #tab-portfolio .ledger-table-wrap th:nth-child(4),
-    #tab-portfolio .ledger-table-wrap td:nth-child(4),
-    #tab-portfolio .ledger-table-wrap th:nth-child(7),
-    #tab-portfolio .ledger-table-wrap td:nth-child(7),
-    #tab-portfolio .ledger-table-wrap th:nth-child(8),
-    #tab-portfolio .ledger-table-wrap td:nth-child(8),
-    #tab-portfolio .ledger-table-wrap th:nth-child(9),
-    #tab-portfolio .ledger-table-wrap td:nth-child(9),
-    #tab-portfolio .ledger-table-wrap th:nth-child(11),
-    #tab-portfolio .ledger-table-wrap td:nth-child(11),
-    #tab-portfolio .ledger-table-wrap th:nth-child(12),
-    #tab-portfolio .ledger-table-wrap td:nth-child(12),
-    #tab-portfolio .ledger-table-wrap th:nth-child(13),
-    #tab-portfolio .ledger-table-wrap td:nth-child(13) {
-        display: none !important;
-    }
-
-    #tab-portfolio .ledger-table-wrap {
-        overflow-x: hidden !important; /* Disable horizontal table scrolling completely */
+        min-width: 880px !important;
+        border-collapse: separate !important;
+        border-spacing: 0 !important;
     }
 
     #tab-portfolio .ledger-table-wrap table {
-        table-layout: fixed !important;
+        table-layout: auto !important;
         width: 100% !important;
-        min-width: auto !important;
+        min-width: 1100px !important;
+        border-collapse: separate !important;
+        border-spacing: 0 !important;
     }
 
+    #financial-statements-table {
+        table-layout: auto !important;
+        width: 100% !important;
+        min-width: 850px !important;
+        border-collapse: separate !important;
+        border-spacing: 0 !important;
+    }
+
+    /* Tier 2: Sticky Headers (Top=0, z-index=20) for Vertical Scroll */
+    #tab-portfolio .ledger-table-wrap table thead th,
+    #tab-watchlist .table-scroll table thead th,
+    #financial-statements-table thead th {
+        position: sticky !important;
+        top: 0 !important;
+        z-index: 20 !important;
+        background: #1e293b !important;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3) !important;
+    }
+
+    /* Tier 1: Sticky First Column Data Cells (Left=0, z-index=10) for Horizontal Scroll */
+    #tab-watchlist .data-table tbody td:first-child,
+    #tab-portfolio .ledger-table-wrap tbody td:first-child,
+    #financial-statements-table tbody tr:not(.fs-cat-header-row) td:first-child {
+        position: sticky !important;
+        left: 0 !important;
+        z-index: 10 !important;
+        background: var(--bg-card, #121826) !important;
+        box-shadow: 4px 0 10px -2px rgba(0, 0, 0, 0.4) !important;
+        min-width: 150px !important;
+        width: 150px !important;
+        max-width: 160px !important;
+        box-sizing: border-box !important;
+        white-space: normal !important;
+        word-break: break-word !important;
+    }
+
+    /* Tier 3: Top-Left Corner Header Cell (Top=0, Left=0, z-index=30) */
+    #tab-watchlist .data-table th:first-child,
     #tab-portfolio .ledger-table-wrap th:first-child,
-    #tab-portfolio .ledger-table-wrap td:first-child {
-        width: 40% !important;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
+    #financial-statements-table th:first-child {
+        position: sticky !important;
+        top: 0 !important;
+        left: 0 !important;
+        z-index: 30 !important;
+        background: #1e293b !important;
+        box-shadow: 4px 2px 10px -2px rgba(0, 0, 0, 0.5) !important;
+        min-width: 150px !important;
+        width: 150px !important;
+        max-width: 160px !important;
+        box-sizing: border-box !important;
     }
 
-    #tab-portfolio .ledger-table-wrap th:nth-child(5),
-    #tab-portfolio .ledger-table-wrap td:nth-child(5) {
-        width: 20% !important;
+    /* Financial Statement Category Headers Sticky Background */
+    #financial-statements-table tbody tr.fs-cat-header-row td {
+        position: sticky !important;
+        left: 0 !important;
+        z-index: 12 !important;
+        background: #1e293b !important;
     }
 
-    #tab-portfolio .ledger-table-wrap th:nth-child(6),
-    #tab-portfolio .ledger-table-wrap td:nth-child(6) {
-        width: 20% !important;
+    /* Light Theme Compatibility for Sticky Headers & Sticky First Column */
+    [data-theme="light"] #tab-portfolio .ledger-table-wrap table thead th,
+    [data-theme="light"] #tab-watchlist .table-scroll table thead th,
+    [data-theme="light"] #financial-statements-table thead th {
+        background: #f8fafc !important;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05) !important;
     }
 
-    #tab-portfolio .ledger-table-wrap th:nth-child(10),
-    #tab-portfolio .ledger-table-wrap td:nth-child(10) {
-        width: 20% !important;
+    [data-theme="light"] #tab-watchlist .data-table tbody td:first-child,
+    [data-theme="light"] #tab-portfolio .ledger-table-wrap tbody td:first-child,
+    [data-theme="light"] #financial-statements-table tbody tr:not(.fs-cat-header-row) td:first-child {
+        background: #ffffff !important;
+        box-shadow: 4px 0 10px -2px rgba(0, 0, 0, 0.1) !important;
+    }
+
+    [data-theme="light"] #tab-watchlist .data-table th:first-child,
+    [data-theme="light"] #tab-portfolio .ledger-table-wrap th:first-child,
+    [data-theme="light"] #financial-statements-table th:first-child,
+    [data-theme="light"] #financial-statements-table tbody tr.fs-cat-header-row td {
+        background: #f8fafc !important;
+        box-shadow: 4px 2px 10px -2px rgba(0, 0, 0, 0.1) !important;
     }
 
     /* Hide non-essential universe explorer columns on mobile (showing Symbol, Sector, Segment) */
