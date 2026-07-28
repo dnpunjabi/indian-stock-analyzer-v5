@@ -16303,18 +16303,26 @@ async function addInlineStockToWatchlist() {
 
 async function fetchWatchlists() {
     try {
-        const response = await fetch('/api/watchlists');
-        if (!response.ok) throw new Error("Failed to load watchlists.");
-
-        watchlistsList = await response.json();
-
-        // Auto-select the first watchlist if none is selected and lists exist
-        if (activeWatchlistId === null && watchlistsList.length > 0) {
-            activeWatchlistId = watchlistsList[0].id;
+        if (window.swrFetchJson) {
+            await window.swrFetchJson('/api/watchlists', (data) => {
+                if (!data || !Array.isArray(data)) return;
+                watchlistsList = data;
+                if (activeWatchlistId === null && watchlistsList.length > 0) {
+                    activeWatchlistId = watchlistsList[0].id;
+                }
+                renderWatchlistControls();
+                renderWatchlistItems();
+            });
+        } else {
+            const response = await fetch('/api/watchlists');
+            if (!response.ok) throw new Error("Failed to load watchlists.");
+            watchlistsList = await response.json();
+            if (activeWatchlistId === null && watchlistsList.length > 0) {
+                activeWatchlistId = watchlistsList[0].id;
+            }
+            renderWatchlistControls();
+            renderWatchlistItems();
         }
-
-        renderWatchlistControls();
-        renderWatchlistItems();
     } catch (e) {
         console.error("Watchlist fetch error:", e);
     }
@@ -34998,13 +35006,23 @@ window.renderTVAdvancedChart = renderTVAdvancedChart;
         let items = (typeof activePortfolioLedgerItems !== 'undefined' && activePortfolioLedgerItems) ? activePortfolioLedgerItems : [];
         if (items.length === 0) {
             try {
-                const response = await fetch('/api/portfolio');
-                if (response.ok) {
-                    const fetchedItems = await response.json();
-                    if (typeof activePortfolioLedgerItems !== 'undefined') {
-                        activePortfolioLedgerItems = fetchedItems;
+                if (window.swrFetchJson) {
+                    await window.swrFetchJson('/api/portfolio', (fetchedItems) => {
+                        if (!fetchedItems) return;
+                        if (typeof activePortfolioLedgerItems !== 'undefined') {
+                            activePortfolioLedgerItems = fetchedItems;
+                        }
+                        items = fetchedItems;
+                    });
+                } else {
+                    const response = await fetch('/api/portfolio');
+                    if (response.ok) {
+                        const fetchedItems = await response.json();
+                        if (typeof activePortfolioLedgerItems !== 'undefined') {
+                            activePortfolioLedgerItems = fetchedItems;
+                        }
+                        items = fetchedItems;
                     }
-                    items = fetchedItems;
                 }
             } catch (err) {
                 console.error("Failed to sync ledger items: ", err);

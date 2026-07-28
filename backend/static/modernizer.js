@@ -5906,41 +5906,39 @@
             if (!selector || !container) return;
 
             try {
-                const res = await fetch(apiBaseUrl + '/api/watchlists');
-                if (!res.ok) throw new Error("Watchlists fetch failed");
-                const watchlists = await res.json();
+                await window.swrFetchJson('/api/watchlists', (watchlists) => {
+                    if (!watchlists || !Array.isArray(watchlists)) return;
 
-                selector.innerHTML = '<option value="" disabled selected>Select Watchlist</option>';
-                const mobileSel = document.getElementById('mobile-watchlist-selector');
-                if (mobileSel) {
-                    mobileSel.innerHTML = '<option value="" disabled selected>Select Watchlist</option>';
-                }
-                if (watchlists && watchlists.length > 0) {
-                    // Check main tab selection first, default to first watchlist if none
-                    const mainSelectedId = document.getElementById('watchlist-select')?.value;
-                    const defaultId = (mainSelectedId && mainSelectedId !== "") ? mainSelectedId : watchlists[0].id;
+                    selector.innerHTML = '<option value="" disabled selected>Select Watchlist</option>';
+                    const mobileSel = document.getElementById('mobile-watchlist-selector');
+                    if (mobileSel) {
+                        mobileSel.innerHTML = '<option value="" disabled selected>Select Watchlist</option>';
+                    }
+                    if (watchlists && watchlists.length > 0) {
+                        const mainSelectedId = document.getElementById('watchlist-select')?.value;
+                        const defaultId = (mainSelectedId && mainSelectedId !== "") ? mainSelectedId : watchlists[0].id;
 
-                    watchlists.forEach(w => {
-                        const opt = document.createElement('option');
-                        opt.value = w.id;
-                        opt.innerText = w.name;
-                        if (w.id === defaultId) opt.selected = true;
-                        selector.appendChild(opt);
+                        watchlists.forEach(w => {
+                            const opt = document.createElement('option');
+                            opt.value = w.id;
+                            opt.innerText = w.name;
+                            if (w.id === defaultId) opt.selected = true;
+                            selector.appendChild(opt);
 
-                        if (mobileSel) {
-                            const mOpt = document.createElement('option');
-                            mOpt.value = w.id;
-                            mOpt.innerText = w.name;
-                            if (w.id === defaultId) mOpt.selected = true;
-                            mobileSel.appendChild(mOpt);
-                        }
-                    });
+                            if (mobileSel) {
+                                const mOpt = document.createElement('option');
+                                mOpt.value = w.id;
+                                mOpt.innerText = w.name;
+                                if (w.id === defaultId) mOpt.selected = true;
+                                mobileSel.appendChild(mOpt);
+                            }
+                        });
 
-                    // Auto-load default watchlist
-                    selector.value = defaultId;
-                    if (mobileSel) mobileSel.value = defaultId;
-                    await onWatchlistChange(defaultId);
-                }
+                        selector.value = defaultId;
+                        if (mobileSel) mobileSel.value = defaultId;
+                        onWatchlistChange(defaultId);
+                    }
+                });
             } catch (err) {
                 console.error("Desktop watchlists load error:", err);
             }
@@ -6152,40 +6150,36 @@
             };
 
             async function onWatchlistChange(watchlistId) {
-                container.innerHTML = `<div class="recent-research-empty" style="font-size: 11px;">Fetching live quotes...</div>`;
-                const mobileWatchlist = document.getElementById('mobile-home-watchlist-container');
-                if (mobileWatchlist) {
-                    mobileWatchlist.innerHTML = `<div class="recent-research-empty" style="font-size: 11px;">Fetching live quotes...</div>`;
-                }
                 watchlistCachedItems = [];
 
                 try {
-                    const data = await window.safeFetchJson(`/api/watchlists/${watchlistId}`);
-                    if (!data) throw new Error("Watchlist detail failed");
-                    
-                    const items = data.items || [];
-                    if (items.length === 0) {
+                    await window.swrFetchJson(`/api/watchlists/${watchlistId}`, async (data) => {
+                        if (!data) return;
+                        
+                        const items = data.items || [];
+                        if (items.length === 0) {
+                            watchlistCachedItems = [];
+                            renderWatchlistList();
+                            return;
+                        }
+
+                        const quoteData = await window.safeFetchJson('/api/batch-quotes');
+                        if (quoteData) {
+                            const quotes = quoteData.quotes || {};
+                            items.forEach(item => {
+                                const q = quotes[item.symbol];
+                                if (q) {
+                                    item.live_price = q.price;
+                                    item.change = q.change;
+                                    item.change_pct = q.change_pct;
+                                }
+                            });
+                        }
+
+                        watchlistCachedItems = items;
                         renderWatchlistList();
-                        return;
-                    }
-
-                    const symbols = items.map(item => item.symbol);
-                    const quoteData = await window.safeFetchJson('/api/batch-quotes');
-                    if (quoteData) {
-                        const quotes = quoteData.quotes || {};
-                        items.forEach(item => {
-                            const q = quotes[item.symbol];
-                            if (q) {
-                                item.live_price = q.price;
-                                item.change = q.change;
-                                item.change_pct = q.change_pct;
-                            }
-                        });
-                    }
-
-                    watchlistCachedItems = items;
-                    renderWatchlistList();
-                    setTimeout(bindMobileSortHeaders, 100);
+                        setTimeout(bindMobileSortHeaders, 100);
+                    });
                 } catch (err) {
                     console.error("Desktop watchlist loading failed:", err);
                     container.innerHTML = `<div class="recent-research-empty" style="font-size: 11px;">Failed to load live watchlist.</div>`;
