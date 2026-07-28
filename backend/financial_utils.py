@@ -835,8 +835,22 @@ def calculate_technical_indicators(ticker_symbol: str, stock_obj=None) -> dict:
             
         current_price = float(df['Close'].iloc[-1])
         result["current_price"] = current_price
-        
-        info_sma_50 = None
+
+        # Multi-horizon percentage returns (1D, 1W, 1M, 3M, 6M, 1Y)
+        if current_price > 0 and len(df) >= 2:
+            p_1d = float(df['Close'].iloc[-2]) if len(df) >= 2 else current_price
+            p_1w = float(df['Close'].iloc[-5]) if len(df) >= 5 else float(df['Close'].iloc[0])
+            p_1m = float(df['Close'].iloc[-21]) if len(df) >= 21 else float(df['Close'].iloc[0])
+            p_3m = float(df['Close'].iloc[-63]) if len(df) >= 63 else float(df['Close'].iloc[0])
+            p_6m = float(df['Close'].iloc[-126]) if len(df) >= 126 else float(df['Close'].iloc[0])
+            p_1y = float(df['Close'].iloc[0])
+
+            result["chg_1d"] = round(((current_price - p_1d) / p_1d) * 100.0, 2) if p_1d > 0 else 0.0
+            result["chg_1w"] = round(((current_price - p_1w) / p_1w) * 100.0, 2) if p_1w > 0 else 0.0
+            result["chg_1m"] = round(((current_price - p_1m) / p_1m) * 100.0, 2) if p_1m > 0 else 0.0
+            result["chg_3m"] = round(((current_price - p_3m) / p_3m) * 100.0, 2) if p_3m > 0 else 0.0
+            result["chg_6m"] = round(((current_price - p_6m) / p_6m) * 100.0, 2) if p_6m > 0 else 0.0
+            result["chg_1y"] = round(((current_price - p_1y) / p_1y) * 100.0, 2) if p_1y > 0 else 0.0
         info_sma_200 = None
         try:
             info = stock.info
