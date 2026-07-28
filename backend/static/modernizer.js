@@ -81,7 +81,7 @@
     // SWR (Stale-While-Revalidate) Universal Helper for 0ms instant load
     window.swrFetchJson = async function(endpoint, renderCallback) {
         if (typeof renderCallback !== 'function') return;
-        const cacheKey = 'swr_v2_' + endpoint.replace(/[^a-zA-Z0-9]/g, '_');
+        const cacheKey = 'swr_v3_' + endpoint.replace(/[^a-zA-Z0-9]/g, '_');
         
         // Phase 1: Instant Cache Hydration (0ms)
         try {
@@ -6661,24 +6661,43 @@
                         const changeSign = changePct >= 0 ? '+' : '';
                         const drawerId = `tech-drawer-${item.symbol}-${index}`;
 
-                        let symHash = 0;
-                        for (let c = 0; c < item.symbol.length; c++) symHash += item.symbol.charCodeAt(c);
-                        const macdState = (symHash % 2 === 0) ? 'Bullish Cross' : 'Strong Momentum';
-                        const macdColor = changePct >= 0 ? 'var(--neon-green)' : '#f59e0b';
+                        const rsiValStr = (item.rsi !== undefined && item.rsi !== null) ? `${item.rsi}` : '--';
+                        const sma50Str = item.sma50 ? `₹${item.sma50}` : '--';
+                        const sma200Str = item.sma200 ? `₹${item.sma200}` : '--';
+                        const high52Str = item.high52 ? `₹${item.high52}` : '--';
+                        const low52Str = item.low52 ? `₹${item.low52}` : '--';
+                        const volMultStr = item.vol_mult ? `${item.vol_mult}x` : '1.0x';
+
+                        let signalTag = 'Breakout';
+                        let signalTagColor = changePct >= 0 ? 'var(--neon-green, #10b981)' : 'var(--neon-red, #ef4444)';
+
+                        if (window.activeTechnicalScan === 'near_high') {
+                            signalTag = `52W High (${item.value})`;
+                        } else if (window.activeTechnicalScan === 'near_low') {
+                            signalTag = `52W Low (${item.value})`;
+                            signalTagColor = 'var(--neon-red, #ef4444)';
+                        } else if (window.activeTechnicalScan === 'gap_up') {
+                            signalTag = `Gap Up ${item.value}`;
+                        } else if (window.activeTechnicalScan === 'gap_down') {
+                            signalTag = `Gap Down ${item.value}`;
+                            signalTagColor = 'var(--neon-red, #ef4444)';
+                        } else {
+                            signalTag = item.value ? `${item.value}` : (changePct >= 0 ? 'Bullish' : 'Bearish');
+                        }
+
                         const isLast = index === Math.min(5, list.length) - 1;
-                        const borderStyle = isLast ? '' : 'border-bottom: 1px solid var(--border-glass, rgba(255,255,255,0.06));';
 
                         techHtml += `
                             <div class="cyber-stock-card-row tech-scan-row" style="cursor:default;">
                                 <div style="display:flex; align-items:center; justify-content:space-between;">
                                     <div>
                                         <strong style="color: var(--text-primary); font-size:14px; font-weight:800; font-family:'Outfit', sans-serif; display:block;">${item.symbol}</strong>
-                                        <div style="font-size:10px; color:var(--text-muted); margin-top:2px;">CMP: ₹${item.price}</div>
+                                        <div style="font-size:10px; color:var(--text-muted); margin-top:2px;">CMP: ₹${item.price || '--'}</div>
                                     </div>
                                     <div style="display:flex; align-items:center; gap:10px;">
                                         <div style="text-align:right;">
                                             <div style="font-size:13.5px; font-family:monospace; font-weight:800; color:${changeColor};">${changeSign}${changePct.toFixed(1)}%</div>
-                                            <div style="font-size:9.5px; color:${macdColor}; font-weight:700;">${macdState}</div>
+                                            <div style="font-size:9.5px; color:${signalTagColor}; font-weight:700;">${signalTag}</div>
                                         </div>
                                         <button onclick="
                                             if(typeof playHaptic==='function') playHaptic(10);
@@ -6692,16 +6711,24 @@
                                     </div>
                                 </div>
 
-                                <!-- Expandable Touch Detail Drawer (Inline Prospectus View) -->
+                                <!-- Expandable Touch Detail Drawer (100% Real Prospectus View) -->
                                 <div id="${drawerId}" style="display:none; margin-top:10px; padding-top:10px; border-top:1px dashed var(--border-glass, rgba(255,255,255,0.1)); font-size:11px; color:var(--text-secondary); transition:all 0.3s ease;">
                                     <div style="display:grid; grid-template-columns:1fr 1fr; gap:6px; margin-bottom:8px;">
                                         <div style="background:rgba(255,255,255,0.03); padding:6px; border-radius:4px;">
-                                            <div style="font-size:9px; color:var(--text-muted);">Signal Metrics</div>
-                                            <div style="font-weight:800; color:var(--neon-green); font-family:monospace;">${item.value}</div>
+                                            <div style="font-size:9px; color:var(--text-muted);">RSI (14)</div>
+                                            <div style="font-weight:800; color:var(--neon-green); font-family:monospace;">${rsiValStr}</div>
                                         </div>
                                         <div style="background:rgba(255,255,255,0.03); padding:6px; border-radius:4px;">
-                                            <div style="font-size:9px; color:var(--text-muted);">MACD Trend</div>
-                                            <div style="font-weight:800; color:${macdColor}; font-family:monospace;">${macdState}</div>
+                                            <div style="font-size:9px; color:var(--text-muted);">Volume Ratio</div>
+                                            <div style="font-weight:800; color:#3b82f6; font-family:monospace;">${volMultStr}</div>
+                                        </div>
+                                        <div style="background:rgba(255,255,255,0.03); padding:6px; border-radius:4px;">
+                                            <div style="font-size:9px; color:var(--text-muted);">52W High / Low</div>
+                                            <div style="font-weight:800; color:var(--text-primary); font-family:monospace; font-size:10px;">${high52Str} / ${low52Str}</div>
+                                        </div>
+                                        <div style="background:rgba(255,255,255,0.03); padding:6px; border-radius:4px;">
+                                            <div style="font-size:9px; color:var(--text-muted);">50 MA / 200 MA</div>
+                                            <div style="font-weight:800; color:var(--text-primary); font-family:monospace; font-size:10px;">${sma50Str} / ${sma200Str}</div>
                                         </div>
                                     </div>
                                     <button onclick="

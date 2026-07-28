@@ -2946,8 +2946,30 @@ async def get_technical_scans():
                     t = p.get("technicals") or {}
                     f = p.get("fundamentals") or {}
                     
-                    dist_h = t.get("dist_high_52w_pct")
-                    dist_l = t.get("dist_low_52w_pct")
+                    # Ignore failed or blank profiles
+                    if t.get("error") is True:
+                        continue
+                    
+                    cp = t.get("current_price") or f.get("current_price") or p.get("current_price")
+                    h52 = t.get("high_52w") or f.get("high_52week") or f.get("high52")
+                    l52 = t.get("low_52w") or f.get("low_52week") or f.get("low52")
+                    
+                    cp_val = round(clean_float(cp), 2) if (cp is not None and clean_float(cp) > 0) else None
+                    h52_val = round(clean_float(h52), 2) if (h52 is not None and clean_float(h52) > 0) else None
+                    l52_val = round(clean_float(l52), 2) if (l52 is not None and clean_float(l52) > 0) else None
+                    
+                    # Skip stocks missing core price or 52W High/Low data to ensure 100% data integrity
+                    if not cp_val or not h52_val or cp_val <= 0 or h52_val <= 0:
+                        continue
+                    if h52_val == cp_val and (not l52_val or l52_val == cp_val):
+                        continue
+
+                    # Calculate 100% real distance to 52W High and 52W Low
+                    dh_val = round(((h52_val - cp_val) / h52_val) * 100, 2) if h52_val >= cp_val else 0.0
+                    dl_val = round(((cp_val - l52_val) / l52_val) * 100, 2) if (l52_val and cp_val >= l52_val) else 0.0
+                    dist_h = dh_val
+                    dist_l = dl_val
+
                     rsi = t.get("rsi")
                     vol = t.get("volume_vs_avg20") or t.get("vol_ratio") or t.get("volume_ratio") or t.get("volume_surge_multiplier")
                     sma50 = t.get("sma_50") or t.get("sma50") or t.get("ema_50") or f.get("sma_50") or p.get("sma_50")
@@ -2958,25 +2980,16 @@ async def get_technical_scans():
                     fib_618 = fib.get("fib_618")
                     fib_500 = fib.get("fib_500")
                     
-                    cp = t.get("current_price") or f.get("current_price") or p.get("current_price")
                     op = clean_float(f.get("open") or t.get("daily_open"))
                     pc = clean_float(f.get("previous_close") or t.get("daily_close"))
                     
-                    h52 = t.get("high_52w") or f.get("high_52week") or f.get("high52")
-                    l52 = t.get("low_52w") or f.get("low_52week") or f.get("low52")
-                    
                     clean_sym = symbol.replace(".NS", "")
-                    rsi_val = round(clean_float(rsi), 1) if rsi is not None else 50.0
-                    cp_val = round(clean_float(cp), 2) if (cp is not None and clean_float(cp) > 0) else None
+                    rsi_val = round(clean_float(rsi), 1) if (rsi is not None and clean_float(rsi) > 0) else None
                     pc_val = clean_float(pc) if (pc is not None and clean_float(pc) > 0) else None
                     chg_pct = round(((cp_val - pc_val) / pc_val) * 100, 2) if (cp_val and pc_val and pc_val > 0) else 0.0
                     vol_val = round(clean_float(vol), 2) if (vol is not None and clean_float(vol) > 0) else 1.0
                     s50_val = round(clean_float(sma50), 2) if (sma50 is not None and clean_float(sma50) > 0) else None
                     s200_val = round(clean_float(sma200), 2) if (sma200 is not None and clean_float(sma200) > 0) else None
-                    h52_val = round(clean_float(h52), 2) if (h52 is not None and clean_float(h52) > 0) else None
-                    l52_val = round(clean_float(l52), 2) if (l52 is not None and clean_float(l52) > 0) else None
-                    dh_val = round(clean_float(dist_h), 2) if dist_h is not None else None
-                    dl_val = round(clean_float(dist_l), 2) if dist_l is not None else None
 
                     item_meta = {
                         "symbol": clean_sym,
@@ -2995,12 +3008,12 @@ async def get_technical_scans():
                         "dist_l": dl_val
                     }
                     
-                    # 1. Near 52W High
-                    if dist_h is not None and clean_float(dist_h) <= 3.0:
+                    # 1. Near 52W High (within 3% of peak)
+                    if dist_h is not None and dist_h <= 3.0:
                         near_high.append({
                             **item_meta,
-                            "value": f"{clean_float(dist_h):.2f}%",
-                            "sort_val": clean_float(dist_h)
+                            "value": f"{dist_h:.2f}%",
+                            "sort_val": dist_h
                         })
                         
                     # 2. Near 52W Low
