@@ -9210,56 +9210,61 @@ def compute_stock_trendlyne_metrics(profile, cp_val, added_price, added_date):
         else:
             chg_1y = 0.0
 
-    # 4. 3-Dot Traffic Light Signals
+    # 4. Multi-Parameter 3-Dot Traffic Light Signals (Valuation, Momentum, Health & Quality)
+    # Dot 1: Valuation (P/E Ratio, PEG Ratio, P/B Ratio)
     pe = safe_num(f.get("pe_ratio") or f.get("pe") or f.get("trailing_pe"))
     peg = safe_num(f.get("peg_ratio") or f.get("peg"))
-    
-    # Valuation Dot
-    if (pe > 0 and pe < 25) or (peg > 0 and peg < 1.0):
+    pb = safe_num(f.get("price_to_book") or f.get("pb_ratio") or f.get("book_value"))
+
+    if (0 < pe < 25) or (0 < peg < 1.0) or (0 < pb < 3.0):
         val_dot = "green"
-        val_txt = f"Valuation: Undervalued (PE {pe:.1f})" if pe > 0 else "Valuation: Undervalued"
-    elif pe >= 25 and pe <= 45:
+        val_txt = f"Valuation: Undervalued (P/E {pe:.1f}" + (f", PEG {peg:.2f})" if peg > 0 else ")")
+    elif (25 <= pe <= 45) or (1.0 <= peg <= 2.0):
         val_dot = "yellow"
-        val_txt = f"Valuation: Fairly Valued (PE {pe:.1f})"
-    elif pe > 45:
+        val_txt = f"Valuation: Fairly Valued (P/E {pe:.1f}" + (f", PEG {peg:.2f})" if peg > 0 else ")")
+    elif pe > 45 or peg > 2.0:
         val_dot = "red"
-        val_txt = f"Valuation: Expensive (PE {pe:.1f})"
+        val_txt = f"Valuation: Premium / Expensive (P/E {pe:.1f}" + (f", PEG {peg:.2f})" if peg > 0 else ")")
     else:
         val_dot = "yellow"
-        val_txt = "Valuation: Neutral"
+        val_txt = f"Valuation: Neutral (P/E {pe:.1f})" if pe > 0 else "Valuation: Neutral"
 
-    # Momentum Dot
+    # Dot 2: Technical Momentum (RSI 14, 50MA vs 200MA, Breakout Status)
     rsi = safe_num(t.get("rsi"))
     sma50 = safe_num(t.get("sma_50"))
     sma200 = safe_num(t.get("sma_200"))
-    if rsi > 55 and (sma50 == 0 or sma200 == 0 or sma50 >= sma200):
+    breakout = t.get("breakout_status") or ""
+
+    if (rsi > 55) and (sma50 == 0 or sma200 == 0 or sma50 >= sma200) and (breakout != "BEARISH_BREAKDOWN"):
         mom_dot = "green"
-        mom_txt = f"Momentum: Bullish (RSI {rsi:.1f})"
-    elif rsi >= 40 and rsi <= 55:
+        mom_txt = f"Momentum: Bullish Trend (RSI {rsi:.1f}, 50MA > 200MA)"
+    elif (40 <= rsi <= 55) or (rsi > 55 and sma50 < sma200):
         mom_dot = "yellow"
         mom_txt = f"Momentum: Consolidating (RSI {rsi:.1f})"
-    elif rsi > 0 and rsi < 40:
+    elif (0 < rsi < 40) or (rsi < 45 and sma50 < sma200) or (breakout == "BEARISH_BREAKDOWN"):
         mom_dot = "red"
-        mom_txt = f"Momentum: Bearish (RSI {rsi:.1f})"
+        mom_txt = f"Momentum: Bearish / Downtrend (RSI {rsi:.1f}, 50MA < 200MA)"
     else:
         mom_dot = "yellow"
-        mom_txt = "Momentum: Neutral"
+        mom_txt = f"Momentum: Neutral (RSI {rsi:.1f})" if rsi > 0 else "Momentum: Neutral"
 
-    # Durability / Quality Dot
+    # Dot 3: Financial Health & Quality (Debt to Equity, ROE %, Interest Coverage)
     de = safe_num(f.get("debt_to_equity") or f.get("debt_equity"))
-    roe = safe_num(f.get("roe") or f.get("return_on_equity"))
-    if (de > 0 and de < 0.5) or (roe > 15):
+    roe = safe_num(f.get("roe_pct") or f.get("roe") or f.get("return_on_equity"))
+    interest_cov = safe_num(f.get("interest_coverage"))
+
+    if (0 <= de < 0.5) and (roe > 15.0 or interest_cov > 4.0):
         health_dot = "green"
-        health_txt = f"Durability: Strong (D/E {de:.2f})" if de > 0 else "Durability: Strong Balance Sheet"
-    elif de >= 0.5 and de <= 1.2:
+        health_txt = f"Health & Quality: Strong (D/E {de:.2f}, ROE {roe:.1f}%)" if de >= 0 else f"Health & Quality: Strong (ROE {roe:.1f}%)"
+    elif (0.5 <= de <= 1.2) or (8.0 <= roe <= 15.0):
         health_dot = "yellow"
-        health_txt = f"Durability: Moderate Debt (D/E {de:.2f})"
-    elif de > 1.2:
+        health_txt = f"Health & Quality: Moderate (D/E {de:.2f}, ROE {roe:.1f}%)"
+    elif de > 1.2 or (roe > 0 and roe < 8.0):
         health_dot = "red"
-        health_txt = f"Durability: Debt Risk (D/E {de:.2f})"
+        health_txt = f"Health & Quality: Debt/Quality Risk (D/E {de:.2f}, ROE {roe:.1f}%)"
     else:
         health_dot = "yellow"
-        health_txt = "Durability: Moderate"
+        health_txt = "Health & Quality: Moderate Balance Sheet"
 
     return {
         "added_price": added_p,

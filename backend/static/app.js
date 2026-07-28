@@ -16871,13 +16871,13 @@ function renderWatchlistItems() {
         const addedPriceHTML = `<span style="font-family: 'Inter', monospace; color: var(--text-secondary); font-size: 11px;">₹${(item.added_price || item.live_price || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>`;
         const addedDateHTML = `<span style="color: var(--text-muted); font-size: 11px;">${item.added_date || 'Recently'}</span>`;
 
-        // 3-Dots Signals (Order: Durability [D/E], Valuation [PE], Momentum [RSI])
+        // 3-Dots Signals (Order: Valuation, Momentum, Health & Quality)
         const dots = item.dots || { val: 'yellow', mom: 'yellow', health: 'yellow' };
         const dotsHTML = `
             <div class="trendlyne-dots">
-                <span class="t-dot ${dots.health || 'yellow'}" title="${dots.health_txt || 'Durability (D/E)'}"></span>
-                <span class="t-dot ${dots.val || 'yellow'}" title="${dots.val_txt || 'Valuation (P/E)'}"></span>
-                <span class="t-dot ${dots.mom || 'yellow'}" title="${dots.mom_txt || 'Momentum (RSI)'}"></span>
+                <span class="t-dot ${dots.val || 'yellow'}" title="${dots.val_txt || 'Valuation (P/E, PEG, P/B)'}"></span>
+                <span class="t-dot ${dots.mom || 'yellow'}" title="${dots.mom_txt || 'Momentum (RSI, 50MA/200MA)'}"></span>
+                <span class="t-dot ${dots.health || 'yellow'}" title="${dots.health_txt || 'Health & Quality (D/E, ROE)'}"></span>
             </div>
         `;
 
