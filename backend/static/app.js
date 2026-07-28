@@ -16243,10 +16243,32 @@ async function setupWatchlistControls() {
     setupWatchlistPagination();
 }
 
+async function safeFetchJson(response, defaultErrorMsg = "Operation failed") {
+    const text = await response.text();
+    let data;
+    try {
+        data = JSON.parse(text);
+    } catch {
+        if (!response.ok) {
+            const cleanErr = (text && !text.includes("<html")) ? text.substring(0, 120) : `Server error (${response.status})`;
+            throw new Error(cleanErr);
+        }
+        throw new Error("Invalid response format received from server.");
+    }
+    if (!response.ok) {
+        throw new Error(data.detail || data.message || defaultErrorMsg);
+    }
+    return data;
+}
+
 async function addInlineStockToWatchlist() {
-    if (activeWatchlistId === null) return;
-    const input = document.getElementById('watchlist-inline-add-input');
-    const btn = document.getElementById('watchlist-inline-add-btn');
+    if (activeWatchlistId === null) {
+        showToast("Please select or create a watchlist first.", "warning");
+        return;
+    }
+
+    const input = document.getElementById('watchlist-add-stock-input');
+    const btn = document.getElementById('watchlist-add-stock-btn');
     if (!input) return;
 
     const symbolQuery = input.value.trim();
@@ -16259,15 +16281,11 @@ async function addInlineStockToWatchlist() {
     input.disabled = true;
 
     try {
-        const originalText = btn ? btn.innerText : '+ Add Stock';
         if (btn) btn.innerText = 'Adding...';
 
         // 1. Resolve ticker query first via API
         const searchRes = await fetch(`/api/search?q=${encodeURIComponent(symbolQuery)}`);
-        if (!searchRes.ok) {
-            throw new Error('Search resolution failed.');
-        }
-        const resolved = await searchRes.json();
+        const resolved = await safeFetchJson(searchRes, "Search resolution failed.");
         const baseSymbol = resolved.base_symbol;
         const fullTicker = resolved.yf_ticker || `${baseSymbol}.NS`;
 
@@ -16278,12 +16296,7 @@ async function addInlineStockToWatchlist() {
             body: JSON.stringify({ symbol: fullTicker })
         });
 
-        if (!response.ok) {
-            const err = await response.json();
-            throw new Error(err.detail || "Failed to add stock to watchlist.");
-        }
-
-        const addedItem = await response.json();
+        const addedItem = await safeFetchJson(response, "Failed to add stock to watchlist.");
         showToast(`Successfully added ${addedItem.name} (${addedItem.symbol}) to the watchlist.`, "success");
 
         input.value = '';
@@ -16390,12 +16403,7 @@ async function createNewWatchlist() {
             body: JSON.stringify({ name: name })
         });
 
-        if (!response.ok) {
-            const err = await response.json();
-            throw new Error(err.detail || "Failed to create watchlist.");
-        }
-
-        const newWatch = await response.json();
+        const newWatch = await safeFetchJson(response, "Failed to create watchlist.");
         activeWatchlistId = newWatch.id;
 
         if (input) input.value = '';
@@ -16451,11 +16459,7 @@ async function addCurrentStockToWatchlist() {
             body: JSON.stringify({ symbol: activeStockProfile.ticker })
         });
 
-        if (!response.ok) {
-            const err = await response.json();
-            throw new Error(err.detail || "Failed to add stock to watchlist.");
-        }
-
+        await safeFetchJson(response, "Failed to add stock to watchlist.");
         showToast(`Successfully added ${activeStockProfile.ticker} to the selected watchlist.`, "success");
         await fetchWatchlists(true);
     } catch (e) {

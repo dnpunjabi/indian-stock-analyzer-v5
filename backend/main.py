@@ -9258,15 +9258,35 @@ async def add_watchlist_item(watchlist_id: int, data: WatchlistItemCreate):
             pass
             
         try:
-            cursor.execute(
-                "INSERT INTO watchlist_items (watchlist_id, symbol, name, sector, quantity, purchase_price, in_portfolio, added_price, added_date) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
-                (watchlist_id, symbol, company_name, sector, data.quantity or 0.0, data.purchase_price or 0.0, data.in_portfolio or 0, added_price, today_str)
-            )
+            try:
+                cursor.execute(
+                    "INSERT INTO watchlist_items (watchlist_id, symbol, name, sector, quantity, purchase_price, in_portfolio, added_price, added_date) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                    (watchlist_id, symbol, company_name, sector, data.quantity or 0.0, data.purchase_price or 0.0, data.in_portfolio or 0, added_price, today_str)
+                )
+            except sqlite3.OperationalError:
+                # Fallback if DB table lacks new columns
+                try:
+                    cursor.execute("ALTER TABLE watchlist_items ADD COLUMN added_price REAL DEFAULT 0.0")
+                except Exception:
+                    pass
+                try:
+                    cursor.execute("ALTER TABLE watchlist_items ADD COLUMN added_date TEXT")
+                except Exception:
+                    pass
+                cursor.execute(
+                    "INSERT INTO watchlist_items (watchlist_id, symbol, name, sector, quantity, purchase_price, in_portfolio) VALUES (?, ?, ?, ?, ?, ?, ?)",
+                    (watchlist_id, symbol, company_name, sector, data.quantity or 0.0, data.purchase_price or 0.0, data.in_portfolio or 0)
+                )
             conn.commit()
             fz = get_fuzzy_summary_for_symbol(conn, symbol)
             return {"symbol": symbol, "name": company_name, "sector": sector, "quantity": data.quantity or 0.0, "purchase_price": data.purchase_price or 0.0, "in_portfolio": data.in_portfolio or 0, "added_price": added_price, "added_date": today_str, "fuzzy_score": fz["fuzzy_score"], "fuzzy_rating": fz["fuzzy_rating"]}
         except sqlite3.IntegrityError:
-            raise HTTPException(status_code=400, detail="Stock already exists in this watchlist.")
+            raise HTTPException(status_code=400, detail=f"Stock '{symbol}' already exists in this watchlist.")
+        except HTTPException:
+            raise
+        except Exception as e:
+            logger.error(f"Error adding item to watchlist: {e}")
+            raise HTTPException(status_code=500, detail=f"Failed to add stock '{symbol}': {str(e)}")
 
 @app.get("/api/watchlists/{watchlist_id}")
 async def get_single_watchlist(watchlist_id: int):
