@@ -18103,6 +18103,14 @@ select option {
         white-space: nowrap;
     }
 
+    /* Expansion rows must not inherit the fixed-cell overflow clipping */
+    #tab-watchlist .data-table .watchlist-details-row td {
+        width: 100% !important;
+        overflow: visible !important;
+        white-space: normal !important;
+        text-overflow: unset !important;
+    }
+
     #tab-watchlist .data-table th:nth-child(3),
     #tab-watchlist .data-table td:nth-child(3) {
         width: 25% !important;

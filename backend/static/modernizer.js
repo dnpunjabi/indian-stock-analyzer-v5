@@ -2309,107 +2309,7 @@
         
         // Helper to format rupees safely (reusing IIFE scope formatRupees)
 
-        // 1. Swipe-to-Action Rows on Lists (Watchlist & Portfolio)
-        function setupSwipeableWatchlistRows() {
-            const watchlistBody = document.getElementById('watchlist-table-body');
-            const holdingsBody = document.getElementById('holdings-table-body');
-            
-            const bindSwipe = (body) => {
-                if (!body) return;
-                let startX = 0;
-                let startY = 0;
-                let activeRow = null;
-                let currentOffset = 0;
-                let isSwipingRow = false;
 
-                body.addEventListener('touchstart', e => {
-                    const tr = e.target.closest('tr');
-                    if (!tr || e.target.closest('button, input, a, select')) return;
-                    
-                    startX = e.touches[0].clientX;
-                    startY = e.touches[0].clientY;
-                    activeRow = tr;
-                    isSwipingRow = false;
-                    
-                    // Reset other swiped rows
-                    body.querySelectorAll('tr').forEach(row => {
-                        if (row !== activeRow && row.style.transform) {
-                            row.style.transform = '';
-                            row.style.transition = 'transform 0.25s ease';
-                        }
-                    });
-                }, { passive: true });
-
-                body.addEventListener('touchmove', e => {
-                    if (!activeRow) return;
-                    
-                    const currentX = e.touches[0].clientX;
-                    const currentY = e.touches[0].clientY;
-                    const diffX = currentX - startX;
-                    const diffY = currentY - startY;
-
-                    if (Math.abs(diffX) > Math.abs(diffY) * 1.5 && Math.abs(diffX) > 10) {
-                        isSwipingRow = true;
-                        currentOffset = Math.max(-80, Math.min(80, diffX));
-                        activeRow.style.transform = `translateX(${currentOffset}px)`;
-                        activeRow.style.transition = 'none';
-                    }
-                }, { passive: true });
-
-                body.addEventListener('touchend', e => {
-                    if (!activeRow || !isSwipingRow) {
-                        activeRow = null;
-                        return;
-                    }
-
-                    activeRow.style.transition = 'transform 0.2s ease-out';
-                    if (currentOffset < -40) {
-                        activeRow.style.transform = 'translateX(-70px)';
-                        triggerSwipeRowAction(activeRow, 'delete');
-                    } else if (currentOffset > 40) {
-                        activeRow.style.transform = 'translateX(70px)';
-                        triggerSwipeRowAction(activeRow, 'audit');
-                    } else {
-                        activeRow.style.transform = '';
-                    }
-                    activeRow = null;
-                });
-            };
-
-            bindSwipe(watchlistBody);
-            bindSwipe(holdingsBody);
-        }
-
-        function triggerSwipeRowAction(rowEl, action) {
-            const firstCell = rowEl.cells[0];
-            if (!firstCell) return;
-            const symbol = firstCell.textContent.trim().split('\n')[0].replace('.NS', '').trim();
-            
-            playHaptic(12);
-            if (action === 'delete') {
-                window.showToast(`Action: Delete/Remove ${symbol}`, "info");
-                const delBtn = rowEl.querySelector('button[title*="Delete"], button[onclick*="deleteWatchlistItem"], button[onclick*="deleteHoldingsItem"]');
-                if (delBtn) {
-                    delBtn.click();
-                } else {
-                    const buttons = rowEl.querySelectorAll('button');
-                    if (buttons.length > 0) {
-                        buttons[buttons.length - 1].click(); // assume last button is delete
-                    }
-                }
-                setTimeout(() => { if (rowEl) rowEl.style.transform = ''; }, 600);
-            } else if (action === 'audit') {
-                window.showToast(`Triggering AI Audit: ${symbol}`, "success");
-                const searchInput = document.getElementById('analyzer-search-input');
-                const searchBtn = document.getElementById('analyzer-search-btn');
-                if (searchInput && searchBtn) {
-                    searchInput.value = symbol;
-                    searchBtn.click();
-                    window.switchTab('market-news');
-                }
-                setTimeout(() => { if (rowEl) rowEl.style.transform = ''; }, 600);
-            }
-        }
 
         // 2. Compact Equities Tearsheet Header
         function setupMobileTearsheet() {
@@ -2545,7 +2445,6 @@
 
         // Attach listeners and tick hooks if mobile
         if (isMobile()) {
-            setupSwipeableWatchlistRows();
             setupMobileTearsheet();
             injectMobileHeaderSearch();
             configureChartMobileTouchOptions();
@@ -2628,8 +2527,20 @@
                 return;
             }
 
+            // Helper: find item data from global watchlistsList by symbol
+            function getWatchlistItemData(symbol) {
+                if (typeof watchlistsList === 'undefined' || typeof activeWatchlistId === 'undefined') return null;
+                const activeWatch = watchlistsList.find(w => w.id == activeWatchlistId);
+                if (!activeWatch || !activeWatch.items) return null;
+                const cleanSym = symbol.replace('.NS', '').trim().toUpperCase();
+                return activeWatch.items.find(item => {
+                    const itemSym = (item.symbol || '').replace('.NS', '').trim().toUpperCase();
+                    return itemSym === cleanSym;
+                });
+            }
+
             tbody.querySelectorAll('tr').forEach(tr => {
-                if (tr.classList.contains('watchlist-details-row') || tr.querySelector('.row-expand-trigger') || tr.cells.length < 5) return;
+                if (tr.classList.contains('watchlist-details-row') || tr.querySelector('.row-expand-trigger') || tr.cells.length < 3) return;
 
                 const firstCell = tr.cells[0];
                 if (!firstCell) return;
@@ -2653,25 +2564,67 @@
                         nextRow.remove();
                         chevron.innerHTML = '▼';
                     } else {
-                        const sector = tr.cells[1] ? tr.cells[1].textContent.trim() : 'N/A';
-                        const changeVal = tr.cells[3] ? tr.cells[3].textContent.trim() : 'N/A';
-                        const dayHigh = tr.cells[5] ? tr.cells[5].textContent.trim() : 'N/A';
-                        const dayLow = tr.cells[6] ? tr.cells[6].textContent.trim() : 'N/A';
-                        const fuzzyCellHTML = tr.cells[7] ? tr.cells[7].innerHTML.trim() : '';
+                        // Read data from the in-memory watchlistsList via data-wl-symbol attribute
+                        const rowSymbol = tr.getAttribute('data-wl-symbol') || '';
+                        const itemData = getWatchlistItemData(rowSymbol);
+
+                        const sector = itemData ? (itemData.sector || 'N/A') : 'N/A';
+                        const ltp = itemData && itemData.live_price != null
+                            ? `₹${itemData.live_price.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+                            : (itemData && itemData.added_price ? `₹${itemData.added_price.toFixed(2)}` : 'N/A');
+                        const dayChangePct = itemData && itemData.change_pct != null
+                            ? `${itemData.change_pct >= 0 ? '+' : ''}${itemData.change_pct.toFixed(2)}%`
+                            : 'N/A';
+                        const dayChangeColor = itemData && itemData.change_pct >= 0 ? '#10b981' : '#ef4444';
+                        const dayHigh = itemData && itemData.day_high != null
+                            ? `₹${itemData.day_high.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+                            : 'N/A';
+                        const dayLow = itemData && itemData.day_low != null
+                            ? `₹${itemData.day_low.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+                            : 'N/A';
+
+                        // Fuzzy Conviction
+                        let fuzzyHTML = '<span style="color: var(--text-muted);">--</span>';
+                        if (itemData && itemData.fuzzy_score != null && !isNaN(itemData.fuzzy_score)) {
+                            const fs = parseFloat(itemData.fuzzy_score);
+                            const fuzzyColor = fs >= 15 ? '#10b981' : (fs <= -15 ? '#ef4444' : '#f59e0b');
+                            const fuzzyBg = fs >= 15 ? 'rgba(16,185,129,0.12)' : (fs <= -15 ? 'rgba(239,68,68,0.12)' : 'rgba(245,158,11,0.12)');
+                            fuzzyHTML = `<span style="font-weight: 700; color: ${fuzzyColor}; background: ${fuzzyBg}; padding: 2px 8px; border-radius: 4px; font-family: 'Inter', monospace; font-size: 11px;">${fs > 0 ? '+' : ''}${fs.toFixed(1)}%</span>`;
+                            if (itemData.fuzzy_rating) {
+                                fuzzyHTML += ` <span style="font-size: 9px; color: var(--text-muted); font-weight: 600; text-transform: uppercase; margin-left: 4px;">${itemData.fuzzy_rating}</span>`;
+                            }
+                        }
+
+                        // Added Price & Change Since Added
+                        const addedPrice = itemData && itemData.added_price
+                            ? `₹${itemData.added_price.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+                            : 'N/A';
+                        const chgSince = itemData && itemData.chg_since_added != null
+                            ? parseFloat(itemData.chg_since_added) : null;
+                        let chgSinceHTML = '<span style="color: var(--text-muted);">N/A</span>';
+                        if (chgSince !== null) {
+                            const chgColor = chgSince >= 0 ? '#10b981' : '#ef4444';
+                            const chgBg = chgSince >= 0 ? 'rgba(16,185,129,0.12)' : 'rgba(239,68,68,0.12)';
+                            chgSinceHTML = `<span style="font-weight: 700; color: ${chgColor}; background: ${chgBg}; padding: 2px 6px; border-radius: 4px; font-family: 'Inter', monospace; font-size: 11px;">${chgSince >= 0 ? '+' : ''}${chgSince.toFixed(2)}%</span>`;
+                        }
 
                         const detailsTr = document.createElement('tr');
                         detailsTr.className = 'watchlist-details-row no-print';
                         detailsTr.style.background = 'rgba(255, 255, 255, 0.01)';
                         detailsTr.innerHTML = `
-                            <td colspan="8" style="padding: 10px 15px; border-top: 1px dashed rgba(255,255,255,0.05); border-bottom: 1px dashed rgba(255,255,255,0.05);">
-                                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 11px; color: var(--text-secondary); line-height: 1.4;">
+                            <td colspan="9" style="padding: 8px 12px; border-top: 1px dashed rgba(255,255,255,0.05); border-bottom: 1px dashed rgba(255,255,255,0.05);">
+                                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px 10px; font-size: 10.5px; color: var(--text-secondary); line-height: 1.5; word-break: break-word;">
                                     <div><strong>Sector:</strong> ${sector}</div>
-                                    <div style="text-align: right;"><strong>Day High:</strong> ${dayHigh}</div>
-                                    <div><strong>Daily Change:</strong> ${changeVal}</div>
-                                    <div style="text-align: right;"><strong>Day Low:</strong> ${dayLow}</div>
+                                    <div style="text-align: right;"><strong>LTP:</strong> ${ltp}</div>
+                                    <div><strong>Add Price:</strong> ${addedPrice}</div>
+                                    <div style="text-align: right;"><strong>Since Added:</strong> ${chgSinceHTML}</div>
+                                    <div><strong>Day Chg:</strong> <span style="color: ${dayChangeColor}; font-weight: 600;">${dayChangePct}</span></div>
+                                    <div style="text-align: right;"><strong>High:</strong> ${dayHigh}</div>
+                                    <div><strong>Low:</strong> ${dayLow}</div>
+                                    <div style="text-align: right;"><strong>Added:</strong> ${itemData && itemData.added_date ? itemData.added_date : 'N/A'}</div>
                                     <div style="grid-column: span 2; display: flex; align-items: center; justify-content: space-between; margin-top: 4px; padding-top: 6px; border-top: 1px dashed rgba(255,255,255,0.08);">
-                                        <strong style="color: var(--text-primary);">Fuzzy Conviction:</strong>
-                                        <div>${fuzzyCellHTML}</div>
+                                        <strong style="color: var(--text-primary);">Fuzzy:</strong>
+                                        <div>${fuzzyHTML}</div>
                                     </div>
                                 </div>
                             </td>
