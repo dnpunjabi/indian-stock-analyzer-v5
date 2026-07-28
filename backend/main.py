@@ -9210,26 +9210,28 @@ def compute_stock_trendlyne_metrics(profile, cp_val, added_price, added_date):
         else:
             chg_1y = 0.0
 
-    # 4. Multi-Parameter 3-Dot Traffic Light Signals (Valuation, Momentum, Health & Quality)
-    # Dot 1: Valuation (P/E Ratio, PEG Ratio, P/B Ratio)
+    # 4. Institutional Multi-Parameter 3-Dot Traffic Light Signals
+    # Dot 1: Valuation (P/E Ratio vs Sector P/E, PEG Ratio, EV/EBITDA, P/B Ratio)
     pe = safe_num(f.get("pe_ratio") or f.get("pe") or f.get("trailing_pe"))
+    ind_pe = safe_num(f.get("industry_pe") or f.get("sector_pe"))
     peg = safe_num(f.get("peg_ratio") or f.get("peg"))
     pb = safe_num(f.get("price_to_book") or f.get("pb_ratio") or f.get("book_value"))
+    ev_ebitda = safe_num(f.get("ev_ebitda"))
 
-    if (0 < pe < 25) or (0 < peg < 1.0) or (0 < pb < 3.0):
+    if (0 < pe < 25) or (ind_pe > 0 and 0 < pe < ind_pe) or (0 < peg < 1.0) or (0 < ev_ebitda < 12.0):
         val_dot = "green"
-        val_txt = f"Valuation: Undervalued (P/E {pe:.1f}" + (f", PEG {peg:.2f})" if peg > 0 else ")")
-    elif (25 <= pe <= 45) or (1.0 <= peg <= 2.0):
+        val_txt = f"Valuation: Undervalued (P/E {pe:.1f}" + (f" vs Sector {ind_pe:.1f}" if ind_pe > 0 else "") + (f", PEG {peg:.2f})" if peg > 0 else ")")
+    elif (25 <= pe <= 45) or (1.0 <= peg <= 2.0) or (12.0 <= ev_ebitda <= 20.0):
         val_dot = "yellow"
-        val_txt = f"Valuation: Fairly Valued (P/E {pe:.1f}" + (f", PEG {peg:.2f})" if peg > 0 else ")")
-    elif pe > 45 or peg > 2.0:
+        val_txt = f"Valuation: Fairly Valued (P/E {pe:.1f}" + (f", EV/EBITDA {ev_ebitda:.1f}" if ev_ebitda > 0 else ")")
+    elif pe > 45 or peg > 2.0 or ev_ebitda > 25.0:
         val_dot = "red"
-        val_txt = f"Valuation: Premium / Expensive (P/E {pe:.1f}" + (f", PEG {peg:.2f})" if peg > 0 else ")")
+        val_txt = f"Valuation: Premium / Expensive (P/E {pe:.1f}" + (f", EV/EBITDA {ev_ebitda:.1f}" if ev_ebitda > 0 else ")")
     else:
         val_dot = "yellow"
         val_txt = f"Valuation: Neutral (P/E {pe:.1f})" if pe > 0 else "Valuation: Neutral"
 
-    # Dot 2: Technical Momentum (RSI 14, 50MA vs 200MA, Breakout Status)
+    # Dot 2: Technical Momentum (RSI 14, 50MA vs 200MA, 52W High Proximity, Breakout Status)
     rsi = safe_num(t.get("rsi"))
     sma50 = safe_num(t.get("sma_50"))
     sma200 = safe_num(t.get("sma_200"))
@@ -9237,7 +9239,7 @@ def compute_stock_trendlyne_metrics(profile, cp_val, added_price, added_date):
 
     if (rsi > 55) and (sma50 == 0 or sma200 == 0 or sma50 >= sma200) and (breakout != "BEARISH_BREAKDOWN"):
         mom_dot = "green"
-        mom_txt = f"Momentum: Bullish Trend (RSI {rsi:.1f}, 50MA > 200MA)"
+        mom_txt = f"Momentum: Strong Bullish (RSI {rsi:.1f}, 50MA > 200MA)"
     elif (40 <= rsi <= 55) or (rsi > 55 and sma50 < sma200):
         mom_dot = "yellow"
         mom_txt = f"Momentum: Consolidating (RSI {rsi:.1f})"
@@ -9248,14 +9250,19 @@ def compute_stock_trendlyne_metrics(profile, cp_val, added_price, added_date):
         mom_dot = "yellow"
         mom_txt = f"Momentum: Neutral (RSI {rsi:.1f})" if rsi > 0 else "Momentum: Neutral"
 
-    # Dot 3: Financial Health & Quality (Debt to Equity, ROE %, Interest Coverage)
+    # Dot 3: Financial Health & Quality (Debt/Equity, ROE %, ROCE %, Promoter Pledge, Interest Coverage)
     de = safe_num(f.get("debt_to_equity") or f.get("debt_equity"))
     roe = safe_num(f.get("roe_pct") or f.get("roe") or f.get("return_on_equity"))
+    roce = safe_num(f.get("roce_pct") or f.get("roce") or f.get("return_on_capital_employed"))
+    pledged = safe_num(f.get("promoter_pledged_pct") or f.get("pledged_pct"))
     interest_cov = safe_num(f.get("interest_coverage"))
 
-    if (0 <= de < 0.5) and (roe > 15.0 or interest_cov > 4.0):
+    if pledged > 15.0:
+        health_dot = "red"
+        health_txt = f"Health & Quality: High Risk (Promoter Pledge {pledged:.1f}%)"
+    elif (0 <= de < 0.5) and (roe > 15.0 or roce > 15.0 or interest_cov > 4.0):
         health_dot = "green"
-        health_txt = f"Health & Quality: Strong (D/E {de:.2f}, ROE {roe:.1f}%)" if de >= 0 else f"Health & Quality: Strong (ROE {roe:.1f}%)"
+        health_txt = f"Health & Quality: Strong (D/E {de:.2f}, ROE {roe:.1f}%" + (f", ROCE {roce:.1f}%" if roce > 0 else "") + ")"
     elif (0.5 <= de <= 1.2) or (8.0 <= roe <= 15.0):
         health_dot = "yellow"
         health_txt = f"Health & Quality: Moderate (D/E {de:.2f}, ROE {roe:.1f}%)"
