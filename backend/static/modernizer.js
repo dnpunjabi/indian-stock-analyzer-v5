@@ -78,6 +78,30 @@
         return null;
     };
 
+    // SWR (Stale-While-Revalidate) Universal Helper for 0ms instant load
+    window.swrFetchJson = async function(endpoint, renderCallback) {
+        if (typeof renderCallback !== 'function') return;
+        const cacheKey = 'swr_v2_' + endpoint.replace(/[^a-zA-Z0-9]/g, '_');
+        
+        // Phase 1: Instant Cache Hydration (0ms)
+        try {
+            const rawCache = localStorage.getItem(cacheKey);
+            if (rawCache) {
+                const cachedData = JSON.parse(rawCache);
+                if (cachedData) renderCallback(cachedData, true);
+            }
+        } catch(e) {}
+
+        // Phase 2: Background Network Refresh & Cache Update
+        try {
+            const freshData = await window.safeFetchJson(endpoint);
+            if (freshData) {
+                try { localStorage.setItem(cacheKey, JSON.stringify(freshData)); } catch(e) {}
+                renderCallback(freshData, false);
+            }
+        } catch(e) {}
+    };
+
     let isinMapping = {};
     fetch(apiBaseUrl + '/isin_mapping.json?v=1.1')
         .then(res => res.json())
@@ -4469,8 +4493,8 @@
                 `;
 
                 try {
-                    const moversData = await window.safeFetchJson('/api/market-movers');
-                    if (moversData) {
+                    await window.swrFetchJson('/api/market-movers', (moversData) => {
+                        if (!moversData) return;
                         
                         // Render Advances & Declines Breadth Gauge
                         const advCount = moversData.advances || 0;
@@ -4880,7 +4904,7 @@
                                 });
                             }
                         });
-                    }
+                    });
                 } catch(e) {
                     console.error("Error loading movers:", e);
                 }
@@ -4896,8 +4920,8 @@
                 `;
 
                 try {
-                    const sectorsList = await window.safeFetchJson('/api/screener/sector-regime');
-                    if (sectorsList) {
+                    await window.swrFetchJson('/api/screener/sector-regime', (sectorsList) => {
+                        if (!sectorsList) return;
                         if (Array.isArray(sectorsList) && sectorsList.length > 0) {
                             const sortedSectors = [...sectorsList].sort((a, b) => (b.return_1d || 0) - (a.return_1d || 0));
                             const leader = sortedSectors[0];
@@ -5108,7 +5132,7 @@
                         } else {
                             sectorsContainer.innerHTML = '';
                         }
-                    }
+                    });
                 } catch(e) {
                     console.error("Error loading sectors standings:", e);
                 }
@@ -5127,8 +5151,8 @@
                 }
 
                 try {
-                    const newsData = await window.safeFetchJson('/api/market-news?refresh=false&run_llm=false');
-                    if (newsData) {
+                    await window.swrFetchJson('/api/market-news?refresh=false&run_llm=false', (newsData) => {
+                        if (!newsData) return;
                         if (newsData.news_items && newsData.news_items.length > 0) {
                             const activeCategory = window.activeMobileNewsCategory || 'all';
                             
@@ -5237,7 +5261,7 @@
                         } else {
                             newsContainer.innerHTML = '';
                         }
-                    }
+                    });
                 } catch(e) {
                     console.error("Error loading homepage news:", e);
                     newsContainer.innerHTML = '';
@@ -6136,9 +6160,8 @@
                 watchlistCachedItems = [];
 
                 try {
-                    const res = await fetch(apiBaseUrl + `/api/watchlists/${watchlistId}`);
-                    if (!res.ok) throw new Error("Watchlist detail failed");
-                    const data = await res.json();
+                    const data = await window.safeFetchJson(`/api/watchlists/${watchlistId}`);
+                    if (!data) throw new Error("Watchlist detail failed");
                     
                     const items = data.items || [];
                     if (items.length === 0) {
@@ -6147,14 +6170,8 @@
                     }
 
                     const symbols = items.map(item => item.symbol);
-                    const quoteRes = await fetch(apiBaseUrl + '/api/batch-quotes', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ symbols: symbols })
-                    });
-                    
-                    if (quoteRes.ok) {
-                        const quoteData = await quoteRes.json();
+                    const quoteData = await window.safeFetchJson('/api/batch-quotes');
+                    if (quoteData) {
                         const quotes = quoteData.quotes || {};
                         items.forEach(item => {
                             const q = quotes[item.symbol];
@@ -6432,25 +6449,15 @@
                 tbody.innerHTML = `<tr><td colspan="5" class="recent-research-empty" style="padding: 20px 0; text-align: center;">Scanning market for quant top picks...</td></tr>`;
 
                 // Fetch Hybrid, Bottom-Up, and Top-Down screeners in parallel across whole universe (all cap)
-                const tBuster = Date.now();
-                const [resHybrid, resBU, resTD] = await Promise.all([
-                    fetch(apiBaseUrl + `/api/discover?strategy=hybrid&universe=all&_t=${tBuster}`),
-                    fetch(apiBaseUrl + `/api/discover?strategy=bottom_up&universe=all&_t=${tBuster}`),
-                    fetch(apiBaseUrl + `/api/discover?strategy=top_down&universe=all&_t=${tBuster}`)
+                const [dataHybrid, dataBU, dataTD] = await Promise.all([
+                    window.safeFetchJson('/api/discover?strategy=hybrid&universe=all'),
+                    window.safeFetchJson('/api/discover?strategy=bottom_up&universe=all'),
+                    window.safeFetchJson('/api/discover?strategy=top_down&universe=all')
                 ]);
 
-                if (resHybrid.ok) {
-                    const dataHybrid = await resHybrid.json();
-                    quantPicksCache.hybrid = Array.isArray(dataHybrid) ? dataHybrid : [];
-                }
-                if (resBU.ok) {
-                    const dataBU = await resBU.json();
-                    quantPicksCache.bottom_up = Array.isArray(dataBU) ? dataBU : [];
-                }
-                if (resTD.ok) {
-                    const dataTD = await resTD.json();
-                    quantPicksCache.top_down = Array.isArray(dataTD) ? dataTD : [];
-                }
+                if (dataHybrid) quantPicksCache.hybrid = Array.isArray(dataHybrid) ? dataHybrid : [];
+                if (dataBU) quantPicksCache.bottom_up = Array.isArray(dataBU) ? dataBU : [];
+                if (dataTD) quantPicksCache.top_down = Array.isArray(dataTD) ? dataTD : [];
 
                 renderQuantTopPicksList();
             } catch (err) {
@@ -7257,28 +7264,25 @@
                 if (tbody) tbody.innerHTML = `<tr><td colspan="5" class="recent-research-empty" style="padding: 20px 0; text-align: center;">Scanning technical breakouts...</td></tr>`;
                 if (fullscreenTbody) fullscreenTbody.innerHTML = `<tr><td colspan="7" class="recent-research-empty" style="padding: 40px 0; text-align: center;">Scanning technical breakouts...</td></tr>`;
 
-                const res = await fetch(apiBaseUrl + '/api/technical-scans');
-                if (!res.ok) throw new Error("Technical scans API fetch failed");
-                const data = await res.json();
+                await window.swrFetchJson('/api/technical-scans', (data) => {
+                    if (!data) return;
+                    technicalScansCache.near_high = data.near_high || [];
+                    technicalScansCache.near_low = data.near_low || [];
+                    technicalScansCache.gap_up = data.gap_up || [];
+                    technicalScansCache.gap_down = data.gap_down || [];
+                    technicalScansCache.rsi_oversold = data.rsi_oversold || [];
+                    technicalScansCache.rsi_overbought = data.rsi_overbought || [];
+                    technicalScansCache.volume_shockers = data.volume_shockers || [];
+                    technicalScansCache.golden_crossover = data.golden_crossover || [];
+                    technicalScansCache.sma_50_pullback = data.sma_50_pullback || [];
+                    technicalScansCache.sma_100_pullback = data.sma_100_pullback || [];
+                    technicalScansCache.sma_200_pullback = data.sma_200_pullback || [];
+                    technicalScansCache.fib_618_support = data.fib_618_support || [];
+                    technicalScansCache.fib_500_support = data.fib_500_support || [];
 
-                // Store in cache
-                technicalScansCache.near_high = data.near_high || [];
-                technicalScansCache.near_low = data.near_low || [];
-                technicalScansCache.gap_up = data.gap_up || [];
-                technicalScansCache.gap_down = data.gap_down || [];
-                technicalScansCache.rsi_oversold = data.rsi_oversold || [];
-                technicalScansCache.rsi_overbought = data.rsi_overbought || [];
-                technicalScansCache.volume_shockers = data.volume_shockers || [];
-                technicalScansCache.golden_crossover = data.golden_crossover || [];
-                technicalScansCache.sma_50_pullback = data.sma_50_pullback || [];
-                technicalScansCache.sma_100_pullback = data.sma_100_pullback || [];
-                technicalScansCache.sma_200_pullback = data.sma_200_pullback || [];
-                technicalScansCache.fib_618_support = data.fib_618_support || [];
-                technicalScansCache.fib_500_support = data.fib_500_support || [];
-
-                // Render both home cockpit list and fullscreen workspace list
-                renderTechnicalScansList();
-                renderFullscreenTechnicalScans();
+                    renderTechnicalScansList();
+                    if (typeof renderFullscreenTechnicalScans === 'function') renderFullscreenTechnicalScans();
+                });
 
                 // Update sync time
                 const syncTimeEl = document.getElementById('fullscreen-tech-scans-sync-time');
