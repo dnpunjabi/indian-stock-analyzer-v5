@@ -24989,6 +24989,104 @@ body.light-mode .brand-part-quant {
     filter: drop-shadow(0 0 8px rgba(239, 68, 68, 0.3));
 }
 
+/* Trendlyne Watchlist Workstation Styles */
+.trendlyne-dots {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    margin-top: 2px;
+}
+
+.t-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    display: inline-block;
+    cursor: help;
+}
+
+.t-dot.green {
+    background-color: #10b981;
+    box-shadow: 0 0 6px rgba(16, 185, 129, 0.5);
+}
+
+.t-dot.yellow {
+    background-color: #f59e0b;
+    box-shadow: 0 0 6px rgba(245, 158, 11, 0.5);
+}
+
+.t-dot.red {
+    background-color: #ef4444;
+    box-shadow: 0 0 6px rgba(239, 68, 68, 0.5);
+}
+
+.sticky-stock-col {
+    position: sticky;
+    left: 0;
+    background: #0f172a;
+    z-index: 10;
+    box-shadow: 3px 0 10px rgba(0, 0, 0, 0.3);
+}
+
+th.sticky-stock-hdr {
+    position: sticky;
+    left: 0;
+    background: #1e293b;
+    z-index: 11;
+    box-shadow: 3px 0 10px rgba(0, 0, 0, 0.3);
+}
+
+.range-bar-track {
+    width: 75px;
+    height: 4px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 2px;
+    position: relative;
+    display: inline-block;
+    vertical-align: middle;
+}
+
+.range-bar-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #ef4444 0%, #f59e0b 50%, #10b981 100%);
+    border-radius: 2px;
+}
+
+.range-bar-pin {
+    position: absolute;
+    top: -3px;
+    width: 6px;
+    height: 10px;
+    background: #ffffff;
+    border-radius: 3px;
+    transform: translateX(-50%);
+    box-shadow: 0 0 4px #000;
+}
+
+.watchlist-filter-chip {
+    font-size: 11px;
+    font-weight: 600;
+    padding: 4px 10px;
+    border-radius: 20px;
+    background: rgba(255, 255, 255, 0.06);
+    color: #94a3b8;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    cursor: pointer;
+    white-space: nowrap;
+    transition: all 0.2s ease;
+}
+
+.watchlist-filter-chip:hover {
+    background: rgba(255, 255, 255, 0.12);
+    color: #ffffff;
+}
+
+.watchlist-filter-chip.active {
+    background: rgba(56, 189, 248, 0.15);
+    color: #38bdf8;
+    border-color: rgba(56, 189, 248, 0.4);
+}
+
 
 
 

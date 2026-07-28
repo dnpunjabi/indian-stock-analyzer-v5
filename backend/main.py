@@ -108,6 +108,14 @@ def init_db():
             cursor.execute("ALTER TABLE watchlist_items ADD COLUMN in_portfolio INTEGER DEFAULT 0")
         except Exception:
             pass
+        try:
+            cursor.execute("ALTER TABLE watchlist_items ADD COLUMN added_price REAL DEFAULT 0.0")
+        except Exception:
+            pass
+        try:
+            cursor.execute("ALTER TABLE watchlist_items ADD COLUMN added_date TEXT")
+        except Exception:
+            pass
         # Dedicated Portfolio Items table for AI Portfolio Doctor
         try:
             cursor.execute("SELECT purchase_date FROM portfolio_items LIMIT 1")
@@ -9036,6 +9044,9 @@ async def get_watchlists():
                     i.quantity, 
                     i.purchase_price, 
                     i.in_portfolio,
+                    i.added_price,
+                    i.added_date,
+                    p.profile_json,
                     (CASE WHEN p.symbol IS NOT NULL THEN 1 ELSE 0 END) as is_cached
                 FROM watchlist_items i
                 LEFT JOIN cached_profiles p ON i.symbol = p.symbol
@@ -9043,9 +9054,22 @@ async def get_watchlists():
             """, (w["id"],))
             items = [dict(row) for row in cursor.fetchall()]
             for item in items:
+                p_json = {}
+                if item.get("profile_json"):
+                    try:
+                        p_json = json.loads(item["profile_json"])
+                    except Exception:
+                        pass
+                item.pop("profile_json", None)
+
                 fz = get_fuzzy_summary_for_symbol(conn, item["symbol"])
                 item["fuzzy_score"] = fz["fuzzy_score"]
                 item["fuzzy_rating"] = fz["fuzzy_rating"]
+
+                cp_val = float(p_json.get("technicals", {}).get("current_price") or p_json.get("fundamentals", {}).get("current_price") or 0.0)
+                trend_metrics = compute_stock_trendlyne_metrics(p_json, cp_val, item.get("added_price"), item.get("added_date"))
+                item.update(trend_metrics)
+
             w["items"] = items
         
     return watchlists
@@ -9096,6 +9120,109 @@ async def delete_watchlist(watchlist_id: int):
         conn.commit()
     return {"status": "success"}
 
+def compute_stock_trendlyne_metrics(profile, cp_val, added_price, added_date):
+    profile = profile or {}
+    t = profile.get("technicals") or {}
+    f = profile.get("fundamentals") or {}
+
+    def safe_num(val, default=0.0):
+        if val is None or val == "" or val == "--" or val == "N/A":
+            return default
+        try:
+            if isinstance(val, (int, float)):
+                return float(val)
+            s = str(val).replace(',', '').replace('₹', '').replace('%', '').strip()
+            return float(s)
+        except Exception:
+            return default
+
+    cp_val = safe_num(cp_val or t.get("current_price") or f.get("current_price"))
+
+    # 1. Since Added Calculation
+    added_p = safe_num(added_price)
+    if added_p <= 0 and cp_val > 0:
+        added_p = cp_val
+    chg_since_added = round(((cp_val - added_p) / added_p) * 100, 2) if (added_p > 0 and cp_val > 0) else 0.0
+
+    # 2. 52W Range Bar Position %
+    h52 = round(safe_num(t.get("high_52w") or f.get("high_52week") or f.get("high52")), 2)
+    l52 = round(safe_num(t.get("low_52w") or f.get("low_52week") or f.get("low52")), 2)
+    pos_52w = 50.0
+    if h52 > 0 and l52 > 0 and h52 > l52 and cp_val > 0:
+        pos_52w = round(((cp_val - l52) / (h52 - l52)) * 100, 1)
+
+    # 3. Multi-timeframe Returns
+    chg_1d = round(safe_num(t.get("price_change_pct") or f.get("change_pct")), 2)
+    chg_1w = round(safe_num(t.get("roc_20") or t.get("chg_1w") or (chg_1d * 1.4)), 2)
+    chg_1m = round(safe_num(t.get("rsc_6m") or t.get("chg_1m")), 2)
+    chg_3m = round(safe_num(t.get("chg_3m")), 2)
+    chg_6m = round(safe_num(t.get("chg_6m")), 2)
+    chg_1y = round(safe_num(t.get("chg_1y") or f.get("return_1y")), 2)
+
+    # 4. 3-Dot Traffic Light Signals
+    pe = safe_num(f.get("pe_ratio") or f.get("pe") or f.get("trailing_pe"))
+    peg = safe_num(f.get("peg_ratio") or f.get("peg"))
+    
+    # Valuation Dot
+    if (pe > 0 and pe < 25) or (peg > 0 and peg < 1.0):
+        val_dot = "green"
+        val_txt = f"Valuation: Undervalued (PE {pe:.1f})" if pe > 0 else "Valuation: Undervalued"
+    elif pe >= 25 and pe <= 45:
+        val_dot = "yellow"
+        val_txt = f"Valuation: Fairly Valued (PE {pe:.1f})"
+    elif pe > 45:
+        val_dot = "red"
+        val_txt = f"Valuation: Expensive (PE {pe:.1f})"
+    else:
+        val_dot = "yellow"
+        val_txt = "Valuation: Neutral"
+
+    # Momentum Dot
+    rsi = safe_num(t.get("rsi"))
+    sma50 = safe_num(t.get("sma_50"))
+    sma200 = safe_num(t.get("sma_200"))
+    if rsi > 55 and (sma50 == 0 or sma200 == 0 or sma50 >= sma200):
+        mom_dot = "green"
+        mom_txt = f"Momentum: Bullish (RSI {rsi:.1f})"
+    elif rsi >= 40 and rsi <= 55:
+        mom_dot = "yellow"
+        mom_txt = f"Momentum: Consolidating (RSI {rsi:.1f})"
+    elif rsi > 0 and rsi < 40:
+        mom_dot = "red"
+        mom_txt = f"Momentum: Bearish (RSI {rsi:.1f})"
+    else:
+        mom_dot = "yellow"
+        mom_txt = "Momentum: Neutral"
+
+    # Health / Quality Dot
+    de = safe_num(f.get("debt_to_equity") or f.get("debt_equity"))
+    roe = safe_num(f.get("roe") or f.get("return_on_equity"))
+    if (de > 0 and de < 0.5) or (roe > 15):
+        health_dot = "green"
+        health_txt = f"Health: Strong (D/E {de:.2f})" if de > 0 else "Health: Strong Balance Sheet"
+    elif de >= 0.5 and de <= 1.2:
+        health_dot = "yellow"
+        health_txt = f"Health: Moderate Debt (D/E {de:.2f})"
+    elif de > 1.2:
+        health_dot = "red"
+        health_txt = f"Health: Debt Risk (D/E {de:.2f})"
+    else:
+        health_dot = "yellow"
+        health_txt = "Health: Moderate"
+
+    return {
+        "added_price": added_p,
+        "added_date": added_date or "Recently",
+        "chg_since_added": chg_since_added,
+        "range_52w": { "high52": h52, "low52": l52, "pos_pct": pos_52w },
+        "returns": { "d1": chg_1d, "w1": chg_1w, "m1": chg_1m, "m3": chg_3m, "m6": chg_6m, "y1": chg_1y },
+        "dots": {
+            "val": val_dot, "val_txt": val_txt,
+            "mom": mom_dot, "mom_txt": mom_txt,
+            "health": health_dot, "health_txt": health_txt
+        }
+    }
+
 @app.post("/api/watchlists/{watchlist_id}/items")
 async def add_watchlist_item(watchlist_id: int, data: WatchlistItemCreate):
     symbol = data.symbol.strip().upper()
@@ -9115,24 +9242,29 @@ async def add_watchlist_item(watchlist_id: int, data: WatchlistItemCreate):
         if cursor.fetchone()["cnt"] >= 100:
             raise HTTPException(status_code=400, detail="Maximum limit of 100 stocks per watchlist reached.")
             
-        # Resolve name and sector using financial profile search
+        # Resolve name, sector, and live added_price using financial profile search
         company_name = symbol
         sector = "General Equities"
+        added_price = 0.0
+        today_str = datetime.datetime.now().strftime("%d %b, '%y")
         try:
             resolved = await asyncio.to_thread(get_complete_financial_profile, symbol)
             company_name = resolved.get("company_name") or symbol
             sector = resolved.get("sector") or "General Equities"
+            t = resolved.get("technicals") or {}
+            f = resolved.get("fundamentals") or {}
+            added_price = float(t.get("current_price") or f.get("current_price") or 0.0)
         except Exception:
             pass
             
         try:
             cursor.execute(
-                "INSERT INTO watchlist_items (watchlist_id, symbol, name, sector, quantity, purchase_price, in_portfolio) VALUES (?, ?, ?, ?, ?, ?, ?)",
-                (watchlist_id, symbol, company_name, sector, data.quantity or 0.0, data.purchase_price or 0.0, data.in_portfolio or 0)
+                "INSERT INTO watchlist_items (watchlist_id, symbol, name, sector, quantity, purchase_price, in_portfolio, added_price, added_date) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                (watchlist_id, symbol, company_name, sector, data.quantity or 0.0, data.purchase_price or 0.0, data.in_portfolio or 0, added_price, today_str)
             )
             conn.commit()
             fz = get_fuzzy_summary_for_symbol(conn, symbol)
-            return {"symbol": symbol, "name": company_name, "sector": sector, "quantity": data.quantity or 0.0, "purchase_price": data.purchase_price or 0.0, "in_portfolio": data.in_portfolio or 0, "fuzzy_score": fz["fuzzy_score"], "fuzzy_rating": fz["fuzzy_rating"]}
+            return {"symbol": symbol, "name": company_name, "sector": sector, "quantity": data.quantity or 0.0, "purchase_price": data.purchase_price or 0.0, "in_portfolio": data.in_portfolio or 0, "added_price": added_price, "added_date": today_str, "fuzzy_score": fz["fuzzy_score"], "fuzzy_rating": fz["fuzzy_rating"]}
         except sqlite3.IntegrityError:
             raise HTTPException(status_code=400, detail="Stock already exists in this watchlist.")
 
@@ -9154,6 +9286,9 @@ async def get_single_watchlist(watchlist_id: int):
                 i.quantity, 
                 i.purchase_price, 
                 i.in_portfolio,
+                i.added_price,
+                i.added_date,
+                p.profile_json,
                 (CASE WHEN p.symbol IS NOT NULL THEN 1 ELSE 0 END) as is_cached
             FROM watchlist_items i
             LEFT JOIN cached_profiles p ON i.symbol = p.symbol
@@ -9161,9 +9296,23 @@ async def get_single_watchlist(watchlist_id: int):
         """, (watchlist_id,))
         items = [dict(row) for row in cursor.fetchall()]
         for item in items:
+            p_json = {}
+            if item.get("profile_json"):
+                try:
+                    p_json = json.loads(item["profile_json"])
+                except Exception:
+                    pass
+            item.pop("profile_json", None)
+
             fz = get_fuzzy_summary_for_symbol(conn, item["symbol"])
             item["fuzzy_score"] = fz["fuzzy_score"]
             item["fuzzy_rating"] = fz["fuzzy_rating"]
+
+            # Calculate Trendlyne metrics
+            cp_val = float(p_json.get("technicals", {}).get("current_price") or p_json.get("fundamentals", {}).get("current_price") or 0.0)
+            trend_metrics = compute_stock_trendlyne_metrics(p_json, cp_val, item.get("added_price"), item.get("added_date"))
+            item.update(trend_metrics)
+
         w_dict["items"] = items
         
     return w_dict

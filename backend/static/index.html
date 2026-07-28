@@ -8973,24 +8973,39 @@
                             </div>
                         </div>
 
+                        <!-- Trendlyne-Style View Switcher & Quick Filter Chips Bar -->
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; flex-wrap: wrap; gap: 10px; padding: 10px 14px; background: rgba(255,255,255,0.02); border: 1px solid var(--border-glass); border-radius: 10px;">
+                            <!-- View Switcher Tabs -->
+                            <div style="display: flex; gap: 6px; background: rgba(0,0,0,0.25); padding: 3px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.06);">
+                                <button id="wl-view-overview-btn" class="btn-secondary active" style="font-size: 11px; padding: 4px 12px; border-radius: 6px; font-weight: 700;">📊 Overview</button>
+                                <button id="wl-view-returns-btn" class="btn-secondary" style="font-size: 11px; padding: 4px 12px; border-radius: 6px; font-weight: 700;">📈 Returns Matrix</button>
+                            </div>
+                            <!-- Quick Filter Chips -->
+                            <div style="display: flex; gap: 6px; overflow-x: auto; padding-bottom: 2px; scrollbar-width: none;">
+                                <button class="watchlist-filter-chip active" data-filter="all">All Stocks</button>
+                                <button class="watchlist-filter-chip" data-filter="gainers">🔥 Top Gainers</button>
+                                <button class="watchlist-filter-chip" data-filter="green">🟢 3-Dots Green</button>
+                                <button class="watchlist-filter-chip" data-filter="dip">⚠️ Dip Alerts</button>
+                            </div>
+                        </div>
+
                         <div class="table-scroll">
-                            <table class="data-table">
-                                <thead>
-                                    <tr>
-                                        <th class="sortable-wl cursor-pointer" data-sort="symbol" style="color: var(--text-secondary); transition: color 0.2s; cursor: pointer;">Security <span style="font-size: 8px; margin-left: 2px;">↕</span></th>
-                                        <th class="sortable-wl cursor-pointer" data-sort="sector" style="color: var(--text-secondary); transition: color 0.2s; cursor: pointer;">Sector <span style="font-size: 8px; margin-left: 2px;">↕</span></th>
-                                        <th class="sortable-wl cursor-pointer wl-live-price" data-sort="live_price" style="color: var(--text-secondary); transition: color 0.2s; cursor: pointer; text-align: right;">Live Price <span style="font-size: 8px; margin-left: 2px;">↕</span></th>
-                                        <th class="sortable-wl cursor-pointer wl-change" data-sort="change" style="color: var(--text-secondary); transition: color 0.2s; cursor: pointer; text-align: right;">Change <span style="font-size: 8px; margin-left: 2px;">↕</span></th>
-                                        <th class="sortable-wl cursor-pointer wl-change-pct" data-sort="change_pct" style="color: var(--text-secondary); transition: color 0.2s; cursor: pointer; text-align: right;">Change % <span style="font-size: 8px; margin-left: 2px;">↕</span></th>
-                                        <th class="sortable-wl cursor-pointer wl-day-high" data-sort="day_high" style="color: var(--text-secondary); transition: color 0.2s; cursor: pointer; text-align: right;">Day High <span style="font-size: 8px; margin-left: 2px;">↕</span></th>
-                                        <th class="sortable-wl cursor-pointer wl-day-low" data-sort="day_low" style="color: var(--text-secondary); transition: color 0.2s; cursor: pointer; text-align: right;">Day Low <span style="font-size: 8px; margin-left: 2px;">↕</span></th>
-                                        <th class="sortable-wl cursor-pointer" data-sort="fuzzy_score" style="color: var(--text-secondary); transition: color 0.2s; cursor: pointer; text-align: center;">Fuzzy Conviction <span style="font-size: 8px; margin-left: 2px;">↕</span></th>
-                                        <th style="color: var(--text-secondary);">Actions</th>
+                            <table class="data-table" id="trendlyne-watchlist-table">
+                                <thead id="watchlist-table-head">
+                                    <tr id="watchlist-table-header-row">
+                                        <th class="sticky-stock-hdr sortable-wl cursor-pointer" data-sort="symbol" style="color: var(--text-secondary); min-width: 140px;">Stock</th>
+                                        <th class="sortable-wl cursor-pointer" data-sort="live_price" style="color: var(--text-secondary); text-align: right;">LTP</th>
+                                        <th class="sortable-wl cursor-pointer" data-sort="added_price" style="color: var(--text-secondary); text-align: right;">Added Price</th>
+                                        <th class="sortable-wl cursor-pointer" data-sort="added_date" style="color: var(--text-secondary); text-align: center;">Added On</th>
+                                        <th class="sortable-wl cursor-pointer" data-sort="chg_since_added" style="color: var(--text-secondary); text-align: right;">Chg % Since Added</th>
+                                        <th class="sortable-wl cursor-pointer" data-sort="change_pct" style="color: var(--text-secondary); text-align: right;">Day Chg %</th>
+                                        <th style="color: var(--text-secondary); text-align: center;">52W Range Bar</th>
+                                        <th style="color: var(--text-secondary); text-align: center;">Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody id="watchlist-table-body">
                                     <tr>
-                                        <td colspan="9" class="center-text text-muted">Select or create a watchlist on the left to display its constituents.</td>
+                                        <td colspan="8" class="center-text text-muted">Select or create a watchlist on the left to display its constituents.</td>
                                     </tr>
                                 </tbody>
                             </table>

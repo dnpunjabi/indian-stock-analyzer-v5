@@ -16717,13 +16717,81 @@ function renderWatchlistItems() {
         }
     }
 
+    // View & Filter State Initialization
+    if (typeof window.activeWatchlistView === 'undefined') window.activeWatchlistView = 'overview';
+    if (typeof window.activeWatchlistFilter === 'undefined') window.activeWatchlistFilter = 'all';
+
+    // Wire View Switcher Buttons & Filter Chips
+    const overviewBtn = document.getElementById('wl-view-overview-btn');
+    const returnsBtn = document.getElementById('wl-view-returns-btn');
+    if (overviewBtn && returnsBtn) {
+        overviewBtn.className = `btn-secondary ${window.activeWatchlistView === 'overview' ? 'active' : ''}`;
+        returnsBtn.className = `btn-secondary ${window.activeWatchlistView === 'returns' ? 'active' : ''}`;
+
+        overviewBtn.onclick = () => {
+            window.activeWatchlistView = 'overview';
+            renderWatchlistItems();
+        };
+        returnsBtn.onclick = () => {
+            window.activeWatchlistView = 'returns';
+            renderWatchlistItems();
+        };
+    }
+
+    document.querySelectorAll('.watchlist-filter-chip').forEach(chip => {
+        const filterVal = chip.getAttribute('data-filter');
+        chip.className = `watchlist-filter-chip ${window.activeWatchlistFilter === filterVal ? 'active' : ''}`;
+        chip.onclick = () => {
+            window.activeWatchlistFilter = filterVal;
+            renderWatchlistItems();
+        };
+    });
+
+    // Update Table Headers based on Active View
+    const headerRow = document.getElementById('watchlist-table-header-row');
+    if (headerRow) {
+        if (window.activeWatchlistView === 'returns') {
+            headerRow.innerHTML = `
+                <th class="sticky-stock-hdr sortable-wl cursor-pointer" data-sort="symbol" style="color: var(--text-secondary); min-width: 140px;">Stock</th>
+                <th class="sortable-wl cursor-pointer" data-sort="live_price" style="color: var(--text-secondary); text-align: right;">LTP</th>
+                <th class="sortable-wl cursor-pointer" data-sort="change_pct" style="color: var(--text-secondary); text-align: right;">Day Chg %</th>
+                <th style="color: var(--text-secondary); text-align: right;">1W %</th>
+                <th style="color: var(--text-secondary); text-align: right;">1M %</th>
+                <th style="color: var(--text-secondary); text-align: right;">3M %</th>
+                <th style="color: var(--text-secondary); text-align: right;">6M %</th>
+                <th style="color: var(--text-secondary); text-align: right;">1Y %</th>
+                <th style="color: var(--text-secondary); text-align: center;">Actions</th>
+            `;
+        } else {
+            headerRow.innerHTML = `
+                <th class="sticky-stock-hdr sortable-wl cursor-pointer" data-sort="symbol" style="color: var(--text-secondary); min-width: 140px;">Stock</th>
+                <th class="sortable-wl cursor-pointer" data-sort="live_price" style="color: var(--text-secondary); text-align: right;">LTP</th>
+                <th class="sortable-wl cursor-pointer" data-sort="added_price" style="color: var(--text-secondary); text-align: right;">Added Price</th>
+                <th class="sortable-wl cursor-pointer" data-sort="added_date" style="color: var(--text-secondary); text-align: center;">Added On</th>
+                <th class="sortable-wl cursor-pointer" data-sort="chg_since_added" style="color: var(--text-secondary); text-align: right;">Chg % Since Added</th>
+                <th class="sortable-wl cursor-pointer" data-sort="change_pct" style="color: var(--text-secondary); text-align: right;">Day Chg %</th>
+                <th style="color: var(--text-secondary); text-align: center;">52W Range Bar</th>
+                <th style="color: var(--text-secondary); text-align: center;">Actions</th>
+            `;
+        }
+    }
+
+    // Filter constituents based on activeWatchlistFilter
+    let filteredItems = [...activeWatch.items];
+    if (window.activeWatchlistFilter === 'gainers') {
+        filteredItems = filteredItems.filter(x => (x.chg_since_added || 0) > 0 || (x.change_pct || 0) > 0);
+    } else if (window.activeWatchlistFilter === 'green') {
+        filteredItems = filteredItems.filter(x => x.dots && x.dots.val === 'green' && x.dots.mom === 'green');
+    } else if (window.activeWatchlistFilter === 'dip') {
+        filteredItems = filteredItems.filter(x => (x.chg_since_added || 0) < -3.0 || (x.change_pct || 0) < -2.0);
+    }
+
     // --- SORT CONSTITUENTS ---
-    const numericSortFields = ['live_price', 'change', 'change_pct', 'day_high', 'day_low', 'fuzzy_score'];
-    let sortedItems = [...activeWatch.items];
+    const numericSortFields = ['live_price', 'change', 'change_pct', 'added_price', 'chg_since_added', 'fuzzy_score'];
+    let sortedItems = [...filteredItems];
     sortedItems.sort((a, b) => {
         let valA, valB;
         if (numericSortFields.includes(watchlistSortCol)) {
-            // Numeric sort for live price columns — treat missing/NaN as -Infinity so they sink to the bottom
             valA = (typeof a[watchlistSortCol] === 'number' && !isNaN(a[watchlistSortCol])) ? a[watchlistSortCol] : -Infinity;
             valB = (typeof b[watchlistSortCol] === 'number' && !isNaN(b[watchlistSortCol])) ? b[watchlistSortCol] : -Infinity;
         } else {
@@ -16746,119 +16814,112 @@ function renderWatchlistItems() {
     const endIndex = Math.min(startIndex + activeWatchlistPageSize, sortedItems.length);
     const pageData = sortedItems.slice(startIndex, endIndex);
 
+    const formatReturnPill = (val) => {
+        if (val === undefined || val === null) return '<span style="color:var(--text-muted)">--</span>';
+        const num = parseFloat(val);
+        const col = num >= 0 ? '#10b981' : '#ef4444';
+        return `<span style="color:${col}; font-weight:600; font-family:'Inter',monospace; font-size:11px;">${num >= 0 ? '+' : ''}${num.toFixed(1)}%</span>`;
+    };
+
     pageData.forEach(item => {
         const isCached = item.is_cached === 1 ? 1 : 0;
         const cacheBadgeHTML = isCached === 1
-            ? `<span style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background-color: #10b981; box-shadow: 0 0 6px #10b981;" title="Database cache warmed. Analysis loads instantly."></span>`
-            : `<span class="click-to-warm" data-symbol="${item.symbol}" style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background-color: rgba(255,255,255,0.25); cursor: pointer;" title="Uncached database profile. Click to pre-warm cache."></span>`;
+            ? `<span style="display: inline-block; width: 7px; height: 7px; border-radius: 50%; background-color: #10b981; box-shadow: 0 0 6px #10b981;" title="Database cache warmed. Analysis loads instantly."></span>`
+            : `<span class="click-to-warm" data-symbol="${item.symbol}" style="display: inline-block; width: 7px; height: 7px; border-radius: 50%; background-color: rgba(255,255,255,0.25); cursor: pointer;" title="Uncached database profile. Click to pre-warm cache."></span>`;
 
         const priceHTML = (item.live_price !== undefined && item.live_price !== null)
-            ? `<span style="font-family: 'Inter', monospace;">₹${item.live_price.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>`
-            : `<span style="display:inline-block; width:55px; height:14px; border-radius:3px; background: linear-gradient(90deg, rgba(255,255,255,0.04) 25%, rgba(255,255,255,0.08) 50%, rgba(255,255,255,0.04) 75%); background-size: 200% 100%; animation: shimmer 1.5s infinite;"></span>`;
+            ? `<span style="font-family: 'Inter', monospace; font-weight: 700;">₹${item.live_price.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>`
+            : `<span style="font-family: 'Inter', monospace; font-weight: 700;">₹${(item.added_price || 0).toFixed(2)}</span>`;
 
-        const isPositive = (item.change || 0) >= 0;
-        const changeColor = isPositive ? 'var(--neon-green, #10b981)' : 'var(--neon-red, #ef4444)';
-        const changeArrow = isPositive ? '▲' : '▼';
+        const isPositive = (item.change_pct || 0) >= 0;
+        const changeColor = isPositive ? '#10b981' : '#ef4444';
+        const changePctHTML = `<span style="color: ${changeColor}; padding: 2px 6px; border-radius: 4px; background: ${isPositive ? 'rgba(16,185,129,0.1)' : 'rgba(239,68,68,0.1)'}; font-size: 11px; font-weight: 700; font-family: 'Inter', monospace;">${isPositive ? '+' : ''}${(item.change_pct || 0).toFixed(2)}%</span>`;
 
-        const hasLivePrice = (item.live_price !== undefined && item.live_price !== null);
-        const trendDotColor = isPositive ? '#10b981' : '#ef4444';
-        const trendDotTitle = isPositive ? 'Bullish daily momentum' : 'Bearish daily momentum';
-        const trendDotHTML = hasLivePrice
-            ? `<span class="wl-status-dot" style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background-color: ${trendDotColor}; box-shadow: 0 0 6px ${trendDotColor};" title="${trendDotTitle}"></span>`
-            : `<span class="wl-status-dot" style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background-color: rgba(255,255,255,0.25);" title="Awaiting live market data"></span>`;
+        const chgSince = item.chg_since_added !== undefined ? parseFloat(item.chg_since_added) : 0;
+        const chgSinceClass = chgSince >= 0 ? '#10b981' : '#ef4444';
+        const chgSinceBg = chgSince >= 0 ? 'rgba(16,185,129,0.12)' : 'rgba(239,68,68,0.12)';
+        const chgSinceHTML = `<span style="color: ${chgSinceClass}; background: ${chgSinceBg}; padding: 2px 6px; border-radius: 4px; font-weight: 700; font-family: 'Inter', monospace; font-size: 11px;">${chgSince >= 0 ? '+' : ''}${chgSince.toFixed(2)}%</span>`;
 
-        const changeHTML = (item.change !== undefined && item.change !== null)
-            ? `<span style="color: ${changeColor};">${changeArrow} ${isPositive ? '+' : ''}${item.change.toFixed(2)}</span>`
-            : `<span style="display:inline-block; width:45px; height:14px; border-radius:3px; background: linear-gradient(90deg, rgba(255,255,255,0.04) 25%, rgba(255,255,255,0.08) 50%, rgba(255,255,255,0.04) 75%); background-size: 200% 100%; animation: shimmer 1.5s infinite;"></span>`;
+        const addedPriceHTML = `<span style="font-family: 'Inter', monospace; color: var(--text-secondary); font-size: 11px;">₹${(item.added_price || item.live_price || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>`;
+        const addedDateHTML = `<span style="color: var(--text-muted); font-size: 11px;">${item.added_date || 'Recently'}</span>`;
 
-        const changePctHTML = (item.change_pct !== undefined && item.change_pct !== null)
-            ? `<span style="color: ${changeColor}; padding: 1px 6px; border-radius: 4px; background: ${isPositive ? 'rgba(16,185,129,0.1)' : 'rgba(239,68,68,0.1)'}; font-size: 10.5px;">${isPositive ? '+' : ''}${item.change_pct.toFixed(2)}%</span>`
-            : `<span style="display:inline-block; width:45px; height:14px; border-radius:3px; background: linear-gradient(90deg, rgba(255,255,255,0.04) 25%, rgba(255,255,255,0.08) 50%, rgba(255,255,255,0.04) 75%); background-size: 200% 100%; animation: shimmer 1.5s infinite;"></span>`;
+        // 3-Dots Signals
+        const dots = item.dots || { val: 'yellow', mom: 'yellow', health: 'yellow' };
+        const dotsHTML = `
+            <div class="trendlyne-dots">
+                <span class="t-dot ${dots.val || 'yellow'}" title="${dots.val_txt || 'Valuation'}"></span>
+                <span class="t-dot ${dots.mom || 'yellow'}" title="${dots.mom_txt || 'Momentum'}"></span>
+                <span class="t-dot ${dots.health || 'yellow'}" title="${dots.health_txt || 'Health'}"></span>
+            </div>
+        `;
 
-        const highHTML = (item.day_high !== undefined && item.day_high !== null)
-            ? `<span style="font-family: 'Inter', monospace;">₹${item.day_high.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>`
-            : `<span style="display:inline-block; width:55px; height:14px; border-radius:3px; background: linear-gradient(90deg, rgba(255,255,255,0.04) 25%, rgba(255,255,255,0.08) 50%, rgba(255,255,255,0.04) 75%); background-size: 200% 100%; animation: shimmer 1.5s infinite;"></span>`;
+        // 52W Range Bar
+        const range52 = item.range_52w || { high52: 0, low52: 0, pos_pct: 50 };
+        const posPct = Math.min(Math.max(range52.pos_pct || 50, 0), 100);
+        const rangeBarHTML = `
+            <div style="display: flex; align-items: center; justify-content: center; gap: 6px;" title="52W Low: ₹${range52.low52} | 52W High: ₹${range52.high52}">
+                <span style="font-size: 9px; color: var(--text-muted);">₹${range52.low52 ? Math.round(range52.low52) : '--'}</span>
+                <div class="range-bar-track">
+                    <div class="range-bar-fill" style="width: 100%;"></div>
+                    <div class="range-bar-pin" style="left: ${posPct}%;"></div>
+                </div>
+                <span style="font-size: 9px; color: var(--text-muted);">₹${range52.high52 ? Math.round(range52.high52) : '--'}</span>
+            </div>
+        `;
 
-        const lowHTML = (item.day_low !== undefined && item.day_low !== null)
-            ? `<span style="font-family: 'Inter', monospace;">₹${item.day_low.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>`
-            : `<span style="display:inline-block; width:55px; height:14px; border-radius:3px; background: linear-gradient(90deg, rgba(255,255,255,0.04) 25%, rgba(255,255,255,0.08) 50%, rgba(255,255,255,0.04) 75%); background-size: 200% 100%; animation: shimmer 1.5s infinite;"></span>`;
-
-        let fuzzyHTML = `<span style="color: var(--text-muted); font-size: 11px;">--</span>`;
-        if (item.fuzzy_score !== undefined && item.fuzzy_score !== null && item.fuzzy_rating && item.fuzzy_rating !== 'Uncached') {
-            const fScore = item.fuzzy_score;
-            const fRating = item.fuzzy_rating || 'Neutral';
-            let fBg = 'rgba(255,255,255,0.06)';
-            let fColor = 'var(--text-secondary)';
-            let fBorder = 'rgba(255,255,255,0.1)';
-
-            if (fScore >= 70) {
-                fBg = 'rgba(16, 185, 129, 0.15)';
-                fColor = 'var(--color-emerald)';
-                fBorder = 'rgba(16, 185, 129, 0.35)';
-            } else if (fScore >= 40) {
-                fBg = 'rgba(59, 130, 246, 0.15)';
-                fColor = 'var(--color-primary-light)';
-                fBorder = 'rgba(59, 130, 246, 0.35)';
-            } else if (fScore >= 10) {
-                fBg = 'rgba(245, 158, 11, 0.15)';
-                fColor = 'var(--color-amber)';
-                fBorder = 'rgba(245, 158, 11, 0.35)';
-            } else if (fScore <= -40) {
-                fBg = 'rgba(239, 68, 68, 0.15)';
-                fColor = 'var(--color-crimson)';
-                fBorder = 'rgba(239, 68, 68, 0.35)';
-            }
-
-            const sign = fScore > 0 ? '+' : '';
-            fuzzyHTML = `<div class="wl-fuzzy-badge cursor-pointer" data-symbol="${item.symbol}" style="display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; border-radius: 12px; background: ${fBg}; border: 1px solid ${fBorder}; font-size: 11px; font-weight: 700; color: ${fColor};" title="Click to view full Fuzzy Logic Engine profile for ${item.symbol}">
-                <span>${sign}${fScore.toFixed(1)}%</span>
-                <span style="font-size: 9.5px; opacity: 0.85;">(${fRating})</span>
-            </div>`;
-        }
+        const ret = item.returns || {};
 
         const tr = document.createElement('tr');
         tr.setAttribute('data-wl-symbol', item.symbol);
-        tr.innerHTML = `
-            <td>
-                <div style="display: flex; flex-direction: column; gap: 2px;">
-                    <div style="display: flex; align-items: center; gap: 6px;">
-                        <div class="watchlist-symbol-link" style="cursor: pointer;" title="Click to load research workspace">
-                            <strong style="color: var(--color-primary); text-decoration: underline; font-weight: 700;">${item.symbol}</strong>
+
+        if (window.activeWatchlistView === 'returns') {
+            tr.innerHTML = `
+                <td class="sticky-stock-col">
+                    <div style="display: flex; flex-direction: column; gap: 2px;">
+                        <div style="display: flex; align-items: center; gap: 6px;">
+                            <div class="watchlist-symbol-link" style="cursor: pointer;" title="Click to load research workspace">
+                                <strong style="color: var(--color-primary); text-decoration: underline; font-weight: 700; font-size: 12px;">${item.symbol.replace('.NS','')}</strong>
+                            </div>
+                            ${cacheBadgeHTML}
                         </div>
-                        ${trendDotHTML}
-                        ${cacheBadgeHTML}
+                        ${dotsHTML}
                     </div>
-                    <div class="watchlist-symbol-link" style="cursor: pointer; font-size: 11px; color: var(--text-secondary);" title="Click to load research workspace">
-                        ${item.name}
+                </td>
+                <td style="text-align: right;">${priceHTML}</td>
+                <td style="text-align: right;">${changePctHTML}</td>
+                <td style="text-align: right;">${formatReturnPill(ret.w1)}</td>
+                <td style="text-align: right;">${formatReturnPill(ret.m1)}</td>
+                <td style="text-align: right;">${formatReturnPill(ret.m3)}</td>
+                <td style="text-align: right;">${formatReturnPill(ret.m6)}</td>
+                <td style="text-align: right;">${formatReturnPill(ret.y1)}</td>
+                <td style="white-space: nowrap; text-align: center;">
+                    <button class="btn-secondary remove-watchlist-item-btn" data-ticker="${item.symbol}" style="font-size: 10px; padding: 3px 8px; cursor:pointer;" title="Remove ${item.symbol}">🗑️</button>
+                </td>
+            `;
+        } else {
+            tr.innerHTML = `
+                <td class="sticky-stock-col">
+                    <div style="display: flex; flex-direction: column; gap: 2px;">
+                        <div style="display: flex; align-items: center; gap: 6px;">
+                            <div class="watchlist-symbol-link" style="cursor: pointer;" title="Click to load research workspace">
+                                <strong style="color: var(--color-primary); text-decoration: underline; font-weight: 700; font-size: 12px;">${item.symbol.replace('.NS','')}</strong>
+                            </div>
+                            ${cacheBadgeHTML}
+                        </div>
+                        ${dotsHTML}
                     </div>
-                    <div class="mobile-only-fuzzy-pill" style="margin-top: 3px;">
-                        ${fuzzyHTML}
-                    </div>
-                </div>
-            </td>
-            <td><span class="text-muted" style="font-size:11px;">${item.sector}</span></td>
-            <td class="wl-live-price" style="text-align: right; font-weight: 700; font-size: 12px; color: var(--text-primary);">
-                ${priceHTML}
-            </td>
-            <td class="wl-change" style="text-align: right; font-size: 11.5px; font-weight: 600;">
-                ${changeHTML}
-            </td>
-            <td class="wl-change-pct" style="text-align: right; font-size: 11.5px; font-weight: 600;">
-                ${changePctHTML}
-            </td>
-            <td class="wl-day-high" style="text-align: right; font-size: 11.5px; color: var(--text-secondary);">
-                ${highHTML}
-            </td>
-            <td class="wl-day-low" style="text-align: right; font-size: 11.5px; color: var(--text-secondary);">
-                ${lowHTML}
-            </td>
-            <td style="text-align: center;">
-                ${fuzzyHTML}
-            </td>
-            <td style="white-space: nowrap;">
-                <button class="btn-secondary remove-watchlist-item-btn" data-ticker="${item.symbol}" style="font-size: 10px; padding: 3px 8px; cursor:pointer; white-space: nowrap;" title="Remove ${item.symbol}">🗑️</button>
-            </td>
-        `;
+                </td>
+                <td style="text-align: right;">${priceHTML}</td>
+                <td style="text-align: right;">${addedPriceHTML}</td>
+                <td style="text-align: center;">${addedDateHTML}</td>
+                <td style="text-align: right;">${chgSinceHTML}</td>
+                <td style="text-align: right;">${changePctHTML}</td>
+                <td style="text-align: center;">${rangeBarHTML}</td>
+                <td style="white-space: nowrap; text-align: center;">
+                    <button class="btn-secondary remove-watchlist-item-btn" data-ticker="${item.symbol}" style="font-size: 10px; padding: 3px 8px; cursor:pointer;" title="Remove ${item.symbol}">🗑️</button>
+                </td>
+            `;
+        }
 
         tr.querySelectorAll('.watchlist-symbol-link').forEach(el => {
             el.addEventListener('click', () => {
