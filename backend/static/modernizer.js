@@ -2454,6 +2454,9 @@
         if (originalHandleTick) {
             window.handleLiveTickMessage = function(ticksData) {
                 originalHandleTick(ticksData);
+                if (window.updateWatchlistQuickQuoteTicks) {
+                    window.updateWatchlistQuickQuoteTicks(ticksData);
+                }
                 if (isMobile()) {
                     updateMobileTearsheetContent();
                     triggerLiveNeonPriceFlares(ticksData);
@@ -6116,17 +6119,29 @@
                             return;
                         }
 
-                        const quoteData = await window.safeFetchJson('/api/batch-quotes');
-                        if (quoteData) {
-                            const quotes = quoteData.quotes || {};
-                            items.forEach(item => {
-                                const q = quotes[item.symbol];
-                                if (q) {
-                                    item.live_price = q.price;
-                                    item.change = q.change;
-                                    item.change_pct = q.change_pct;
+                        const symbols = items.map(item => item.symbol);
+                        if (symbols.length > 0) {
+                            try {
+                                const response = await fetch('/api/batch-quotes', {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({ symbols: symbols })
+                                });
+                                if (response.ok) {
+                                    const quoteData = await response.json();
+                                    const quotes = quoteData.quotes || {};
+                                    items.forEach(item => {
+                                        const q = quotes[item.symbol] || quotes[item.symbol.replace('.NS', '')];
+                                        if (q) {
+                                            item.live_price = q.price;
+                                            item.change = q.change;
+                                            item.change_pct = q.change_pct;
+                                        }
+                                    });
                                 }
-                            });
+                            } catch (e) {
+                                console.warn("Watchlist strip live quotes fetch error:", e);
+                            }
                         }
 
                         watchlistCachedItems = items;
@@ -6136,6 +6151,28 @@
                 } catch (err) {
                     console.error("Desktop watchlist loading failed:", err);
                     container.innerHTML = `<div class="recent-research-empty" style="font-size: 11px;">Failed to load live watchlist.</div>`;
+                }
+            };
+
+            window.updateWatchlistQuickQuoteTicks = function(ticksData) {
+                if (!watchlistCachedItems || watchlistCachedItems.length === 0) return;
+                let updated = false;
+                watchlistCachedItems.forEach(item => {
+                    const q = ticksData[item.symbol] || ticksData[item.symbol.replace('.NS', '')];
+                    if (q && (q.price > 0 || q.live_price > 0)) {
+                        const newPrice = q.price || q.live_price;
+                        const newChange = q.change !== undefined ? q.change : item.change;
+                        const newChangePct = q.change_pct !== undefined ? q.change_pct : item.change_pct;
+                        if (item.live_price !== newPrice || item.change_pct !== newChangePct) {
+                            item.live_price = newPrice;
+                            item.change = newChange;
+                            item.change_pct = newChangePct;
+                            updated = true;
+                        }
+                    }
+                });
+                if (updated) {
+                    renderWatchlistList();
                 }
             };
 
