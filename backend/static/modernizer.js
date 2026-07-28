@@ -6432,7 +6432,7 @@
         if (quantViewAll) {
             quantViewAll.onclick = (e) => {
                 e.stopPropagation();
-                if (window.switchTab) window.switchTab('rule-scanner');
+                if (window.switchTab) window.switchTab('screener');
             };
         }
         const watchlistViewAll = document.getElementById('desktop-watchlist-view-all-btn');
@@ -6453,7 +6453,7 @@
         if (techScansViewAll) {
             techScansViewAll.onclick = (e) => {
                 e.stopPropagation();
-                if (window.switchTab) window.switchTab('alerts');
+                if (window.switchTab) window.switchTab('technical-scans');
             };
         }
         const mobileHeaderScans = document.getElementById('mobile-header-scans-btn');
@@ -7097,7 +7097,7 @@
                 viewAllBtn.dataset.wired = "true";
                 viewAllBtn.onclick = (e) => {
                     e.stopPropagation();
-                    if (window.switchTab) window.switchTab('alerts');
+                    if (window.switchTab) window.switchTab('technical-scans');
                 };
             }
 
