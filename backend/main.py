@@ -9152,39 +9152,63 @@ def compute_stock_trendlyne_metrics(profile, cp_val, added_price, added_date):
         pos_52w = round(((cp_val - l52) / (h52 - l52)) * 100, 1)
 
     # 3. Multi-timeframe Returns
+    perf_dict = (profile.get("swot_performance") or {}).get("performance") or profile.get("performance") or {}
+
     chg_1d = round(safe_num(t.get("chg_1d") or t.get("price_change_pct") or f.get("change_pct")), 2)
-    chg_1w = round(safe_num(t.get("chg_1w") or t.get("roc_20") or (chg_1d * 1.4)), 2)
-    chg_1m = round(safe_num(t.get("chg_1m") or t.get("rsc_6m")), 2)
 
-    sma_50 = safe_num(t.get("sma_50"))
-    sma_150 = safe_num(t.get("sma_150"))
-    sma_200 = safe_num(t.get("sma_200"))
-
-    raw_3m = t.get("chg_3m")
-    if raw_3m is not None and safe_num(raw_3m) != 0.0:
-        chg_3m = round(safe_num(raw_3m), 2)
-    elif cp_val > 0 and sma_50 > 0:
-        chg_3m = round(((cp_val - sma_50) / sma_50) * 100, 2)
+    val_1w = perf_dict.get("1W")
+    if val_1w is not None:
+        chg_1w = round(safe_num(val_1w), 2)
     else:
-        chg_3m = 0.0
+        chg_1w = round(safe_num(t.get("chg_1w") or t.get("roc_20") or (chg_1d * 1.4)), 2)
 
-    raw_6m = t.get("chg_6m")
-    if raw_6m is not None and safe_num(raw_6m) != 0.0:
-        chg_6m = round(safe_num(raw_6m), 2)
-    elif cp_val > 0 and sma_150 > 0:
-        chg_6m = round(((cp_val - sma_150) / sma_150) * 100, 2)
-    elif cp_val > 0 and sma_50 > 0:
-        chg_6m = round(((cp_val - sma_50) / sma_50) * 100, 2)
+    val_1m = perf_dict.get("1M")
+    if val_1m is not None:
+        chg_1m = round(safe_num(val_1m), 2)
     else:
-        chg_6m = 0.0
+        chg_1m = round(safe_num(t.get("chg_1m") or t.get("rsc_6m")), 2)
 
-    raw_1y = t.get("chg_1y") or f.get("return_1y")
-    if raw_1y is not None and safe_num(raw_1y) != 0.0:
-        chg_1y = round(safe_num(raw_1y), 2)
-    elif cp_val > 0 and sma_200 > 0:
-        chg_1y = round(((cp_val - sma_200) / sma_200) * 100, 2)
+    val_3m = perf_dict.get("3M")
+    if val_3m is not None:
+        chg_3m = round(safe_num(val_3m), 2)
     else:
-        chg_1y = 0.0
+        raw_3m = t.get("chg_3m")
+        sma_50 = safe_num(t.get("sma_50"))
+        if raw_3m is not None and safe_num(raw_3m) != 0.0:
+            chg_3m = round(safe_num(raw_3m), 2)
+        elif cp_val > 0 and sma_50 > 0:
+            chg_3m = round(((cp_val - sma_50) / sma_50) * 100, 2)
+        else:
+            chg_3m = 0.0
+
+    val_6m = perf_dict.get("6M")
+    if val_6m is not None:
+        chg_6m = round(safe_num(val_6m), 2)
+    else:
+        raw_6m = t.get("chg_6m")
+        sma_150 = safe_num(t.get("sma_150"))
+        sma_50 = safe_num(t.get("sma_50"))
+        if raw_6m is not None and safe_num(raw_6m) != 0.0:
+            chg_6m = round(safe_num(raw_6m), 2)
+        elif cp_val > 0 and sma_150 > 0:
+            chg_6m = round(((cp_val - sma_150) / sma_150) * 100, 2)
+        elif cp_val > 0 and sma_50 > 0:
+            chg_6m = round(((cp_val - sma_50) / sma_50) * 100, 2)
+        else:
+            chg_6m = 0.0
+
+    val_1y = perf_dict.get("1Y")
+    if val_1y is not None:
+        chg_1y = round(safe_num(val_1y), 2)
+    else:
+        raw_1y = t.get("chg_1y") or f.get("return_1y")
+        sma_200 = safe_num(t.get("sma_200"))
+        if raw_1y is not None and safe_num(raw_1y) != 0.0:
+            chg_1y = round(safe_num(raw_1y), 2)
+        elif cp_val > 0 and sma_200 > 0:
+            chg_1y = round(((cp_val - sma_200) / sma_200) * 100, 2)
+        else:
+            chg_1y = 0.0
 
     # 4. 3-Dot Traffic Light Signals
     pe = safe_num(f.get("pe_ratio") or f.get("pe") or f.get("trailing_pe"))
