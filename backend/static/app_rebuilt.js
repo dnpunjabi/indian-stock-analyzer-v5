@@ -3112,14 +3112,23 @@ function setupPeersControls() {
             if (addCustomPeerBtn) addCustomPeerBtn.innerText = 'Adding...';
 
             // Resolve company ticker first via API
-            const searchRes = await fetch(`/api/search?q=${encodeURIComponent(val)}`);
-            if (!searchRes.ok) {
-                throw new Error('Search failed');
+            let baseSymbol = val.toUpperCase().trim().replace(/\.NS$|\.BO$/i, '');
+            let companyName = val;
+            let fullTicker = val.toUpperCase().trim().includes('.') ? val.toUpperCase().trim() : `${baseSymbol}.NS`;
+
+            try {
+                const searchRes = await fetch(`/api/search?q=${encodeURIComponent(val)}`);
+                if (searchRes.ok) {
+                    const resolved = await searchRes.json();
+                    if (resolved && resolved.base_symbol) {
+                        baseSymbol = resolved.base_symbol;
+                        companyName = resolved.name || baseSymbol;
+                        fullTicker = resolved.yf_ticker || `${baseSymbol}.NS`;
+                    }
+                }
+            } catch (err) {
+                console.warn("Peer search resolution fallback applied:", err);
             }
-            const resolved = await searchRes.json();
-            const baseSymbol = resolved.base_symbol;
-            const companyName = resolved.name || baseSymbol;
-            const fullTicker = resolved.yf_ticker || `${baseSymbol}.NS`;
 
             // Now retrieve full stock profile metrics from analyze (SQLite cache or live scraper)
             const res = await fetch(`/api/analyze?query=${encodeURIComponent(fullTicker)}`);
@@ -12544,14 +12553,22 @@ async function addInlineStockToWatchlist() {
         const originalText = btn ? btn.innerText : '+ Add Stock';
         if (btn) btn.innerText = 'Adding...';
 
-        // 1. Resolve ticker query first via API
-        const searchRes = await fetch(`/api/search?q=${encodeURIComponent(symbolQuery)}`);
-        if (!searchRes.ok) {
-            throw new Error('Search resolution failed.');
+        // 1. Resolve ticker query via API with safe fallback
+        let baseSymbol = symbolQuery.toUpperCase().trim().replace(/\.NS$|\.BO$/i, '');
+        let fullTicker = symbolQuery.toUpperCase().trim().includes('.') ? symbolQuery.toUpperCase().trim() : `${baseSymbol}.NS`;
+
+        try {
+            const searchRes = await fetch(`/api/search?q=${encodeURIComponent(symbolQuery)}`);
+            if (searchRes.ok) {
+                const resolved = await searchRes.json();
+                if (resolved && resolved.base_symbol) {
+                    baseSymbol = resolved.base_symbol;
+                    fullTicker = resolved.yf_ticker || `${baseSymbol}.NS`;
+                }
+            }
+        } catch (searchErr) {
+            console.warn("Search resolution fallback applied:", searchErr);
         }
-        const resolved = await searchRes.json();
-        const baseSymbol = resolved.base_symbol;
-        const fullTicker = resolved.yf_ticker || `${baseSymbol}.NS`;
 
         // 2. Add to active watchlist database via POST API
         const response = await fetch(`/api/watchlists/${activeWatchlistId}/items`, {
