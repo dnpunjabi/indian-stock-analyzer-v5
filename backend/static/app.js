@@ -4520,14 +4520,23 @@ function setupPeersControls() {
             if (addCustomPeerBtn) addCustomPeerBtn.innerText = 'Adding...';
 
             // Resolve company ticker first via API
-            const searchRes = await fetch(`/api/search?q=${encodeURIComponent(val)}`);
-            if (!searchRes.ok) {
-                throw new Error('Search failed');
+            let baseSymbol = val.toUpperCase().trim().replace(/\.NS$|\.BO$/i, '');
+            let companyName = val;
+            let fullTicker = val.toUpperCase().trim().includes('.') ? val.toUpperCase().trim() : `${baseSymbol}.NS`;
+
+            try {
+                const searchRes = await fetch(`/api/search?q=${encodeURIComponent(val)}`);
+                if (searchRes.ok) {
+                    const resolved = await searchRes.json();
+                    if (resolved && resolved.base_symbol) {
+                        baseSymbol = resolved.base_symbol;
+                        companyName = resolved.name || baseSymbol;
+                        fullTicker = resolved.yf_ticker || `${baseSymbol}.NS`;
+                    }
+                }
+            } catch (err) {
+                console.warn("Peer search resolution fallback applied:", err);
             }
-            const resolved = await searchRes.json();
-            const baseSymbol = resolved.base_symbol;
-            const companyName = resolved.name || baseSymbol;
-            const fullTicker = resolved.yf_ticker || `${baseSymbol}.NS`;
 
             // Now retrieve full stock profile metrics from analyze (SQLite cache or live scraper)
             const res = await fetch(`/api/analyze?query=${encodeURIComponent(fullTicker)}`);
@@ -16283,11 +16292,22 @@ async function addInlineStockToWatchlist() {
     try {
         if (btn) btn.innerText = 'Adding...';
 
-        // 1. Resolve ticker query first via API
-        const searchRes = await fetch(`/api/search?q=${encodeURIComponent(symbolQuery)}`);
-        const resolved = await safeFetchJson(searchRes, "Search resolution failed.");
-        const baseSymbol = resolved.base_symbol;
-        const fullTicker = resolved.yf_ticker || `${baseSymbol}.NS`;
+        // 1. Resolve ticker query via API with safe fallback
+        let baseSymbol = symbolQuery.toUpperCase().trim().replace(/\.NS$|\.BO$/i, '');
+        let fullTicker = symbolQuery.toUpperCase().trim().includes('.') ? symbolQuery.toUpperCase().trim() : `${baseSymbol}.NS`;
+
+        try {
+            const searchRes = await fetch(`/api/search?q=${encodeURIComponent(symbolQuery)}`);
+            if (searchRes.ok) {
+                const resolved = await safeFetchJson(searchRes, "Search resolution failed.");
+                if (resolved && resolved.base_symbol) {
+                    baseSymbol = resolved.base_symbol;
+                    fullTicker = resolved.yf_ticker || `${baseSymbol}.NS`;
+                }
+            }
+        } catch (searchErr) {
+            console.warn("Search resolution fallback applied:", searchErr);
+        }
 
         // 2. Add to active watchlist database via POST API
         const response = await fetch(`/api/watchlists/${activeWatchlistId}/items`, {
@@ -16297,7 +16317,8 @@ async function addInlineStockToWatchlist() {
         });
 
         const addedItem = await safeFetchJson(response, "Failed to add stock to watchlist.");
-        showToast(`Successfully added ${addedItem.name} (${addedItem.symbol}) to the watchlist.`, "success");
+        const displayName = (addedItem && (addedItem.name || addedItem.symbol)) ? `${addedItem.name || addedItem.symbol}` : fullTicker;
+        showToast(`Successfully added ${displayName} to the watchlist.`, "success");
 
         input.value = '';
         await fetchWatchlists(true);
@@ -16850,13 +16871,13 @@ function renderWatchlistItems() {
         const addedPriceHTML = `<span style="font-family: 'Inter', monospace; color: var(--text-secondary); font-size: 11px;">₹${(item.added_price || item.live_price || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>`;
         const addedDateHTML = `<span style="color: var(--text-muted); font-size: 11px;">${item.added_date || 'Recently'}</span>`;
 
-        // 3-Dots Signals
+        // 3-Dots Signals (Order: Durability [D/E], Valuation [PE], Momentum [RSI])
         const dots = item.dots || { val: 'yellow', mom: 'yellow', health: 'yellow' };
         const dotsHTML = `
             <div class="trendlyne-dots">
-                <span class="t-dot ${dots.val || 'yellow'}" title="${dots.val_txt || 'Valuation'}"></span>
-                <span class="t-dot ${dots.mom || 'yellow'}" title="${dots.mom_txt || 'Momentum'}"></span>
-                <span class="t-dot ${dots.health || 'yellow'}" title="${dots.health_txt || 'Health'}"></span>
+                <span class="t-dot ${dots.health || 'yellow'}" title="${dots.health_txt || 'Durability (D/E)'}"></span>
+                <span class="t-dot ${dots.val || 'yellow'}" title="${dots.val_txt || 'Valuation (P/E)'}"></span>
+                <span class="t-dot ${dots.mom || 'yellow'}" title="${dots.mom_txt || 'Momentum (RSI)'}"></span>
             </div>
         `;
 

@@ -9245,21 +9245,21 @@ def compute_stock_trendlyne_metrics(profile, cp_val, added_price, added_date):
         mom_dot = "yellow"
         mom_txt = "Momentum: Neutral"
 
-    # Health / Quality Dot
+    # Durability / Quality Dot
     de = safe_num(f.get("debt_to_equity") or f.get("debt_equity"))
     roe = safe_num(f.get("roe") or f.get("return_on_equity"))
     if (de > 0 and de < 0.5) or (roe > 15):
         health_dot = "green"
-        health_txt = f"Health: Strong (D/E {de:.2f})" if de > 0 else "Health: Strong Balance Sheet"
+        health_txt = f"Durability: Strong (D/E {de:.2f})" if de > 0 else "Durability: Strong Balance Sheet"
     elif de >= 0.5 and de <= 1.2:
         health_dot = "yellow"
-        health_txt = f"Health: Moderate Debt (D/E {de:.2f})"
+        health_txt = f"Durability: Moderate Debt (D/E {de:.2f})"
     elif de > 1.2:
         health_dot = "red"
-        health_txt = f"Health: Debt Risk (D/E {de:.2f})"
+        health_txt = f"Durability: Debt Risk (D/E {de:.2f})"
     else:
         health_dot = "yellow"
-        health_txt = "Health: Moderate"
+        health_txt = "Durability: Moderate"
 
     return {
         "added_price": added_p,
