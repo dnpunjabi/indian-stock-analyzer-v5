@@ -16267,8 +16267,8 @@ async function addInlineStockToWatchlist() {
         return;
     }
 
-    const input = document.getElementById('watchlist-add-stock-input');
-    const btn = document.getElementById('watchlist-add-stock-btn');
+    const input = document.getElementById('watchlist-inline-add-input') || document.getElementById('watchlist-add-stock-input');
+    const btn = document.getElementById('watchlist-inline-add-btn') || document.getElementById('watchlist-add-stock-btn');
     if (!input) return;
 
     const symbolQuery = input.value.trim();
