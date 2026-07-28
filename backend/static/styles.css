@@ -3853,13 +3853,24 @@ body.chat-drawer-active {
 /* ==================== TOAST NOTIFICATIONS ==================== */
 .toast-container {
     position: fixed;
-    top: 85px;
-    right: 20px;
-    z-index: 999999;
+    top: 115px;
+    right: 24px;
+    z-index: 9999999 !important;
     display: flex;
     flex-direction: column;
     gap: 10px;
     pointer-events: none;
+}
+
+@media (max-width: 768px) {
+    .toast-container {
+        top: 115px;
+        left: 50%;
+        transform: translateX(-50%);
+        right: auto;
+        width: 90%;
+        max-width: 380px;
+    }
 }
 
 .toast {

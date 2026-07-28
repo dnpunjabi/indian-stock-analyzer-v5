@@ -9246,7 +9246,7 @@ async def add_watchlist_item(watchlist_id: int, data: WatchlistItemCreate):
         company_name = symbol
         sector = "General Equities"
         added_price = 0.0
-        today_str = datetime.datetime.now().strftime("%d %b, '%y")
+        today_str = datetime.now().strftime("%d %b, '%y")
         try:
             resolved = await asyncio.to_thread(get_complete_financial_profile, symbol)
             company_name = resolved.get("company_name") or symbol
