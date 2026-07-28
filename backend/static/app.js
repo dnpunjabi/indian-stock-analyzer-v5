@@ -16287,7 +16287,7 @@ async function addInlineStockToWatchlist() {
         showToast(`Successfully added ${addedItem.name} (${addedItem.symbol}) to the watchlist.`, "success");
 
         input.value = '';
-        await fetchWatchlists();
+        await fetchWatchlists(true);
     } catch (e) {
         console.error("Error adding inline stock to watchlist:", e);
         showToast("Error: " + e.message, "error");
@@ -16301,9 +16301,9 @@ async function addInlineStockToWatchlist() {
     }
 }
 
-async function fetchWatchlists() {
+async function fetchWatchlists(forceFresh = false) {
     try {
-        if (window.swrFetchJson) {
+        if (window.swrFetchJson && !forceFresh) {
             await window.swrFetchJson('/api/watchlists', (data) => {
                 if (!data || !Array.isArray(data)) return;
                 watchlistsList = data;
@@ -16319,6 +16319,9 @@ async function fetchWatchlists() {
             watchlistsList = await response.json();
             if (activeWatchlistId === null && watchlistsList.length > 0) {
                 activeWatchlistId = watchlistsList[0].id;
+            }
+            if (window.swrCache) {
+                window.swrCache.set('/api/watchlists', { data: watchlistsList, timestamp: Date.now() });
             }
             renderWatchlistControls();
             renderWatchlistItems();
@@ -16396,7 +16399,7 @@ async function createNewWatchlist() {
         activeWatchlistId = newWatch.id;
 
         if (input) input.value = '';
-        await fetchWatchlists();
+        await fetchWatchlists(true);
     } catch (e) {
         showToast("Error: " + e.message, "error");
     }
@@ -16422,7 +16425,7 @@ async function deleteActiveWatchlist() {
         if (!response.ok) throw new Error("Failed to delete watchlist.");
 
         activeWatchlistId = null;
-        await fetchWatchlists();
+        await fetchWatchlists(true);
     } catch (e) {
         showToast("Error: " + e.message, "error");
     }
@@ -16454,7 +16457,7 @@ async function addCurrentStockToWatchlist() {
         }
 
         showToast(`Successfully added ${activeStockProfile.ticker} to the selected watchlist.`, "success");
-        await fetchWatchlists();
+        await fetchWatchlists(true);
     } catch (e) {
         showToast("Error: " + e.message, "error");
     }
@@ -16475,7 +16478,7 @@ async function removeStockFromWatchlist(watchlistId, symbol) {
 
         if (!response.ok) throw new Error("Failed to remove item.");
 
-        await fetchWatchlists();
+        await fetchWatchlists(true);
     } catch (e) {
         showToast("Error: " + e.message, "error");
     }
