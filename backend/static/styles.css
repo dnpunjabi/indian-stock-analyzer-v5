@@ -25616,3 +25616,48 @@ table tbody td {
         max-width: 165px !important;
     }
 }
+
+
+/* ==========================================================================
+   APEX UNIVERSAL TYPOGRAPHY & NUMERIC SCALE FLOOR (APP-WIDE COVERAGE)
+   Enforces min 13.5px for all text & 14.5px-15.5px for all numeric metrics
+   ========================================================================== */
+
+/* Universal Text Base Floor */
+p, label, li, a, input, select, textarea, .stat-label, .metric-label, .card-text, .text-muted, .text-secondary {
+    font-size: 13.5px !important;
+    line-height: 1.5 !important;
+}
+
+/* ALL Numerical Metrics, Statistics, Ratios, Telemetry & Financial Figures App-Wide */
+.val,
+.value,
+.stat-value,
+.metric-value,
+.telemetry-value,
+.financial-val,
+.ratio-val,
+.num-val,
+.stat-number,
+.card-stat,
+.number,
+[class*="stat-"],
+[class*="metric-"],
+[class*="-val"],
+[id*="-val"],
+[id*="-pe"],
+[id*="-roe"],
+[id*="-mos"],
+[id*="-price"],
+[id*="-count"],
+[id*="-score"],
+[id*="-target"] {
+    font-size: 14.5px !important;
+    font-weight: 700 !important;
+    font-family: 'Inter', monospace !important;
+}
+
+/* Table Data Cells - All Text & Numbers */
+td, th {
+    font-size: 13.5px !important;
+}
