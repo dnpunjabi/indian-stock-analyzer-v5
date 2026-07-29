@@ -5692,15 +5692,7 @@
                                             const changePct = parseFloat(item.change_pct || 0);
                                             const changeClass = changePct >= 0 ? 'cmp-badge-up' : 'cmp-badge-down';
                                             return `
-                                                <tr style="border-bottom: 1px solid var(--border-glass, rgba(255,255,255,0.08)); height: 34px; cursor: pointer;" onclick="
-    const searchInput = document.getElementById('analyzer-search-input');
-    const searchBtn = document.getElementById('analyzer-search-btn');
-    if (searchInput && searchBtn) {
-        searchInput.value = '${item.symbol}';
-        window.switchTab('analyzer');
-        searchBtn.click();
-    }
-">
+                                                <tr style="border-bottom: 1px solid var(--border-glass, rgba(255,255,255,0.08)); height: 34px; cursor: pointer;" onclick="if(typeof window.loadStockAnalyzer==='function'){ window.loadStockAnalyzer('${item.symbol}'); }else if(typeof window.switchTab==='function'){ window.switchTab('analyzer'); }">
                                                     <td style="padding: 5px 4px; font-weight: 700; color: var(--text-primary);">${item.symbol.replace('.NS', '')}</td>
                                                     <td style="padding: 5px 4px; text-align: right; color: var(--text-primary); font-weight: 600; font-family: 'Inter', monospace;">₹${parseFloat(item.live_price || 0).toFixed(2)}</td>
                                                     <td style="padding: 5px 4px; text-align: right; font-weight: 700; font-family: 'Inter', monospace;" class="${changeClass}">${changePct >= 0 ? '+' : ''}${changePct.toFixed(2)}%</td>
@@ -5722,15 +5714,7 @@
                                             const changePct = parseFloat(item.change_pct || 0);
                                             const changeClass = changePct >= 0 ? 'cmp-badge-up' : 'cmp-badge-down';
                                             return `
-                                                <tr style="border-bottom: 1px solid var(--border-glass, rgba(255,255,255,0.08)); height: 34px; cursor: pointer;" onclick="
-    const searchInput = document.getElementById('analyzer-search-input');
-    const searchBtn = document.getElementById('analyzer-search-btn');
-    if (searchInput && searchBtn) {
-        searchInput.value = '${item.symbol}';
-        window.switchTab('analyzer');
-        searchBtn.click();
-    }
-">
+                                                <tr style="border-bottom: 1px solid var(--border-glass, rgba(255,255,255,0.08)); height: 34px; cursor: pointer;" onclick="if(typeof window.loadStockAnalyzer==='function'){ window.loadStockAnalyzer('${item.symbol}'); }else if(typeof window.switchTab==='function'){ window.switchTab('analyzer'); }">
                                                     <td style="padding: 5px 4px; font-weight: 700; color: var(--text-primary);">${item.symbol.replace('.NS', '')}</td>
                                                     <td style="padding: 5px 4px; text-align: right; color: var(--text-primary); font-weight: 600; font-family: 'Inter', monospace;">₹${parseFloat(item.live_price || 0).toFixed(2)}</td>
                                                     <td style="padding: 5px 4px; text-align: right; font-weight: 700; font-family: 'Inter', monospace;" class="${changeClass}">${changePct >= 0 ? '+' : ''}${changePct.toFixed(2)}%</td>
@@ -5750,15 +5734,7 @@
                                             const changePct = parseFloat(item.change_pct || 0);
                                             const changeClass = changePct >= 0 ? 'cmp-badge-up' : 'cmp-badge-down';
                                             return `
-                                                <tr style="border-bottom: 1px solid var(--border-glass, rgba(255,255,255,0.08)); height: 34px; cursor: pointer;" onclick="
-    const searchInput = document.getElementById('analyzer-search-input');
-    const searchBtn = document.getElementById('analyzer-search-btn');
-    if (searchInput && searchBtn) {
-        searchInput.value = '${item.symbol}';
-        window.switchTab('analyzer');
-        searchBtn.click();
-    }
-">
+                                                <tr style="border-bottom: 1px solid var(--border-glass, rgba(255,255,255,0.08)); height: 34px; cursor: pointer;" onclick="if(typeof window.loadStockAnalyzer==='function'){ window.loadStockAnalyzer('${item.symbol}'); }else if(typeof window.switchTab==='function'){ window.switchTab('analyzer'); }">
                                                     <td style="padding: 5px 4px; font-weight: 700; color: var(--text-primary);">${item.symbol.replace('.NS', '')}</td>
                                                     <td style="padding: 5px 4px; text-align: right; color: var(--text-primary); font-weight: 600; font-family: 'Inter', monospace;">₹${parseFloat(item.live_price || 0).toFixed(2)}</td>
                                                     <td style="padding: 5px 4px; text-align: right; font-weight: 700; font-family: 'Inter', monospace;" class="${changeClass}">${changePct >= 0 ? '+' : ''}${changePct.toFixed(2)}%</td>
@@ -6068,12 +6044,10 @@
                                             </div>
                                         </div>
                                         <button onclick="
-                                            const searchInput = document.getElementById('analyzer-search-input');
-                                            const searchBtn = document.getElementById('analyzer-search-btn');
-                                            if (searchInput && searchBtn) {
-                                                searchInput.value = '${cleanSym}';
+                                            if (typeof window.loadStockAnalyzer === 'function') {
+                                                window.loadStockAnalyzer('${cleanSym}');
+                                            } else if (typeof window.switchTab === 'function') {
                                                 window.switchTab('analyzer');
-                                                searchBtn.click();
                                             }
                                         " style="width:100%; background:var(--color-primary); color:#fff; border:none; padding:6px; border-radius:4px; font-weight:800; font-size:11px; cursor:pointer;">Deep Dive Research →</button>
                                     </div>
@@ -6456,12 +6430,10 @@
                                         </div>
                                     </div>
                                     <button onclick="
-                                        const searchInput = document.getElementById('analyzer-search-input');
-                                        const searchBtn = document.getElementById('analyzer-search-btn');
-                                        if (searchInput && searchBtn) {
-                                            searchInput.value = '${item.symbol}';
+                                        if (typeof window.loadStockAnalyzer === 'function') {
+                                            window.loadStockAnalyzer('${item.symbol}');
+                                        } else if (typeof window.switchTab === 'function') {
                                             window.switchTab('analyzer');
-                                            searchBtn.click();
                                         }
                                     " style="width:100%; background:var(--color-primary); color:#fff; border:none; padding:6px; border-radius:4px; font-weight:800; font-size:11px; cursor:pointer;">Deep Dive Research →</button>
                                 </div>
