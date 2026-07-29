@@ -193,15 +193,11 @@
         const showLogos = localStorage.getItem('settings-show-logos') !== 'false';
         if (!showLogos) return '';
         const cleanSym = symbol.replace(".NS", "").toUpperCase();
-        const isin = isinMapping[cleanSym];
-        if (isin) {
-            return `
-                <div style="width:28px; height:28px; border-radius:50%; background:#ffffff; border:1px solid var(--border-glass); display:flex; align-items:center; justify-content:center; flex-shrink:0; overflow:hidden; padding:2px; box-sizing:border-box;">
-                    <img src="${apiBaseUrl}/logos/${cleanSym}.png" style="width:100%; height:100%; object-fit:contain; display:block;" onerror="this.onerror=null; this.parentNode.outerHTML=window.getStockFallbackLogoHtml('${cleanSym}');">
-                </div>
-            `;
-        }
-        return window.getStockFallbackLogoHtml(cleanSym);
+        return `
+            <div style="width:28px; height:28px; border-radius:50%; background:#ffffff; border:1px solid var(--border-glass); display:flex; align-items:center; justify-content:center; flex-shrink:0; overflow:hidden; padding:2px; box-sizing:border-box;">
+                <img src="${apiBaseUrl}/logos/${cleanSym}.png" style="width:100%; height:100%; object-fit:contain; display:block;" onerror="this.onerror=null; this.parentNode.outerHTML=window.getStockFallbackLogoHtml('${cleanSym}');">
+            </div>
+        `;
     }
 
     function getNewsAgencyLogoHtml(source) {
@@ -8119,7 +8115,7 @@
                             if (!strongEl) return;
                             const rawSym = strongEl.innerText.trim();
                             const cleanSym = rawSym.replace('.NS', '').toUpperCase();
-                            if (Object.keys(isinMapping).length === 0) return;
+                            // isinMapping check removed for instant logo rendering
                             const logoSize = mobile ? 22 : 28;
                             const logoHtml = getStockLogoHtml(cleanSym)
                                 .replace(/width:28px/g, `width:${logoSize}px`)
@@ -8164,7 +8160,7 @@
                     if (!header.querySelector('.stock-circle-logo') && !header.querySelector('img')) {
                         const rawSym = tickerSpan.innerText.trim();
                         const cleanSym = rawSym.replace('.NS', '').toUpperCase();
-                        if (Object.keys(isinMapping).length === 0) return; // Wait for mapping
+                        // isinMapping check removed for instant logo rendering // Wait for mapping
                         const logoHtml = getStockLogoHtml(cleanSym);
                         
                         const logoWrapper = document.createElement('div');
@@ -8219,7 +8215,7 @@
                             if (!strongEl) return;
                             const rawSym = strongEl.innerText.trim();
                             const cleanSym = rawSym.replace('.NS', '').toUpperCase();
-                            if (Object.keys(isinMapping).length === 0) return; // Wait for mapping
+                            // isinMapping check removed for instant logo rendering // Wait for mapping
                             const logoHtml = getStockLogoHtml(cleanSym);
                             
                             const wrapper = document.createElement('div');
@@ -8256,7 +8252,7 @@
                         if (link && !link.parentNode.querySelector('.stock-circle-logo') && !link.parentNode.querySelector('img')) {
                             const rawSym = link.innerText.trim();
                             const cleanSym = rawSym.replace('.NS', '').toUpperCase();
-                            if (Object.keys(isinMapping).length === 0) return; // Wait for mapping
+                            // isinMapping check removed for instant logo rendering // Wait for mapping
                             const logoHtml = getStockLogoHtml(cleanSym);
                             
                             const wrapper = document.createElement('div');
@@ -8294,7 +8290,7 @@
                             if (!symSpan) return;
                             const rawSym = symSpan.innerText.split('•')[0].trim();
                             const cleanSym = rawSym.replace('.NS', '').toUpperCase();
-                            if (Object.keys(isinMapping).length === 0) return;
+                            // isinMapping check removed for instant logo rendering
                             const logoSize = mobile ? 22 : 28;
                             const logoHtml = getStockLogoHtml(cleanSym)
                                 .replace(/width:28px/g, `width:${logoSize}px`)
@@ -8381,7 +8377,7 @@
                                 const rawText = symbolCell.textContent.trim();
                                 const cleanText = rawText.replace('⚡', '').trim();
                                 const cleanSym = cleanText.replace('.NS', '').toUpperCase();
-                                if (Object.keys(isinMapping).length === 0) return;
+                                // isinMapping check removed for instant logo rendering
                                 const logoHtml = getStockLogoHtml(cleanSym);
                                 
                                 const wrapper = document.createElement('div');
@@ -8457,7 +8453,7 @@
                             // Use data-ticker attribute for reliable symbol extraction on mobile
                             const rawSym = link.getAttribute('data-ticker') || link.innerText.trim();
                             const cleanSym = rawSym.replace('.NS', '').toUpperCase();
-                            if (Object.keys(isinMapping).length === 0) return;
+                            // isinMapping check removed for instant logo rendering
                             const logoHtml = getStockLogoHtml(cleanSym);
                             
                             const wrapper = document.createElement('div');
@@ -8512,7 +8508,7 @@
                                 // Fallback: strip trailing chevron chars and whitespace
                                 cleanSym = symbolSpan.textContent.replace(/[▼▲]/g, '').trim().split('\n')[0].split(' ')[0].replace('.NS', '').toUpperCase();
                             }
-                            if (!cleanSym || Object.keys(isinMapping).length === 0) return;
+                            if (!cleanSym) return;
                             const logoHtml = getStockLogoHtml(cleanSym);
                             
                             const innerDiv = cell.querySelector('div');
@@ -8559,7 +8555,7 @@
                                 if (!symbolEl) return;
                                 const rawSym = symbolEl.innerText.trim();
                                 const cleanSym = rawSym.replace('.NS', '').toUpperCase();
-                                if (Object.keys(isinMapping).length === 0) return;
+                                // isinMapping check removed for instant logo rendering
                                 const logoHtml = getStockLogoHtml(cleanSym);
                                 
                                 const wrapper = document.createElement('div');
@@ -8598,7 +8594,7 @@
                             if (!symSpan) return;
                             const rawSym = symSpan.innerText.trim();
                             const cleanSym = rawSym.replace('.NS', '').toUpperCase();
-                            if (Object.keys(isinMapping).length === 0) return;
+                            // isinMapping check removed for instant logo rendering
                             const logoHtml = getStockLogoHtml(cleanSym)
                                 .replace(/width:28px/g, 'width:22px')
                                 .replace(/height:28px/g, 'height:22px');
@@ -8656,7 +8652,7 @@
                             if (parent && !parent.querySelector('.stock-circle-logo') && !parent.querySelector('img')) {
                                 const rawSym = symbolSpan.innerText.trim();
                                 const cleanSym = rawSym.replace('.NS', '').toUpperCase();
-                                if (Object.keys(isinMapping).length === 0) return;
+                                // isinMapping check removed for instant logo rendering
                                 const logoHtml = getStockLogoHtml(cleanSym);
                                 
                                 const wrapper = document.createElement('div');
@@ -8693,7 +8689,7 @@
                             if (!symbolSpan) return;
                             const rawSym = symbolSpan.innerText.trim();
                             const cleanSym = rawSym.replace('.NS', '').toUpperCase();
-                            if (Object.keys(isinMapping).length === 0) return;
+                            // isinMapping check removed for instant logo rendering
                             const logoHtml = getStockLogoHtml(cleanSym);
                             
                             const wrapper = document.createElement('div');
@@ -8729,7 +8725,7 @@
                     if (!rawSym || rawSym === 'Loading candidate...' || rawSym === 'Select a candidate script...') return;
                     
                     const cleanSym = rawSym.replace('.NS', '').toUpperCase();
-                    if (Object.keys(isinMapping).length === 0) return;
+                    // isinMapping check removed for instant logo rendering
                     const logoHtml = getStockLogoHtml(cleanSym);
                     
                     const wrapper = document.createElement('div');
@@ -8776,7 +8772,7 @@
                             
                             const rawText = cell.innerText.split('\n')[0].split(' ')[0].trim();
                             const cleanSym = rawText.replace('.NS', '').toUpperCase();
-                            if (Object.keys(isinMapping).length === 0) return;
+                            // isinMapping check removed for instant logo rendering
                             
                             const logoSize = mobile ? 22 : 28;
                             const logoHtml = getStockLogoHtml(cleanSym)
@@ -8839,7 +8835,7 @@
                                         const rawSym = match[1].trim();
                                         if (rawSym && rawSym !== 'N/A') {
                                             const cleanSym = rawSym.replace('.NS', '').toUpperCase();
-                                            if (Object.keys(isinMapping).length === 0) return;
+                                            // isinMapping check removed for instant logo rendering
                                             const logoHtml = getStockLogoHtml(cleanSym);
                                             
                                             const wrapper = document.createElement('span');
@@ -8891,7 +8887,7 @@
                         if (!item || !item.symbol) continue;
                         
                         const cleanSym = item.symbol.replace('.NS', '').toUpperCase();
-                        if (Object.keys(isinMapping).length === 0) return;
+                        // isinMapping check removed for instant logo rendering
                         const logoHtml = getStockLogoHtml(cleanSym);
                         
                         const wrapper = document.createElement('div');
@@ -8940,7 +8936,7 @@
                         if (symSpan && pctSpan) {
                             const rawSym = symSpan.innerText.trim();
                             const cleanSym = rawSym.replace('.NS', '').toUpperCase();
-                            if (Object.keys(isinMapping).length === 0) return;
+                            // isinMapping check removed for instant logo rendering
                             const logoHtml = getStockLogoHtml(cleanSym)
                                 .replace(/width:28px/g, `width:${logoSize}px`)
                                 .replace(/height:28px/g, `height:${logoSize}px`)
