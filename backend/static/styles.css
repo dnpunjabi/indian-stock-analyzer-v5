@@ -18375,6 +18375,41 @@ select option {
         max-width: none !important;
     }
 
+    /* Global & Mobile Modal Safe-Area & Header Overlap Fix for Sector Momentum Radar */
+    #sector-stocks-modal,
+    .modal-overlay {
+        z-index: 100050 !important;
+        padding: calc(75px + env(safe-area-inset-top, 0px)) 12px calc(40px + env(safe-area-inset-bottom, 0px)) 12px !important;
+        align-items: flex-start !important;
+        box-sizing: border-box !important;
+    }
+
+    #sector-stocks-modal .modal-card,
+    .modal-overlay .modal-card {
+        max-height: calc(100vh - 100px) !important;
+        margin-top: 0 !important;
+        border-radius: 14px !important;
+        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.75) !important;
+    }
+
+    #sector-stocks-modal-close-btn,
+    .modal-card-header button {
+        width: 32px !important;
+        height: 32px !important;
+        border-radius: 50% !important;
+        background: rgba(239, 68, 68, 0.15) !important;
+        border: 1px solid rgba(239, 68, 68, 0.35) !important;
+        color: #ef4444 !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        font-size: 16px !important;
+        font-weight: 700 !important;
+        cursor: pointer !important;
+        flex-shrink: 0 !important;
+        transition: all 0.2s ease !important;
+    }
+
     /* Mobile Column Pruning for Sector Constituents Modal based on active period class */
     #sector-stocks-modal.active-period-1d table th:not(:nth-child(1)):not(:nth-child(4)),
     #sector-stocks-modal.active-period-1d table tbody tr:not(.sector-details-row) td:not(:nth-child(1)):not(:nth-child(4)),
