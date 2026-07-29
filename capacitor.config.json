@@ -9,6 +9,10 @@
     },
     "CapacitorCookies": {
       "enabled": true
+    },
+    "StatusBar": {
+      "backgroundColor": "#08090d",
+      "style": "DARK"
     }
   }
 }

@@ -1608,3 +1608,16 @@ body.light-theme .sector-deck-row .sector-bar-track {
 
 
 
+
+
+/* OLED Minimalist Palette Overrides for Modernizer Components */
+.app-container {
+    background: #08090d !important;
+}
+
+.recent-research-card,
+.watchlist-card,
+.scanner-card {
+    background: #12141d !important;
+    border: 1px solid #1e2230 !important;
+}

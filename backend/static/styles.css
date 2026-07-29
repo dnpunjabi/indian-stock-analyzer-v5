@@ -46,33 +46,33 @@ html[data-typography="paytm"] table {
 }
 
 :root {
-    /* Base Default Variables (Dark Mode + Classic Theme) */
+    /* Base Default Variables (Apex OLED Minimalist Theme) */
     --primary-rgb: 59, 130, 246;
     --academy-accent-hover: rgba(var(--primary-rgb), 0.06);
     --academy-accent-active: rgba(var(--primary-rgb), 0.12);
     --academy-accent-border: rgba(var(--primary-rgb), 0.22);
     --academy-accent-focus: rgba(var(--primary-rgb), 0.1);
 
-    --bg-main: #060913;
-    --bg-sidebar: #0b0f1d;
-    --bg-card: rgba(18, 25, 41, 0.7);
-    --bg-card-hover: rgba(26, 36, 59, 0.85);
-    --border-glass: rgba(255, 255, 255, 0.06);
-    --bg-glass-input: rgba(15, 23, 42, 0.8);
+    --bg-main: #08090d;
+    --bg-sidebar: #0e1017;
+    --bg-card: #12141d;
+    --bg-card-hover: #171a26;
+    --border-glass: #1e2230;
+    --bg-glass-input: #12141d;
     
     --color-primary: #3b82f6;
-    --color-primary-glow: rgba(59, 130, 246, 0.3);
-    --color-emerald: #10b981;
-    --color-emerald-glow: rgba(16, 185, 129, 0.25);
+    --color-primary-glow: rgba(59, 130, 246, 0.2);
+    --color-emerald: #22c55e;
+    --color-emerald-glow: rgba(34, 197, 94, 0.2);
     --color-crimson: #ef4444;
-    --color-crimson-glow: rgba(239, 68, 68, 0.25);
+    --color-crimson-glow: rgba(239, 68, 68, 0.2);
     --color-amber: #f59e0b;
-    --color-amber-glow: rgba(245, 158, 11, 0.25);
-    --neon-green: #10b981;
+    --color-amber-glow: rgba(245, 158, 11, 0.2);
+    --neon-green: #22c55e;
     
-    --text-primary: #f3f4f6;
-    --text-secondary: #9ca3af;
-    --text-muted: #6b7280;
+    --text-primary: #ffffff;
+    --text-secondary: #94a3b8;
+    --text-muted: #64748b;
     
     --glow-shadow: 0 0 12px rgba(59, 130, 246, 0.25);
 
@@ -25213,3 +25213,67 @@ body.light-theme .watchlist-filter-chip.active {
 
 
 
+
+
+/* Trendlyne-Style DVM 3-Dot Quality Badges & Viewport Readability Overhaul */
+.trendlyne-dots {
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 4px !important;
+    margin-top: 3px !important;
+}
+
+.t-dot {
+    width: 7px !important;
+    height: 7px !important;
+    border-radius: 50% !important;
+    display: inline-block !important;
+}
+
+.t-dot.green {
+    background-color: #22c55e !important;
+    box-shadow: 0 0 5px rgba(34, 197, 94, 0.6) !important;
+}
+
+.t-dot.yellow,
+.t-dot.amber {
+    background-color: #f59e0b !important;
+    box-shadow: 0 0 5px rgba(245, 158, 11, 0.5) !important;
+}
+
+.t-dot.red {
+    background-color: #ef4444 !important;
+    box-shadow: 0 0 5px rgba(239, 68, 68, 0.6) !important;
+}
+
+/* Typography & Row Height Boost for Tables */
+.data-table tbody tr,
+#financial-statements-table tbody tr {
+    min-height: 48px !important;
+}
+
+.data-table tbody td,
+#financial-statements-table tbody td {
+    padding: 12px 14px !important;
+    font-size: 13px !important;
+}
+
+.data-table thead th,
+#financial-statements-table thead th {
+    padding: 12px 14px !important;
+    font-size: 12px !important;
+    font-weight: 700 !important;
+    letter-spacing: 0.03em !important;
+    text-transform: uppercase !important;
+}
+
+/* Mobile Edge-to-Edge Container Widths */
+@media (max-width: 768px) {
+    #tab-watchlist .table-scroll,
+    #tab-portfolio .ledger-table-wrap,
+    #financial-statements-card .table-scroll {
+        border-radius: 0 !important;
+        border-left: none !important;
+        border-right: none !important;
+    }
+}
