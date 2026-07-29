@@ -52,7 +52,7 @@
                 : 'background:rgba(16,185,129,0.18);border:1px solid rgba(52,211,153,0.50);color:#34d399;';
         }
 
-        const latencyHtml = meta.latency_ms ? `<span class="badge-latency" style="opacity:0.90;font-weight:500;font-size:10px;"> · ${meta.latency_ms}ms</span>` : '';
+        const latencyHtml = meta.latency_ms ? `<span class="badge-latency" style="opacity:0.90;font-weight:500;font-size:13.5px;"> · ${meta.latency_ms}ms</span>` : '';
         return `<span class="${badgeClass}" style="display:inline-flex;align-items:center;gap:6px;padding:4px 10px;font-size:11px;font-weight:600;line-height:1.4;border-radius:6px;font-family:'Outfit',-apple-system,sans-serif;letter-spacing:0.02em;white-space:nowrap;margin-top:6px;margin-bottom:2px;box-shadow:0 1px 3px rgba(0,0,0,0.15);${bgStyle}" title="Executed by ${meta.model_used} (${meta.provider || 'gemini'})">${icon} Model: ${meta.model_used}${latencyHtml}</span>`;
     };
 
@@ -891,7 +891,7 @@ function updateConnectionIndicator(status, source) {
         if (headerUtils) {
             indicator = document.createElement('div');
             indicator.id = 'ws-connection-indicator';
-            indicator.style.cssText = 'padding:4px 10px;border-radius:12px;font-size:10px;font-weight:600;display:flex;align-items:center;gap:4px;font-family:Inter,sans-serif;cursor:default;transition:all 0.3s ease;white-space:nowrap;';
+            indicator.style.cssText = 'padding:4px 10px;border-radius:12px;font-size:13.5px;font-weight:600;display:flex;align-items:center;gap:4px;font-family:Inter,sans-serif;cursor:default;transition:all 0.3s ease;white-space:nowrap;';
             headerUtils.insertBefore(indicator, headerUtils.firstChild);
         }
     }
@@ -1914,7 +1914,7 @@ function parseMarkdownToPitchbookHTML(md) {
                 for (let cell of cells) {
                     let cellStyle = 'padding:10px 12px; text-align:center; color:var(--text-primary);';
                     if (isHeader) {
-                        cellStyle += 'padding:10px 12px; text-align:center; font-weight:700; color:var(--text-muted); background:rgba(255,255,255,0.03); font-family:\'Outfit\',sans-serif; text-transform:uppercase; font-size:10px;';
+                        cellStyle += 'padding:10px 12px; text-align:center; font-weight:700; color:var(--text-muted); background:rgba(255,255,255,0.03); font-family:\'Outfit\',sans-serif; text-transform:uppercase; font-size:13.5px;';
                     }
                     rowHtml += `<${tag} style="${cellStyle}">${cell}</${tag}>`;
                 }
@@ -3176,7 +3176,7 @@ function renderScreenerResults(results, isSorted = false) {
         html += '      </div>';
         html += '      <div style="flex: 1; background: rgba(0,0,0,0.15); border: 1px solid rgba(255,255,255,0.03); padding: 8px 10px; border-radius: 6px; display: flex; flex-direction: column; justify-content: center;">';
         html += '        <span style="font-size: 8.5px; color: var(--text-secondary); text-transform: uppercase; font-weight: 600;">Buy vs Avoid Tally</span>';
-        html += `        <strong style="font-size: 13.5px; color: #ffffff; margin-top: 1px; font-family: 'Outfit', sans-serif;"><span style="color:#10B981;">${buyCount}B</span> <span style="color:var(--text-muted); font-size:10px;">/</span> <span style="color:#EF4444;">${avoidCount}A</span></strong>`;
+        html += `        <strong style="font-size: 13.5px; color: #ffffff; margin-top: 1px; font-family: 'Outfit', sans-serif;"><span style="color:#10B981;">${buyCount}B</span> <span style="color:var(--text-muted); font-size:13.5px;">/</span> <span style="color:#EF4444;">${avoidCount}A</span></strong>`;
         html += '      </div>';
         html += '    </div>';
 
@@ -3523,7 +3523,7 @@ function setupAnalyzerControls() {
                             </div>
                         </div>
                         <div style="display: flex; gap: 8px; align-items: center;">
-                            <span style="font-size:10px; opacity:0.7;">${item.sector || ''}</span>
+                            <span style="font-size:13.5px; opacity:0.7;">${item.sector || ''}</span>
                             <span style="font-size:9px; font-weight:800; border: 1px solid ${capColor}40; color:${capColor}; padding:2px 6px; border-radius:4px; background:${capColor}12;">${capText}</span>
                         </div>
                     </div>
@@ -9401,7 +9401,7 @@ async function renderStrategyAuditMatrix(ticker) {
                     html += '  <div style="background: rgba(255, 255, 255, 0.015); padding: 12px; border-radius: 8px; border: 1px solid var(--border-glass); display: flex; flex-direction: column; justify-content: space-between; height: 100%; min-height: 165px;">';
                     html += '    <div>';
                     html += '      <div style="font-size: 10px; font-weight: 700; color: var(--text-primary); letter-spacing: 0.04em; margin-bottom: 8px; text-transform: uppercase;">Allocation Audit</div>';
-                    html += `      <div style="display:flex; justify-content:space-between; font-size:10px; color:var(--text-secondary); margin-bottom:4px;">`;
+                    html += `      <div style="display:flex; justify-content:space-between; font-size:13.5px; color:var(--text-secondary); margin-bottom:4px;">`;
                     html += `        <span>Base Strategy score:</span> <strong style="color: var(--text-primary);">${combo.scoring.base_score}/100</strong>`;
                     html += `      </div>`;
 
@@ -9409,7 +9409,7 @@ async function renderStrategyAuditMatrix(ticker) {
                         combo.scoring.adjustments.forEach(adj => {
                             const valSign = adj.value >= 0 ? `+${adj.value}` : adj.value;
                             const valColor = adj.value >= 0 ? '#10B981' : '#EF4444';
-                            html += `      <div style="display:flex; justify-content:space-between; font-size:10px; color:var(--text-secondary); margin-bottom:4px;">`;
+                            html += `      <div style="display:flex; justify-content:space-between; font-size:13.5px; color:var(--text-secondary); margin-bottom:4px;">`;
                             html += `        <span>Style adjustment (${adj.name}):</span> <strong style="color:${valColor};">${valSign}</strong>`;
                             html += `      </div>`;
                         });
@@ -9453,7 +9453,7 @@ async function renderStrategyAuditMatrix(ticker) {
                     html += `</div>`;
 
                     // Show Gate-by-Gate checks
-                    html += '<div style="font-size:10px; font-weight:700; color:var(--text-primary); letter-spacing:0.04em; margin-bottom:8px; text-transform:uppercase;">Gate Diagnostic Checklist</div>';
+                    html += '<div style="font-size:13.5px; font-weight:700; color:var(--text-primary); letter-spacing:0.04em; margin-bottom:8px; text-transform:uppercase;">Gate Diagnostic Checklist</div>';
                     html += '<div style="display:grid; grid-template-columns:1fr; gap:6px;">';
                     combo.gates.forEach(gate => {
                         const checkIcon = gate.passed ? '🟢 PASS' : '🔴 FAIL';
@@ -9466,7 +9466,7 @@ async function renderStrategyAuditMatrix(ticker) {
                         html += `    <span style="font-size: 11px; font-weight: 600; color: var(--text-primary);">${gate.name}</span>`;
                         html += `    <span style="font-size: 9.5px; color: var(--text-muted);">${gate.details}</span>`;
                         html += `  </div>`;
-                        html += `  <strong style="color:${checkColor}; font-size:10px; font-family:'Outfit', sans-serif; letter-spacing:0.04em;">${checkIcon}</strong>`;
+                        html += `  <strong style="color:${checkColor}; font-size:13.5px; font-family:'Outfit', sans-serif; letter-spacing:0.04em;">${checkIcon}</strong>`;
                         html += `</div>`;
                     });
                     html += '</div>';
@@ -11952,7 +11952,7 @@ function updateNotificationBell(list) {
     updateBadgeEl(sidebarBadge, activeTriggers.length);
 
     if (activeTriggers.length === 0) {
-        notifBody.innerHTML = '<div style="font-size:10px; color:var(--text-muted); padding:20px; text-align:center;">No new system notifications.</div>';
+        notifBody.innerHTML = '<div style="font-size:13.5px; color:var(--text-muted); padding:20px; text-align:center;">No new system notifications.</div>';
         return;
     }
 
@@ -12147,7 +12147,7 @@ function renderAlertsPage(page) {
         let operatorCellContent = '';
         let condBadgeStyle = '';
         if (item.condition_type === 'COMPOUND') {
-            condBadgeStyle = 'background: rgba(168, 85, 247, 0.2); color: #c084fc; border: 1px solid rgba(168, 85, 247, 0.4); font-size:10px; cursor: default; position: relative;';
+            condBadgeStyle = 'background: rgba(168, 85, 247, 0.2); color: #c084fc; border: 1px solid rgba(168, 85, 247, 0.4); font-size:13.5px; cursor: default; position: relative;';
             try {
                 const condList = JSON.parse(item.value);
                 const parts = condList.map(c => {
@@ -12161,7 +12161,7 @@ function renderAlertsPage(page) {
                 operatorCellContent = item.value;
             }
         } else {
-            condBadgeStyle = 'font-size:10px; cursor: default; position: relative;';
+            condBadgeStyle = 'font-size:13.5px; cursor: default; position: relative;';
             operatorCellContent = `${item.operator} ${item.value}`;
         }
 
@@ -14577,7 +14577,7 @@ function displaySynthesisData(data) {
             if (line.startsWith('|') && line.endsWith('|')) {
                 if (!inTable) {
                     inTable = true;
-                    tableHtml = '<div style="overflow-x:auto; margin: 12px 0;"><table class="synthesis-markdown-table" style="width:100%; border-collapse:collapse; font-size:10px; border:1px solid var(--border-glass); background:rgba(255,255,255,0.01);">';
+                    tableHtml = '<div style="overflow-x:auto; margin: 12px 0;"><table class="synthesis-markdown-table" style="width:100%; border-collapse:collapse; font-size:13.5px; border:1px solid var(--border-glass); background:rgba(255,255,255,0.01);">';
                 }
 
                 if (line.includes('---') || line.includes(':---')) {
@@ -16391,7 +16391,7 @@ function renderWatchlistControls() {
             btn.style.width = '100%';
             btn.style.marginBottom = '6px';
 
-            btn.innerHTML = `⭐ <strong>${w.name}</strong> <span style="font-size:10px; color:var(--text-muted); float:right;">(${w.items.length})</span>`;
+            btn.innerHTML = `⭐ <strong>${w.name}</strong> <span style="font-size:13.5px; color:var(--text-muted); float:right;">(${w.items.length})</span>`;
 
             btn.addEventListener('click', () => {
                 activeWatchlistId = w.id;
@@ -17085,11 +17085,11 @@ async function fetchWatchlistLiveQuotes(symbols) {
                 if (lowCell) lowCell.innerHTML = `<span style="font-family: 'Inter', monospace;">₹${low.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>`;
             } else {
                 // No quote data available
-                if (priceCell) priceCell.innerHTML = '<span class="text-muted" style="font-size:10px;">N/A</span>';
-                if (changeCell) changeCell.innerHTML = '<span class="text-muted" style="font-size:10px;">--</span>';
-                if (changePctCell) changePctCell.innerHTML = '<span class="text-muted" style="font-size:10px;">--</span>';
-                if (highCell) highCell.innerHTML = '<span class="text-muted" style="font-size:10px;">--</span>';
-                if (lowCell) lowCell.innerHTML = '<span class="text-muted" style="font-size:10px;">--</span>';
+                if (priceCell) priceCell.innerHTML = '<span class="text-muted" style="font-size:13.5px;">N/A</span>';
+                if (changeCell) changeCell.innerHTML = '<span class="text-muted" style="font-size:13.5px;">--</span>';
+                if (changePctCell) changePctCell.innerHTML = '<span class="text-muted" style="font-size:13.5px;">--</span>';
+                if (highCell) highCell.innerHTML = '<span class="text-muted" style="font-size:13.5px;">--</span>';
+                if (lowCell) lowCell.innerHTML = '<span class="text-muted" style="font-size:13.5px;">--</span>';
             }
         });
     } catch (err) {
@@ -19512,7 +19512,7 @@ function filterAndRenderUniverse() {
         html += '      </div>';
         html += '      <div style="flex: 1; background: rgba(0,0,0,0.15); border: 1px solid rgba(255,255,255,0.03); padding: 8px 10px; border-radius: 6px; display: flex; flex-direction: column; justify-content: center;">';
         html += '        <span style="font-size: 8.5px; color: var(--text-secondary); text-transform: uppercase; font-weight: 600;">Warmed vs Total</span>';
-        html += `        <strong style="font-size: 13.5px; color: #ffffff; margin-top: 1px; font-family: 'Outfit', sans-serif;"><span style="color:#10B981;">${warmedCount}W</span> <span style="color:var(--text-muted); font-size:10px;">/</span> <span style="color:var(--text-secondary); font-size:12px;">${totalCount}T</span></strong>`;
+        html += `        <strong style="font-size: 13.5px; color: #ffffff; margin-top: 1px; font-family: 'Outfit', sans-serif;"><span style="color:#10B981;">${warmedCount}W</span> <span style="color:var(--text-muted); font-size:13.5px;">/</span> <span style="color:var(--text-secondary); font-size:12px;">${totalCount}T</span></strong>`;
         html += '      </div>';
         html += '    </div>';
 
@@ -21693,7 +21693,7 @@ function renderSectorExposureChart(sectorData) {
 
     if (sectors.length === 0) {
         canvas.style.display = 'none';
-        legendContainer.innerHTML = '<div style="font-size:10px; color:var(--text-muted); text-align:center; padding: 10px; width: 100%;">No sectors detected</div>';
+        legendContainer.innerHTML = '<div style="font-size:13.5px; color:var(--text-muted); text-align:center; padding: 10px; width: 100%;">No sectors detected</div>';
         return;
     }
     canvas.style.display = 'block';
@@ -21783,7 +21783,7 @@ function renderSectorExposureChart(sectorData) {
 
 function drawInlineRangeBar(current, suggestedBuy, suggestedSell) {
     if (!suggestedBuy || !suggestedSell || suggestedBuy === 'N/A' || suggestedSell === 'N/A') {
-        return `<span style="color:var(--text-muted); font-size:10px;">Buy/Sell range not set</span>`;
+        return `<span style="color:var(--text-muted); font-size:13.5px;">Buy/Sell range not set</span>`;
     }
 
     // Parse range like "1200 - 1300"
@@ -21791,7 +21791,7 @@ function drawInlineRangeBar(current, suggestedBuy, suggestedSell) {
     const sellParts = suggestedSell.split('-').map(x => parseFloat(x.replace(/Rs\.?/gi, '').replace(/[^\d\.]/g, '')));
 
     if (buyParts.length < 2 || sellParts.length < 2 || isNaN(buyParts[0]) || isNaN(sellParts[0])) {
-        return `<span style="color:var(--text-muted); font-size:10px;">Buy: ${suggestedBuy}<br>Sell: ${suggestedSell}</span>`;
+        return `<span style="color:var(--text-muted); font-size:13.5px;">Buy: ${suggestedBuy}<br>Sell: ${suggestedSell}</span>`;
     }
 
     const buyMin = buyParts[0];
@@ -21804,7 +21804,7 @@ function drawInlineRangeBar(current, suggestedBuy, suggestedSell) {
     const totalMax = Math.max(current, sellMax) * 1.1;
     const range = totalMax - totalMin;
 
-    if (range <= 0) return `<span style="color:var(--text-muted); font-size:10px;">Range error</span>`;
+    if (range <= 0) return `<span style="color:var(--text-muted); font-size:13.5px;">Range error</span>`;
 
     const buyLeft = ((buyMin - totalMin) / range) * 100;
     const buyWidth = ((buyMax - buyMin) / range) * 100;
@@ -22045,7 +22045,7 @@ async function loadPortfolioDoctorLedger(forceRefresh = false) {
             tr.innerHTML = `
                 <td style="padding: 10px;">
                     <a href="#" class="ledger-stock-analyze-link" data-symbol="${item.symbol}" style="font-weight: 700; color: var(--color-primary); text-decoration: underline; cursor: pointer;" title="Open in Equity Research Terminal">${item.symbol}</a><br>
-                    <span style="font-size:10px; color:var(--text-muted);">${item.name}</span><br>
+                    <span style="font-size:13.5px; color:var(--text-muted);">${item.name}</span><br>
                     <span style="font-size:9.5px; color:var(--color-primary); font-weight:600;">${item.sector || 'Other'}</span>
                 </td>
                 <td style="padding: 10px; text-align: right;">
@@ -33062,7 +33062,7 @@ function renderSmcGlossary(filter = 'all') {
                 <span style="font-size:8px; font-weight:700; background:rgba(255,255,255,0.05); color:${catColor}; padding:2px 6px; border-radius:4px; text-transform:uppercase; letter-spacing: 0.05em;">${catLabel}</span>
             </div>
             <div style="color:var(--text-secondary); line-height:1.4; font-size:11px;">${term.desc}</div>
-            <div style="font-size:10px; font-weight:600; color:var(--text-muted); display:flex; align-items:center; gap:4px; margin-top:2px;">
+            <div style="font-size:13.5px; font-weight:600; color:var(--text-muted); display:flex; align-items:center; gap:4px; margin-top:2px;">
                 <span>Trading Interpretation:</span>
                 <span style="color:var(--text-primary); font-style:italic;">${term.signal}</span>
             </div>
@@ -33600,7 +33600,7 @@ window.renderTVAdvancedChart = renderTVAdvancedChart;
             window.renderSectorRegimeList();
         } catch (e) {
             console.error("Failed to load sector regime stats:", e);
-            listEl.innerHTML = '<div style="font-size:10px; color:var(--neon-red); text-align:center; padding:15px;">Failed to load sector standings.</div>';
+            listEl.innerHTML = '<div style="font-size:13.5px; color:var(--neon-red); text-align:center; padding:15px;">Failed to load sector standings.</div>';
         } finally {
             if (spinner) spinner.style.display = 'none';
             if (icon) icon.style.display = 'inline-block';
@@ -33721,7 +33721,7 @@ window.renderTVAdvancedChart = renderTVAdvancedChart;
         // 3. Render color-coded Heatmap Matrix tiles
         listEl.innerHTML = '';
         if (processedSectors.length === 0) {
-            listEl.innerHTML = '<div style="font-size:10px; color:var(--text-muted); text-align:center; padding:15px; grid-column: 1/-1;">No sectors match the selected capitalization filter.</div>';
+            listEl.innerHTML = '<div style="font-size:13.5px; color:var(--text-muted); text-align:center; padding:15px; grid-column: 1/-1;">No sectors match the selected capitalization filter.</div>';
             return;
         }
 
@@ -35780,7 +35780,7 @@ async function loadPortfolioNewsImpact(symbol, forceRefresh = false, runLLM = fa
                         <span>🕒 ${item.date || 'Today'}</span>
                     </div>
                     <div class="news-card-badges">
-                        <button class="news-card-read-aloud-btn" style="background:transparent; border:none; color:var(--text-muted); cursor:pointer; font-size:10px; padding: 2px; display:inline-flex; align-items:center; opacity:0.75; transition: opacity 0.2s;" title="Read Headline Aloud">🔊 Listen</button>
+                        <button class="news-card-read-aloud-btn" style="background:transparent; border:none; color:var(--text-muted); cursor:pointer; font-size:13.5px; padding: 2px; display:inline-flex; align-items:center; opacity:0.75; transition: opacity 0.2s;" title="Read Headline Aloud">🔊 Listen</button>
                         <span class="badge-sentiment ${sentimentClass}">${sentimentText}</span>
                         <span class="badge-driver">${item.category || 'General'}</span>
                         ${arHTML}
@@ -38986,8 +38986,8 @@ function renderCustomAcademyWidget(module, sbVals) {
                     <span style="font-weight:700; color:#3b82f6;">₹${ev.toFixed(0)} Cr</span>
                 </div>
                 <div style="display:flex; height:20px; border-radius:4px; overflow:hidden; border:1px solid var(--border-glass);">
-                    <div style="width:${capPct}%; background:#3b82f6; display:flex; align-items:center; justify-content:center; color:#fff; font-size:10px; font-weight:bold;">Equity (${capPct.toFixed(0)}%)</div>
-                    <div style="width:${debtPct}%; background:#ef4444; display:flex; align-items:center; justify-content:center; color:#fff; font-size:10px; font-weight:bold;">Debt (${debtPct.toFixed(0)}%)</div>
+                    <div style="width:${capPct}%; background:#3b82f6; display:flex; align-items:center; justify-content:center; color:#fff; font-size:13.5px; font-weight:bold;">Equity (${capPct.toFixed(0)}%)</div>
+                    <div style="width:${debtPct}%; background:#ef4444; display:flex; align-items:center; justify-content:center; color:#fff; font-size:13.5px; font-weight:bold;">Debt (${debtPct.toFixed(0)}%)</div>
                 </div>
             </div>
         `;
@@ -39410,7 +39410,7 @@ function renderCustomAcademyWidget(module, sbVals) {
         html = `
             <div style="display:flex; flex-direction:column; gap:16px; width:100%;">
                 <div style="position:relative; padding:10px 0 20px 0;">
-                    <div style="display:flex; justify-content:space-between; font-size:10px; color:var(--text-muted); margin-bottom:4px;">
+                    <div style="display:flex; justify-content:space-between; font-size:13.5px; color:var(--text-muted); margin-bottom:4px;">
                         <span>14D Low (₹${low14})</span>
                         <span>14D High (₹${high14})</span>
                     </div>
@@ -39427,7 +39427,7 @@ function renderCustomAcademyWidget(module, sbVals) {
                 
                 <div style="display:grid; grid-template-columns: 2fr 1fr; gap:12px; align-items:center; margin-top:10px;">
                     <div style="background:rgba(255,255,255,0.02); border:1px solid var(--border-glass); padding:10px; border-radius:8px;">
-                        <div style="font-size:10px; color:var(--text-muted); margin-bottom:2px; font-family:monospace;">%K = (Close − Low) / (High − Low) * 100</div>
+                        <div style="font-size:13.5px; color:var(--text-muted); margin-bottom:2px; font-family:monospace;">%K = (Close − Low) / (High − Low) * 100</div>
                         <div style="font-size:14px; font-weight:700; color:var(--text-primary); font-family:monospace;">
                             %K = (${close} − ${low14}) / (${high14} - ${low14}) = <span style="color:#8b5cf6;">${k.toFixed(1)}%</span>
                         </div>
@@ -39481,7 +39481,7 @@ function renderCustomAcademyWidget(module, sbVals) {
                         <span>Senkou Span B: <strong>₹${spanB.toFixed(1)}</strong></span>
                     </div>
                     <div style="height:24px; border-radius:4px; background:${spanA >= spanB ? 'rgba(16,185,129,0.12)' : 'rgba(239,68,68,0.12)'}; display:flex; align-items:center; justify-content:center; border: 1px dashed ${spanA >= spanB ? '#10b981' : '#ef4444'}; margin-top:4px;">
-                        <span style="font-size:10px; font-weight:700; color:${spanA >= spanB ? '#10b981' : '#ef4444'};">
+                        <span style="font-size:13.5px; font-weight:700; color:${spanA >= spanB ? '#10b981' : '#ef4444'};">
                             Kumo Cloud: ${spanA >= spanB ? 'Bullish (Green)' : 'Bearish (Red)'} Cloud Zone
                         </span>
                     </div>
@@ -39609,7 +39609,7 @@ function renderCustomAcademyWidget(module, sbVals) {
                         <span style="font-size:18px; font-weight:800; color:#8b5cf6;">MFI = ${mfi.toFixed(1)}%</span>
                     </div>
                     <div style="margin-top:6px;">
-                        <span class="custom-badge ${badgeClass}" style="display:inline-block; padding:4px 8px; border-radius:4px; font-weight:bold; font-size:10px;">${badgeText}</span>
+                        <span class="custom-badge ${badgeClass}" style="display:inline-block; padding:4px 8px; border-radius:4px; font-weight:bold; font-size:13.5px;">${badgeText}</span>
                     </div>
                 </div>
             </div>
@@ -39653,7 +39653,7 @@ function renderCustomAcademyWidget(module, sbVals) {
                     <div style="font-size:11px; color:var(--text-muted); margin-bottom:2px;">CCI Value</div>
                     <div style="font-size:24px; font-weight:800; color:#8b5cf6; font-family:var(--font-heading);">${cci.toFixed(1)}</div>
                     <div style="margin-top:6px;">
-                        <span class="custom-badge ${badgeClass}" style="padding:4px 8px; border-radius:4px; font-weight:bold; font-size:10px;">${badgeText}</span>
+                        <span class="custom-badge ${badgeClass}" style="padding:4px 8px; border-radius:4px; font-weight:bold; font-size:13.5px;">${badgeText}</span>
                     </div>
                 </div>
             </div>
@@ -43143,7 +43143,7 @@ function renderActiveStatementTable() {
             const cbStyle = isSelected 
                 ? 'width:14px;height:14px;border-radius:3px;border:1.5px solid rgba(139,92,246,0.8);background:rgba(139,92,246,0.35);cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;'
                 : 'width:14px;height:14px;border-radius:3px;border:1.5px solid rgba(255,255,255,0.2);background:transparent;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;';
-            const checkMark = isSelected ? '<span style="color:#a78bfa;font-size:10px;line-height:1;">✓</span>' : '';
+            const checkMark = isSelected ? '<span style="color:#a78bfa;font-size:13.5px;line-height:1;">✓</span>' : '';
             compareCheckbox = `<span class="fs-compare-cb" onclick="event.stopPropagation();toggleFsRowSelection('${label.replace(/'/g, "\\'")}')" style="${cbStyle}">${checkMark}</span>`;
         }
         
@@ -47142,7 +47142,7 @@ function toggleFsAlertPanel() {
             <h3 style="margin:0;font-family:'Outfit',sans-serif;font-size:14px;font-weight:700;color:var(--text-primary);">🔔 Smart Alert Subscriptions</h3>
             <button onclick="document.getElementById('fs-alert-overlay').remove()" style="background:transparent;border:1px solid var(--border-glass);border-radius:50%;width:24px;height:24px;cursor:pointer;color:var(--text-secondary);font-size:14px;display:flex;align-items:center;justify-content:center;">×</button>
         </div>
-        <div style="font-size:10px;color:var(--text-secondary);line-height:1.5;border-bottom:1px dashed var(--border-glass);padding-bottom:8px;">
+        <div style="font-size:13.5px;color:var(--text-secondary);line-height:1.5;border-bottom:1px dashed var(--border-glass);padding-bottom:8px;">
             Set threshold alerts on financial statement metrics. Alerts are saved on the server and evaluated each time data is loaded.
         </div>
 
@@ -47154,7 +47154,7 @@ function toggleFsAlertPanel() {
                 <button id="fs-alert-mic-btn" style="position:absolute;right:8px;top:8px;background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:13px;height:24px;width:24px;display:flex;align-items:center;justify-content:center;border-radius:50%;transition:all 0.2s;" title="Voice Input">🎙️</button>
             </div>
             <div style="display:flex;justify-content:space-between;align-items:center;margin-top:2px;">
-                <span id="fs-alert-nl-loader" style="display:none;font-size:10px;color:#fbbf24;font-weight:600;animation:pulse 1.5s infinite;">⏳ Processing AI rules...</span>
+                <span id="fs-alert-nl-loader" style="display:none;font-size:13.5px;color:#fbbf24;font-weight:600;animation:pulse 1.5s infinite;">⏳ Processing AI rules...</span>
                 <button onclick="parseFsNlAlert()" style="height:28px;padding:0 12px;font-size:10.5px;font-family:'Outfit',sans-serif;font-weight:600;border-radius:5px;border:none;background:linear-gradient(135deg,#f59e0b,#d97706);color:#fff;cursor:pointer;margin-left:auto;">✨ Build Alert</button>
             </div>
             
@@ -47181,11 +47181,11 @@ function toggleFsAlertPanel() {
             <div id="fs-alert-add-form" style="display:flex;gap:6px;flex-wrap:wrap;align-items:flex-end;margin-top:6px;padding:8px;background:rgba(255,255,255,0.02);border:1px dashed var(--border-glass);border-radius:6px;">
                 <div style="flex:1;min-width:120px;">
                     <label style="font-size:9px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.05em;display:block;margin-bottom:3px;">Metric Name</label>
-                    <input id="fs-alert-metric" type="text" placeholder="e.g. Net Profit, OPM, Sales" style="width:100%;height:28px;padding:0 8px;border-radius:5px;border:1px solid var(--border-glass);background:var(--bg-glass-input);color:var(--text-primary);font-size:10px;font-family:'Inter',sans-serif;box-sizing:border-box;outline:none;" />
+                    <input id="fs-alert-metric" type="text" placeholder="e.g. Net Profit, OPM, Sales" style="width:100%;height:28px;padding:0 8px;border-radius:5px;border:1px solid var(--border-glass);background:var(--bg-glass-input);color:var(--text-primary);font-size:13.5px;font-family:'Inter',sans-serif;box-sizing:border-box;outline:none;" />
                 </div>
                 <div style="width:80px;">
                     <label style="font-size:9px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.05em;display:block;margin-bottom:3px;">Condition</label>
-                    <select id="fs-alert-condition" style="width:100%;height:28px;padding:0 4px;border-radius:5px;border:1px solid var(--border-glass);background:var(--bg-glass-input);color:var(--text-primary);font-size:10px;font-family:'Inter',sans-serif;outline:none;">
+                    <select id="fs-alert-condition" style="width:100%;height:28px;padding:0 4px;border-radius:5px;border:1px solid var(--border-glass);background:var(--bg-glass-input);color:var(--text-primary);font-size:13.5px;font-family:'Inter',sans-serif;outline:none;">
                         <option value="above">Above</option>
                         <option value="below">Below</option>
                         <option value="yoy_above">YoY % ></option>
@@ -47194,9 +47194,9 @@ function toggleFsAlertPanel() {
                 </div>
                 <div style="width:80px;">
                     <label style="font-size:9px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.05em;display:block;margin-bottom:3px;">Threshold</label>
-                    <input id="fs-alert-threshold" type="number" placeholder="e.g. 1000" style="width:100%;height:28px;padding:0 8px;border-radius:5px;border:1px solid var(--border-glass);background:var(--bg-glass-input);color:var(--text-primary);font-size:10px;font-family:'Inter',sans-serif;box-sizing:border-box;outline:none;" />
+                    <input id="fs-alert-threshold" type="number" placeholder="e.g. 1000" style="width:100%;height:28px;padding:0 8px;border-radius:5px;border:1px solid var(--border-glass);background:var(--bg-glass-input);color:var(--text-primary);font-size:13.5px;font-family:'Inter',sans-serif;box-sizing:border-box;outline:none;" />
                 </div>
-                <button onclick="addFsAlert()" style="height:28px;padding:0 12px;font-size:10px;font-family:'Outfit',sans-serif;font-weight:600;border-radius:5px;border:none;background:linear-gradient(135deg,#f59e0b,#d97706);color:#fff;cursor:pointer;white-space:nowrap;">+ Add Alert</button>
+                <button onclick="addFsAlert()" style="height:28px;padding:0 12px;font-size:13.5px;font-family:'Outfit',sans-serif;font-weight:600;border-radius:5px;border:none;background:linear-gradient(135deg,#f59e0b,#d97706);color:#fff;cursor:pointer;white-space:nowrap;">+ Add Alert</button>
             </div>
         </details>
 
@@ -47409,7 +47409,7 @@ function renderFsAlertList() {
     if (!listEl) return;
 
     if (window._fsAlerts.length === 0) {
-        listEl.innerHTML = '<div style="font-size:10px;color:var(--text-muted);text-align:center;padding:12px;">No alerts configured. Add one above.</div>';
+        listEl.innerHTML = '<div style="font-size:13.5px;color:var(--text-muted);text-align:center;padding:12px;">No alerts configured. Add one above.</div>';
     } else {
         const condLabels = { above: '>', below: '<', yoy_above: 'YoY% >', yoy_below: 'YoY% <' };
         listEl.innerHTML = '<div style="font-size:9px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.05em;font-weight:700;margin-bottom:4px;">Active Alerts</div>' +
@@ -51379,7 +51379,7 @@ window.hydrateFuzzyRadarHomepage = async function() {
                         </div>
                         <div style="text-align:right;">
                             <div style="font-size:13.5px; font-weight:800; color:${colorClass}; font-family:monospace;">${sign}${item.fuzzy_score.toFixed(1)}%</div>
-                            <div style="font-size:10px; font-weight:700; color:#3b82f6; margin-top:2px;">Analyze →</div>
+                            <div style="font-size:13.5px; font-weight:700; color:#3b82f6; margin-top:2px;">Analyze →</div>
                         </div>
                     </div>
                 `;
