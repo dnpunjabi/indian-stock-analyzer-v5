@@ -25277,3 +25277,119 @@ body.light-theme .watchlist-filter-chip.active {
         border-right: none !important;
     }
 }
+
+
+/* ==========================================================================
+   APEX ULTRA-INSTITUTIONAL MOBILE FULL VIEWPORT & LARGE TYPOGRAPHY OVERHAUL
+   ========================================================================== */
+
+/* 1. Large High-Contrast Typography for Watchlist & Data Tables */
+.watchlist-symbol-link strong,
+.sticky-stock-col strong {
+    font-size: 15px !important;
+    font-weight: 800 !important;
+    color: #3b82f6 !important;
+    letter-spacing: -0.01em !important;
+    display: inline-block !important;
+}
+
+.wl-live-price span,
+#trendlyne-watchlist-table td:nth-child(2) span {
+    font-size: 15px !important;
+    font-weight: 800 !important;
+    color: #ffffff !important;
+    font-family: 'Inter', monospace !important;
+}
+
+#trendlyne-watchlist-table td:nth-child(3) span {
+    font-size: 14px !important;
+    font-weight: 600 !important;
+    color: #94a3b8 !important;
+    font-family: 'Inter', monospace !important;
+}
+
+.data-table thead th,
+.sortable-wl {
+    font-size: 12.5px !important;
+    font-weight: 800 !important;
+    letter-spacing: 0.04em !important;
+    color: #38bdf8 !important;
+    padding: 14px 10px !important;
+    text-transform: uppercase !important;
+}
+
+/* View Switcher & Filter Chips Button Scale */
+#wl-view-overview-btn,
+#wl-view-returns-btn,
+.watchlist-filter-chip {
+    font-size: 13px !important;
+    padding: 8px 14px !important;
+    font-weight: 700 !important;
+    border-radius: 8px !important;
+}
+
+/* 56px Generous Row Height for Clean Touch Targets */
+.data-table tbody tr {
+    height: 56px !important;
+    min-height: 56px !important;
+}
+
+.data-table tbody td {
+    padding: 12px 10px !important;
+    vertical-align: middle !important;
+}
+
+/* 2. 100% Full Viewport Edge-to-Edge Reset for Mobile Screens (< 768px) */
+@media (max-width: 768px) {
+    .app-container,
+    .workspace-content,
+    .workspace-tab,
+    #tab-watchlist,
+    #tab-portfolio,
+    #tab-screener,
+    #tab-universe,
+    #tab-alerts,
+    #tab-rule-scanner {
+        padding-left: 0 !important;
+        padding-right: 0 !important;
+        margin-left: 0 !important;
+        margin-right: 0 !important;
+        width: 100% !important;
+        max-width: 100vw !important;
+        box-sizing: border-box !important;
+    }
+
+    .card,
+    #watchlist-manage-card,
+    .watchlist-hero-header {
+        border-radius: 0 !important;
+        border-left: none !important;
+        border-right: none !important;
+        padding-left: 8px !important;
+        padding-right: 8px !important;
+        margin-left: 0 !important;
+        margin-right: 0 !important;
+        width: 100% !important;
+        box-sizing: border-box !important;
+    }
+
+    #tab-watchlist .table-scroll,
+    #tab-portfolio .ledger-table-wrap,
+    #financial-statements-card .table-scroll,
+    .table-scroll {
+        width: 100vw !important;
+        margin-left: -8px !important;
+        margin-right: -8px !important;
+        border-radius: 0 !important;
+        border-left: none !important;
+        border-right: none !important;
+    }
+
+    /* Sticky Stock Column Width for Mobile */
+    #tab-watchlist .data-table tbody td:first-child,
+    #tab-watchlist .data-table th:first-child {
+        min-width: 155px !important;
+        width: 155px !important;
+        max-width: 165px !important;
+    }
+}
