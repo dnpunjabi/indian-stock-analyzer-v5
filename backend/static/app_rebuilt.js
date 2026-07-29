@@ -13114,25 +13114,14 @@ function renderWatchlistItems() {
         pagContainer.style.display = 'flex';
     }
 
-    // Fetch live quotes: prefer WebSocket, fallback to HTTP polling
-    const allItemsNeedQuotes = activeWatch.items.filter(item => item.live_price === undefined || item.live_price === null);
-    const allSymbols = allItemsNeedQuotes.map(item => item.symbol);
-    if (allSymbols.length > 0) {
+    // Always fetch live quotes immediately for all visible page items so Day Chg % and Since Added % reflect instantly
+    const visibleSymbols = pageData.map(item => item.symbol);
+    const allWatchlistSymbols = activeWatch.items.map(item => item.symbol);
+    if (allWatchlistSymbols.length > 0) {
         if (liveTicksConnected && liveTicksWS && liveTicksWS.readyState === WebSocket.OPEN) {
-            // WebSocket: subscribe for continuous real-time updates
-            wsSubscribeSymbols(allSymbols);
-            // Also do one HTTP fetch for initial data while WS warms up
-            fetchWatchlistLiveQuotes(allSymbols);
-        } else {
-            // Fallback: HTTP polling
-            fetchWatchlistLiveQuotes(allSymbols);
+            wsSubscribeSymbols(allWatchlistSymbols);
         }
-    } else {
-        // All items already have quote data — just update the visible DOM cells
-        if (liveTicksConnected) {
-            wsSubscribeSymbols(pageData.map(item => item.symbol));
-        }
-        fetchWatchlistLiveQuotes(pageData.map(item => item.symbol));
+        fetchWatchlistLiveQuotes(allWatchlistSymbols);
     }
 }
 
@@ -13158,6 +13147,10 @@ async function fetchWatchlistLiveQuotes(symbols) {
                     item.change_pct = q.change_pct;
                     item.day_high = q.high;
                     item.day_low = q.low;
+                    const addedP = (item.added_price && item.added_price > 0) ? item.added_price : item.live_price;
+                    if (addedP > 0 && item.live_price > 0) {
+                        item.chg_since_added = ((item.live_price - addedP) / addedP) * 100;
+                    }
                 }
             });
         }
@@ -13189,9 +13182,21 @@ async function fetchWatchlistLiveQuotes(symbols) {
                 const changeColor = isPositive ? 'var(--neon-green, #10b981)' : 'var(--neon-red, #ef4444)';
                 const changeArrow = isPositive ? '▲' : '▼';
 
-                if (priceCell) priceCell.innerHTML = `<span style="font-family: 'Inter', monospace;">₹${price.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>`;
+                if (priceCell) priceCell.innerHTML = `<span style="font-family: 'Inter', monospace; font-weight: 700;">₹${price.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>`;
                 if (changeCell) changeCell.innerHTML = `<span style="color: ${changeColor};">${changeArrow} ${isPositive ? '+' : ''}${change.toFixed(2)}</span>`;
-                if (changePctCell) changePctCell.innerHTML = `<span style="color: ${changeColor}; padding: 1px 6px; border-radius: 4px; background: ${isPositive ? 'rgba(16,185,129,0.1)' : 'rgba(239,68,68,0.1)'}; font-size: 10.5px;">${isPositive ? '+' : ''}${change_pct.toFixed(2)}%</span>`;
+                if (changePctCell && change_pct !== null && change_pct !== undefined) {
+                    const isPos = change_pct >= 0;
+                    const col = isPos ? '#10b981' : '#ef4444';
+                    changePctCell.innerHTML = `<span style="color: ${col}; padding: 2px 6px; border-radius: 4px; background: ${isPos ? 'rgba(16,185,129,0.1)' : 'rgba(239,68,68,0.1)'}; font-size: 11px; font-weight: 700; font-family: 'Inter', monospace;">${isPos ? '+' : ''}${change_pct.toFixed(2)}%</span>`;
+                }
+                const chgSinceCell = row.querySelector('.wl-chg-since');
+                if (chgSinceCell && item && item.chg_since_added !== undefined) {
+                    const chgS = item.chg_since_added;
+                    const isPosS = chgS >= 0;
+                    const colS = isPosS ? '#10b981' : '#ef4444';
+                    const bgS = isPosS ? 'rgba(16,185,129,0.12)' : 'rgba(239,68,68,0.12)';
+                    chgSinceCell.innerHTML = `<span style="color: ${colS}; background: ${bgS}; padding: 2px 6px; border-radius: 4px; font-weight: 700; font-family: 'Inter', monospace; font-size: 11px;">${isPosS ? '+' : ''}${chgS.toFixed(2)}%</span>`;
+                }
                 if (highCell) highCell.innerHTML = `<span style="font-family: 'Inter', monospace;">₹${high.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>`;
                 if (lowCell) lowCell.innerHTML = `<span style="font-family: 'Inter', monospace;">₹${low.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>`;
             } else {
