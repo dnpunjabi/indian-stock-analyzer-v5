@@ -25746,3 +25746,70 @@ td, th {
 [style*="font-size:11"] {
     font-size: 13px !important;
 }
+
+
+/* ==========================================================================
+   APEX 100% OPAQUE SOLID STICKY FIRST COLUMN (ZERO TEXT BLEED-THROUGH)
+   ========================================================================== */
+
+/* Dark Theme - 100% Opaque Solid Dark Background */
+.data-table tbody td:first-child,
+table tbody td:first-child,
+.sticky-stock-col,
+td.sticky-stock-col,
+#tab-watchlist .data-table tbody td:first-child,
+#tab-portfolio .ledger-table-wrap tbody td:first-child,
+#financial-statements-table tbody td:first-child {
+    position: sticky !important;
+    left: 0 !important;
+    z-index: 25 !important;
+    background: #0d1117 !important;
+    opacity: 1 !important;
+    backdrop-filter: none !important;
+    box-shadow: 4px 0 14px rgba(0, 0, 0, 0.75) !important;
+    border-right: 1.5px solid rgba(56, 189, 248, 0.3) !important;
+}
+
+/* Sticky First Column Headers (Top Left Corner & Headers) */
+.data-table th:first-child,
+table th:first-child,
+.sticky-stock-hdr,
+th.sticky-stock-hdr,
+#tab-watchlist .data-table th:first-child,
+#tab-portfolio .ledger-table-wrap th:first-child,
+#financial-statements-table th:first-child {
+    position: sticky !important;
+    top: 0 !important;
+    left: 0 !important;
+    z-index: 35 !important;
+    background: #0d1117 !important;
+    opacity: 1 !important;
+    backdrop-filter: none !important;
+    box-shadow: 4px 2px 14px rgba(0, 0, 0, 0.8) !important;
+    border-right: 1.5px solid rgba(56, 189, 248, 0.3) !important;
+}
+
+/* Light Theme Compatibility - 100% Opaque Pure White Background */
+[data-theme="light"] .data-table tbody td:first-child,
+[data-theme="light"] table tbody td:first-child,
+[data-theme="light"] .sticky-stock-col,
+[data-theme="light"] td.sticky-stock-col,
+body.light-theme .data-table tbody td:first-child,
+body.light-theme table tbody td:first-child {
+    background: #ffffff !important;
+    opacity: 1 !important;
+    box-shadow: 4px 0 12px rgba(0, 0, 0, 0.12) !important;
+    border-right: 1.5px solid rgba(0, 0, 0, 0.15) !important;
+}
+
+[data-theme="light"] .data-table th:first-child,
+[data-theme="light"] table th:first-child,
+[data-theme="light"] .sticky-stock-hdr,
+[data-theme="light"] th.sticky-stock-hdr,
+body.light-theme .data-table th:first-child,
+body.light-theme table th:first-child {
+    background: #f8fafc !important;
+    opacity: 1 !important;
+    box-shadow: 4px 2px 12px rgba(0, 0, 0, 0.15) !important;
+    border-right: 1.5px solid rgba(0, 0, 0, 0.15) !important;
+}
