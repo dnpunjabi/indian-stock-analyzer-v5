@@ -25393,3 +25393,226 @@ body.light-theme .watchlist-filter-chip.active {
         max-width: 165px !important;
     }
 }
+
+
+/* ==========================================================================
+   APEX ULTRA-INSTITUTIONAL GLOBAL FULL VIEWPORT & TYPOGRAPHY MASTER OVERHAUL
+   Applicable to ALL screens, tabs, subtabs, sections, cards & tables app-wide
+   ========================================================================== */
+
+/* --------------------------------------------------------------------------
+   1. GLOBAL LARGE HIGH-CONTRAST TYPOGRAPHY SCALE (Trendlyne Scale)
+   -------------------------------------------------------------------------- */
+
+/* Tickers, Symbols, Stock Names across all screens */
+.symbol,
+.ticker,
+.stock-name,
+.stock-symbol,
+.watchlist-symbol-link strong,
+.sticky-stock-col strong,
+.cyber-stock-card-row strong,
+.gainer-deck-card strong,
+.loser-deck-card strong,
+.screener-symbol strong,
+.universe-symbol strong,
+.mover-symbol strong,
+[data-symbol] strong {
+    font-size: 15.5px !important;
+    font-weight: 800 !important;
+    color: #3b82f6 !important;
+    letter-spacing: -0.01em !important;
+    display: inline-block !important;
+}
+
+/* LTP & Primary Live Stock Prices across all screens */
+.price,
+.live-price,
+.wl-live-price span,
+.ltp-val,
+.stock-price,
+td.price-cell,
+#trendlyne-watchlist-table td:nth-child(2) span,
+.cyber-stock-card-row div[style*="font-family:monospace"],
+.gainer-deck-card div[style*="font-family:monospace"],
+.loser-deck-card div[style*="font-family:monospace"] {
+    font-size: 15.5px !important;
+    font-weight: 800 !important;
+    color: #ffffff !important;
+    font-family: 'Inter', monospace !important;
+}
+
+/* Secondary Prices (Added Price, 52W High/Low, Target Prices) */
+.secondary-price,
+.added-price,
+.target-price,
+td.added-price-cell,
+#trendlyne-watchlist-table td:nth-child(3) span {
+    font-size: 14px !important;
+    font-weight: 600 !important;
+    color: #94a3b8 !important;
+    font-family: 'Inter', monospace !important;
+}
+
+/* Percentage Change Pills (% Day Change, % Returns, MOS %) */
+.change-pct,
+.wl-change-pct span,
+.wl-chg-since span,
+.return-pill,
+.badge-pct,
+.gain-pct,
+.loss-pct {
+    font-size: 12.5px !important;
+    font-weight: 800 !important;
+    padding: 3px 8px !important;
+    border-radius: 5px !important;
+    font-family: 'Inter', monospace !important;
+}
+
+/* Table Headers across all screens and tabs */
+.data-table thead th,
+table thead th,
+.sortable-wl,
+.table-header-cell,
+th.sticky-stock-hdr {
+    font-size: 13px !important;
+    font-weight: 800 !important;
+    letter-spacing: 0.05em !important;
+    color: #38bdf8 !important;
+    padding: 14px 10px !important;
+    text-transform: uppercase !important;
+    background: #0d1117 !important;
+}
+
+/* Headings across all sections & cards */
+h1, .h1-title { font-size: 24px !important; font-weight: 800 !important; }
+h2, .h2-title { font-size: 20px !important; font-weight: 800 !important; }
+h3, .h3-title { font-size: 17px !important; font-weight: 800 !important; letter-spacing: 0.02em !important; }
+h4, .h4-title { font-size: 15px !important; font-weight: 700 !important; }
+
+/* Filter Chips, Nav Tabs, Subtabs & Buttons across all screens */
+.nav-btn,
+.tab-btn,
+.subtab-btn,
+.filter-chip,
+.watchlist-filter-chip,
+.btn-primary,
+.btn-secondary,
+#wl-view-overview-btn,
+#wl-view-returns-btn {
+    font-size: 13.5px !important;
+    font-weight: 700 !important;
+    padding: 8px 16px !important;
+    border-radius: 8px !important;
+}
+
+/* Touch-Friendly Row Height Across All Tables App-Wide */
+.data-table tbody tr,
+table tbody tr {
+    height: 56px !important;
+    min-height: 56px !important;
+}
+
+.data-table tbody td,
+table tbody td {
+    padding: 12px 10px !important;
+    vertical-align: middle !important;
+    font-size: 13.5px !important;
+}
+
+
+/* --------------------------------------------------------------------------
+   2. GLOBAL 100% FULL EDGE-TO-EDGE VIEWPORT RESET (0px Side Margin Waste)
+   Applicable to ALL screens, tabs, sections, subsections & cards on Mobile
+   -------------------------------------------------------------------------- */
+@media (max-width: 768px) {
+    /* Root HTML & Body */
+    html, body {
+        width: 100% !important;
+        max-width: 100vw !important;
+        overflow-x: hidden !important;
+        margin: 0 !important;
+        padding: 0 !important;
+    }
+
+    /* Outermost Application Containers */
+    .app-container,
+    .main-content,
+    .workspace-content,
+    .workspace-container,
+    .tab-content,
+    .subtab-content,
+    .container,
+    .content-area {
+        padding-left: 0 !important;
+        padding-right: 0 !important;
+        margin-left: 0 !important;
+        margin-right: 0 !important;
+        width: 100% !important;
+        max-width: 100vw !important;
+        box-sizing: border-box !important;
+    }
+
+    /* ALL Workspace Tabs (Home, Analyzer, Watchlist, Portfolio, Screener, Technical Scans, Sector Radar, News, Movers, Rule Scanner, Deals, Events, Learning, Fuzzy AI, Benchmarking, Universe, etc.) */
+    .workspace-tab,
+    [id^="tab-"] {
+        padding-left: 0 !important;
+        padding-right: 0 !important;
+        margin-left: 0 !important;
+        margin-right: 0 !important;
+        width: 100% !important;
+        max-width: 100vw !important;
+        box-sizing: border-box !important;
+    }
+
+    /* ALL Cards, Hero Headers, Grids, Panels & Sections App-Wide */
+    .card,
+    .hero-header,
+    [class*="-card"],
+    [class*="-hero-header"],
+    .panel,
+    .grid,
+    .grid-container,
+    .dashboard-grid,
+    .watchlist-grid,
+    .screener-grid,
+    .section-box,
+    .section-container {
+        border-radius: 0 !important;
+        border-left: none !important;
+        border-right: none !important;
+        padding-left: 6px !important;
+        padding-right: 6px !important;
+        margin-left: 0 !important;
+        margin-right: 0 !important;
+        width: 100% !important;
+        max-width: 100vw !important;
+        box-sizing: border-box !important;
+    }
+
+    /* ALL Table Wrappers & Tables Across Entire App */
+    .table-scroll,
+    .ledger-table-wrap,
+    .table-responsive,
+    .table-container,
+    .data-table,
+    table {
+        width: 100vw !important;
+        margin-left: 0 !important;
+        margin-right: 0 !important;
+        border-radius: 0 !important;
+        border-left: none !important;
+        border-right: none !important;
+        box-sizing: border-box !important;
+    }
+
+    /* Sticky Stock Column Width for Mobile */
+    .data-table tbody td:first-child,
+    .data-table th:first-child,
+    table tbody td:first-child,
+    table th:first-child {
+        min-width: 155px !important;
+        width: 155px !important;
+        max-width: 165px !important;
+    }
+}
