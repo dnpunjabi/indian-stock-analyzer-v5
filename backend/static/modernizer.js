@@ -156,7 +156,7 @@
         const selectedColor = colors[Math.abs(hash) % colors.length];
         const displayChar = cleanSym.charAt(0);
 
-        return `<div class="stock-circle-logo" style="width:28px; height:28px; border-radius:50%; background:${selectedColor}; display:flex; align-items:center; justify-content:center; color:#fff; font-size:11px; font-weight:800; font-family:var(--font-heading); flex-shrink:0;">${displayChar}</div>`;
+        return `<div class="stock-circle-logo" style="width:28px; height:28px; border-radius:50%; background:${selectedColor}; display:flex; align-items:center; justify-content:center; color:#fff; font-size: 13.5px; font-weight:800; font-family:var(--font-heading); flex-shrink:0;">${displayChar}</div>`;
     };
 
     window.switchMoversTab = function(tabName) {
@@ -204,31 +204,31 @@
         const cleanSource = (source || '').toLowerCase().trim();
         
         if (cleanSource.includes('mint') || cleanSource.includes('livemint')) {
-            return `<span style="background:#fff; border:1px solid #ff9f0a; color:#000; padding:2px 6px; border-radius:3px; font-family:Georgia, serif; font-size:10px; font-weight:900; display:inline-block; vertical-align:middle; letter-spacing:-0.02em; line-height:1;"><span style="color:#000;">live</span><span style="color:#ff9f0a;">mint</span></span>`;
+            return `<span style="background:#fff; border:1px solid #ff9f0a; color:#000; padding:2px 6px; border-radius:3px; font-family:Georgia, serif; font-size: 13px; font-weight:900; display:inline-block; vertical-align:middle; letter-spacing:-0.02em; line-height:1;"><span style="color:#000;">live</span><span style="color:#ff9f0a;">mint</span></span>`;
         }
         if (cleanSource.includes('bloomberg') || cleanSource.includes('bloom')) {
-            return `<span style="background:#005A36; color:#fff; padding:3px 8px; border-radius:4px; font-weight:900; font-family:var(--font-heading); font-size:10px; display:inline-block; vertical-align:middle; letter-spacing:-0.02em; line-height:1;">Bloomberg</span>`;
+            return `<span style="background:#005A36; color:#fff; padding:3px 8px; border-radius:4px; font-weight:900; font-family:var(--font-heading); font-size: 13px; display:inline-block; vertical-align:middle; letter-spacing:-0.02em; line-height:1;">Bloomberg</span>`;
         }
         if (cleanSource.includes('reuters')) {
-            return `<span style="background:rgba(255,255,255,0.06); border:1px solid var(--border-glass); color:#ff9f0a; padding:2.5px 8px; border-radius:4px; font-weight:800; font-family:var(--font-heading); font-size:10px; display:inline-flex; align-items:center; gap:4px; vertical-align:middle; line-height:1;">🔸 REUTERS</span>`;
+            return `<span style="background:rgba(255,255,255,0.06); border:1px solid var(--border-glass); color:#ff9f0a; padding:2.5px 8px; border-radius:4px; font-weight:800; font-family:var(--font-heading); font-size: 13px; display:inline-flex; align-items:center; gap:4px; vertical-align:middle; line-height:1;">🔸 REUTERS</span>`;
         }
         if (cleanSource.includes('economic') || cleanSource.includes('et')) {
-            return `<span style="background:#faeada; border:1.5px solid #00444e; color:#00444e; padding:2px 5px; border-radius:3px; font-family:'Times New Roman', Georgia, serif; font-size:11px; font-weight:900; display:inline-block; vertical-align:middle; line-height:1; letter-spacing:0.02em;">ET</span>`;
+            return `<span style="background:#faeada; border:1.5px solid #00444e; color:#00444e; padding:2px 5px; border-radius:3px; font-family:'Times New Roman', Georgia, serif; font-size: 13.5px; font-weight:900; display:inline-block; vertical-align:middle; line-height:1; letter-spacing:0.02em;">ET</span>`;
         }
         if (cleanSource.includes('yahoo') || cleanSource.includes('yfinance') || cleanSource.includes('finance')) {
-            return `<span style="background:#fff; border:1px solid #6001d2; color:#6001d2; padding:2px 6px; border-radius:3px; font-family:'Outfit', sans-serif; font-size:10px; font-weight:900; display:inline-block; vertical-align:middle; line-height:1; letter-spacing:-0.03em;"><span style="color:#6001d2;">yahoo!</span><span style="color:#7e1eff; font-weight:600;">finance</span></span>`;
+            return `<span style="background:#fff; border:1px solid #6001d2; color:#6001d2; padding:2px 6px; border-radius:3px; font-family:'Outfit', sans-serif; font-size: 13px; font-weight:900; display:inline-block; vertical-align:middle; line-height:1; letter-spacing:-0.03em;"><span style="color:#6001d2;">yahoo!</span><span style="color:#7e1eff; font-weight:600;">finance</span></span>`;
         }
         if (cleanSource.includes('cnbc') || cleanSource.includes('tv18')) {
-            return `<span style="background:#0a2540; color:#00d2fe; padding:3px 8px; border-radius:4px; font-weight:900; font-family:var(--font-heading); font-size:10px; display:inline-block; vertical-align:middle; border:1px solid rgba(0,210,254,0.3); line-height:1;">CNBC-TV18</span>`;
+            return `<span style="background:#0a2540; color:#00d2fe; padding:3px 8px; border-radius:4px; font-weight:900; font-family:var(--font-heading); font-size: 13px; display:inline-block; vertical-align:middle; border:1px solid rgba(0,210,254,0.3); line-height:1;">CNBC-TV18</span>`;
         }
         if (cleanSource.includes('standard') || cleanSource.includes('business') || cleanSource.includes('bs')) {
-            return `<span style="background:#ffe8d4; border:1.5px solid #a91d22; color:#a91d22; padding:2px 5px; border-radius:3px; font-family:'Times New Roman', Georgia, serif; font-size:11px; font-weight:900; display:inline-block; vertical-align:middle; line-height:1; letter-spacing:0.02em;">BS</span>`;
+            return `<span style="background:#ffe8d4; border:1.5px solid #a91d22; color:#a91d22; padding:2px 5px; border-radius:3px; font-family:'Times New Roman', Georgia, serif; font-size: 13.5px; font-weight:900; display:inline-block; vertical-align:middle; line-height:1; letter-spacing:0.02em;">BS</span>`;
         }
         if (cleanSource.includes('financial') || cleanSource.includes('express')) {
-            return `<span style="background:#fff; color:#000; padding:2px 6px; border-radius:3px; font-family:Georgia, serif; font-weight:900; font-size:10px; border:1px solid #ccc; display:inline-block; vertical-align:middle; text-transform:uppercase; line-height:1;">FE</span>`;
+            return `<span style="background:#fff; color:#000; padding:2px 6px; border-radius:3px; font-family:Georgia, serif; font-weight:900; font-size: 13px; border:1px solid #ccc; display:inline-block; vertical-align:middle; text-transform:uppercase; line-height:1;">FE</span>`;
         }
         
-        return `<span style="background:rgba(255,255,255,0.06); border:1px solid var(--border-glass); color:var(--text-secondary); padding:3px 8px; border-radius:4px; font-weight:700; font-size:10px; display:inline-block; vertical-align:middle; text-transform:uppercase; letter-spacing:0.03em; line-height:1;">${source}</span>`;
+        return `<span style="background:rgba(255,255,255,0.06); border:1px solid var(--border-glass); color:var(--text-secondary); padding:3px 8px; border-radius:4px; font-weight:700; font-size: 13px; display:inline-block; vertical-align:middle; text-transform:uppercase; letter-spacing:0.03em; line-height:1;">${source}</span>`;
     }
 
 
@@ -524,7 +524,7 @@
                             <span></span>
                             <span></span>
                         </div>
-                        <span style="font-size: 10px; color: var(--text-muted); margin-top: 4px; display: block;">Consulting AI Advisor...</span>
+                        <span style="font-size: 13px; color: var(--text-muted); margin-top: 4px; display: block;">Consulting AI Advisor...</span>
                     `;
                     box.appendChild(msg);
                     box.scrollTo({ top: box.scrollHeight, behavior: 'smooth' });
@@ -1039,7 +1039,7 @@
         // Show instructional placeholder message in summary container
         const summaryContainer = document.getElementById('catalyst-summary-text');
         if (summaryContainer) {
-            summaryContainer.innerHTML = '<span style="color: var(--text-muted); font-size: 11.5px; font-style: italic;">Modify your query in the input box above, then click the <strong>Query</strong> button to fetch real-time catalysts and AI analysis.</span>';
+            summaryContainer.innerHTML = '<span style="color: var(--text-muted); font-size: 13.5px; font-style: italic;">Modify your query in the input box above, then click the <strong>Query</strong> button to fetch real-time catalysts and AI analysis.</span>';
         }
 
         // Clear previous catalyst driver cards
@@ -1233,7 +1233,7 @@
                                 </div>
                                 <strong style="font-size: 12px; color: var(--text-primary); font-family:var(--font-heading); flex: 1; min-width: 150px; text-align: left;">${d.title}</strong>
                             </div>
-                            <p style="margin: 0; font-size: 11.5px; line-height: 1.55; color: var(--text-secondary); font-family: 'Inter';">${d.desc}</p>
+                            <p style="margin: 0; font-size: 13.5px; line-height: 1.55; color: var(--text-secondary); font-family: 'Inter';">${d.desc}</p>
                         `;
                         listEl.appendChild(card);
                     });
@@ -1799,12 +1799,12 @@
                         <div id="mobile-quick-suggestions" class="watchlist-autocomplete-box" style="display:none; position:absolute; top:100%; left:0; right:0; z-index:9999; max-height:220px; overflow-y:auto; margin-top:4px;"></div>
                     </div>
                     <div>
-                        <h5 style="margin:0 0 8px 0; font-size:11px; text-transform:uppercase; color:var(--text-secondary); font-family:var(--font-heading);">Recent Searches</h5>
+                        <h5 style="margin:0 0 8px 0; font-size: 13.5px; text-transform:uppercase; color:var(--text-secondary); font-family:var(--font-heading);">Recent Searches</h5>
                         <div style="display:flex; flex-wrap:wrap; gap:8px;">
             `;
             
             recents.forEach(sym => {
-                html += `<button class="quick-search-pill-btn" data-symbol="${sym}" style="background:rgba(255,255,255,0.03); border:1px solid var(--border-glass); color:var(--text-primary); padding:6px 12px; border-radius:15px; font-size:11px; font-weight:600; cursor:pointer;">${sym}</button>`;
+                html += `<button class="quick-search-pill-btn" data-symbol="${sym}" style="background:rgba(255,255,255,0.03); border:1px solid var(--border-glass); color:var(--text-primary); padding:6px 12px; border-radius:15px; font-size: 13.5px; font-weight:600; cursor:pointer;">${sym}</button>`;
             });
             
             html += `
@@ -1866,7 +1866,7 @@
                                         div.innerHTML = `
                                             <div>
                                                 <span class="ticker-pill" style="font-weight: 700; color: #fff;">${item.base_symbol}</span>
-                                                <span style="font-size: 10px; color: var(--text-muted); margin-left: 6px;">${item.name}</span>
+                                                <span style="font-size: 13px; color: var(--text-muted); margin-left: 6px;">${item.name}</span>
                                             </div>
                                             <span class="sector-pill">${item.sector || 'Equity'}</span>
                                         `;
@@ -2359,11 +2359,11 @@
                 <div class="tearsheet-meta-row" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
                     <div>
                         <h3 style="margin:0;font-family:var(--font-heading);font-size:16px;font-weight:800;color:var(--text-primary);">${ticker}</h3>
-                        <span style="font-size:10px;color:var(--text-secondary);">${name}</span>
+                        <span style="font-size: 13px;color:var(--text-secondary);">${name}</span>
                     </div>
                     <div class="tearsheet-price-area" style="text-align:right;">
                         <span style="font-size:18px;font-family:var(--font-heading);font-weight:800;color:var(--text-primary);">${formatRupees(price)}</span>
-                        <span class="${isPositive ? 'green-text' : 'red-text'}" style="font-size:11px;font-weight:700;margin-left:6px;">
+                        <span class="${isPositive ? 'green-text' : 'red-text'}" style="font-size: 13.5px;font-weight:700;margin-left:6px;">
                             ${sign}${changePct.toFixed(2)}%
                         </span>
                     </div>
@@ -2372,7 +2372,7 @@
                     <div style="position:absolute; top:0; bottom:0; left:0; right:0; background:linear-gradient(90deg, #ef4444, #eab308, #22c55e); border-radius:2px; opacity:0.15;"></div>
                     <div class="tearsheet-range-marker" style="left: ${sliderPct}%; width:10px; height:10px; border-radius:50%; background:var(--color-primary-light); box-shadow:0 0 8px var(--color-primary); position:absolute; top:-3px; transform:translateX(-50%); transition:left 0.3s ease;"></div>
                 </div>
-                <div class="tearsheet-range-labels" style="display:flex; justify-content:space-between; font-size:9px; color:var(--text-secondary); font-family:Inter;">
+                <div class="tearsheet-range-labels" style="display:flex; justify-content:space-between; font-size: 12.5px; color:var(--text-secondary); font-family:Inter;">
                     <span>L: ${formatRupees(low)}</span>
                     <span>H: ${formatRupees(high)}</span>
                 </div>
@@ -2549,7 +2549,7 @@
 
                 const chevron = document.createElement('span');
                 chevron.className = 'row-expand-trigger';
-                chevron.style.cssText = 'cursor: pointer; padding: 2px 6px; font-size: 10px; color: var(--color-primary-light); user-select: none; transition: transform 0.2s; font-weight: bold; margin-left: 4px;';
+                chevron.style.cssText = 'cursor: pointer; padding: 2px 6px; font-size: 13px; color: var(--color-primary-light); user-select: none; transition: transform 0.2s; font-weight: bold; margin-left: 4px;';
                 chevron.innerHTML = '▼';
                 
                 const symbolLink = firstCell.querySelector('.universe-symbol-link') || firstCell;
@@ -2576,7 +2576,7 @@
                         detailsTr.style.background = 'rgba(255, 255, 255, 0.01)';
                         detailsTr.innerHTML = `
                             <td colspan="7" style="padding: 10px 15px; border-top: 1px dashed rgba(255,255,255,0.05); border-bottom: 1px dashed rgba(255,255,255,0.05);">
-                                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 11px; color: var(--text-secondary); line-height: 1.45;">
+                                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 13.5px; color: var(--text-secondary); line-height: 1.45;">
                                     <div style="grid-column: span 2; font-size: 12px; color: var(--color-primary-light); font-weight: bold; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 4px; margin-bottom: 4px;">
                                         ${companyName}
                                     </div>
@@ -2584,7 +2584,7 @@
                                     <div style="text-align: right; display: flex; justify-content: flex-end; align-items: center; gap: 4px;"><strong>Cache Status:</strong> ${cacheStatus}</div>
                                 </div>
                                 <div style="border-top: 1px dashed rgba(255,255,255,0.08); padding-top: 8px; margin-top: 8px; display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap;">
-                                    <span style="font-size: 10px; color: var(--text-muted);">Explorer Actions:</span>
+                                    <span style="font-size: 13px; color: var(--text-muted);">Explorer Actions:</span>
                                     <div class="mobile-actions-wrapper" style="display: flex; gap: 6px;">
                                         ${actionsHtml}
                                     </div>
@@ -2637,14 +2637,14 @@
                 if (!firstCell.querySelector('.mobile-alerts-meta')) {
                     const metaSpan = document.createElement('span');
                     metaSpan.className = 'mobile-alerts-meta';
-                    metaSpan.style.cssText = 'display: block; margin-top: 3px; font-size: 10px; color: var(--text-secondary); font-family: monospace; font-weight: bold;';
+                    metaSpan.style.cssText = 'display: block; margin-top: 3px; font-size: 13px; color: var(--text-secondary); font-family: monospace; font-weight: bold;';
                     metaSpan.textContent = combinedText;
                     firstCell.appendChild(metaSpan);
                 }
 
                 const chevron = document.createElement('span');
                 chevron.className = 'row-expand-trigger';
-                chevron.style.cssText = 'cursor: pointer; padding: 2px 6px; font-size: 10px; color: var(--color-primary-light); user-select: none; transition: transform 0.2s; font-weight: bold; margin-left: 4px;';
+                chevron.style.cssText = 'cursor: pointer; padding: 2px 6px; font-size: 13px; color: var(--color-primary-light); user-select: none; transition: transform 0.2s; font-weight: bold; margin-left: 4px;';
                 chevron.innerHTML = '▼';
                 
                 const link = firstCell.querySelector('.alert-stock-link') || firstCell;
@@ -2668,12 +2668,12 @@
                         detailsTr.style.background = 'rgba(255, 255, 255, 0.01)';
                         detailsTr.innerHTML = `
                             <td colspan="6" style="padding: 10px 15px; border-top: 1px dashed rgba(255,255,255,0.05); border-bottom: 1px dashed rgba(255,255,255,0.05);">
-                                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 11px; color: var(--text-secondary); line-height: 1.45;">
-                                    <div><strong>Trigger Target:</strong> <code style="font-family: monospace; font-size: 11px; color: var(--color-primary-light); font-weight: bold;">${targetCondition}</code></div>
+                                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 13.5px; color: var(--text-secondary); line-height: 1.45;">
+                                    <div><strong>Trigger Target:</strong> <code style="font-family: monospace; font-size: 13.5px; color: var(--color-primary-light); font-weight: bold;">${targetCondition}</code></div>
                                     <div style="text-align: right;"><strong>Scan Status:</strong> ${triggeredAt}</div>
                                 </div>
                                 <div style="border-top: 1px dashed rgba(255,255,255,0.08); padding-top: 8px; margin-top: 8px; display: flex; justify-content: space-between; align-items: center;">
-                                    <span style="font-size: 10px; color: var(--text-muted);">Cockpit Operations:</span>
+                                    <span style="font-size: 13px; color: var(--text-muted);">Cockpit Operations:</span>
                                     <div class="mobile-actions-wrapper">
                                         ${actionBtn}
                                     </div>
@@ -2766,14 +2766,14 @@
                 if (!priceCell.querySelector('.mobile-rs-meta')) {
                     const metaSpan = document.createElement('span');
                     metaSpan.className = 'mobile-rs-meta';
-                    metaSpan.style.cssText = 'display: block; margin-top: 3px; font-size: 10px; font-weight: bold;';
+                    metaSpan.style.cssText = 'display: block; margin-top: 3px; font-size: 13px; font-weight: bold;';
                     metaSpan.innerHTML = ratingHtml;
                     priceCell.appendChild(metaSpan);
                 }
 
                 const chevron = document.createElement('span');
                 chevron.className = 'row-expand-trigger';
-                chevron.style.cssText = 'cursor: pointer; padding: 2px 6px; font-size: 10px; color: var(--color-primary-light); user-select: none; transition: transform 0.2s; font-weight: bold; margin-left: 4px;';
+                chevron.style.cssText = 'cursor: pointer; padding: 2px 6px; font-size: 13px; color: var(--color-primary-light); user-select: none; transition: transform 0.2s; font-weight: bold; margin-left: 4px;';
                 chevron.innerHTML = '▼';
 
                 const stockNameSpan = firstCell.querySelector('span');
@@ -2802,7 +2802,7 @@
                         detailsTr.style.background = 'rgba(255, 255, 255, 0.01)';
                         detailsTr.innerHTML = `
                             <td colspan="8" style="padding: 12px 15px; border-top: 1px dashed rgba(255,255,255,0.05); border-bottom: 1px dashed rgba(255,255,255,0.05);">
-                                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 11px; color: var(--text-secondary); line-height: 1.45;">
+                                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 13.5px; color: var(--text-secondary); line-height: 1.45;">
                                     <div><strong>Segment:</strong> ${segment}</div>
                                     <div style="text-align: right;"><strong>P/E:</strong> ${peVal}</div>
                                     <div style="grid-column: span 2;"><strong>Sector:</strong> ${sector}</div>
@@ -2812,7 +2812,7 @@
                                     </div>
                                 </div>
                                 <div style="border-top: 1px dashed rgba(255,255,255,0.08); padding-top: 8px; margin-top: 8px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
-                                    <span style="font-size: 10px; color: var(--text-muted);">Sparkline Trend:</span>
+                                    <span style="font-size: 13px; color: var(--text-muted);">Sparkline Trend:</span>
                                     <div style="background: rgba(0,0,0,0.15); padding: 4px; border-radius: 4px; border: 1px solid var(--border-glass);">
                                         <canvas id="${detailsCanvasId}" width="90" height="30" style="display: block;"></canvas>
                                     </div>
@@ -2864,7 +2864,7 @@
                 const makeSelect = (id, label, options) => {
                     const sel = document.createElement('select');
                     sel.id = id;
-                    sel.style.cssText = 'flex-shrink:0; padding:6px 10px; border-radius:6px; font-size:10px; font-weight:600; font-family:Outfit,sans-serif; border:1px solid rgba(255,255,255,0.1); background:rgba(255,255,255,0.04); color:var(--text-primary); outline:none; cursor:pointer; min-width:0;';
+                    sel.style.cssText = 'flex-shrink:0; padding:6px 10px; border-radius:6px; font-size: 13px; font-weight:600; font-family:Outfit,sans-serif; border:1px solid rgba(255,255,255,0.1); background:rgba(255,255,255,0.04); color:var(--text-primary); outline:none; cursor:pointer; min-width:0;';
                     options.forEach(o => {
                         const opt = document.createElement('option');
                         opt.value = o.value;
@@ -2926,7 +2926,7 @@
 
                 const chevron = document.createElement('span');
                 chevron.className = 'row-expand-trigger';
-                chevron.style.cssText = 'cursor: pointer; padding: 2px 6px; font-size: 10px; color: var(--color-primary-light); user-select: none; transition: transform 0.2s; font-weight: bold; margin-left: 4px;';
+                chevron.style.cssText = 'cursor: pointer; padding: 2px 6px; font-size: 13px; color: var(--color-primary-light); user-select: none; transition: transform 0.2s; font-weight: bold; margin-left: 4px;';
                 chevron.innerHTML = '▼';
 
                 const strong = symbolLink ? symbolLink.querySelector('strong') : firstCell.querySelector('strong');
@@ -2965,28 +2965,28 @@
                                 <div style="display:flex; flex-direction:column; gap:10px;">
                                     <!-- Row 1: Rank + Sector + Cap + Action -->
                                     <div style="display:flex; flex-wrap:wrap; gap:6px; align-items:center;">
-                                        <span style="background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.08); padding:3px 8px; border-radius:5px; font-size:10px; font-weight:700; color:var(--text-primary); font-family:Outfit,sans-serif;">Rank ${rank}</span>
-                                        <span style="background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.06); padding:3px 8px; border-radius:5px; font-size:9.5px; color:var(--text-secondary); max-width:120px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${sector}</span>
-                                        <span style="background:${capColor}15; border:1px solid ${capColor}40; color:${capColor}; padding:3px 8px; border-radius:5px; font-size:9.5px; font-weight:700; text-transform:uppercase; letter-spacing:0.04em;">${capType}</span>
+                                        <span style="background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.08); padding:3px 8px; border-radius:5px; font-size: 13px; font-weight:700; color:var(--text-primary); font-family:Outfit,sans-serif;">Rank ${rank}</span>
+                                        <span style="background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.06); padding:3px 8px; border-radius:5px; font-size: 12.5px; color:var(--text-secondary); max-width:120px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${sector}</span>
+                                        <span style="background:${capColor}15; border:1px solid ${capColor}40; color:${capColor}; padding:3px 8px; border-radius:5px; font-size: 12.5px; font-weight:700; text-transform:uppercase; letter-spacing:0.04em;">${capType}</span>
                                         <span style="margin-left:auto;">${actionHtml}</span>
                                     </div>
                                     <!-- Row 2: Composite Score -->
                                     <div style="display:flex; align-items:center; gap:8px; background:rgba(255,255,255,0.03); border-radius:6px; padding:6px 10px;">
-                                        <span style="font-size:10px; color:var(--text-secondary); font-weight:600;">Composite Score</span>
+                                        <span style="font-size: 13px; color:var(--text-secondary); font-weight:600;">Composite Score</span>
                                         <span style="margin-left:auto;">${scoreHtml}</span>
                                     </div>
                                     <!-- Row 3: Subscore Gauges -->
                                     <div style="display:flex; flex-direction:column; gap:6px;">
                                         <div style="display:flex; justify-content:space-between; align-items:center; padding:0 2px;">
-                                            <span style="font-size:9.5px; color:var(--text-muted); font-weight:600;">Fundamental</span>
+                                            <span style="font-size: 12.5px; color:var(--text-muted); font-weight:600;">Fundamental</span>
                                             <span>${fScoreHtml}</span>
                                         </div>
                                         <div style="display:flex; justify-content:space-between; align-items:center; padding:0 2px;">
-                                            <span style="font-size:9.5px; color:var(--text-muted); font-weight:600;">Valuation</span>
+                                            <span style="font-size: 12.5px; color:var(--text-muted); font-weight:600;">Valuation</span>
                                             <span>${vScoreHtml}</span>
                                         </div>
                                         <div style="display:flex; justify-content:space-between; align-items:center; padding:0 2px;">
-                                            <span style="font-size:9.5px; color:var(--text-muted); font-weight:600;">Technical</span>
+                                            <span style="font-size: 12.5px; color:var(--text-muted); font-weight:600;">Technical</span>
                                             <span>${tScoreHtml}</span>
                                         </div>
                                     </div>
@@ -3083,7 +3083,7 @@
 
                 const chevron = document.createElement('span');
                 chevron.className = 'row-expand-trigger';
-                chevron.style.cssText = 'cursor: pointer; padding: 2px 6px; font-size: 10px; color: var(--color-primary-light); user-select: none; transition: transform 0.2s; font-weight: bold; margin-left: 4px;';
+                chevron.style.cssText = 'cursor: pointer; padding: 2px 6px; font-size: 13px; color: var(--color-primary-light); user-select: none; transition: transform 0.2s; font-weight: bold; margin-left: 4px;';
                 chevron.innerHTML = '▼';
                 firstCell.appendChild(chevron);
 
@@ -3115,37 +3115,37 @@
                                 <div style="display:flex; flex-direction:column; gap:8px;">
                                     <!-- Company Name + Cap -->
                                     <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
-                                        <span style="font-size:11.5px; color:var(--color-primary-light); font-weight:700; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:200px;">${companyName}</span>
+                                        <span style="font-size: 13.5px; color:var(--color-primary-light); font-weight:700; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:200px;">${companyName}</span>
                                         <span>${capHtml}</span>
                                     </div>
                                     <!-- Return Gauges Grid -->
-                                    <div style="display:grid; grid-template-columns: repeat(3, 1fr); gap:4px 6px; font-size:10px;">
+                                    <div style="display:grid; grid-template-columns: repeat(3, 1fr); gap:4px 6px; font-size: 13px;">
                                         <div style="display:flex; align-items:center; justify-content:space-between; gap:4px; background:rgba(255,255,255,0.02); border-radius:4px; padding:3px 6px;">
-                                            <span style="color:var(--text-muted); font-weight:600; font-size:9px;">1D</span>
+                                            <span style="color:var(--text-muted); font-weight:600; font-size: 12.5px;">1D</span>
                                             ${ret1d}
                                         </div>
                                         <div style="display:flex; align-items:center; justify-content:space-between; gap:4px; background:rgba(255,255,255,0.02); border-radius:4px; padding:3px 6px;">
-                                            <span style="color:var(--text-muted); font-weight:600; font-size:9px;">5D</span>
+                                            <span style="color:var(--text-muted); font-weight:600; font-size: 12.5px;">5D</span>
                                             ${ret5d}
                                         </div>
                                         <div style="display:flex; align-items:center; justify-content:space-between; gap:4px; background:rgba(255,255,255,0.02); border-radius:4px; padding:3px 6px;">
-                                            <span style="color:var(--text-muted); font-weight:600; font-size:9px;">1M</span>
+                                            <span style="color:var(--text-muted); font-weight:600; font-size: 12.5px;">1M</span>
                                             ${ret1m}
                                         </div>
                                         <div style="display:flex; align-items:center; justify-content:space-between; gap:4px; background:rgba(255,255,255,0.02); border-radius:4px; padding:3px 6px;">
-                                            <span style="color:var(--text-muted); font-weight:600; font-size:9px;">3M</span>
+                                            <span style="color:var(--text-muted); font-weight:600; font-size: 12.5px;">3M</span>
                                             ${ret3m}
                                         </div>
                                         <div style="display:flex; align-items:center; justify-content:space-between; gap:4px; background:rgba(255,255,255,0.02); border-radius:4px; padding:3px 6px;">
-                                            <span style="color:var(--text-muted); font-weight:600; font-size:9px;">6M</span>
+                                            <span style="color:var(--text-muted); font-weight:600; font-size: 12.5px;">6M</span>
                                             ${ret6m}
                                         </div>
                                         <div style="display:flex; align-items:center; justify-content:space-between; gap:4px; background:rgba(255,255,255,0.02); border-radius:4px; padding:3px 6px;">
-                                            <span style="color:var(--text-muted); font-weight:600; font-size:9px;">1Y</span>
+                                            <span style="color:var(--text-muted); font-weight:600; font-size: 12.5px;">1Y</span>
                                             ${ret1y}
                                         </div>
                                         <div style="display:flex; align-items:center; justify-content:space-between; gap:4px; background:rgba(255,255,255,0.02); border-radius:4px; padding:3px 6px; grid-column: span 3;">
-                                            <span style="color:var(--text-muted); font-weight:600; font-size:9px;">5Y</span>
+                                            <span style="color:var(--text-muted); font-weight:600; font-size: 12.5px;">5Y</span>
                                             ${ret5y}
                                         </div>
                                     </div>
@@ -3334,12 +3334,12 @@
                             <!-- Regime Label & Advances / Declines Breakdown -->
                             <div style="flex: 1; min-width: 0;">
                                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
-                                    <span id="conic-regime-bias-tag" style="font-size: 10px; font-weight: 800; text-transform: uppercase; color: #10b981; background: rgba(16, 185, 129, 0.12); border: 1px solid rgba(16, 185, 129, 0.3); padding: 2px 8px; border-radius: 12px; letter-spacing: 0.04em;">BULLISH REGIME</span>
+                                    <span id="conic-regime-bias-tag" style="font-size: 13px; font-weight: 800; text-transform: uppercase; color: #10b981; background: rgba(16, 185, 129, 0.12); border: 1px solid rgba(16, 185, 129, 0.3); padding: 2px 8px; border-radius: 12px; letter-spacing: 0.04em;">BULLISH REGIME</span>
                                 </div>
                                 
-                                <div style="display:flex; justify-content:space-between; font-size:11px; font-weight:800; text-transform:uppercase; color:var(--text-muted); margin-bottom:5px;">
-                                    <span style="color:var(--neon-green, #10b981); font-family:'Outfit', sans-serif;">🟢 ADV: <span id="mobile-breadth-advances-count">0</span> <span id="mobile-breadth-advances-pct" style="font-size:9.5px; opacity:0.85;">(0%)</span></span>
-                                    <span style="color:var(--color-crimson, #ef4444); font-family:'Outfit', sans-serif;">🔴 DEC: <span id="mobile-breadth-declines-count">0</span> <span id="mobile-breadth-declines-pct" style="font-size:9.5px; opacity:0.85;">(0%)</span></span>
+                                <div style="display:flex; justify-content:space-between; font-size: 13.5px; font-weight:800; text-transform:uppercase; color:var(--text-muted); margin-bottom:5px;">
+                                    <span style="color:var(--neon-green, #10b981); font-family:'Outfit', sans-serif;">🟢 ADV: <span id="mobile-breadth-advances-count">0</span> <span id="mobile-breadth-advances-pct" style="font-size: 12.5px; opacity:0.85;">(0%)</span></span>
+                                    <span style="color:var(--color-crimson, #ef4444); font-family:'Outfit', sans-serif;">🔴 DEC: <span id="mobile-breadth-declines-count">0</span> <span id="mobile-breadth-declines-pct" style="font-size: 12.5px; opacity:0.85;">(0%)</span></span>
                                 </div>
                                 <div style="position:relative; height:10px; background:rgba(255,255,255,0.06); border-radius:6px; box-sizing:border-box; overflow:visible; display:flex; margin-top:4px; border:1px solid rgba(255,255,255,0.08);">
                                     <div id="mobile-breadth-advances-bar" style="height:100%; background:linear-gradient(90deg, #059669 0%, #10b981 100%); width:50%; border-radius:5px 0 0 5px; transition:width 0.6s cubic-bezier(0.16, 1, 0.3, 1); box-shadow: 0 0 10px rgba(16,185,129,0.5);"></div>
@@ -3350,11 +3350,11 @@
                         </div>
 
                         <!-- Volatility Radar Footer -->
-                        <div style="display:flex; justify-content:space-between; align-items:center; margin-top:10px; padding-top:8px; border-top:1px dashed var(--border-glass, rgba(255,255,255,0.06)); font-size:11px; font-weight:700; color:var(--text-muted);">
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-top:10px; padding-top:8px; border-top:1px dashed var(--border-glass, rgba(255,255,255,0.06)); font-size: 13.5px; font-weight:700; color:var(--text-muted);">
                             <span>VOLATILITY RADAR</span>
                             <div style="display:flex; align-items:center; gap:5px;">
                                 <span id="vix-indicator-dot" style="width:6px; height:6px; border-radius:50%; background:#10b981; display:inline-block; box-shadow:0 0 6px #10b981; transition: all 0.3s ease;"></span>
-                                <span id="vix-indicator-val" style="color:var(--text-primary); font-family:var(--font-heading); font-size:11px; font-weight:800;">VIX: --</span>
+                                <span id="vix-indicator-val" style="color:var(--text-primary); font-family:var(--font-heading); font-size: 13.5px; font-weight:800;">VIX: --</span>
                             </div>
                         </div>
                     </div>
@@ -3398,19 +3398,19 @@
                         <span>Today's Market Leaders</span>
                         <span class="section-collapse-chevron">▾</span>
                     </div>
-                    <button class="section-view-all-btn" onclick="window.switchTab && window.switchTab('movers')" style="background: rgba(16, 185, 129, 0.1); color: var(--neon-green); border: 1px solid rgba(16, 185, 129, 0.3); padding: 4px 12px; font-size: 11px; border-radius: 6px; cursor: pointer; font-family: 'Outfit', sans-serif; font-weight: 700;">View All →</button>
+                    <button class="section-view-all-btn" onclick="window.switchTab && window.switchTab('movers')" style="background: rgba(16, 185, 129, 0.1); color: var(--neon-green); border: 1px solid rgba(16, 185, 129, 0.3); padding: 4px 12px; font-size: 13.5px; border-radius: 6px; cursor: pointer; font-family: 'Outfit', sans-serif; font-weight: 700;">View All →</button>
                 </div>
                 <div class="movers-container mobile-glass-card section-collapsible-body" data-section-id="market-leaders">
                     <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 12px; flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none;">
                         <div class="movers-segmented-control" style="margin: 0; flex-shrink: 0; min-width: 160px;">
-                            <button class="tech-segmented-tab active gainer-tab-btn" id="movers-tab-gainers" onclick="window.switchMoversTab('gainers')" style="font-weight: 800; font-size: 11px; padding: 5px 10px;">🟢 Gainers ▲</button>
-                            <button class="tech-segmented-tab loser-tab-btn" id="movers-tab-losers" onclick="window.switchMoversTab('losers')" style="font-weight: 800; font-size: 11px; padding: 5px 10px;">🔴 Losers ▼</button>
+                            <button class="tech-segmented-tab active gainer-tab-btn" id="movers-tab-gainers" onclick="window.switchMoversTab('gainers')" style="font-weight: 800; font-size: 13.5px; padding: 5px 10px;">🟢 Gainers ▲</button>
+                            <button class="tech-segmented-tab loser-tab-btn" id="movers-tab-losers" onclick="window.switchMoversTab('losers')" style="font-weight: 800; font-size: 13.5px; padding: 5px 10px;">🔴 Losers ▼</button>
                         </div>
                         <div class="mobile-movers-cap-selector-container" style="display: flex; gap: 4px; margin: 0; flex-shrink: 0;">
-                            <button class="mobile-movers-cap-tab active" data-cap="all" style="flex-shrink:0; font-size: 10.5px; padding: 4px 9px;">All</button>
-                            <button class="mobile-movers-cap-tab" data-cap="large" style="flex-shrink:0; font-size: 10.5px; padding: 4px 9px;">Large</button>
-                            <button class="mobile-movers-cap-tab" data-cap="mid" style="flex-shrink:0; font-size: 10.5px; padding: 4px 9px;">Mid</button>
-                            <button class="mobile-movers-cap-tab" data-cap="small" style="flex-shrink:0; font-size: 10.5px; padding: 4px 9px;">Small</button>
+                            <button class="mobile-movers-cap-tab active" data-cap="all" style="flex-shrink:0; font-size: 13px; padding: 4px 9px;">All</button>
+                            <button class="mobile-movers-cap-tab" data-cap="large" style="flex-shrink:0; font-size: 13px; padding: 4px 9px;">Large</button>
+                            <button class="mobile-movers-cap-tab" data-cap="mid" style="flex-shrink:0; font-size: 13px; padding: 4px 9px;">Mid</button>
+                            <button class="mobile-movers-cap-tab" data-cap="small" style="flex-shrink:0; font-size: 13px; padding: 4px 9px;">Small</button>
                         </div>
                     </div>
                     <div id="mobile-home-gainers-container" class="mobile-vertical-list-container"></div>
@@ -3426,12 +3426,12 @@
                         <span>AI Fuzzy Radar</span>
                         <span class="section-collapse-chevron">▾</span>
                     </div>
-                    <button class="section-view-all-btn" onclick="window.switchTab && window.switchTab('fuzzy')" style="background: rgba(59, 130, 246, 0.1); color: #3b82f6; border: 1px solid rgba(59, 130, 246, 0.3); padding: 4px 12px; font-size: 11px; border-radius: 6px; cursor: pointer; font-family: 'Outfit', sans-serif; font-weight: 700;">Console →</button>
+                    <button class="section-view-all-btn" onclick="window.switchTab && window.switchTab('fuzzy')" style="background: rgba(59, 130, 246, 0.1); color: #3b82f6; border: 1px solid rgba(59, 130, 246, 0.3); padding: 4px 12px; font-size: 13.5px; border-radius: 6px; cursor: pointer; font-family: 'Outfit', sans-serif; font-weight: 700;">Console →</button>
                 </div>
                 <div class="mobile-glass-card section-collapsible-body" data-section-id="fuzzy-radar" style="padding: 12px; margin-bottom: 20px; border: 1px solid rgba(59, 130, 246, 0.15);">
                     <div class="movers-segmented-control" style="margin-bottom: 12px; display: flex; gap: 4px;">
-                        <button class="tech-segmented-tab active" id="mobile-fuzzy-tab-buys" style="flex: 1; text-align: center; font-size: 10.5px; padding: 6px 0;">🟢 Accumulation</button>
-                        <button class="tech-segmented-tab" id="mobile-fuzzy-tab-sells" style="flex: 1; text-align: center; font-size: 10.5px; padding: 6px 0;">🔴 Avoid / Traps</button>
+                        <button class="tech-segmented-tab active" id="mobile-fuzzy-tab-buys" style="flex: 1; text-align: center; font-size: 13px; padding: 6px 0;">🟢 Accumulation</button>
+                        <button class="tech-segmented-tab" id="mobile-fuzzy-tab-sells" style="flex: 1; text-align: center; font-size: 13px; padding: 6px 0;">🔴 Avoid / Traps</button>
                     </div>
                     <div id="mobile-home-fuzzy-radar-container" class="mobile-vertical-list-container" style="display: flex; flex-direction: column; gap: 8px;">
                         <div class="skeleton-card-row"><div class="skel-circle"></div><div class="skel-lines"><div class="skel-line-short"></div><div class="skel-line-long"></div></div><div class="skel-price-block"></div></div>
@@ -3449,13 +3449,13 @@
                         <span>Quant Top Picks</span>
                         <span class="section-collapse-chevron">▾</span>
                     </div>
-                    <button class="section-view-all-btn" onclick="window.switchTab && window.switchTab('screener')" style="background: rgba(245, 158, 11, 0.1); color: #f59e0b; border: 1px solid rgba(245, 158, 11, 0.3); padding: 4px 12px; font-size: 11px; border-radius: 6px; cursor: pointer; font-family: 'Outfit', sans-serif; font-weight: 700;">View All →</button>
+                    <button class="section-view-all-btn" onclick="window.switchTab && window.switchTab('screener')" style="background: rgba(245, 158, 11, 0.1); color: #f59e0b; border: 1px solid rgba(245, 158, 11, 0.3); padding: 4px 12px; font-size: 13.5px; border-radius: 6px; cursor: pointer; font-family: 'Outfit', sans-serif; font-weight: 700;">View All →</button>
                 </div>
                 <div class="mobile-glass-card section-collapsible-body" data-section-id="quant-picks" style="padding: 12px; margin-bottom: 20px;">
                     <div class="movers-segmented-control" style="margin-bottom: 12px; display: flex; gap: 4px;">
-                        <button class="tech-segmented-tab active" id="mobile-quant-tab-hybrid" style="flex: 1; text-align: center; font-size: 10.5px; padding: 6px 0;">Hybrid</button>
-                        <button class="tech-segmented-tab" id="mobile-quant-tab-bottom_up" style="flex: 1; text-align: center; font-size: 10.5px; padding: 6px 0;">Bottom-Up</button>
-                        <button class="tech-segmented-tab" id="mobile-quant-tab-top_down" style="flex: 1; text-align: center; font-size: 10.5px; padding: 6px 0;">Top-Down</button>
+                        <button class="tech-segmented-tab active" id="mobile-quant-tab-hybrid" style="flex: 1; text-align: center; font-size: 13px; padding: 6px 0;">Hybrid</button>
+                        <button class="tech-segmented-tab" id="mobile-quant-tab-bottom_up" style="flex: 1; text-align: center; font-size: 13px; padding: 6px 0;">Bottom-Up</button>
+                        <button class="tech-segmented-tab" id="mobile-quant-tab-top_down" style="flex: 1; text-align: center; font-size: 13px; padding: 6px 0;">Top-Down</button>
                     </div>
                     <div id="mobile-home-quant-picks-container" class="mobile-vertical-list-container" style="display: flex; flex-direction: column; gap: 8px;">
                         <div class="skeleton-card-row"><div class="skel-circle"></div><div class="skel-lines"><div class="skel-line-short"></div><div class="skel-line-long"></div></div><div class="skel-price-block"></div></div>
@@ -3473,7 +3473,7 @@
                         <span>Sector Rotations</span>
                         <span class="section-collapse-chevron">▾</span>
                     </div>
-                    <button class="section-view-all-btn" onclick="window.switchTab && window.switchTab('sector-radar')" style="background: rgba(6, 182, 212, 0.1); color: #06b6d4; border: 1px solid rgba(6, 182, 212, 0.3); padding: 4px 12px; font-size: 11px; border-radius: 6px; cursor: pointer; font-family: 'Outfit', sans-serif; font-weight: 700;">View All →</button>
+                    <button class="section-view-all-btn" onclick="window.switchTab && window.switchTab('sector-radar')" style="background: rgba(6, 182, 212, 0.1); color: #06b6d4; border: 1px solid rgba(6, 182, 212, 0.3); padding: 4px 12px; font-size: 13.5px; border-radius: 6px; cursor: pointer; font-family: 'Outfit', sans-serif; font-weight: 700;">View All →</button>
                 </div>
                 <div id="mobile-home-sectors-container" class="section-collapsible-body" data-section-id="sector-rotations" style="margin-bottom: 20px;"></div>
                 <div class="section-gradient-divider"></div>
@@ -3487,15 +3487,15 @@
                         <span class="section-collapse-chevron">▾</span>
                     </div>
                     <div style="display: flex; align-items: center; gap: 6px;">
-                        <select id="mobile-watchlist-selector" style="background: rgba(255,255,255,0.03); color: var(--text-primary); border: 1px solid var(--border-glass); padding: 2px 6px; font-size: 11px; border-radius: 4px; outline: none; font-family: 'Outfit', sans-serif; cursor: pointer; max-width: 120px;">
+                        <select id="mobile-watchlist-selector" style="background: rgba(255,255,255,0.03); color: var(--text-primary); border: 1px solid var(--border-glass); padding: 2px 6px; font-size: 13.5px; border-radius: 4px; outline: none; font-family: 'Outfit', sans-serif; cursor: pointer; max-width: 120px;">
                             <option value="" disabled selected>Select Watchlist</option>
                         </select>
-                        <button class="section-view-all-btn" onclick="window.switchTab && window.switchTab('watchlist')" style="background: rgba(245, 158, 11, 0.1); color: #f59e0b; border: 1px solid rgba(245, 158, 11, 0.3); padding: 4px 12px; font-size: 11px; border-radius: 6px; cursor: pointer; font-family: 'Outfit', sans-serif; font-weight: 700;">View All →</button>
+                        <button class="section-view-all-btn" onclick="window.switchTab && window.switchTab('watchlist')" style="background: rgba(245, 158, 11, 0.1); color: #f59e0b; border: 1px solid rgba(245, 158, 11, 0.3); padding: 4px 12px; font-size: 13.5px; border-radius: 6px; cursor: pointer; font-family: 'Outfit', sans-serif; font-weight: 700;">View All →</button>
                     </div>
                 </div>
                 <div class="mobile-glass-card section-collapsible-body" data-section-id="watchlist" style="padding: 12px; margin-bottom: 20px;">
                     <div id="mobile-home-watchlist-container" class="mobile-vertical-list-container" style="display: flex; flex-direction: column; gap: 8px;">
-                        <div class="recent-research-empty" style="font-size: 11px;">Select watchlist in main workspace to display.</div>
+                        <div class="recent-research-empty" style="font-size: 13.5px;">Select watchlist in main workspace to display.</div>
                     </div>
                 </div>
                 <div class="section-gradient-divider"></div>
@@ -3508,16 +3508,16 @@
                         <span>Technical Breakouts</span>
                         <span class="section-collapse-chevron">▾</span>
                     </div>
-                    <button class="section-view-all-btn" onclick="window.switchTab && window.switchTab('technical-scans')" style="background: rgba(168, 85, 247, 0.1); color: #a855f7; border: 1px solid rgba(168, 85, 247, 0.3); padding: 4px 12px; font-size: 11px; border-radius: 6px; cursor: pointer; font-family: 'Outfit', sans-serif; font-weight: 700;">View All →</button>
+                    <button class="section-view-all-btn" onclick="window.switchTab && window.switchTab('technical-scans')" style="background: rgba(168, 85, 247, 0.1); color: #a855f7; border: 1px solid rgba(168, 85, 247, 0.3); padding: 4px 12px; font-size: 13.5px; border-radius: 6px; cursor: pointer; font-family: 'Outfit', sans-serif; font-weight: 700;">View All →</button>
                 </div>
                 <div class="mobile-glass-card section-collapsible-body" data-section-id="tech-breakouts" style="padding: 12px; margin-bottom: 20px;">
                     <div class="tech-segmented-control scroll-fade-mask" style="margin-bottom: 12px; display: flex; gap: 6px; overflow-x: auto; white-space: nowrap; -webkit-overflow-scrolling: touch; padding-bottom: 4px; scrollbar-width: none;">
-                        <button class="tech-segmented-tab active" id="mobile-tech-tab-near_high" style="font-size: 10.5px; padding: 6px 12px; border-radius: 20px; font-family:'Outfit', sans-serif; font-weight:800;">🔥 52W High</button>
-                        <button class="tech-segmented-tab" id="mobile-tech-tab-volume_shockers" style="font-size: 10.5px; padding: 6px 12px; border-radius: 20px; font-family:'Outfit', sans-serif; font-weight:800;">📈 Vol Surge</button>
-                        <button class="tech-segmented-tab" id="mobile-tech-tab-golden_crossover" style="font-size: 10.5px; padding: 6px 12px; border-radius: 20px; font-family:'Outfit', sans-serif; font-weight:800;">🟢 MACD Cross</button>
-                        <button class="tech-segmented-tab" id="mobile-tech-tab-gap_up" style="font-size: 10.5px; padding: 6px 12px; border-radius: 20px; font-family:'Outfit', sans-serif; font-weight:800;">⚡ Gap Up</button>
-                        <button class="tech-segmented-tab" id="mobile-tech-tab-rsi_oversold" style="font-size: 10.5px; padding: 6px 12px; border-radius: 20px; font-family:'Outfit', sans-serif; font-weight:800;">⚠️ RSI Oversold</button>
-                        <button class="tech-segmented-tab" id="mobile-tech-tab-near_low" style="font-size: 10.5px; padding: 6px 12px; border-radius: 20px; font-family:'Outfit', sans-serif; font-weight:800;">🔻 52W Low</button>
+                        <button class="tech-segmented-tab active" id="mobile-tech-tab-near_high" style="font-size: 13px; padding: 6px 12px; border-radius: 20px; font-family:'Outfit', sans-serif; font-weight:800;">🔥 52W High</button>
+                        <button class="tech-segmented-tab" id="mobile-tech-tab-volume_shockers" style="font-size: 13px; padding: 6px 12px; border-radius: 20px; font-family:'Outfit', sans-serif; font-weight:800;">📈 Vol Surge</button>
+                        <button class="tech-segmented-tab" id="mobile-tech-tab-golden_crossover" style="font-size: 13px; padding: 6px 12px; border-radius: 20px; font-family:'Outfit', sans-serif; font-weight:800;">🟢 MACD Cross</button>
+                        <button class="tech-segmented-tab" id="mobile-tech-tab-gap_up" style="font-size: 13px; padding: 6px 12px; border-radius: 20px; font-family:'Outfit', sans-serif; font-weight:800;">⚡ Gap Up</button>
+                        <button class="tech-segmented-tab" id="mobile-tech-tab-rsi_oversold" style="font-size: 13px; padding: 6px 12px; border-radius: 20px; font-family:'Outfit', sans-serif; font-weight:800;">⚠️ RSI Oversold</button>
+                        <button class="tech-segmented-tab" id="mobile-tech-tab-near_low" style="font-size: 13px; padding: 6px 12px; border-radius: 20px; font-family:'Outfit', sans-serif; font-weight:800;">🔻 52W Low</button>
                     </div>
                     <div id="mobile-home-tech-scans-container" class="mobile-vertical-list-container" style="display: flex; flex-direction: column; gap: 8px;">
                         <div class="skeleton-card-row"><div class="skel-circle"></div><div class="skel-lines"><div class="skel-line-short"></div><div class="skel-line-long"></div></div><div class="skel-price-block"></div></div>
@@ -3535,7 +3535,7 @@
                         <span>Institutional Alert Center</span>
                         <span class="section-collapse-chevron">▾</span>
                     </div>
-                    <button class="section-view-all-btn" onclick="window.switchTab && window.switchTab('alerts')" style="background: rgba(239, 68, 68, 0.1); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.3); padding: 4px 12px; font-size: 11px; border-radius: 6px; cursor: pointer; font-family: 'Outfit', sans-serif; font-weight: 700;">View All →</button>
+                    <button class="section-view-all-btn" onclick="window.switchTab && window.switchTab('alerts')" style="background: rgba(239, 68, 68, 0.1); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.3); padding: 4px 12px; font-size: 13.5px; border-radius: 6px; cursor: pointer; font-family: 'Outfit', sans-serif; font-weight: 700;">View All →</button>
                 </div>
                 <div class="mobile-glass-card section-collapsible-body" data-section-id="alerts" style="padding: 12px; margin-bottom: 20px;">
                     <div id="mobile-home-alerts-container" class="mobile-vertical-list-container" style="display: flex; flex-direction: column; gap: 8px;">
@@ -3553,7 +3553,7 @@
                         <span>Corporate Events</span>
                         <span class="section-collapse-chevron">▾</span>
                     </div>
-                    <button class="section-view-all-btn" onclick="window.switchTab && window.switchTab('events')" style="background: rgba(236, 72, 153, 0.1); color: #ec4899; border: 1px solid rgba(236, 72, 153, 0.3); padding: 4px 12px; font-size: 11px; border-radius: 6px; cursor: pointer; font-family: 'Outfit', sans-serif; font-weight: 700;">View All →</button>
+                    <button class="section-view-all-btn" onclick="window.switchTab && window.switchTab('events')" style="background: rgba(236, 72, 153, 0.1); color: #ec4899; border: 1px solid rgba(236, 72, 153, 0.3); padding: 4px 12px; font-size: 13.5px; border-radius: 6px; cursor: pointer; font-family: 'Outfit', sans-serif; font-weight: 700;">View All →</button>
                 </div>
                 <div class="mobile-glass-card section-collapsible-body" data-section-id="events" style="padding: 12px; margin-bottom: 20px;">
                     <div id="mobile-home-events-container" class="mobile-vertical-list-container" style="display: flex; flex-direction: column; gap: 8px;">
@@ -3571,7 +3571,7 @@
                         <span>Live Catalyst News</span>
                         <span class="section-collapse-chevron">▾</span>
                     </div>
-                    <button class="section-view-all-btn" onclick="window.switchTab && window.switchTab('market-news')" style="background: rgba(249, 115, 22, 0.1); color: #f97316; border: 1px solid rgba(249, 115, 22, 0.3); padding: 4px 12px; font-size: 11px; border-radius: 6px; cursor: pointer; font-family: 'Outfit', sans-serif; font-weight: 700;">View All →</button>
+                    <button class="section-view-all-btn" onclick="window.switchTab && window.switchTab('market-news')" style="background: rgba(249, 115, 22, 0.1); color: #f97316; border: 1px solid rgba(249, 115, 22, 0.3); padding: 4px 12px; font-size: 13.5px; border-radius: 6px; cursor: pointer; font-family: 'Outfit', sans-serif; font-weight: 700;">View All →</button>
                 </div>
                 
                 <div class="news-categories-scroll-wrapper section-collapsible-body" data-section-id="news">
@@ -4043,9 +4043,9 @@
                                         div.innerHTML = `
                                             <div>
                                                 <span class="ticker-pill" style="font-weight: 700; color: var(--text-primary, #fff);">${item.base_symbol}</span>
-                                                <span style="font-size: 10px; color: var(--text-muted); margin-left: 6px;">${item.name}</span>
+                                                <span style="font-size: 13px; color: var(--text-muted); margin-left: 6px;">${item.name}</span>
                                             </div>
-                                            <span class="sector-pill" style="font-size: 9.5px; opacity: 0.8;">${item.sector || 'Equity'}</span>
+                                            <span class="sector-pill" style="font-size: 12.5px; opacity: 0.8;">${item.sector || 'Equity'}</span>
                                         `;
 
                                         const handleItemSelect = (e) => {
@@ -4144,7 +4144,7 @@
                 let pillsHtml = '';
                 recents.forEach(sym => {
                     pillsHtml += `
-                        <span class="recent-pill-item" data-symbol="${sym}" style="font-size: 11px; font-weight: 700; color: var(--text-primary); background: rgba(255,255,255,0.03); border: 1px solid var(--border-glass); border-radius: 20px; padding: 5px 12px; cursor: pointer; white-space: nowrap; transition: all 0.2s ease;">
+                        <span class="recent-pill-item" data-symbol="${sym}" style="font-size: 13.5px; font-weight: 700; color: var(--text-primary); background: rgba(255,255,255,0.03); border: 1px solid var(--border-glass); border-radius: 20px; padding: 5px 12px; cursor: pointer; white-space: nowrap; transition: all 0.2s ease;">
                             ${sym}
                         </span>
                     `;
@@ -4341,8 +4341,8 @@
                             gainersContainer.style.display = (curMoversTab === 'gainers') ? 'block' : 'none';
                             losersContainer.style.display = (curMoversTab === 'losers') ? 'block' : 'none';
                             
-                            gainersContainer.innerHTML = `<div class="recent-research-empty" style="font-size:11px;">Warming live market movers cache...</div>`;
-                            losersContainer.innerHTML = `<div class="recent-research-empty" style="font-size:11px;">Warming live market movers cache...</div>`;
+                            gainersContainer.innerHTML = `<div class="recent-research-empty" style="font-size: 13.5px;">Warming live market movers cache...</div>`;
+                            losersContainer.innerHTML = `<div class="recent-research-empty" style="font-size: 13.5px;">Warming live market movers cache...</div>`;
                             setTimeout(updateDynamicCommandCenterContent, 3000);
                             return;
                         }
@@ -4368,7 +4368,7 @@
                                                 ${logoHtml}
                                                 <div>
                                                     <strong style="color: var(--text-primary); font-size:13.5px; font-family:'Outfit', sans-serif; font-weight:800; display:block;">${sym}</strong>
-                                                    <div style="font-size:10px; color:var(--text-muted); margin-top:1px;">NSE Equity</div>
+                                                    <div style="font-size: 13px; color:var(--text-muted); margin-top:1px;">NSE Equity</div>
                                                 </div>
                                             </div>
                                             <div style="display:flex; align-items:center; gap:10px;">
@@ -4376,8 +4376,8 @@
                                                 <div style="text-align:right;">
                                                     <div style="font-size:13px; font-weight:800; color:var(--text-primary); font-family:monospace;">${formatRupees(item.price)}</div>
                                                     <div style="display:flex; align-items:center; justify-content:flex-end; gap:5px; margin-top:1px;">
-                                                        <span style="font-size:10.5px; font-family:'Outfit', sans-serif; font-weight:800; color:var(--neon-green, #10b981);">+${item.change_pct.toFixed(2)}%</span>
-                                                        <span style="font-size:10px; font-weight:700; color:#3b82f6;">Analyze →</span>
+                                                        <span style="font-size: 13px; font-family:'Outfit', sans-serif; font-weight:800; color:var(--neon-green, #10b981);">+${item.change_pct.toFixed(2)}%</span>
+                                                        <span style="font-size: 13px; font-weight:700; color:#3b82f6;">Analyze →</span>
                                                     </div>
                                                 </div>
                                             </div>
@@ -4467,7 +4467,7 @@
                                                 ${logoHtml}
                                                 <div>
                                                     <strong style="color: var(--text-primary); font-size:13.5px; font-family:'Outfit', sans-serif; font-weight:800; display:block;">${sym}</strong>
-                                                    <div style="font-size:10px; color:var(--text-muted); margin-top:1px;">NSE Equity</div>
+                                                    <div style="font-size: 13px; color:var(--text-muted); margin-top:1px;">NSE Equity</div>
                                                 </div>
                                             </div>
                                             <div style="display:flex; align-items:center; gap:10px;">
@@ -4475,8 +4475,8 @@
                                                 <div style="text-align:right;">
                                                     <div style="font-size:13px; font-weight:800; color:var(--text-primary); font-family:monospace;">${formatRupees(item.price)}</div>
                                                     <div style="display:flex; align-items:center; justify-content:flex-end; gap:5px; margin-top:1px;">
-                                                        <span style="font-size:10.5px; font-family:'Outfit', sans-serif; font-weight:800; color:var(--neon-red, #ef4444);">${item.change_pct.toFixed(2)}%</span>
-                                                        <span style="font-size:10px; font-weight:700; color:#3b82f6;">Analyze →</span>
+                                                        <span style="font-size: 13px; font-family:'Outfit', sans-serif; font-weight:800; color:var(--neon-red, #ef4444);">${item.change_pct.toFixed(2)}%</span>
+                                                        <span style="font-size: 13px; font-weight:700; color:#3b82f6;">Analyze →</span>
                                                     </div>
                                                 </div>
                                             </div>
@@ -4628,7 +4628,7 @@
                             const leadersList = sortedSectors.slice(0, 4);
                             const laggardsList = sortedSectors.slice(-4).reverse();
                             let leaderboardHtml = `
-                                <div style="font-size:11px; font-weight:800; color:var(--neon-green, #10b981); text-transform:uppercase; letter-spacing:0.02em; margin-bottom:6px;">Leading Regimes (Top 4)</div>
+                                <div style="font-size: 13.5px; font-weight:800; color:var(--neon-green, #10b981); text-transform:uppercase; letter-spacing:0.02em; margin-bottom:6px;">Leading Regimes (Top 4)</div>
                             `;
                             leadersList.forEach(item => {
                                 const ret = item.return_1d || 0;
@@ -4649,7 +4649,7 @@
                             });
 
                             leaderboardHtml += `
-                                <div style="font-size:11px; font-weight:800; color:var(--color-crimson, #ef4444); text-transform:uppercase; letter-spacing:0.02em; margin-top:10px; margin-bottom:6px; padding-top:8px; border-top:1px dashed var(--border-glass, rgba(255,255,255,0.06));">Laggard Regimes (Bottom 4)</div>
+                                <div style="font-size: 13.5px; font-weight:800; color:var(--color-crimson, #ef4444); text-transform:uppercase; letter-spacing:0.02em; margin-top:10px; margin-bottom:6px; padding-top:8px; border-top:1px dashed var(--border-glass, rgba(255,255,255,0.06));">Laggard Regimes (Bottom 4)</div>
                             `;
                             laggardsList.forEach(item => {
                                 const ret = item.return_1d || 0;
@@ -4778,7 +4778,7 @@
                                             </div>
                                             <div style="flex:1; min-width:0;">
                                                 <strong class="sector-card-title" style="font-weight:800; font-size:13px; font-family:'Outfit', sans-serif; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; display:block;">${item.sector}</strong>
-                                                <div style="font-size:9px; font-weight:800; color:${meta.accent}; margin-top:1px; letter-spacing:0.04em; text-transform:uppercase;">${meta.badge}</div>
+                                                <div style="font-size: 12.5px; font-weight:800; color:${meta.accent}; margin-top:1px; letter-spacing:0.04em; text-transform:uppercase;">${meta.badge}</div>
                                             </div>
                                         </div>
                                         
@@ -4790,7 +4790,7 @@
                                             </div>
                                             <div style="text-align:right;">
                                                 <span style="font-size:12.5px; font-weight:900; color:${color}; font-family:monospace;">${sign}${ret.toFixed(2)}%</span>
-                                                <div style="font-size:9.5px; font-weight:700; color:#3b82f6; text-align:right;">Radar →</div>
+                                                <div style="font-size: 12.5px; font-weight:700; color:#3b82f6; text-align:right;">Radar →</div>
                                             </div>
                                         </div>
                                     </div>
@@ -4870,7 +4870,7 @@
 
                             let newsHtml = '';
                             if (newsToShow.length === 0) {
-                                newsHtml = `<div class="recent-research-empty" style="font-size:11.5px; padding:12px 0;">No active ${activeCategory} news items found.</div>`;
+                                newsHtml = `<div class="recent-research-empty" style="font-size: 13.5px; padding:12px 0;">No active ${activeCategory} news items found.</div>`;
                             }
                             newsToShow.forEach(item => {
                                 const cleanTitle = item.title.replace(/&amp;/g, '&').replace(/&quot;/g, '"');
@@ -4879,12 +4879,12 @@
                                 let sentimentBadge = '';
                                 if (sentiment === 'Bullish') {
                                     accentColor = '#10b981';
-                                    sentimentBadge = `<span style="font-size:11px; font-weight:800; padding:2px 6px; border-radius:3px; background:rgba(16,185,129,0.12); color:var(--neon-green); border:1px solid rgba(16,185,129,0.25); text-transform:uppercase; letter-spacing:0.02em;">Bullish Catalyst</span>`;
+                                    sentimentBadge = `<span style="font-size: 13.5px; font-weight:800; padding:2px 6px; border-radius:3px; background:rgba(16,185,129,0.12); color:var(--neon-green); border:1px solid rgba(16,185,129,0.25); text-transform:uppercase; letter-spacing:0.02em;">Bullish Catalyst</span>`;
                                 } else if (sentiment === 'Bearish') {
                                     accentColor = '#ef4444';
-                                    sentimentBadge = `<span style="font-size:11px; font-weight:800; padding:2px 6px; border-radius:3px; background:rgba(239,68,68,0.12); color:var(--neon-red); border:1px solid rgba(239,68,68,0.25); text-transform:uppercase; letter-spacing:0.02em;">Bearish Catalyst</span>`;
+                                    sentimentBadge = `<span style="font-size: 13.5px; font-weight:800; padding:2px 6px; border-radius:3px; background:rgba(239,68,68,0.12); color:var(--neon-red); border:1px solid rgba(239,68,68,0.25); text-transform:uppercase; letter-spacing:0.02em;">Bearish Catalyst</span>`;
                                 } else {
-                                    sentimentBadge = `<span style="font-size:11px; font-weight:800; padding:2px 6px; border-radius:3px; background:rgba(255,255,255,0.04); color:var(--text-secondary); border:1px solid var(--border-glass); text-transform:uppercase; letter-spacing:0.02em;">Market Catalyst</span>`;
+                                    sentimentBadge = `<span style="font-size: 13.5px; font-weight:800; padding:2px 6px; border-radius:3px; background:rgba(255,255,255,0.04); color:var(--text-secondary); border:1px solid var(--border-glass); text-transform:uppercase; letter-spacing:0.02em;">Market Catalyst</span>`;
                                 }
 
                                 // Seed stable pseudo-random impact value from title hash
@@ -4905,21 +4905,21 @@
                                     <div class="bloomberg-news-card news-card-glass" style="--news-sentiment-color:${accentColor};" onclick="window.open('${item.link}', '_blank')">
                                         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; flex-wrap:wrap; gap:8px;">
                                             <div style="display:flex; align-items:center; gap:4px; flex-wrap:wrap;">
-                                                ${(item.source || 'News').split(/[•&|,-]/).map(part => getNewsAgencyLogoHtml(part)).join('<span style="color:var(--text-muted); font-size:10px;">•</span>')}
-                                                <span style="font-size:11px; color:var(--text-muted); font-weight:700; margin-left:4px;">• ${item.date || 'Today'}</span>
+                                                ${(item.source || 'News').split(/[•&|,-]/).map(part => getNewsAgencyLogoHtml(part)).join('<span style="color:var(--text-muted); font-size: 13px;">•</span>')}
+                                                <span style="font-size: 13.5px; color:var(--text-muted); font-weight:700; margin-left:4px;">• ${item.date || 'Today'}</span>
                                             </div>
                                             ${sentimentBadge}
                                         </div>
                                         <div style="font-size:14px; font-family:var(--font-heading); font-weight:600; color:var(--text-primary); line-height:1.45;">${cleanTitle}</div>
                                         
                                         <!-- Bloomberg Impact Weight Indicator -->
-                                        <div style="display:flex; align-items:center; justify-content:space-between; margin-top:10px; padding-top:8px; border-top:1px dashed var(--border-glass, rgba(255,255,255,0.06)); font-size:11.5px; color:var(--text-muted);">
+                                        <div style="display:flex; align-items:center; justify-content:space-between; margin-top:10px; padding-top:8px; border-top:1px dashed var(--border-glass, rgba(255,255,255,0.06)); font-size: 13.5px; color:var(--text-muted);">
                                             <span style="font-weight:700; text-transform:uppercase; letter-spacing:0.02em;">Catalyst Impact Weight</span>
                                             <div style="display:flex; align-items:center; gap:6px; width:70px; justify-content:flex-end;">
                                                 <div style="position:relative; width:45px; height:3px; background:var(--bg-track, rgba(255,255,255,0.06)); border-radius:1.5px; overflow:hidden;">
                                                     <div style="height:100%; width:${impactVal}%; background:${accentColor};"></div>
                                                 </div>
-                                                <span style="font-weight:800; color:${accentColor}; font-family:var(--font-heading); font-size:11px;">${(impactVal/10).toFixed(1)}</span>
+                                                <span style="font-weight:800; color:${accentColor}; font-family:var(--font-heading); font-size: 13.5px;">${(impactVal/10).toFixed(1)}</span>
                                             </div>
                                         </div>
                                     </div>
@@ -5375,7 +5375,7 @@
                 });
 
                 if (futureEvents.length === 0) {
-                    container.innerHTML = `<div class="recent-research-empty" style="font-size: 11px;">No upcoming corporate events scheduled in the next 60 days.</div>`;
+                    container.innerHTML = `<div class="recent-research-empty" style="font-size: 13.5px;">No upcoming corporate events scheduled in the next 60 days.</div>`;
                     return;
                 }
 
@@ -5439,15 +5439,15 @@
                         return `
                                 <div class="event-row-item" style="display: flex; align-items: center; padding: 10px 0; border-bottom: 1px solid var(--border-glass); cursor: pointer;" onclick="window.switchTab && window.switchTab('events')">
                                     <div class="event-date-wrap" style="width: 45px; flex-shrink: 0; display: flex; flex-direction: row; gap: 3px; align-items: baseline;">
-                                        <span style="font-size: 10px; font-weight: 700; color: var(--text-secondary); text-transform: uppercase;">${monthStr}</span>
+                                        <span style="font-size: 13px; font-weight: 700; color: var(--text-secondary); text-transform: uppercase;">${monthStr}</span>
                                         <span style="font-size: 12.5px; font-weight: 800; color: var(--text-primary);">${day}</span>
                                     </div>
                                     <div style="flex-grow: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; text-align: left; padding: 0 4px;">
-                                        <span style="font-size: 11.5px; font-weight: 700; color: var(--text-primary);">${eventTitle}</span>
-                                        <span style="font-size: 10px; color: var(--text-secondary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 95%;">${eventDesc}</span>
+                                        <span style="font-size: 13.5px; font-weight: 700; color: var(--text-primary);">${eventTitle}</span>
+                                        <span style="font-size: 13px; color: var(--text-secondary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 95%;">${eventDesc}</span>
                                     </div>
                                     <div style="flex-shrink: 0; text-align: right;">
-                                        <span class="event-badge ${displayBadgeClass}" style="font-size: 8.5px; padding: 2px 6px;">${badgeLabel}</span>
+                                        <span class="event-badge ${displayBadgeClass}" style="font-size: 12.5px; padding: 2px 6px;">${badgeLabel}</span>
                                     </div>
                                 </div>
                             `;
@@ -5499,25 +5499,25 @@
                     return `
                         <div class="event-row-item" style="display: flex; align-items: center; padding: 12px 0; ${borderStyle}">
                             <div class="event-date-wrap" style="width: 50px; flex-shrink: 0; display: flex; flex-direction: row; gap: 4px; align-items: baseline;">
-                                <span class="event-month" style="font-size: 10.5px; font-weight: 700; color: var(--text-secondary); text-transform: uppercase;">${monthStr}</span>
+                                <span class="event-month" style="font-size: 13px; font-weight: 700; color: var(--text-secondary); text-transform: uppercase;">${monthStr}</span>
                                 <span class="event-day" style="font-size: 13px; font-weight: 800; color: var(--text-primary);">${day}</span>
                             </div>
                             <div class="event-details-wrap" style="flex-grow: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; text-align: left;">
                                 <span class="event-row-title" style="font-size: 12px; font-weight: 700; color: var(--text-primary);">${eventTitle}</span>
-                                <span class="event-row-desc" style="font-size: 10px; color: var(--text-secondary);">${eventDesc}</span>
+                                <span class="event-row-desc" style="font-size: 13px; color: var(--text-secondary);">${eventDesc}</span>
                             </div>
                             <div class="event-status-wrap" style="width: 90px; flex-shrink: 0; text-align: right;">
-                                <span class="event-badge ${badgeClass}" style="font-size: 9px; padding: 3px 8px; border-radius: 4px; font-weight: 600; text-transform: uppercase;">${badgeLabel}</span>
+                                <span class="event-badge ${badgeClass}" style="font-size: 12.5px; padding: 3px 8px; border-radius: 4px; font-weight: 600; text-transform: uppercase;">${badgeLabel}</span>
                             </div>
                         </div>
                     `;
                 }).join('');
             } else {
-                container.innerHTML = `<div class="recent-research-empty" style="font-size: 11px;">No upcoming corporate events.</div>`;
+                container.innerHTML = `<div class="recent-research-empty" style="font-size: 13.5px;">No upcoming corporate events.</div>`;
             }
         } catch (err) {
             console.error("Events load error:", err);
-            container.innerHTML = `<div class="recent-research-empty" style="font-size: 11px;">Failed to load events calendar.</div>`;
+            container.innerHTML = `<div class="recent-research-empty" style="font-size: 13.5px;">Failed to load events calendar.</div>`;
         }
     };
 
@@ -5554,10 +5554,10 @@
                     return `
                         <div class="alert-home-item" onclick="window.switchTab && window.switchTab('alerts')">
                             <div style="display: flex; align-items: center; gap: 8px;">
-                                <span style="font-size: 11px; font-weight: 700; color: var(--color-primary);">${cleanSym}</span>
-                                <span style="font-size: 10.5px; color: var(--text-secondary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 280px;" title="${message}">${message}</span>
+                                <span style="font-size: 13.5px; font-weight: 700; color: var(--color-primary);">${cleanSym}</span>
+                                <span style="font-size: 13px; color: var(--text-secondary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 280px;" title="${message}">${message}</span>
                             </div>
-                            <span style="font-size: 9.5px; color: #10b981; font-family: 'Inter', monospace; font-weight: 700; text-transform: uppercase;">SCANNING</span>
+                            <span style="font-size: 12.5px; color: #10b981; font-family: 'Inter', monospace; font-weight: 700; text-transform: uppercase;">SCANNING</span>
                         </div>
                     `;
                 };
@@ -5570,10 +5570,10 @@
                 const defaultOnlineHtml = `
                     <div class="alert-home-item" onclick="window.switchTab && window.switchTab('alerts')">
                         <div style="display: flex; align-items: center; gap: 8px;">
-                            <span style="font-size: 11px; font-weight: 700; color: #10b981;">SYSTEM</span>
-                            <span style="font-size: 10.5px; color: var(--text-secondary);">Institutional alert monitors active. Real-time sweeps running.</span>
+                            <span style="font-size: 13.5px; font-weight: 700; color: #10b981;">SYSTEM</span>
+                            <span style="font-size: 13px; color: var(--text-secondary);">Institutional alert monitors active. Real-time sweeps running.</span>
                         </div>
-                        <span style="font-size: 9.5px; color: #10b981; font-family: 'Inter', monospace;">ONLINE</span>
+                        <span style="font-size: 12.5px; color: #10b981; font-family: 'Inter', monospace;">ONLINE</span>
                     </div>
                 `;
                 if (mobileAlerts) {
@@ -5583,7 +5583,7 @@
             }
         } catch (e) {
             console.error("Alerts render error:", e);
-            container.innerHTML = `<div class="recent-research-empty" style="font-size: 11px;">Institutional alert center ready.</div>`;
+            container.innerHTML = `<div class="recent-research-empty" style="font-size: 13.5px;">Institutional alert center ready.</div>`;
         }
     };
 
@@ -5637,7 +5637,7 @@
 
             function renderWatchlistList() {
                 if (watchlistCachedItems.length === 0) {
-                    container.innerHTML = `<div class="recent-research-empty" style="font-size: 11px;">No stocks in this watchlist.</div>`;
+                    container.innerHTML = `<div class="recent-research-empty" style="font-size: 13.5px;">No stocks in this watchlist.</div>`;
                     return;
                 }
 
@@ -5681,8 +5681,8 @@
                         // Render Gainers Group
                         if (topGainers.length > 0) {
                             htmlContent += `
-                                <div style="font-size: 10px; font-weight: 700; color: #10b981; margin-bottom: 5px; text-transform: uppercase; letter-spacing: 0.03em;">🔥 Watchlist Gainers</div>
-                                <table style="width: 100%; border-collapse: collapse; font-size: 11.5px; text-align: left; margin-bottom: 12px;">
+                                <div style="font-size: 13px; font-weight: 700; color: #10b981; margin-bottom: 5px; text-transform: uppercase; letter-spacing: 0.03em;">🔥 Watchlist Gainers</div>
+                                <table style="width: 100%; border-collapse: collapse; font-size: 13.5px; text-align: left; margin-bottom: 12px;">
                                     <tbody>
                                         ${topGainers.map(item => {
                                             const changePct = parseFloat(item.change_pct || 0);
@@ -5703,8 +5703,8 @@
                         // Render Losers Group
                         if (topLosers.length > 0) {
                             htmlContent += `
-                                <div style="font-size: 10px; font-weight: 700; color: #ef4444; margin-bottom: 5px; text-transform: uppercase; letter-spacing: 0.03em;">❄️ Watchlist Losers</div>
-                                <table style="width: 100%; border-collapse: collapse; font-size: 11.5px; text-align: left;">
+                                <div style="font-size: 13px; font-weight: 700; color: #ef4444; margin-bottom: 5px; text-transform: uppercase; letter-spacing: 0.03em;">❄️ Watchlist Losers</div>
+                                <table style="width: 100%; border-collapse: collapse; font-size: 13.5px; text-align: left;">
                                     <tbody>
                                         ${topLosers.map(item => {
                                             const changePct = parseFloat(item.change_pct || 0);
@@ -5723,8 +5723,8 @@
                         } else if (sortedByChange.length <= 3) {
                             // If total items <= 3, just show them all in a single watchlist list without splitting
                             htmlContent = `
-                                <div style="font-size: 10px; font-weight: 700; color: var(--text-secondary); margin-bottom: 5px; text-transform: uppercase; letter-spacing: 0.03em;">📋 Watchlist Items</div>
-                                <table style="width: 100%; border-collapse: collapse; font-size: 11.5px; text-align: left;">
+                                <div style="font-size: 13px; font-weight: 700; color: var(--text-secondary); margin-bottom: 5px; text-transform: uppercase; letter-spacing: 0.03em;">📋 Watchlist Items</div>
+                                <table style="width: 100%; border-collapse: collapse; font-size: 13.5px; text-align: left;">
                                     <tbody>
                                         ${sortedByChange.map(item => {
                                             const changePct = parseFloat(item.change_pct || 0);
@@ -5744,7 +5744,7 @@
 
                         mobileWatchlist.innerHTML = htmlContent;
                     } else {
-                        mobileWatchlist.innerHTML = '<div class="recent-research-empty" style="font-size: 11px;">No stocks in watchlist.</div>';
+                        mobileWatchlist.innerHTML = '<div class="recent-research-empty" style="font-size: 13.5px;">No stocks in watchlist.</div>';
                     }
                 }
                                 // Define row element renderer
@@ -5760,9 +5760,9 @@
 
                     return `
                         <div class="watchlist-row-item" data-symbol="${cleanSym}" style="display: flex; justify-content: space-between; align-items: center; padding: 6px 8px; background: rgba(255, 255, 255, 0.015); border: 1px solid var(--border-glass); border-radius: 6px; cursor: pointer; transition: background 0.15s, transform 0.1s; height: 38px; box-sizing: border-box;">
-                            <div style="font-weight: 700; color: var(--text-primary); font-size: 11.5px; width: 85px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${cleanSym}</div>
-                            <div style="text-align: right; color: var(--text-primary); font-weight: 600; font-family: 'Inter', monospace; font-size: 11px; flex-grow: 1; padding-right: 12px;">₹${price}</div>
-                            <div style="text-align: right; font-weight: 700; font-family: 'Inter', monospace; font-size: 10px; width: 68px; flex-shrink: 0;">
+                            <div style="font-weight: 700; color: var(--text-primary); font-size: 13.5px; width: 85px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${cleanSym}</div>
+                            <div style="text-align: right; color: var(--text-primary); font-weight: 600; font-family: 'Inter', monospace; font-size: 13.5px; flex-grow: 1; padding-right: 12px;">₹${price}</div>
+                            <div style="text-align: right; font-weight: 700; font-family: 'Inter', monospace; font-size: 13px; width: 68px; flex-shrink: 0;">
                                 <span style="color: ${color}; padding: 2px 6px; border-radius: 4px; background: ${bg}; display: inline-block; min-width: 54px; text-align: right;">${arrow}${changeStr}</span>
                             </div>
                         </div>
@@ -5784,12 +5784,12 @@
                         <div style="display: flex; gap: 16px; width: 100%;">
                             <!-- Left Column (Gainers) -->
                             <div style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 6px;">
-                                <div style="font-size: 9px; font-weight: 700; color: #10b981; text-transform: uppercase; letter-spacing: 0.03em; border-left: 2px solid #10b981; padding-left: 6px; margin-bottom: 2px;">🔥 Watchlist Gainers</div>
+                                <div style="font-size: 12.5px; font-weight: 700; color: #10b981; text-transform: uppercase; letter-spacing: 0.03em; border-left: 2px solid #10b981; padding-left: 6px; margin-bottom: 2px;">🔥 Watchlist Gainers</div>
                                 ${gainers.map(item => renderRowItem(item)).join('')}
                             </div>
                             <!-- Right Column (Losers) -->
                             <div style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 6px;">
-                                <div style="font-size: 9px; font-weight: 700; color: #ef4444; text-transform: uppercase; letter-spacing: 0.03em; border-left: 2px solid #ef4444; padding-left: 6px; margin-bottom: 2px;">❄️ Watchlist Losers</div>
+                                <div style="font-size: 12.5px; font-weight: 700; color: #ef4444; text-transform: uppercase; letter-spacing: 0.03em; border-left: 2px solid #ef4444; padding-left: 6px; margin-bottom: 2px;">❄️ Watchlist Losers</div>
                                 ${losers.map(item => renderRowItem(item)).join('')}
                             </div>
                         </div>
@@ -5862,7 +5862,7 @@
                     });
                 } catch (err) {
                     console.error("Desktop watchlist loading failed:", err);
-                    container.innerHTML = `<div class="recent-research-empty" style="font-size: 11px;">Failed to load live watchlist.</div>`;
+                    container.innerHTML = `<div class="recent-research-empty" style="font-size: 13.5px;">Failed to load live watchlist.</div>`;
                 }
             };
 
@@ -6013,7 +6013,7 @@
                                         <div style="display:flex; align-items:center; gap:10px;">
                                             <div style="text-align:right;">
                                                 <span style="font-size:14px; font-weight:800; color:${scoreColor}; font-family:monospace;">${scoreVal}</span>
-                                                <span style="font-size:9.5px; color:var(--text-muted);">/100</span>
+                                                <span style="font-size: 12.5px; color:var(--text-muted);">/100</span>
                                             </div>
                                             <button onclick="
                                                 if(typeof playHaptic==='function') playHaptic(10);
@@ -6023,19 +6023,19 @@
                                                     d.style.display = open ? 'none' : 'block';
                                                     this.innerText = open ? 'Prospectus ▾' : 'Close ▴';
                                                 }
-                                            " style="background:rgba(59,130,246,0.1); border:1px solid rgba(59,130,246,0.3); color:#3b82f6; font-size:10.5px; font-weight:700; border-radius:6px; padding:3px 8px; cursor:pointer;">Prospectus ▾</button>
+                                            " style="background:rgba(59,130,246,0.1); border:1px solid rgba(59,130,246,0.3); color:#3b82f6; font-size: 13px; font-weight:700; border-radius:6px; padding:3px 8px; cursor:pointer;">Prospectus ▾</button>
                                         </div>
                                     </div>
 
                                     <!-- Expandable Touch Detail Drawer (Inline Prospectus View) -->
-                                    <div id="${drawerId}" style="display:none; margin-top:10px; padding-top:10px; border-top:1px dashed var(--border-glass, rgba(255,255,255,0.1)); font-size:11px; color:var(--text-secondary); transition:all 0.3s ease;">
+                                    <div id="${drawerId}" style="display:none; margin-top:10px; padding-top:10px; border-top:1px dashed var(--border-glass, rgba(255,255,255,0.1)); font-size: 13.5px; color:var(--text-secondary); transition:all 0.3s ease;">
                                         <div style="display:grid; grid-template-columns:1fr 1fr; gap:6px; margin-bottom:8px;">
                                             <div style="background:rgba(255,255,255,0.03); padding:6px; border-radius:4px;">
-                                                <div style="font-size:9px; color:var(--text-muted);">RSI (14)</div>
+                                                <div style="font-size: 12.5px; color:var(--text-muted);">RSI (14)</div>
                                                 <div style="font-weight:800; color:var(--neon-green); font-family:monospace;">${rsiVal} (Bullish)</div>
                                             </div>
                                             <div style="background:rgba(255,255,255,0.03); padding:6px; border-radius:4px;">
-                                                <div style="font-size:9px; color:var(--text-muted);">Margin of Safety</div>
+                                                <div style="font-size: 12.5px; color:var(--text-muted);">Margin of Safety</div>
                                                 <div style="font-weight:800; color:var(--neon-green); font-family:monospace;">+${mosVal}%</div>
                                             </div>
                                         </div>
@@ -6045,7 +6045,7 @@
                                             } else if (typeof window.switchTab === 'function') {
                                                 window.switchTab('analyzer');
                                             }
-                                        " style="width:100%; background:var(--color-primary); color:#fff; border:none; padding:6px; border-radius:4px; font-weight:800; font-size:11px; cursor:pointer;">Deep Dive Research →</button>
+                                        " style="width:100%; background:var(--color-primary); color:#fff; border:none; padding:6px; border-radius:4px; font-weight:800; font-size: 13.5px; cursor:pointer;">Deep Dive Research →</button>
                                     </div>
                                 </div>
                             `;
@@ -6053,7 +6053,7 @@
                     quantHtml += `</div>`;
                     mobileQuantPicks.innerHTML = quantHtml;
                 } else {
-                    mobileQuantPicks.innerHTML = `<div class="recent-research-empty" style="font-size: 11px;">Scanning market for picks...</div>`;
+                    mobileQuantPicks.innerHTML = `<div class="recent-research-empty" style="font-size: 13.5px;">Scanning market for picks...</div>`;
                 }
             }
             tbody.innerHTML = top5.map((item, idx) => {
@@ -6386,12 +6386,12 @@
                                 <div style="display:flex; align-items:center; justify-content:space-between;">
                                     <div>
                                         <strong style="color: var(--text-primary); font-size:14px; font-weight:800; font-family:'Outfit', sans-serif; display:block;">${item.symbol}</strong>
-                                        <div style="font-size:10px; color:var(--text-muted); margin-top:2px;">CMP: ₹${item.price || '--'}</div>
+                                        <div style="font-size: 13px; color:var(--text-muted); margin-top:2px;">CMP: ₹${item.price || '--'}</div>
                                     </div>
                                     <div style="display:flex; align-items:center; gap:10px;">
                                         <div style="text-align:right;">
                                             <div style="font-size:13.5px; font-family:monospace; font-weight:800; color:${changeColor};">${changeSign}${changePct.toFixed(1)}%</div>
-                                            <div style="font-size:9.5px; color:${signalTagColor}; font-weight:700;">${signalTag}</div>
+                                            <div style="font-size: 12.5px; color:${signalTagColor}; font-weight:700;">${signalTag}</div>
                                         </div>
                                         <button onclick="
                                             if(typeof playHaptic==='function') playHaptic(10);
@@ -6401,28 +6401,28 @@
                                                 d.style.display = open ? 'none' : 'block';
                                                 this.innerText = open ? 'Prospectus ▾' : 'Close ▴';
                                             }
-                                        " style="background:rgba(59,130,246,0.1); border:1px solid rgba(59,130,246,0.3); color:#3b82f6; font-size:10.5px; font-weight:700; border-radius:6px; padding:3px 8px; cursor:pointer;">Prospectus ▾</button>
+                                        " style="background:rgba(59,130,246,0.1); border:1px solid rgba(59,130,246,0.3); color:#3b82f6; font-size: 13px; font-weight:700; border-radius:6px; padding:3px 8px; cursor:pointer;">Prospectus ▾</button>
                                     </div>
                                 </div>
 
                                 <!-- Expandable Touch Detail Drawer (100% Real Prospectus View) -->
-                                <div id="${drawerId}" style="display:none; margin-top:10px; padding-top:10px; border-top:1px dashed var(--border-glass, rgba(255,255,255,0.1)); font-size:11px; color:var(--text-secondary); transition:all 0.3s ease;">
+                                <div id="${drawerId}" style="display:none; margin-top:10px; padding-top:10px; border-top:1px dashed var(--border-glass, rgba(255,255,255,0.1)); font-size: 13.5px; color:var(--text-secondary); transition:all 0.3s ease;">
                                     <div style="display:grid; grid-template-columns:1fr 1fr; gap:6px; margin-bottom:8px;">
                                         <div style="background:rgba(255,255,255,0.03); padding:6px; border-radius:4px;">
-                                            <div style="font-size:9px; color:var(--text-muted);">RSI (14)</div>
+                                            <div style="font-size: 12.5px; color:var(--text-muted);">RSI (14)</div>
                                             <div style="font-weight:800; color:var(--neon-green); font-family:monospace;">${rsiValStr}</div>
                                         </div>
                                         <div style="background:rgba(255,255,255,0.03); padding:6px; border-radius:4px;">
-                                            <div style="font-size:9px; color:var(--text-muted);">Volume Ratio</div>
+                                            <div style="font-size: 12.5px; color:var(--text-muted);">Volume Ratio</div>
                                             <div style="font-weight:800; color:#3b82f6; font-family:monospace;">${volMultStr}</div>
                                         </div>
                                         <div style="background:rgba(255,255,255,0.03); padding:6px; border-radius:4px;">
-                                            <div style="font-size:9px; color:var(--text-muted);">52W High / Low</div>
-                                            <div style="font-weight:800; color:var(--text-primary); font-family:monospace; font-size:10px;">${high52Str} / ${low52Str}</div>
+                                            <div style="font-size: 12.5px; color:var(--text-muted);">52W High / Low</div>
+                                            <div style="font-weight:800; color:var(--text-primary); font-family:monospace; font-size: 13px;">${high52Str} / ${low52Str}</div>
                                         </div>
                                         <div style="background:rgba(255,255,255,0.03); padding:6px; border-radius:4px;">
-                                            <div style="font-size:9px; color:var(--text-muted);">50 MA / 200 MA</div>
-                                            <div style="font-weight:800; color:var(--text-primary); font-family:monospace; font-size:10px;">${sma50Str} / ${sma200Str}</div>
+                                            <div style="font-size: 12.5px; color:var(--text-muted);">50 MA / 200 MA</div>
+                                            <div style="font-weight:800; color:var(--text-primary); font-family:monospace; font-size: 13px;">${sma50Str} / ${sma200Str}</div>
                                         </div>
                                     </div>
                                     <button onclick="
@@ -6431,7 +6431,7 @@
                                         } else if (typeof window.switchTab === 'function') {
                                             window.switchTab('analyzer');
                                         }
-                                    " style="width:100%; background:var(--color-primary); color:#fff; border:none; padding:6px; border-radius:4px; font-weight:800; font-size:11px; cursor:pointer;">Deep Dive Research →</button>
+                                    " style="width:100%; background:var(--color-primary); color:#fff; border:none; padding:6px; border-radius:4px; font-weight:800; font-size: 13.5px; cursor:pointer;">Deep Dive Research →</button>
                                 </div>
                             </div>
                         `;
@@ -6439,7 +6439,7 @@
                     techHtml += `</div>`;
                     mobileTechScans.innerHTML = techHtml;
                 } else {
-                    mobileTechScans.innerHTML = `<div class="recent-research-empty" style="font-size: 11px;">No scan results.</div>`;
+                    mobileTechScans.innerHTML = `<div class="recent-research-empty" style="font-size: 13.5px;">No scan results.</div>`;
                 }
             }
             
@@ -6641,7 +6641,7 @@
                     const chgVal = item.change_pct !== undefined && item.change_pct !== null ? Number(item.change_pct) : 0;
                     const chgSign = chgVal >= 0 ? '+' : '';
                     const chgClass = chgVal >= 0 ? 'cmp-badge-up' : 'cmp-badge-down';
-                    const chgDisplay = `<span class="${chgClass}" style="font-size: 10px; display: block;">${chgSign}${chgVal.toFixed(2)}%</span>`;
+                    const chgDisplay = `<span class="${chgClass}" style="font-size: 13px; display: block;">${chgSign}${chgVal.toFixed(2)}%</span>`;
 
                     const sma50Display = (item.sma50 && Number(item.sma50) > 0) ? `₹${Number(item.sma50).toLocaleString('en-IN')}` : '--';
                     const sma200Display = (item.sma200 && Number(item.sma200) > 0) ? `₹${Number(item.sma200).toLocaleString('en-IN')}` : '--';
@@ -6716,7 +6716,7 @@
                                     </div>
                                     <div class="tech-snapshot-item">
                                         <span class="tech-snapshot-label">🏢 Sector & Segment</span>
-                                        <span class="tech-snapshot-val" style="font-size: 11px; font-weight: 600;">${sector} • ${segment}</span>
+                                        <span class="tech-snapshot-val" style="font-size: 13.5px; font-weight: 600;">${sector} • ${segment}</span>
                                     </div>
                                 </div>
                             </td>
@@ -8312,7 +8312,7 @@
                                 // Truncate company name
                                 const nameEl = textDiv.querySelector('strong');
                                 if (nameEl) {
-                                    nameEl.style.cssText += '; display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:11.5px;';
+                                    nameEl.style.cssText += '; display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size: 13.5px;';
                                 }
                                 // Split symbol + cap into separate elements so cap is always visible
                                 const symEl = textDiv.querySelector('span.text-muted');
@@ -8324,7 +8324,7 @@
                                     
                                     // Build a flex row: [ticker...] [• cap]
                                     symEl.innerHTML = '';
-                                    symEl.style.cssText += '; display:flex; align-items:center; gap:3px; font-size:9px;';
+                                    symEl.style.cssText += '; display:flex; align-items:center; gap:3px; font-size: 12.5px;';
                                     
                                     const tickerSpan = document.createElement('span');
                                     tickerSpan.textContent = tickerPart;
@@ -8611,7 +8611,7 @@
                             if (companyText && companyText.nodeType === Node.TEXT_NODE) {
                                 const nameSpan = document.createElement('span');
                                 nameSpan.textContent = companyText.textContent.trim();
-                                nameSpan.style.cssText = 'overflow:hidden; text-overflow:ellipsis; white-space:nowrap; min-width:0; flex:1; font-size:11.5px;';
+                                nameSpan.style.cssText = 'overflow:hidden; text-overflow:ellipsis; white-space:nowrap; min-width:0; flex:1; font-size: 13.5px;';
                                 companyDiv.replaceChild(nameSpan, companyText);
                             }
                             
@@ -9152,10 +9152,10 @@
                                                 ${logoHtml}
                                                 <div>
                                                     <strong style="color:var(--text-primary); font-family:'Outfit'; font-size:12px;">${s.symbol || s.name}</strong>
-                                                    ${s.name && s.name !== s.symbol ? `<span style="color:var(--text-muted); font-size:10px; margin-left:4px;">(${s.name})</span>` : ''}
+                                                    ${s.name && s.name !== s.symbol ? `<span style="color:var(--text-muted); font-size: 13px; margin-left:4px;">(${s.name})</span>` : ''}
                                                 </div>
                                             </div>
-                                            ${s.sector ? `<span style="font-size:9.5px; color:var(--text-muted);">${s.sector}</span>` : ''}
+                                            ${s.sector ? `<span style="font-size: 12.5px; color:var(--text-muted);">${s.sector}</span>` : ''}
                                         `;
                                         item.addEventListener('click', () => {
                                             desktopSearch.value = s.symbol || s.name;
@@ -9231,10 +9231,10 @@
                                 ${logoHtml}
                                 <div>
                                     <strong style="color:var(--text-primary); font-family:'Outfit', sans-serif; font-size:13px;">${s.symbol || s.base_symbol || s.name}</strong>
-                                    ${s.name && s.name !== s.symbol ? `<span style="color:var(--text-muted); font-size:11px; margin-left:6px;">(${s.name})</span>` : ''}
+                                    ${s.name && s.name !== s.symbol ? `<span style="color:var(--text-muted); font-size: 13.5px; margin-left:6px;">(${s.name})</span>` : ''}
                                 </div>
                             </div>
-                            ${s.sector ? `<span style="font-size:10px; color:var(--text-muted);">${s.sector}</span>` : ''}
+                            ${s.sector ? `<span style="font-size: 13px; color:var(--text-muted);">${s.sector}</span>` : ''}
                         `;
 
                         item.addEventListener('click', (e) => {
@@ -9544,10 +9544,10 @@
                                         <div onclick="if(window.loadStockAnalyzer){ window.loadStockAnalyzer('${cleanSym}'); }" style="background: rgba(0, 0, 0, 0.3); border: 1px solid ${borderColor}; border-radius: 10px; padding: 10px 12px; cursor: pointer; transition: all 0.2s;" onmouseover="this.style.borderColor='${hoverColor}'; this.style.transform='translateY(-2px)';" onmouseout="this.style.borderColor='${borderColor}'; this.style.transform='none';">
                                             <div style="display: flex; justify-content: space-between; align-items: center;">
                                                 <span style="font-weight: 800; font-size: 12px; color: #ffffff;">${cleanSym}</span>
-                                                <span style="font-size: 9px; background: ${badgeBg}; color: ${badgeColor}; padding: 1px 5px; border-radius: 3px; font-weight: 700;">${chgPct}</span>
+                                                <span style="font-size: 12.5px; background: ${badgeBg}; color: ${badgeColor}; padding: 1px 5px; border-radius: 3px; font-weight: 700;">${chgPct}</span>
                                             </div>
-                                            <div style="font-size: 10px; color: #94a3b8; margin-top: 4px; line-height: 1.3; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${name}">${name} (${price})</div>
-                                            <div style="font-size: 9.5px; color: ${badgeColor}; font-weight: 700; margin-top: 6px; display: flex; align-items: center; justify-content: space-between;">
+                                            <div style="font-size: 13px; color: #94a3b8; margin-top: 4px; line-height: 1.3; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${name}">${name} (${price})</div>
+                                            <div style="font-size: 12.5px; color: ${badgeColor}; font-weight: 700; margin-top: 6px; display: flex; align-items: center; justify-content: space-between;">
                                                 <span>${tag}</span>
                                                 <span>Analyze ➔</span>
                                             </div>
