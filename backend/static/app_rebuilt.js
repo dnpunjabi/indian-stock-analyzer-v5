@@ -12503,11 +12503,16 @@ async function setupWatchlistControls() {
         }
     }
 
-    // Sortable header click listeners for Watchlist Constituents
-    const headers = document.querySelectorAll('#tab-watchlist th.sortable-wl');
-    headers.forEach(h => {
-        h.addEventListener('click', () => {
-            const field = h.getAttribute('data-sort');
+    // Sortable header click listeners for Watchlist Constituents (Event Delegation)
+    const headerRow = document.getElementById('watchlist-table-header-row');
+    if (headerRow && !headerRow.hasAttribute('data-sort-listener')) {
+        headerRow.setAttribute('data-sort-listener', 'true');
+        headerRow.addEventListener('click', (e) => {
+            const th = e.target.closest('th.sortable-wl');
+            if (!th) return;
+            const field = th.getAttribute('data-sort');
+            if (!field) return;
+
             if (watchlistSortCol === field) {
                 watchlistSortAsc = !watchlistSortAsc;
             } else {
@@ -12515,19 +12520,10 @@ async function setupWatchlistControls() {
                 watchlistSortAsc = true;
             }
 
-            // Reset and set indicators
-            headers.forEach(header => {
-                header.style.color = 'var(--text-secondary)';
-                header.innerText = header.innerText.replace(/[▲▼↕]/g, '↕');
-            });
-
-            h.style.color = 'var(--color-primary)';
-            h.innerText = h.innerText.replace('↕', watchlistSortAsc ? '▲' : '▼');
-
             activeWatchlistPage = 1;
             renderWatchlistItems();
         });
-    });
+    }
 
     // Initial data fetch
     await fetchWatchlists();

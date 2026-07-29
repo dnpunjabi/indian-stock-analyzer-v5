@@ -16221,11 +16221,16 @@ async function setupWatchlistControls() {
         }
     }
 
-    // Sortable header click listeners for Watchlist Constituents
-    const headers = document.querySelectorAll('#tab-watchlist th.sortable-wl');
-    headers.forEach(h => {
-        h.addEventListener('click', () => {
-            const field = h.getAttribute('data-sort');
+    // Sortable header click listeners for Watchlist Constituents (Event Delegation)
+    const headerRow = document.getElementById('watchlist-table-header-row');
+    if (headerRow && !headerRow.hasAttribute('data-sort-listener')) {
+        headerRow.setAttribute('data-sort-listener', 'true');
+        headerRow.addEventListener('click', (e) => {
+            const th = e.target.closest('th.sortable-wl');
+            if (!th) return;
+            const field = th.getAttribute('data-sort');
+            if (!field) return;
+
             if (watchlistSortCol === field) {
                 watchlistSortAsc = !watchlistSortAsc;
             } else {
@@ -16233,19 +16238,10 @@ async function setupWatchlistControls() {
                 watchlistSortAsc = true;
             }
 
-            // Reset and set indicators
-            headers.forEach(header => {
-                header.style.color = 'var(--text-secondary)';
-                header.innerText = header.innerText.replace(/[▲▼↕]/g, '↕');
-            });
-
-            h.style.color = 'var(--color-primary)';
-            h.innerText = h.innerText.replace('↕', watchlistSortAsc ? '▲' : '▼');
-
             activeWatchlistPage = 1;
             renderWatchlistItems();
         });
-    });
+    }
 
     // Initial data fetch
     await fetchWatchlists();
@@ -16775,29 +16771,41 @@ function renderWatchlistItems() {
         };
     });
 
+    // Helper to generate sortable header cell HTML with dynamic sort arrows and colors
+    const getSortHeader = (colKey, labelText, align = 'right', isFirstCol = false) => {
+        const isSorted = watchlistSortCol === colKey;
+        const arrow = isSorted ? (watchlistSortAsc ? ' ▲' : ' ▼') : ' ↕';
+        const color = isSorted ? 'var(--color-primary-light, #2dd4bf)' : 'var(--text-secondary)';
+        const stickyClass = isFirstCol ? 'sticky-stock-hdr ' : '';
+        const alignStyle = align !== 'left' ? ` text-align: ${align};` : '';
+        const minWidthStyle = isFirstCol ? ' min-width: 140px;' : '';
+        
+        return `<th class="${stickyClass}sortable-wl cursor-pointer" data-sort="${colKey}" style="color: ${color};${alignStyle}${minWidthStyle}">${labelText}${arrow}</th>`;
+    };
+
     // Update Table Headers based on Active View
     const headerRow = document.getElementById('watchlist-table-header-row');
     if (headerRow) {
         if (window.activeWatchlistView === 'returns') {
             headerRow.innerHTML = `
-                <th class="sticky-stock-hdr sortable-wl cursor-pointer" data-sort="symbol" style="color: var(--text-secondary); min-width: 140px;">Stock</th>
-                <th class="sortable-wl cursor-pointer" data-sort="live_price" style="color: var(--text-secondary); text-align: right;">LTP</th>
-                <th class="sortable-wl cursor-pointer" data-sort="change_pct" style="color: var(--text-secondary); text-align: right;">Day Chg %</th>
-                <th style="color: var(--text-secondary); text-align: right;">1W %</th>
-                <th style="color: var(--text-secondary); text-align: right;">1M %</th>
-                <th style="color: var(--text-secondary); text-align: right;">3M %</th>
-                <th style="color: var(--text-secondary); text-align: right;">6M %</th>
-                <th style="color: var(--text-secondary); text-align: right;">1Y %</th>
+                ${getSortHeader('symbol', 'Stock', 'left', true)}
+                ${getSortHeader('live_price', 'LTP', 'right')}
+                ${getSortHeader('change_pct', 'Day Chg %', 'right')}
+                ${getSortHeader('ret_1w', '1W %', 'right')}
+                ${getSortHeader('ret_1m', '1M %', 'right')}
+                ${getSortHeader('ret_3m', '3M %', 'right')}
+                ${getSortHeader('ret_6m', '6M %', 'right')}
+                ${getSortHeader('ret_1y', '1Y %', 'right')}
                 <th style="color: var(--text-secondary); text-align: center;">Actions</th>
             `;
         } else {
             headerRow.innerHTML = `
-                <th class="sticky-stock-hdr sortable-wl cursor-pointer" data-sort="symbol" style="color: var(--text-secondary); min-width: 140px;">Stock</th>
-                <th class="sortable-wl cursor-pointer" data-sort="live_price" style="color: var(--text-secondary); text-align: right;">LTP</th>
-                <th class="sortable-wl cursor-pointer" data-sort="added_price" style="color: var(--text-secondary); text-align: right;">Added Price</th>
-                <th class="sortable-wl cursor-pointer" data-sort="added_date" style="color: var(--text-secondary); text-align: center;">Added On</th>
-                <th class="sortable-wl cursor-pointer" data-sort="chg_since_added" style="color: var(--text-secondary); text-align: right;">Chg % Since Added</th>
-                <th class="sortable-wl cursor-pointer" data-sort="change_pct" style="color: var(--text-secondary); text-align: right;">Day Chg %</th>
+                ${getSortHeader('symbol', 'Stock', 'left', true)}
+                ${getSortHeader('live_price', 'LTP', 'right')}
+                ${getSortHeader('added_price', 'Added Price', 'right')}
+                ${getSortHeader('added_date', 'Added On', 'center')}
+                ${getSortHeader('chg_since_added', 'Chg % Since Added', 'right')}
+                ${getSortHeader('change_pct', 'Day Chg %', 'right')}
                 <th style="color: var(--text-secondary); text-align: center;">52W Range Bar</th>
                 <th style="color: var(--text-secondary); text-align: center;">Actions</th>
             `;
@@ -16815,7 +16823,7 @@ function renderWatchlistItems() {
     }
 
     // --- SORT CONSTITUENTS ---
-    const numericSortFields = ['live_price', 'change', 'change_pct', 'added_price', 'chg_since_added', 'fuzzy_score'];
+    const numericSortFields = ['live_price', 'change', 'change_pct', 'added_price', 'chg_since_added', 'fuzzy_score', 'ret_1w', 'ret_1m', 'ret_3m', 'ret_6m', 'ret_1y', 'day_high', 'day_low'];
     let sortedItems = [...filteredItems];
     sortedItems.sort((a, b) => {
         let valA, valB;
