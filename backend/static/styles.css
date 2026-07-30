@@ -26022,3 +26022,141 @@ body.light-theme #tab-movers .screener-table thead th:first-child {
         max-width: 100% !important;
     }
 }
+
+
+/* ==========================================================================
+   APEX UNIVERSAL 2D TABLE SCROLL & 100% OPAQUE STICKY COLUMN OVERHAUL
+   (APPLIES TO 100% OF ALL TABLES, SUB-TABS, MODALS & SECTIONS APP-WIDE)
+   ========================================================================== */
+
+/* 1. Universal Table Containers: Enable 2D Touch Horizontal Scroll */
+.table-container,
+.table-scroll,
+.table-scroll-wrapper,
+.table-wrapper,
+.table-responsive,
+.screener-table-wrapper,
+.ledger-table-wrap,
+.matrix-table-wrap,
+.data-table-wrapper,
+.financial-table-wrap,
+.sensitivity-table-wrap,
+div[style*="overflow-x"],
+section.workspace-tab .table-container {
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+    display: block !important;
+}
+
+/* 2. Universal Table Formatting: Preserve All Columns Without Squishing */
+table,
+.data-table,
+.screener-table,
+.ledger-table,
+.matrix-table,
+.sensitivity-matrix-table,
+.financial-table,
+.synthesis-markdown-table {
+    min-width: 650px !important;
+    width: 100% !important;
+    table-layout: auto !important;
+    border-collapse: collapse !important;
+}
+
+/* 3. Universal Cell Formatting: Prevent Text Truncation */
+table th,
+table td,
+.data-table th,
+.data-table td,
+.screener-table th,
+.screener-table td,
+.ledger-table th,
+.ledger-table td,
+.matrix-table th,
+.matrix-table td {
+    display: table-cell !important;
+    white-space: nowrap !important;
+    padding: 10px 14px !important;
+}
+
+/* 4. Universal 100% Opaque Solid Sticky First Column (Dark Theme) */
+table tbody td:first-child,
+.data-table tbody td:first-child,
+.screener-table tbody td:first-child,
+.ledger-table tbody td:first-child,
+.matrix-table tbody td:first-child,
+.financial-table tbody td:first-child,
+td.sticky-col,
+td.sticky-stock-col {
+    position: sticky !important;
+    left: 0 !important;
+    z-index: 25 !important;
+    background: #0d1117 !important;
+    opacity: 1 !important;
+    backdrop-filter: none !important;
+    box-shadow: 4px 0 14px rgba(0, 0, 0, 0.75) !important;
+    border-right: 1.5px solid rgba(56, 189, 248, 0.3) !important;
+    min-width: 140px !important;
+    width: 140px !important;
+}
+
+/* Universal Sticky Table Header Cells */
+table thead th:first-child,
+.data-table thead th:first-child,
+.screener-table thead th:first-child,
+.ledger-table thead th:first-child,
+.matrix-table thead th:first-child,
+th.sticky-col,
+th.sticky-stock-hdr {
+    position: sticky !important;
+    top: 0 !important;
+    left: 0 !important;
+    z-index: 35 !important;
+    background: #0d1117 !important;
+    opacity: 1 !important;
+    backdrop-filter: none !important;
+    box-shadow: 4px 2px 14px rgba(0, 0, 0, 0.8) !important;
+    border-right: 1.5px solid rgba(56, 189, 248, 0.3) !important;
+    min-width: 140px !important;
+    width: 140px !important;
+}
+
+/* 5. Universal Light Theme Compatibility */
+[data-theme="light"] table tbody td:first-child,
+[data-theme="light"] .data-table tbody td:first-child,
+[data-theme="light"] .screener-table tbody td:first-child,
+[data-theme="light"] .ledger-table tbody td:first-child,
+body.light-theme table tbody td:first-child,
+body.light-theme .data-table tbody td:first-child {
+    background: #ffffff !important;
+    opacity: 1 !important;
+    box-shadow: 4px 0 12px rgba(0, 0, 0, 0.12) !important;
+    border-right: 1.5px solid rgba(0, 0, 0, 0.15) !important;
+}
+
+[data-theme="light"] table thead th:first-child,
+[data-theme="light"] .data-table thead th:first-child,
+[data-theme="light"] .screener-table thead th:first-child,
+body.light-theme table thead th:first-child,
+body.light-theme .data-table thead th:first-child {
+    background: #f8fafc !important;
+    opacity: 1 !important;
+    box-shadow: 4px 2px 12px rgba(0, 0, 0, 0.15) !important;
+    border-right: 1.5px solid rgba(0, 0, 0, 0.15) !important;
+}
+
+/* 6. Clean Ticker Badge Styling inside First Column App-Wide */
+table td:first-child .ticker-badge,
+table td:first-child .symbol-badge,
+table td:first-child .badge {
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+    font-size: 15.5px !important;
+    font-weight: 800 !important;
+    color: #3b82f6 !important;
+}
