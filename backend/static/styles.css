@@ -18242,13 +18242,7 @@ select option {
         display: table-cell !important;
     }
 
-    /* Hide non-essential movers explorer columns on mobile (showing Ticker, LTP, Change %) */
-    #tab-movers .screener-table th:nth-child(2),
-    #tab-movers .screener-table td:nth-child(2),
-    #tab-movers .screener-table th:nth-child(4),
-    #tab-movers .screener-table td:nth-child(4) {
-        display: none !important;
-    }
+    /* Movers explorer columns preserved for 2D table scroll */
 
     #tab-movers .screener-table {
         table-layout: fixed !important;
@@ -25910,5 +25904,121 @@ body.light-theme table th:first-child {
         width: 100% !important;
         justify-content: center !important;
         padding: 10px !important;
+    }
+}
+
+
+/* ==========================================================================
+   TODAY'S MARKET MOVERS FULL 2D TABLE OVERHAUL (TOP 10 GAINERS & LOSERS)
+   ========================================================================== */
+
+/* Preserve all 5 columns (Ticker, Company Name, LTP, Abs Diff, Change %) app-wide */
+#tab-movers .screener-table th,
+#tab-movers .screener-table td {
+    display: table-cell !important;
+    white-space: nowrap !important;
+    padding: 12px 14px !important;
+}
+
+/* Movers Pane & Container 2D Scroll Setup */
+.movers-split-pane {
+    display: flex !important;
+    gap: 20px !important;
+    flex-wrap: wrap !important;
+    width: 100% !important;
+}
+
+.movers-pane {
+    flex: 1 1 450px !important;
+    min-width: 0 !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+}
+
+.movers-pane .table-container {
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+    width: 100% !important;
+    border-radius: 10px !important;
+    border: 1px solid var(--border-glass, rgba(255, 255, 255, 0.1)) !important;
+    box-sizing: border-box !important;
+}
+
+#tab-movers .screener-table {
+    min-width: 620px !important;
+    width: 100% !important;
+    table-layout: auto !important;
+    border-collapse: collapse !important;
+}
+
+/* Sticky First Column for Ticker in Market Movers (100% Opaque Solid Dark) */
+#tab-movers .screener-table tbody td:first-child {
+    position: sticky !important;
+    left: 0 !important;
+    z-index: 25 !important;
+    background: #0d1117 !important;
+    opacity: 1 !important;
+    backdrop-filter: none !important;
+    box-shadow: 4px 0 14px rgba(0, 0, 0, 0.75) !important;
+    border-right: 1.5px solid rgba(56, 189, 248, 0.3) !important;
+    min-width: 140px !important;
+    width: 140px !important;
+}
+
+#tab-movers .screener-table thead th:first-child {
+    position: sticky !important;
+    top: 0 !important;
+    left: 0 !important;
+    z-index: 35 !important;
+    background: #0d1117 !important;
+    opacity: 1 !important;
+    backdrop-filter: none !important;
+    box-shadow: 4px 2px 14px rgba(0, 0, 0, 0.8) !important;
+    border-right: 1.5px solid rgba(56, 189, 248, 0.3) !important;
+    min-width: 140px !important;
+    width: 140px !important;
+}
+
+/* Light Theme Sticky Ticker Column in Market Movers */
+[data-theme="light"] #tab-movers .screener-table tbody td:first-child,
+body.light-theme #tab-movers .screener-table tbody td:first-child {
+    background: #ffffff !important;
+    opacity: 1 !important;
+    box-shadow: 4px 0 12px rgba(0, 0, 0, 0.12) !important;
+    border-right: 1.5px solid rgba(0, 0, 0, 0.15) !important;
+}
+
+[data-theme="light"] #tab-movers .screener-table thead th:first-child,
+body.light-theme #tab-movers .screener-table thead th:first-child {
+    background: #f8fafc !important;
+    opacity: 1 !important;
+    box-shadow: 4px 2px 12px rgba(0, 0, 0, 0.15) !important;
+    border-right: 1.5px solid rgba(0, 0, 0, 0.15) !important;
+}
+
+/* Remove dark black pill box wrapping around tickers */
+#tab-movers .screener-table td:first-child .ticker-badge,
+#tab-movers .screener-table td:first-child .symbol-badge,
+#tab-movers .screener-table td:first-child .badge {
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+    font-size: 15.5px !important;
+    font-weight: 800 !important;
+    color: #3b82f6 !important;
+}
+
+@media (max-width: 768px) {
+    .movers-split-pane {
+        flex-direction: column !important;
+        gap: 24px !important;
+        width: 100% !important;
+    }
+    
+    .movers-pane {
+        width: 100% !important;
+        flex: 1 1 100% !important;
+        max-width: 100% !important;
     }
 }

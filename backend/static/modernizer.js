@@ -8389,7 +8389,7 @@
                                 wrapper.innerHTML = logoHtml;
                                 
                                 symbolCell.insertBefore(wrapper, symbolCell.firstChild);
-                                symbolCell.style.display = 'flex';
+                                // symbolCell.style.display = 'flex'; preserved table-cell layout
                                 symbolCell.style.alignItems = 'center';
                             }
                         });
