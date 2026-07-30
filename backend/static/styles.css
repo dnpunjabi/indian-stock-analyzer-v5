@@ -18265,53 +18265,17 @@ select option {
     }
 
     /* Hide non-essential alert log columns on mobile (showing Stock, Status) */
-    #tab-alerts .data-table th:nth-child(2),
-    #tab-alerts .data-table tbody tr:not(.alerts-details-row) td:nth-child(2),
-    #tab-alerts .data-table th:nth-child(3),
-    #tab-alerts .data-table tbody tr:not(.alerts-details-row) td:nth-child(3),
-    #tab-alerts .data-table th:nth-child(5),
-    #tab-alerts .data-table tbody tr:not(.alerts-details-row) td:nth-child(5),
-    #tab-alerts .data-table th:nth-child(6),
-    #tab-alerts .data-table tbody tr:not(.alerts-details-row) td:nth-child(6) {
-        display: none !important;
-    }
-
-    #tab-alerts .data-table {
-        table-layout: fixed !important;
-        width: 100% !important;
-        min-width: auto !important;
-    }
-
-    #tab-alerts .data-table th:nth-child(1),
-    #tab-alerts .data-table td:nth-child(1) {
-        width: 60% !important;
-    }
-
-    #tab-alerts .data-table th:nth-child(4),
-    #tab-alerts .data-table td:nth-child(4) {
-        width: 40% !important;
+    /* PURGED ALERT CENTER COLUMN HIDING RULES - ALL COLUMNS PRESERVED FOR 2D SCROLL */
+    #tab-alerts .data-table th,
+    #tab-alerts .data-table td {
+        display: table-cell !important;
     }
 
     /* Hide non-essential rule scanner results columns on mobile (showing Stock, Price) */
-    #tab-rule-scanner .data-table th:nth-child(2),
-    #tab-rule-scanner .data-table tbody tr:not(.rs-details-row) td:nth-child(2),
-    #tab-rule-scanner .data-table th:nth-child(4),
-    #tab-rule-scanner .data-table tbody tr:not(.rs-details-row) td:nth-child(4),
-    #tab-rule-scanner .data-table th:nth-child(5),
-    #tab-rule-scanner .data-table tbody tr:not(.rs-details-row) td:nth-child(5),
-    #tab-rule-scanner .data-table th:nth-child(6),
-    #tab-rule-scanner .data-table tbody tr:not(.rs-details-row) td:nth-child(6),
-    #tab-rule-scanner .data-table th:nth-child(7),
-    #tab-rule-scanner .data-table tbody tr:not(.rs-details-row) td:nth-child(7),
-    #tab-rule-scanner .data-table th:nth-child(8),
-    #tab-rule-scanner .data-table tbody tr:not(.rs-details-row) td:nth-child(8) {
-        display: none !important;
-    }
-
-    #tab-rule-scanner .data-table {
-        table-layout: fixed !important;
-        width: 100% !important;
-        min-width: auto !important;
+    /* PURGED RULE SCANNER COLUMN HIDING RULES - ALL COLUMNS PRESERVED FOR 2D SCROLL */
+    #tab-rule-scanner .data-table th,
+    #tab-rule-scanner .data-table td {
+        display: table-cell !important;
     }
 
     #tab-rule-scanner .data-table th:nth-child(1),
@@ -18328,36 +18292,10 @@ select option {
         max-width: none !important;
     }
 
-    /* Hide non-essential quant screener columns on mobile (showing Stock, Composite Score, Rec) */
-    #tab-screener .data-table th:nth-child(1),
-    #tab-screener .data-table tbody tr:not(.screener-details-row) td:nth-child(1),
-    #tab-screener .data-table th:nth-child(3),
-    #tab-screener .data-table tbody tr:not(.screener-details-row) td:nth-child(3),
-    #tab-screener .data-table th:nth-child(4),
-    #tab-screener .data-table tbody tr:not(.screener-details-row) td:nth-child(4),
-    #tab-screener .data-table th:nth-child(6),
-    #tab-screener .data-table tbody tr:not(.screener-details-row) td:nth-child(6),
-    #tab-screener .data-table th:nth-child(7),
-    #tab-screener .data-table tbody tr:not(.screener-details-row) td:nth-child(7),
-    #tab-screener .data-table th:nth-child(8),
-    #tab-screener .data-table tbody tr:not(.screener-details-row) td:nth-child(8) {
-        display: none !important;
-    }
-
-    #tab-screener .data-table {
-        table-layout: fixed !important;
-        width: 100% !important;
-        min-width: auto !important;
-    }
-
-    #tab-screener .data-table th:nth-child(2),
-    #tab-screener .data-table td:nth-child(2) {
-        width: 50% !important;
-    }
-
-    #tab-screener .data-table th:nth-child(5),
-    #tab-screener .data-table td:nth-child(5) {
-        width: 25% !important;
+    /* PURGED QUANT SCREENER COLUMN HIDING RULES - ALL COLUMNS PRESERVED FOR 2D SCROLL */
+    #tab-screener .data-table th,
+    #tab-screener .data-table td {
+        display: table-cell !important;
     }
 
     #tab-screener .data-table th:nth-child(9),
@@ -18404,40 +18342,10 @@ select option {
         transition: all 0.2s ease !important;
     }
 
-    /* Mobile Column Pruning for Sector Constituents Modal based on active period class */
-    #sector-stocks-modal.active-period-1d table th:not(:nth-child(1)):not(:nth-child(4)),
-    #sector-stocks-modal.active-period-1d table tbody tr:not(.sector-details-row) td:not(:nth-child(1)):not(:nth-child(4)),
-    #sector-stocks-modal.active-period-5d table th:not(:nth-child(1)):not(:nth-child(5)),
-    #sector-stocks-modal.active-period-5d table tbody tr:not(.sector-details-row) td:not(:nth-child(1)):not(:nth-child(5)),
-    #sector-stocks-modal.active-period-1m table th:not(:nth-child(1)):not(:nth-child(6)),
-    #sector-stocks-modal.active-period-1m table tbody tr:not(.sector-details-row) td:not(:nth-child(1)):not(:nth-child(6)),
-    #sector-stocks-modal.active-period-3m table th:not(:nth-child(1)):not(:nth-child(7)),
-    #sector-stocks-modal.active-period-3m table tbody tr:not(.sector-details-row) td:not(:nth-child(1)):not(:nth-child(7)),
-    #sector-stocks-modal.active-period-6m table th:not(:nth-child(1)):not(:nth-child(8)),
-    #sector-stocks-modal.active-period-6m table tbody tr:not(.sector-details-row) td:not(:nth-child(1)):not(:nth-child(8)),
-    #sector-stocks-modal.active-period-1y table th:not(:nth-child(1)):not(:nth-child(9)),
-    #sector-stocks-modal.active-period-1y table tbody tr:not(.sector-details-row) td:not(:nth-child(1)):not(:nth-child(9)),
-    #sector-stocks-modal.active-period-5y table th:not(:nth-child(1)):not(:nth-child(10)),
-    #sector-stocks-modal.active-period-5y table tbody tr:not(.sector-details-row) td:not(:nth-child(1)):not(:nth-child(10)),
-    #sector-stocks-modal.active-period-ytd table th:not(:nth-child(1)):not(:nth-child(6)),
-    #sector-stocks-modal.active-period-ytd table tbody tr:not(.sector-details-row) td:not(:nth-child(1)):not(:nth-child(6)) {
-        display: none !important;
-    }
-
-    #sector-stocks-modal table {
-        table-layout: fixed !important;
-        width: 100% !important;
-    }
-
-    #sector-stocks-modal table th:nth-child(1),
-    #sector-stocks-modal table td:nth-child(1) {
-        width: 60% !important;
-    }
-
-    #sector-stocks-modal table th:not(:nth-child(1)),
-    #sector-stocks-modal table td:not(:nth-child(1)) {
-        width: 40% !important;
-        text-align: right !important;
+    /* PURGED SECTOR CONSTITUENTS COLUMN HIDING RULES - ALL COLUMNS PRESERVED FOR 2D SCROLL */
+    #sector-stocks-modal table th,
+    #sector-stocks-modal table td {
+        display: table-cell !important;
     }
 
     /* Command Center Mobile Landing Page Overrides */
@@ -20718,7 +20626,7 @@ select option {
 /* Mobile Responsive Enhancements for Technical Scans & Breakouts */
 @media (max-width: 768px) {
     .col-hide-mobile {
-        display: none !important;
+        display: table-cell !important;
     }
     .mobile-scan-dropdown-select {
         display: inline-block !important;
@@ -26159,4 +26067,471 @@ table td:first-child .badge {
     font-size: 15.5px !important;
     font-weight: 800 !important;
     color: #3b82f6 !important;
+}
+
+
+/* ==========================================================================
+   1) QUANT SCREENER & SCANNER 2D TABLE FORMAT (LIKE WATCHLIST TABLE)
+   ========================================================================== */
+
+#tab-screener .table-scroll,
+#tab-screener .screener-results-container .table-scroll,
+.screener-results-container .table-scroll {
+    overflow-x: auto !important;
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+    display: block !important;
+}
+
+#tab-screener table.data-table,
+#tab-screener .table-scroll table,
+.screener-results-container table {
+    min-width: 980px !important;
+    width: 100% !important;
+    table-layout: auto !important;
+    border-collapse: collapse !important;
+}
+
+#tab-screener table.data-table th,
+#tab-screener table.data-table td,
+#tab-screener .table-scroll table th,
+#tab-screener .table-scroll table td,
+.screener-results-container table th,
+.screener-results-container table td {
+    display: table-cell !important;
+    white-space: nowrap !important;
+    padding: 10px 14px !important;
+    width: auto !important;
+    max-width: none !important;
+    overflow: visible !important;
+}
+
+/* Sticky Column 1 (Rank) */
+#tab-screener table.data-table tbody td:first-child,
+#tab-screener table.data-table thead th:first-child,
+#tab-screener .table-scroll table tbody td:first-child,
+#tab-screener .table-scroll table thead th:first-child {
+    position: sticky !important;
+    left: 0 !important;
+    z-index: 25 !important;
+    background: #0d1117 !important;
+    opacity: 1 !important;
+    min-width: 50px !important;
+    width: 50px !important;
+    border-right: 1px solid rgba(255, 255, 255, 0.05) !important;
+}
+
+/* Sticky Column 2 (Stock Company Ticker) */
+#tab-screener table.data-table tbody td:nth-child(2),
+#tab-screener table.data-table thead th:nth-child(2),
+#tab-screener .table-scroll table tbody td:nth-child(2),
+#tab-screener .table-scroll table thead th:nth-child(2) {
+    position: sticky !important;
+    left: 50px !important;
+    z-index: 25 !important;
+    background: #0d1117 !important;
+    opacity: 1 !important;
+    min-width: 150px !important;
+    width: 150px !important;
+    box-shadow: 4px 0 14px rgba(0, 0, 0, 0.75) !important;
+    border-right: 1.5px solid rgba(56, 189, 248, 0.3) !important;
+}
+
+/* Light Theme Compatibility */
+[data-theme="light"] #tab-screener table.data-table tbody td:first-child,
+[data-theme="light"] #tab-screener table.data-table thead th:first-child,
+[data-theme="light"] #tab-screener table.data-table tbody td:nth-child(2),
+[data-theme="light"] #tab-screener table.data-table thead th:nth-child(2),
+body.light-theme #tab-screener table.data-table tbody td:first-child,
+body.light-theme #tab-screener table.data-table thead th:first-child,
+body.light-theme #tab-screener table.data-table tbody td:nth-child(2),
+body.light-theme #tab-screener table.data-table thead th:nth-child(2) {
+    background: #ffffff !important;
+}
+
+#tab-screener table.data-table thead th:first-child,
+#tab-screener table.data-table thead th:nth-child(2) {
+    top: 0 !important;
+    z-index: 35 !important;
+}
+
+
+/* ==========================================================================
+   2) MAMDANI ACCUMULATION & DISTRIBUTION SIGNALS (MAMDANI SCANNER MATCHES STYLE)
+   ========================================================================== */
+
+#fuzzy-buys-list,
+#fuzzy-sells-list {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 6px !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+}
+
+#fuzzy-buys-list > div,
+#fuzzy-sells-list > div {
+    width: 100% !important;
+    min-width: 0 !important;
+}
+
+
+/* Responsive Mobile Layout for Mamdani Accumulation & Distribution Signals Cards */
+@media (max-width: 768px) {
+    .fuzzy-signals-grid {
+        grid-template-columns: 1fr !important;
+        gap: 16px !important;
+        width: 100% !important;
+    }
+}
+
+
+/* Strict Mobile Responsive Layout & Side-by-Side Right Alignment for Mamdani Signals */
+@media (max-width: 768px) {
+    .fuzzy-signals-grid {
+        display: flex !important;
+        flex-direction: column !important;
+        gap: 16px !important;
+        width: 100% !important;
+    }
+    .fuzzy-signals-grid > .card {
+        width: 100% !important;
+        box-sizing: border-box !important;
+    }
+}
+
+
+/* ==========================================================================
+   3) HORIZONTAL SEGMENTED CONTROL FOR MOVERS & SHAKERS (MOBILE VIEW)
+   ========================================================================== */
+
+#movers-segmented-control,
+.movers-filter-segmented {
+    display: flex !important;
+    flex-direction: row !important;
+    flex-wrap: nowrap !important;
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+    gap: 4px !important;
+    padding: 4px !important;
+    background: rgba(0, 0, 0, 0.25) !important;
+    border-radius: 8px !important;
+    border: 1px solid var(--border-glass) !important;
+}
+
+#movers-segmented-control .segmented-btn,
+.movers-filter-segmented .segmented-btn {
+    flex: 1 0 auto !important;
+    text-align: center !important;
+    white-space: nowrap !important;
+    padding: 6px 12px !important;
+    font-size: 13px !important;
+    font-weight: 700 !important;
+    border-radius: 6px !important;
+    border: none !important;
+}
+
+
+/* ==========================================================================
+   4) RULE SCANNER 2D TABLE FORMAT WITH STICKY 1ST COLUMN (LIKE WATCHLIST)
+   ========================================================================== */
+
+#tab-rule-scanner .table-scroll,
+#tab-rule-scanner .data-table-wrapper,
+#tab-rule-scanner .card .table-container,
+#rule-scanner-results-card .table-container {
+    overflow-x: auto !important;
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+    display: block !important;
+}
+
+#tab-rule-scanner table.data-table,
+#tab-rule-scanner .table-scroll table,
+#rule-scanner-results-card table {
+    min-width: 900px !important;
+    width: 100% !important;
+    table-layout: auto !important;
+    border-collapse: collapse !important;
+}
+
+#tab-rule-scanner table.data-table th,
+#tab-rule-scanner table.data-table td,
+#tab-rule-scanner .table-scroll table th,
+#tab-rule-scanner .table-scroll table td,
+#rule-scanner-results-card table th,
+#rule-scanner-results-card table td {
+    display: table-cell !important;
+    white-space: nowrap !important;
+    padding: 10px 14px !important;
+    width: auto !important;
+    max-width: none !important;
+    overflow: visible !important;
+}
+
+/* Sticky Column 1 (Stock / Ticker Company Name) */
+#tab-rule-scanner table.data-table tbody td:first-child,
+#tab-rule-scanner table.data-table thead th:first-child,
+#tab-rule-scanner .table-scroll table tbody td:first-child,
+#tab-rule-scanner .table-scroll table thead th:first-child,
+#rule-scanner-results-card table tbody td:first-child,
+#rule-scanner-results-card table thead th:first-child {
+    position: sticky !important;
+    left: 0 !important;
+    z-index: 25 !important;
+    background: #0d1117 !important;
+    opacity: 1 !important;
+    min-width: 140px !important;
+    width: 140px !important;
+    box-shadow: 4px 0 14px rgba(0, 0, 0, 0.75) !important;
+    border-right: 1.5px solid rgba(56, 189, 248, 0.3) !important;
+}
+
+/* Light Theme Compatibility */
+[data-theme="light"] #tab-rule-scanner table.data-table tbody td:first-child,
+[data-theme="light"] #tab-rule-scanner table.data-table thead th:first-child,
+[data-theme="light"] #rule-scanner-results-card table tbody td:first-child,
+[data-theme="light"] #rule-scanner-results-card table thead th:first-child,
+body.light-theme #tab-rule-scanner table.data-table tbody td:first-child,
+body.light-theme #tab-rule-scanner table.data-table thead th:first-child,
+body.light-theme #rule-scanner-results-card table tbody td:first-child,
+body.light-theme #rule-scanner-results-card table thead th:first-child {
+    background: #ffffff !important;
+}
+
+#tab-rule-scanner table.data-table thead th:first-child,
+#rule-scanner-results-card table thead th:first-child {
+    top: 0 !important;
+    z-index: 35 !important;
+}
+
+
+/* ==========================================================================
+   5) TECHNICAL SCANS & BREAKOUTS 2D TABLE FORMAT WITH STICKY SNAPSHOT CARD
+   ========================================================================== */
+
+.tech-scans-table-container {
+    overflow-x: auto !important;
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+    display: block !important;
+}
+
+.tech-scans-table-container table {
+    min-width: 920px !important;
+    width: 100% !important;
+    table-layout: auto !important;
+    border-collapse: collapse !important;
+}
+
+.tech-scans-table-container table th,
+.tech-scans-table-container table td {
+    display: table-cell !important;
+    white-space: nowrap !important;
+    padding: 10px 12px !important;
+    width: auto !important;
+    max-width: none !important;
+    overflow: visible !important;
+}
+
+/* Sticky Column 1 (# Serial Number) */
+.tech-scans-table-container table tbody td:first-child,
+.tech-scans-table-container table thead th:first-child {
+    position: sticky !important;
+    left: 0 !important;
+    z-index: 25 !important;
+    background: #0d1117 !important;
+    opacity: 1 !important;
+    min-width: 45px !important;
+    width: 45px !important;
+    border-right: 1px solid rgba(255, 255, 255, 0.05) !important;
+}
+
+/* Sticky Column 2 (Ticker Symbol) */
+.tech-scans-table-container table tbody td:nth-child(2),
+.tech-scans-table-container table thead th:nth-child(2) {
+    position: sticky !important;
+    left: 45px !important;
+    z-index: 25 !important;
+    background: #0d1117 !important;
+    opacity: 1 !important;
+    min-width: 100px !important;
+    width: 100px !important;
+    box-shadow: 4px 0 14px rgba(0, 0, 0, 0.75) !important;
+    border-right: 1.5px solid rgba(56, 189, 248, 0.3) !important;
+}
+
+/* Light Theme Compatibility for Sticky Columns */
+[data-theme="light"] .tech-scans-table-container table tbody td:first-child,
+[data-theme="light"] .tech-scans-table-container table thead th:first-child,
+[data-theme="light"] .tech-scans-table-container table tbody td:nth-child(2),
+[data-theme="light"] .tech-scans-table-container table thead th:nth-child(2),
+body.light-theme .tech-scans-table-container table tbody td:first-child,
+body.light-theme .tech-scans-table-container table thead th:first-child,
+body.light-theme .tech-scans-table-container table tbody td:nth-child(2),
+body.light-theme .tech-scans-table-container table thead th:nth-child(2) {
+    background: #ffffff !important;
+}
+
+.tech-scans-table-container table thead th:first-child,
+.tech-scans-table-container table thead th:nth-child(2) {
+    top: 0 !important;
+    z-index: 35 !important;
+}
+
+/* Sticky Chevron Expanded Snapshot Card for Mobile */
+.tech-scan-expand-row td {
+    position: sticky !important;
+    left: 0 !important;
+    max-width: calc(100vw - 32px) !important;
+    z-index: 20 !important;
+    box-sizing: border-box !important;
+    padding: 10px 12px !important;
+}
+
+@media (max-width: 768px) {
+    .tech-snapshot-card {
+        grid-template-columns: repeat(2, 1fr) !important;
+        gap: 10px !important;
+        width: 100% !important;
+        box-sizing: border-box !important;
+    }
+}
+
+
+/* ==========================================================================
+   6) ALERT CENTER 2D TABLE FORMAT WITH STICKY 1ST COLUMN (LIKE WATCHLIST)
+   ========================================================================== */
+
+#tab-alerts .table-scroll,
+#tab-alerts .data-table-wrapper,
+#tab-alerts .card .table-container {
+    overflow-x: auto !important;
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+    display: block !important;
+}
+
+#tab-alerts table.data-table,
+#tab-alerts .table-scroll table {
+    min-width: 850px !important;
+    width: 100% !important;
+    table-layout: auto !important;
+    border-collapse: collapse !important;
+}
+
+#tab-alerts table.data-table th,
+#tab-alerts table.data-table td,
+#tab-alerts .table-scroll table th,
+#tab-alerts .table-scroll table td {
+    display: table-cell !important;
+    white-space: nowrap !important;
+    padding: 10px 14px !important;
+    width: auto !important;
+    max-width: none !important;
+    overflow: visible !important;
+}
+
+/* Sticky Column 1 (Stock Ticker & Name) */
+#tab-alerts table.data-table tbody td:first-child,
+#tab-alerts table.data-table thead th:first-child,
+#tab-alerts .table-scroll table tbody td:first-child,
+#tab-alerts .table-scroll table thead th:first-child {
+    position: sticky !important;
+    left: 0 !important;
+    z-index: 25 !important;
+    background: #0d1117 !important;
+    opacity: 1 !important;
+    min-width: 130px !important;
+    width: 130px !important;
+    box-shadow: 4px 0 14px rgba(0, 0, 0, 0.75) !important;
+    border-right: 1.5px solid rgba(56, 189, 248, 0.3) !important;
+}
+
+/* Light Theme Compatibility */
+[data-theme="light"] #tab-alerts table.data-table tbody td:first-child,
+[data-theme="light"] #tab-alerts table.data-table thead th:first-child,
+body.light-theme #tab-alerts table.data-table tbody td:first-child,
+body.light-theme #tab-alerts table.data-table thead th:first-child {
+    background: #ffffff !important;
+}
+
+#tab-alerts table.data-table thead th:first-child {
+    top: 0 !important;
+    z-index: 35 !important;
+}
+
+
+/* ==========================================================================
+   7) SECTOR CONSTITUENTS MODAL 2D TABLE FORMAT WITH STICKY 1ST COLUMN (LIKE WATCHLIST)
+   ========================================================================== */
+
+#sector-stocks-modal .table-scroll,
+#sector-stocks-modal .modal-card-body .table-scroll {
+    overflow-x: auto !important;
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+    display: block !important;
+}
+
+#sector-stocks-modal table {
+    min-width: 950px !important;
+    width: 100% !important;
+    table-layout: auto !important;
+    border-collapse: collapse !important;
+}
+
+#sector-stocks-modal table th,
+#sector-stocks-modal table td {
+    display: table-cell !important;
+    white-space: nowrap !important;
+    padding: 10px 14px !important;
+    width: auto !important;
+    max-width: none !important;
+    overflow: visible !important;
+}
+
+/* Sticky Column 1 (Symbol Ticker) */
+#sector-stocks-modal table tbody td:first-child,
+#sector-stocks-modal table thead th:first-child {
+    position: sticky !important;
+    left: 0 !important;
+    z-index: 25 !important;
+    background: #0d1117 !important;
+    opacity: 1 !important;
+    min-width: 100px !important;
+    width: 100px !important;
+    box-shadow: 4px 0 14px rgba(0, 0, 0, 0.75) !important;
+    border-right: 1.5px solid rgba(56, 189, 248, 0.3) !important;
+}
+
+/* Light Theme Compatibility */
+[data-theme="light"] #sector-stocks-modal table tbody td:first-child,
+[data-theme="light"] #sector-stocks-modal table thead th:first-child,
+body.light-theme #sector-stocks-modal table tbody td:first-child,
+body.light-theme #sector-stocks-modal table thead th:first-child {
+    background: #ffffff !important;
+}
+
+#sector-stocks-modal table thead th:first-child {
+    top: 0 !important;
+    z-index: 35 !important;
 }

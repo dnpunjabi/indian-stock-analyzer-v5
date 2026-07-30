@@ -50761,17 +50761,20 @@ window.loadFuzzyIntelligence = async function() {
         if (!response.ok) throw new Error(await response.text());
         const data = await response.json();
 
-        // Hydrate Buys
+        // Hydrate Buys (Mamdani Scanner Matches card style - side by side)
         if (data.top_buys && data.top_buys.length > 0) {
-            buysList.innerHTML = data.top_buys.map((item, idx) => `
-                <div class="watchlist-strip-row fuzzy-standings-row" data-symbol="${item.symbol}" style="display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; background: rgba(16, 185, 129, 0.03); border: 1px solid rgba(16, 185, 129, 0.1); border-radius: 6px; cursor: pointer; transition: all 0.2s; margin-bottom: 2px;">
-                    <div style="display: flex; flex-direction: column; min-width: 0; flex: 1; margin-right: 8px;">
-                        <span style="font-weight: 800; font-family: monospace; font-size: 12px; color: #10b981;">${item.symbol}</span>
-                        <span class="fuzzy-company-name" style="font-size: 10px; color: var(--text-secondary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: block;">${item.company_name}</span>
+            buysList.innerHTML = data.top_buys.map((item) => `
+                <div class="fuzzy-scan-row fuzzy-standings-row" data-symbol="${item.symbol}" style="display: flex; justify-content: space-between; align-items: center; padding: 10px 12px; background: rgba(16, 185, 129, 0.04); border: 1px solid rgba(16, 185, 129, 0.2); border-radius: 8px; cursor: pointer; transition: all 0.2s; box-sizing: border-box; margin-bottom: 6px; width: 100%;">
+                    <div style="display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1; margin-right: 12px;">
+                        <div style="display: flex; align-items: center; gap: 6px; flex-wrap: nowrap;">
+                            <span style="font-weight: 800; font-family: monospace; font-size: 12.5px; color: var(--text-primary); white-space: nowrap;">${item.symbol}</span>
+                            <span style="font-size: 10px; font-weight: 700; padding: 1px 6px; border-radius: 4px; background: rgba(59, 130, 246, 0.2); color: #3b82f6; white-space: nowrap;">${item.sector || 'NSE'}</span>
+                        </div>
+                        <span style="font-size: 12px; color: var(--text-secondary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${item.company_name}</span>
                     </div>
-                    <div style="text-align: right; flex-shrink: 0;">
-                        <span style="font-size: 11px; font-weight: 800; color: #10b981; padding: 2px 6px; background: rgba(16, 185, 129, 0.1); border-radius: 4px;">+${item.fuzzy_score.toFixed(1)}%</span>
-                        <div style="font-size: 8px; color: var(--text-muted); text-transform: uppercase; font-weight: 700; margin-top: 2px; white-space: nowrap;">${item.market_regime}</div>
+                    <div style="text-align: right; flex-shrink: 0; display: flex; flex-direction: column; align-items: flex-end;">
+                        <span style="font-size: 12.5px; font-weight: 800; color: #10b981; padding: 3px 8px; background: rgba(0,0,0,0.3); border-radius: 6px; font-family: 'Outfit', sans-serif; white-space: nowrap;">+${item.fuzzy_score.toFixed(1)}%</span>
+                        <div style="font-size: 10px; color: #10b981; text-transform: uppercase; font-weight: 700; margin-top: 3px; white-space: nowrap;">${item.market_regime || 'ACCUMULATION'}</div>
                     </div>
                 </div>
             `).join('');
@@ -50788,17 +50791,20 @@ window.loadFuzzyIntelligence = async function() {
             buysList.innerHTML = `<div class="recent-research-empty" style="font-size: 11px;">No accumulation setups active.</div>`;
         }
 
-        // Hydrate Sells
+        // Hydrate Sells (Mamdani Scanner Matches card style - side by side)
         if (data.top_sells && data.top_sells.length > 0) {
-            sellsList.innerHTML = data.top_sells.map((item, idx) => `
-                <div class="watchlist-strip-row fuzzy-standings-row" data-symbol="${item.symbol}" style="display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; background: rgba(239, 68, 68, 0.03); border: 1px solid rgba(239, 68, 68, 0.1); border-radius: 6px; cursor: pointer; transition: all 0.2s; margin-bottom: 2px;">
-                    <div style="display: flex; flex-direction: column; min-width: 0; flex: 1; margin-right: 8px;">
-                        <span style="font-weight: 800; font-family: monospace; font-size: 12px; color: #ef4444;">${item.symbol}</span>
-                        <span class="fuzzy-company-name" style="font-size: 10px; color: var(--text-secondary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: block;">${item.company_name}</span>
+            sellsList.innerHTML = data.top_sells.map((item) => `
+                <div class="fuzzy-scan-row fuzzy-standings-row" data-symbol="${item.symbol}" style="display: flex; justify-content: space-between; align-items: center; padding: 10px 12px; background: rgba(239, 68, 68, 0.04); border: 1px solid rgba(239, 68, 68, 0.2); border-radius: 8px; cursor: pointer; transition: all 0.2s; box-sizing: border-box; margin-bottom: 6px; width: 100%;">
+                    <div style="display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1; margin-right: 12px;">
+                        <div style="display: flex; align-items: center; gap: 6px; flex-wrap: nowrap;">
+                            <span style="font-weight: 800; font-family: monospace; font-size: 12.5px; color: var(--text-primary); white-space: nowrap;">${item.symbol}</span>
+                            <span style="font-size: 10px; font-weight: 700; padding: 1px 6px; border-radius: 4px; background: rgba(239, 68, 68, 0.2); color: #f87171; white-space: nowrap;">${item.sector || 'NSE'}</span>
+                        </div>
+                        <span style="font-size: 12px; color: var(--text-secondary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${item.company_name}</span>
                     </div>
-                    <div style="text-align: right; flex-shrink: 0;">
-                        <span style="font-size: 11px; font-weight: 800; color: #ef4444; padding: 2px 6px; background: rgba(239, 68, 68, 0.1); border-radius: 4px;">${item.fuzzy_score.toFixed(1)}%</span>
-                        <div style="font-size: 8px; color: var(--text-muted); text-transform: uppercase; font-weight: 700; margin-top: 2px; white-space: nowrap;">${item.market_regime}</div>
+                    <div style="text-align: right; flex-shrink: 0; display: flex; flex-direction: column; align-items: flex-end;">
+                        <span style="font-size: 12.5px; font-weight: 800; color: #ef4444; padding: 3px 8px; background: rgba(0,0,0,0.3); border-radius: 6px; font-family: 'Outfit', sans-serif; white-space: nowrap;">${item.fuzzy_score.toFixed(1)}%</span>
+                        <div style="font-size: 10px; color: #ef4444; text-transform: uppercase; font-weight: 700; margin-top: 3px; white-space: nowrap;">${item.market_regime || 'DISTRIBUTION'}</div>
                     </div>
                 </div>
             `).join('');

@@ -2611,12 +2611,11 @@
             const tbody = document.getElementById('alerts-table-body');
             if (!tbody) return;
 
-            if (!isMobile()) {
-                tbody.querySelectorAll('.row-expand-trigger').forEach(el => el.remove());
-                tbody.querySelectorAll('.alerts-details-row').forEach(el => el.remove());
-                tbody.querySelectorAll('.mobile-alerts-meta').forEach(el => el.remove());
-                return;
-            }
+            // Purge chevrons, details-row accordions, and inline mobile tags for full 2D table format
+            tbody.querySelectorAll('.row-expand-trigger').forEach(el => el.remove());
+            tbody.querySelectorAll('.alerts-details-row').forEach(el => el.remove());
+            tbody.querySelectorAll('.mobile-alerts-meta').forEach(el => el.remove());
+            return;
 
             tbody.querySelectorAll('tr').forEach(tr => {
                 if (tr.classList.contains('alerts-details-row') || tr.querySelector('.row-expand-trigger') || tr.cells.length < 5) return;
@@ -2736,13 +2735,12 @@
             const tbody = document.getElementById('rule-scanner-results-body');
             if (!tbody) return;
 
-            if (!isMobile()) {
-                tbody.querySelectorAll('.row-expand-trigger').forEach(el => el.remove());
-                tbody.querySelectorAll('.rs-details-row').forEach(el => el.remove());
-                tbody.querySelectorAll('.mobile-rs-meta').forEach(el => el.remove());
-                tbody.querySelectorAll('.mobile-segment-tag').forEach(el => el.remove());
-                return;
-            }
+            // Purge chevrons, details-row accordions, and inline mobile tags for full 2D table format
+            tbody.querySelectorAll('.row-expand-trigger').forEach(el => el.remove());
+            tbody.querySelectorAll('.rs-details-row').forEach(el => el.remove());
+            tbody.querySelectorAll('.mobile-rs-meta').forEach(el => el.remove());
+            tbody.querySelectorAll('.mobile-segment-tag').forEach(el => el.remove());
+            return;
 
             tbody.querySelectorAll('tr').forEach(tr => {
                 if (tr.classList.contains('rs-details-row') || tr.querySelector('.row-expand-trigger') || tr.cells.length < 8) return;
@@ -2847,12 +2845,11 @@
             const tbody = document.getElementById('screener-results-body');
             if (!tbody) return;
 
-            if (!isMobile()) {
-                tbody.querySelectorAll('.row-expand-trigger').forEach(el => el.remove());
-                tbody.querySelectorAll('.screener-details-row').forEach(el => el.remove());
-                tbody.querySelectorAll('.mobile-screener-segment').forEach(el => el.remove());
-                return;
-            }
+            // Purge chevrons and collapsible accordion cards so full 2D table displays
+            tbody.querySelectorAll('.row-expand-trigger').forEach(el => el.remove());
+            tbody.querySelectorAll('.screener-details-row').forEach(el => el.remove());
+            tbody.querySelectorAll('.mobile-screener-segment').forEach(el => el.remove());
+            return;
 
             // ─── Inject mobile filter bar if not present ───
             const resultsBox = document.getElementById('screener-results-box');
@@ -3058,12 +3055,11 @@
             const tbody = document.getElementById('sector-stocks-table-body');
             if (!tbody) return;
 
-            if (!isMobile()) {
-                tbody.querySelectorAll('.row-expand-trigger').forEach(el => el.remove());
-                tbody.querySelectorAll('.sector-details-row').forEach(el => el.remove());
-                tbody.querySelectorAll('.mobile-sector-meta').forEach(el => el.remove());
-                return;
-            }
+            // Purge chevrons, details-row accordions, and inline mobile tags for full 2D table format
+            tbody.querySelectorAll('.row-expand-trigger').forEach(el => el.remove());
+            tbody.querySelectorAll('.sector-details-row').forEach(el => el.remove());
+            tbody.querySelectorAll('.mobile-sector-meta').forEach(el => el.remove());
+            return;
 
             tbody.querySelectorAll('tr').forEach(tr => {
                 if (tr.classList.contains('sector-details-row') || tr.querySelector('.row-expand-trigger') || tr.cells.length < 11) return;
