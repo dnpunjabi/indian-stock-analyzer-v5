@@ -337,9 +337,20 @@
         </div>
     </div>
 
-    <!-- Pro Trader & Institutional Settings Shared Popover Dropdown -->
+    <!-- Pro Trader & Institutional Settings Shared Popover Dropdown / Mobile Bottom Sheet -->
+    <div id="mobile-settings-backdrop" class="mobile-settings-backdrop no-print" onclick="window.toggleDesktopProfilePopover && window.toggleDesktopProfilePopover(event)"></div>
     <div id="desktop-profile-popover" class="desktop-profile-card no-print" style="display: none;">
-        <!-- Section 1: Investor Profile -->
+        <!-- Mobile Bottom Sheet Header Bar (Mobile View Only) -->
+        <div class="mobile-sheet-drag-handle-wrap">
+            <div class="mobile-sheet-drag-handle"></div>
+        </div>
+        <div class="mobile-sheet-header-bar">
+            <span class="mobile-sheet-title">👑 Pro Trader & Institutional Settings</span>
+            <button id="mobile-sheet-close-btn" class="mobile-sheet-close-btn" title="Close Settings" onclick="window.toggleDesktopProfilePopover && window.toggleDesktopProfilePopover(event)">✕</button>
+        </div>
+
+        <div class="popover-scroll-body">
+            <!-- Section 1: Investor Profile -->
         <div class="popover-section-header">👤 INVESTOR PROFILE & RISK</div>
         <div class="popover-field">
             <label for="popover-horizon">Investment Horizon</label>
@@ -560,6 +571,7 @@
                 <option value="https://chartink.com">🎯 Chartink Technical Scans (Chartink)</option>
             </select>
         </div>
+        </div>
     </div>
     <div id="network-offline-banner" class="network-offline-banner">
         <span class="network-offline-dot"></span>
@@ -603,11 +615,32 @@
                 if (e.preventDefault) e.preventDefault();
             }
             var pop = document.getElementById('desktop-profile-popover');
+            var backdrop = document.getElementById('mobile-settings-backdrop');
             if (!pop) return;
-            var computed = window.getComputedStyle(pop).display;
-            var isHidden = pop.style.display === 'none' || computed === 'none';
-            if (isHidden) {
-                if (window.innerWidth > 992) {
+
+            if (window.innerWidth <= 768) {
+                var isOpen = pop.classList.contains('active-mobile-sheet') && pop.style.display !== 'none';
+                if (isOpen) {
+                    pop.classList.remove('active-mobile-sheet');
+                    if (backdrop) backdrop.classList.remove('active');
+                    setTimeout(function() {
+                        pop.style.display = 'none';
+                    }, 300);
+                } else {
+                    var sidebar = document.getElementById('sidebar');
+                    if (sidebar) sidebar.classList.remove('open');
+
+                    pop.style.display = 'flex';
+                    void pop.offsetHeight;
+                    pop.classList.add('active-mobile-sheet');
+                    if (backdrop) backdrop.classList.add('active');
+                }
+            } else {
+                if (backdrop) backdrop.classList.remove('active');
+                pop.classList.remove('active-mobile-sheet');
+                var computed = window.getComputedStyle(pop).display;
+                var isHidden = pop.style.display === 'none' || computed === 'none';
+                if (isHidden) {
                     var btn = document.getElementById('desktop-profile-btn');
                     if (btn) {
                         var rect = btn.getBoundingClientRect();
@@ -616,17 +649,10 @@
                         pop.style.right = Math.max(12, (window.innerWidth - rect.right)) + 'px';
                         pop.style.left = 'auto';
                     }
+                    pop.style.display = 'block';
                 } else {
-                    var mobHeader = document.querySelector('.mobile-header');
-                    var topPos = mobHeader ? (mobHeader.getBoundingClientRect().bottom + 4) : 84;
-                    pop.style.position = 'fixed';
-                    pop.style.top = topPos + 'px';
-                    pop.style.right = '8px';
-                    pop.style.left = '8px';
+                    pop.style.display = 'none';
                 }
-                pop.style.display = 'block';
-            } else {
-                pop.style.display = 'none';
             }
         };
 
@@ -879,6 +905,11 @@
                 <div class="nav-category-header">🎓 Learning & Education</div>
                 <button class="nav-btn" id="tab-learning-btn" data-title="Learning Academy">
                     <span class="btn-icon">🎓</span> <span class="btn-text">Learning Academy</span>
+                </button>
+
+                <div class="nav-category-header">⚙️ System & Preferences</div>
+                <button class="nav-btn" id="sidebar-pro-settings-btn" onclick="window.toggleDesktopProfilePopover && window.toggleDesktopProfilePopover(event)" data-title="Pro Trader & Institutional Settings">
+                    <span class="btn-icon">👑</span> <span class="btn-text">Pro Settings & Preferences</span>
                 </button>
             </nav>
 

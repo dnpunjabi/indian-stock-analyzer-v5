@@ -8995,11 +8995,32 @@
                     if (e.preventDefault) e.preventDefault();
                 }
                 const popover = document.getElementById('desktop-profile-popover');
+                const backdrop = document.getElementById('mobile-settings-backdrop');
                 if (!popover) return;
-                const computed = window.getComputedStyle(popover).display;
-                const isHidden = popover.style.display === 'none' || computed === 'none';
-                if (isHidden) {
-                    if (window.innerWidth > 992) {
+
+                if (window.innerWidth <= 768) {
+                    const isOpen = popover.classList.contains('active-mobile-sheet') && popover.style.display !== 'none';
+                    if (isOpen) {
+                        popover.classList.remove('active-mobile-sheet');
+                        if (backdrop) backdrop.classList.remove('active');
+                        setTimeout(function() {
+                            popover.style.display = 'none';
+                        }, 300);
+                    } else {
+                        const sidebar = document.getElementById('sidebar');
+                        if (sidebar) sidebar.classList.remove('open');
+
+                        popover.style.display = 'flex';
+                        void popover.offsetHeight;
+                        popover.classList.add('active-mobile-sheet');
+                        if (backdrop) backdrop.classList.add('active');
+                    }
+                } else {
+                    if (backdrop) backdrop.classList.remove('active');
+                    popover.classList.remove('active-mobile-sheet');
+                    const computed = window.getComputedStyle(popover).display;
+                    const isHidden = popover.style.display === 'none' || computed === 'none';
+                    if (isHidden) {
                         const btn = document.getElementById('desktop-profile-btn');
                         if (btn) {
                             const rect = btn.getBoundingClientRect();
@@ -9008,17 +9029,10 @@
                             popover.style.right = Math.max(12, (window.innerWidth - rect.right)) + 'px';
                             popover.style.left = 'auto';
                         }
+                        popover.style.display = 'block';
                     } else {
-                        const mobHeader = document.querySelector('.mobile-header');
-                        const topPos = mobHeader ? (mobHeader.getBoundingClientRect().bottom + 4) : 84;
-                        popover.style.position = 'fixed';
-                        popover.style.top = topPos + 'px';
-                        popover.style.right = '8px';
-                        popover.style.left = '8px';
+                        popover.style.display = 'none';
                     }
-                    popover.style.display = 'block';
-                } else {
-                    popover.style.display = 'none';
                 }
             };
 
@@ -9027,9 +9041,11 @@
                 const popover = document.getElementById('desktop-profile-popover');
                 const profileBtn = document.getElementById('desktop-profile-btn');
                 const mobileProfileBtn = document.getElementById('mobile-pro-settings-btn');
+                const sidebarProfileBtn = document.getElementById('sidebar-pro-settings-btn');
                 if (popover && popover.style.display === 'block') {
                     if (profileBtn && profileBtn.contains(e.target)) return;
                     if (mobileProfileBtn && mobileProfileBtn.contains(e.target)) return;
+                    if (sidebarProfileBtn && sidebarProfileBtn.contains(e.target)) return;
                     if (!popover.contains(e.target)) {
                         popover.style.display = 'none';
                     }
