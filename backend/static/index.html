@@ -4022,8 +4022,7 @@
                                 </h3>
                             </div>
                             
-                            <div style="padding: 20px;">
-                                <div style="font-size: 13px; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 15px;">SWOT Diagnostic Assessment</div>
+                            <div style="padding: 16px;">
                                 
                                 <!-- Symmetrical Balance Indicator Bar -->
                                 <div class="swot-balance-wrapper no-print">
@@ -4639,8 +4638,8 @@
                             <!-- Polymorphic Benchmark Comparison Matrix -->
                             <div class="polymorphic-capm-matrix" style="background: rgba(255,255,255,0.015); border: 1px solid var(--border-glass); border-radius: 8px; padding: 12px 15px; margin-bottom: 15px; box-shadow: inset 0 1px 2px rgba(0,0,0,0.15); width: 100%; box-sizing: border-box;">
                                 <span style="font-size: 13px; color: var(--text-secondary); font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; display: block; margin-bottom: 8px;">Polymorphic Benchmark Comparison Matrix</span>
-                                <div style="overflow-x: auto; width: 100%;">
-                                    <table style="width: 100%; border-collapse: collapse; font-size: 13.5px; text-align: left; min-width: 450px;">
+                                <div class="polymorphic-table-wrapper" style="overflow-x: auto; overflow-y: auto; width: 100%; -webkit-overflow-scrolling: touch;">
+                                    <table style="width: 100%; border-collapse: separate; border-spacing: 0; font-size: 12.5px; text-align: left; min-width: 520px;">
                                         <thead>
                                             <tr style="border-bottom: 1px solid var(--border-glass); color: var(--text-muted); font-size: 12.5px; text-transform: uppercase; letter-spacing: 0.03em;">
                                                 <th style="padding: 6px 4px; font-weight: 600;">Benchmark</th>
@@ -4844,10 +4843,10 @@
                         <!-- Historical Valuation Bands Card (Recommendation 2 Upgrade) -->
                         <div class="card col-span-2 card-hidden" id="historical-bands-card" data-subtab="valuation" style="display: flex; flex-direction: column; justify-content: space-between;">
                             <div>
-                                <div class="card-header" style="display: flex; justify-content: space-between; align-items: center; border: none; padding: 0; margin-bottom: 12px; width: 100%;">
+                                <div class="card-header historical-bands-header" style="display: flex; justify-content: space-between; align-items: center; border: none; padding: 0; margin-bottom: 12px; width: 100%;">
                                     <h3 style="margin: 0; font-size: 12px; letter-spacing: 0.04em;">HISTORICAL VALUATION BANDS</h3>
-                                    <!-- Timeframe switcher segment controls -->
-                                    <div class="timeline-switcher" style="display: flex; gap: 4px; background: rgba(0,0,0,0.25); padding: 2px; border-radius: 4px; border: 1px solid var(--border-glass);">
+                                    <!-- Timeframe switcher segment controls (Horizontal Inline Row) -->
+                                    <div class="timeline-switcher horizontal-timeline-switcher" style="display: flex; gap: 4px; background: rgba(0,0,0,0.25); padding: 2px; border-radius: 4px; border: 1px solid var(--border-glass);">
                                         <button class="time-btn" data-period="1" style="background: transparent; border: none; color: var(--text-secondary); font-size: 12.5px; font-weight: 600; padding: 3px 6px; border-radius: 3px; cursor: pointer; font-family: var(--font-heading);">1Y</button>
                                         <button class="time-btn active" data-period="3" style="background: rgba(59, 130, 246, 0.2); border: none; color: var(--text-primary); font-size: 12.5px; font-weight: 700; padding: 3px 6px; border-radius: 3px; cursor: pointer; font-family: var(--font-heading);">3Y</button>
                                         <button class="time-btn" data-period="5" style="background: transparent; border: none; color: var(--text-secondary); font-size: 12.5px; font-weight: 600; padding: 3px 6px; border-radius: 3px; cursor: pointer; font-family: var(--font-heading);">5Y</button>
@@ -5481,38 +5480,38 @@
                                 </div>
 
                                 <!-- Right Column: 8-Period Moving Average Breakdown Table -->
-                                <div class="ma-spectrum-right" style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 13.5px;">
-                                    <div class="ma-item-row" style="display: flex; justify-content: space-between; padding: 6px 8px; background: var(--bg-card-sub); border: 1px solid var(--border-glass); border-radius: 6px;">
-                                        <span style="color: var(--text-muted); font-weight: 500;">5 Day</span>
-                                        <strong id="ma-val-5d" style="color: var(--text-primary);">--</strong>
+                                <div class="ma-spectrum-right" style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; width: 100%; box-sizing: border-box;">
+                                    <div class="ma-item-row">
+                                        <span class="ma-item-label">5 Day</span>
+                                        <strong id="ma-val-5d" class="ma-item-val">--</strong>
                                     </div>
-                                    <div class="ma-item-row" style="display: flex; justify-content: space-between; padding: 6px 8px; background: var(--bg-card-sub); border: 1px solid var(--border-glass); border-radius: 6px;">
-                                        <span style="color: var(--text-muted); font-weight: 500;">50 Day</span>
-                                        <strong id="ma-val-50d" style="color: var(--text-primary);">--</strong>
+                                    <div class="ma-item-row">
+                                        <span class="ma-item-label">50 Day</span>
+                                        <strong id="ma-val-50d" class="ma-item-val">--</strong>
                                     </div>
-                                    <div class="ma-item-row" style="display: flex; justify-content: space-between; padding: 6px 8px; background: var(--bg-card-sub); border: 1px solid var(--border-glass); border-radius: 6px;">
-                                        <span style="color: var(--text-muted); font-weight: 500;">10 Day</span>
-                                        <strong id="ma-val-10d" style="color: var(--text-primary);">--</strong>
+                                    <div class="ma-item-row">
+                                        <span class="ma-item-label">10 Day</span>
+                                        <strong id="ma-val-10d" class="ma-item-val">--</strong>
                                     </div>
-                                    <div class="ma-item-row" style="display: flex; justify-content: space-between; padding: 6px 8px; background: var(--bg-card-sub); border: 1px solid var(--border-glass); border-radius: 6px;">
-                                        <span style="color: var(--text-muted); font-weight: 500;">100 Day</span>
-                                        <strong id="ma-val-100d" style="color: var(--text-primary);">--</strong>
+                                    <div class="ma-item-row">
+                                        <span class="ma-item-label">100 Day</span>
+                                        <strong id="ma-val-100d" class="ma-item-val">--</strong>
                                     </div>
-                                    <div class="ma-item-row" style="display: flex; justify-content: space-between; padding: 6px 8px; background: var(--bg-card-sub); border: 1px solid var(--border-glass); border-radius: 6px;">
-                                        <span style="color: var(--text-muted); font-weight: 500;">20 Day</span>
-                                        <strong id="ma-val-20d" style="color: var(--text-primary);">--</strong>
+                                    <div class="ma-item-row">
+                                        <span class="ma-item-label">20 Day</span>
+                                        <strong id="ma-val-20d" class="ma-item-val">--</strong>
                                     </div>
-                                    <div class="ma-item-row" style="display: flex; justify-content: space-between; padding: 6px 8px; background: var(--bg-card-sub); border: 1px solid var(--border-glass); border-radius: 6px;">
-                                        <span style="color: var(--text-muted); font-weight: 500;">150 Day</span>
-                                        <strong id="ma-val-150d" style="color: var(--text-primary);">--</strong>
+                                    <div class="ma-item-row">
+                                        <span class="ma-item-label">150 Day</span>
+                                        <strong id="ma-val-150d" class="ma-item-val">--</strong>
                                     </div>
-                                    <div class="ma-item-row" style="display: flex; justify-content: space-between; padding: 6px 8px; background: var(--bg-card-sub); border: 1px solid var(--border-glass); border-radius: 6px;">
-                                        <span style="color: var(--text-muted); font-weight: 500;">30 Day</span>
-                                        <strong id="ma-val-30d" style="color: var(--text-primary);">--</strong>
+                                    <div class="ma-item-row">
+                                        <span class="ma-item-label">30 Day</span>
+                                        <strong id="ma-val-30d" class="ma-item-val">--</strong>
                                     </div>
-                                    <div class="ma-item-row" style="display: flex; justify-content: space-between; padding: 6px 8px; background: var(--bg-card-sub); border: 1px solid var(--border-glass); border-radius: 6px;">
-                                        <span style="color: var(--text-muted); font-weight: 500;">200 Day</span>
-                                        <strong id="ma-val-200d" style="color: var(--text-primary);">--</strong>
+                                    <div class="ma-item-row">
+                                        <span class="ma-item-label">200 Day</span>
+                                        <strong id="ma-val-200d" class="ma-item-val">--</strong>
                                     </div>
                                 </div>
                             </div>
@@ -6864,7 +6863,7 @@
                                     </label>
                                 </div>
                             </div>
-                            <div style="padding: 15px; display: flex; flex-direction: column; gap: 15px;">
+                            <div class="tv-chart-body-wrapper" style="padding: 10px 0; display: flex; flex-direction: column; gap: 10px; width: 100%;">
                                 <!-- Chart Canvas Container -->
                                 <div id="tv-chart-container" style="width: 100%; height: 420px; border-radius: 6px; overflow: hidden; border: 1px solid var(--border-glass); background: transparent; position: relative;">
                                     <!-- Loaded dynamically via Lightweight Charts -->

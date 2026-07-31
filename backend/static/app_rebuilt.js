@@ -6519,11 +6519,11 @@ function compilePeerPerformanceAISummary(series, benchmarkSymbol) {
 
     let summaryHtml = '';
 
-    summaryHtml += '<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; align-items: start; margin-top: 5px;">';
+    summaryHtml += '<div class="peer-momentum-interpretation-grid">';
 
     // Column 1: Standing
-    summaryHtml += '  <div style="background: var(--bg-card-sub); padding: 12px; border-radius: 8px; border: 1px solid var(--border-glass);">';
-    summaryHtml += '    <div style="font-size: 10px; font-weight: 700; color: var(--text-primary); letter-spacing: 0.04em; margin-bottom: 8px; text-transform: uppercase;">Momentum Standing Table</div>';
+    summaryHtml += '  <div class="peer-momentum-standing-card">';
+    summaryHtml += '    <div class="peer-momentum-title">📊 Momentum Standing Table</div>';
 
     allReturns.forEach((item, index) => {
         const isTarget = item.ticker === targetTicker;
@@ -6541,9 +6541,9 @@ function compilePeerPerformanceAISummary(series, benchmarkSymbol) {
     summaryHtml += '  </div>';
 
     // Column 2: Metaphor
-    summaryHtml += '  <div style="background: var(--bg-card-sub); padding: 12px; border-radius: 8px; border: 1px solid var(--border-glass); display: flex; flex-direction: column; justify-content: space-between; height: 100%; min-height: 120px;">';
+    summaryHtml += '  <div class="peer-momentum-metaphor-card">';
     summaryHtml += '    <div>';
-    summaryHtml += '      <div style="font-size: 10px; font-weight: 700; color: var(--text-primary); letter-spacing: 0.04em; margin-bottom: 6px; text-transform: uppercase;">🚴 PEER RACE SYNOPIS (Layman Metaphor)</div>';
+    summaryHtml += '      <div class="peer-momentum-title">🚴 PEER RACE SYNOPSIS (Layman Metaphor)</div>';
 
     let raceMetaphor = '';
     const cleanTargetTicker = targetTicker.replace('.NS', '').replace('.BO', '');
@@ -8458,7 +8458,7 @@ function renderComparisonArena(data) {
 
     metrics.forEach(m => {
         const tr = document.createElement('tr');
-        tr.innerHTML = `<td><span class="metric-lead-icon">${m.icon}</span><strong>${m.label}</strong></td>`;
+        tr.innerHTML = `<td style="position: sticky; left: 0; z-index: 20; background: #0d1117 !important; min-width: 175px; max-width: 230px; width: 180px; white-space: nowrap; box-shadow: 4px 0 12px rgba(0,0,0,0.75);"><span class="metric-lead-icon">${m.icon}</span><strong style="white-space: nowrap;">${m.label}</strong></td>`;
 
         matrix.forEach((item, index) => {
             const val = item[m.key];
@@ -25133,14 +25133,20 @@ function setupMetricHoverTooltips() {
         let subtitle = "Historical 3-Year Trend";
         let label = "Value";
 
+        const profile = (typeof activeStockProfile !== 'undefined' && activeStockProfile) ? activeStockProfile : {};
+        const tickerStr = profile.ticker || 'STOCK';
+        const tickerPart = tickerStr.split('.')[0].toUpperCase();
+        const sh = profile.shareholding || {};
+        const history = window.activeShareholdingHistory || {};
+
         if (metricType.startsWith('altman_')) {
             const componentKey = metricType.replace('altman_', '');
-            const eq = activeStockProfile.earnings_quality || {};
+            const eq = profile.earnings_quality || {};
             const comps = eq.altman_components || {};
             const currentVal = comps[componentKey] !== undefined ? comps[componentKey] : 0.0;
-            const history = generateHistoricalAltmanComponentTrend(activeStockProfile.ticker, currentVal, componentKey);
+            const hist = generateHistoricalAltmanComponentTrend(tickerStr, currentVal, componentKey);
             chartLabels = ["3Y Ago", "2Y Ago", "1Y Ago", "Current"];
-            chartData = history;
+            chartData = hist;
 
             const namesMap = {
                 "working_capital_ta": "Net Liquidity (A)",
@@ -25157,12 +25163,11 @@ function setupMetricHoverTooltips() {
                 "revenue_ta": "Revenue / Total Assets"
             };
 
-            const tickerPart = activeStockProfile.ticker.split('.')[0];
             title = `${tickerPart} ${namesMap[componentKey] || 'Altman Ratio'} Trend`;
             subtitle = subtitlesMap[componentKey] || "Historical Altman Z-Score Component";
             label = namesMap[componentKey] || "Ratio Value";
         } else if (metricType === 'pe') {
-            const peBands = activeStockProfile.pe_bands || {};
+            const peBands = profile.pe_bands || {};
             const peHistory = peBands.pe_history || [];
             if (peHistory.length > 0) {
                 const sortedHistory = [...peHistory].sort((a, b) => new Date(a.date) - new Date(b.date));
@@ -25172,34 +25177,102 @@ function setupMetricHoverTooltips() {
                     return d.toLocaleString('en-US', { month: 'short', year: '2-digit' });
                 });
                 chartData = history3Y.map(item => item.pe);
-                title = `${activeStockProfile.ticker.split('.')[0]} P/E Ratio Trend`;
+                title = `${tickerPart} P/E Ratio Trend`;
                 subtitle = "3-Year Historical Monthly Trailing P/E";
                 label = "P/E Ratio";
             }
         } else if (metricType === 'debteq') {
-            const deVal = activeStockProfile.fundamentals ? (activeStockProfile.fundamentals.debt_to_equity || activeStockProfile.fundamentals.debt_equity || 0.0) : 0.0;
-            const deHistory = generateHistoricalDebtTrend(activeStockProfile.ticker, deVal);
+            const deVal = profile.fundamentals ? (profile.fundamentals.debt_to_equity || profile.fundamentals.debt_equity || 0.0) : 0.0;
+            const deHistory = generateHistoricalDebtTrend(tickerStr, deVal);
             chartLabels = ["3Y Ago", "2Y Ago", "1Y Ago", "Current"];
             chartData = deHistory;
-            title = `${activeStockProfile.ticker.split('.')[0]} Debt-to-Equity Trend`;
+            title = `${tickerPart} Debt-to-Equity Trend`;
             subtitle = "4-Year Leverage & Solvency Path";
             label = "Debt-to-Equity";
         } else if (metricType === 'fii') {
-            const fiiVal = activeStockProfile.shareholding ? (activeStockProfile.shareholding.FIIs || activeStockProfile.shareholding["FII"] || 15.0) : 15.0;
-            const fiiHistory = generateQuarterlyShareholdingTrend(activeStockProfile.ticker, fiiVal, 20);
-            chartLabels = ["Q-3", "Q-2", "Q-1", "Current"];
-            chartData = fiiHistory;
-            title = `${activeStockProfile.ticker.split('.')[0]} FII Holding Trend`;
-            subtitle = "4-Quarter Foreign Institutional Velocity";
+            let fiiHistory = [];
+            let labels = [];
+            if (history.symbol && history.symbol.split('.')[0].toUpperCase() === tickerPart && history.categories) {
+                const cats = history.categories;
+                const raw = cats["FIIs"] || cats["FII"] || cats["Foreign Institutions"] || cats["Foreign"] || [];
+                if (raw.length > 0) {
+                    fiiHistory = [...raw];
+                    labels = [...(history.quarters || [])];
+                }
+            }
+            if (fiiHistory.length === 0) {
+                const fiiVal = sh.FIIs ?? sh.FII ?? sh.fii ?? sh["Foreign Institutions"] ?? sh["Foreign"] ?? 15.0;
+                fiiHistory = generateQuarterlyShareholdingTrend(tickerStr, fiiVal, 20);
+                labels = ["Q-3", "Q-2", "Q-1", "Current"];
+            }
+            chartLabels = labels.length ? labels : ["Q-3", "Q-2", "Q-1", "Current"];
+            chartData = fiiHistory.length ? fiiHistory : [12.0, 13.5, 14.1, 15.0];
+            title = `${tickerPart} FII Holding Trend`;
+            subtitle = "Foreign Institutional Velocity";
             label = "FII Holding %";
         } else if (metricType === 'dii') {
-            const diiVal = activeStockProfile.shareholding ? (activeStockProfile.shareholding.DIIs || activeStockProfile.shareholding["DII"] || 15.0) : 15.0;
-            const diiHistory = generateQuarterlyShareholdingTrend(activeStockProfile.ticker, diiVal, 30);
-            chartLabels = ["Q-3", "Q-2", "Q-1", "Current"];
-            chartData = diiHistory;
-            title = `${activeStockProfile.ticker.split('.')[0]} DII Holding Trend`;
-            subtitle = "4-Quarter Domestic Institutional Velocity";
+            let diiHistory = [];
+            let labels = [];
+            if (history.symbol && history.symbol.split('.')[0].toUpperCase() === tickerPart && history.categories) {
+                const cats = history.categories;
+                const raw = cats["DIIs"] || cats["DII"] || cats["Domestic Institutions"] || cats["Mutual Funds"] || [];
+                if (raw.length > 0) {
+                    diiHistory = [...raw];
+                    labels = [...(history.quarters || [])];
+                }
+            }
+            if (diiHistory.length === 0) {
+                const diiVal = sh.DIIs ?? sh.DII ?? sh.dii ?? sh["Domestic Institutions"] ?? sh["Mutual Funds"] ?? 15.0;
+                diiHistory = generateQuarterlyShareholdingTrend(tickerStr, diiVal, 30);
+                labels = ["Q-3", "Q-2", "Q-1", "Current"];
+            }
+            chartLabels = labels.length ? labels : ["Q-3", "Q-2", "Q-1", "Current"];
+            chartData = diiHistory.length ? diiHistory : [10.0, 11.2, 12.8, 15.0];
+            title = `${tickerPart} DII Holding Trend`;
+            subtitle = "Domestic Institutional Velocity";
             label = "DII Holding %";
+        } else if (metricType === 'promoter') {
+            let promoterHistory = [];
+            let labels = [];
+            if (history.symbol && history.symbol.split('.')[0].toUpperCase() === tickerPart && history.categories) {
+                const cats = history.categories;
+                const raw = cats["Promoters"] || cats["Promoter"] || cats["promoter"] || [];
+                if (raw.length > 0) {
+                    promoterHistory = [...raw];
+                    labels = [...(history.quarters || [])];
+                }
+            }
+            if (promoterHistory.length === 0) {
+                const promoterVal = sh.Promoter ?? sh.Promoters ?? sh.promoter ?? 50.0;
+                promoterHistory = generateQuarterlyShareholdingTrend(tickerStr, promoterVal, 10);
+                labels = ["Q-3", "Q-2", "Q-1", "Current"];
+            }
+            chartLabels = labels.length ? labels : ["Q-3", "Q-2", "Q-1", "Current"];
+            chartData = promoterHistory.length ? promoterHistory : [70.0, 71.2, 72.0, 72.4];
+            title = `${tickerPart} Promoter Holding Trend`;
+            subtitle = "Promoter Ownership Velocity";
+            label = "Promoter Holding %";
+        } else if (metricType === 'public') {
+            let publicHistory = [];
+            let labels = [];
+            if (history.symbol && history.symbol.split('.')[0].toUpperCase() === tickerPart && history.categories) {
+                const cats = history.categories;
+                const raw = cats["Public"] || cats["Public / Others"] || cats["Retail"] || cats["public"] || [];
+                if (raw.length > 0) {
+                    publicHistory = [...raw];
+                    labels = [...(history.quarters || [])];
+                }
+            }
+            if (publicHistory.length === 0) {
+                const publicVal = sh.Public ?? sh.public ?? sh.Retail ?? sh["Retail & Public"] ?? sh["Others"] ?? 20.0;
+                publicHistory = generateQuarterlyShareholdingTrend(tickerStr, publicVal, 40);
+                labels = ["Q-3", "Q-2", "Q-1", "Current"];
+            }
+            chartLabels = labels.length ? labels : ["Q-3", "Q-2", "Q-1", "Current"];
+            chartData = publicHistory.length ? publicHistory : [18.0, 19.1, 19.8, 20.4];
+            title = `${tickerPart} Retail & Public Holding Trend`;
+            subtitle = "Retail & Public Ownership Velocity";
+            label = "Public Holding %";
         }
         return { chartData, chartLabels, title, subtitle, label };
     }
@@ -25366,17 +25439,23 @@ function setupMetricHoverTooltips() {
         const trigger = e.target.closest('.hover-chart-trigger');
         if (!trigger) return;
 
-        // Only trigger click popup on mobile layout
+        // Trigger click popup on mobile layout
         if (window.innerWidth > 768) return;
 
         e.preventDefault();
         e.stopPropagation();
 
         const metricType = trigger.getAttribute('data-hover-chart');
-        if (typeof activeStockProfile === 'undefined' || !activeStockProfile) return;
+        if (!metricType) return;
+
+        // Destroy previous chart instance immediately before replacing DOM
+        if (hoverChartInstance) {
+            try { hoverChartInstance.destroy(); } catch(err) {}
+            hoverChartInstance = null;
+        }
 
         const { chartData, chartLabels, title, subtitle, label } = getMetricData(metricType);
-        if (chartData.length === 0) return;
+        if (!chartData || chartData.length === 0) return;
 
         // Fetch mobile sheet structures
         const bottomSheet = document.getElementById('mobile-meta-bottom-sheet');
@@ -25387,61 +25466,83 @@ function setupMetricHoverTooltips() {
 
         if (sheetTitle) sheetTitle.innerText = title;
 
-        // Inject chart container canvas
+        // Inject chart container canvas cleanly
         sheetBody.innerHTML = `
-            <div style="font-size: 10px; color: var(--text-muted); margin-bottom: 12px; text-transform: uppercase; letter-spacing:0.04em;">${subtitle}</div>
-            <div style="height: 180px; width: 100%; position: relative;">
+            <div style="font-size: 11px; color: var(--text-secondary); margin-bottom: 12px; text-transform: uppercase; letter-spacing:0.04em; font-family: 'Outfit', sans-serif;">${subtitle}</div>
+            <div style="height: 200px; width: 100%; position: relative;">
                 <canvas id="mobile-hover-chart"></canvas>
             </div>
         `;
 
-        bottomSheet.classList.add('active');
+        bottomSheet.style.display = 'flex';
+        setTimeout(() => {
+            bottomSheet.classList.add('active');
+        }, 10);
 
-        // Draw Chart.js sparkline in the bottom sheet
-        const mobileCanvas = document.getElementById('mobile-hover-chart');
-        if (!mobileCanvas) return;
+        setTimeout(() => {
+            const mobileCanvas = document.getElementById('mobile-hover-chart');
+            if (!mobileCanvas) return;
 
-        const isLight = document.documentElement.getAttribute('data-mode') === 'light';
-        const { lineColor, areaColor, gridColor, textColor } = resolveChartColors(metricType, chartData, isLight);
+            const isLight = document.documentElement.getAttribute('data-mode') === 'light';
+            const { lineColor, areaColor, gridColor, textColor } = resolveChartColors(metricType, chartData, isLight);
 
-        if (hoverChartInstance) {
-            hoverChartInstance.destroy();
-        }
-
-        hoverChartInstance = new Chart(mobileCanvas, {
-            type: 'line',
-            data: {
-                labels: chartLabels,
-                datasets: [{
-                    label: label,
-                    data: chartData,
-                    borderColor: lineColor,
-                    backgroundColor: areaColor,
-                    fill: true,
-                    borderWidth: 2.5,
-                    pointRadius: 4,
-                    pointHoverRadius: 6,
-                    tension: 0.25
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: { display: false }
-                },
-                scales: {
-                    x: {
-                        grid: { display: false },
-                        ticks: { color: textColor, font: { size: 9 } }
-                    },
-                    y: {
-                        grid: { color: gridColor },
-                        ticks: { color: textColor, font: { size: 9 } }
-                    }
-                }
+            if (hoverChartInstance) {
+                try { hoverChartInstance.destroy(); } catch(err) {}
+                hoverChartInstance = null;
             }
-        });
+
+            try {
+                hoverChartInstance = new Chart(mobileCanvas, {
+                    type: 'line',
+                    data: {
+                        labels: chartLabels,
+                        datasets: [{
+                            label: label,
+                            data: chartData,
+                            borderColor: lineColor,
+                            backgroundColor: areaColor,
+                            fill: true,
+                            borderWidth: 2.5,
+                            pointRadius: 4,
+                            pointHoverRadius: 6,
+                            tension: 0.25
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { display: false }
+                        },
+                        scales: {
+                            x: {
+                                grid: { display: false },
+                                ticks: { color: textColor, font: { size: 10 } }
+                            },
+                            y: {
+                                grid: { color: gridColor },
+                                ticks: { color: textColor, font: { size: 10 } }
+                            }
+                        }
+                    }
+                });
+            } catch(chartErr) {
+                console.error("Error creating mobile hover chart:", chartErr);
+            }
+        }, 80);
+    });
+
+    // Bottom Sheet Backdrop Close Listener
+    document.addEventListener('click', (e) => {
+        const overlay = document.getElementById('mobile-meta-bottom-sheet');
+        if (!overlay || !overlay.classList.contains('active')) return;
+
+        if (e.target.closest('#mobile-bottom-sheet-close') || e.target === overlay) {
+            overlay.classList.remove('active');
+            setTimeout(() => {
+                overlay.style.display = 'none';
+            }, 300);
+        }
     });
 }
 
