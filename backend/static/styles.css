@@ -26109,7 +26109,7 @@ table td:first-child .badge {
     overflow: visible !important;
 }
 
-/* Sticky Column 1 (Rank) */
+/* Sticky Column 1 (Stock Company Ticker Name - Strict 115px Compact Width) */
 #tab-screener table.data-table tbody td:first-child,
 #tab-screener table.data-table thead th:first-child,
 #tab-screener .table-scroll table tbody td:first-child,
@@ -26119,41 +26119,58 @@ table td:first-child .badge {
     z-index: 25 !important;
     background: #0d1117 !important;
     opacity: 1 !important;
-    min-width: 50px !important;
-    width: 50px !important;
-    border-right: 1px solid rgba(255, 255, 255, 0.05) !important;
+    min-width: 115px !important;
+    width: 115px !important;
+    max-width: 115px !important;
+    overflow: hidden !important;
+    box-shadow: 4px 0 14px rgba(0, 0, 0, 0.75) !important;
+    border-right: 1.5px solid rgba(56, 189, 248, 0.3) !important;
 }
 
-/* Sticky Column 2 (Stock Company Ticker) */
+#tab-screener .screener-symbol-link {
+    max-width: 85px !important;
+    overflow: hidden !important;
+}
+
+#tab-screener .screener-symbol-link strong {
+    display: block !important;
+    max-width: 85px !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    white-space: nowrap !important;
+    font-size: 12px !important;
+}
+
+#tab-screener .screener-symbol-link span {
+    display: block !important;
+    max-width: 85px !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    white-space: nowrap !important;
+}
+
+/* Non-Sticky Column 2 (Rank) and Subsequent Columns for Smooth 2D Scroll */
 #tab-screener table.data-table tbody td:nth-child(2),
 #tab-screener table.data-table thead th:nth-child(2),
 #tab-screener .table-scroll table tbody td:nth-child(2),
 #tab-screener .table-scroll table thead th:nth-child(2) {
-    position: sticky !important;
-    left: 50px !important;
-    z-index: 25 !important;
-    background: #0d1117 !important;
-    opacity: 1 !important;
-    min-width: 150px !important;
-    width: 150px !important;
-    box-shadow: 4px 0 14px rgba(0, 0, 0, 0.75) !important;
-    border-right: 1.5px solid rgba(56, 189, 248, 0.3) !important;
+    position: static !important;
+    min-width: 60px !important;
+    width: 60px !important;
+    box-shadow: none !important;
+    border-right: none !important;
+    text-align: center !important;
 }
 
 /* Light Theme Compatibility */
 [data-theme="light"] #tab-screener table.data-table tbody td:first-child,
 [data-theme="light"] #tab-screener table.data-table thead th:first-child,
-[data-theme="light"] #tab-screener table.data-table tbody td:nth-child(2),
-[data-theme="light"] #tab-screener table.data-table thead th:nth-child(2),
 body.light-theme #tab-screener table.data-table tbody td:first-child,
-body.light-theme #tab-screener table.data-table thead th:first-child,
-body.light-theme #tab-screener table.data-table tbody td:nth-child(2),
-body.light-theme #tab-screener table.data-table thead th:nth-child(2) {
+body.light-theme #tab-screener table.data-table thead th:first-child {
     background: #ffffff !important;
 }
 
-#tab-screener table.data-table thead th:first-child,
-#tab-screener table.data-table thead th:nth-child(2) {
+#tab-screener table.data-table thead th:first-child {
     top: 0 !important;
     z-index: 35 !important;
 }
@@ -26278,7 +26295,7 @@ body.light-theme #tab-screener table.data-table thead th:nth-child(2) {
     overflow: visible !important;
 }
 
-/* Sticky Column 1 (Stock / Ticker Company Name) */
+/* Sticky Column 1 (Stock / Ticker Company Name - Strict 115px Compact Width) */
 #tab-rule-scanner table.data-table tbody td:first-child,
 #tab-rule-scanner table.data-table thead th:first-child,
 #tab-rule-scanner .table-scroll table tbody td:first-child,
@@ -26290,10 +26307,20 @@ body.light-theme #tab-screener table.data-table thead th:nth-child(2) {
     z-index: 25 !important;
     background: #0d1117 !important;
     opacity: 1 !important;
-    min-width: 140px !important;
-    width: 140px !important;
+    min-width: 115px !important;
+    width: 115px !important;
+    max-width: 115px !important;
+    overflow: hidden !important;
     box-shadow: 4px 0 14px rgba(0, 0, 0, 0.75) !important;
     border-right: 1.5px solid rgba(56, 189, 248, 0.3) !important;
+}
+
+#tab-rule-scanner table.data-table tbody td:first-child div span,
+#rule-scanner-results-card table tbody td:first-child div span {
+    max-width: 85px !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    white-space: nowrap !important;
 }
 
 /* Light Theme Compatibility */
@@ -26391,11 +26418,11 @@ body.light-theme .tech-scans-table-container table thead th:nth-child(2) {
     z-index: 35 !important;
 }
 
-/* Sticky Chevron Expanded Snapshot Card for Mobile */
+/* Sticky Chevron Expanded Snapshot Card Aligned Under Ticker (Left: 45px) */
 .tech-scan-expand-row td {
     position: sticky !important;
-    left: 0 !important;
-    max-width: calc(100vw - 32px) !important;
+    left: 45px !important;
+    max-width: calc(100vw - 60px) !important;
     z-index: 20 !important;
     box-sizing: border-box !important;
     padding: 10px 12px !important;
@@ -26534,4 +26561,44 @@ body.light-theme #sector-stocks-modal table thead th:first-child {
 #sector-stocks-modal table thead th:first-child {
     top: 0 !important;
     z-index: 35 !important;
+}
+
+
+/* ==========================================================================
+   TOP CANDIDATES KPI COMPARISON 2D TABLE FORMAT WITH STICKY TICKER COLUMN
+   ========================================================================== */
+
+#rs-kpi-heatmap-container {
+    overflow-x: auto !important;
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+    display: block !important;
+}
+
+.rs-kpi-2d-table {
+    min-width: 480px !important;
+    width: 100% !important;
+    table-layout: auto !important;
+    border-collapse: separate !important;
+    border-spacing: 2px 4px !important;
+}
+
+.rs-kpi-sticky-col {
+    position: sticky !important;
+    left: 0 !important;
+    z-index: 25 !important;
+    background: #0d1117 !important;
+    opacity: 1 !important;
+    min-width: 85px !important;
+    width: 85px !important;
+    box-shadow: 4px 0 12px rgba(0, 0, 0, 0.75) !important;
+    border-right: 1.5px solid rgba(56, 189, 248, 0.3) !important;
+}
+
+[data-theme="light"] .rs-kpi-sticky-col,
+body.light-theme .rs-kpi-sticky-col {
+    background: #ffffff !important;
 }

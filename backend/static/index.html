@@ -1683,8 +1683,8 @@
                         <table class="data-table" style="width: 100%; border-collapse: collapse; text-align: left; font-family: 'Inter', sans-serif;">
                             <thead>
                                 <tr style="border-bottom: 1px solid rgba(255,255,255,0.06);">
-                                    <th class="sortable" data-sort="rank" style="cursor: pointer; user-select: none; font-family: 'Outfit', sans-serif; font-size: 13px; font-weight: 700; text-transform: uppercase; color: var(--text-secondary); padding: 12px 8px; letter-spacing: 0.04em;">Rank ↕</th>
                                     <th class="sortable" data-sort="name" style="cursor: pointer; user-select: none; font-family: 'Outfit', sans-serif; font-size: 13px; font-weight: 700; text-transform: uppercase; color: var(--text-secondary); padding: 12px 8px; letter-spacing: 0.04em;">Stock (Company) ↕</th>
+                                    <th class="sortable" data-sort="rank" style="cursor: pointer; user-select: none; font-family: 'Outfit', sans-serif; font-size: 13px; font-weight: 700; text-transform: uppercase; color: var(--text-secondary); padding: 12px 8px; letter-spacing: 0.04em; text-align: center;">Rank ↕</th>
                                     <th class="sortable" data-sort="sector" style="cursor: pointer; user-select: none; font-family: 'Outfit', sans-serif; font-size: 13px; font-weight: 700; text-transform: uppercase; color: var(--text-secondary); padding: 12px 8px; letter-spacing: 0.04em;">Sector ↕</th>
                                     <th class="sortable" data-sort="cap_type" style="cursor: pointer; user-select: none; font-family: 'Outfit', sans-serif; font-size: 13px; font-weight: 700; text-transform: uppercase; color: var(--text-secondary); padding: 12px 8px; letter-spacing: 0.04em;">Segment ↕</th>
                                     <th class="sortable" data-sort="score" style="cursor: pointer; user-select: none; font-family: 'Outfit', sans-serif; font-size: 13px; font-weight: 700; text-transform: uppercase; color: var(--text-secondary); padding: 12px 8px; letter-spacing: 0.04em;">AI Score ↕</th>
@@ -8736,7 +8736,7 @@
                             <!-- Card B: Comparative KPI Heatmap Grid -->
                             <div class="rs-chart-card">
                                 <h4 style="margin: 0 0 12px 0; font-size: 13.5px; text-transform: uppercase; font-family: 'Outfit', sans-serif; color: var(--text-secondary); width: 100%; text-align: left; letter-spacing: 0.05em;">📊 Top Candidates KPI Comparison</h4>
-                                <div id="rs-kpi-heatmap-container" style="width: 100%; height: 160px; display: flex; align-items: center; justify-content: center; position: relative; width: 100%;">
+                                <div id="rs-kpi-heatmap-container" style="width: 100%; min-height: 160px; overflow-x: auto; -webkit-overflow-scrolling: touch; display: block; border-radius: 8px; border: 1px solid var(--border-glass); box-sizing: border-box; background: rgba(0,0,0,0.15);">
                                     <!-- Dynamic Heatmap table injected by app.js -->
                                 </div>
                             </div>

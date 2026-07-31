@@ -3101,13 +3101,13 @@ function renderScreenerResults(results, isSorted = false) {
         const rankStyle = item.rank <= 3 ? 'font-size: 13px;' : 'font-size: 11px; color: var(--text-secondary);';
 
         tr.innerHTML = `
-            <td data-label="Rank"><strong style="${rankStyle}">${rankMedal}</strong></td>
             <td data-label="Asset">
                 <div class="screener-symbol-link" style="cursor: pointer;" title="Click to load research workspace">
                     <strong style="color: var(--color-primary); font-family: 'Outfit', sans-serif; text-decoration: underline;">${item.name}</strong><br>
                     <span class="text-muted" style="font-size:9.5px; letter-spacing:0.02em; text-decoration: underline;">${item.symbol}</span>
                 </div>
             </td>
+            <td data-label="Rank" style="text-align: center;"><strong style="${rankStyle}">${rankMedal}</strong></td>
             <td data-label="Sector"><span class="text-muted" style="font-size: 11px;">${item.sector}</span></td>
             <td data-label="Market Cap"><span class="text-muted" style="text-transform: uppercase; font-size: 10.5px; font-weight: 700; letter-spacing:0.02em;">${item.cap_type || 'N/A'}</span></td>
             <td data-label="Composite Score"><span class="badge-ticker" style="background-color:${scoreBg}; color:${scoreColor}; border: 1px solid ${scoreColor}30; font-family: 'Outfit', sans-serif; font-weight:800; font-size: 11px; padding: 3px 8px; border-radius: 6px;">${item.score}/100</span></td>
@@ -28037,7 +28037,7 @@ function renderRuleScanResults() {
                 <td style="padding: 10px 8px;">
                     <div style="display: flex; flex-direction: column; gap: 2px;">
                         <span style="font-weight: 700; font-size: 12px; color: var(--text-primary); cursor: pointer;" onclick="window.loadStockAnalyzer('${r.symbol}')">${(r.symbol || '').replace('.NS','')}</span>
-                        <span style="font-size: 9px; color: var(--text-muted); max-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${r.company_name || ''}</span>
+                        <span style="font-size: 9px; color: var(--text-muted); max-width: 85px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${r.company_name || ''}</span>
                     </div>
                 </td>
                 <td class="rs-hide-mobile" style="padding: 10px 8px; font-size: 11px; color: var(--text-secondary);">${r.cap_type || 'N/A'}</td>
@@ -29761,27 +29761,27 @@ function drawRSKPIHeatmap(results) {
 
         return `
             <tr style="border-bottom: 1px solid var(--border-glass);">
-                <td style="padding: 5px 6px; font-weight: bold; color: var(--text-primary); font-family: 'Outfit', sans-serif; cursor: pointer;" onclick="window.loadStockAnalyzer('${r.symbol}')">${symbol}</td>
-                <td style="padding: 5px 6px; text-align: right; font-weight: 700; color: ${peColor}; background: ${peBg}; border-radius: 4px; font-family: monospace;">${peText}</td>
-                <td style="padding: 5px 6px; text-align: right; font-weight: 700; color: ${deColor}; background: ${deBg}; border-radius: 4px; font-family: monospace;">${deVal.toFixed(2)}</td>
-                <td style="padding: 5px 6px; text-align: right; font-weight: 700; color: ${roeColor}; background: ${roeBg}; border-radius: 4px; font-family: monospace;">${roeText}</td>
-                <td style="padding: 5px 6px; text-align: right; font-weight: 700; color: ${rsiColor}; background: ${rsiBg}; border-radius: 4px; font-family: monospace;">${rsiVal.toFixed(0)}</td>
-                <td style="padding: 5px 6px; text-align: right; font-weight: 700; color: ${scoreColor}; background: ${scoreBg}; border-radius: 4px; font-family: monospace;">${scoreVal.toFixed(0)}</td>
+                <td class="rs-kpi-sticky-col" style="padding: 8px 10px; font-weight: 700; color: var(--color-primary); font-family: 'Outfit', sans-serif; cursor: pointer;" onclick="window.loadStockAnalyzer('${r.symbol}')">${symbol}</td>
+                <td style="padding: 8px 10px; text-align: right; font-weight: 700; color: ${peColor}; background: ${peBg}; border-radius: 4px; font-family: monospace;">${peText}</td>
+                <td style="padding: 8px 10px; text-align: right; font-weight: 700; color: ${deColor}; background: ${deBg}; border-radius: 4px; font-family: monospace;">${deVal.toFixed(2)}</td>
+                <td style="padding: 8px 10px; text-align: right; font-weight: 700; color: ${roeColor}; background: ${roeBg}; border-radius: 4px; font-family: monospace;">${roeText}</td>
+                <td style="padding: 8px 10px; text-align: right; font-weight: 700; color: ${rsiColor}; background: ${rsiBg}; border-radius: 4px; font-family: monospace;">${rsiVal.toFixed(0)}</td>
+                <td style="padding: 8px 10px; text-align: right; font-weight: 700; color: ${scoreColor}; background: ${scoreBg}; border-radius: 4px; font-family: monospace;">${scoreVal.toFixed(0)}</td>
             </tr>
         `;
     }).join('');
 
     container.innerHTML = `
-        <div style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; overflow: hidden; padding-bottom: 2px;">
-            <table style="width: 100%; border-collapse: separate; border-spacing: 2px 4px; text-align: left; font-size: 9px; line-height: 1.1;">
+        <div style="width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; display: block; box-sizing: border-box;">
+            <table class="rs-kpi-2d-table" style="min-width: 480px; width: 100%; border-collapse: separate; border-spacing: 2px 4px; text-align: left; font-size: 12px; line-height: 1.35;">
                 <thead>
-                    <tr style="color: var(--text-secondary); text-transform: uppercase; font-size: 8px; font-weight: 700; letter-spacing: 0.04em;">
-                        <th style="padding: 2px 6px;">Ticker</th>
-                        <th style="padding: 2px 6px; text-align: right;">P/E</th>
-                        <th style="padding: 2px 6px; text-align: right;">D/E</th>
-                        <th style="padding: 2px 6px; text-align: right;">ROE</th>
-                        <th style="padding: 2px 6px; text-align: right;">RSI</th>
-                        <th style="padding: 2px 6px; text-align: right;">Score</th>
+                    <tr style="color: var(--text-secondary); text-transform: uppercase; font-size: 11px; font-weight: 700; letter-spacing: 0.04em;">
+                        <th class="rs-kpi-sticky-col" style="padding: 6px 10px;">Ticker</th>
+                        <th style="padding: 6px 10px; text-align: right;">P/E</th>
+                        <th style="padding: 6px 10px; text-align: right;">D/E</th>
+                        <th style="padding: 6px 10px; text-align: right;">ROE</th>
+                        <th style="padding: 6px 10px; text-align: right;">RSI</th>
+                        <th style="padding: 6px 10px; text-align: right;">Score</th>
                     </tr>
                 </thead>
                 <tbody>

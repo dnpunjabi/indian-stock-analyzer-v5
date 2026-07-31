@@ -6673,7 +6673,10 @@
                     return `
                         <tr class="technical-scan-row fullscreen-scan-row" data-symbol="${cleanSym}" style="border-bottom: 1px solid var(--border-glass); height: 44px;">
                             <td class="col-hide-mobile" style="padding: 8px 12px; color: var(--text-secondary);">${startIndex + idx + 1}</td>
-                            <td style="padding: 8px 12px; font-weight: 700; color: var(--text-primary);">${cleanSym}</td>
+                            <td style="padding: 8px 12px; font-weight: 700; color: var(--text-primary); display: flex; align-items: center; justify-content: space-between; gap: 4px; min-height: 44px; box-sizing: border-box;">
+                                <span>${cleanSym}</span>
+                                <button class="tech-scan-expand-btn" data-target="expand-row-${cleanSym}" title="Toggle Snapshot" style="background: transparent; border: none; color: var(--color-primary-light); cursor: pointer; font-size: 11px; padding: 2px 4px; font-weight: bold; flex-shrink: 0;">▼</button>
+                            </td>
                             <td style="padding: 8px 12px; color: var(--text-secondary);">${compName}</td>
                             <td class="col-hide-mobile" style="padding: 8px 12px; color: var(--text-secondary);">${sector}</td>
                             <td class="col-hide-mobile" style="padding: 8px 12px; color: var(--text-secondary);">${segment}</td>
@@ -6684,7 +6687,6 @@
                             <td style="padding: 8px 12px; text-align: right; font-family: 'Inter', monospace; ${metricStyle}">${metricValDisplay}</td>
                             <td style="padding: 8px 12px; text-align: center; display: flex; align-items: center; justify-content: center; gap: 8px; height: 44px; box-sizing: border-box;">
                                 <span class="signal-badge ${badgeClass}" style="min-width:85px;">${badgeText}</span>
-                                <button class="tech-scan-expand-btn" data-target="expand-row-${cleanSym}" title="Toggle Snapshot" style="background: transparent; border: none; color: var(--text-secondary); cursor: pointer; font-size: 12px; padding: 2px 4px;">▼</button>
                                 <div class="wl-quick-add-wrap">
                                     <button class="wl-quick-add-btn" title="Quick Add to Watchlist">+</button>
                                     <div class="wl-dropdown-menu"></div>
@@ -8308,7 +8310,7 @@
                                 // Truncate company name
                                 const nameEl = textDiv.querySelector('strong');
                                 if (nameEl) {
-                                    nameEl.style.cssText += '; display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size: 13.5px;';
+                                    nameEl.style.cssText += '; display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size: 12px; max-width:85px;';
                                 }
                                 // Split symbol + cap into separate elements so cap is always visible
                                 const symEl = textDiv.querySelector('span.text-muted');
