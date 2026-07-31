@@ -20887,6 +20887,25 @@ body.mobile-sheet-open {
     touch-action: pan-y !important;
 }
 
+/* GPU Hardware Acceleration for smooth, flicker-free mobile home page scrolling */
+#mobile-home-view,
+.mobile-command-center-content {
+    -webkit-overflow-scrolling: touch !important;
+    backface-visibility: hidden !important;
+    -webkit-backface-visibility: hidden !important;
+    transform: translateZ(0) !important;
+    -webkit-transform: translateZ(0) !important;
+}
+
+.cyber-stock-card-row,
+.bloomberg-news-card,
+.mobile-glass-card,
+.event-row-item,
+.alert-home-item {
+    contain: content;
+    will-change: transform, opacity;
+}
+
 @media (max-width: 768px) {
     #desktop-profile-popover.desktop-profile-card {
         position: fixed !important;

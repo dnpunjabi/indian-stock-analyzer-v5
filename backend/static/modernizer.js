@@ -4173,12 +4173,16 @@
                     window.switchMoversTab(window.activeMoversTab || 'gainers');
                 }
                 
-                gainersContainer.innerHTML = `
-                    <div style="opacity:0.65; height:32px; background:rgba(255,255,255,0.03); border-radius:6px; animation: skeleton-shimmer 1.5s infinite;"></div>
-                `;
-                losersContainer.innerHTML = `
-                    <div style="opacity:0.65; height:32px; background:rgba(255,255,255,0.03); border-radius:6px; animation: skeleton-shimmer 1.5s infinite;"></div>
-                `;
+                if (!gainersContainer.children || gainersContainer.children.length === 0) {
+                    gainersContainer.innerHTML = `
+                        <div style="opacity:0.65; height:32px; background:rgba(255,255,255,0.03); border-radius:6px; animation: skeleton-shimmer 1.5s infinite;"></div>
+                    `;
+                }
+                if (!losersContainer.children || losersContainer.children.length === 0) {
+                    losersContainer.innerHTML = `
+                        <div style="opacity:0.65; height:32px; background:rgba(255,255,255,0.03); border-radius:6px; animation: skeleton-shimmer 1.5s infinite;"></div>
+                    `;
+                }
 
                 try {
                     await window.swrFetchJson('/api/market-movers', (moversData) => {
@@ -4957,8 +4961,47 @@
             }
             })(); // end _newsPromise
 
-            // Wait for all 3 fetches to settle in parallel (no waterfall)
-            await Promise.allSettled([_moversPromise, _sectorsPromise, _newsPromise]);
+            const _fuzzyPromise = (async () => {
+                if (typeof window.hydrateFuzzyRadarHomepage === 'function') {
+                    try { await window.hydrateFuzzyRadarHomepage(); } catch(e) {}
+                }
+            })();
+
+            const _alertsPromise = (async () => {
+                if (typeof loadHomepageAlerts === 'function') {
+                    try { await loadHomepageAlerts(); } catch(e) {}
+                }
+            })();
+
+            const _eventsPromise = (async () => {
+                if (typeof loadUpcomingEvents === 'function') {
+                    try { await loadUpcomingEvents(); } catch(e) {}
+                }
+            })();
+
+            const _quantPromise = (async () => {
+                if (typeof renderQuantTopPicksList === 'function') {
+                    try { renderQuantTopPicksList(); } catch(e) {}
+                }
+            })();
+
+            const _watchlistPromise = (async () => {
+                if (typeof loadWatchlistStrip === 'function') {
+                    try { await loadWatchlistStrip(); } catch(e) {}
+                }
+            })();
+
+            // Wait for all mobile homepage fetches to settle concurrently in parallel
+            await Promise.allSettled([
+                _moversPromise, 
+                _sectorsPromise, 
+                _newsPromise, 
+                _fuzzyPromise, 
+                _alertsPromise, 
+                _eventsPromise, 
+                _quantPromise, 
+                _watchlistPromise
+            ]);
 
             // 4. Update dynamic summaries (sync, runs after all fetches)
             const summaryEl = document.getElementById('mobile-home-copilot-summary');
@@ -5348,10 +5391,11 @@
         };
 
         // 4. Fetch & Render Upcoming Corporate Events
-            const loadUpcomingEvents = async () => {
-        const container = document.getElementById('desktop-events-container');
-        const viewAllBtn = document.getElementById('desktop-events-view-all-btn');
-        if (!container) return;
+        const loadUpcomingEvents = async () => {
+            const container = document.getElementById('desktop-events-container');
+            const mobileEvents = document.getElementById('mobile-home-events-container');
+            const viewAllBtn = document.getElementById('desktop-events-view-all-btn');
+            if (!container && !mobileEvents) return;
 
         if (viewAllBtn) {
             viewAllBtn.onclick = (e) => {
@@ -5519,8 +5563,9 @@
 
         // 4b. Fetch & Render Homepage Institutional Alert Center Card
         const loadHomepageAlerts = async () => {
-        const container = document.getElementById('desktop-home-alerts-container');
-        if (!container) return;
+            const container = document.getElementById('desktop-home-alerts-container');
+            const mobileAlerts = document.getElementById('mobile-home-alerts-container');
+            if (!container && !mobileAlerts) return;
 
         try {
             const res = await fetch(apiBaseUrl + '/api/alerts/list');
@@ -5589,9 +5634,9 @@
         let wlSortDir = 'none'; // 'none', 'asc', 'desc'
 
         const loadWatchlistStrip = async () => {
-            const selector = document.getElementById('desktop-watchlist-selector');
-            const container = document.getElementById('desktop-watchlist-container');
-            if (!selector || !container) return;
+            const selector = document.getElementById('desktop-watchlist-selector') || document.getElementById('mobile-watchlist-selector');
+            const container = document.getElementById('desktop-watchlist-container') || document.getElementById('mobile-home-watchlist-container');
+            if (!container) return;
 
             try {
                 await window.swrFetchJson('/api/watchlists', (watchlists) => {
@@ -5970,7 +6015,8 @@
                 else if (window.activeQuantStrategy === 'top_down') qTabTD.classList.add('active');
             }
             const tbody = document.getElementById('desktop-quant-picks-body');
-            if (!tbody) return;
+            const mobileQuantPicks = document.getElementById('mobile-home-quant-picks-container');
+            if (!tbody && !mobileQuantPicks) return;
 
             const data = quantPicksCache[window.activeQuantStrategy] || [];
             if (data && data.length > 0) {
