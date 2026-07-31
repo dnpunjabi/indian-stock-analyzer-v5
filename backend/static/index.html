@@ -5955,19 +5955,38 @@
                                 </div>
                             </div>
 
+                            <script>
+                            function toggleVisualInsightAccordion() {
+                                var content = document.getElementById('fs-visual-insight-content');
+                                var chevron = document.getElementById('fs-visual-insight-chevron');
+                                if (!content) return;
+                                var isHidden = (content.style.display === 'none');
+                                if (isHidden) {
+                                    content.style.display = 'block';
+                                    if (chevron) chevron.textContent = '▲';
+                                    if (typeof renderVisualInsightPanel === 'function') {
+                                        renderVisualInsightPanel();
+                                    }
+                                } else {
+                                    content.style.display = 'none';
+                                    if (chevron) chevron.textContent = '▼';
+                                }
+                            }
+                            </script>
+
                             <!-- ═══ VISUAL INSIGHT PANEL — Heatmap / Waterfall ═══ -->
                             <div id="fs-visual-insight-panel" class="fs-hidden">
-                                <button id="fs-visual-insight-toggle" style="display: flex; justify-content: space-between; align-items: center; width: 100%; padding: 8px 16px; background: rgba(255,255,255,0.015); border: none; cursor: pointer; color: var(--text-primary); font-family: 'Outfit', sans-serif; font-size: 13.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; outline: none; transition: background 0.2s;">
+                                <button id="fs-visual-insight-toggle" onclick="toggleVisualInsightAccordion()" style="display: flex; justify-content: space-between; align-items: center; width: 100%; padding: 8px 16px; background: rgba(255,255,255,0.015); border: none; cursor: pointer; color: var(--text-primary); font-family: 'Outfit', sans-serif; font-size: 13.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; outline: none; transition: background 0.2s;">
                                     <span id="fs-visual-insight-title">📊 Quarterly Performance Heatmap</span>
-                                    <span id="fs-visual-insight-chevron" style="transition: transform 0.2s ease;">▼</span>
+                                    <span id="fs-visual-insight-chevron" style="transition: transform 0.2s ease;">▲</span>
                                 </button>
-                                <div id="fs-visual-insight-content" style="display: none; padding: 12px 16px; background: rgba(0,0,0,0.1); border-top: 1px solid var(--border-glass); overflow-x: auto; -webkit-overflow-scrolling: touch;">
+                                <div id="fs-visual-insight-content" style="display: block; padding: 12px 16px; background: rgba(0,0,0,0.1); border-top: 1px solid var(--border-glass); overflow-x: auto; -webkit-overflow-scrolling: touch;">
                                     <canvas id="fs-visual-insight-canvas" style="width: 100%;"></canvas>
                                 </div>
                             </div>
 
-                            <!-- Statements selector sub-tabs -->
-                            <div style="display: flex; gap: 8px; margin-bottom: 12px; overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none; padding: 2px 0;">
+                            <!-- Statements selector sub-tabs (Horizontal Scrollable Segmented Bar) -->
+                            <div class="fs-statement-tabs-wrapper" style="display: flex !important; flex-direction: row !important; flex-wrap: nowrap !important; align-items: center !important; gap: 8px !important; margin-bottom: 14px !important; overflow-x: auto !important; -webkit-overflow-scrolling: touch !important; scrollbar-width: none !important; padding: 4px 0 !important; width: 100% !important; max-width: 100% !important; box-sizing: border-box !important;">
                                 <button class="fs-statement-tab fs-subtab-btn active" data-statement="quarters">📅 Quarterly Results</button>
                                 <button class="fs-statement-tab fs-subtab-btn" data-statement="profit_loss">📈 Profit & Loss</button>
                                 <button class="fs-statement-tab fs-subtab-btn" data-statement="balance_sheet">⚖️ Balance Sheet</button>

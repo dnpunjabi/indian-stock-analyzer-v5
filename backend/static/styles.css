@@ -28383,3 +28383,67 @@ body.light-theme #compare-table-body td:first-child {
     box-shadow: 4px 0 12px rgba(0, 0, 0, 0.1) !important;
     color: #0f172a !important;
 }
+
+
+/* ==========================================================================
+   FINANCIAL STATEMENTS HORIZONTAL SEGMENTED TAB STRIP (MOBILE & DESKTOP)
+   ========================================================================== */
+
+.fs-statement-tabs-wrapper {
+    display: flex !important;
+    flex-direction: row !important;
+    flex-wrap: nowrap !important;
+    align-items: center !important;
+    gap: 8px !important;
+    overflow-x: auto !important;
+    overflow-y: hidden !important;
+    -webkit-overflow-scrolling: touch !important;
+    scrollbar-width: none !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    padding: 4px 0 !important;
+    box-sizing: border-box !important;
+}
+
+.fs-statement-tabs-wrapper::-webkit-scrollbar {
+    display: none !important;
+}
+
+.fs-statement-tab,
+.fs-subtab-btn {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 6px !important;
+    flex-shrink: 0 !important;
+    white-space: nowrap !important;
+    width: auto !important;
+    height: 36px !important;
+    padding: 0 16px !important;
+    font-size: 13px !important;
+    font-weight: 700 !important;
+    font-family: 'Outfit', sans-serif !important;
+    letter-spacing: 0.03em !important;
+    text-transform: uppercase !important;
+    border-radius: 8px !important;
+    border: 1px solid var(--border-glass, rgba(255, 255, 255, 0.12)) !important;
+    background: rgba(255, 255, 255, 0.03) !important;
+    color: var(--text-secondary, #94a3b8) !important;
+    cursor: pointer !important;
+    transition: all 0.25s ease !important;
+    user-select: none !important;
+}
+
+.fs-statement-tab.active,
+.fs-subtab-btn.active {
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.25), rgba(139, 92, 246, 0.25)) !important;
+    color: #ffffff !important;
+    border-color: #3b82f6 !important;
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3) !important;
+}
+
+.fs-statement-tab:hover,
+.fs-subtab-btn:hover {
+    background: rgba(255, 255, 255, 0.08) !important;
+    color: var(--text-primary, #ffffff) !important;
+}

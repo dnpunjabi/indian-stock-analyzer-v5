@@ -43144,7 +43144,10 @@ function renderActiveStatementTable() {
         const cagrVal = isPeers ? null : calculateRowCAGR(values, activeFsStatement);
         let cagrBadge = '';
         if (cagrVal !== null) {
-            cagrBadge = `<span style="font-size: 8px; color: var(--color-primary-light); background: rgba(59,130,246,0.1); padding: 1px 4px; border-radius: 3px; font-weight: 500; margin-left: 5px; border: 1px solid rgba(59,130,246,0.15); white-space: nowrap;">CAGR: ${cagrVal >= 0 ? '+' : ''}${(cagrVal * 100).toFixed(1)}%</span>`;
+            const cagrColor = cagrVal >= 0 ? 'var(--color-emerald, #10b981)' : 'var(--color-crimson, #ef4444)';
+            const cagrBg = cagrVal >= 0 ? 'rgba(16, 185, 129, 0.12)' : 'rgba(239, 68, 68, 0.12)';
+            const cagrBorder = cagrVal >= 0 ? 'rgba(16, 185, 129, 0.25)' : 'rgba(239, 68, 68, 0.25)';
+            cagrBadge = `<span style="font-size: 10.5px; color: ${cagrColor}; background: ${cagrBg}; padding: 1px 5px; border-radius: 4px; font-weight: 700; border: 1px solid ${cagrBorder}; white-space: nowrap; display: inline-flex; align-items: center; gap: 3px; font-family: 'JetBrains Mono', monospace;"><span style="font-size: 9.5px; opacity: 0.8; font-family: 'Outfit', sans-serif;">CAGR</span> <span>${cagrVal >= 0 ? '+' : ''}${(cagrVal * 100).toFixed(1)}%</span></span>`;
         }
         
         // Anomaly badge injection
@@ -43176,16 +43179,23 @@ function renderActiveStatementTable() {
             compareCheckbox = `<span class="fs-compare-cb" onclick="event.stopPropagation();toggleFsRowSelection('${label.replace(/'/g, "\\'")}')" style="${cbStyle}">${checkMark}</span>`;
         }
         
-        // Metric/Company Name cell (sticky left)
+        // Metric/Company Name cell (sticky left - Option 1 Stacked Layout)
         const sparkline = isPeers ? '' : generateSparklineSvg(values);
+        const subBadgeRow = (!isPeers && (cagrBadge || anomalyBadge)) ? `
+            <div style="display: flex; align-items: center; gap: 4px; flex-wrap: nowrap; margin-top: 2px;">
+                ${cagrBadge}
+                ${anomalyBadge}
+            </div>` : '';
+
         html += `
-            <td style="position: sticky; left: 0; z-index: 25; background: #0d1117 !important; background-color: #0d1117 !important; opacity: 1 !important; border-right: 1px solid var(--border-glass); text-align: left; white-space: nowrap; min-width: 175px; max-width: 240px; width: 185px; padding: 8px 12px; font-family: 'Outfit', sans-serif; box-shadow: 4px 0 12px rgba(0,0,0,0.75);">
+            <td style="position: sticky; left: 0; z-index: 25; background: #0d1117 !important; background-color: #0d1117 !important; opacity: 1 !important; border-right: 1px solid var(--border-glass); text-align: left; white-space: nowrap; min-width: 175px; max-width: 240px; width: 185px; padding: 7px 12px; font-family: 'Outfit', sans-serif; box-shadow: 4px 0 12px rgba(0,0,0,0.75);">
                 <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px; white-space: nowrap; width: 100%;">
-                    <div style="display: flex; align-items: center; gap: 5px; white-space: nowrap; flex-shrink: 0;">
-                        ${compareCheckbox}
-                        <span style="font-weight: inherit; white-space: nowrap; flex-shrink: 0;">${label}</span>
-                        ${cagrBadge}
-                        ${anomalyBadge}
+                    <div style="display: flex; flex-direction: column; gap: 2px; overflow: hidden; flex: 1;">
+                        <div style="display: flex; align-items: center; gap: 5px; white-space: nowrap;">
+                            ${compareCheckbox}
+                            <span style="font-weight: inherit; white-space: nowrap;">${label}</span>
+                        </div>
+                        ${subBadgeRow}
                     </div>
                     ${sparkline}
                 </div>
@@ -44813,19 +44823,25 @@ function setupFinancialStatementsEvents() {
     
     // 6. DuPont Accordion Toggle — handled by inline onclick="toggleDupontAccordion()" in index.html
     
-    // 7. Visual Insight Panel toggle
+    // 7. Visual Insight Panel toggle (Bidirectional Collapse / Expand)
     const viToggle = document.getElementById('fs-visual-insight-toggle');
     if (viToggle) {
-        viToggle.addEventListener('click', () => {
+        viToggle.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
             const content = document.getElementById('fs-visual-insight-content');
             const chevron = document.getElementById('fs-visual-insight-chevron');
             if (!content) return;
-            if (content.style.display === 'none' || content.style.display === '') {
+            const currentDisp = content.style.display || getComputedStyle(content).display;
+            const isHidden = (currentDisp === 'none');
+            if (isHidden) {
                 content.style.display = 'block';
+                content.removeAttribute('data-user-collapsed');
                 if (chevron) chevron.textContent = '▲';
                 renderVisualInsightPanel();
             } else {
                 content.style.display = 'none';
+                content.setAttribute('data-user-collapsed', 'true');
                 if (chevron) chevron.textContent = '▼';
             }
         });
@@ -45405,11 +45421,11 @@ function updateVisualInsightPanel() {
         panel.classList.add('fs-hidden');
     }
     
-    // Collapse by default
+    // Render heatmap canvas only if content panel is currently open
     const content = document.getElementById('fs-visual-insight-content');
-    const chevron = document.getElementById('fs-visual-insight-chevron');
-    if (content) content.style.display = 'none';
-    if (chevron) chevron.textContent = '▼';
+    if (content && content.style.display !== 'none') {
+        renderVisualInsightPanel();
+    }
 }
 
 function renderVisualInsightPanel() {
