@@ -5636,8 +5636,8 @@
         window.activeMobileWatchlistTab = window.activeMobileWatchlistTab || 'gainers';
         window.switchMobileWatchlistTab = function(mode) {
             window.activeMobileWatchlistTab = mode;
-            if (typeof renderWatchlistList === 'function') {
-                renderWatchlistList();
+            if (typeof window.renderWatchlistList === 'function') {
+                window.renderWatchlistList();
             }
         };
 
@@ -5685,6 +5685,7 @@
             }
 
             function renderWatchlistList() {
+                window.renderWatchlistList = renderWatchlistList;
                 if (watchlistCachedItems.length === 0) {
                     container.innerHTML = `<div class="recent-research-empty" style="font-size: 13.5px;">No stocks in this watchlist.</div>`;
                     return;
@@ -5733,23 +5734,28 @@
                             const priceStr = priceVal > 0 ? `₹${priceVal.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '--';
                             const changePct = parseFloat(item.change_pct || 0);
                             const isUp = changePct >= 0;
-                            const badgeColor = isUp ? '#10b981' : '#ef4444';
+                            const badgeColor = isUp ? 'var(--neon-green, #10b981)' : 'var(--neon-red, #ef4444)';
                             const badgeBg = isUp ? 'rgba(16, 185, 129, 0.12)' : 'rgba(239, 68, 68, 0.12)';
                             const badgeBorder = isUp ? 'rgba(16, 185, 129, 0.3)' : 'rgba(239, 68, 68, 0.3)';
                             const logoHtml = typeof getStockLogoHtml === 'function' ? getStockLogoHtml(cleanSym) : '';
 
                             return `
-                                <div class="mobile-wl-card-item" style="display: flex !important; flex-direction: row !important; align-items: center !important; justify-content: space-between !important; padding: 10px 12px !important; background: rgba(255, 255, 255, 0.02) !important; border: 1px solid var(--border-glass, rgba(255, 255, 255, 0.08)) !important; border-radius: 8px !important; margin-bottom: 6px !important; cursor: pointer !important; width: 100% !important; box-sizing: border-box !important;" onclick="if(typeof window.loadStockAnalyzer==='function'){ window.loadStockAnalyzer('${item.symbol}'); }else if(typeof window.switchTab==='function'){ window.switchTab('analyzer'); }">
-                                    <div style="display: flex !important; flex-direction: row !important; align-items: center !important; gap: 10px !important; flex: 1 1 auto !important; min-width: 0 !important;">
+                                <div class="cyber-stock-card-row" data-symbol="${cleanSym}" style="display:flex; align-items:center; justify-content:space-between; cursor:pointer;" onclick="if(typeof window.loadStockAnalyzer==='function'){ window.loadStockAnalyzer('${item.symbol}'); }else if(typeof window.switchTab==='function'){ window.switchTab('analyzer'); }">
+                                    <div style="display:flex; align-items:center; gap:10px;">
                                         ${logoHtml}
-                                        <div style="display: flex !important; flex-direction: row !important; align-items: baseline !important; gap: 6px !important; min-width: 0 !important;">
-                                            <strong style="color: var(--text-primary, #ffffff) !important; font-size: 14px !important; font-weight: 800 !important; font-family: 'Outfit', sans-serif !important; white-space: nowrap !important;">${cleanSym}</strong>
-                                            <span style="font-size: 11.5px !important; color: var(--text-muted, #64748b) !important; font-weight: 600 !important; white-space: nowrap !important;">NSE Equity</span>
+                                        <div>
+                                            <strong style="color: var(--text-primary); font-size:13.5px; font-family:'Outfit', sans-serif; font-weight:800; display:block;">${cleanSym}</strong>
+                                            <div style="font-size: 12px; color:var(--text-muted); margin-top:1px;">NSE Equity</div>
                                         </div>
                                     </div>
-                                    <div style="display: flex !important; flex-direction: row !important; align-items: center !important; gap: 8px !important; flex-shrink: 0 !important; margin-left: auto !important; text-align: right !important;">
-                                        <span style="font-size: 13.5px !important; font-weight: 800 !important; color: var(--text-primary, #ffffff) !important; font-family: 'Inter', monospace !important;">${priceStr}</span>
-                                        <span style="font-size: 12px !important; font-weight: 800 !important; color: ${badgeColor} !important; background: ${badgeBg} !important; border: 1px solid ${badgeBorder} !important; border-radius: 4px !important; padding: 2px 7px !important; font-family: 'Outfit', sans-serif !important; white-space: nowrap !important;">${isUp ? '+' : ''}${changePct.toFixed(2)}%</span>
+                                    <div style="display:flex; align-items:center; gap:10px;">
+                                        <div style="text-align:right;">
+                                            <div style="font-size:13px; font-weight:800; color:var(--text-primary); font-family:monospace;">${priceStr}</div>
+                                            <div style="display:flex; align-items:center; justify-content:flex-end; gap:5px; margin-top:1px;">
+                                                <span style="font-size: 12.5px; font-family:'Outfit', sans-serif; font-weight:800; color:${badgeColor}; background:${badgeBg}; border:1px solid ${badgeBorder}; border-radius:4px; padding:1px 6px;">${isUp ? '+' : ''}${changePct.toFixed(2)}%</span>
+                                                <span style="font-size: 13px; font-weight:700; color:#3b82f6;">Analyze →</span>
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
                             `;
