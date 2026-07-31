@@ -5739,17 +5739,17 @@
                             const logoHtml = typeof getStockLogoHtml === 'function' ? getStockLogoHtml(cleanSym) : '';
 
                             return `
-                                <div class="cyber-stock-card-row" style="display: flex; align-items: center; justify-content: space-between; padding: 10px 12px; background: rgba(255, 255, 255, 0.02); border: 1px solid var(--border-glass, rgba(255, 255, 255, 0.08)); border-radius: 8px; margin-bottom: 6px; cursor: pointer; transition: all 0.2s ease;" onclick="if(typeof window.loadStockAnalyzer==='function'){ window.loadStockAnalyzer('${item.symbol}'); }else if(typeof window.switchTab==='function'){ window.switchTab('analyzer'); }">
-                                    <div style="display: flex; align-items: center; gap: 10px;">
+                                <div class="mobile-wl-card-item" style="display: flex !important; flex-direction: row !important; align-items: center !important; justify-content: space-between !important; padding: 10px 12px !important; background: rgba(255, 255, 255, 0.02) !important; border: 1px solid var(--border-glass, rgba(255, 255, 255, 0.08)) !important; border-radius: 8px !important; margin-bottom: 6px !important; cursor: pointer !important; width: 100% !important; box-sizing: border-box !important;" onclick="if(typeof window.loadStockAnalyzer==='function'){ window.loadStockAnalyzer('${item.symbol}'); }else if(typeof window.switchTab==='function'){ window.switchTab('analyzer'); }">
+                                    <div style="display: flex !important; flex-direction: row !important; align-items: center !important; gap: 10px !important; flex: 1 1 auto !important; min-width: 0 !important;">
                                         ${logoHtml}
-                                        <div>
-                                            <strong style="color: var(--text-primary, #ffffff); font-size: 13.5px; font-weight: 800; font-family: 'Outfit', sans-serif; display: block;">${cleanSym}</strong>
-                                            <span style="font-size: 12px; color: var(--text-muted, #64748b); font-weight: 600;">NSE Equity</span>
+                                        <div style="display: flex !important; flex-direction: row !important; align-items: baseline !important; gap: 6px !important; min-width: 0 !important;">
+                                            <strong style="color: var(--text-primary, #ffffff) !important; font-size: 14px !important; font-weight: 800 !important; font-family: 'Outfit', sans-serif !important; white-space: nowrap !important;">${cleanSym}</strong>
+                                            <span style="font-size: 11.5px !important; color: var(--text-muted, #64748b) !important; font-weight: 600 !important; white-space: nowrap !important;">NSE Equity</span>
                                         </div>
                                     </div>
-                                    <div style="text-align: right;">
-                                        <div style="font-size: 13.5px; font-weight: 800; color: var(--text-primary, #ffffff); font-family: monospace;">${priceStr}</div>
-                                        <div style="display: inline-block; font-size: 12.5px; font-weight: 800; color: ${badgeColor}; background: ${badgeBg}; border: 1px solid ${badgeBorder}; border-radius: 4px; padding: 2px 6px; margin-top: 2px; font-family: 'Outfit', sans-serif;">${isUp ? '+' : ''}${changePct.toFixed(2)}%</div>
+                                    <div style="display: flex !important; flex-direction: row !important; align-items: center !important; gap: 8px !important; flex-shrink: 0 !important; margin-left: auto !important; text-align: right !important;">
+                                        <span style="font-size: 13.5px !important; font-weight: 800 !important; color: var(--text-primary, #ffffff) !important; font-family: 'Inter', monospace !important;">${priceStr}</span>
+                                        <span style="font-size: 12px !important; font-weight: 800 !important; color: ${badgeColor} !important; background: ${badgeBg} !important; border: 1px solid ${badgeBorder} !important; border-radius: 4px !important; padding: 2px 7px !important; font-family: 'Outfit', sans-serif !important; white-space: nowrap !important;">${isUp ? '+' : ''}${changePct.toFixed(2)}%</span>
                                     </div>
                                 </div>
                             `;
