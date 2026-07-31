@@ -3588,10 +3588,12 @@ function renderPeersTable(peersList) {
         }
 
         tr.innerHTML = `
-            <td style="text-align: center; width: 50px;">
-                <input type="checkbox" class="peer-select-checkbox" data-ticker="${name}" checked style="cursor: pointer; transform: scale(1.15);">
+            <td style="position: sticky; left: 0; z-index: 20; background: #0d1117 !important; background-color: #0d1117 !important; opacity: 1 !important; border-right: 1px solid var(--border-glass); text-align: left; white-space: nowrap; min-width: 175px; max-width: 240px; width: 185px; padding: 8px 10px; font-family: 'Outfit', sans-serif; box-shadow: 4px 0 12px rgba(0,0,0,0.75);">
+                <div style="display: flex; align-items: center; gap: 8px; white-space: nowrap;">
+                    <input type="checkbox" class="peer-select-checkbox" data-ticker="${name}" checked style="cursor: pointer; transform: scale(1.15); flex-shrink: 0;">
+                    <strong class="peer-name-click" style="color: var(--neon-blue); cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="Click to load workspace for this peer company">${name}</strong>
+                </div>
             </td>
-            <td><strong class="peer-name-click" style="color: var(--neon-blue); cursor: pointer;" title="Click to load workspace for this peer company">${name}</strong></td>
             <td style="${getCellColor(pe, peBounds, true)}">${pe}</td>
             <td>${marcap}</td>
             <td style="${getCellColor(pb, pbBounds, true)}">${pb}</td>

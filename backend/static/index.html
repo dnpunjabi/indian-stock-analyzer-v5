@@ -5698,10 +5698,13 @@
                                     <table class="data-table small-table" id="peer-benchmarking-table" style="width:100%; border-collapse:collapse; font-size: 13px;">
                                         <thead>
                                             <tr style="background: rgba(255,255,255,0.02); border-bottom: 1px solid rgba(255,255,255,0.05); user-select: none;">
-                                                <th style="width: 50px; text-align: center; padding: 6px;">
-                                                    <input type="checkbox" id="peer-select-all-checkbox" checked style="cursor: pointer; transform: scale(1.15);" title="Select / Deselect All">
+                                                <th class="sortable-header sticky-peer-col" data-sort="company" style="position: sticky; left: 0; top: 0; z-index: 35; background: #0d1117 !important; border-right: 1px solid var(--border-glass); text-align: left; padding: 8px 10px; cursor: pointer; min-width: 175px; max-width: 240px; width: 185px; white-space: nowrap; box-shadow: 4px 0 12px rgba(0,0,0,0.75);" title="Click to sort by Company Name">
+                                                    <div style="display: flex; align-items: center; gap: 8px; white-space: nowrap;">
+                                                        <input type="checkbox" id="peer-select-all-checkbox" checked style="cursor: pointer; transform: scale(1.15); flex-shrink: 0;" title="Select / Deselect All">
+                                                        <span>Peer Company</span>
+                                                        <span class="sort-direction"></span>
+                                                    </div>
                                                 </th>
-                                                <th class="sortable-header" data-sort="company" style="text-align: left; padding: 6px; cursor: pointer;" title="Click to sort by Company Name">Peer Company <span class="sort-direction"></span></th>
                                                 <th class="sortable-header" data-sort="pe" style="padding: 6px; cursor: pointer; text-align: right;" title="Click to sort by PE multiple">P/E <span class="sort-direction"></span></th>
                                                 <th class="sortable-header" data-sort="marcap" style="padding: 6px; cursor: pointer; text-align: right;" title="Click to sort by Market Capitalization">Mar Cap (Cr) <span class="sort-direction"></span></th>
                                                 <th class="sortable-header" data-sort="pb" style="padding: 6px; cursor: pointer; text-align: right;" title="Click to sort by Price to Book">P/B <span class="sort-direction"></span></th>
