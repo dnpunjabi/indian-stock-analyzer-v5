@@ -5703,7 +5703,7 @@
                 }
 
                 const mobileWatchlist = document.getElementById('mobile-home-watchlist-container');
-                                if (mobileWatchlist) {
+                if (mobileWatchlist) {
                     if (displayItems.length > 0) {
                         // Sort by change_pct descending
                         const sortedByChange = [...displayItems].sort((a, b) => {
@@ -5713,73 +5713,62 @@
                         });
 
                         const topGainers = sortedByChange.slice(0, 3);
-                        // Bottom 3 (if length >= 3, slice last 3, else take remainder that are not gainers or just bottom)
-                        // If we have very few stocks, let's make sure we don't overlap duplicates
                         const topLosers = sortedByChange.length > 3 ? sortedByChange.slice(-3).reverse() : [];
+
+                        const renderMobileWatchlistCard = (item) => {
+                            const cleanSym = (item.symbol || '').replace('.NS', '').replace('.BO', '');
+                            const priceVal = parseFloat(item.live_price || item.price || 0);
+                            const priceStr = priceVal > 0 ? `₹${priceVal.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '--';
+                            const changePct = parseFloat(item.change_pct || 0);
+                            const isUp = changePct >= 0;
+                            const badgeColor = isUp ? '#10b981' : '#ef4444';
+                            const badgeBg = isUp ? 'rgba(16, 185, 129, 0.12)' : 'rgba(239, 68, 68, 0.12)';
+                            const badgeBorder = isUp ? 'rgba(16, 185, 129, 0.3)' : 'rgba(239, 68, 68, 0.3)';
+                            const logoHtml = typeof getStockLogoHtml === 'function' ? getStockLogoHtml(cleanSym) : '';
+
+                            return `
+                                <div class="cyber-stock-card-row" style="display: flex; align-items: center; justify-content: space-between; padding: 10px 12px; background: rgba(255, 255, 255, 0.02); border: 1px solid var(--border-glass, rgba(255, 255, 255, 0.08)); border-radius: 8px; margin-bottom: 6px; cursor: pointer; transition: all 0.2s ease;" onclick="if(typeof window.loadStockAnalyzer==='function'){ window.loadStockAnalyzer('${item.symbol}'); }else if(typeof window.switchTab==='function'){ window.switchTab('analyzer'); }">
+                                    <div style="display: flex; align-items: center; gap: 10px;">
+                                        ${logoHtml}
+                                        <div>
+                                            <strong style="color: var(--text-primary, #ffffff); font-size: 13.5px; font-weight: 800; font-family: 'Outfit', sans-serif; display: block;">${cleanSym}</strong>
+                                            <span style="font-size: 12px; color: var(--text-muted, #64748b); font-weight: 600;">NSE Equity</span>
+                                        </div>
+                                    </div>
+                                    <div style="text-align: right;">
+                                        <div style="font-size: 13.5px; font-weight: 800; color: var(--text-primary, #ffffff); font-family: monospace;">${priceStr}</div>
+                                        <div style="display: inline-block; font-size: 12.5px; font-weight: 800; color: ${badgeColor}; background: ${badgeBg}; border: 1px solid ${badgeBorder}; border-radius: 4px; padding: 2px 6px; margin-top: 2px; font-family: 'Outfit', sans-serif;">${isUp ? '+' : ''}${changePct.toFixed(2)}%</div>
+                                    </div>
+                                </div>
+                            `;
+                        };
 
                         let htmlContent = '';
 
                         // Render Gainers Group
                         if (topGainers.length > 0) {
                             htmlContent += `
-                                <div style="font-size: 13px; font-weight: 700; color: #10b981; margin-bottom: 5px; text-transform: uppercase; letter-spacing: 0.03em;">🔥 Watchlist Gainers</div>
-                                <table style="width: 100%; border-collapse: collapse; font-size: 13.5px; text-align: left; margin-bottom: 12px;">
-                                    <tbody>
-                                        ${topGainers.map(item => {
-                                            const changePct = parseFloat(item.change_pct || 0);
-                                            const changeClass = changePct >= 0 ? 'cmp-badge-up' : 'cmp-badge-down';
-                                            return `
-                                                <tr style="border-bottom: 1px solid var(--border-glass, rgba(255,255,255,0.08)); height: 34px; cursor: pointer;" onclick="if(typeof window.loadStockAnalyzer==='function'){ window.loadStockAnalyzer('${item.symbol}'); }else if(typeof window.switchTab==='function'){ window.switchTab('analyzer'); }">
-                                                    <td style="padding: 5px 4px; font-weight: 700; color: var(--text-primary);">${item.symbol.replace('.NS', '')}</td>
-                                                    <td style="padding: 5px 4px; text-align: right; color: var(--text-primary); font-weight: 600; font-family: 'Inter', monospace;">₹${parseFloat(item.live_price || 0).toFixed(2)}</td>
-                                                    <td style="padding: 5px 4px; text-align: right; font-weight: 700; font-family: 'Inter', monospace;" class="${changeClass}">${changePct >= 0 ? '+' : ''}${changePct.toFixed(2)}%</td>
-                                                </tr>
-                                            `;
-                                        }).join('')}
-                                    </tbody>
-                                </table>
+                                <div style="font-size: 12.5px; font-weight: 800; color: #10b981; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.04em; display: flex; align-items: center; gap: 6px;">🔥 Watchlist Gainers</div>
+                                <div style="margin-bottom: 14px;">
+                                    ${topGainers.map(item => renderMobileWatchlistCard(item)).join('')}
+                                </div>
                             `;
                         }
 
                         // Render Losers Group
                         if (topLosers.length > 0) {
                             htmlContent += `
-                                <div style="font-size: 13px; font-weight: 700; color: #ef4444; margin-bottom: 5px; text-transform: uppercase; letter-spacing: 0.03em;">❄️ Watchlist Losers</div>
-                                <table style="width: 100%; border-collapse: collapse; font-size: 13.5px; text-align: left;">
-                                    <tbody>
-                                        ${topLosers.map(item => {
-                                            const changePct = parseFloat(item.change_pct || 0);
-                                            const changeClass = changePct >= 0 ? 'cmp-badge-up' : 'cmp-badge-down';
-                                            return `
-                                                <tr style="border-bottom: 1px solid var(--border-glass, rgba(255,255,255,0.08)); height: 34px; cursor: pointer;" onclick="if(typeof window.loadStockAnalyzer==='function'){ window.loadStockAnalyzer('${item.symbol}'); }else if(typeof window.switchTab==='function'){ window.switchTab('analyzer'); }">
-                                                    <td style="padding: 5px 4px; font-weight: 700; color: var(--text-primary);">${item.symbol.replace('.NS', '')}</td>
-                                                    <td style="padding: 5px 4px; text-align: right; color: var(--text-primary); font-weight: 600; font-family: 'Inter', monospace;">₹${parseFloat(item.live_price || 0).toFixed(2)}</td>
-                                                    <td style="padding: 5px 4px; text-align: right; font-weight: 700; font-family: 'Inter', monospace;" class="${changeClass}">${changePct >= 0 ? '+' : ''}${changePct.toFixed(2)}%</td>
-                                                </tr>
-                                            `;
-                                        }).join('')}
-                                    </tbody>
-                                </table>
+                                <div style="font-size: 12.5px; font-weight: 800; color: #ef4444; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.04em; display: flex; align-items: center; gap: 6px;">❄️ Watchlist Losers</div>
+                                <div>
+                                    ${topLosers.map(item => renderMobileWatchlistCard(item)).join('')}
+                                </div>
                             `;
                         } else if (sortedByChange.length <= 3) {
-                            // If total items <= 3, just show them all in a single watchlist list without splitting
                             htmlContent = `
-                                <div style="font-size: 13px; font-weight: 700; color: var(--text-secondary); margin-bottom: 5px; text-transform: uppercase; letter-spacing: 0.03em;">📋 Watchlist Items</div>
-                                <table style="width: 100%; border-collapse: collapse; font-size: 13.5px; text-align: left;">
-                                    <tbody>
-                                        ${sortedByChange.map(item => {
-                                            const changePct = parseFloat(item.change_pct || 0);
-                                            const changeClass = changePct >= 0 ? 'cmp-badge-up' : 'cmp-badge-down';
-                                            return `
-                                                <tr style="border-bottom: 1px solid var(--border-glass, rgba(255,255,255,0.08)); height: 34px; cursor: pointer;" onclick="if(typeof window.loadStockAnalyzer==='function'){ window.loadStockAnalyzer('${item.symbol}'); }else if(typeof window.switchTab==='function'){ window.switchTab('analyzer'); }">
-                                                    <td style="padding: 5px 4px; font-weight: 700; color: var(--text-primary);">${item.symbol.replace('.NS', '')}</td>
-                                                    <td style="padding: 5px 4px; text-align: right; color: var(--text-primary); font-weight: 600; font-family: 'Inter', monospace;">₹${parseFloat(item.live_price || 0).toFixed(2)}</td>
-                                                    <td style="padding: 5px 4px; text-align: right; font-weight: 700; font-family: 'Inter', monospace;" class="${changeClass}">${changePct >= 0 ? '+' : ''}${changePct.toFixed(2)}%</td>
-                                                </tr>
-                                            `;
-                                        }).join('')}
-                                    </tbody>
-                                </table>
+                                <div style="font-size: 12.5px; font-weight: 800; color: var(--text-secondary); margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.04em;">📋 Watchlist Items</div>
+                                <div>
+                                    ${sortedByChange.map(item => renderMobileWatchlistCard(item)).join('')}
+                                </div>
                             `;
                         }
 
