@@ -8998,24 +8998,33 @@
                 const backdrop = document.getElementById('mobile-settings-backdrop');
                 if (!popover) return;
 
+                const scrollBody = popover.querySelector('.popover-scroll-body');
+
                 if (window.innerWidth <= 768) {
                     const isOpen = popover.classList.contains('active-mobile-sheet') && popover.style.display !== 'none';
                     if (isOpen) {
                         popover.classList.remove('active-mobile-sheet');
                         if (backdrop) backdrop.classList.remove('active');
+                        document.body.classList.remove('mobile-sheet-open');
+                        if (scrollBody) scrollBody.scrollTop = 0;
                         setTimeout(function() {
                             popover.style.display = 'none';
                         }, 300);
+                        // Reset screen position to top cleanly on close
+                        window.scrollTo({ top: 0, behavior: 'smooth' });
                     } else {
                         const sidebar = document.getElementById('sidebar');
                         if (sidebar) sidebar.classList.remove('open');
 
                         popover.style.display = 'flex';
                         void popover.offsetHeight;
+                        if (scrollBody) scrollBody.scrollTop = 0;
                         popover.classList.add('active-mobile-sheet');
                         if (backdrop) backdrop.classList.add('active');
+                        document.body.classList.add('mobile-sheet-open');
                     }
                 } else {
+                    document.body.classList.remove('mobile-sheet-open');
                     if (backdrop) backdrop.classList.remove('active');
                     popover.classList.remove('active-mobile-sheet');
                     const computed = window.getComputedStyle(popover).display;

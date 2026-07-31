@@ -618,24 +618,33 @@
             var backdrop = document.getElementById('mobile-settings-backdrop');
             if (!pop) return;
 
+            var scrollBody = pop.querySelector('.popover-scroll-body');
+
             if (window.innerWidth <= 768) {
                 var isOpen = pop.classList.contains('active-mobile-sheet') && pop.style.display !== 'none';
                 if (isOpen) {
                     pop.classList.remove('active-mobile-sheet');
                     if (backdrop) backdrop.classList.remove('active');
+                    document.body.classList.remove('mobile-sheet-open');
+                    if (scrollBody) scrollBody.scrollTop = 0;
                     setTimeout(function() {
                         pop.style.display = 'none';
                     }, 300);
+                    // Reset screen position to top cleanly on close
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
                 } else {
                     var sidebar = document.getElementById('sidebar');
                     if (sidebar) sidebar.classList.remove('open');
 
                     pop.style.display = 'flex';
                     void pop.offsetHeight;
+                    if (scrollBody) scrollBody.scrollTop = 0;
                     pop.classList.add('active-mobile-sheet');
                     if (backdrop) backdrop.classList.add('active');
+                    document.body.classList.add('mobile-sheet-open');
                 }
             } else {
+                document.body.classList.remove('mobile-sheet-open');
                 if (backdrop) backdrop.classList.remove('active');
                 pop.classList.remove('active-mobile-sheet');
                 var computed = window.getComputedStyle(pop).display;

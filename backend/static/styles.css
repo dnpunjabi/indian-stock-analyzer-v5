@@ -20876,6 +20876,17 @@ select option {
     opacity: 1 !important;
 }
 
+/* Prevent background page scroll bleed through bottom sheet */
+body.mobile-sheet-open {
+    overflow: hidden !important;
+    touch-action: none !important;
+}
+
+.popover-scroll-body {
+    overscroll-behavior: contain !important;
+    touch-action: pan-y !important;
+}
+
 @media (max-width: 768px) {
     #desktop-profile-popover.desktop-profile-card {
         position: fixed !important;
