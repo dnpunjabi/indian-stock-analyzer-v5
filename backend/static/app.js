@@ -26013,6 +26013,60 @@ function renderSwingScannerPage(page) {
     }
 }
 
+function sortSwingScanResults(col) {
+    if (swingScanSortCol === col) {
+        swingScanSortAsc = !swingScanSortAsc;
+    } else {
+        swingScanSortCol = col;
+        swingScanSortAsc = true;
+    }
+
+    lastSwingScanResults.sort((a, b) => {
+        let valA = a[col];
+        let valB = b[col];
+
+        if (typeof valA === 'string') {
+            valA = valA.toLowerCase();
+            valB = valB.toLowerCase();
+        }
+
+        if (valA < valB) return swingScanSortAsc ? -1 : 1;
+        if (valA > valB) return swingScanSortAsc ? 1 : -1;
+        return 0;
+    });
+
+    updateScannerHeaderIndicators();
+    renderSwingScannerPage(1);
+}
+
+function updateScannerHeaderIndicators() {
+    const sortMappings = {
+        'swing-th-symbol': 'symbol',
+        'swing-th-score': 'trade_score',
+        'swing-th-trigger': 'setup_trigger',
+        'swing-th-delivery': 'delivery_pct',
+        'swing-th-quality': 'f_score',
+        'swing-th-price': 'price',
+        'swing-th-volume': 'volume_ratio'
+    };
+
+    Object.keys(sortMappings).forEach(thId => {
+        const th = document.getElementById(thId);
+        if (th) {
+            const indicator = th.querySelector('.sort-indicator');
+            if (indicator) {
+                if (sortMappings[thId] === swingScanSortCol) {
+                    indicator.innerText = swingScanSortAsc ? ' ▲' : ' ▼';
+                    indicator.style.opacity = '1';
+                } else {
+                    indicator.innerText = '';
+                    indicator.style.opacity = '0.3';
+                }
+            }
+        }
+    });
+}
+
 async function loadSwingCandidate(symbol, timeframe = '1D') {
     const emptyState = document.getElementById('swing-empty-state');
     const activeContainer = document.getElementById('swing-active-container');
