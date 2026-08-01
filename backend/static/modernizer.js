@@ -6115,12 +6115,13 @@
                     }
 
                     return `
-                        <tr class="quant-pick-row" data-symbol="${cleanSym}" style="border-bottom: 1px solid var(--border-glass); height: 38px;">
-                            <td style="padding: 4px 8px; color: var(--text-secondary);">${idx + 1}</td>
-                            <td style="padding: 4px 8px; font-weight: 700; color: var(--text-primary);">${cleanSym}</td>
-                            <td style="padding: 4px 8px; color: var(--text-secondary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 120px;" title="${item.name || ''}">${compName}</td>
-                            <td style="padding: 4px 8px; text-align: center; font-weight: 700; color: ${scoreColor}; font-family: 'Inter', monospace;">${scoreVal}</td>
-                            <td style="padding: 4px 8px; text-align: center;">
+                        <tr class="quant-pick-row" data-symbol="${cleanSym}" style="border-bottom: 1px solid var(--border-glass); height: 42px;">
+                            <td style="padding: 6px 8px;">
+                                <strong style="color: var(--text-primary); font-size: 13.5px; font-weight: 800; font-family: 'Outfit', sans-serif; display: block; line-height: 1.2;">${cleanSym}</strong>
+                                <span style="font-size: 11px; color: var(--text-muted); display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 220px;" title="${item.name || ''}">${compName}</span>
+                            </td>
+                            <td style="padding: 6px 8px; text-align: center; font-weight: 700; color: ${scoreColor}; font-family: 'Inter', monospace;">${scoreVal}</td>
+                            <td style="padding: 6px 8px; text-align: center;">
                                 <span class="signal-badge ${badgeClass}">${signalText}</span>
                             </td>
                         </tr>
@@ -6173,7 +6174,7 @@
             });
 
             try {
-                tbody.innerHTML = `<tr><td colspan="5" class="recent-research-empty" style="padding: 20px 0; text-align: center;">Scanning market for quant top picks...</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="3" class="recent-research-empty" style="padding: 20px 0; text-align: center;">Scanning market for quant top picks...</td></tr>`;
 
                 // Fetch Hybrid, Bottom-Up, and Top-Down screeners in parallel across whole universe (all cap)
                 const [dataHybrid, dataBU, dataTD] = await Promise.all([
@@ -6189,7 +6190,7 @@
                 renderQuantTopPicksList();
             } catch (err) {
                 console.error("Desktop Quant Top Picks loading error:", err);
-                tbody.innerHTML = `<tr><td colspan="5" class="recent-research-empty" style="padding: 20px 0; text-align: center; color: var(--neon-red);">Failed to load Quant Top Picks.</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="3" class="recent-research-empty" style="padding: 20px 0; text-align: center; color: var(--neon-red);">Failed to load Quant Top Picks.</td></tr>`;
             }
         };
 
@@ -6512,12 +6513,13 @@
                     }
 
                     return `
-                        <tr class="technical-scan-row" data-symbol="${cleanSym}" style="border-bottom: 1px solid var(--border-glass); height: 38px;">
-                            <td style="padding: 4px 8px; color: var(--text-secondary);">${idx + 1}</td>
-                            <td style="padding: 4px 8px; font-weight: 700; color: var(--text-primary);">${cleanSym}</td>
-                            <td style="padding: 4px 8px; color: var(--text-secondary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 120px;" title="${item.name || ''}">${compName}</td>
-                            <td style="padding: 4px 8px; text-align: right; font-family: 'Inter', monospace; ${metricStyle}">${formattedVal}</td>
-                            <td style="padding: 4px 8px; text-align: center;">
+                        <tr class="technical-scan-row" data-symbol="${cleanSym}" style="border-bottom: 1px solid var(--border-glass); height: 42px;">
+                            <td style="padding: 6px 8px;">
+                                <strong style="color: var(--text-primary); font-size: 13.5px; font-weight: 800; font-family: 'Outfit', sans-serif; display: block; line-height: 1.2;">${cleanSym}</strong>
+                                <span style="font-size: 11px; color: var(--text-muted); display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 220px;" title="${item.name || ''}">${compName}</span>
+                            </td>
+                            <td style="padding: 6px 8px; text-align: right; font-family: 'Inter', monospace; ${metricStyle}">${formattedVal}</td>
+                            <td style="padding: 6px 8px; text-align: center;">
                                 <span class="signal-badge ${badgeClass}">${badgeText}</span>
                             </td>
                         </tr>
@@ -6538,7 +6540,7 @@
                     });
                 });
             } else {
-                tbody.innerHTML = `<tr><td colspan="5" class="recent-research-empty" style="padding: 20px 0; text-align: center;">No stocks qualifying under this scan.</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="3" class="recent-research-empty" style="padding: 20px 0; text-align: center;">No stocks qualifying under this scan.</td></tr>`;
             }
         };
 
@@ -7015,7 +7017,7 @@
             }
 
             try {
-                if (tbody) tbody.innerHTML = `<tr><td colspan="5" class="recent-research-empty" style="padding: 20px 0; text-align: center;">Scanning technical breakouts...</td></tr>`;
+                if (tbody) tbody.innerHTML = `<tr><td colspan="3" class="recent-research-empty" style="padding: 20px 0; text-align: center;">Scanning technical breakouts...</td></tr>`;
                 if (fullscreenTbody) fullscreenTbody.innerHTML = `<tr><td colspan="7" class="recent-research-empty" style="padding: 40px 0; text-align: center;">Scanning technical breakouts...</td></tr>`;
 
                 await window.swrFetchJson('/api/technical-scans', (data) => {
@@ -7046,7 +7048,7 @@
                 }
             } catch (err) {
                 console.error("Technical Scans fetch load error:", err);
-                if (tbody) tbody.innerHTML = `<tr><td colspan="5" class="recent-research-empty" style="padding: 20px 0; text-align: center; color: var(--neon-red);">Failed to load technical scans.</td></tr>`;
+                if (tbody) tbody.innerHTML = `<tr><td colspan="3" class="recent-research-empty" style="padding: 20px 0; text-align: center; color: var(--neon-red);">Failed to load technical scans.</td></tr>`;
                 if (fullscreenTbody) fullscreenTbody.innerHTML = `<tr><td colspan="7" class="recent-research-empty" style="padding: 40px 0; text-align: center; color: var(--neon-red);">Failed to run scanner.</td></tr>`;
             }
         };
