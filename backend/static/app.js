@@ -25999,9 +25999,15 @@ function renderSwingScannerPage(page) {
             resLink.addEventListener('mouseleave', () => resLink.style.opacity = '0.6');
         }
 
-        tr.addEventListener('click', () => {
+        tr.addEventListener('click', (e) => {
+            if (e.target && e.target.closest && e.target.closest('.swing-research-link')) return;
             loadSwingCandidate(candidate.symbol, activeSwingTimeframe);
             switchTab('swing');
+            try {
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+                const mainEl = document.querySelector('.main-content');
+                if (mainEl) mainEl.scrollTop = 0;
+            } catch(ex) {}
         });
         tbody.appendChild(tr);
     });
@@ -26210,8 +26216,12 @@ async function loadSwingCandidate(symbol, timeframe = '1D') {
             container.innerHTML = '';
             const isDarkTheme = document.documentElement.getAttribute('data-mode') !== 'light';
 
+            const computedWidth = (container.clientWidth && container.clientWidth > 50) 
+                ? container.clientWidth 
+                : Math.max(window.innerWidth - 40, 280);
+
             const chart = LightweightCharts.createChart(container, {
-                width: container.clientWidth || 400,
+                width: computedWidth,
                 height: 260,
                 layout: {
                     background: { type: 'solid', color: 'transparent' },
