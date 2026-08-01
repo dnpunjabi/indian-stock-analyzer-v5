@@ -2902,6 +2902,10 @@ function sortScreenerResults() {
                 valA = a.rank || 999;
                 valB = b.rank || 999;
                 break;
+            case 'symbol':
+                valA = (a.symbol || '').toLowerCase();
+                valB = (b.symbol || '').toLowerCase();
+                break;
             case 'name':
                 valA = (a.name || '').toLowerCase();
                 valB = (b.name || '').toLowerCase();
@@ -3100,12 +3104,16 @@ function renderScreenerResults(results, isSorted = false) {
         const rankMedal = item.rank === 1 ? '🥇' : item.rank === 2 ? '🥈' : item.rank === 3 ? '🥉' : `#${item.rank}`;
         const rankStyle = item.rank <= 3 ? 'font-size: 13px;' : 'font-size: 11px; color: var(--text-secondary);';
 
+        const cleanTicker = item.symbol.replace('.NS', '').toUpperCase();
+
         tr.innerHTML = `
-            <td data-label="Asset">
-                <div class="screener-symbol-link" style="cursor: pointer;" title="Click to load research workspace">
-                    <strong style="color: var(--color-primary); font-family: 'Outfit', sans-serif; text-decoration: underline;">${item.name}</strong><br>
-                    <span class="text-muted" style="font-size:9.5px; letter-spacing:0.02em; text-decoration: underline;">${item.symbol}</span>
+            <td data-label="Ticker" class="sticky-screener-col" style="position: sticky; left: 0; z-index: 5; background: var(--bg-card, #0b0f19); box-shadow: 2px 0 6px rgba(0,0,0,0.3);">
+                <div class="screener-symbol-link" style="cursor: pointer; display: flex; align-items: center; gap: 6px;" title="Click to load research workspace" data-symbol="${cleanTicker}">
+                    <strong style="color: var(--color-primary); font-family: 'Outfit', sans-serif; font-size: 13px; text-decoration: underline; font-weight: 800;">${cleanTicker}</strong>
                 </div>
+            </td>
+            <td data-label="Company Name">
+                <span style="color: var(--text-primary); font-size: 12.5px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 220px; display: block;" title="${item.name}">${item.name}</span>
             </td>
             <td data-label="Rank" style="text-align: center;"><strong style="${rankStyle}">${rankMedal}</strong></td>
             <td data-label="Sector"><span class="text-muted" style="font-size: 11px;">${item.sector}</span></td>

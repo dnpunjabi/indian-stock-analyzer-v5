@@ -8323,12 +8323,11 @@
                     tbody.querySelectorAll('tr').forEach(row => {
                         const linkDiv = row.querySelector('.screener-symbol-link');
                         if (linkDiv && !linkDiv.querySelector('.stock-circle-logo') && !linkDiv.querySelector('img')) {
-                            const symSpan = linkDiv.querySelector('span.text-muted');
-                            if (!symSpan) return;
-                            const rawSym = symSpan.innerText.split('•')[0].trim();
-                            const cleanSym = rawSym.replace('.NS', '').toUpperCase();
-                            // isinMapping check removed for instant logo rendering
-                            const logoSize = mobile ? 22 : 28;
+                            const strongEl = linkDiv.querySelector('strong');
+                            const cleanSym = (linkDiv.getAttribute('data-symbol') || (strongEl ? strongEl.innerText.trim() : '')).replace('.NS', '').toUpperCase();
+                            if (!cleanSym) return;
+
+                            const logoSize = mobile ? 22 : 26;
                             const logoHtml = getStockLogoHtml(cleanSym)
                                 .replace(/width:28px/g, `width:${logoSize}px`)
                                 .replace(/height:28px/g, `height:${logoSize}px`);
@@ -8338,55 +8337,10 @@
                             wrapper.style.cssText = 'display:inline-flex; align-items:center; flex-shrink:0;';
                             wrapper.innerHTML = logoHtml;
                             
-                            if (mobile) {
-                                // Wrap existing text content into a flex text container
-                                const textDiv = document.createElement('div');
-                                textDiv.style.cssText = 'flex:1; min-width:0; overflow:hidden;';
-                                // Move all existing children into textDiv
-                                while (linkDiv.firstChild) {
-                                    textDiv.appendChild(linkDiv.firstChild);
-                                }
-                                // Truncate company name
-                                const nameEl = textDiv.querySelector('strong');
-                                if (nameEl) {
-                                    nameEl.style.cssText += '; display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size: 12px; max-width:85px;';
-                                }
-                                // Split symbol + cap into separate elements so cap is always visible
-                                const symEl = textDiv.querySelector('span.text-muted');
-                                if (symEl) {
-                                    const fullText = symEl.textContent.trim();
-                                    const parts = fullText.split('•');
-                                    const tickerPart = (parts[0] || '').trim();
-                                    const capPart = (parts[1] || '').trim();
-                                    
-                                    // Build a flex row: [ticker...] [• cap]
-                                    symEl.innerHTML = '';
-                                    symEl.style.cssText += '; display:flex; align-items:center; gap:3px; font-size: 12.5px;';
-                                    
-                                    const tickerSpan = document.createElement('span');
-                                    tickerSpan.textContent = tickerPart;
-                                    tickerSpan.style.cssText = 'overflow:hidden; text-overflow:ellipsis; white-space:nowrap; min-width:0;';
-                                    symEl.appendChild(tickerSpan);
-                                    
-                                    if (capPart) {
-                                        const capSpan = document.createElement('span');
-                                        capSpan.textContent = '• ' + capPart;
-                                        capSpan.style.cssText = 'flex-shrink:0; white-space:nowrap; color:var(--color-primary-light); font-weight:bold;';
-                                        symEl.appendChild(capSpan);
-                                    }
-                                }
-                                // Remove the <br> between strong and span
-                                textDiv.querySelectorAll('br').forEach(br => br.remove());
-                                
-                                linkDiv.appendChild(wrapper);
-                                linkDiv.appendChild(textDiv);
-                                linkDiv.style.cssText = 'display:flex; align-items:center; gap:6px; cursor:pointer;';
-                            } else {
-                                linkDiv.insertBefore(wrapper, linkDiv.firstChild);
-                                linkDiv.style.display = 'flex';
-                                linkDiv.style.alignItems = 'center';
-                                linkDiv.style.gap = '8px';
-                            }
+                            linkDiv.insertBefore(wrapper, linkDiv.firstChild);
+                            linkDiv.style.display = 'flex';
+                            linkDiv.style.alignItems = 'center';
+                            linkDiv.style.gap = mobile ? '5px' : '8px';
                         }
                     });
                 };
