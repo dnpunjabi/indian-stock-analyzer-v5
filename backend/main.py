@@ -12214,9 +12214,16 @@ async def get_swing_candidate(symbol: str, timeframe: str = "1D", horizon: str =
             interval = "1h"
             fetch_range = "730d"
             
-        df = await fetch_history_df(symbol, fetch_range, interval)
+        clean_ticker = symbol.replace(".NS", "").replace(".BO", "").strip().upper()
+        formatted_sym = f"{clean_ticker}.NS" if not symbol.endswith(".BO") and "^" not in symbol else symbol.strip().upper()
+
+        df = await fetch_history_df(formatted_sym, fetch_range, interval)
+        if df.empty and formatted_sym != clean_ticker:
+            df = await fetch_history_df(clean_ticker, fetch_range, interval)
+
         if df.empty:
-            raise HTTPException(status_code=404, detail="No price data returned from Yahoo Chart endpoint.")
+            raise HTTPException(status_code=404, detail=f"No price data returned for {formatted_sym}.")
+            
         df_ind = calculate_swing_indicators(df)
         display_bars = min(60, len(df_ind))
         df_display = df_ind.iloc[-display_bars:]
@@ -12236,7 +12243,7 @@ async def get_swing_candidate(symbol: str, timeframe: str = "1D", horizon: str =
         vprofile = calculate_volume_profile(df_display, bins=12)
         
         # Check database for cached company profile business summary and fundamentals
-        business_summary = "No cached corporate business summary details available. Please run a full analysis in the Equity Research Terminal to load it."
+        business_summary = "No cached corporate business summary details available."
         piotroski_score = 0
         piotroski_label = "N/A"
         altman_score = 0.0
@@ -12245,7 +12252,7 @@ async def get_swing_candidate(symbol: str, timeframe: str = "1D", horizon: str =
         try:
             with get_db() as conn:
                 cursor = conn.cursor()
-                cursor.execute("SELECT profile_json FROM cached_profiles WHERE symbol = ?", (symbol,))
+                cursor.execute("SELECT profile_json FROM cached_profiles WHERE symbol = ? OR symbol = ?", (formatted_sym, clean_ticker))
                 row = cursor.fetchone()
                 if row:
                     prof_data = json.loads(row["profile_json"])
@@ -12258,23 +12265,30 @@ async def get_swing_candidate(symbol: str, timeframe: str = "1D", horizon: str =
         except Exception as db_err:
             print(f"Error reading business summary or fundamentals: {db_err}")
 
-        # If data is missing/empty/not cached, dynamically fetch and calculate on-the-fly
+        # On-the-fly fallback if missing
         if (piotroski_score == 0 and piotroski_label == "N/A") or business_summary.startswith("No cached"):
+            def _fetch_otf_details():
+                nonlocal business_summary, piotroski_score, piotroski_label, altman_score, altman_label
+                try:
+                    from backend.financial_utils import calculate_earnings_quality_scores
+                    stock_obj = yf.Ticker(formatted_sym)
+                    eq = calculate_earnings_quality_scores(stock_obj)
+                    if eq and (eq.get("piotroski_score", 0) > 0 or eq.get("piotroski_label", "N/A") != "N/A"):
+                        piotroski_score = eq.get("piotroski_score", 0)
+                        piotroski_label = eq.get("piotroski_label", "N/A")
+                        altman_score = eq.get("altman_z_score", 0.0)
+                        altman_label = eq.get("altman_zone", "N/A")
+                    
+                    if business_summary.startswith("No cached"):
+                        info = stock_obj.info
+                        business_summary = info.get("longBusinessSummary", f"Business summary for {clean_ticker} NSE Equity.")
+                except Exception as calc_err:
+                    print(f"Error calculating on-the-fly earnings quality: {calc_err}")
+            
             try:
-                from backend.financial_utils import calculate_earnings_quality_scores
-                stock_obj = yf.Ticker(symbol)
-                eq = calculate_earnings_quality_scores(stock_obj)
-                if eq and (eq.get("piotroski_score", 0) > 0 or eq.get("piotroski_label", "N/A") != "N/A"):
-                    piotroski_score = eq.get("piotroski_score", 0)
-                    piotroski_label = eq.get("piotroski_label", "N/A")
-                    altman_score = eq.get("altman_z_score", 0.0)
-                    altman_label = eq.get("altman_zone", "N/A")
-                
-                if business_summary.startswith("No cached"):
-                    info = stock_obj.info
-                    business_summary = info.get("longBusinessSummary", "No corporate business summary details available.")
-            except Exception as calc_err:
-                print(f"Error calculating on-the-fly earnings quality: {calc_err}")
+                await asyncio.to_thread(_fetch_otf_details)
+            except Exception as otf_err:
+                print(f"Async OTF error: {otf_err}")
  
         df_ind = calculate_swing_indicators(df)
         last_row = df_ind.iloc[-1]

@@ -26005,7 +26005,6 @@ function renderSwingScannerPage(page) {
         });
         tbody.appendChild(tr);
     });
-
     if (pagContainer) {
         document.getElementById('swing-scan-page-info').innerText = `Page ${page} of ${totalPages}`;
         document.getElementById('swing-scan-prev-btn').disabled = (page === 1);
@@ -26014,66 +26013,15 @@ function renderSwingScannerPage(page) {
     }
 }
 
-function sortSwingScanResults(col) {
-    if (swingScanSortCol === col) {
-        swingScanSortAsc = !swingScanSortAsc;
-    } else {
-        swingScanSortCol = col;
-        swingScanSortAsc = true;
-    }
-
-    lastSwingScanResults.sort((a, b) => {
-        let valA = a[col];
-        let valB = b[col];
-
-        if (typeof valA === 'string') {
-            valA = valA.toLowerCase();
-            valB = valB.toLowerCase();
-        }
-
-        if (valA < valB) return swingScanSortAsc ? -1 : 1;
-        if (valA > valB) return swingScanSortAsc ? 1 : -1;
-        return 0;
-    });
-
-    updateScannerHeaderIndicators();
-    renderSwingScannerPage(1);
-}
-
-function updateScannerHeaderIndicators() {
-    const sortMappings = {
-        'swing-th-symbol': 'symbol',
-        'swing-th-score': 'trade_score',
-        'swing-th-trigger': 'setup_trigger',
-        'swing-th-delivery': 'delivery_pct',
-        'swing-th-quality': 'f_score',
-        'swing-th-price': 'price',
-        'swing-th-volume': 'volume_ratio'
-    };
-
-    Object.keys(sortMappings).forEach(thId => {
-        const th = document.getElementById(thId);
-        if (th) {
-            const indicator = th.querySelector('.sort-indicator');
-            if (indicator) {
-                if (sortMappings[thId] === swingScanSortCol) {
-                    indicator.innerText = swingScanSortAsc ? ' ▲' : ' ▼';
-                    indicator.style.opacity = '1';
-                } else {
-                    indicator.innerText = '';
-                    indicator.style.opacity = '0.3';
-                }
-            }
-        }
-    });
-}
-
 async function loadSwingCandidate(symbol, timeframe = '1D') {
     const emptyState = document.getElementById('swing-empty-state');
     const activeContainer = document.getElementById('swing-active-container');
     const titleEl = document.getElementById('swing-active-title');
     const descEl = document.getElementById('swing-active-desc');
     const badgeEl = document.getElementById('swing-active-badge-ticker');
+
+    const cleanSym = symbol.replace('.NS', '').replace('.BO', '').toUpperCase();
+    const fullTicker = `${cleanSym}.NS`;
 
     // Clear previous charts
     if (activeSwingRiskChart) {
@@ -26116,25 +26064,32 @@ async function loadSwingCandidate(symbol, timeframe = '1D') {
 
     const bizSummaryEl = document.getElementById('swing-business-summary-text');
     if (bizSummaryEl) {
-        bizSummaryEl.innerText = 'Loading company business summary...';
+        bizSummaryEl.innerText = `Fetching corporate profile for ${cleanSym}...`;
     }
 
-    // Set UI state to active loading
+    // Set UI state to active loading with immediate symbol hydration
     if (emptyState) emptyState.style.display = 'none';
     if (activeContainer) activeContainer.style.display = 'flex';
-    if (titleEl) titleEl.innerText = "Loading candidate...";
-    if (descEl) descEl.innerText = "Fetching historical chart lines and volume profiles...";
+    if (titleEl) titleEl.innerText = cleanSym;
+    if (descEl) descEl.innerText = `Fetching historical chart lines and volume profiles for ${cleanSym}...`;
+    if (badgeEl) badgeEl.innerText = fullTicker;
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 15000);
 
     try {
-        const res = await fetch(`/api/swing/candidate?symbol=${encodeURIComponent(symbol)}&timeframe=${encodeURIComponent(timeframe)}&horizon=${activeSwingHorizon}`);
-        if (!res.ok) throw new Error("Failed to load candidate swing metrics.");
+        const res = await fetch(`/api/swing/candidate?symbol=${encodeURIComponent(fullTicker)}&timeframe=${encodeURIComponent(timeframe)}&horizon=${activeSwingHorizon}`, {
+            signal: controller.signal
+        });
+        clearTimeout(timeoutId);
+        if (!res.ok) throw new Error(`Failed to load candidate metrics for ${cleanSym} (HTTP ${res.status}).`);
         const data = await res.json();
 
         activeSwingCandidate = data;
 
-        titleEl.innerText = symbol;
-        descEl.innerText = data.description;
-        badgeEl.innerText = symbol;
+        titleEl.innerText = data.symbol || fullTicker;
+        descEl.innerText = data.description || `Technical Setup for ${cleanSym}`;
+        badgeEl.innerText = data.symbol || fullTicker;
 
         if (bizSummaryEl) {
             bizSummaryEl.innerText = data.business_summary;
