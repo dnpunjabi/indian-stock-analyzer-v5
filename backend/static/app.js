@@ -52827,6 +52827,18 @@ window.closeWatchlistStockAlertModal = closeWatchlistStockAlertModal;
 async function saveWatchlistStockAlert() {
     if (!currentAlertModalSymbol || !currentAlertModalWatchlistId) return;
 
+    const saveBtn = document.querySelector('#watchlist-stock-alert-modal button[onclick*="saveWatchlistStockAlert"]');
+    const clearBtn = document.querySelector('#watchlist-stock-alert-modal button[onclick*="clearWatchlistStockAlert"]');
+    const origSaveHtml = saveBtn ? saveBtn.innerHTML : 'Save Alert Rules';
+
+    if (saveBtn) {
+        saveBtn.disabled = true;
+        saveBtn.innerHTML = '⏳ Saving Rules...';
+        saveBtn.style.opacity = '0.7';
+        saveBtn.style.cursor = 'not-allowed';
+    }
+    if (clearBtn) clearBtn.disabled = true;
+
     const payload = {
         enabled: true,
         price_low: document.getElementById('wl-alert-price-low').value ? parseFloat(document.getElementById('wl-alert-price-low').value) : null,
@@ -52858,12 +52870,32 @@ async function saveWatchlistStockAlert() {
         if (typeof fetchAlertsList === 'function') fetchAlertsList();
     } catch (e) {
         if (typeof showToast === 'function') showToast("Error saving alert rules: " + (e?.message || e), "error");
+    } finally {
+        if (saveBtn) {
+            saveBtn.disabled = false;
+            saveBtn.innerHTML = origSaveHtml;
+            saveBtn.style.opacity = '1';
+            saveBtn.style.cursor = 'pointer';
+        }
+        if (clearBtn) clearBtn.disabled = false;
     }
 }
 window.saveWatchlistStockAlert = saveWatchlistStockAlert;
 
 async function clearWatchlistStockAlert() {
     if (!currentAlertModalSymbol || !currentAlertModalWatchlistId) return;
+
+    const clearBtn = document.querySelector('#watchlist-stock-alert-modal button[onclick*="clearWatchlistStockAlert"]');
+    const saveBtn = document.querySelector('#watchlist-stock-alert-modal button[onclick*="saveWatchlistStockAlert"]');
+    const origClearHtml = clearBtn ? clearBtn.innerHTML : 'Clear Alert Rules';
+
+    if (clearBtn) {
+        clearBtn.disabled = true;
+        clearBtn.innerHTML = '⏳ Clearing...';
+        clearBtn.style.opacity = '0.7';
+        clearBtn.style.cursor = 'not-allowed';
+    }
+    if (saveBtn) saveBtn.disabled = true;
 
     const payload = { enabled: false };
     try {
@@ -52880,6 +52912,14 @@ async function clearWatchlistStockAlert() {
         if (typeof fetchAlertsList === 'function') fetchAlertsList();
     } catch (e) {
         if (typeof showToast === 'function') showToast("Error clearing alert rules: " + (e?.message || e), "error");
+    } finally {
+        if (clearBtn) {
+            clearBtn.disabled = false;
+            clearBtn.innerHTML = origClearHtml;
+            clearBtn.style.opacity = '1';
+            clearBtn.style.cursor = 'pointer';
+        }
+        if (saveBtn) saveBtn.disabled = false;
     }
 }
 window.clearWatchlistStockAlert = clearWatchlistStockAlert;
