@@ -28870,4 +28870,52 @@ body.light-theme .sticky-screener-col {
     font-weight: 700 !important;
 }
 
+/* ==========================================================================
+   Hero Section Header Metrics Pill (Mobile ONLY Responsive Alignment Fix)
+   ========================================================================== */
+@media (max-width: 768px) {
+    .hero-metrics-pill {
+        display: flex !important;
+        align-items: center !important;
+        justify-content: space-between !important;
+        width: 100% !important;
+        margin-top: 12px !important;
+        padding: 8px 12px !important;
+        gap: 8px !important;
+        flex-wrap: nowrap !important;
+        box-sizing: border-box !important;
+    }
+
+    .hero-metrics-pill > div:first-child {
+        display: flex !important;
+        flex-direction: column !important;
+        align-items: flex-start !important;
+        text-align: left !important;
+        flex: 1 !important;
+        min-width: 0 !important;
+    }
+
+    .hero-metrics-pill > div:last-child {
+        display: flex !important;
+        flex-direction: column !important;
+        align-items: flex-end !important;
+        text-align: right !important;
+        flex: 1 !important;
+        min-width: 0 !important;
+    }
+
+    .hero-metrics-pill span {
+        white-space: nowrap !important;
+    }
+
+    .hero-metrics-pill > div > span:first-child {
+        font-size: 10.5px !important;
+        letter-spacing: 0.03em !important;
+    }
+
+    .hero-metrics-pill > div > span:last-child {
+        font-size: 12.5px !important;
+    }
+}
+
 
