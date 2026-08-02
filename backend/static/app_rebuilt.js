@@ -13965,11 +13965,17 @@ function executeSystemPrint(printContent, customFeatures = 'width=850,height=900
         setTimeout(cleanup, 25000);
     }
 }
-const LIGHT_THEMES = ['light', 'geist-light', 'nord-light', 'solarized-light', 'github-light'];
+const LIGHT_THEMES = ['light', 'geist-light', 'nord-light', 'solarized-light', 'github-light', 'paytm-money'];
 
 // Dark/Light Theme Handler
 function setupThemeToggle() {
-    const savedMode = localStorage.getItem('theme-mode') || localStorage.getItem('theme') || 'dark';
+    let savedMode = localStorage.getItem('theme-mode') || localStorage.getItem('theme');
+    if (!savedMode && window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches) {
+        savedMode = 'light';
+    } else if (!savedMode) {
+        savedMode = 'dark';
+    }
+
     let savedAccent;
     if (savedMode === 'light') {
         savedAccent = localStorage.getItem('theme-accent-light') || 'light';
@@ -13982,13 +13988,21 @@ function setupThemeToggle() {
     }
 
     document.documentElement.setAttribute('data-mode', savedMode);
+    document.body.setAttribute('data-mode', savedMode);
+
     if (savedMode === 'light') {
         document.documentElement.setAttribute('data-theme', 'light');
         document.documentElement.setAttribute('data-accent', savedAccent);
+        document.body.setAttribute('data-theme', 'light');
+        document.body.setAttribute('data-accent', savedAccent);
     } else {
         document.documentElement.setAttribute('data-theme', savedAccent);
         document.documentElement.removeAttribute('data-accent');
+        document.body.setAttribute('data-theme', savedAccent);
+        document.body.removeAttribute('data-accent');
     }
+
+    if (window.updateMetaThemeColor) window.updateMetaThemeColor();
 
     // Wire dropdown selectors
     const modeSelect = document.getElementById('setting-theme-mode');
@@ -14068,10 +14082,14 @@ function setWorkstationMode(mode) {
         activeAccent = localStorage.getItem('theme-accent-light') || 'light';
         document.documentElement.setAttribute('data-theme', 'light');
         document.documentElement.setAttribute('data-accent', activeAccent);
+        document.body.setAttribute('data-theme', 'light');
+        document.body.setAttribute('data-accent', activeAccent);
     } else {
         activeAccent = localStorage.getItem('theme-accent') || 'classic';
         document.documentElement.setAttribute('data-theme', activeAccent);
         document.documentElement.removeAttribute('data-accent');
+        document.body.setAttribute('data-theme', activeAccent);
+        document.body.removeAttribute('data-accent');
     }
 
     localStorage.setItem('theme-mode', mode);
@@ -14097,9 +14115,10 @@ function setWorkstationMode(mode) {
         }
     }
 
+    if (window.updateMetaThemeColor) window.updateMetaThemeColor();
     showToast(`Workstation Mode set to ${mode === 'light' ? 'Light Mode' : 'Dark Mode'}`, 'success');
 
-    refreshChartThemeColors();
+    if (window.refreshChartThemeColors) window.refreshChartThemeColors();
 }
 window.setWorkstationMode = setWorkstationMode;
 
@@ -14108,16 +14127,21 @@ function setWorkstationAccent(accent) {
     const mode = isLightAccent ? 'light' : 'dark';
 
     document.documentElement.setAttribute('data-mode', mode);
+    document.body.setAttribute('data-mode', mode);
     localStorage.setItem('theme-mode', mode);
     localStorage.setItem('theme', mode); // legacy support
 
     if (isLightAccent) {
         document.documentElement.setAttribute('data-theme', 'light');
         document.documentElement.setAttribute('data-accent', accent);
+        document.body.setAttribute('data-theme', 'light');
+        document.body.setAttribute('data-accent', accent);
         localStorage.setItem('theme-accent-light', accent);
     } else {
         document.documentElement.setAttribute('data-theme', accent);
         document.documentElement.removeAttribute('data-accent');
+        document.body.setAttribute('data-theme', accent);
+        document.body.removeAttribute('data-accent');
         localStorage.setItem('theme-accent', accent);
     }
 
@@ -14135,9 +14159,10 @@ function setWorkstationAccent(accent) {
     const accentSelectOld = document.getElementById('setting-theme-accent-old');
     if (accentSelectOld) accentSelectOld.value = accent;
 
+    if (window.updateMetaThemeColor) window.updateMetaThemeColor();
     showToast(`Visual Theme set to ${textLabel}`, 'success');
 
-    refreshChartThemeColors();
+    if (window.refreshChartThemeColors) window.refreshChartThemeColors();
 }
 window.setWorkstationAccent = setWorkstationAccent;
 

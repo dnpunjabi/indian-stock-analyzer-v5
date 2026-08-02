@@ -653,7 +653,9 @@ html[data-typography="paytm"] table {
 }
 
 /* Light Accent Theme: Geist Light */
-[data-mode="light"][data-accent="geist-light"] {
+[data-mode="light"][data-accent="geist-light"],
+[data-theme="geist-light"],
+[data-accent="geist-light"] {
     --bg-main: #ffffff;
     --bg-sidebar: #fafafa;
     --bg-card: rgba(255, 255, 255, 0.9);
@@ -679,7 +681,9 @@ html[data-typography="paytm"] table {
 }
 
 /* Light Accent Theme: Nord Light */
-[data-mode="light"][data-accent="nord-light"] {
+[data-mode="light"][data-accent="nord-light"],
+[data-theme="nord-light"],
+[data-accent="nord-light"] {
     --bg-main: #eceff4;
     --bg-sidebar: #e5e9f0;
     --bg-card: rgba(243, 245, 249, 0.85);
@@ -705,7 +709,9 @@ html[data-typography="paytm"] table {
 }
 
 /* Light Accent Theme: Solarized Light */
-[data-mode="light"][data-accent="solarized-light"] {
+[data-mode="light"][data-accent="solarized-light"],
+[data-theme="solarized-light"],
+[data-accent="solarized-light"] {
     --bg-main: #fdf6e3;
     --bg-sidebar: #eee8d5;
     --bg-card: rgba(253, 246, 227, 0.85);
@@ -731,7 +737,9 @@ html[data-typography="paytm"] table {
 }
 
 /* Light Accent Theme: GitHub Light */
-[data-mode="light"][data-accent="github-light"] {
+[data-mode="light"][data-accent="github-light"],
+[data-theme="github-light"],
+[data-accent="github-light"] {
     --bg-main: #ffffff;
     --bg-sidebar: #f6f8fa;
     --bg-card: rgba(255, 255, 255, 0.9);
@@ -757,7 +765,9 @@ html[data-typography="paytm"] table {
 }
 
 /* Light Accent Theme: Paytm Money */
-[data-mode="light"][data-accent="paytm-money"] {
+[data-mode="light"][data-accent="paytm-money"],
+[data-theme="paytm-money"],
+[data-accent="paytm-money"] {
     --bg-main: #f1f5f9;
     --bg-sidebar: #ffffff;
     --bg-card: rgba(255, 255, 255, 0.75);
@@ -5634,10 +5644,14 @@ body.chat-drawer-active {
     border-right: 1px solid var(--border-glass) !important;
 }
 
+[data-mode="light"] .primary-card,
 [data-theme="light"] .primary-card,
-[data-theme="light"] .sandbox-card {
-    background: linear-gradient(135deg, rgba(255, 255, 255, 0.95), rgba(243, 244, 246, 0.85)) !important;
-    border-color: rgba(0, 0, 0, 0.1) !important;
+[data-mode="light"] .sandbox-card,
+[data-theme="light"] .sandbox-card,
+body.light-mode .primary-card,
+body.light-theme .sandbox-card {
+    background: var(--bg-card) !important;
+    border: 1px solid var(--border-glass) !important;
 }
 
 [data-theme="light"] .sandbox-outputs {
@@ -6657,16 +6671,22 @@ tr:hover .champion-cell {
 /* --- QUANT SCREENER & INDEX UNIVERSE LIGHT THEME OVERRIDES --- */
 
 /* Controls Card & Results Card in Light Theme */
-[data-theme="light"] .screener-controls-card {
-    background: rgba(255, 255, 255, 0.45) !important;
-    border: 1px solid rgba(0, 0, 0, 0.08) !important;
-    box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.06) !important;
+[data-mode="light"] .screener-controls-card,
+[data-theme="light"] .screener-controls-card,
+body.light-mode .screener-controls-card,
+body.light-theme .screener-controls-card {
+    background: var(--bg-card) !important;
+    border: 1px solid var(--border-glass) !important;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05) !important;
 }
 
-[data-theme="light"] .screener-results-container {
-    background: rgba(255, 255, 255, 0.45) !important;
-    border: 1px solid rgba(0, 0, 0, 0.08) !important;
-    box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.06) !important;
+[data-mode="light"] .screener-results-container,
+[data-theme="light"] .screener-results-container,
+body.light-mode .screener-results-container,
+body.light-theme .screener-results-container {
+    background: var(--bg-card) !important;
+    border: 1px solid var(--border-glass) !important;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05) !important;
 }
 
 /* Secondary Button Light Theme Overrides */
@@ -22872,16 +22892,15 @@ body.light-mode #returns-matrix-tbody tr:hover {
     [data-theme="nord-light"] .desktop-profile-card,
     [data-theme="solarized-light"] .desktop-profile-card,
     [data-theme="github-light"] .desktop-profile-card,
+    [data-theme="paytm-money"] .desktop-profile-card,
     body.light-mode .desktop-profile-card,
     html.light-mode .desktop-profile-card {
-        background: #ffffff !important;
-        background-color: #ffffff !important;
-        color: #0f172a !important;
+        background: var(--bg-card) !important;
+        background-color: var(--bg-card) !important;
+        color: var(--text-primary) !important;
         opacity: 1 !important;
-        backdrop-filter: none !important;
-        -webkit-backdrop-filter: none !important;
-        border: 1px solid rgba(203, 213, 225, 0.9) !important;
-        box-shadow: 0 25px 60px rgba(15, 23, 42, 0.25), 0 0 20px rgba(37, 99, 235, 0.12) !important;
+        border: 1px solid var(--border-glass) !important;
+        box-shadow: 0 20px 50px rgba(0, 0, 0, 0.08), var(--glow-shadow) !important;
     }
 
     [data-mode="light"] .popover-section-header,
@@ -22918,17 +22937,18 @@ body.light-mode #returns-matrix-tbody tr:hover {
     [data-theme="nord-light"] .popover-field select,
     [data-theme="solarized-light"] .popover-field select,
     [data-theme="github-light"] .popover-field select,
+    [data-theme="paytm-money"] .popover-field select,
     body.light-mode .popover-field select {
-        background: #ffffff !important;
-        border: 1px solid #cbd5e1 !important;
-        color: #0f172a !important;
+        background: var(--bg-glass-input) !important;
+        border: 1px solid var(--border-glass) !important;
+        color: var(--text-primary) !important;
     }
 
     [data-mode="light"] .popover-field select option,
     [data-theme="light"] .popover-field select option,
     body.light-mode .popover-field select option {
-        background: #ffffff !important;
-        color: #0f172a !important;
+        background: var(--bg-sidebar) !important;
+        color: var(--text-primary) !important;
     }
 
     [data-mode="light"] .rebalancer-stats,
@@ -24537,10 +24557,15 @@ body, .card, .desktop-header, .institutional-footer, .desktop-top-ticker-banner 
 [data-mode="light"] .mobile-deck-card,
 [data-theme="light"] .mobile-deck-card,
 body.light-mode .mobile-deck-card {
-    background: #ffffff !important;
-    border: 1px solid #e2e8f0 !important;
-    box-shadow: 0 6px 20px rgba(15, 23, 42, 0.06), inset 0 1px 0 #ffffff !important;
-    color: #0f172a !important;
+    background: var(--bg-card) !important;
+    border: 1px solid var(--border-glass) !important;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.04) !important;
+    color: var(--text-primary) !important;
+}
+
+[data-mode="light"] .mobile-deck-card:active {
+    transform: scale(0.98) !important;
+    background: var(--bg-card-hover) !important;
 }
 
 /* Interactive Cyber Launchpad Rail */
@@ -25629,21 +25654,50 @@ body.light-theme .watchlist-filter-chip.active {
     display: inline-block !important;
 }
 
-/* LTP & Primary Live Stock Prices across all screens */
+/* LTP & Primary Live Stock Prices across all screens (Dark Mode Default) */
+[data-mode="dark"] .price,
+[data-mode="dark"] .live-price,
+[data-mode="dark"] .wl-live-price span,
+[data-mode="dark"] .ltp-val,
+[data-mode="dark"] .stock-price,
+[data-mode="dark"] td.price-cell,
+[data-mode="dark"] #trendlyne-watchlist-table td:nth-child(2) span,
 .price,
 .live-price,
 .wl-live-price span,
 .ltp-val,
 .stock-price,
-td.price-cell,
-#trendlyne-watchlist-table td:nth-child(2) span,
-.cyber-stock-card-row div[style*="font-family:monospace"],
-.gainer-deck-card div[style*="font-family:monospace"],
-.loser-deck-card div[style*="font-family:monospace"] {
+td.price-cell {
     font-size: 15.5px !important;
     font-weight: 800 !important;
-    color: #ffffff !important;
+    color: var(--text-primary) !important;
     font-family: 'Inter', monospace !important;
+}
+
+/* Light Theme LTP & Price Color Enforcement */
+[data-mode="light"] .price,
+[data-mode="light"] .live-price,
+[data-mode="light"] .wl-live-price,
+[data-mode="light"] .wl-live-price span,
+[data-mode="light"] .ltp-val,
+[data-mode="light"] .stock-price,
+[data-mode="light"] td.price-cell,
+[data-mode="light"] #trendlyne-watchlist-table td:nth-child(2) span,
+[data-mode="light"] .secondary-price,
+[data-mode="light"] .added-price,
+[data-mode="light"] td.added-price-cell,
+[data-theme="light"] .price,
+[data-theme="light"] .live-price,
+[data-theme="light"] .wl-live-price,
+[data-theme="light"] .wl-live-price span,
+[data-theme="light"] .ltp-val,
+[data-theme="light"] .stock-price,
+[data-theme="light"] td.price-cell,
+[data-theme="light"] #trendlyne-watchlist-table td:nth-child(2) span,
+[data-theme="light"] .secondary-price,
+[data-theme="light"] .added-price,
+[data-theme="light"] td.added-price-cell {
+    color: var(--text-primary) !important;
 }
 
 /* Secondary Prices (Added Price, 52W High/Low, Target Prices) */
@@ -25986,11 +26040,25 @@ th.sticky-stock-hdr,
     top: 0 !important;
     left: 0 !important;
     z-index: 35 !important;
-    background: #0d1117 !important;
+    background: #0d1117;
     opacity: 1 !important;
     backdrop-filter: none !important;
     box-shadow: 4px 2px 14px rgba(0, 0, 0, 0.8) !important;
     border-right: 1.5px solid rgba(56, 189, 248, 0.3) !important;
+}
+
+[data-mode="light"] #tab-watchlist .data-table th:first-child,
+[data-mode="light"] #tab-watchlist table th:first-child,
+[data-mode="light"] #watchlist-items-card th:first-child,
+[data-theme="light"] #tab-watchlist .data-table th:first-child,
+[data-theme="light"] #tab-watchlist table th:first-child,
+[data-theme="light"] #watchlist-items-card th:first-child {
+    background: var(--bg-sidebar) !important;
+    background-color: var(--bg-sidebar) !important;
+    color: var(--text-primary) !important;
+    opacity: 1 !important;
+    box-shadow: 4px 2px 12px rgba(0, 0, 0, 0.08) !important;
+    border-right: 1.5px solid var(--border-glass) !important;
 }
 
 /* Light Theme Compatibility - 100% Opaque Pure White Background */
@@ -28919,3 +28987,334 @@ body.light-theme .sticky-screener-col {
 }
 
 
+
+
+/* ==========================================================================
+   LIGHT MODE ACCESSIBILITY & MOBILE AFFORDANCE ENHANCEMENTS
+   ========================================================================== */
+
+/* Light Mode WCAG AAA Contrast Indicators */
+[data-mode="light"] .rec-glowing-badge.badge-buy,
+[data-mode="light"] .green-text {
+    color: #047857 !important;
+}
+
+[data-mode="light"] .rec-glowing-badge.badge-sell,
+[data-mode="light"] .red-text {
+    color: #b91c1c !important;
+}
+
+/* Horizontal Scroll Affordance for Overflow Tables on Mobile */
+.table-scroll, .universe-table-wrapper, .returns-table-wrapper {
+    position: relative;
+    -webkit-overflow-scrolling: touch;
+}
+
+[data-mode="light"] .table-scroll::-webkit-scrollbar,
+[data-mode="light"] .universe-table-wrapper::-webkit-scrollbar {
+    height: 4px;
+}
+
+[data-mode="light"] .table-scroll::-webkit-scrollbar-thumb,
+[data-mode="light"] .universe-table-wrapper::-webkit-scrollbar-thumb {
+    background: rgba(0, 0, 0, 0.15);
+    border-radius: 4px;
+}
+
+
+/* ==========================================================================
+   UNIVERSAL LIGHT MODE ROOT CONTAINER & CARD BACKGROUND ENFORCEMENT
+   ========================================================================== */
+
+[data-mode="light"],
+[data-mode="light"] body,
+[data-mode="light"] html,
+[data-mode="light"] .app-container,
+[data-mode="light"] .main-container,
+[data-mode="light"] .workspace-content,
+[data-mode="light"] #app,
+[data-theme="light"],
+[data-theme="light"] body,
+[data-theme="light"] html,
+[data-theme="light"] .app-container,
+[data-theme="light"] .main-container,
+[data-theme="light"] .workspace-content,
+[data-theme="light"] #app {
+    background-color: var(--bg-main) !important;
+    background: var(--bg-main) !important;
+    color: var(--text-primary) !important;
+}
+
+[data-mode="light"] .card,
+[data-mode="light"] .analyzer-card,
+[data-mode="light"] .screener-card,
+[data-mode="light"] .primary-card,
+[data-mode="light"] .sandbox-card,
+[data-mode="light"] .screener-controls-card,
+[data-mode="light"] .screener-results-container,
+[data-mode="light"] .recent-research-card,
+[data-mode="light"] .watchlist-card,
+[data-mode="light"] .scanner-card,
+[data-theme="light"] .card,
+[data-theme="light"] .analyzer-card,
+[data-theme="light"] .screener-card,
+[data-theme="light"] .primary-card,
+[data-theme="light"] .sandbox-card,
+[data-theme="light"] .screener-controls-card,
+[data-theme="light"] .screener-results-container,
+[data-theme="light"] .recent-research-card,
+[data-theme="light"] .watchlist-card,
+[data-theme="light"] .scanner-card {
+    background: var(--bg-card) !important;
+    background-color: var(--bg-card) !important;
+    border: 1px solid var(--border-glass) !important;
+    color: var(--text-primary) !important;
+}
+
+[data-mode="light"] .screener-controls-card label,
+[data-mode="light"] .screener-controls-card span,
+[data-mode="light"] .screener-controls-card strong,
+[data-mode="light"] .screener-controls-card p,
+[data-mode="light"] .screener-results-container label,
+[data-mode="light"] .screener-results-container span,
+[data-mode="light"] .screener-results-container strong,
+[data-mode="light"] .screener-results-container p,
+[data-theme="light"] .screener-controls-card label,
+[data-theme="light"] .screener-controls-card span,
+[data-theme="light"] .screener-controls-card strong,
+[data-theme="light"] .screener-controls-card p {
+    color: var(--text-primary) !important;
+}
+
+
+/* ==========================================================================
+   UNIVERSAL LIGHT THEME TABLE HEADER & STICKY COLUMN DESIGN SYSTEM
+   ========================================================================== */
+
+/* 1. Universal Table Header Rows - Soft Glass Tint / Theme Accent Background */
+[data-mode="light"] table thead,
+[data-mode="light"] table thead tr,
+[data-mode="light"] table thead th,
+[data-mode="light"] .data-table thead,
+[data-mode="light"] .data-table thead tr,
+[data-mode="light"] .data-table thead th,
+[data-mode="light"] .screener-table thead,
+[data-mode="light"] .screener-table thead tr,
+[data-mode="light"] .screener-table thead th,
+[data-mode="light"] .tech-scans-table-container table thead th,
+[data-mode="light"] #tab-watchlist table thead th,
+[data-mode="light"] #tab-alerts table thead th,
+[data-mode="light"] #tab-scans table thead th,
+[data-mode="light"] #tab-universe table thead th,
+[data-mode="light"] #tab-screener table thead th,
+[data-mode="light"] #tab-movers table thead th,
+[data-mode="light"] #tab-rule-scanner table thead th,
+[data-mode="light"] #sector-stocks-modal table thead th,
+[data-theme="light"] table thead,
+[data-theme="light"] table thead tr,
+[data-theme="light"] table thead th,
+[data-theme="light"] .data-table thead,
+[data-theme="light"] .data-table thead tr,
+[data-theme="light"] .data-table thead th,
+[data-theme="light"] .screener-table thead,
+[data-theme="light"] .screener-table thead tr,
+[data-theme="light"] .screener-table thead th,
+[data-theme="light"] .tech-scans-table-container table thead th,
+[data-theme="light"] #tab-watchlist table thead th,
+[data-theme="light"] #tab-alerts table thead th,
+[data-theme="light"] #tab-scans table thead th,
+[data-theme="light"] #tab-universe table thead th,
+[data-theme="light"] #tab-screener table thead th,
+[data-theme="light"] #tab-movers table thead th,
+[data-theme="light"] #tab-rule-scanner table thead th,
+[data-theme="light"] #sector-stocks-modal table thead th {
+    background: var(--bg-sidebar) !important;
+    background-color: var(--bg-sidebar) !important;
+    color: var(--text-primary) !important;
+    font-weight: 700 !important;
+    border-bottom: 2px solid var(--border-glass) !important;
+}
+
+/* 2. Universal Sticky First Column (Stock Ticker & Symbol Name) in Light Mode */
+[data-mode="light"] table tbody td:first-child,
+[data-mode="light"] .data-table tbody td:first-child,
+[data-mode="light"] .screener-table tbody td:first-child,
+[data-mode="light"] .tech-scans-table-container table tbody td:first-child,
+[data-mode="light"] .tech-scans-table-container table tbody td:nth-child(2),
+[data-mode="light"] #tab-watchlist table tbody td:first-child,
+[data-mode="light"] #tab-alerts table tbody td:first-child,
+[data-mode="light"] #tab-universe table tbody td:first-child,
+[data-mode="light"] #tab-screener table tbody td:first-child,
+[data-mode="light"] #tab-movers table tbody td:first-child,
+[data-mode="light"] #tab-rule-scanner table tbody td:first-child,
+[data-mode="light"] #sector-stocks-modal table tbody td:first-child,
+[data-mode="light"] td.sticky-col,
+[data-mode="light"] td.sticky-stock-col,
+[data-theme="light"] table tbody td:first-child,
+[data-theme="light"] .data-table tbody td:first-child,
+[data-theme="light"] .screener-table tbody td:first-child,
+[data-theme="light"] .tech-scans-table-container table tbody td:first-child,
+[data-theme="light"] .tech-scans-table-container table tbody td:nth-child(2),
+[data-theme="light"] #tab-watchlist table tbody td:first-child,
+[data-theme="light"] #tab-alerts table tbody td:first-child,
+[data-theme="light"] #tab-universe table tbody td:first-child,
+[data-theme="light"] #tab-screener table tbody td:first-child,
+[data-theme="light"] #tab-movers table tbody td:first-child,
+[data-theme="light"] #tab-rule-scanner table tbody td:first-child,
+[data-theme="light"] #sector-stocks-modal table tbody td:first-child {
+    background: var(--bg-card) !important;
+    background-color: var(--bg-card) !important;
+    color: var(--text-primary) !important;
+    opacity: 1 !important;
+    box-shadow: 4px 0 12px rgba(0, 0, 0, 0.08) !important;
+    border-right: 1.5px solid var(--border-glass) !important;
+}
+
+/* Header Cell Text inside Sticky First Column Header */
+[data-mode="light"] table thead th:first-child,
+[data-mode="light"] .data-table thead th:first-child,
+[data-mode="light"] .screener-table thead th:first-child,
+[data-mode="light"] .tech-scans-table-container table thead th:first-child,
+[data-mode="light"] .tech-scans-table-container table thead th:nth-child(2),
+[data-theme="light"] table thead th:first-child,
+[data-theme="light"] .data-table thead th:first-child,
+[data-theme="light"] .screener-table thead th:first-child,
+[data-theme="light"] .tech-scans-table-container table thead th:first-child,
+[data-theme="light"] .tech-scans-table-container table thead th:nth-child(2) {
+    background: var(--bg-sidebar) !important;
+    background-color: var(--bg-sidebar) !important;
+    color: var(--text-primary) !important;
+    box-shadow: 4px 2px 12px rgba(0, 0, 0, 0.08) !important;
+    border-right: 1.5px solid var(--border-glass) !important;
+}
+
+/* 3. Table Rows Hover State in Light Mode */
+[data-mode="light"] table tbody tr:hover,
+[data-mode="light"] .data-table tbody tr:hover,
+[data-mode="light"] .screener-table tbody tr:hover,
+[data-theme="light"] table tbody tr:hover,
+[data-theme="light"] .data-table tbody tr:hover,
+[data-theme="light"] .screener-table tbody tr:hover {
+    background-color: var(--bg-row-hover, rgba(59, 130, 246, 0.04)) !important;
+}
+
+
+/* ==========================================================================
+   PREMIUM DARK THEMES COMPREHENSIVE DESIGN SYSTEM & ENHANCEMENTS
+   ========================================================================== */
+
+/* 1. OLED Pitch Black Theme Definition (#000000) */
+[data-mode="dark"][data-accent="oled-black"],
+[data-theme="oled-black"],
+[data-accent="oled-black"] {
+    --primary-rgb: 56, 189, 248;
+    --bg-main: #000000;
+    --bg-sidebar: #000000;
+    --bg-card: rgba(10, 10, 10, 0.95);
+    --bg-card-hover: rgba(20, 20, 20, 0.98);
+    --border-glass: rgba(255, 255, 255, 0.1);
+    --bg-glass-input: rgba(15, 15, 15, 0.9);
+    --text-primary: #ffffff;
+    --text-secondary: #38bdf8;
+    --text-muted: #888888;
+    --color-primary: #38bdf8;
+    --color-primary-glow: rgba(56, 189, 248, 0.25);
+    --color-emerald: #10b981;
+    --color-emerald-glow: rgba(16, 185, 129, 0.2);
+    --color-crimson: #ef4444;
+    --color-crimson-glow: rgba(239, 68, 68, 0.2);
+    --color-amber: #f59e0b;
+    --color-amber-glow: rgba(245, 158, 11, 0.2);
+    --neon-green: #10b981;
+    --glow-shadow: 0 0 14px rgba(56, 189, 248, 0.3);
+    --bg-row-hover: rgba(56, 189, 248, 0.06);
+}
+
+/* 2. Theme-Specific Card Hover Glowing Borders & Ambient Halos across All Dark Themes */
+[data-mode="dark"] .card:hover,
+[data-mode="dark"] .screener-controls-card:hover,
+[data-mode="dark"] .screener-results-container:hover,
+[data-mode="dark"] .recent-research-card:hover,
+[data-mode="dark"] .watchlist-card:hover,
+[data-mode="dark"] .scanner-card:hover,
+[data-mode="dark"] .primary-card:hover,
+[data-mode="dark"] .sandbox-card:hover {
+    border-color: var(--color-primary) !important;
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.45), var(--glow-shadow) !important;
+}
+
+/* 3. High-Contrast Bullish (Profit Green) & Bearish (Loss Crimson) Ambient Badges in Dark Mode */
+[data-mode="dark"] .badge-buy,
+[data-mode="dark"] .badge-strong-buy,
+[data-mode="dark"] .rec-glowing-badge.badge-buy,
+[data-mode="dark"] .badge-emerald {
+    background: rgba(16, 185, 129, 0.15) !important;
+    color: #34d399 !important;
+    border: 1px solid rgba(16, 185, 129, 0.35) !important;
+    box-shadow: 0 0 10px rgba(16, 185, 129, 0.2) !important;
+}
+
+[data-mode="dark"] .badge-sell,
+[data-mode="dark"] .badge-avoid,
+[data-mode="dark"] .rec-glowing-badge.badge-sell,
+[data-mode="dark"] .badge-crimson {
+    background: rgba(239, 68, 68, 0.15) !important;
+    color: #f87171 !important;
+    border: 1px solid rgba(239, 68, 68, 0.35) !important;
+    box-shadow: 0 0 10px rgba(239, 68, 68, 0.2) !important;
+}
+
+/* 4. Primary-Color Table Row Hover Effects Across All 15 Dark Themes */
+[data-mode="dark"] table tbody tr:hover,
+[data-mode="dark"] .data-table tbody tr:hover,
+[data-mode="dark"] .screener-table tbody tr:hover,
+[data-mode="dark"] .tech-scans-table-container table tbody tr:hover {
+    background-color: var(--bg-row-hover, rgba(56, 189, 248, 0.05)) !important;
+}
+
+
+/* ==========================================================================
+   FURTHER HIGH-IMPACT PRO-TRADER DARK THEME ENHANCEMENTS
+   ========================================================================== */
+
+/* 1. High-Contrast Neon Signal Pills in Dark Mode */
+[data-mode="dark"] .badge-strong-buy,
+[data-mode="dark"] .badge-buy,
+[data-mode="dark"] span.badge-buy,
+[data-mode="dark"] .signal-badge.bullish,
+[data-mode="dark"] .rec-glowing-badge.badge-buy {
+    background: rgba(16, 185, 129, 0.18) !important;
+    color: #34d399 !important;
+    border: 1.5px solid #10b981 !important;
+    box-shadow: 0 0 12px rgba(16, 185, 129, 0.35) !important;
+    font-weight: 800 !important;
+}
+
+[data-mode="dark"] .badge-accumulate,
+[data-mode="dark"] .badge-neutral,
+[data-mode="dark"] span.badge-neutral {
+    background: rgba(245, 158, 11, 0.18) !important;
+    color: #fbbf24 !important;
+    border: 1.5px solid #f59e0b !important;
+    box-shadow: 0 0 12px rgba(245, 158, 11, 0.35) !important;
+    font-weight: 800 !important;
+}
+
+[data-mode="dark"] .badge-avoid,
+[data-mode="dark"] .badge-sell,
+[data-mode="dark"] span.badge-sell,
+[data-mode="dark"] .signal-badge.bearish,
+[data-mode="dark"] .rec-glowing-badge.badge-sell {
+    background: rgba(239, 68, 68, 0.18) !important;
+    color: #f87171 !important;
+    border: 1.5px solid #ef4444 !important;
+    box-shadow: 0 0 12px rgba(239, 68, 68, 0.35) !important;
+    font-weight: 800 !important;
+}
+
+/* 2. Institutional Telemetry Ambient Mesh FX for Dark Mode Hero Cards */
+[data-mode="dark"] .primary-card,
+[data-mode="dark"] .inst-hero-card,
+[data-mode="dark"] .screener-controls-card {
+    background-image: radial-gradient(circle at 50% 0%, var(--color-primary-glow) 0%, transparent 75%) !important;
+}

@@ -1612,12 +1612,40 @@ body.light-theme .sector-deck-row .sector-bar-track {
 
 /* OLED Minimalist Palette Overrides for Modernizer Components */
 .app-container {
-    background: #08090d !important;
+    background: var(--bg-main) !important;
+}
+
+[data-mode="light"] .app-container,
+[data-theme="light"] .app-container,
+body.light-mode .app-container,
+body.light-theme .app-container {
+    background: var(--bg-main) !important;
 }
 
 .recent-research-card,
 .watchlist-card,
 .scanner-card {
-    background: #12141d !important;
-    border: 1px solid #1e2230 !important;
+    background: var(--bg-card) !important;
+    border: 1px solid var(--border-glass) !important;
+}
+
+[data-mode="light"] .inst-hero-card,
+[data-theme="light"] .inst-hero-card,
+body.light-mode .inst-hero-card,
+body.light-theme .inst-hero-card {
+    background: linear-gradient(135deg, var(--bg-card) 0%, var(--bg-sidebar) 100%) !important;
+    border: 1px solid var(--border-glass) !important;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05) !important;
+    color: var(--text-primary) !important;
+}
+
+[data-mode="light"] .recent-research-card,
+[data-theme="light"] .recent-research-card,
+[data-mode="light"] .watchlist-card,
+[data-theme="light"] .watchlist-card,
+[data-mode="light"] .scanner-card,
+[data-theme="light"] .scanner-card {
+    background: var(--bg-card) !important;
+    border: 1px solid var(--border-glass) !important;
+    color: var(--text-primary) !important;
 }
