@@ -972,6 +972,56 @@ async def run_background_daily_wrapup_scheduler():
             
         await asyncio.sleep(300)  # Sweep every 5 minutes
 
+async def run_background_weekly_wrapup_scheduler():
+    """
+    Asynchronous loop that sweeps every 5 minutes.
+    Checks if Weekly Wrap-Up is enabled and if the current IST day & time
+    match configured schedule (e.g. Saturday 10:00 AM IST), and dispatches
+    the retrospective if it hasn't been sent for the current period.
+    """
+    await asyncio.sleep(20)  # Let startup warming finish
+    print("Background WhatsApp weekly wrap-up scheduler started.")
+    
+    while True:
+        try:
+            from backend.weekly_wrapup import get_weekly_wrapup_settings, trigger_weekly_wrapup
+            settings = get_weekly_wrapup_settings()
+            
+            if settings.get("enabled", False):
+                from datetime import datetime, timedelta
+                now_utc = datetime.utcnow()
+                now_ist = now_utc + timedelta(hours=5, minutes=30)
+                
+                target_day = settings.get("day", "Saturday").strip().capitalize()
+                target_time_str = settings.get("time", "10:00").strip()
+                last_sent = str(settings.get("last_sent", ""))
+                
+                current_day_str = now_ist.strftime("%A")
+                today_str = now_ist.strftime("%Y-%m-%d")
+                
+                if current_day_str.lower() == target_day.lower() and not last_sent.startswith(today_str):
+                    try:
+                        t_parts = target_time_str.split(":")
+                        target_hour = int(t_parts[0])
+                        target_minute = int(t_parts[1])
+                        
+                        current_minutes = now_ist.hour * 60 + now_ist.minute
+                        target_minutes = target_hour * 60 + target_minute
+                        
+                        if target_minutes <= current_minutes <= (target_minutes + 120):
+                            print(f"Weekly Wrap-up: Scheduled trigger time reached ({target_day} {target_time_str} IST). Starting dispatch...")
+                            res = await trigger_weekly_wrapup(on_demand=False)
+                            if res.get("whatsapp_sent"):
+                                print(f"Weekly Wrap-up: Successfully dispatched on schedule to WhatsApp.")
+                            else:
+                                print(f"Weekly Wrap-up: Scheduled dispatch compiled. WhatsApp status: {res.get('whatsapp_error')}")
+                    except Exception as parse_err:
+                        print(f"Weekly Wrap-up: Error checking scheduled trigger time: {parse_err}")
+        except Exception as loop_err:
+            print(f"Weekly Wrap-up: Background scheduler loop error: {loop_err}")
+            
+        await asyncio.sleep(300)  # Sweep every 5 minutes
+
 async def run_background_market_movers_updater():
     """
     Background loop that runs immediately on startup and updates today's market movers.
@@ -1929,8 +1979,9 @@ async def startup_warm_caching():
     asyncio.create_task(asyncio.to_thread(update_nse_bulk_block_deals))
     asyncio.create_task(asyncio.to_thread(update_sector_regime_stats))
     asyncio.create_task(run_background_market_movers_updater())
-    # 4.5 Fire background WhatsApp daily wrap-up scheduler
+    # 4.5 Fire background WhatsApp daily & weekly wrap-up schedulers
     asyncio.create_task(run_background_daily_wrapup_scheduler())
+    asyncio.create_task(run_background_weekly_wrapup_scheduler())
     
     # 4.6 Fire background FS alerts scheduler
     asyncio.create_task(run_background_fs_alerts_scheduler())
@@ -6413,6 +6464,29 @@ async def trigger_daily_wrapup(payload: Optional[dict] = None):
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Daily Wrap-up Generation failed: {str(e)}")
+
+@app.get("/api/alerts/weekly-wrapup/settings")
+async def get_weekly_wrapup_settings_route():
+    """Returns WhatsApp Weekly Market & Portfolio Wrap-Up schedule and activation settings."""
+    from backend.weekly_wrapup import get_weekly_wrapup_settings
+    return get_weekly_wrapup_settings()
+
+@app.post("/api/alerts/weekly-wrapup/settings")
+async def save_weekly_wrapup_settings_route(payload: dict):
+    """Updates weekly wrap-up schedule and activation state in SQLite."""
+    from backend.weekly_wrapup import save_weekly_wrapup_settings
+    success = save_weekly_wrapup_settings(payload)
+    if not success:
+        raise HTTPException(status_code=500, detail="Failed to save weekly wrap-up settings")
+    return {"status": "success"}
+
+@app.post("/api/alerts/weekly-wrapup/trigger")
+async def trigger_weekly_wrapup_route(payload: Optional[dict] = None):
+    """Manually compiles the weekly market & portfolio wrap-up summary and dispatches to WhatsApp."""
+    from backend.weekly_wrapup import trigger_weekly_wrapup
+    persona = payload.get("persona") if payload else None
+    res = await trigger_weekly_wrapup(on_demand=True, persona=persona)
+    return res
 
 @app.delete("/api/alerts/{alert_id}")
 async def delete_alert(alert_id: str):

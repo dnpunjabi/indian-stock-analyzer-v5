@@ -918,6 +918,59 @@ function updateConnectionIndicator(status, source) {
     }
 }
 
+function updatePortfolioSummaryHeroDeck(totalInvestment, totalValue, totalDayPL, healthScore, concentrationLabel) {
+    const heroValEl = document.getElementById('port-hero-total-value');
+    const heroInvEl = document.getElementById('port-hero-invested');
+    const heroNetPLEl = document.getElementById('port-hero-net-pl');
+    const heroNetPLBadge = document.getElementById('port-hero-net-pl-badge');
+    const heroDayPLEl = document.getElementById('port-hero-day-pl');
+    const heroDayPLBadge = document.getElementById('port-hero-day-pl-badge');
+    const heroHealthEl = document.getElementById('port-hero-health-score');
+    const heroHealthBadge = document.getElementById('port-hero-health-badge');
+
+    if (heroValEl) heroValEl.innerText = `₹${(totalValue || 0).toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+    if (heroInvEl) heroInvEl.innerText = `₹${(totalInvestment || 0).toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+
+    const netPL = totalValue - totalInvestment;
+    const netPLPct = totalInvestment > 0 ? (netPL / totalInvestment) * 100 : 0.0;
+    const netPLSign = netPL >= 0 ? '+' : '';
+    const netPLColor = netPL >= 0 ? '#34d399' : '#f87171';
+    const netPLBg = netPL >= 0 ? 'rgba(16, 185, 129, 0.18)' : 'rgba(239, 68, 68, 0.18)';
+    const netPLBorder = netPL >= 0 ? 'rgba(16, 185, 129, 0.3)' : 'rgba(239, 68, 68, 0.3)';
+
+    if (heroNetPLEl) {
+        heroNetPLEl.innerText = `${netPLSign}₹${Math.abs(netPL).toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+        heroNetPLEl.style.color = netPLColor;
+    }
+    if (heroNetPLBadge) {
+        heroNetPLBadge.innerText = `${netPLSign}${netPLPct.toFixed(2)}%`;
+        heroNetPLBadge.style.color = netPLColor;
+        heroNetPLBadge.style.background = netPLBg;
+        heroNetPLBadge.style.borderColor = netPLBorder;
+    }
+
+    const dayBase = (totalValue - totalDayPL);
+    const dayPLPct = dayBase > 0 ? (totalDayPL / dayBase) * 100 : 0.0;
+    const dayPLSign = totalDayPL >= 0 ? '+' : '';
+    const dayPLColor = totalDayPL >= 0 ? '#38bdf8' : '#f87171';
+    const dayPLBg = totalDayPL >= 0 ? 'rgba(56, 189, 248, 0.18)' : 'rgba(239, 68, 68, 0.18)';
+    const dayPLBorder = totalDayPL >= 0 ? 'rgba(56, 189, 248, 0.3)' : 'rgba(239, 68, 68, 0.3)';
+
+    if (heroDayPLEl) {
+        heroDayPLEl.innerText = `${dayPLSign}₹${Math.abs(totalDayPL).toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+        heroDayPLEl.style.color = dayPLColor;
+    }
+    if (heroDayPLBadge) {
+        heroDayPLBadge.innerText = `${dayPLSign}${dayPLPct.toFixed(2)}% Today`;
+        heroDayPLBadge.style.color = dayPLColor;
+        heroDayPLBadge.style.background = dayPLBg;
+        heroDayPLBadge.style.borderColor = dayPLBorder;
+    }
+
+    if (heroHealthEl) heroHealthEl.innerText = `${healthScore || '--'} / 100`;
+    if (heroHealthBadge) heroHealthBadge.innerText = concentrationLabel || 'Analyzed';
+}
+
 function updatePortfolioLedgerRealtime(ticksData) {
     if (!activePortfolioLedgerItems || activePortfolioLedgerItems.length === 0) return;
 
@@ -1017,6 +1070,8 @@ function updatePortfolioLedgerRealtime(ticksData) {
     if (typeof animateDiagnosticsGauge === 'function') {
         animateDiagnosticsGauge(localHealthScore);
     }
+
+    updatePortfolioSummaryHeroDeck(totalInvestment, totalValue, totalDayPL, localHealthScore, localConcentrationLabel);
     
     // Update Sector Exposure Chart
     let localSectorExposurePcts = {};
@@ -11716,6 +11771,8 @@ function setupAlertCenter() {
     fetchWhatsAppSettings();
     fetchDailyWrapupSettings();
     setupDailyWrapupListeners();
+    fetchWeeklyWrapupSettings();
+    setupWeeklyWrapupListeners();
     fetchScreenerCookieSettings();
     setupScreenerCookieListeners();
     fetchLLMKeysSettings();
@@ -12483,7 +12540,8 @@ async function fetchDailyWrapupSettings() {
 
 function setupDailyWrapupListeners() {
     const saveBtn = document.getElementById('save-wrapup-settings-btn');
-    if (saveBtn) {
+    if (saveBtn && !saveBtn.dataset.bound) {
+        saveBtn.dataset.bound = 'true';
         saveBtn.addEventListener('click', async () => {
             const enabled = document.getElementById('wrapup-enabled')?.checked;
             const time = document.getElementById('wrapup-time')?.value;
@@ -12519,7 +12577,8 @@ function setupDailyWrapupListeners() {
     }
 
     const triggerBtn = document.getElementById('trigger-wrapup-now-btn');
-    if (triggerBtn) {
+    if (triggerBtn && !triggerBtn.dataset.bound) {
+        triggerBtn.dataset.bound = 'true';
         triggerBtn.addEventListener('click', async () => {
             triggerBtn.disabled = true;
             const originalText = triggerBtn.textContent;
@@ -12580,12 +12639,156 @@ function setupDailyWrapupListeners() {
     }
 
     const closePreviewBtn = document.getElementById('close-wrapup-preview-btn');
-    if (closePreviewBtn) {
+    if (closePreviewBtn && !closePreviewBtn.dataset.bound) {
+        closePreviewBtn.dataset.bound = 'true';
         closePreviewBtn.addEventListener('click', () => {
             const previewContainer = document.getElementById('wrapup-preview-container');
             if (previewContainer) previewContainer.style.display = 'none';
         });
     }
+}
+
+async function fetchWeeklyWrapupSettings() {
+    try {
+        const response = await fetch('/api/alerts/weekly-wrapup/settings');
+        if (!response.ok) return;
+        const data = await response.json();
+
+        const enabledChkbx = document.getElementById('weekly-wrapup-enabled');
+        const dayTimeSelect = document.getElementById('weekly-wrapup-day-time');
+        const personaSelect = document.getElementById('weekly-wrapup-persona');
+        const lastSentLbl = document.getElementById('weekly-wrapup-last-sent-lbl');
+        const includePortfolioChkbx = document.getElementById('weekly-wrapup-include-portfolio');
+        const includeSectorsChkbx = document.getElementById('weekly-wrapup-include-sectors');
+        const includeEventsChkbx = document.getElementById('weekly-wrapup-include-events');
+        const includeBreakoutsChkbx = document.getElementById('weekly-wrapup-include-breakouts');
+
+        if (enabledChkbx) enabledChkbx.checked = !!data.enabled;
+        if (dayTimeSelect && data.day && data.time) dayTimeSelect.value = `${data.day} ${data.time}`;
+        if (personaSelect && data.persona) personaSelect.value = data.persona;
+        if (includePortfolioChkbx) includePortfolioChkbx.checked = data.include_portfolio !== false;
+        if (includeSectorsChkbx) includeSectorsChkbx.checked = data.include_sectors !== false;
+        if (includeEventsChkbx) includeEventsChkbx.checked = data.include_events !== false;
+        if (includeBreakoutsChkbx) includeBreakoutsChkbx.checked = data.include_breakouts !== false;
+        if (lastSentLbl) {
+            lastSentLbl.textContent = data.last_sent ? `Last dispatched: ${data.last_sent}` : "Last dispatched: Never";
+        }
+    } catch (err) {
+        console.error("Failed to fetch weekly wrap-up settings:", err);
+    }
+}
+
+function setupWeeklyWrapupListeners() {
+    const saveBtn = document.getElementById('save-weekly-wrapup-settings-btn');
+    if (saveBtn && !saveBtn.dataset.bound) {
+        saveBtn.dataset.bound = 'true';
+        saveBtn.addEventListener('click', async () => {
+            const enabled = document.getElementById('weekly-wrapup-enabled')?.checked;
+            const dayTimeVal = document.getElementById('weekly-wrapup-day-time')?.value || "Saturday 10:00";
+            const parts = dayTimeVal.split(' ');
+            const day = parts[0] || "Saturday";
+            const time = parts[1] || "10:00";
+            const persona = document.getElementById('weekly-wrapup-persona')?.value || "Institutional Analyst";
+            const include_portfolio = document.getElementById('weekly-wrapup-include-portfolio')?.checked;
+            const include_sectors = document.getElementById('weekly-wrapup-include-sectors')?.checked;
+            const include_events = document.getElementById('weekly-wrapup-include-events')?.checked;
+            const include_breakouts = document.getElementById('weekly-wrapup-include-breakouts')?.checked;
+
+            try {
+                const response = await fetch('/api/alerts/weekly-wrapup/settings', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ enabled, day, time, persona, include_portfolio, include_sectors, include_events, include_breakouts })
+                });
+
+                if (response.ok) {
+                    showToast("Weekly Wrap-Up schedule settings saved successfully.", "success");
+                    await fetchWeeklyWrapupSettings();
+                } else {
+                    showToast("Failed to save weekly wrap-up settings.", "error");
+                }
+            } catch (err) {
+                console.error("Error saving weekly wrap-up settings:", err);
+                showToast("Error updating weekly wrap-up settings.", "error");
+            }
+        });
+    }
+
+    const triggerBtn = document.getElementById('trigger-weekly-wrapup-now-btn');
+    if (triggerBtn && !triggerBtn.dataset.bound) {
+        triggerBtn.dataset.bound = 'true';
+        triggerBtn.addEventListener('click', async () => {
+            triggerBtn.disabled = true;
+            const originalText = triggerBtn.textContent;
+            triggerBtn.textContent = "⌛ Compiling Weekly Digest...";
+
+            try {
+                showToast("Generating on-demand Weekly Wrap-Up summary...", "info");
+                const persona = document.getElementById('weekly-wrapup-persona')?.value;
+                const response = await fetch('/api/alerts/weekly-wrapup/trigger', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ persona })
+                });
+                if (!response.ok) {
+                    const errData = await response.json();
+                    showToast(errData.detail || "Trigger failed.", "error");
+                    return;
+                }
+
+                const data = await response.json();
+                
+                const previewContainer = document.getElementById('weekly-wrapup-preview-container');
+                const previewText = document.getElementById('weekly-wrapup-preview-text');
+                if (previewContainer && previewText) {
+                    typewriteElement(previewText, data.content, () => {
+                        if (window.AIExportManager) {
+                            window.AIExportManager.decorate(previewText, 'report', { module: 'WEEKLY_WRAPUP' });
+                        }
+                    });
+                    previewContainer.style.display = 'block';
+                }
+
+                if (data.whatsapp_sent) {
+                    showToast("Weekly Wrap-Up dispatched successfully to WhatsApp!", "success");
+                } else if (data.whatsapp_error) {
+                    showToast(`Weekly summary compiled but WhatsApp error: ${data.whatsapp_error}`, "warning");
+                } else {
+                    showToast("Weekly summary compiled successfully!", "success");
+                }
+
+                await fetchWeeklyWrapupSettings();
+            } catch (err) {
+                console.error("Error triggering weekly wrap-up:", err);
+                showToast("Failed to compile weekly wrap-up.", "error");
+            } finally {
+                triggerBtn.disabled = false;
+                triggerBtn.textContent = originalText;
+            }
+        });
+    }
+
+    const closePreviewBtn = document.getElementById('close-weekly-wrapup-preview-btn');
+    if (closePreviewBtn && !closePreviewBtn.dataset.bound) {
+        closePreviewBtn.dataset.bound = 'true';
+        closePreviewBtn.addEventListener('click', () => {
+            const previewContainer = document.getElementById('weekly-wrapup-preview-container');
+            if (previewContainer) previewContainer.style.display = 'none';
+        });
+    }
+}
+
+window.fetchWeeklyWrapupSettings = fetchWeeklyWrapupSettings;
+window.setupWeeklyWrapupListeners = setupWeeklyWrapupListeners;
+
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => {
+        setupWeeklyWrapupListeners();
+        fetchWeeklyWrapupSettings();
+    });
+} else {
+    setupWeeklyWrapupListeners();
+    fetchWeeklyWrapupSettings();
 }
 
 // --- LLM & Search Key Rotation Management ---
@@ -22825,6 +23028,8 @@ async function loadPortfolioDoctorLedger(forceRefresh = false) {
             }
             concEl.style.fontWeight = '700';
         }
+
+        updatePortfolioSummaryHeroDeck(totalInvestment, totalValue, totalDayPL, localHealthScore, localConcentrationLabel);
 
         // Trigger Mamdani Fuzzy Health & Sector Auto-Swap Advisor
         await loadPortfolioFuzzySwaps();

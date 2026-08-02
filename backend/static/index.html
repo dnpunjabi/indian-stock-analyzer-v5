@@ -7833,11 +7833,15 @@
                         <!-- WhatsApp Daily Wrap-Up Card -->
                         <div class="card" id="whatsapp-wrapup-card" style="margin-top: 15px; border: 1px solid rgba(37, 211, 102, 0.15); background: rgba(37, 211, 102, 0.01);">
                             <style>
+                                .switch-toggle input:checked + .slider-toggle-round {
+                                    background-color: #3b82f6 !important;
+                                    border-color: #3b82f6 !important;
+                                }
                                 #whatsapp-wrapup-card .switch-toggle input:checked + .slider-toggle-round {
                                     background-color: #25d366 !important;
                                     border-color: #25d366 !important;
                                 }
-                                #whatsapp-wrapup-card .slider-toggle-round::before {
+                                .slider-toggle-round::before {
                                     content: "";
                                     position: absolute;
                                     height: 12px;
@@ -7848,7 +7852,7 @@
                                     transition: .3s;
                                     border-radius: 50%;
                                 }
-                                #whatsapp-wrapup-card .switch-toggle input:checked + .slider-toggle-round::before {
+                                .switch-toggle input:checked + .slider-toggle-round::before {
                                     transform: translateX(16px);
                                 }
                                 [data-theme="light"] #save-wrapup-settings-btn {
@@ -8084,6 +8088,107 @@
                                     <button type="button" id="close-wrapup-preview-btn" style="background: none; border: none; color: var(--text-secondary); cursor: pointer; font-size: 13px; font-weight: bold; outline: none; padding: 2px;">×</button>
                                 </div>
                                 <pre id="wrapup-preview-text" style="font-size: 13px; font-family: monospace; background: rgba(0,0,0,0.2); border: 1px solid var(--border-glass); border-radius: 6px; padding: 10px; color: #a9dfbf; white-space: pre-wrap; word-break: break-all; margin: 0; max-height: 200px; overflow-y: auto; text-align: left;"></pre>
+                            </div>
+                        </div>
+
+                        <!-- WEEKLY MARKET & PORTFOLIO WRAP-UP CARD -->
+                        <div class="card" id="whatsapp-weekly-wrapup-card" style="margin-top: 15px; border: 1px solid rgba(59, 130, 246, 0.25); background: rgba(59, 130, 246, 0.02);">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                                <div>
+                                    <h4 style="margin: 0; font-size: 15px; font-weight: 700; color: var(--text-primary); display: flex; align-items: center; gap: 6px;">
+                                        <span>📅</span> WEEKLY MARKET & PORTFOLIO WRAP-UP
+                                    </h4>
+                                    <p style="margin: 2px 0 0 0; font-size: 12.5px; color: var(--text-secondary);">
+                                        Configure automated weekend WhatsApp summary dispatches (5-Day Return, Alpha, Sector Heatmap & Events).
+                                    </p>
+                                </div>
+                            </div>
+                            
+                            <!-- Master Toggle -->
+                            <label style="display: flex; align-items: center; justify-content: space-between; padding: 8px 12px; background: rgba(255,255,255,0.03); border: 1px solid var(--border-glass); border-radius: 8px; margin-bottom: 12px; cursor: pointer; user-select: none;">
+                                <span style="font-size: 13.5px; font-weight: 600; color: var(--text-primary);">Enable Weekly Dispatch</span>
+                                <span class="switch-toggle" style="position: relative; display: inline-block; width: 34px; height: 18px; margin-bottom: 0;">
+                                    <input type="checkbox" id="weekly-wrapup-enabled" style="opacity: 0; width: 0; height: 0;">
+                                    <span class="slider-toggle-round" style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(255,255,255,0.1); transition: .3s; border-radius: 18px; border: 1px solid var(--border-glass);"></span>
+                                </span>
+                            </label>
+                            
+                            <!-- Time picker & Persona picker -->
+                            <div style="display: flex; gap: 8px; margin-bottom: 10px; flex-wrap: wrap;">
+                                <div style="flex: 1; min-width: 150px; display: flex; flex-direction: column; gap: 4px;">
+                                    <span style="font-size: 12.5px; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.05em;">Dispatch Schedule (IST)</span>
+                                    <select id="weekly-wrapup-day-time" style="font-size: 13.5px; padding: 5px 10px; background: var(--bg-glass-input); border: 1px solid var(--border-glass); border-radius: 6px; color: var(--text-primary); cursor: pointer; outline: none; min-height: 34px; height: 34px; line-height: 1.3; box-sizing: border-box; font-family: inherit;">
+                                        <option value="Friday 18:00">Friday 6:00 PM IST (Market Close)</option>
+                                        <option value="Saturday 10:00" selected>Saturday 10:00 AM IST (Weekend Brief)</option>
+                                        <option value="Sunday 10:00">Sunday 10:00 AM IST (Pre-Market Strategy)</option>
+                                    </select>
+                                </div>
+                                <div style="flex: 1.2; min-width: 170px; display: flex; flex-direction: column; gap: 4px;">
+                                    <span style="font-size: 12.5px; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.05em;">AI Commentary Persona</span>
+                                    <select id="weekly-wrapup-persona" style="font-size: 13.5px; padding: 5px 10px; background: var(--bg-glass-input); border: 1px solid var(--border-glass); border-radius: 6px; color: var(--text-primary); cursor: pointer; outline: none; min-height: 34px; height: 34px; line-height: 1.3; box-sizing: border-box; font-family: inherit;">
+                                        <option value="Institutional Analyst">Institutional Analyst</option>
+                                        <option value="Wealth Manager">Wealth Manager</option>
+                                        <option value="Macro Strategist">Macro Strategist</option>
+                                    </select>
+                                </div>
+                            </div>
+                            
+                            <!-- Content options -->
+                            <div style="display: flex; gap: 8px; margin-bottom: 10px; flex-wrap: wrap;">
+                                <label style="flex: 1; min-width: 140px; display: flex; align-items: center; justify-content: space-between; padding: 6px 10px; background: rgba(255,255,255,0.02); border: 1px solid var(--border-glass); border-radius: 6px; cursor: pointer; user-select: none;">
+                                    <span style="font-size: 13.5px; font-weight: 600; color: var(--text-secondary);">Include 5-Day P&L</span>
+                                    <span class="switch-toggle" style="position: relative; display: inline-block; width: 34px; height: 18px; margin-bottom: 0;">
+                                        <input type="checkbox" id="weekly-wrapup-include-portfolio" style="opacity: 0; width: 0; height: 0;" checked>
+                                        <span class="slider-toggle-round" style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(255,255,255,0.1); transition: .3s; border-radius: 18px; border: 1px solid var(--border-glass);"></span>
+                                    </span>
+                                </label>
+                                <label style="flex: 1; min-width: 140px; display: flex; align-items: center; justify-content: space-between; padding: 6px 10px; background: rgba(255,255,255,0.02); border: 1px solid var(--border-glass); border-radius: 6px; cursor: pointer; user-select: none;">
+                                    <span style="font-size: 13.5px; font-weight: 600; color: var(--text-secondary);">Include Sectors</span>
+                                    <span class="switch-toggle" style="position: relative; display: inline-block; width: 34px; height: 18px; margin-bottom: 0;">
+                                        <input type="checkbox" id="weekly-wrapup-include-sectors" style="opacity: 0; width: 0; height: 0;" checked>
+                                        <span class="slider-toggle-round" style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(255,255,255,0.1); transition: .3s; border-radius: 18px; border: 1px solid var(--border-glass);"></span>
+                                    </span>
+                                </label>
+                            </div>
+                            <div style="display: flex; gap: 8px; margin-bottom: 10px; flex-wrap: wrap;">
+                                <label style="flex: 1; min-width: 140px; display: flex; align-items: center; justify-content: space-between; padding: 6px 10px; background: rgba(255,255,255,0.02); border: 1px solid var(--border-glass); border-radius: 6px; cursor: pointer; user-select: none;">
+                                    <span style="font-size: 13.5px; font-weight: 600; color: var(--text-secondary);">Include Catalysts</span>
+                                    <span class="switch-toggle" style="position: relative; display: inline-block; width: 34px; height: 18px; margin-bottom: 0;">
+                                        <input type="checkbox" id="weekly-wrapup-include-events" style="opacity: 0; width: 0; height: 0;" checked>
+                                        <span class="slider-toggle-round" style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(255,255,255,0.1); transition: .3s; border-radius: 18px; border: 1px solid var(--border-glass);"></span>
+                                    </span>
+                                </label>
+                                <label style="flex: 1; min-width: 140px; display: flex; align-items: center; justify-content: space-between; padding: 6px 10px; background: rgba(255,255,255,0.02); border: 1px solid var(--border-glass); border-radius: 6px; cursor: pointer; user-select: none;">
+                                    <span style="font-size: 13.5px; font-weight: 600; color: var(--text-secondary);">Include Breakouts</span>
+                                    <span class="switch-toggle" style="position: relative; display: inline-block; width: 34px; height: 18px; margin-bottom: 0;">
+                                        <input type="checkbox" id="weekly-wrapup-include-breakouts" style="opacity: 0; width: 0; height: 0;" checked>
+                                        <span class="slider-toggle-round" style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(255,255,255,0.1); transition: .3s; border-radius: 18px; border: 1px solid var(--border-glass);"></span>
+                                    </span>
+                                </label>
+                            </div>
+                            
+                            <!-- Save settings button -->
+                            <button type="button" class="btn-primary" id="save-weekly-wrapup-settings-btn" style="width: 100%; height: 32px; font-size: 13.5px; font-weight: 600; display: inline-flex; align-items: center; justify-content: center; margin-bottom: 8px; border-radius: 6px; border: 1px solid rgba(59, 130, 246, 0.3); background: rgba(59, 130, 246, 0.2); cursor: pointer;">
+                                Save Weekly Schedule Settings
+                            </button>
+                            
+                            <!-- On-demand trigger button -->
+                            <button type="button" class="btn-secondary" id="trigger-weekly-wrapup-now-btn" style="width: 100%; height: 28px; font-size: 13.5px; font-weight: 600; display: inline-flex; align-items: center; justify-content: center; margin-bottom: 10px; border-radius: 4px; border: 1px solid rgba(59, 130, 246, 0.2); background: rgba(59, 130, 246, 0.08); color: #60a5fa; cursor: pointer;">
+                                🚀 Send & Preview On-Demand Weekly Wrap-Up
+                            </button>
+                            
+                            <!-- Last Sent status -->
+                            <div style="font-size: 12.5px; color: var(--text-secondary); text-align: center; margin-bottom: 8px;" id="weekly-wrapup-last-sent-lbl">
+                                Last dispatched: Never
+                            </div>
+                            
+                            <!-- Live Preview Box -->
+                            <div id="weekly-wrapup-preview-container" style="display: none; border-top: 1px solid rgba(255, 255, 255, 0.08); padding-top: 10px; margin-top: 8px;">
+                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                                    <span style="font-size: 12.5px; font-weight: 700; color: #60a5fa; text-transform: uppercase; letter-spacing: 0.05em;">Weekly WhatsApp Digest Preview</span>
+                                    <button type="button" id="close-weekly-wrapup-preview-btn" style="background: none; border: none; color: var(--text-secondary); cursor: pointer; font-size: 13px; font-weight: bold; outline: none; padding: 2px;">×</button>
+                                </div>
+                                <pre id="weekly-wrapup-preview-text" style="font-size: 13.3px; font-family: monospace; background: rgba(0,0,0,0.25); border: 1px solid var(--border-glass); border-radius: 6px; padding: 10px; color: #93c5fd; white-space: pre-wrap; word-break: break-all; margin: 0; max-height: 220px; overflow-y: auto; text-align: left;"></pre>
                             </div>
                         </div>
                     </div>
@@ -9312,6 +9417,69 @@
                     </div>
 
                 </div>
+
+                <!-- Live Portfolio Wealth & P&L Summary Hero Deck -->
+                <div class="portfolio-summary-hero-deck no-print" id="portfolio-summary-hero-deck" style="margin-top: 18px; margin-bottom: 20px;">
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px;">
+                        
+                        <!-- Hero Card 1: Total Portfolio Value -->
+                        <div class="portfolio-summary-card" style="background: rgba(15, 23, 42, 0.75); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 14px; padding: 16px 20px; backdrop-filter: blur(12px); position: relative; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.25);">
+                            <div style="position: absolute; top: -20px; right: -20px; width: 90px; height: 90px; background: radial-gradient(circle, rgba(56, 189, 248, 0.18), transparent 70%); pointer-events: none;"></div>
+                            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
+                                <span style="font-size: 11.5px; font-weight: 800; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.08em; font-family: 'Outfit', sans-serif;">Total Portfolio Value</span>
+                                <span style="font-size: 18px;">💼</span>
+                            </div>
+                            <div id="port-hero-total-value" style="font-size: 22px; font-weight: 800; color: #ffffff; font-family: 'Outfit', sans-serif; letter-spacing: -0.02em;">₹0.00</div>
+                            <div style="font-size: 12px; color: #64748b; margin-top: 4px; font-weight: 600;">
+                                Invested: <span id="port-hero-invested" style="color: #94a3b8; font-weight: 700;">₹0.00</span>
+                            </div>
+                        </div>
+
+                        <!-- Hero Card 2: Overall Net P&L -->
+                        <div class="portfolio-summary-card" style="background: rgba(15, 23, 42, 0.75); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 14px; padding: 16px 20px; backdrop-filter: blur(12px); position: relative; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.25);">
+                            <div style="position: absolute; top: -20px; right: -20px; width: 90px; height: 90px; background: radial-gradient(circle, rgba(16, 185, 129, 0.18), transparent 70%); pointer-events: none;"></div>
+                            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
+                                <span style="font-size: 11.5px; font-weight: 800; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.08em; font-family: 'Outfit', sans-serif;">Overall Net Return</span>
+                                <span style="font-size: 18px;">📈</span>
+                            </div>
+                            <div style="display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap;">
+                                <div id="port-hero-net-pl" style="font-size: 22px; font-weight: 800; color: #34d399; font-family: 'Outfit', sans-serif; letter-spacing: -0.02em;">+₹0.00</div>
+                                <span id="port-hero-net-pl-badge" style="font-size: 11.5px; font-weight: 800; color: #34d399; background: rgba(16, 185, 129, 0.18); border: 1px solid rgba(16, 185, 129, 0.3); padding: 2px 8px; border-radius: 6px; font-family: monospace;">+0.00%</span>
+                            </div>
+                            <div style="font-size: 12px; color: #64748b; margin-top: 4px; font-weight: 600;">Total Unrealized Gain/Loss</div>
+                        </div>
+
+                        <!-- Hero Card 3: Today's Day P&L -->
+                        <div class="portfolio-summary-card" style="background: rgba(15, 23, 42, 0.75); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 14px; padding: 16px 20px; backdrop-filter: blur(12px); position: relative; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.25);">
+                            <div style="position: absolute; top: -20px; right: -20px; width: 90px; height: 90px; background: radial-gradient(circle, rgba(251, 146, 60, 0.18), transparent 70%); pointer-events: none;"></div>
+                            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
+                                <span style="font-size: 11.5px; font-weight: 800; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.08em; font-family: 'Outfit', sans-serif;">Today's Session P&L</span>
+                                <span style="font-size: 18px;">⚡</span>
+                            </div>
+                            <div style="display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap;">
+                                <div id="port-hero-day-pl" style="font-size: 22px; font-weight: 800; color: #38bdf8; font-family: 'Outfit', sans-serif; letter-spacing: -0.02em;">+₹0.00</div>
+                                <span id="port-hero-day-pl-badge" style="font-size: 11.5px; font-weight: 800; color: #38bdf8; background: rgba(56, 189, 248, 0.18); border: 1px solid rgba(56, 189, 248, 0.3); padding: 2px 8px; border-radius: 6px; font-family: monospace;">+0.00% Today</span>
+                            </div>
+                            <div style="font-size: 12px; color: #64748b; margin-top: 4px; font-weight: 600;">Live Session Market Movement</div>
+                        </div>
+
+                        <!-- Hero Card 4: AI Health & Risk Index -->
+                        <div class="portfolio-summary-card" style="background: rgba(15, 23, 42, 0.75); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 14px; padding: 16px 20px; backdrop-filter: blur(12px); position: relative; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.25);">
+                            <div style="position: absolute; top: -20px; right: -20px; width: 90px; height: 90px; background: radial-gradient(circle, rgba(192, 132, 252, 0.18), transparent 70%); pointer-events: none;"></div>
+                            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
+                                <span style="font-size: 11.5px; font-weight: 800; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.08em; font-family: 'Outfit', sans-serif;">Health & Risk Index</span>
+                                <span style="font-size: 18px;">🩺</span>
+                            </div>
+                            <div style="display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap;">
+                                <div id="port-hero-health-score" style="font-size: 22px; font-weight: 800; color: #c084fc; font-family: 'Outfit', sans-serif; letter-spacing: -0.02em;">-- / 100</div>
+                                <span id="port-hero-health-badge" style="font-size: 11.5px; font-weight: 800; color: #c084fc; background: rgba(192, 132, 252, 0.18); border: 1px solid rgba(192, 132, 252, 0.3); padding: 2px 8px; border-radius: 6px;">Analyzing...</span>
+                            </div>
+                            <div style="font-size: 12px; color: #64748b; margin-top: 4px; font-weight: 600;">Diversification & Quality Score</div>
+                        </div>
+
+                    </div>
+                </div>
+
                 <!-- Portfolio Doctor Sub-navigation Tabs -->
                 <div class="portfolio-subtabs-wrapper no-print" style="display: flex; gap: 10px; margin-top: 15px; margin-bottom: 5px;">
                     <button class="portfolio-subtab-btn active" id="port-tab-diagnostics-btn" style="cursor: pointer; padding: 8px 16px; border-radius: 6px; font-family: 'Outfit', sans-serif; font-size: 13.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; transition: all 0.2s; border: 1px solid var(--border-glass); background: rgba(255,255,255,0.03); color: var(--text-primary); outline: none;">🩺 Diagnostics Audit</button>
