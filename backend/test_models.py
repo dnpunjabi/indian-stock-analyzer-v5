@@ -248,7 +248,16 @@ class TestAPIEndpoints(unittest.TestCase):
             self.assertEqual(item_data["symbol"], "TCS")
             self.assertEqual(item_data["name"], "TCS Ltd")
             self.assertEqual(item_data["sector"], "Technology")
-            
+        # 4b. Duplicate watchlist
+        dup_wl_resp = self.client.post(f"/api/watchlists/{wl_id}/duplicate")
+        self.assertEqual(dup_wl_resp.status_code, 200)
+        dup_wl_data = dup_wl_resp.json()
+        self.assertTrue(dup_wl_data["name"].startswith("Super Growth (Copy"))
+        self.assertEqual(dup_wl_data["items_count"], 1)
+        
+        # Cleanup duplicated watchlist
+        self.client.delete(f"/api/watchlists/{dup_wl_data['id']}")
+
         # 5. List watchlists with constituents
         list_response = self.client.get("/api/watchlists")
         self.assertEqual(list_response.status_code, 200)

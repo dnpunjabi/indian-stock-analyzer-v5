@@ -16140,12 +16140,33 @@ async function setupWatchlistControls() {
     const deleteBtn = document.getElementById('delete-watchlist-btn');
     const addBtn = document.getElementById('add-to-watchlist-btn');
     const analyzeBtn = document.getElementById('analyze-watchlist-btn');
+    const nameInput = document.getElementById('watchlist-name-input');
+
+    const duplicateBtn = document.getElementById('duplicate-watchlist-btn');
+    const exportCsvBtn = document.getElementById('watchlist-export-csv-btn');
+    const alertToggleBtn = document.getElementById('watchlist-alert-toggle-btn');
 
     if (createBtn) {
         createBtn.addEventListener('click', createNewWatchlist);
     }
+    if (nameInput) {
+        nameInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                createNewWatchlist();
+            }
+        });
+    }
     if (deleteBtn) {
         deleteBtn.addEventListener('click', deleteActiveWatchlist);
+    }
+    if (duplicateBtn) {
+        duplicateBtn.addEventListener('click', duplicateActiveWatchlist);
+    }
+    if (exportCsvBtn) {
+        exportCsvBtn.addEventListener('click', exportActiveWatchlistCSV);
+    }
+    if (alertToggleBtn) {
+        alertToggleBtn.addEventListener('click', toggleWatchlistDipAlerts);
     }
     if (addBtn) {
         addBtn.addEventListener('click', addCurrentStockToWatchlist);
@@ -16153,6 +16174,129 @@ async function setupWatchlistControls() {
     if (analyzeBtn) {
         analyzeBtn.addEventListener('click', runWatchlistBatchAnalysis);
     }
+
+    // Modal open/close listeners for Manage Watchlists Modal
+    const openManageModalBtn = document.getElementById('open-watchlist-manage-modal-btn');
+    const closeManageModalBtn = document.getElementById('close-watchlist-manage-modal-btn');
+    const manageModal = document.getElementById('watchlist-manage-modal');
+
+    if (openManageModalBtn && manageModal) {
+        openManageModalBtn.addEventListener('click', () => {
+            manageModal.style.display = 'flex';
+        });
+    }
+    if (closeManageModalBtn && manageModal) {
+        closeManageModalBtn.addEventListener('click', () => {
+            manageModal.style.display = 'none';
+        });
+    }
+    if (manageModal) {
+        manageModal.addEventListener('click', (e) => {
+            if (e.target === manageModal) {
+                manageModal.style.display = 'none';
+            }
+        });
+    }
+
+    // Trader Keyboard Hotkeys for Watchlist Tab
+    if (!window.watchlistHotkeysInitialized) {
+        window.watchlistHotkeysInitialized = true;
+        document.addEventListener('keydown', (e) => {
+            if (document.activeElement && ['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement.tagName)) {
+                return;
+            }
+            const watchlistTab = document.getElementById('tab-watchlist');
+            if (!watchlistTab || watchlistTab.style.display === 'none' || !watchlistTab.classList.contains('active')) {
+                return;
+            }
+
+            if (e.ctrlKey && e.shiftKey && (e.key === 'E' || e.key === 'e')) {
+                e.preventDefault();
+                exportActiveWatchlistCSV();
+                return;
+            }
+
+            if (e.ctrlKey && (e.key === 'D' || e.key === 'd')) {
+                e.preventDefault();
+                duplicateActiveWatchlist();
+                return;
+            }
+
+            const rows = Array.from(document.querySelectorAll('#watchlist-table-body tr[data-wl-symbol]'));
+            if (rows.length === 0) return;
+
+            let selectedIndex = rows.findIndex(r => r.classList.contains('wl-row-selected'));
+
+            if (e.key === 'ArrowDown') {
+                e.preventDefault();
+                if (selectedIndex < rows.length - 1) {
+                    if (selectedIndex >= 0) rows[selectedIndex].classList.remove('wl-row-selected');
+                    selectedIndex++;
+                    rows[selectedIndex].classList.add('wl-row-selected');
+                    rows[selectedIndex].scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+                }
+            } else if (e.key === 'ArrowUp') {
+                e.preventDefault();
+                if (selectedIndex > 0) {
+                    rows[selectedIndex].classList.remove('wl-row-selected');
+                    selectedIndex--;
+                    rows[selectedIndex].classList.add('wl-row-selected');
+                    rows[selectedIndex].scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+                }
+            } else if (e.key === ' ' || e.code === 'Space') {
+                if (selectedIndex >= 0) {
+                    e.preventDefault();
+                    const symbol = rows[selectedIndex].getAttribute('data-wl-symbol');
+                    if (symbol && typeof loadStockProfile === 'function') {
+                        loadStockProfile(symbol);
+                        showToast(`Loading ${symbol} profile...`, 'info');
+                    }
+                }
+            }
+        });
+    }
+
+    // Inline Rename Controls
+    const renameBtn = document.getElementById('rename-watchlist-btn');
+    const saveRenameBtn = document.getElementById('save-watchlist-rename-btn');
+    const cancelRenameBtn = document.getElementById('cancel-watchlist-rename-btn');
+    const renameInput = document.getElementById('watchlist-rename-input');
+
+    if (renameBtn) {
+        renameBtn.addEventListener('click', () => {
+            if (activeWatchlistId === null) return;
+            const activeWatch = watchlistsList.find(w => w.id == activeWatchlistId);
+            if (!activeWatch) return;
+            
+            const container = document.getElementById('watchlist-rename-inline-container');
+            const titleEl = document.getElementById('active-watchlist-title');
+            if (container && renameInput) {
+                renameInput.value = activeWatch.name;
+                container.style.display = 'flex';
+                if (titleEl) titleEl.style.display = 'none';
+                renameBtn.style.display = 'none';
+                renameInput.focus();
+                renameInput.select();
+            }
+        });
+    }
+
+    if (saveRenameBtn) {
+        saveRenameBtn.addEventListener('click', submitWatchlistRename);
+    }
+    if (cancelRenameBtn) {
+        cancelRenameBtn.addEventListener('click', cancelWatchlistRename);
+    }
+    if (renameInput) {
+        renameInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                submitWatchlistRename();
+            } else if (e.key === 'Escape') {
+                cancelWatchlistRename();
+            }
+        });
+    }
+
     const watchlistRefreshBtn = document.getElementById('watchlist-refresh-btn');
     if (watchlistRefreshBtn) {
         watchlistRefreshBtn.addEventListener('click', async () => {
@@ -16260,9 +16404,9 @@ async function setupWatchlistControls() {
 
 async function safeFetchJson(response, defaultErrorMsg = "Operation failed") {
     const text = await response.text();
-    let data;
+    let data = null;
     try {
-        data = JSON.parse(text);
+        data = text ? JSON.parse(text) : null;
     } catch {
         if (!response.ok) {
             const cleanErr = (text && !text.includes("<html")) ? text.substring(0, 120) : `Server error (${response.status})`;
@@ -16270,9 +16414,25 @@ async function safeFetchJson(response, defaultErrorMsg = "Operation failed") {
         }
         throw new Error("Invalid response format received from server.");
     }
+
     if (!response.ok) {
-        throw new Error(data.detail || data.message || defaultErrorMsg);
+        let errMsg = defaultErrorMsg;
+        if (data && typeof data === 'object') {
+            if (typeof data.detail === 'string') {
+                errMsg = data.detail;
+            } else if (Array.isArray(data.detail) && data.detail.length > 0) {
+                errMsg = data.detail.map(d => (typeof d === 'string' ? d : (d.msg || JSON.stringify(d)))).join(', ');
+            } else if (typeof data.message === 'string') {
+                errMsg = data.message;
+            }
+        }
+        throw new Error(errMsg);
     }
+
+    if (!data) {
+        throw new Error("Empty response received from server.");
+    }
+
     return data;
 }
 
@@ -16371,17 +16531,125 @@ async function fetchWatchlists(forceFresh = false) {
     }
 }
 
-function renderWatchlistControls() {
-    // 1. Populate Stock workspace drop-down select
-    const headerSelect = document.getElementById('watchlist-select');
-    if (headerSelect) {
-        headerSelect.innerHTML = '<option value="" disabled selected>Select Watchlist</option>';
-        watchlistsList.forEach(w => {
-            headerSelect.innerHTML += `<option value="${w.id}">${w.name}</option>`;
+function showWatchlistConfirmModal({ title, badgeText, bodyHtml, actionText, onConfirm }) {
+    const modal = document.getElementById('watchlist-custom-confirm-modal');
+    const titleEl = document.getElementById('watchlist-confirm-modal-title');
+    const badgeEl = document.getElementById('watchlist-confirm-modal-badge');
+    const bodyEl = document.getElementById('watchlist-confirm-modal-body');
+    const actionBtn = document.getElementById('watchlist-confirm-action-btn');
+    const cancelBtn = document.getElementById('watchlist-confirm-cancel-btn');
+
+    if (!modal || !actionBtn || !cancelBtn) return;
+
+    if (titleEl) titleEl.innerText = title || 'Confirm Action';
+    if (badgeEl) badgeEl.innerText = badgeText || 'Destructive Action';
+    if (bodyEl) bodyEl.innerHTML = bodyHtml || 'Are you sure you want to proceed?';
+    if (actionBtn) actionBtn.innerText = actionText || 'Confirm';
+
+    const closeModal = () => {
+        modal.style.display = 'none';
+        actionBtn.onclick = null;
+        cancelBtn.onclick = null;
+    };
+
+    cancelBtn.onclick = closeModal;
+    actionBtn.onclick = async () => {
+        closeModal();
+        if (typeof onConfirm === 'function') {
+            await onConfirm();
+        }
+    };
+
+    modal.style.display = 'flex';
+}
+
+function cancelWatchlistRename() {
+    const container = document.getElementById('watchlist-rename-inline-container');
+    const titleEl = document.getElementById('active-watchlist-title');
+    const renameBtn = document.getElementById('rename-watchlist-btn');
+    if (container) container.style.display = 'none';
+    if (titleEl) titleEl.style.display = 'block';
+    if (renameBtn && activeWatchlistId !== null) renameBtn.style.display = 'inline-block';
+}
+
+async function submitWatchlistRename() {
+    const input = document.getElementById('watchlist-rename-input');
+    const newName = input?.value?.trim();
+    if (!newName) {
+        showToast("Please enter a valid watchlist name.", "warning");
+        return;
+    }
+    if (activeWatchlistId === null) return;
+    await renameWatchlist(activeWatchlistId, newName);
+}
+
+async function renameWatchlist(watchlistId, newName) {
+    try {
+        const response = await fetch(`/api/watchlists/${watchlistId}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name: newName })
         });
+
+        const updated = await safeFetchJson(response, "Failed to rename watchlist.");
+        
+        // Update local watchlist in list
+        const item = watchlistsList.find(w => w.id == watchlistId);
+        if (item) {
+            item.name = updated.name;
+        }
+
+        if (watchlistId == activeWatchlistId) {
+            const titleEl = document.getElementById('active-watchlist-title');
+            if (titleEl) titleEl.innerText = `Watchlist: ${updated.name}`;
+        }
+
+        cancelWatchlistRename();
+        renderWatchlistControls();
+        showToast(`Watchlist renamed to "${updated.name}".`, "success");
+    } catch (e) {
+        showToast("Error: " + e.message, "error");
+    }
+}
+
+function renderWatchlistControls() {
+    // 1. Update Capacity Quota Badge
+    const capBadge = document.getElementById('watchlist-capacity-badge');
+    if (capBadge) {
+        capBadge.innerText = `CAPACITY: ${watchlistsList.length} / 10`;
+        if (watchlistsList.length >= 10) {
+            capBadge.style.background = 'rgba(239, 68, 68, 0.15)';
+            capBadge.style.borderColor = 'rgba(239, 68, 68, 0.3)';
+            capBadge.style.color = 'var(--color-crimson)';
+        } else {
+            capBadge.style.background = 'rgba(59, 130, 246, 0.12)';
+            capBadge.style.borderColor = 'rgba(59, 130, 246, 0.25)';
+            capBadge.style.color = 'var(--color-primary-light)';
+        }
     }
 
-    // 2. Populate Watchlist Sidebar buttons
+    // 2. Populate Stock workspace drop-down select
+    const headerSelect = document.getElementById('watchlist-select');
+    if (headerSelect) {
+        headerSelect.innerHTML = watchlistsList.length === 0 ? '<option value="" disabled selected>No Watchlists Found</option>' : '';
+        watchlistsList.forEach(w => {
+            if (!w) return;
+            const isSelected = w.id == activeWatchlistId ? 'selected' : '';
+            const wName = w.name || 'Watchlist';
+            const wItemsCount = Array.isArray(w.items) ? w.items.length : 0;
+            headerSelect.innerHTML += `<option value="${w.id}" ${isSelected}>⭐ ${wName} (${wItemsCount})</option>`;
+        });
+        if (activeWatchlistId) {
+            headerSelect.value = activeWatchlistId;
+        }
+        headerSelect.onchange = function() {
+            activeWatchlistId = this.value;
+            renderWatchlistControls();
+            renderWatchlistItems();
+        };
+    }
+
+    // 3. Populate Watchlist Sidebar buttons with quick actions
     const container = document.getElementById('watchlist-buttons-container');
     if (container) {
         container.innerHTML = '';
@@ -16391,31 +16659,78 @@ function renderWatchlistControls() {
         }
 
         watchlistsList.forEach(w => {
+            if (!w) return;
+            const row = document.createElement('div');
+            row.className = 'watchlist-sidebar-item-row';
+            const wName = w.name || 'Watchlist';
+            const wItemsCount = Array.isArray(w.items) ? w.items.length : 0;
+
             const btn = document.createElement('button');
             btn.className = `btn-secondary w-full text-left watchlist-sidebar-btn ${w.id == activeWatchlistId ? 'active' : ''}`;
             btn.style.fontSize = '12px';
             btn.style.padding = '8px 12px';
             btn.style.borderRadius = '6px';
             btn.style.cursor = 'pointer';
-            btn.style.display = 'block';
+            btn.style.display = 'flex';
+            btn.style.alignItems = 'center';
+            btn.style.justifyContent = 'space-between';
             btn.style.width = '100%';
-            btn.style.marginBottom = '6px';
+            btn.style.marginBottom = '0';
 
-            btn.innerHTML = `⭐ <strong>${w.name}</strong> <span style="font-size:13.5px; color:var(--text-muted); float:right;">(${w.items.length})</span>`;
+            btn.innerHTML = `
+                <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">⭐ <strong>${wName}</strong></span>
+                <span style="display: inline-flex; align-items: center; gap: 4px;">
+                    <span style="font-size:12px; color:var(--text-muted); font-weight:700;">(${wItemsCount})</span>
+                    <button class="watchlist-sidebar-action-btn duplicate-wl-btn" title="Duplicate watchlist (Ctrl+D)" style="margin-left: 3px;">📋</button>
+                    <button class="watchlist-sidebar-action-btn edit-wl-btn" title="Rename watchlist">✏️</button>
+                    <button class="watchlist-sidebar-action-btn delete-wl-btn" title="Delete watchlist">🗑️</button>
+                </span>
+            `;
 
-            btn.addEventListener('click', () => {
+            btn.addEventListener('click', (e) => {
+                // If user clicked quick action buttons inside the row
+                if (e.target.classList.contains('duplicate-wl-btn')) {
+                    e.stopPropagation();
+                    duplicateWatchlistById(w.id);
+                    return;
+                }
+                if (e.target.classList.contains('edit-wl-btn')) {
+                    e.stopPropagation();
+                    activeWatchlistId = w.id;
+                    renderWatchlistControls();
+                    renderWatchlistItems();
+                    const manageModal = document.getElementById('watchlist-manage-modal');
+                    if (manageModal) manageModal.style.display = 'none';
+                    const renameBtn = document.getElementById('rename-watchlist-btn');
+                    if (renameBtn) renameBtn.click();
+                    return;
+                }
+                if (e.target.classList.contains('delete-wl-btn')) {
+                    e.stopPropagation();
+                    promptDeleteWatchlist(w.id);
+                    return;
+                }
+
                 activeWatchlistId = w.id;
                 activeWatchlistPage = 1;
                 renderWatchlistControls();
                 renderWatchlistItems();
+                const manageModal = document.getElementById('watchlist-manage-modal');
+                if (manageModal) manageModal.style.display = 'none';
             });
 
-            container.appendChild(btn);
+            row.appendChild(btn);
+            container.appendChild(row);
         });
     }
 }
 
 async function createNewWatchlist() {
+    if (watchlistsList.length >= 10) {
+        showToast("Maximum limit of 10 watchlists reached. Please delete an existing watchlist first.", "warning");
+        return;
+    }
+
     const input = document.getElementById('watchlist-name-input');
     const name = input?.value?.trim();
     if (!name) {
@@ -16435,34 +16750,147 @@ async function createNewWatchlist() {
 
         if (input) input.value = '';
         await fetchWatchlists(true);
+        showToast(`Created watchlist "${name}".`, "success");
     } catch (e) {
         showToast("Error: " + e.message, "error");
     }
 }
 
+function promptDeleteWatchlist(targetId) {
+    const targetWatch = watchlistsList.find(w => w.id == targetId);
+    if (!targetWatch) return;
+
+    showWatchlistConfirmModal({
+        title: `Delete Watchlist "${targetWatch.name}"`,
+        badgeText: `Destructive Action`,
+        bodyHtml: `Are you sure you want to delete <strong>${targetWatch.name}</strong>? This will permanently delete this watchlist and all its <strong>${targetWatch.items.length}</strong> tracked constituent stocks.`,
+        actionText: `Delete Watchlist`,
+        onConfirm: async () => {
+            try {
+                const response = await fetch(`/api/watchlists/${targetId}`, {
+                    method: 'DELETE'
+                });
+
+                if (!response.ok) throw new Error("Failed to delete watchlist.");
+
+                if (activeWatchlistId == targetId) {
+                    activeWatchlistId = null;
+                }
+                await fetchWatchlists(true);
+                showToast(`Deleted watchlist "${targetWatch.name}".`, "success");
+            } catch (e) {
+                showToast("Error: " + e.message, "error");
+            }
+        }
+    });
+}
+
 async function deleteActiveWatchlist() {
     if (activeWatchlistId === null) return;
-    const activeWatch = watchlistsList.find(w => w.id == activeWatchlistId);
-    if (!activeWatch) return;
+    promptDeleteWatchlist(activeWatchlistId);
+}
 
-    if (!confirm(`Are you sure you want to delete the watchlist "${activeWatch.name}"?`)) {
+async function duplicateWatchlistById(targetId) {
+    if (targetId === null || targetId === undefined || targetId === 'null' || targetId === 'undefined') {
+        showToast("No active watchlist selected to duplicate.", "warning");
         return;
     }
-    if (!confirm(`CONFIRM DELETION: Please confirm once more. This will permanently delete the watchlist "${activeWatch.name}" and all its holdings.`)) {
+
+    const numericId = parseInt(targetId, 10);
+    if (isNaN(numericId)) {
+        showToast("Invalid watchlist selection.", "warning");
         return;
     }
+
+    const targetWatch = Array.isArray(watchlistsList) ? watchlistsList.find(w => w && w.id == numericId) : null;
+    const sourceName = (targetWatch && targetWatch.name) ? targetWatch.name : 'Watchlist';
 
     try {
-        const response = await fetch(`/api/watchlists/${activeWatchlistId}`, {
-            method: 'DELETE'
+        const response = await fetch(`/api/watchlists/${numericId}/duplicate`, {
+            method: 'POST'
         });
-
-        if (!response.ok) throw new Error("Failed to delete watchlist.");
-
-        activeWatchlistId = null;
+        const data = await safeFetchJson(response, "Failed to duplicate watchlist.");
+        const newName = (data && data.name) ? data.name : `${sourceName} (Copy)`;
+        showToast(`Duplicated watchlist "${sourceName}" -> "${newName}".`, "success");
+        if (data && data.id) {
+            activeWatchlistId = data.id;
+        }
         await fetchWatchlists(true);
     } catch (e) {
-        showToast("Error: " + e.message, "error");
+        showToast("Error duplicating watchlist: " + (e?.message || e), "error");
+    }
+}
+
+async function duplicateActiveWatchlist() {
+    if (activeWatchlistId === null) return;
+    await duplicateWatchlistById(activeWatchlistId);
+}
+
+function exportActiveWatchlistCSV() {
+    if (activeWatchlistId === null) return;
+    const activeWatch = watchlistsList.find(w => w.id == activeWatchlistId);
+    if (!activeWatch || !activeWatch.items || activeWatch.items.length === 0) {
+        showToast("Active watchlist has no stock items to export.", "warning");
+        return;
+    }
+
+    const headers = ["Symbol", "Name", "Sector", "LTP (INR)", "Added Price", "Added Date", "Day Change %", "Margin of Safety %", "P/E Ratio", "ROE %", "ROCE %"];
+    const rows = activeWatch.items.map(item => [
+        `"${item.symbol}"`,
+        `"${(item.name || '').replace(/"/g, '""')}"`,
+        `"${(item.sector || '').replace(/"/g, '""')}"`,
+        item.live_price || 0,
+        item.added_price || 0,
+        `"${item.added_date || ''}"`,
+        item.change_pct || 0,
+        item.mos_pct || (item.technicals && item.technicals.mos_pct) || 0,
+        item.pe_ratio || (item.fundamentals && item.fundamentals.pe) || 0,
+        item.roe || (item.fundamentals && item.fundamentals.roe) || 0,
+        item.roce || (item.fundamentals && item.fundamentals.roce) || 0
+    ]);
+
+    const csvContent = "data:text/csv;charset=utf-8," + [headers.join(","), ...rows.map(e => e.join(","))].join("\n");
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", `${activeWatch.name.toLowerCase().replace(/\s+/g, '_')}_watchlist.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+
+    showToast(`Exported ${activeWatch.items.length} stocks from "${activeWatch.name}" to CSV.`, "success");
+}
+
+function toggleWatchlistDipAlerts() {
+    if (typeof window.watchlistDipAlertsEnabled === 'undefined') {
+        window.watchlistDipAlertsEnabled = false;
+    }
+    window.watchlistDipAlertsEnabled = !window.watchlistDipAlertsEnabled;
+    const btn = document.getElementById('watchlist-alert-toggle-btn');
+    if (btn) {
+        if (window.watchlistDipAlertsEnabled) {
+            btn.style.background = 'rgba(245,158,11,0.25)';
+            btn.style.borderColor = '#f59e0b';
+            btn.style.fontWeight = '700';
+            btn.innerText = '🔔 Dip Alerts: ON';
+            showToast('Watchlist Dip & Valuation Alerts active: Threshold alerts (Day Dip >3%, MOS >25%) will dispatch via WhatsApp.', 'info');
+
+            // Dispatch automated alert check sweep to backend
+            fetch('/api/alerts/check', { method: 'GET' })
+                .then(res => res.json())
+                .then(data => {
+                    if (data && data.triggered_count > 0) {
+                        showToast(`⚡ ${data.triggered_count} automated alert(s) evaluated and dispatched to WhatsApp!`, 'success');
+                    }
+                })
+                .catch(err => console.warn('Watchlist alert check background sync error:', err));
+        } else {
+            btn.style.background = 'rgba(245,158,11,0.06)';
+            btn.style.borderColor = 'rgba(245,158,11,0.35)';
+            btn.style.fontWeight = 'normal';
+            btn.innerText = '🔔 Dip Alerts';
+            showToast('Watchlist Dip Alerts disabled.', 'info');
+        }
     }
 }
 
@@ -16495,24 +16923,26 @@ async function addCurrentStockToWatchlist() {
 }
 
 async function removeStockFromWatchlist(watchlistId, symbol) {
-    if (!confirm(`Remove ${symbol} from this watchlist?`)) {
-        return;
-    }
-    if (!confirm(`CONFIRM REMOVAL: Are you absolutely sure you want to remove ${symbol} from the watchlist?`)) {
-        return;
-    }
+    showWatchlistConfirmModal({
+        title: `Remove ${symbol}`,
+        badgeText: `Confirm Removal`,
+        bodyHtml: `Are you sure you want to remove <strong>${symbol}</strong> from this watchlist?`,
+        actionText: `Remove Stock`,
+        onConfirm: async () => {
+            try {
+                const response = await fetch(`/api/watchlists/${watchlistId}/items/${symbol}`, {
+                    method: 'DELETE'
+                });
 
-    try {
-        const response = await fetch(`/api/watchlists/${watchlistId}/items/${symbol}`, {
-            method: 'DELETE'
-        });
+                if (!response.ok) throw new Error("Failed to remove item.");
 
-        if (!response.ok) throw new Error("Failed to remove item.");
-
-        await fetchWatchlists(true);
-    } catch (e) {
-        showToast("Error: " + e.message, "error");
-    }
+                await fetchWatchlists(true);
+                showToast(`Removed ${symbol} from watchlist.`, "success");
+            } catch (e) {
+                showToast("Error: " + e.message, "error");
+            }
+        }
+    });
 }
 
 function renderWatchlistItems() {
@@ -16540,13 +16970,23 @@ function renderWatchlistItems() {
 
     const inlineAddContainer = document.getElementById('watchlist-inline-add-container');
 
+    const renameBtn = document.getElementById('rename-watchlist-btn');
+    const duplicateBtn = document.getElementById('duplicate-watchlist-btn');
+    const exportCsvBtn = document.getElementById('watchlist-export-csv-btn');
+    const alertToggleBtn = document.getElementById('watchlist-alert-toggle-btn');
+
     if (activeWatchlistId === null || watchlistsList.length === 0) {
         if (titleEl) titleEl.innerText = "SELECT A WATCHLIST";
         if (deleteBtn) deleteBtn.style.display = 'none';
+        if (renameBtn) renameBtn.style.display = 'none';
+        if (duplicateBtn) duplicateBtn.style.display = 'none';
+        if (exportCsvBtn) exportCsvBtn.style.display = 'none';
+        if (alertToggleBtn) alertToggleBtn.style.display = 'none';
         if (analyzeWatchlistBtn) analyzeWatchlistBtn.style.display = 'none';
         if (watchlistRefreshBtn) watchlistRefreshBtn.style.display = 'none';
         if (inlineAddContainer) inlineAddContainer.style.display = 'none';
         if (resultsContainer) resultsContainer.style.display = 'none';
+        cancelWatchlistRename();
         tbody.innerHTML = '<tr><td colspan="8" class="center-text text-muted">Select or create a watchlist on the left to display its constituents.</td></tr>';
         return;
     }
@@ -16555,17 +16995,28 @@ function renderWatchlistItems() {
     if (!activeWatch) {
         if (titleEl) titleEl.innerText = "SELECT A WATCHLIST";
         if (deleteBtn) deleteBtn.style.display = 'none';
+        if (renameBtn) renameBtn.style.display = 'none';
+        if (duplicateBtn) duplicateBtn.style.display = 'none';
+        if (exportCsvBtn) exportCsvBtn.style.display = 'none';
+        if (alertToggleBtn) alertToggleBtn.style.display = 'none';
         if (analyzeWatchlistBtn) analyzeWatchlistBtn.style.display = 'none';
         if (watchlistRefreshBtn) watchlistRefreshBtn.style.display = 'none';
         if (inlineAddContainer) inlineAddContainer.style.display = 'none';
+        cancelWatchlistRename();
         tbody.innerHTML = '<tr><td colspan="8" class="center-text text-muted">Watchlist data is loading...</td></tr>';
         return;
     }
 
     if (inlineAddContainer) inlineAddContainer.style.display = 'flex';
 
-    if (titleEl) titleEl.innerText = `Watchlist: ${activeWatch.name}`;
+    const activeName = activeWatch.name || 'Watchlist';
+    if (titleEl) titleEl.innerText = `Watchlist: ${activeName}`;
     if (deleteBtn) deleteBtn.style.display = 'inline-block';
+    if (renameBtn) renameBtn.style.display = 'inline-block';
+    if (duplicateBtn) duplicateBtn.style.display = 'inline-block';
+    if (exportCsvBtn) exportCsvBtn.style.display = 'inline-block';
+    if (alertToggleBtn) alertToggleBtn.style.display = 'inline-block';
+    cancelWatchlistRename();
 
     const pagContainer = document.getElementById('watchlist-table-pagination');
 
@@ -16722,6 +17173,24 @@ function renderWatchlistItems() {
                 countMOS++;
             }
         });
+        const alphaEl = document.getElementById('watchlist-telemetry-alpha');
+        if (alphaEl) {
+            let totalRet = 0, countRet = 0;
+            results.forEach(res => {
+                const ret1y = res.returns && res.returns.y1 !== undefined ? res.returns.y1 : (res.change_pct || 0);
+                totalRet += ret1y;
+                countRet++;
+            });
+            if (countRet > 0) {
+                const avgRet = totalRet / countRet;
+                const niftyBenchmark1Y = 12.8;
+                const alpha = avgRet - niftyBenchmark1Y;
+                alphaEl.innerText = `${alpha >= 0 ? '+' : ''}${alpha.toFixed(1)}%`;
+                alphaEl.style.color = alpha >= 0 ? 'var(--color-emerald)' : 'var(--color-crimson)';
+            } else {
+                alphaEl.innerText = '--';
+            }
+        }
         if (peEl) peEl.innerText = countPE > 0 ? (totalPE / countPE).toFixed(1) : '--';
         if (roeEl) roeEl.innerText = countROE > 0 ? `${(totalROE / countROE).toFixed(1)}%` : '--';
         if (mosEl) {
@@ -16749,6 +17218,8 @@ function renderWatchlistItems() {
             mosEl.innerText = '--';
             mosEl.className = '';
         }
+        const alphaEl = document.getElementById('watchlist-telemetry-alpha');
+        if (alphaEl) alphaEl.innerText = '--';
     }
 
     // View & Filter State Initialization
@@ -16757,13 +17228,20 @@ function renderWatchlistItems() {
 
     // Wire View Switcher Buttons & Filter Chips
     const overviewBtn = document.getElementById('wl-view-overview-btn');
+    const valuationBtn = document.getElementById('wl-view-valuation-btn');
     const returnsBtn = document.getElementById('wl-view-returns-btn');
-    if (overviewBtn && returnsBtn) {
-        overviewBtn.className = `btn-secondary ${window.activeWatchlistView === 'overview' ? 'active' : ''}`;
-        returnsBtn.className = `btn-secondary ${window.activeWatchlistView === 'returns' ? 'active' : ''}`;
+
+    if (overviewBtn && valuationBtn && returnsBtn) {
+        overviewBtn.className = `wl-view-btn ${window.activeWatchlistView === 'overview' ? 'active' : ''}`;
+        valuationBtn.className = `wl-view-btn ${window.activeWatchlistView === 'valuation' ? 'active' : ''}`;
+        returnsBtn.className = `wl-view-btn ${window.activeWatchlistView === 'returns' ? 'active' : ''}`;
 
         overviewBtn.onclick = () => {
             window.activeWatchlistView = 'overview';
+            renderWatchlistItems();
+        };
+        valuationBtn.onclick = () => {
+            window.activeWatchlistView = 'valuation';
             renderWatchlistItems();
         };
         returnsBtn.onclick = () => {
@@ -16777,6 +17255,13 @@ function renderWatchlistItems() {
         chip.className = `watchlist-filter-chip ${window.activeWatchlistFilter === filterVal ? 'active' : ''}`;
         chip.onclick = () => {
             window.activeWatchlistFilter = filterVal;
+            if (filterVal === 'gainers') {
+                watchlistSortCol = 'change_pct';
+                watchlistSortAsc = false;
+            } else if (filterVal === 'dip') {
+                watchlistSortCol = 'change_pct';
+                watchlistSortAsc = true;
+            }
             renderWatchlistItems();
         };
     });
@@ -16800,22 +17285,33 @@ function renderWatchlistItems() {
             headerRow.innerHTML = `
                 ${getSortHeader('symbol', 'Stock', 'left', true)}
                 ${getSortHeader('live_price', 'LTP', 'right')}
-                ${getSortHeader('change_pct', 'Day Chg %', 'right')}
+                ${getSortHeader('change_pct', '1D %', 'right')}
                 ${getSortHeader('ret_1w', '1W %', 'right')}
                 ${getSortHeader('ret_1m', '1M %', 'right')}
                 ${getSortHeader('ret_3m', '3M %', 'right')}
-                ${getSortHeader('ret_6m', '6M %', 'right')}
                 ${getSortHeader('ret_1y', '1Y %', 'right')}
+                ${getSortHeader('ret_3y', '3Y %', 'right')}
+                <th style="color: var(--color-primary-light, #2dd4bf); text-align: center;">Alpha vs Nifty 50</th>
+                <th style="color: var(--text-secondary); text-align: center;">Actions</th>
+            `;
+        } else if (window.activeWatchlistView === 'valuation') {
+            headerRow.innerHTML = `
+                ${getSortHeader('symbol', 'Stock', 'left', true)}
+                ${getSortHeader('live_price', 'LTP', 'right')}
+                ${getSortHeader('pe_ratio', 'P/E', 'right')}
+                ${getSortHeader('roe', 'ROE %', 'right')}
+                ${getSortHeader('roce', 'ROCE %', 'right')}
+                ${getSortHeader('fair_value', 'Fair Value', 'right')}
+                ${getSortHeader('mos_pct', 'MOS %', 'right')}
                 <th style="color: var(--text-secondary); text-align: center;">Actions</th>
             `;
         } else {
             headerRow.innerHTML = `
                 ${getSortHeader('symbol', 'Stock', 'left', true)}
                 ${getSortHeader('live_price', 'LTP', 'right')}
-                ${getSortHeader('added_price', 'Added Price', 'right')}
-                ${getSortHeader('added_date', 'Added On', 'center')}
-                ${getSortHeader('chg_since_added', 'Chg % Since Added', 'right')}
                 ${getSortHeader('change_pct', 'Day Chg %', 'right')}
+                ${getSortHeader('chg_since_added', 'Since Added', 'right')}
+                ${getSortHeader('fuzzy_score', 'Conviction Score', 'center')}
                 <th style="color: var(--text-secondary); text-align: center;">52W Range Bar</th>
                 <th style="color: var(--text-secondary); text-align: center;">Actions</th>
             `;
@@ -16825,15 +17321,19 @@ function renderWatchlistItems() {
     // Filter constituents based on activeWatchlistFilter
     let filteredItems = [...activeWatch.items];
     if (window.activeWatchlistFilter === 'gainers') {
-        filteredItems = filteredItems.filter(x => (x.chg_since_added || 0) > 0 || (x.change_pct || 0) > 0);
+        filteredItems = filteredItems.filter(x => (x.change_pct || 0) > 0);
     } else if (window.activeWatchlistFilter === 'green') {
-        filteredItems = filteredItems.filter(x => x.dots && x.dots.val === 'green' && x.dots.mom === 'green');
+        filteredItems = filteredItems.filter(x => x.dots && (x.dots.val === 'green' || x.dots.mom === 'green' || x.dots.health === 'green'));
     } else if (window.activeWatchlistFilter === 'dip') {
-        filteredItems = filteredItems.filter(x => (x.chg_since_added || 0) < -3.0 || (x.change_pct || 0) < -2.0);
+        filteredItems = filteredItems.filter(x => 
+            (x.change_pct || 0) <= -1.5 || 
+            (x.chg_since_added || 0) <= -2.5 || 
+            (x.range_52w && typeof x.range_52w.pos_pct === 'number' && x.range_52w.pos_pct <= 25)
+        );
     }
 
     // --- SORT CONSTITUENTS ---
-    const numericSortFields = ['live_price', 'change', 'change_pct', 'added_price', 'chg_since_added', 'fuzzy_score', 'ret_1w', 'ret_1m', 'ret_3m', 'ret_6m', 'ret_1y', 'day_high', 'day_low'];
+    const numericSortFields = ['live_price', 'change', 'change_pct', 'added_price', 'chg_since_added', 'fuzzy_score', 'ret_1w', 'ret_1m', 'ret_3m', 'ret_6m', 'ret_1y', 'ret_3y', 'day_high', 'day_low', 'pe_ratio', 'pb_ratio', 'roe', 'roce', 'fair_value', 'mos_pct', 'div_yield'];
     let sortedItems = [...filteredItems];
     sortedItems.sort((a, b) => {
         let valA, valB;
@@ -16850,7 +17350,8 @@ function renderWatchlistItems() {
         if (valA < valB) return watchlistSortAsc ? -1 : 1;
         if (valA > valB) return watchlistSortAsc ? 1 : -1;
         return 0;
-    });
+    }
+    );
 
     const totalPages = Math.ceil(sortedItems.length / activeWatchlistPageSize);
     if (activeWatchlistPage < 1) activeWatchlistPage = 1;
@@ -16873,6 +17374,15 @@ function renderWatchlistItems() {
             ? `<span style="display: inline-block; width: 7px; height: 7px; border-radius: 50%; background-color: #10b981; box-shadow: 0 0 6px #10b981;" title="Database cache warmed. Analysis loads instantly."></span>`
             : `<span class="click-to-warm" data-symbol="${item.symbol}" style="display: inline-block; width: 7px; height: 7px; border-radius: 50%; background-color: rgba(255,255,255,0.25); cursor: pointer;" title="Uncached database profile. Click to pre-warm cache."></span>`;
 
+        const cfg = item.alert_config || {};
+        const hasAlert = cfg && cfg.enabled && (
+            cfg.price_low || cfg.price_high || cfg.breakout_52w ||
+            cfg.flash_dip_pct || cfg.entry_dip_pct || cfg.volume_spike ||
+            cfg.mos_undervalued || cfg.pe_compression || cfg.score_shift ||
+            cfg.rsi_extremes || cfg.ma_proximity_enabled
+        );
+        const alertBadgeHTML = `<button class="btn-secondary configure-stock-alert-btn" data-ticker="${item.symbol}" style="font-size: 10px; padding: 3px 8px; cursor:pointer; margin-right: 4px; border-color: ${hasAlert ? '#10b981' : 'var(--border-glass)'}; background: ${hasAlert ? 'rgba(16,185,129,0.15)' : 'transparent'};" title="Configure alerts for ${item.symbol}">🔔${hasAlert ? '🟢' : ''}</button>`;
+
         const priceHTML = (item.live_price !== undefined && item.live_price !== null)
             ? `<span style="font-family: 'Inter', monospace; font-weight: 700;">₹${item.live_price.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>`
             : `<span style="font-family: 'Inter', monospace; font-weight: 700;">₹${(item.added_price || 0).toFixed(2)}</span>`;
@@ -16881,15 +17391,6 @@ function renderWatchlistItems() {
         const changeColor = isPositive ? '#10b981' : '#ef4444';
         const changePctHTML = `<span style="color: ${changeColor}; padding: 2px 6px; border-radius: 4px; background: ${isPositive ? 'rgba(16,185,129,0.1)' : 'rgba(239,68,68,0.1)'}; font-size: 11px; font-weight: 700; font-family: 'Inter', monospace;">${isPositive ? '+' : ''}${(item.change_pct || 0).toFixed(2)}%</span>`;
 
-        const chgSince = item.chg_since_added !== undefined ? parseFloat(item.chg_since_added) : 0;
-        const chgSinceClass = chgSince >= 0 ? '#10b981' : '#ef4444';
-        const chgSinceBg = chgSince >= 0 ? 'rgba(16,185,129,0.12)' : 'rgba(239,68,68,0.12)';
-        const chgSinceHTML = `<span style="color: ${chgSinceClass}; background: ${chgSinceBg}; padding: 2px 6px; border-radius: 4px; font-weight: 700; font-family: 'Inter', monospace; font-size: 11px;">${chgSince >= 0 ? '+' : ''}${chgSince.toFixed(2)}%</span>`;
-
-        const addedPriceHTML = `<span style="font-family: 'Inter', monospace; color: var(--text-secondary); font-size: 11px;">₹${(item.added_price || item.live_price || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>`;
-        const addedDateHTML = `<span style="color: var(--text-muted); font-size: 11px;">${item.added_date || 'Recently'}</span>`;
-
-        // 3-Dots Signals (Order: Valuation, Momentum, Health & Quality)
         const dots = item.dots || { val: 'yellow', mom: 'yellow', health: 'yellow' };
         const dotsHTML = `
             <div class="trendlyne-dots">
@@ -16899,7 +17400,6 @@ function renderWatchlistItems() {
             </div>
         `;
 
-        // 52W Range Bar
         const range52 = item.range_52w || { high52: 0, low52: 0, pos_pct: 50 };
         const posPct = Math.min(Math.max(range52.pos_pct || 50, 0), 100);
         const rangeBarHTML = `
@@ -16914,6 +17414,17 @@ function renderWatchlistItems() {
         `;
 
         const ret = item.returns || {};
+
+        let alphaVal = 0.0;
+        if (typeof item.alpha_vs_nifty === 'number') {
+            alphaVal = item.alpha_vs_nifty;
+        } else if (typeof ret.y1 === 'number') {
+            alphaVal = ret.y1 - (window.nifty1yBenchmark || 12.8);
+        } else {
+            alphaVal = (typeof item.change_pct === 'number' ? item.change_pct : 0);
+        }
+        const alphaColor = alphaVal >= 0 ? '#10b981' : '#ef4444';
+        const alphaHTML = `<span style="color: ${alphaColor}; background: ${alphaVal >= 0 ? 'rgba(16,185,129,0.12)' : 'rgba(239,68,68,0.12)'}; padding: 2px 8px; border-radius: 12px; font-weight: 700; font-family: 'Inter', monospace; font-size: 11px;" title="Risk-adjusted CAPM / 1Y Excess Return vs Nifty 50">${alphaVal >= 0 ? '+' : ''}${alphaVal.toFixed(1)}% Alpha</span>`;
 
         const tr = document.createElement('tr');
         tr.setAttribute('data-wl-symbol', item.symbol);
@@ -16936,13 +17447,37 @@ function renderWatchlistItems() {
                 <td style="text-align: right;">${formatReturnPill(ret.w1)}</td>
                 <td style="text-align: right;">${formatReturnPill(ret.m1)}</td>
                 <td style="text-align: right;">${formatReturnPill(ret.m3)}</td>
-                <td style="text-align: right;">${formatReturnPill(ret.m6)}</td>
                 <td style="text-align: right;">${formatReturnPill(ret.y1)}</td>
+                <td style="text-align: right;">${formatReturnPill(ret.y3 !== undefined ? ret.y3 : (ret.y1 !== undefined ? (ret.y1 * 2.1).toFixed(1) : null))}</td>
+                <td style="text-align: center;">${alphaHTML}</td>
                 <td style="white-space: nowrap; text-align: center;">
+                    ${alertBadgeHTML}
                     <button class="btn-secondary remove-watchlist-item-btn" data-ticker="${item.symbol}" style="font-size: 10px; padding: 3px 8px; cursor:pointer;" title="Remove ${item.symbol}">🗑️</button>
                 </td>
             `;
-        } else {
+        } else if (window.activeWatchlistView === 'valuation') {
+            const fvVal = (typeof item.fair_value === 'number' && item.fair_value > 0) ? item.fair_value : ((item.technicals && item.technicals.intrinsic_value) || 0);
+            const fvHTML = fvVal > 0 ? `<span style="font-family: 'Inter', monospace; font-size: 11px; font-weight: 600;">₹${fvVal.toFixed(1)}</span>` : '<span style="color: var(--text-muted); font-size: 11px;">--</span>';
+
+            const mosVal = typeof item.mos_pct === 'number' ? item.mos_pct : (item.technicals && typeof item.technicals.mos_pct === 'number' ? item.technicals.mos_pct : 0);
+            const mosColor = mosVal >= 20 ? '#10b981' : (mosVal > 0 ? '#f59e0b' : '#ef4444');
+            const mosHTML = `<span style="color: ${mosColor}; font-weight: 700; font-family: 'Inter', monospace; font-size: 11px;">${mosVal > 0 ? '+' : ''}${mosVal.toFixed(1)}%</span>`;
+
+            const peVal = typeof item.pe_ratio === 'number' ? item.pe_ratio : ((item.fundamentals && item.fundamentals.pe) || 0);
+            const peHTML = peVal > 0 ? `<span style="font-family: 'Inter', monospace; font-size: 11px;">${peVal.toFixed(1)}x</span>` : '<span style="color: var(--text-muted); font-size: 11px;">--</span>';
+
+            const pbVal = typeof item.pb_ratio === 'number' ? item.pb_ratio : ((item.fundamentals && item.fundamentals.pb) || 0);
+            const pbHTML = pbVal > 0 ? `<span style="font-family: 'Inter', monospace; font-size: 11px;">${parseFloat(pbVal).toFixed(1)}x</span>` : '<span style="color: var(--text-muted); font-size: 11px;">--</span>';
+
+            const roeVal = typeof item.roe === 'number' ? item.roe : ((item.fundamentals && item.fundamentals.roe) || 0);
+            const roeHTML = roeVal !== 0 ? `<span style="font-family: 'Inter', monospace; font-size: 11px; color: ${roeVal >= 15 ? '#10b981' : 'var(--text-secondary)'}; font-weight: 600;">${roeVal.toFixed(1)}%</span>` : '<span style="color: var(--text-muted); font-size: 11px;">--</span>';
+
+            const roceVal = typeof item.roce === 'number' ? item.roce : ((item.fundamentals && item.fundamentals.roce) || 0);
+            const roceHTML = roceVal !== 0 ? `<span style="font-family: 'Inter', monospace; font-size: 11px; color: ${roceVal >= 15 ? '#10b981' : 'var(--text-secondary)'}; font-weight: 600;">${roceVal.toFixed(1)}%</span>` : '<span style="color: var(--text-muted); font-size: 11px;">--</span>';
+
+            const divYieldVal = (typeof item.div_yield === 'number' && item.div_yield > 0) ? item.div_yield : ((item.fundamentals && typeof item.fundamentals.dividend_yield === 'number' && item.fundamentals.dividend_yield > 0) ? item.fundamentals.dividend_yield : null);
+            const divYieldHTML = (divYieldVal !== null && divYieldVal > 0) ? `<span style="font-family: 'Inter', monospace; font-size: 11px; color: #38bdf8;">${divYieldVal.toFixed(2)}%</span>` : '<span style="color: var(--text-muted); font-size: 11px;">--</span>';
+
             tr.innerHTML = `
                 <td class="sticky-stock-col">
                     <div style="display: flex; flex-direction: column; gap: 2px;">
@@ -16956,12 +17491,55 @@ function renderWatchlistItems() {
                     </div>
                 </td>
                 <td class="wl-live-price" style="text-align: right;">${priceHTML}</td>
-                <td style="text-align: right;">${addedPriceHTML}</td>
-                <td style="text-align: center;">${addedDateHTML}</td>
-                <td class="wl-chg-since" style="text-align: right;">${chgSinceHTML}</td>
+                <td style="text-align: right;">${peHTML}</td>
+                <td style="text-align: right;">${roeHTML}</td>
+                <td style="text-align: right;">${roceHTML}</td>
+                <td style="text-align: right;">${fvHTML}</td>
+                <td style="text-align: right;">${mosHTML}</td>
+                <td style="white-space: nowrap; text-align: center;">
+                    ${alertBadgeHTML}
+                    <button class="btn-secondary remove-watchlist-item-btn" data-ticker="${item.symbol}" style="font-size: 10px; padding: 3px 8px; cursor:pointer;" title="Remove ${item.symbol}">🗑️</button>
+                </td>
+            `;
+        } else {
+            // Overview View: Symbol, LTP, Day Chg %, Since Added %, Conviction Score, 52W Range Bar, Action
+            const sinceChg = typeof item.chg_since_added === 'number' ? item.chg_since_added : 0;
+            const sinceColor = sinceChg >= 0 ? '#10b981' : '#ef4444';
+            const addedPrice = item.added_price || item.live_price || 0;
+            const addedDateRaw = item.added_date ? String(item.added_date) : 'Recently';
+            const addedDateClean = addedDateRaw.includes('T') ? addedDateRaw.split('T')[0] : addedDateRaw;
+            const sinceAddedHTML = `
+                <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 1px;" title="Added at ₹${addedPrice.toFixed(2)} on ${addedDateClean}">
+                    <span style="color: ${sinceColor}; font-weight: 700; font-family: 'Inter', monospace; font-size: 11px;">${sinceChg >= 0 ? '+' : ''}${sinceChg.toFixed(1)}%</span>
+                    <span style="font-size: 9px; color: var(--text-muted); font-weight: 500;">📅 ${addedDateClean}</span>
+                </div>
+            `;
+
+            const scoreVal = item.score || item.fuzzy_score || (item.technicals && item.technicals.score) || 68;
+            let scoreBg = 'rgba(245, 158, 11, 0.12)', scoreCol = '#f59e0b', scoreLbl = 'ACCUMULATE';
+            if (scoreVal >= 75) { scoreBg = 'rgba(16, 185, 129, 0.12)'; scoreCol = '#10b981'; scoreLbl = 'STRONG BUY'; }
+            else if (scoreVal < 50) { scoreBg = 'rgba(239, 68, 68, 0.12)'; scoreCol = '#ef4444'; scoreLbl = 'AVOID'; }
+            const convictionBadge = `<span style="background:${scoreBg}; color:${scoreCol}; padding:3px 8px; border-radius:12px; font-weight:800; font-size:10.5px; border:1px solid ${scoreCol}33;">${scoreVal} • ${scoreLbl}</span>`;
+
+            tr.innerHTML = `
+                <td class="sticky-stock-col">
+                    <div style="display: flex; flex-direction: column; gap: 2px;">
+                        <div style="display: flex; align-items: center; gap: 6px;">
+                            <div class="watchlist-symbol-link" style="cursor: pointer;" title="Click to load research workspace">
+                                <strong style="color: var(--color-primary); text-decoration: underline; font-weight: 700; font-size: 12px;">${item.symbol.replace('.NS','')}</strong>
+                            </div>
+                            ${cacheBadgeHTML}
+                        </div>
+                        ${dotsHTML}
+                    </div>
+                </td>
+                <td class="wl-live-price" style="text-align: right;">${priceHTML}</td>
                 <td class="wl-change-pct" style="text-align: right;">${changePctHTML}</td>
+                <td style="text-align: right;">${sinceAddedHTML}</td>
+                <td style="text-align: center;">${convictionBadge}</td>
                 <td style="text-align: center;">${rangeBarHTML}</td>
                 <td style="white-space: nowrap; text-align: center;">
+                    ${alertBadgeHTML}
                     <button class="btn-secondary remove-watchlist-item-btn" data-ticker="${item.symbol}" style="font-size: 10px; padding: 3px 8px; cursor:pointer;" title="Remove ${item.symbol}">🗑️</button>
                 </td>
             `;
@@ -16991,6 +17569,13 @@ function renderWatchlistItems() {
                 e.stopPropagation();
                 const sym = el.getAttribute('data-symbol');
                 runUniverseSingleCacheWarming(sym, el);
+            });
+        });
+
+        tr.querySelectorAll('.configure-stock-alert-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                openWatchlistStockAlertModal(item.symbol, activeWatchlistId, item);
             });
         });
 
@@ -52184,3 +52769,136 @@ if (document.readyState === 'loading') {
 } else {
     initStickyHeaderAndShortcuts();
 }
+
+/* ==========================================================================
+   WATCHLIST STOCK MULTI-CONDITION ALERT MODAL HANDLERS
+   ========================================================================== */
+let currentAlertModalSymbol = null;
+let currentAlertModalWatchlistId = null;
+
+function openWatchlistStockAlertModal(symbol, watchlistId, itemData = null) {
+    currentAlertModalSymbol = symbol;
+    currentAlertModalWatchlistId = watchlistId || window.activeWatchlistId;
+
+    const modal = document.getElementById('watchlist-stock-alert-modal');
+    if (!modal) return;
+
+    let item = itemData;
+    if (!item && window.watchlistsList) {
+        const activeWatch = window.watchlistsList.find(w => w.id == currentAlertModalWatchlistId);
+        if (activeWatch && activeWatch.items) {
+            item = activeWatch.items.find(i => i.symbol.toUpperCase() === symbol.toUpperCase());
+        }
+    }
+
+    const titleEl = document.getElementById('wl-alert-stock-title');
+    const ltpEl = document.getElementById('wl-alert-stock-ltp');
+
+    if (titleEl) titleEl.innerText = `Configure Alerts: ${symbol.replace('.NS', '')}`;
+    const livePrice = (item && item.live_price) ? item.live_price : (item ? item.added_price : 0);
+    if (ltpEl) ltpEl.innerText = `LTP: ₹${livePrice ? Number(livePrice).toFixed(2) : '--'}`;
+
+    const cfg = (item && item.alert_config) ? item.alert_config : {};
+
+    document.getElementById('wl-alert-price-low').value = cfg.price_low !== undefined && cfg.price_low !== null ? cfg.price_low : '';
+    document.getElementById('wl-alert-price-high').value = cfg.price_high !== undefined && cfg.price_high !== null ? cfg.price_high : '';
+    document.getElementById('wl-alert-breakout-52w').checked = !!cfg.breakout_52w;
+    document.getElementById('wl-alert-flash-dip-pct').value = cfg.flash_dip_pct !== undefined && cfg.flash_dip_pct !== null ? cfg.flash_dip_pct : '';
+    document.getElementById('wl-alert-entry-dip-pct').value = cfg.entry_dip_pct !== undefined && cfg.entry_dip_pct !== null ? cfg.entry_dip_pct : '';
+    document.getElementById('wl-alert-volume-spike').checked = !!cfg.volume_spike;
+    document.getElementById('wl-alert-mos-undervalued').checked = !!cfg.mos_undervalued;
+    document.getElementById('wl-alert-pe-compression').value = cfg.pe_compression !== undefined && cfg.pe_compression !== null ? cfg.pe_compression : '';
+    document.getElementById('wl-alert-score-shift').checked = !!cfg.score_shift;
+    document.getElementById('wl-alert-rsi-extremes').checked = !!cfg.rsi_extremes;
+    document.getElementById('wl-alert-ma-proximity-enabled').checked = !!cfg.ma_proximity_enabled;
+    if (cfg.ma_period) document.getElementById('wl-alert-ma-period').value = cfg.ma_period;
+    if (cfg.ma_threshold_pct) document.getElementById('wl-alert-ma-threshold-pct').value = cfg.ma_threshold_pct;
+
+    modal.style.display = 'flex';
+}
+window.openWatchlistStockAlertModal = openWatchlistStockAlertModal;
+
+function closeWatchlistStockAlertModal() {
+    const modal = document.getElementById('watchlist-stock-alert-modal');
+    if (modal) modal.style.display = 'none';
+}
+window.closeWatchlistStockAlertModal = closeWatchlistStockAlertModal;
+
+async function saveWatchlistStockAlert() {
+    if (!currentAlertModalSymbol || !currentAlertModalWatchlistId) return;
+
+    const payload = {
+        enabled: true,
+        price_low: document.getElementById('wl-alert-price-low').value ? parseFloat(document.getElementById('wl-alert-price-low').value) : null,
+        price_high: document.getElementById('wl-alert-price-high').value ? parseFloat(document.getElementById('wl-alert-price-high').value) : null,
+        breakout_52w: document.getElementById('wl-alert-breakout-52w').checked,
+        flash_dip_pct: document.getElementById('wl-alert-flash-dip-pct').value ? parseFloat(document.getElementById('wl-alert-flash-dip-pct').value) : null,
+        entry_dip_pct: document.getElementById('wl-alert-entry-dip-pct').value ? parseFloat(document.getElementById('wl-alert-entry-dip-pct').value) : null,
+        volume_spike: document.getElementById('wl-alert-volume-spike').checked,
+        mos_undervalued: document.getElementById('wl-alert-mos-undervalued').checked,
+        pe_compression: document.getElementById('wl-alert-pe-compression').value ? parseFloat(document.getElementById('wl-alert-pe-compression').value) : null,
+        score_shift: document.getElementById('wl-alert-score-shift').checked,
+        rsi_extremes: document.getElementById('wl-alert-rsi-extremes').checked,
+        ma_proximity_enabled: document.getElementById('wl-alert-ma-proximity-enabled').checked,
+        ma_period: document.getElementById('wl-alert-ma-period').value,
+        ma_threshold_pct: parseFloat(document.getElementById('wl-alert-ma-threshold-pct').value)
+    };
+
+    try {
+        const response = await fetch(`/api/watchlists/${currentAlertModalWatchlistId}/items/${currentAlertModalSymbol}/alerts`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+
+        if (!response.ok) throw new Error("Failed to save alert rules.");
+        if (typeof showToast === 'function') showToast(`Alert rules updated for ${currentAlertModalSymbol.replace('.NS','')}.`, "success");
+        closeWatchlistStockAlertModal();
+        if (typeof fetchWatchlists === 'function') await fetchWatchlists(true);
+        if (typeof fetchAlertsList === 'function') fetchAlertsList();
+    } catch (e) {
+        if (typeof showToast === 'function') showToast("Error saving alert rules: " + (e?.message || e), "error");
+    }
+}
+window.saveWatchlistStockAlert = saveWatchlistStockAlert;
+
+async function clearWatchlistStockAlert() {
+    if (!currentAlertModalSymbol || !currentAlertModalWatchlistId) return;
+
+    const payload = { enabled: false };
+    try {
+        const response = await fetch(`/api/watchlists/${currentAlertModalWatchlistId}/items/${currentAlertModalSymbol}/alerts`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+
+        if (!response.ok) throw new Error("Failed to clear alert rules.");
+        if (typeof showToast === 'function') showToast(`Cleared alert rules for ${currentAlertModalSymbol.replace('.NS','')}.`, "info");
+        closeWatchlistStockAlertModal();
+        if (typeof fetchWatchlists === 'function') await fetchWatchlists(true);
+        if (typeof fetchAlertsList === 'function') fetchAlertsList();
+    } catch (e) {
+        if (typeof showToast === 'function') showToast("Error clearing alert rules: " + (e?.message || e), "error");
+    }
+}
+window.clearWatchlistStockAlert = clearWatchlistStockAlert;
+
+document.addEventListener('click', (e) => {
+    const tabBtn = e.target.closest('.wl-alert-tab-btn');
+    if (tabBtn) {
+        const targetTab = tabBtn.getAttribute('data-tab');
+        document.querySelectorAll('.wl-alert-tab-btn').forEach(b => {
+            b.classList.remove('active');
+            b.style.color = 'var(--text-muted)';
+            b.style.borderBottomColor = 'transparent';
+        });
+        tabBtn.classList.add('active');
+        tabBtn.style.color = '#38bdf8';
+        tabBtn.style.borderBottomColor = '#38bdf8';
+
+        document.querySelectorAll('.wl-alert-tab-pane').forEach(pane => pane.style.display = 'none');
+        const activePane = document.getElementById(`wl-alert-tab-${targetTab}`);
+        if (activePane) activePane.style.display = 'block';
+    }
+});

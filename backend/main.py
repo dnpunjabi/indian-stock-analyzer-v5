@@ -116,6 +116,10 @@ def init_db():
             cursor.execute("ALTER TABLE watchlist_items ADD COLUMN added_date TEXT")
         except Exception:
             pass
+        try:
+            cursor.execute("ALTER TABLE watchlist_items ADD COLUMN alert_config TEXT")
+        except Exception:
+            pass
         # Dedicated Portfolio Items table for AI Portfolio Doctor
         try:
             cursor.execute("SELECT purchase_date FROM portfolio_items LIMIT 1")
@@ -6132,25 +6136,86 @@ async def parse_nl_alert(data: ParseNLAlertRequest):
 
 @app.get("/api/alerts/list")
 async def list_alerts():
-    """Returns all alerts from SQLite."""
+    """Returns all alerts from SQLite, including synchronized watchlist stock alerts."""
     with get_db() as conn:
         cursor = conn.cursor()
         cursor.execute("SELECT id, ticker, condition_type, operator, value, status, triggered, trigger_date, ai_context FROM alerts")
         rows = cursor.fetchall()
-        return [
+        alerts_list = [
             {
-                "id": row["id"],
+                "id": str(row["id"]),
                 "ticker": row["ticker"],
                 "condition_type": row["condition_type"],
                 "operator": row["operator"],
-                "value": row["value"],
-                "status": row["status"],
+                "value": str(row["value"]) if row["value"] is not None else "",
+                "status": row["status"] or "Active",
                 "triggered": bool(row["triggered"]),
-                "trigger_date": row["trigger_date"],
-                "ai_context": row["ai_context"]
+                "trigger_date": row["trigger_date"] or "",
+                "ai_context": row["ai_context"] or ""
             }
             for row in rows
         ]
+
+        # Scan watchlist_items for any enabled alert_config not yet in alerts table
+        try:
+            cursor.execute("SELECT watchlist_id, symbol, alert_config FROM watchlist_items WHERE alert_config IS NOT NULL AND alert_config != ''")
+            wl_rows = cursor.fetchall()
+            existing_ids = {str(a["id"]) for a in alerts_list}
+
+            for r in wl_rows:
+                try:
+                    cfg = json.loads(r["alert_config"])
+                    if not cfg or not cfg.get("enabled", True):
+                        continue
+                    w_id = r["watchlist_id"]
+                    sym = r["symbol"].replace('.NS','').replace('.BO','').upper()
+
+                    def _add_if_missing(aid, c_type, op, val, ctx):
+                        if aid not in existing_ids:
+                            alerts_list.append({
+                                "id": aid,
+                                "ticker": sym,
+                                "condition_type": c_type,
+                                "operator": op,
+                                "value": str(val),
+                                "status": "Active",
+                                "triggered": False,
+                                "trigger_date": "",
+                                "ai_context": f"Watchlist Rule ({ctx})"
+                            })
+                            existing_ids.add(aid)
+
+                    if cfg.get("price_low") is not None:
+                        _add_if_missing(f"wl_{w_id}_{sym}_price_low", "PRICE", "<=", cfg["price_low"], "Target Low")
+                    if cfg.get("price_high") is not None:
+                        _add_if_missing(f"wl_{w_id}_{sym}_price_high", "PRICE", ">=", cfg["price_high"], "Target High")
+                    if cfg.get("breakout_52w"):
+                        _add_if_missing(f"wl_{w_id}_{sym}_breakout_52w", "BREAKOUT", "BREAKOUT 52W", "52W High", "52-Week High Breakout")
+                    if cfg.get("flash_dip_pct") is not None:
+                        _add_if_missing(f"wl_{w_id}_{sym}_flash_dip", "FLASH_DIP", "DROP >=", f"{cfg['flash_dip_pct']}%", "Flash Dip")
+                    if cfg.get("entry_dip_pct") is not None:
+                        _add_if_missing(f"wl_{w_id}_{sym}_entry_dip", "ENTRY_DIP", "DROP >=", f"{cfg['entry_dip_pct']}%", "Entry Dip")
+                    if cfg.get("volume_spike"):
+                        _add_if_missing(f"wl_{w_id}_{sym}_volume_spike", "VOLUME", "SPIKE >=", "2.5x 20D Avg", "Volume Spike")
+                    if cfg.get("mos_undervalued"):
+                        _add_if_missing(f"wl_{w_id}_{sym}_mos", "VALUATION", "MOS >=", "20.0%", "MOS Undervalued")
+                    if cfg.get("pe_compression") is not None:
+                        _add_if_missing(f"wl_{w_id}_{sym}_pe", "PE_COMPRESSION", "<=", cfg["pe_compression"], "P/E Compression")
+                    if cfg.get("score_shift"):
+                        _add_if_missing(f"wl_{w_id}_{sym}_score", "SCORE_SHIFT", "CONVICTION", "<50 or >75", "Conviction Shift")
+                    if cfg.get("rsi_extremes"):
+                        _add_if_missing(f"wl_{w_id}_{sym}_rsi", "RSI", "EXTREME", "<30 or >70", "RSI Extreme")
+                    if cfg.get("ma_proximity_enabled"):
+                        ma_p = cfg.get("ma_period", "EMA_50")
+                        ma_t = cfg.get("ma_threshold_pct", 3.0)
+                        _add_if_missing(f"wl_{w_id}_{sym}_ma", "MA_PROXIMITY", "WITHIN", f"{ma_t}% of {ma_p}", "MA Proximity")
+
+                except Exception as ex:
+                    logger.error(f"Error parsing watchlist item alert_config in list_alerts: {ex}")
+        except Exception as e:
+            logger.error(f"Error fetching watchlist_items in list_alerts: {e}")
+
+        return alerts_list
 
 @app.get("/api/alerts/settings")
 async def get_alert_settings():
@@ -8271,8 +8336,169 @@ async def evaluate_single_condition_bool(cond_type: str, op: str, val_str: str, 
         
     return triggered, cur_val
 
-# In-memory deduplication cache for fuzzy whatsapp alerts (symbol -> last_sent_rating)
-_fuzzy_whatsapp_sent_cache = {}
+# In-memory deduplication cache for custom watchlist stock alerts (symbol_rule -> last_sent)
+_custom_watchlist_alerts_cache = {}
+
+async def sweep_watchlist_custom_alerts():
+    """Sweeps all custom watchlist stock alert rules and dispatches Alerts Hub & WhatsApp notifications."""
+    wa_token = os.environ.get("WHATSAPP_TOKEN", "")
+    wa_phone_id = os.environ.get("WHATSAPP_PHONE_ID", "")
+    wa_recipient = os.environ.get("WHATSAPP_RECIPIENT", "")
+    whatsapp_configured = bool(wa_token and wa_phone_id and wa_recipient)
+
+    with get_db() as conn:
+        cursor = conn.cursor()
+        cursor.execute("SELECT id, watchlist_id, symbol, added_price, added_date, alert_config FROM watchlist_items WHERE alert_config IS NOT NULL AND alert_config != '' AND alert_config != '{}'")
+        rows = [dict(row) for row in cursor.fetchall()]
+
+    if not rows:
+        return
+
+    for item in rows:
+        try:
+            symbol = item["symbol"].strip().upper()
+            try:
+                cfg = json.loads(item["alert_config"])
+            except Exception:
+                continue
+
+            if not cfg.get("enabled", True):
+                continue
+
+            with get_db() as conn:
+                fz = get_fuzzy_summary_for_symbol(conn, symbol)
+                profile_row = conn.execute("SELECT profile_json FROM cached_profiles WHERE symbol = ? OR symbol = ?", (symbol, symbol.replace('.NS', ''))).fetchone()
+
+            p_json = json.loads(profile_row["profile_json"]) if profile_row and profile_row["profile_json"] else {}
+            tech = p_json.get("technicals", {})
+            fund = p_json.get("fundamentals", {})
+
+            cp = float(tech.get("current_price") or fund.get("current_price") or 0.0)
+            if cp <= 0:
+                continue
+
+            added_price = float(item.get("added_price") or cp)
+            added_date = item.get("added_date") or ""
+            trend_metrics = compute_stock_trendlyne_metrics(p_json, cp, added_price, added_date)
+
+            triggers = []
+
+            # 1. Price Low (Buy Floor)
+            if cfg.get("price_low") is not None and float(cfg["price_low"]) > 0:
+                target_low = float(cfg["price_low"])
+                if cp <= target_low:
+                    triggers.append(("BUY_FLOOR", f"💰 Target Buy Floor Hit: {symbol} at ₹{cp:.2f} (Target ≤ ₹{target_low:.2f})"))
+
+            # 2. Price High (Profit Ceiling)
+            if cfg.get("price_high") is not None and float(cfg["price_high"]) > 0:
+                target_high = float(cfg["price_high"])
+                if cp >= target_high:
+                    triggers.append(("PROFIT_CEILING", f"🎯 Target Profit Ceiling Cross: {symbol} at ₹{cp:.2f} (Target ≥ ₹{target_high:.2f})"))
+
+            # 3. 52-Week Breakout
+            if cfg.get("breakout_52w"):
+                range52 = trend_metrics.get("range_52w", {})
+                pos_pct = range52.get("pos_pct", 50.0)
+                if pos_pct >= 98.0:
+                    triggers.append(("BREAKOUT_HIGH", f"🚀 52-Week High Breakout: {symbol} trading at ₹{cp:.2f} (98%+ 52W High)"))
+                elif pos_pct <= 2.0:
+                    triggers.append(("BREAKOUT_LOW", f"📉 52-Week Low Breakout: {symbol} trading at ₹{cp:.2f} (Near 52W Low)"))
+
+            # 4. Intraday Flash Dip
+            if cfg.get("flash_dip_pct") is not None and float(cfg["flash_dip_pct"]) > 0:
+                dip_thresh = float(cfg["flash_dip_pct"])
+                day_chg = float(trend_metrics.get("change_pct") or 0.0)
+                if day_chg <= -dip_thresh:
+                    triggers.append(("FLASH_DIP", f"📊 Flash Dip Triggered: {symbol} down {day_chg:.2f}% today (Threshold: -{dip_thresh}%)"))
+
+            # 5. Entry Price Drop
+            if cfg.get("entry_dip_pct") is not None and float(cfg["entry_dip_pct"]) > 0:
+                entry_thresh = float(cfg["entry_dip_pct"])
+                since_chg = float(trend_metrics.get("chg_since_added") or 0.0)
+                if since_chg <= -entry_thresh:
+                    triggers.append(("ENTRY_DIP", f"📊 Entry Price Drop: {symbol} down {since_chg:.2f}% since added (Threshold: -{entry_thresh}%)"))
+
+            # 6. Volume Spike
+            if cfg.get("volume_spike"):
+                vol = float(fund.get("volume", 0.0))
+                avg_vol = float(fund.get("average_volume", 0.0))
+                if avg_vol > 0 and (vol / avg_vol) >= 2.5:
+                    triggers.append(("VOLUME_SPIKE", f"⚡ Volume Spike: {symbol} volume is {(vol/avg_vol):.1f}x 20-day average"))
+
+            # 7. Valuation MOS
+            if cfg.get("mos_undervalued"):
+                mos_pct = float(trend_metrics.get("mos_pct") or 0.0)
+                if mos_pct >= 15.0:
+                    triggers.append(("MOS_VALUE", f"💎 Deep Valuation MOS: {symbol} Margin of Safety is +{mos_pct:.1f}%"))
+
+            # 8. P/E Compression
+            if cfg.get("pe_compression") is not None and float(cfg["pe_compression"]) > 0:
+                pe_thresh = float(cfg["pe_compression"])
+                pe_val = float(trend_metrics.get("pe_ratio") or 0.0)
+                if pe_val > 0 and pe_val <= pe_thresh:
+                    triggers.append(("PE_COMPRESSION", f"💎 P/E Compression: {symbol} P/E dropped to {pe_val:.1f}x (Threshold: ≤ {pe_thresh}x)"))
+
+            # 9. Conviction Upgrade
+            if cfg.get("score_shift"):
+                fuzzy_score = float(fz.get("fuzzy_score", 0.0))
+                fuzzy_rating = fz.get("fuzzy_rating", "")
+                if fuzzy_score >= 70.0 or "Strong Buy" in fuzzy_rating:
+                    triggers.append(("CONVICTION_UPGRADE", f"🧠 Conviction Upgrade: {symbol} Score is {fuzzy_score:+.1f}% ({fuzzy_rating})"))
+
+            # 10. RSI Extremes
+            if cfg.get("rsi_extremes"):
+                rsi_val = float(tech.get("rsi", 50.0))
+                if rsi_val <= 30.0:
+                    triggers.append(("RSI_OVERSOLD", f"🧠 RSI Oversold Buy Zone: {symbol} 14-RSI is {rsi_val:.1f} (≤ 30)"))
+                elif rsi_val >= 70.0:
+                    triggers.append(("RSI_OVERBOUGHT", f"🧠 RSI Overbought Zone: {symbol} 14-RSI is {rsi_val:.1f} (≥ 70)"))
+
+            # 11. Moving Average Proximity
+            if cfg.get("ma_proximity_enabled"):
+                ma_period = cfg.get("ma_period", "EMA_50")
+                ma_thresh = float(cfg.get("ma_threshold_pct") or 3.0)
+                ma_key = ma_period.lower().replace('-', '_')
+                ma_val = float(tech.get(ma_key) or tech.get(f"sma_{ma_period.split('_')[-1]}") or 0.0)
+                if ma_val > 0:
+                    dist_pct = abs((cp - ma_val) / ma_val * 100.0)
+                    if dist_pct <= ma_thresh:
+                        triggers.append(("MA_PROXIMITY", f"🧠 {ma_period} Proximity: {symbol} (₹{cp:.2f}) is within {dist_pct:.1f}% of {ma_period} (₹{ma_val:.2f})"))
+
+            for rule_code, msg in triggers:
+                cache_key = f"{symbol}_{rule_code}"
+                if _custom_watchlist_alerts_cache.get(cache_key) == msg:
+                    continue
+                _custom_watchlist_alerts_cache[cache_key] = msg
+
+                trigger_date = datetime.now().strftime("%Y-%m-%d %H:%M")
+                with get_db() as conn:
+                    cursor = conn.cursor()
+                    cursor.execute(
+                        "INSERT INTO alerts (ticker, condition_type, operator, value, status, triggered, trigger_date, ai_context) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+                        (symbol, rule_code, "ALERT", str(cp), "Triggered", 1, trigger_date, msg)
+                    )
+                    conn.commit()
+
+                if whatsapp_configured:
+                    wa_msg = (
+                        f"🚨 *WATCHLIST STOCK ALERT TRIGGERED* 🚨\n\n"
+                        f"• *Stock:* {symbol}\n"
+                        f"• *Alert Detail:* {msg}\n"
+                        f"• *Triggered At:* {trigger_date}\n\n"
+                        f"_APEX Agentic Equities AI Workstation_"
+                    )
+                    try:
+                        wa_url = f"https://graph.facebook.com/v21.0/{wa_phone_id}/messages"
+                        wa_headers = {"Authorization": f"Bearer {wa_token}", "Content-Type": "application/json"}
+                        wa_payload = {"messaging_product": "whatsapp", "to": wa_recipient, "type": "text", "text": {"preview_url": False, "body": wa_msg}}
+                        await asyncio.to_thread(requests.post, wa_url, headers=wa_headers, json=wa_payload, timeout=8)
+                        print(f"Dispatched custom watchlist alert WhatsApp message for {symbol} ({rule_code})")
+                    except Exception as wa_err:
+                        print(f"Failed to dispatch custom watchlist alert WhatsApp for {symbol}: {wa_err}")
+
+        except Exception as item_err:
+            print(f"Error evaluating custom watchlist alert for item {item.get('symbol')}: {item_err}")
+
 
 async def check_fuzzy_watchlist_whatsapp_alerts():
     """
@@ -8349,11 +8575,12 @@ async def check_alerts():
     if os.environ.get("ENABLE_BACKGROUND_ALERTS", "true").lower() == "false":
         return {"status": "disabled", "triggers": []}
 
-    # Also sweep Watchlist Fuzzy Conviction alerts for WhatsApp notification
+    # Sweep Watchlist Fuzzy & Custom Stock Alerts
     try:
         await check_fuzzy_watchlist_whatsapp_alerts()
+        await sweep_watchlist_custom_alerts()
     except Exception as fz_alert_err:
-        print(f"Fuzzy Watchlist alert sweep error: {fz_alert_err}")
+        print(f"Watchlist alert sweep error: {fz_alert_err}")
 
     # Read WhatsApp settings from environment
     wa_token = os.environ.get("WHATSAPP_TOKEN", "")
@@ -9046,6 +9273,7 @@ async def get_watchlists():
                     i.in_portfolio,
                     i.added_price,
                     i.added_date,
+                    i.alert_config,
                     p.profile_json,
                     (CASE WHEN p.symbol IS NOT NULL THEN 1 ELSE 0 END) as is_cached
                 FROM watchlist_items i
@@ -9061,6 +9289,14 @@ async def get_watchlists():
                     except Exception:
                         pass
                 item.pop("profile_json", None)
+
+                alert_cfg = {}
+                if item.get("alert_config"):
+                    try:
+                        alert_cfg = json.loads(item["alert_config"])
+                    except Exception:
+                        pass
+                item["alert_config"] = alert_cfg
 
                 fz = get_fuzzy_summary_for_symbol(conn, item["symbol"])
                 item["fuzzy_score"] = fz["fuzzy_score"]
@@ -9110,6 +9346,63 @@ async def rename_watchlist(watchlist_id: int, data: WatchlistRename):
             return {"id": watchlist_id, "name": name}
         except sqlite3.IntegrityError:
             raise HTTPException(status_code=400, detail="Watchlist with this name already exists.")
+
+@app.post("/api/watchlists/{watchlist_id}/duplicate")
+async def duplicate_watchlist(watchlist_id: int):
+    """Duplicate an existing watchlist and all its constituent items."""
+    with get_db() as conn:
+        cursor = conn.cursor()
+        
+        cursor.execute("SELECT COUNT(*) as cnt FROM watchlists")
+        cnt_row = cursor.fetchone()
+        if cnt_row and cnt_row["cnt"] >= 10:
+            raise HTTPException(status_code=400, detail="Maximum limit of 10 watchlists reached. Please delete an existing watchlist first.")
+            
+        cursor.execute("SELECT id, name FROM watchlists WHERE id = ?", (watchlist_id,))
+        source = cursor.fetchone()
+        if not source:
+            raise HTTPException(status_code=404, detail="Watchlist not found.")
+            
+        base_name = source["name"]
+        new_name = f"{base_name} (Copy)"
+        cursor.execute("SELECT id FROM watchlists WHERE name = ?", (new_name,))
+        counter = 2
+        while cursor.fetchone():
+            new_name = f"{base_name} (Copy {counter})"
+            cursor.execute("SELECT id FROM watchlists WHERE name = ?", (new_name,))
+            counter += 1
+            
+        try:
+            cursor.execute("INSERT INTO watchlists (name) VALUES (?)", (new_name,))
+            new_id = cursor.lastrowid
+            
+            cursor.execute("""
+                SELECT symbol, name, sector, quantity, purchase_price, in_portfolio, added_price, added_date 
+                FROM watchlist_items WHERE watchlist_id = ?
+            """, (watchlist_id,))
+            items = cursor.fetchall()
+            for item in items:
+                item_dict = dict(item)
+                cursor.execute("""
+                    INSERT INTO watchlist_items (watchlist_id, symbol, name, sector, quantity, purchase_price, in_portfolio, added_price, added_date) 
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """, (
+                    new_id, 
+                    item_dict.get("symbol"), 
+                    item_dict.get("name"), 
+                    item_dict.get("sector"), 
+                    item_dict.get("quantity", 0.0), 
+                    item_dict.get("purchase_price", 0.0), 
+                    item_dict.get("in_portfolio", 0), 
+                    item_dict.get("added_price", 0.0), 
+                    item_dict.get("added_date")
+                ))
+                               
+            conn.commit()
+            return {"id": new_id, "name": new_name, "items_count": len(items)}
+        except sqlite3.IntegrityError:
+            raise HTTPException(status_code=400, detail=f"Watchlist '{new_name}' already exists.")
+
 
 @app.delete("/api/watchlists/{watchlist_id}")
 async def delete_watchlist(watchlist_id: int):
@@ -9273,12 +9566,42 @@ def compute_stock_trendlyne_metrics(profile, cp_val, added_price, added_date):
         health_dot = "yellow"
         health_txt = "Health & Quality: Moderate Balance Sheet"
 
+    # 5. Dynamic Alpha vs Nifty 50 calculation (Risk-adjusted CAPM or Benchmark Excess Return)
+    capm_nifty = (profile or {}).get("capm_risk_nifty50") or {}
+    if "capm_alpha_pct" in capm_nifty and capm_nifty.get("capm_alpha_pct") is not None:
+        alpha_vs_nifty = round(safe_num(capm_nifty.get("capm_alpha_pct")), 2)
+    else:
+        nifty_rets = _get_benchmark_returns("^NSEI")
+        nifty_1y = safe_num(nifty_rets.get("1Y"), 12.8)
+        alpha_vs_nifty = round(chg_1y - nifty_1y, 2)
+
+    # 6. Valuation & Fundamental ratios (P/E, P/B, ROE, ROCE, Fair Value, Div Yield, MOS %)
+    dcf_data = (profile or {}).get("dcf_model") or (profile or {}).get("dcf") or {}
+    mos_pct = round(safe_num(dcf_data.get("margin_of_safety")), 1)
+    fair_val = round(safe_num(dcf_data.get("intrinsic_value") or t.get("intrinsic_value") or f.get("intrinsic_value")), 2)
+
+    pe_ratio = round(safe_num(f.get("pe_ratio") or f.get("pe") or f.get("trailing_pe")), 2)
+    pb_ratio = round(safe_num(f.get("price_to_book") or f.get("pb_ratio") or f.get("pb")), 2)
+    roe_val = round(safe_num(f.get("roe_pct") or f.get("roe") or f.get("return_on_equity")), 2)
+    roce_val = round(safe_num(f.get("roce_pct") or f.get("roce") or f.get("return_on_capital_employed")), 2)
+
+    raw_div = f.get("dividend_yield") or f.get("div_yield") or f.get("dividendYield")
+    div_yield = round(safe_num(raw_div), 2) if (raw_div is not None and raw_div != "" and raw_div != "--" and raw_div != 0) else None
+
     return {
         "added_price": added_p,
         "added_date": added_date or "Recently",
         "chg_since_added": chg_since_added,
         "range_52w": { "high52": h52, "low52": l52, "pos_pct": pos_52w },
         "returns": { "d1": chg_1d, "w1": chg_1w, "m1": chg_1m, "m3": chg_3m, "m6": chg_6m, "y1": chg_1y },
+        "alpha_vs_nifty": alpha_vs_nifty,
+        "mos_pct": mos_pct,
+        "fair_value": fair_val,
+        "pe_ratio": pe_ratio,
+        "pb_ratio": pb_ratio,
+        "roe": roe_val,
+        "roce": roce_val,
+        "div_yield": div_yield,
         "dots": {
             "val": val_dot, "val_txt": val_txt,
             "mom": mom_dot, "mom_txt": mom_txt,
@@ -9432,6 +9755,148 @@ async def update_watchlist_item_holdings(watchlist_id: int, symbol: str, data: W
             raise HTTPException(status_code=404, detail="Stock not found in this watchlist.")
         conn.commit()
     return {"status": "success"}
+
+class WatchlistStockAlertUpdate(BaseModel):
+    enabled: Optional[bool] = True
+    price_low: Optional[float] = None
+    price_high: Optional[float] = None
+    breakout_52w: Optional[bool] = False
+    flash_dip_pct: Optional[float] = None
+    entry_dip_pct: Optional[float] = None
+    volume_spike: Optional[bool] = False
+    mos_undervalued: Optional[bool] = False
+    pe_compression: Optional[float] = None
+    score_shift: Optional[bool] = False
+    rsi_extremes: Optional[bool] = False
+    ma_proximity_enabled: Optional[bool] = False
+    ma_period: Optional[str] = "EMA_50"
+    ma_threshold_pct: Optional[float] = 3.0
+
+def sync_watchlist_alerts_to_db_table(conn, watchlist_id: int, symbol: str, config: dict):
+    """Syncs Watchlist Stock Alert Config into the central `alerts` SQLite table and AlertEvaluator."""
+    cursor = conn.cursor()
+    base_sym = symbol.replace('.NS', '').replace('.BO', '').upper()
+    
+    # 1. Clean up existing watchlist rule alerts for this symbol
+    cursor.execute("DELETE FROM alerts WHERE (UPPER(ticker) = ? OR UPPER(ticker) = ?) AND ai_context LIKE 'Watchlist Rule%'", (base_sym, f"{base_sym}.NS"))
+    
+    if not config or not config.get("enabled", True):
+        conn.commit()
+        return
+
+    items_to_insert = []
+    
+    if config.get("price_low") is not None:
+        items_to_insert.append((
+            f"wl_{watchlist_id}_{base_sym}_price_low",
+            base_sym, "PRICE", "<=", str(config["price_low"]), "Active", 0, "", "Watchlist Rule (Target Low)"
+        ))
+    if config.get("price_high") is not None:
+        items_to_insert.append((
+            f"wl_{watchlist_id}_{base_sym}_price_high",
+            base_sym, "PRICE", ">=", str(config["price_high"]), "Active", 0, "", "Watchlist Rule (Target High)"
+        ))
+    if config.get("breakout_52w"):
+        items_to_insert.append((
+            f"wl_{watchlist_id}_{base_sym}_breakout_52w",
+            base_sym, "BREAKOUT", "BREAKOUT 52W", "52W High", "Active", 0, "", "Watchlist Rule (52-Week High Breakout)"
+        ))
+    if config.get("flash_dip_pct") is not None:
+        items_to_insert.append((
+            f"wl_{watchlist_id}_{base_sym}_flash_dip",
+            base_sym, "FLASH_DIP", "DROP >=", f"{config['flash_dip_pct']}%", "Active", 0, "", "Watchlist Rule (Flash Dip)"
+        ))
+    if config.get("entry_dip_pct") is not None:
+        items_to_insert.append((
+            f"wl_{watchlist_id}_{base_sym}_entry_dip",
+            base_sym, "ENTRY_DIP", "DROP >=", f"{config['entry_dip_pct']}%", "Active", 0, "", "Watchlist Rule (Entry Dip)"
+        ))
+    if config.get("volume_spike"):
+        items_to_insert.append((
+            f"wl_{watchlist_id}_{base_sym}_volume_spike",
+            base_sym, "VOLUME", "SPIKE >=", "2.5x 20D Avg", "Active", 0, "", "Watchlist Rule (Volume Spike)"
+        ))
+    if config.get("mos_undervalued"):
+        items_to_insert.append((
+            f"wl_{watchlist_id}_{base_sym}_mos",
+            base_sym, "VALUATION", "MOS >=", "20.0%", "Active", 0, "", "Watchlist Rule (MOS Undervalued)"
+        ))
+    if config.get("pe_compression") is not None:
+        items_to_insert.append((
+            f"wl_{watchlist_id}_{base_sym}_pe",
+            base_sym, "PE_COMPRESSION", "<=", str(config["pe_compression"]), "Active", 0, "", "Watchlist Rule (P/E Compression)"
+        ))
+    if config.get("score_shift"):
+        items_to_insert.append((
+            f"wl_{watchlist_id}_{base_sym}_score",
+            base_sym, "SCORE_SHIFT", "CONVICTION", "< 50 or > 75", "Active", 0, "", "Watchlist Rule (Conviction Score Shift)"
+        ))
+    if config.get("rsi_extremes"):
+        items_to_insert.append((
+            f"wl_{watchlist_id}_{base_sym}_rsi",
+            base_sym, "RSI", "EXTREME", "< 30 or > 70", "Active", 0, "", "Watchlist Rule (RSI Extreme)"
+        ))
+    if config.get("ma_proximity_enabled"):
+        ma_p = config.get("ma_period", "EMA_50")
+        ma_t = config.get("ma_threshold_pct", 3.0)
+        items_to_insert.append((
+            f"wl_{watchlist_id}_{base_sym}_ma",
+            base_sym, "MA_PROXIMITY", "WITHIN", f"{ma_t}% of {ma_p}", "Active", 0, "", "Watchlist Rule (MA Proximity)"
+        ))
+
+    for item in items_to_insert:
+        try:
+            cursor.execute(
+                "INSERT OR REPLACE INTO alerts (id, ticker, condition_type, operator, value, status, triggered, trigger_date, ai_context) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                item
+            )
+        except Exception as e:
+            logger.error(f"Error inserting watchlist alert to db: {e}")
+            
+    conn.commit()
+
+    # Register with real-time AlertEvaluator if available
+    try:
+        from backend.websocket_server import alert_evaluator as _ae
+        if _ae is not None:
+            for item in items_to_insert:
+                _ae.register_alert({
+                    "id": item[0],
+                    "ticker": item[1],
+                    "condition_type": item[2],
+                    "operator": item[3],
+                    "value": item[4],
+                    "status": "Active",
+                    "triggered": False
+                })
+    except Exception:
+        pass
+
+@app.put("/api/watchlists/{watchlist_id}/items/{symbol}/alerts")
+async def update_watchlist_item_alerts(watchlist_id: int, symbol: str, data: WatchlistStockAlertUpdate):
+    symbol = symbol.strip().upper()
+    config_dict = data.dict()
+    config_json = json.dumps(config_dict)
+    with get_db() as conn:
+        cursor = conn.cursor()
+        cursor.execute("SELECT id FROM watchlists WHERE id = ?", (watchlist_id,))
+        if not cursor.fetchone():
+            raise HTTPException(status_code=404, detail="Watchlist not found.")
+            
+        base_sym = symbol.replace('.NS', '').replace('.BO', '')
+        ns_sym = f"{base_sym}.NS"
+        
+        cursor.execute("""
+            UPDATE watchlist_items SET alert_config = ? 
+            WHERE watchlist_id = ? AND (UPPER(symbol) = ? OR UPPER(symbol) = ? OR UPPER(symbol) = ?)
+        """, (config_json, watchlist_id, symbol, base_sym, ns_sym))
+        
+        if cursor.rowcount == 0:
+            raise HTTPException(status_code=404, detail="Stock not found in this watchlist.")
+        
+        sync_watchlist_alerts_to_db_table(conn, watchlist_id, symbol, config_dict)
+        conn.commit()
+    return {"status": "success", "alert_config": config_dict}
 
 @app.delete("/api/watchlists/{watchlist_id}/items/{symbol}")
 async def remove_watchlist_item(watchlist_id: int, symbol: str):

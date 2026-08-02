@@ -6122,6 +6122,38 @@ tr:hover .champion-cell {
     color: #047857 !important;
 }
 
+/* Sidebar quick action icons */
+.watchlist-sidebar-item-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    margin-bottom: 6px;
+    border-radius: 6px;
+}
+
+.watchlist-sidebar-action-btn {
+    opacity: 0.85;
+    transition: all 0.2s ease;
+    border: 1px solid var(--border-glass);
+    background: rgba(255, 255, 255, 0.08);
+    padding: 3px 6px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 12px;
+    color: var(--text-secondary);
+}
+
+.watchlist-sidebar-btn:hover .watchlist-sidebar-action-btn {
+    opacity: 1;
+}
+
+.watchlist-sidebar-action-btn:hover {
+    opacity: 1 !important;
+    background: rgba(255, 255, 255, 0.2);
+    transform: scale(1.1);
+}
+
 /* Autocomplete suggestions panel */
 .watchlist-autocomplete-box {
     background: #0f172a !important;
@@ -8088,9 +8120,8 @@ input[type="date"]::-webkit-calendar-picker-indicator:hover {
 }
 
 .watchlist-grid {
-    display: grid;
-    grid-template-columns: 1fr 2.5fr;
-    gap: 20px;
+    display: block;
+    width: 100%;
     margin-top: 20px;
 }
 
@@ -28781,4 +28812,62 @@ body.light-theme .sticky-screener-col {
     background: #ffffff !important;
     box-shadow: 3px 0 8px rgba(0, 0, 0, 0.08) !important;
 }
+
+#watchlist-table-body tr.wl-row-selected {
+    background: rgba(45, 212, 191, 0.15) !important;
+    outline: 1px solid var(--color-primary, #2dd4bf);
+}
+
+/* Watchlist View Switcher & Filter Chips Active States */
+.wl-view-btn {
+    font-size: 13px !important;
+    padding: 6px 14px !important;
+    border-radius: 8px !important;
+    font-weight: 600 !important;
+    color: var(--text-secondary, #94a3b8) !important;
+    background: rgba(255, 255, 255, 0.04) !important;
+    border: 1px solid rgba(255, 255, 255, 0.08) !important;
+    cursor: pointer !important;
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+
+.wl-view-btn:hover {
+    background: rgba(255, 255, 255, 0.08) !important;
+    color: var(--text-primary, #f8fafc) !important;
+}
+
+.wl-view-btn.active {
+    background: linear-gradient(135deg, #0284c7 0%, #2563eb 100%) !important;
+    color: #ffffff !important;
+    border: 1px solid #38bdf8 !important;
+    box-shadow: 0 0 14px rgba(56, 189, 248, 0.4) !important;
+    font-weight: 700 !important;
+}
+
+.watchlist-filter-chip {
+    font-size: 12px !important;
+    padding: 5px 12px !important;
+    border-radius: 6px !important;
+    font-weight: 600 !important;
+    color: var(--text-muted, #94a3b8) !important;
+    background: rgba(255, 255, 255, 0.04) !important;
+    border: 1px solid rgba(255, 255, 255, 0.08) !important;
+    cursor: pointer !important;
+    transition: all 0.2s ease !important;
+    white-space: nowrap !important;
+}
+
+.watchlist-filter-chip:hover {
+    background: rgba(255, 255, 255, 0.08) !important;
+    color: var(--text-primary, #f8fafc) !important;
+}
+
+.watchlist-filter-chip.active {
+    background: rgba(56, 189, 248, 0.18) !important;
+    color: #38bdf8 !important;
+    border: 1px solid rgba(56, 189, 248, 0.4) !important;
+    box-shadow: 0 0 10px rgba(56, 189, 248, 0.25) !important;
+    font-weight: 700 !important;
+}
+
 

@@ -8967,7 +8967,7 @@
 
                     <!-- Aggregate Standings Card -->
                     <div class="card" id="watchlist-telemetry-card" style="display: flex; flex-direction: column; justify-content: space-between; box-sizing: border-box; padding: 12px 15px; min-height: 120px;">
-                        <span style="font-size: 12.5px; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; display: block; letter-spacing: 0.05em;">Watchlist Telemetry</span>
+                        <span style="font-size: 12.5px; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; display: block; letter-spacing: 0.05em;">Watchlist Telemetry & Benchmark Alpha</span>
                         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px 12px; margin-top: 4px; font-size: 13.5px;">
                             <div style="display: flex; justify-content: space-between; border-bottom: 1px dashed rgba(255,255,255,0.03); padding-bottom: 2px;">
                                 <span style="color: var(--text-muted);">Avg P/E:</span>
@@ -8982,41 +8982,67 @@
                                 <strong id="watchlist-telemetry-mos" class="green-text">--</strong>
                             </div>
                             <div style="display: flex; justify-content: space-between; border-bottom: 1px dashed rgba(255,255,255,0.03); padding-bottom: 2px;">
-                                <span style="color: var(--text-muted);">Warmed:</span>
-                                <strong id="watchlist-telemetry-warm" style="color: var(--color-primary-light);">--%</strong>
+                                <span style="color: var(--text-muted);">Alpha vs Nifty:</span>
+                                <strong id="watchlist-telemetry-alpha" style="color: var(--color-emerald);">--</strong>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Watchlist Management Overlay Modal -->
+                <div id="watchlist-manage-modal" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.8); backdrop-filter: blur(6px); z-index: 9999; justify-content: center; align-items: center; padding: 20px;">
+                    <div class="card" id="watchlist-manage-card" style="width: 100%; max-width: 460px; max-height: 90vh; overflow-y: auto; position: relative; border: 1px solid var(--border-glass); box-shadow: 0 20px 50px rgba(0,0,0,0.8); margin: 0;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; border-bottom: 1px dashed var(--border-glass); padding-bottom: 10px;">
+                            <div style="display: flex; align-items: center; gap: 8px;">
+                                <h3 style="margin: 0; font-size: 14px; color: var(--text-primary);">⚙️ CREATE / MANAGE WATCHLISTS</h3>
+                                <span id="watchlist-capacity-badge" style="font-size: 11px; font-weight: 700; color: var(--color-primary-light); background: rgba(59,130,246,0.12); border: 1px solid rgba(59,130,246,0.25); padding: 3px 8px; border-radius: 12px; font-family: 'Outfit', sans-serif;">CAPACITY: 0 / 10</span>
+                            </div>
+                            <button id="close-watchlist-manage-modal-btn" style="background: rgba(255,255,255,0.06); border: 1px solid var(--border-glass); color: var(--text-primary); font-size: 14px; font-weight:700; cursor: pointer; padding: 4px 10px; border-radius: 6px;">✕ Close</button>
+                        </div>
+                        <div style="display: flex; flex-direction: column; gap: 12px; margin-top: 10px;">
+                            <div class="form-group" style="display: flex; flex-direction: column; gap: 6px;">
+                                <label for="watchlist-name-input" style="font-size: 12.5px; color: var(--text-secondary); font-weight:600;">New Watchlist Name</label>
+                                <input type="text" id="watchlist-name-input" placeholder="e.g. Bluechip IT Moats" style="padding: 9px; border-radius: 6px; background: rgba(0,0,0,0.3); border: 1px solid var(--border-glass); color: var(--text-primary); font-size:12px;">
+                            </div>
+                            <button class="btn-primary" id="create-watchlist-btn" style="width: 100%; padding: 9px;">+ Create Watchlist</button>
+                            <button class="btn-secondary" id="screener-import-modal-trigger-btn" style="width: 100%; padding: 9px; display: inline-flex; align-items: center; justify-content: center; gap: 6px; font-weight: 600; border-color: rgba(59,130,246,0.35); background: rgba(59,130,246,0.06); color: var(--color-primary-light);">
+                                📥 Import from Screener.in
+                            </button>
+                        </div>
+                        
+                        <div style="margin-top: 20px; border-top: 1px dashed var(--border-glass); padding-top: 15px;">
+                            <h4 style="font-size: 12px; color: var(--text-primary); margin-bottom: 10px;">YOUR WATCHLISTS</h4>
+                            <div id="watchlist-buttons-container" style="display: flex; flex-direction: column; gap: 8px;">
+                                <!-- Populated dynamically -->
                             </div>
                         </div>
                     </div>
                 </div>
 
                 <div class="watchlist-grid">
-                    <!-- Watchlist Manager Card -->
-                    <div class="card" id="watchlist-manage-card">
-                        <h3>CREATE / MANAGE WATCHLISTS</h3>
-                        <div style="display: flex; flex-direction: column; gap: 15px; margin-top: 15px;">
-                            <div class="form-group" style="display: flex; flex-direction: column; gap: 6px;">
-                                <label for="watchlist-name-input" style="font-size: 13.5px; color: var(--text-secondary); font-weight:600;">New Watchlist Name</label>
-                                <input type="text" id="watchlist-name-input" placeholder="e.g. Bluechip IT Moats" style="padding: 10px; border-radius: 6px; background: rgba(0,0,0,0.3); border: 1px solid var(--border-glass); color: var(--text-primary); font-size:12px;">
-                            </div>
-                            <button class="btn-primary" id="create-watchlist-btn" style="width: 100%; padding: 10px;">Create Watchlist</button>
-                            <button class="btn-secondary" id="screener-import-modal-trigger-btn" style="width: 100%; padding: 10px; display: inline-flex; align-items: center; justify-content: center; gap: 6px; font-weight: 600; border-color: rgba(59,130,246,0.35); background: rgba(59,130,246,0.06); color: var(--color-primary-light);">
-                                📥 Import from Screener.in
-                            </button>
-                        </div>
-                        
-                        <div style="margin-top: 25px; border-top: 1px dashed var(--border-glass); padding-top: 20px;">
-                            <h4 style="font-size: 12px; color: var(--text-primary); margin-bottom: 12px;">ACTIVE WATCHLISTS</h4>
-                            <div id="watchlist-buttons-container" style="display: flex; flex-direction: column; gap: 8px;">
-                                <!-- Populated dynamically -->
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Watchlist Items Card -->
-                    <div class="card" id="watchlist-items-card">
+                    <!-- Full-Width Watchlist Items Card -->
+                    <div class="card" id="watchlist-items-card" style="width: 100%; box-sizing: border-box;">
                         <div class="card-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; margin-bottom: 15px;">
-                            <h3 id="active-watchlist-title">SELECT A WATCHLIST</h3>
-                            <div style="display: flex; gap: 8px; align-items: center;">
+                            <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+                                <!-- Header Dropdown Selector -->
+                                <div style="display: flex; align-items: center; gap: 6px;">
+                                    <span style="font-size: 13px; font-weight: 700; color: var(--text-secondary);">Watchlist:</span>
+                                    <select id="watchlist-select" style="font-size: 14px; font-weight: 700; padding: 6px 12px; border-radius: 8px; background: rgba(0,0,0,0.4); border: 1px solid var(--color-primary-light, #2dd4bf); color: var(--text-primary); cursor: pointer; outline: none; min-width: 200px;">
+                                        <option value="" disabled selected>Select Watchlist...</option>
+                                    </select>
+                                </div>
+                                <button id="open-watchlist-manage-modal-btn" class="btn-secondary" style="font-size: 12.5px; padding: 5px 12px; display: inline-flex; align-items: center; gap: 5px; border-color: rgba(59,130,246,0.4); background: rgba(59,130,246,0.12); color: var(--color-primary-light); font-weight: 700; border-radius: 6px;" title="Manage Watchlists (Create, Rename, Delete)">
+                                    ⚙️ Manage Lists
+                                </button>
+                                <h3 id="active-watchlist-title" style="margin: 0; display: none;">SELECT A WATCHLIST</h3>
+                                <button id="rename-watchlist-btn" title="Rename active watchlist" style="display: none; background: rgba(255,255,255,0.05); border: 1px solid var(--border-glass); color: var(--text-secondary); padding: 3px 8px; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: 600; font-family: 'Outfit', sans-serif; transition: all 0.2s;">✏️ Rename</button>
+                                <div id="watchlist-rename-inline-container" style="display: none; align-items: center; gap: 6px;">
+                                    <input type="text" id="watchlist-rename-input" placeholder="Watchlist name..." style="padding: 4px 8px; font-size: 13.5px; font-weight: 700; border-radius: 6px; background: rgba(0,0,0,0.4); color: var(--text-primary); border: 1px solid var(--color-primary); outline: none; min-width: 180px;">
+                                    <button id="save-watchlist-rename-btn" class="btn-primary" style="padding: 4px 8px; font-size: 12px; height: auto;">✓ Save</button>
+                                    <button id="cancel-watchlist-rename-btn" class="btn-secondary" style="padding: 4px 8px; font-size: 12px; height: auto;">✕ Cancel</button>
+                                </div>
+                            </div>
+                            <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
                                 <!-- Inline Stock Adder -->
                                 <div id="watchlist-inline-add-container" style="display: none; align-items: center; gap: 6px; margin-right: 10px;">
                                     <div style="position: relative; display: flex; align-items: center;">
@@ -9027,7 +9053,8 @@
                                 </div>
                                 <button class="btn-primary" id="analyze-watchlist-btn" style="font-size: 13.5px; padding: 6px 12px; display: none;">Analyze All</button>
                                 <button class="btn-secondary" id="watchlist-refresh-btn" style="font-size: 13.5px; padding: 6px 12px; display: none; align-items: center; gap: 4px;">🔄 Refresh Prices</button>
-                                <button class="btn-secondary" id="delete-watchlist-btn" style="font-size: 13.5px; padding: 6px 12px; border-color: var(--color-crimson); color: var(--color-crimson); background: rgba(239,68,68,0.05); display: none;">Delete Watchlist</button>
+                                <button class="btn-secondary" id="watchlist-export-csv-btn" style="font-size: 13.5px; padding: 6px 12px; display: none; align-items: center; gap: 4px;" title="Export watchlist to CSV">📥 Export CSV</button>
+                                <button class="btn-secondary" id="watchlist-alert-toggle-btn" style="font-size: 13.5px; padding: 6px 12px; display: none; align-items: center; gap: 4px; border-color: rgba(245,158,11,0.35); color: #f59e0b; background: rgba(245,158,11,0.06);" title="Toggle Watchlist Dip Alerts">🔔 Dip Alerts</button>
                             </div>
                         </div>
 
@@ -9035,8 +9062,9 @@
                         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; flex-wrap: wrap; gap: 10px; padding: 10px 14px; background: rgba(255,255,255,0.02); border: 1px solid var(--border-glass); border-radius: 10px;">
                             <!-- View Switcher Tabs -->
                             <div style="display: flex; gap: 6px; background: rgba(0,0,0,0.25); padding: 3px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.06);">
-                                <button id="wl-view-overview-btn" class="btn-secondary active" style="font-size: 13.5px; padding: 4px 12px; border-radius: 6px; font-weight: 700;">📊 Overview</button>
-                                <button id="wl-view-returns-btn" class="btn-secondary" style="font-size: 13.5px; padding: 4px 12px; border-radius: 6px; font-weight: 700;">📈 Returns Matrix</button>
+                                <button id="wl-view-overview-btn" class="wl-view-btn active">📊 Overview</button>
+                                <button id="wl-view-valuation-btn" class="wl-view-btn">💎 Valuation View</button>
+                                <button id="wl-view-returns-btn" class="wl-view-btn">📈 Returns Matrix</button>
                             </div>
                             <!-- Quick Filter Chips -->
                             <div style="display: flex; gap: 6px; overflow-x: auto; padding-bottom: 2px; scrollbar-width: none;">
@@ -11142,6 +11170,28 @@
         </div>
     </div>
 
+    <!-- Glassmorphic Custom Watchlist Action Confirmation Modal -->
+    <div id="watchlist-custom-confirm-modal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); z-index: 99999; justify-content: center; align-items: center; padding: 20px; box-sizing: border-box;">
+        <div class="card" style="width: 100%; max-width: 440px; padding: 24px; border-radius: 16px; border: 1px solid rgba(239, 68, 68, 0.35); background: linear-gradient(135deg, rgba(30, 41, 59, 0.95), rgba(15, 23, 42, 0.98)); box-shadow: 0 20px 50px rgba(0,0,0,0.8), 0 0 30px rgba(239, 68, 68, 0.15); font-family: 'Outfit', sans-serif;">
+            <div style="display: flex; align-items: center; gap: 14px; margin-bottom: 16px;">
+                <div style="width: 44px; height: 44px; border-radius: 12px; background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.3); display: flex; align-items: center; justify-content: center; font-size: 22px; flex-shrink: 0;">
+                    ⚠️
+                </div>
+                <div>
+                    <h3 id="watchlist-confirm-modal-title" style="margin: 0; font-size: 17px; font-weight: 800; color: #ffffff;">Delete Watchlist</h3>
+                    <span id="watchlist-confirm-modal-badge" style="font-size: 11px; color: var(--color-crimson); font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em;">Destructive Action</span>
+                </div>
+            </div>
+            <p id="watchlist-confirm-modal-body" style="font-size: 13.5px; color: #94a3b8; line-height: 1.5; margin-bottom: 20px;">
+                Are you sure you want to delete this watchlist?
+            </p>
+            <div style="display: flex; gap: 10px; justify-content: flex-end;">
+                <button id="watchlist-confirm-cancel-btn" class="btn-secondary" style="padding: 8px 16px; font-size: 13px; font-weight: 600; border-radius: 8px; cursor: pointer;">Cancel</button>
+                <button id="watchlist-confirm-action-btn" class="btn-primary" style="padding: 8px 16px; font-size: 13px; font-weight: 700; border-radius: 8px; cursor: pointer; background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); border-color: #ef4444; box-shadow: 0 4px 14px rgba(239, 68, 68, 0.4);">Delete Watchlist</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Screener saved screens import modal -->
     <div id="screener-import-modal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(7, 10, 18, 0.75); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); z-index: 99999; align-items: center; justify-content: center; padding: 20px; box-sizing: border-box;">
         <div class="card" style="width: 100%; max-width: 750px; display: flex; flex-direction: column; max-height: 90vh; background: var(--bg-card); border: 1px solid var(--border-glass); border-radius: 12px; box-shadow: 0 20px 50px rgba(0,0,0,0.5); overflow: hidden; padding: 0;">
@@ -11578,6 +11628,130 @@
             </div>
         </div>
     </footer>
+
+    <!-- Watchlist Stock Multi-Condition Alert Modal -->
+    <div id="watchlist-stock-alert-modal" class="modal-overlay" style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0, 0, 0, 0.75); backdrop-filter: blur(8px); z-index: 100000; align-items: center; justify-content: center;">
+        <div class="modal-content card" style="width: 90%; max-width: 580px; background: var(--card-bg, #0f172a); border: 1px solid var(--border-glass, rgba(255, 255, 255, 0.15)); border-radius: 12px; padding: 24px; box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6); color: var(--text-primary, #fff);">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; border-bottom: 1px solid rgba(255,255,255,0.08); padding-bottom: 12px;">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <span style="font-size: 20px;">🔔</span>
+                    <div>
+                        <h3 id="wl-alert-stock-title" style="margin: 0; font-size: 16px; font-weight: 700; color: var(--color-primary, #38bdf8);">Configure Stock Alerts</h3>
+                        <span id="wl-alert-stock-ltp" style="font-size: 12px; color: var(--text-muted, #94a3b8);">LTP: --</span>
+                    </div>
+                </div>
+                <button type="button" class="btn-secondary" onclick="closeWatchlistStockAlertModal()" style="padding: 2px 8px; font-size: 14px; cursor: pointer;">✕</button>
+            </div>
+
+            <!-- Tab Navigation Header -->
+            <div style="display: flex; gap: 4px; border-bottom: 1px solid rgba(255,255,255,0.1); margin-bottom: 16px; overflow-x: auto;">
+                <button type="button" class="wl-alert-tab-btn active" data-tab="price" style="padding: 6px 12px; font-size: 12px; font-weight: 700; background: none; border: none; border-bottom: 2px solid #38bdf8; color: #38bdf8; cursor: pointer;">💰 Price & Breakouts</button>
+                <button type="button" class="wl-alert-tab-btn" data-tab="dips" style="padding: 6px 12px; font-size: 12px; font-weight: 700; background: none; border: none; border-bottom: 2px solid transparent; color: var(--text-muted); cursor: pointer;">📊 Dips & Volatility</button>
+                <button type="button" class="wl-alert-tab-btn" data-tab="valuation" style="padding: 6px 12px; font-size: 12px; font-weight: 700; background: none; border: none; border-bottom: 2px solid transparent; color: var(--text-muted); cursor: pointer;">💎 Valuation & MOS</button>
+                <button type="button" class="wl-alert-tab-btn" data-tab="technicals" style="padding: 6px 12px; font-size: 12px; font-weight: 700; background: none; border: none; border-bottom: 2px solid transparent; color: var(--text-muted); cursor: pointer;">🧠 Conviction & Technicals</button>
+            </div>
+
+            <!-- Tab 1: Price & Breakouts -->
+            <div id="wl-alert-tab-price" class="wl-alert-tab-pane" style="display: block;">
+                <div style="display: flex; flex-direction: column; gap: 12px;">
+                    <div>
+                        <label style="font-size: 12px; font-weight: 700; color: #10b981; display: block; margin-bottom: 4px;">Target Buy Floor (₹ Buy Below)</label>
+                        <input type="number" step="0.05" id="wl-alert-price-low" placeholder="e.g. 1750.00" style="width: 100%; padding: 8px 12px; background: rgba(0,0,0,0.3); border: 1px solid var(--border-glass); border-radius: 6px; color: #fff; font-family: monospace;">
+                    </div>
+                    <div>
+                        <label style="font-size: 12px; font-weight: 700; color: #f59e0b; display: block; margin-bottom: 4px;">Target Profit Ceiling (₹ Sell Above)</label>
+                        <input type="number" step="0.05" id="wl-alert-price-high" placeholder="e.g. 2100.00" style="width: 100%; padding: 8px 12px; background: rgba(0,0,0,0.3); border: 1px solid var(--border-glass); border-radius: 6px; color: #fff; font-family: monospace;">
+                    </div>
+                    <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; margin-top: 4px;">
+                        <input type="checkbox" id="wl-alert-breakout-52w">
+                        <span style="font-size: 13px; font-weight: 600;">🚀 Alert on 52-Week High / Low Breakout Touch</span>
+                    </label>
+                </div>
+            </div>
+
+            <!-- Tab 2: Dips & Volatility -->
+            <div id="wl-alert-tab-dips" class="wl-alert-tab-pane" style="display: none;">
+                <div style="display: flex; flex-direction: column; gap: 12px;">
+                    <div>
+                        <label style="font-size: 12px; font-weight: 700; color: #ef4444; display: block; margin-bottom: 4px;">Intraday Flash Dip Threshold (% Drop Today)</label>
+                        <input type="number" step="0.5" id="wl-alert-flash-dip-pct" placeholder="e.g. 2.0" style="width: 100%; padding: 8px 12px; background: rgba(0,0,0,0.3); border: 1px solid var(--border-glass); border-radius: 6px; color: #fff; font-family: monospace;">
+                    </div>
+                    <div>
+                        <label style="font-size: 12px; font-weight: 700; color: #ef4444; display: block; margin-bottom: 4px;">Entry Price Drop Threshold (% Drop Since Added)</label>
+                        <input type="number" step="0.5" id="wl-alert-entry-dip-pct" placeholder="e.g. 5.0" style="width: 100%; padding: 8px 12px; background: rgba(0,0,0,0.3); border: 1px solid var(--border-glass); border-radius: 6px; color: #fff; font-family: monospace;">
+                    </div>
+                    <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; margin-top: 4px;">
+                        <input type="checkbox" id="wl-alert-volume-spike">
+                        <span style="font-size: 13px; font-weight: 600;">⚡ Alert on Volume Spike (&ge; 2.5x 20-Day Average)</span>
+                    </label>
+                </div>
+            </div>
+
+            <!-- Tab 3: Valuation & MOS -->
+            <div id="wl-alert-tab-valuation" class="wl-alert-tab-pane" style="display: none;">
+                <div style="display: flex; flex-direction: column; gap: 12px;">
+                    <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                        <input type="checkbox" id="wl-alert-mos-undervalued">
+                        <span style="font-size: 13px; font-weight: 600;">💎 Deep Valuation MOS Alert (Margin of Safety &ge; 15%)</span>
+                    </label>
+                    <div>
+                        <label style="font-size: 12px; font-weight: 700; color: #38bdf8; display: block; margin-bottom: 4px;">P/E Compression Threshold (P/E Drops Below)</label>
+                        <input type="number" step="0.5" id="wl-alert-pe-compression" placeholder="e.g. 15.0" style="width: 100%; padding: 8px 12px; background: rgba(0,0,0,0.3); border: 1px solid var(--border-glass); border-radius: 6px; color: #fff; font-family: monospace;">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tab 4: Conviction & Technicals -->
+            <div id="wl-alert-tab-technicals" class="wl-alert-tab-pane" style="display: none;">
+                <div style="display: flex; flex-direction: column; gap: 12px;">
+                    <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                        <input type="checkbox" id="wl-alert-score-shift">
+                        <span style="font-size: 13px; font-weight: 600;">🧠 AI Conviction Rating Upgrade (&ge; 70% Strong Buy)</span>
+                    </label>
+                    <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                        <input type="checkbox" id="wl-alert-rsi-extremes">
+                        <span style="font-size: 13px; font-weight: 600;">📉 RSI Extremes (Oversold &le; 30 / Overbought &ge; 70)</span>
+                    </label>
+
+                    <div style="border-top: 1px solid rgba(255,255,255,0.08); padding-top: 10px; margin-top: 4px;">
+                        <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; margin-bottom: 8px;">
+                            <input type="checkbox" id="wl-alert-ma-proximity-enabled">
+                            <span style="font-size: 13px; font-weight: 700; color: #a855f7;">Moving Average Proximity Threshold Alert</span>
+                        </label>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                            <div>
+                                <label style="font-size: 11px; color: var(--text-muted); display: block; margin-bottom: 2px;">Moving Average Period</label>
+                                <select id="wl-alert-ma-period" style="width: 100%; padding: 6px 10px; background: rgba(0,0,0,0.3); border: 1px solid var(--border-glass); border-radius: 6px; color: #fff;">
+                                    <option value="SMA_20">20 SMA</option>
+                                    <option value="EMA_50" selected>50 EMA</option>
+                                    <option value="SMA_100">100 SMA</option>
+                                    <option value="SMA_200">200 SMA / EMA</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label style="font-size: 11px; color: var(--text-muted); display: block; margin-bottom: 2px;">Proximity Distance (% Above/Below)</label>
+                                <select id="wl-alert-ma-threshold-pct" style="width: 100%; padding: 6px 10px; background: rgba(0,0,0,0.3); border: 1px solid var(--border-glass); border-radius: 6px; color: #fff;">
+                                    <option value="1.0">1% Distance</option>
+                                    <option value="3.0" selected>3% Distance</option>
+                                    <option value="5.0">5% Distance</option>
+                                    <option value="10.0">10% Distance</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Footer Buttons -->
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 20px; border-top: 1px solid rgba(255,255,255,0.08); padding-top: 14px;">
+                <button type="button" class="btn-secondary" onclick="clearWatchlistStockAlert()" style="color: #ef4444; border-color: rgba(239,68,68,0.3); font-size: 12px; cursor: pointer;">🗑️ Clear Alerts</button>
+                <div style="display: flex; gap: 8px;">
+                    <button type="button" class="btn-secondary" onclick="closeWatchlistStockAlertModal()" style="font-size: 12px; cursor: pointer;">Cancel</button>
+                    <button type="button" class="btn-primary" onclick="saveWatchlistStockAlert()" style="font-size: 12px; font-weight: 700; cursor: pointer;">💾 Save Alert Rules</button>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <!-- Floating Scroll To Top Glass Button -->
     <button id="footer-scroll-top-btn" class="scroll-top-glass-btn no-print" title="Scroll to Top" aria-label="Scroll to Top">
