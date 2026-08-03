@@ -11124,7 +11124,7 @@
                     </div>
                 </div>
                 <div class="table-scroll" style="width: 100%; overflow-x: auto; border-radius: 8px; border: 1px solid var(--border-glass);">
-                    <table style="width: 100%; border-collapse: collapse; font-size: 13.5px; text-align: left; background: var(--bg-glass-input);">
+                    <table id="sector-stocks-desktop-table" style="width: 100%; border-collapse: collapse; font-size: 13.5px; text-align: left; background: var(--bg-glass-input);">
                         <thead>
                             <tr style="background: rgba(0,0,0,0.02); border-bottom: 2px solid var(--border-glass);">
                                 <th style="padding: 10px 12px; color: var(--text-primary); font-weight: 700; font-family: 'Outfit', sans-serif; width: 95px;">Symbol</th>
@@ -11141,9 +11141,12 @@
                             </tr>
                         </thead>
                         <tbody id="sector-stocks-table-body">
-                            <!-- Dynamically populated -->
+                            <!-- Dynamically populated for desktop -->
                         </tbody>
                     </table>
+                    <div id="sector-stocks-mobile-cards" style="display: none; flex-direction: column; gap: 8px; padding: 4px;">
+                        <!-- Dynamically populated for mobile -->
+                    </div>
                 </div>
             </div>
         </div>

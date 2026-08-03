@@ -35193,8 +35193,26 @@ window.renderTVAdvancedChart = renderTVAdvancedChart;
 
         function renderRows(filteredStocks) {
             tableBody.innerHTML = '';
+            const mobileCardsContainer = document.getElementById('sector-stocks-mobile-cards');
+            const desktopTable = document.getElementById('sector-stocks-desktop-table');
+            const isMobile = window.innerWidth <= 768;
+
+            if (mobileCardsContainer && desktopTable) {
+                if (isMobile) {
+                    desktopTable.style.display = 'none';
+                    mobileCardsContainer.style.display = 'flex';
+                } else {
+                    desktopTable.style.display = 'table';
+                    mobileCardsContainer.style.display = 'none';
+                }
+                mobileCardsContainer.innerHTML = '';
+            }
+
             if (filteredStocks.length === 0) {
                 tableBody.innerHTML = `<tr><td colspan="11" style="text-align: center; padding: 15px; color: var(--text-muted);">No stocks matching filter.</td></tr>`;
+                if (mobileCardsContainer) {
+                    mobileCardsContainer.innerHTML = `<div style="text-align: center; padding: 20px; color: var(--text-muted); font-size: 13px;">No stocks matching filter.</div>`;
+                }
                 return;
             }
 
@@ -35212,25 +35230,28 @@ window.renderTVAdvancedChart = renderTVAdvancedChart;
                     const sign = val >= 0 ? '+' : '';
                     const col = val >= 5.0 ? 'var(--neon-green)' : (val >= 0.0 ? '#a7f3d0' : (val <= -5.0 ? 'var(--neon-red)' : '#fca5a5'));
                     const bg = val >= 5.0 ? 'rgba(16, 185, 129, 0.15)' : (val >= 0.0 ? 'rgba(16, 185, 129, 0.05)' : (val <= -5.0 ? 'rgba(239, 68, 68, 0.15)' : 'rgba(239, 68, 68, 0.05)'));
-                    return `<span style="display: inline-block; padding: 2px 6px; border-radius: 4px; font-weight: 700; color: ${col}; background: ${bg}; border: 1px solid rgba(255,255,255,0.03); font-family: 'Outfit'; min-width: 50px; text-align: right;">${sign}${val.toFixed(1)}%</span>`;
+                    return `<span style="display: inline-block; padding: 2px 6px; border-radius: 4px; font-weight: 700; color: ${col}; background: ${bg}; border: 1px solid rgba(255,255,255,0.03); font-family: 'Outfit'; min-width: 48px; text-align: right;">${sign}${val.toFixed(1)}%</span>`;
                 }
 
                 // Cap badge
                 let capBadgeHtml = '';
                 const cap = (stk.cap_type || 'small').toLowerCase();
                 if (cap === 'large') {
-                    capBadgeHtml = `<span style="background: rgba(59, 130, 246, 0.15); border: 1px solid rgba(59, 130, 246, 0.3); color: #60a5fa; padding: 1px 4px; border-radius: 4px; font-size: 9.5px; font-weight: 700;">L</span>`;
+                    capBadgeHtml = `<span style="background: rgba(59, 130, 246, 0.15); border: 1px solid rgba(59, 130, 246, 0.3); color: #60a5fa; padding: 1px 5px; border-radius: 4px; font-size: 10px; font-weight: 800;">LARGE CAP</span>`;
                 } else if (cap === 'mid') {
-                    capBadgeHtml = `<span style="background: rgba(16, 185, 129, 0.15); border: 1px solid rgba(16, 185, 129, 0.3); color: #34d399; padding: 1px 4px; border-radius: 4px; font-size: 9.5px; font-weight: 700;">M</span>`;
+                    capBadgeHtml = `<span style="background: rgba(16, 185, 129, 0.15); border: 1px solid rgba(16, 185, 129, 0.3); color: #34d399; padding: 1px 5px; border-radius: 4px; font-size: 10px; font-weight: 800;">MID CAP</span>`;
                 } else {
-                    capBadgeHtml = `<span style="background: rgba(245, 158, 11, 0.15); border: 1px solid rgba(245, 158, 11, 0.3); color: #fbbf24; padding: 1px 4px; border-radius: 4px; font-size: 9.5px; font-weight: 700;">S</span>`;
+                    capBadgeHtml = `<span style="background: rgba(245, 158, 11, 0.15); border: 1px solid rgba(245, 158, 11, 0.3); color: #fbbf24; padding: 1px 5px; border-radius: 4px; font-size: 10px; font-weight: 800;">SMALL CAP</span>`;
                 }
 
+                const cleanSym = stk.symbol.replace(".NS", "").replace(".BO", "");
+
+                // 1. Desktop Table Row
                 const tr = document.createElement('tr');
                 tr.style.borderBottom = '1px solid var(--border-glass)';
 
                 tr.innerHTML = `
-                    <td style="padding: 10px 12px; font-weight: 700; color: var(--color-primary);">${stk.symbol.replace(".NS", "")}</td>
+                    <td style="padding: 10px 12px; font-weight: 700; color: var(--color-primary);">${cleanSym}</td>
                     <td style="padding: 10px 12px; color: var(--text-secondary); max-width: 250px; text-overflow: ellipsis; overflow: hidden; white-space: nowrap;">${stk.company_name}</td>
                     <td style="padding: 10px 12px; text-align: center;">${capBadgeHtml}</td>
                     <td style="padding: 10px 12px; text-align: center;">${getPillHtml(ret1d)}</td>
@@ -35246,20 +35267,16 @@ window.renderTVAdvancedChart = renderTVAdvancedChart;
                     </td>
                 `;
 
-                // Bind Analyze button click
-                tr.querySelector('.modal-analyze-btn').addEventListener('click', () => {
+                const handleAnalyze = () => {
                     modal.style.display = 'none';
                     if (window.switchTab) window.switchTab('analyzer');
-                    if (window.loadStockAnalyzer) {
-                        window.loadStockAnalyzer(stk.symbol);
-                    }
-                });
+                    if (window.loadStockAnalyzer) window.loadStockAnalyzer(stk.symbol);
+                };
 
-                // Bind Screen button click
-                tr.querySelector('.modal-screen-btn').addEventListener('click', () => {
+                const handleScreen = () => {
                     modal.style.display = 'none';
                     window.screenerSectorFilter = null;
-                    window.screenerSymbolFilter = stk.symbol.replace(".NS", "");
+                    window.screenerSymbolFilter = cleanSym;
 
                     const styleSelect = document.getElementById('screener-style-select');
                     const universeSelect = document.getElementById('screener-universe-select');
@@ -35268,7 +35285,6 @@ window.renderTVAdvancedChart = renderTVAdvancedChart;
 
                     if (window.switchTab) {
                         window.switchTab('screener');
-                        
                         activeScreenerStrategy = 'hybrid';
                         activeScreenerStyle = 'all';
 
@@ -35278,16 +35294,55 @@ window.renderTVAdvancedChart = renderTVAdvancedChart;
                             if (btn.getAttribute('data-strategy') === 'hybrid') btn.classList.add('active');
                         });
 
-                        if (window.renderActiveScreenerChips) {
-                            window.renderActiveScreenerChips();
-                        }
-                        if (window.runAIScreener) {
-                            window.runAIScreener();
-                        }
+                        if (window.renderActiveScreenerChips) window.renderActiveScreenerChips();
+                        if (window.runAIScreener) window.runAIScreener();
                     }
-                });
-                
+                };
+
+                tr.querySelector('.modal-analyze-btn').addEventListener('click', handleAnalyze);
+                tr.querySelector('.modal-screen-btn').addEventListener('click', handleScreen);
                 tableBody.appendChild(tr);
+
+                // 2. Mobile Touch Card
+                if (mobileCardsContainer) {
+                    const card = document.createElement('div');
+                    card.className = 'sector-stock-mobile-card';
+                    card.style.cssText = 'background: rgba(255, 255, 255, 0.03); border: 1px solid var(--border-glass, rgba(255,255,255,0.08)); border-radius: 12px; padding: 12px; display: flex; flex-direction: column; gap: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.25);';
+
+                    const activeRetVal = stk[activeCol] || 0.0;
+                    const activePill = getPillHtml(activeRetVal);
+
+                    card.innerHTML = `
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <div style="display: flex; align-items: center; gap: 8px;">
+                                <strong style="color: var(--color-primary); font-size: 15px; font-family: 'Outfit', sans-serif; font-weight: 800;">${cleanSym}</strong>
+                                ${capBadgeHtml}
+                            </div>
+                            <div style="display: flex; align-items: center; gap: 4px;">
+                                <span style="font-size: 11px; color: var(--text-muted);">Active Return:</span>
+                                ${activePill}
+                            </div>
+                        </div>
+                        <div style="font-size: 12.5px; color: var(--text-secondary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: 500;">${stk.company_name}</div>
+                        <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; background: rgba(0,0,0,0.3); padding: 8px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.04);">
+                            <div style="text-align: center;"><div style="font-size: 10px; color: var(--text-muted); font-weight: 700; margin-bottom: 2px;">1D</div>${getPillHtml(ret1d)}</div>
+                            <div style="text-align: center;"><div style="font-size: 10px; color: var(--text-muted); font-weight: 700; margin-bottom: 2px;">5D</div>${getPillHtml(ret5d)}</div>
+                            <div style="text-align: center;"><div style="font-size: 10px; color: var(--text-muted); font-weight: 700; margin-bottom: 2px;">1M</div>${getPillHtml(ret1m)}</div>
+                            <div style="text-align: center;"><div style="font-size: 10px; color: var(--text-muted); font-weight: 700; margin-bottom: 2px;">3M</div>${getPillHtml(ret3m)}</div>
+                            <div style="text-align: center;"><div style="font-size: 10px; color: var(--text-muted); font-weight: 700; margin-bottom: 2px;">6M</div>${getPillHtml(ret6m)}</div>
+                            <div style="text-align: center;"><div style="font-size: 10px; color: var(--text-muted); font-weight: 700; margin-bottom: 2px;">1Y</div>${getPillHtml(ret1y)}</div>
+                            <div style="text-align: center;"><div style="font-size: 10px; color: var(--text-muted); font-weight: 700; margin-bottom: 2px;">5Y</div>${getPillHtml(ret5y)}</div>
+                        </div>
+                        <div style="display: flex; gap: 8px; margin-top: 2px;">
+                            <button class="btn-primary card-analyze-btn" style="flex: 1; height: 32px; border-radius: 6px; font-size: 12px; font-weight: 700; background: var(--color-primary); color: #000; border: none; cursor: pointer; font-family: 'Outfit';">Analyze 📈</button>
+                            <button class="btn-secondary card-screen-btn" style="flex: 1; height: 32px; border-radius: 6px; font-size: 12px; font-weight: 700; background: rgba(255,255,255,0.08); color: var(--text-primary); border: 1px solid var(--border-glass); cursor: pointer; font-family: 'Outfit';">Screen 🔍</button>
+                        </div>
+                    `;
+
+                    card.querySelector('.card-analyze-btn').addEventListener('click', handleAnalyze);
+                    card.querySelector('.card-screen-btn').addEventListener('click', handleScreen);
+                    mobileCardsContainer.appendChild(card);
+                }
             });
         }
 
