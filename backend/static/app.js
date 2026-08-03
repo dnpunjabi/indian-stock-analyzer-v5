@@ -22954,7 +22954,15 @@ async function loadPortfolioDoctorLedger(forceRefresh = false) {
 
     if (prescriptionBox) prescriptionBox.style.display = 'none';
 
-    // Set UI to loading/syncing state
+    // 1. If SWR cache is available and forceRefresh is false, render instantly without showing full-page spinner
+    if (window.swrFetchJson && !forceRefresh) {
+        await window.swrFetchJson('/api/portfolio', async (portfolioItems) => {
+            await renderPortfolioDoctorLedgerContent(portfolioItems, ledgerBody, emptyState, inputsGrid, runBtn, stockSelect, prescriptionBox);
+        });
+        return;
+    }
+
+    // Set UI to loading/syncing state for fresh network revalidation
     if (inputsGrid) inputsGrid.style.display = 'grid';
     if (emptyState) emptyState.style.display = 'none';
     if (runBtn) runBtn.style.display = 'none';
@@ -22983,11 +22991,21 @@ async function loadPortfolioDoctorLedger(forceRefresh = false) {
     setDiagLoading('port-concentration-label', 'Calculating...');
 
     try {
-        // 1. Fetch portfolio items (optionally forcing yfinance refresh)
         const url = forceRefresh ? '/api/portfolio?refresh=true' : '/api/portfolio';
         const response = await fetch(url);
         if (!response.ok) throw new Error("Failed to load portfolio.");
         const portfolioItems = await response.json();
+        await renderPortfolioDoctorLedgerContent(portfolioItems, ledgerBody, emptyState, inputsGrid, runBtn, stockSelect, prescriptionBox);
+    } catch (e) {
+        console.error("Error loading Portfolio Doctor Ledger:", e);
+        if (ledgerBody) {
+            ledgerBody.innerHTML = `<tr><td colspan="14" style="padding: 30px; text-align: center; color: var(--color-danger);">Error loading portfolio: ${e.message}</td></tr>`;
+        }
+    }
+}
+
+async function renderPortfolioDoctorLedgerContent(portfolioItems, ledgerBody, emptyState, inputsGrid, runBtn, stockSelect, prescriptionBox) {
+    try {
 
         // Store globally for real-time WebSocket updates
         activePortfolioLedgerItems = JSON.parse(JSON.stringify(portfolioItems));
@@ -23350,10 +23368,7 @@ async function loadPortfolioDoctorLedger(forceRefresh = false) {
         await loadPortfolioFuzzySwaps();
 
     } catch (e) {
-        console.warn("Could not load portfolio ledger: ", e);
-        if (emptyState) emptyState.style.display = 'block';
-        if (inputsGrid) inputsGrid.style.display = 'none';
-        if (runBtn) runBtn.style.display = 'none';
+        console.warn("Could not render portfolio ledger content: ", e);
     }
 }
 
