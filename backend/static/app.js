@@ -35194,15 +35194,15 @@ window.renderTVAdvancedChart = renderTVAdvancedChart;
         function renderRows(filteredStocks) {
             tableBody.innerHTML = '';
             const mobileCardsContainer = document.getElementById('sector-stocks-mobile-cards');
-            const desktopTable = document.getElementById('sector-stocks-desktop-table');
+            const desktopWrapper = document.getElementById('sector-stocks-desktop-wrapper') || document.getElementById('sector-stocks-desktop-table');
             const isMobile = window.innerWidth <= 768;
 
-            if (mobileCardsContainer && desktopTable) {
+            if (mobileCardsContainer && desktopWrapper) {
                 if (isMobile) {
-                    desktopTable.style.display = 'none';
+                    desktopWrapper.style.display = 'none';
                     mobileCardsContainer.style.display = 'flex';
                 } else {
-                    desktopTable.style.display = 'table';
+                    desktopWrapper.style.display = 'block';
                     mobileCardsContainer.style.display = 'none';
                 }
                 mobileCardsContainer.innerHTML = '';
@@ -35225,7 +35225,7 @@ window.renderTVAdvancedChart = renderTVAdvancedChart;
                 const ret1y = stk.return_1y || 0.0;
                 const ret5y = stk.return_5y || 0.0;
 
-                // Color-coded pill builder
+                // Color-coded pill builder for desktop table
                 function getPillHtml(val) {
                     const sign = val >= 0 ? '+' : '';
                     const col = val >= 5.0 ? 'var(--neon-green)' : (val >= 0.0 ? '#a7f3d0' : (val <= -5.0 ? 'var(--neon-red)' : '#fca5a5'));
@@ -35237,11 +35237,11 @@ window.renderTVAdvancedChart = renderTVAdvancedChart;
                 let capBadgeHtml = '';
                 const cap = (stk.cap_type || 'small').toLowerCase();
                 if (cap === 'large') {
-                    capBadgeHtml = `<span style="background: rgba(59, 130, 246, 0.15); border: 1px solid rgba(59, 130, 246, 0.3); color: #60a5fa; padding: 1px 5px; border-radius: 4px; font-size: 10px; font-weight: 800;">LARGE CAP</span>`;
+                    capBadgeHtml = `<span style="background: #1e3a8a; border: 1px solid #3b82f6; color: #93c5fd; padding: 1px 5px; border-radius: 4px; font-size: 10px; font-weight: 800;">LARGE CAP</span>`;
                 } else if (cap === 'mid') {
-                    capBadgeHtml = `<span style="background: rgba(16, 185, 129, 0.15); border: 1px solid rgba(16, 185, 129, 0.3); color: #34d399; padding: 1px 5px; border-radius: 4px; font-size: 10px; font-weight: 800;">MID CAP</span>`;
+                    capBadgeHtml = `<span style="background: #064e3b; border: 1px solid #10b981; color: #6ee7b7; padding: 1px 5px; border-radius: 4px; font-size: 10px; font-weight: 800;">MID CAP</span>`;
                 } else {
-                    capBadgeHtml = `<span style="background: rgba(245, 158, 11, 0.15); border: 1px solid rgba(245, 158, 11, 0.3); color: #fbbf24; padding: 1px 5px; border-radius: 4px; font-size: 10px; font-weight: 800;">SMALL CAP</span>`;
+                    capBadgeHtml = `<span style="background: #78350f; border: 1px solid #f59e0b; color: #fde68a; padding: 1px 5px; border-radius: 4px; font-size: 10px; font-weight: 800;">SMALL CAP</span>`;
                 }
 
                 const cleanSym = stk.symbol.replace(".NS", "").replace(".BO", "");
@@ -35303,39 +35303,44 @@ window.renderTVAdvancedChart = renderTVAdvancedChart;
                 tr.querySelector('.modal-screen-btn').addEventListener('click', handleScreen);
                 tableBody.appendChild(tr);
 
-                // 2. Mobile Touch Card
+                // 2. Streamlined Ultra-Lightweight Mobile Touch Card (0% GPU Strain)
                 if (mobileCardsContainer) {
                     const card = document.createElement('div');
                     card.className = 'sector-stock-mobile-card';
-                    card.style.cssText = 'background: rgba(255, 255, 255, 0.03); border: 1px solid var(--border-glass, rgba(255,255,255,0.08)); border-radius: 12px; padding: 12px; display: flex; flex-direction: column; gap: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.25); transform: translateZ(0); -webkit-transform: translateZ(0); backface-visibility: hidden; contain: content; will-change: transform; touch-action: pan-y;';
 
                     const activeRetVal = stk[activeCol] || 0.0;
-                    const activePill = getPillHtml(activeRetVal);
+                    const activeSign = activeRetVal >= 0 ? '+' : '';
+                    const activeColor = activeRetVal >= 0 ? '#34d399' : '#f87171';
+
+                    function getFlatTag(lbl, val) {
+                        const s = val >= 0 ? '+' : '';
+                        const c = val >= 0.0 ? '#34d399' : '#f87171';
+                        return `<span style="font-size: 11px; font-weight: 700; color: ${c}; font-family: 'Outfit', sans-serif;"><span style="color: #94a3b8; font-size: 10px; font-weight: 600; margin-right: 2px;">${lbl}</span>${s}${val.toFixed(1)}%</span>`;
+                    }
 
                     card.innerHTML = `
                         <div style="display: flex; justify-content: space-between; align-items: center;">
-                            <div style="display: flex; align-items: center; gap: 8px;">
-                                <strong style="color: var(--color-primary); font-size: 15px; font-family: 'Outfit', sans-serif; font-weight: 800;">${cleanSym}</strong>
+                            <div style="display: flex; align-items: center; gap: 6px;">
+                                <strong style="color: #38bdf8; font-size: 15px; font-family: 'Outfit', sans-serif; font-weight: 800;">${cleanSym}</strong>
                                 ${capBadgeHtml}
                             </div>
-                            <div style="display: flex; align-items: center; gap: 4px;">
-                                <span style="font-size: 11px; color: var(--text-muted);">Active Return:</span>
-                                ${activePill}
+                            <div style="font-size: 11.5px; font-weight: 800; color: ${activeColor}; font-family: 'Outfit', sans-serif; background: #0f172a; padding: 2px 8px; border-radius: 4px; border: 1px solid #1e293b;">
+                                ${activeSign}${activeRetVal.toFixed(1)}%
                             </div>
                         </div>
-                        <div style="font-size: 12.5px; color: var(--text-secondary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: 500;">${stk.company_name}</div>
-                        <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; background: rgba(0,0,0,0.3); padding: 8px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.04);">
-                            <div style="text-align: center;"><div style="font-size: 10px; color: var(--text-muted); font-weight: 700; margin-bottom: 2px;">1D</div>${getPillHtml(ret1d)}</div>
-                            <div style="text-align: center;"><div style="font-size: 10px; color: var(--text-muted); font-weight: 700; margin-bottom: 2px;">5D</div>${getPillHtml(ret5d)}</div>
-                            <div style="text-align: center;"><div style="font-size: 10px; color: var(--text-muted); font-weight: 700; margin-bottom: 2px;">1M</div>${getPillHtml(ret1m)}</div>
-                            <div style="text-align: center;"><div style="font-size: 10px; color: var(--text-muted); font-weight: 700; margin-bottom: 2px;">3M</div>${getPillHtml(ret3m)}</div>
-                            <div style="text-align: center;"><div style="font-size: 10px; color: var(--text-muted); font-weight: 700; margin-bottom: 2px;">6M</div>${getPillHtml(ret6m)}</div>
-                            <div style="text-align: center;"><div style="font-size: 10px; color: var(--text-muted); font-weight: 700; margin-bottom: 2px;">1Y</div>${getPillHtml(ret1y)}</div>
-                            <div style="text-align: center;"><div style="font-size: 10px; color: var(--text-muted); font-weight: 700; margin-bottom: 2px;">5Y</div>${getPillHtml(ret5y)}</div>
+                        <div style="font-size: 12px; color: #94a3b8; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: 500;">${stk.company_name}</div>
+                        <div style="display: flex; flex-wrap: wrap; gap: 6px 10px; background: #0f172a; padding: 6px 10px; border-radius: 6px; border: 1px solid #1e293b; justify-content: space-between;">
+                            ${getFlatTag('1D', ret1d)}
+                            ${getFlatTag('5D', ret5d)}
+                            ${getFlatTag('1M', ret1m)}
+                            ${getFlatTag('3M', ret3m)}
+                            ${getFlatTag('6M', ret6m)}
+                            ${getFlatTag('1Y', ret1y)}
+                            ${getFlatTag('5Y', ret5y)}
                         </div>
                         <div style="display: flex; gap: 8px; margin-top: 2px;">
-                            <button class="btn-primary card-analyze-btn" style="flex: 1; height: 32px; border-radius: 6px; font-size: 12px; font-weight: 700; background: var(--color-primary); color: #000; border: none; cursor: pointer; font-family: 'Outfit';">Analyze 📈</button>
-                            <button class="btn-secondary card-screen-btn" style="flex: 1; height: 32px; border-radius: 6px; font-size: 12px; font-weight: 700; background: rgba(255,255,255,0.08); color: var(--text-primary); border: 1px solid var(--border-glass); cursor: pointer; font-family: 'Outfit';">Screen 🔍</button>
+                            <button class="card-analyze-btn" style="flex: 1; height: 30px; border-radius: 6px; font-size: 12px; font-weight: 700; background: #0284c7; color: #ffffff; border: none; cursor: pointer; font-family: 'Outfit';">Analyze 📈</button>
+                            <button class="card-screen-btn" style="flex: 1; height: 30px; border-radius: 6px; font-size: 12px; font-weight: 700; background: #1e293b; color: #f1f5f9; border: 1px solid #334155; cursor: pointer; font-family: 'Outfit';">Screen 🔍</button>
                         </div>
                     `;
 

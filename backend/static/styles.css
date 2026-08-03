@@ -30329,33 +30329,36 @@ body.light-theme #swing-scan-table thead th:first-child {
     border-right: 1.5px solid #cbd5e1 !important;
 }
 
-/* 4. Real Mobile Device Hardware Fix for Sector Constituents Modal Cards */
+/* 4. Ultra-Lightweight 0% GPU Mobile Modal Overhaul */
 @media (max-width: 768px) {
     #sector-stocks-modal,
     .modal-overlay#sector-stocks-modal {
         padding: 0 !important;
         align-items: stretch !important;
         justify-content: center !important;
-        background: rgba(0, 0, 0, 0.75) !important;
+        background: rgba(0, 0, 0, 0.8) !important;
+        backdrop-filter: none !important;
+        -webkit-backdrop-filter: none !important;
     }
 
     #sector-stocks-modal .modal-card {
         position: fixed !important;
-        top: calc(48px + env(safe-area-inset-top, 0px)) !important;
-        bottom: calc(12px + env(safe-area-inset-bottom, 0px)) !important;
-        left: 8px !important;
-        right: 8px !important;
+        top: calc(44px + env(safe-area-inset-top, 0px)) !important;
+        bottom: calc(10px + env(safe-area-inset-bottom, 0px)) !important;
+        left: 6px !important;
+        right: 6px !important;
         width: auto !important;
         max-width: none !important;
         height: auto !important;
         max-height: none !important;
         margin: 0 !important;
-        border-radius: 14px !important;
+        border-radius: 12px !important;
         background: #0b1329 !important;
         background-color: #0b1329 !important;
+        border: 1px solid #1e293b !important;
         backdrop-filter: none !important;
         -webkit-backdrop-filter: none !important;
-        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.8) !important;
+        box-shadow: none !important;
         display: flex !important;
         flex-direction: column !important;
         overflow: hidden !important;
@@ -30365,11 +30368,12 @@ body.light-theme #swing-scan-table thead th:first-child {
     [data-mode="light"] #sector-stocks-modal .modal-card {
         background: #ffffff !important;
         background-color: #ffffff !important;
+        border-color: #cbd5e1 !important;
     }
 
     /* Single dedicated vertical scroll container on mobile */
     #sector-stocks-modal .modal-card-body {
-        padding: 10px !important;
+        padding: 8px !important;
         overflow-y: auto !important;
         overflow-x: hidden !important;
         -webkit-overflow-scrolling: touch !important;
@@ -30378,35 +30382,42 @@ body.light-theme #swing-scan-table thead th:first-child {
         flex-direction: column !important;
     }
 
-    /* Unset inner table-scroll height and scroll constraints on mobile to prevent nested scroll conflict */
+    /* Hide desktop table wrapper completely on mobile screen */
+    #sector-stocks-desktop-wrapper,
     #sector-stocks-modal .table-scroll {
-        flex: 1 !important;
-        max-height: none !important;
-        height: auto !important;
-        overflow-y: visible !important;
-        overflow-x: auto !important;
-        border: none !important;
-        border-radius: 0 !important;
+        display: none !important;
     }
 
     #sector-stocks-search {
-        width: 140px !important;
+        width: 130px !important;
     }
 }
 
-/* Hardware Acceleration & Compositing Layer Isolation for Mobile Stock Cards */
+/* 0% GPU Intensive Mobile Stock Cards (Flat, Solid, Fast) */
 .sector-stock-mobile-card {
-    transform: translateZ(0) !important;
-    -webkit-transform: translateZ(0) !important;
-    backface-visibility: hidden !important;
-    -webkit-backface-visibility: hidden !important;
-    contain: content !important;
-    will-change: transform !important;
+    background: #111827 !important;
+    background-color: #111827 !important;
+    border: 1px solid #1e293b !important;
+    border-radius: 8px !important;
+    padding: 8px 10px !important;
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 6px !important;
+    box-shadow: none !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
     touch-action: pan-y !important;
     margin-bottom: 2px !important;
+    box-sizing: border-box !important;
 }
 
-/* Suppress scroll shadow overlay inside sector stocks modal to prevent WebKit height reflows */
+[data-theme="light"] .sector-stock-mobile-card,
+[data-mode="light"] .sector-stock-mobile-card {
+    background: #f8fafc !important;
+    background-color: #f8fafc !important;
+    border-color: #cbd5e1 !important;
+}
+
 #sector-stocks-modal .table-scroll::after {
     display: none !important;
 }
