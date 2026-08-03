@@ -51970,6 +51970,13 @@ window.loadFuzzyIntelligence = async function() {
     const sellsList = document.getElementById('fuzzy-sells-list');
     if (!buysList || !sellsList) return;
 
+    if (window.swrFetchJson) {
+        await window.swrFetchJson('/api/fuzzy/universe-standings?limit=8', async (data) => {
+            if (data) await renderFuzzyIntelligenceContent(data, buysList, sellsList);
+        });
+        return;
+    }
+
     buysList.innerHTML = `<div class="recent-research-empty" style="font-size: 11px;">Loading accumulation signals...</div>`;
     sellsList.innerHTML = `<div class="recent-research-empty" style="font-size: 11px;">Loading avoid signals...</div>`;
 
@@ -51977,6 +51984,14 @@ window.loadFuzzyIntelligence = async function() {
         const response = await fetch('/api/fuzzy/universe-standings?limit=8');
         if (!response.ok) throw new Error(await response.text());
         const data = await response.json();
+        await renderFuzzyIntelligenceContent(data, buysList, sellsList);
+    } catch (err) {
+        console.error("Fuzzy intelligence fetch error:", err);
+    }
+};
+
+async function renderFuzzyIntelligenceContent(data, buysList, sellsList) {
+    try {
 
         // Hydrate Buys (Mamdani Scanner Matches card style - side by side)
         if (data.top_buys && data.top_buys.length > 0) {
@@ -52516,10 +52531,25 @@ window.hydrateFuzzyRadarHomepage = async function() {
 
     if (!desktopBuyRadar && !mobileRadarContainer && !mobileBuyRadar) return;
 
+    if (window.swrFetchJson) {
+        await window.swrFetchJson('/api/fuzzy/universe-standings?limit=4', async (data) => {
+            if (data) renderFuzzyRadarContent(data, desktopBuyRadar, desktopSellRadar, mobileBuyRadar, mobileSellRadar);
+        });
+        return;
+    }
+
     try {
         const response = await fetch('/api/fuzzy/universe-standings?limit=4');
         if (!response.ok) throw new Error(await response.text());
         const data = await response.json();
+        renderFuzzyRadarContent(data, desktopBuyRadar, desktopSellRadar, mobileBuyRadar, mobileSellRadar);
+    } catch (err) {
+        console.error("Fuzzy radar homepage fetch error:", err);
+    }
+};
+
+function renderFuzzyRadarContent(data, desktopBuyRadar, desktopSellRadar, mobileBuyRadar, mobileSellRadar) {
+    try {
         window.fuzzyHomepageData = data;
 
         const renderRadarList = (items, isBuy) => {
