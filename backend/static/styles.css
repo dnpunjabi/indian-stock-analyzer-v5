@@ -29970,3 +29970,79 @@ body.light-theme .sticky-screener-col {
         white-space: nowrap !important;
     }
 }
+
+
+/* ==========================================================================
+   STREAMLINED WATCHLIST REGISTRY MAIN HEADER & TOOLBAR (DESKTOP & MOBILE)
+   ========================================================================== */
+
+#watchlist-items-card .card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-bottom: 15px;
+}
+
+.watchlist-actions-cluster {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+@media (max-width: 768px) {
+    #watchlist-items-card .card-header {
+        flex-direction: column !important;
+        align-items: stretch !important;
+        gap: 10px !important;
+    }
+
+    #watchlist-items-card .card-header > div:first-child {
+        display: flex !important;
+        flex-direction: row !important;
+        align-items: center !important;
+        justify-content: space-between !important;
+        width: 100% !important;
+    }
+
+    #watchlist-select {
+        flex: 1 1 auto !important;
+        min-width: 140px !important;
+        font-size: 13px !important;
+        padding: 5px 10px !important;
+        height: 34px !important;
+    }
+
+    #open-watchlist-manage-modal-btn {
+        flex: 0 0 auto !important;
+        font-size: 12px !important;
+        padding: 5px 12px !important;
+        height: 34px !important;
+        white-space: nowrap !important;
+    }
+
+    .watchlist-actions-cluster {
+        display: flex !important;
+        flex-direction: row !important;
+        flex-wrap: nowrap !important;
+        overflow-x: auto !important;
+        -webkit-overflow-scrolling: touch !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        gap: 6px !important;
+        padding-bottom: 4px !important;
+        scrollbar-width: none !important;
+    }
+
+    .watchlist-actions-cluster button {
+        flex: 0 0 auto !important;
+        width: auto !important;
+        font-size: 11.5px !important;
+        padding: 5px 12px !important;
+        height: 34px !important;
+        white-space: nowrap !important;
+        border-radius: 6px !important;
+    }
+}

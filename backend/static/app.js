@@ -16386,6 +16386,150 @@ async function setupWatchlistControls() {
     if (openManageModalBtn && manageModal) {
         openManageModalBtn.addEventListener('click', () => {
             manageModal.style.display = 'flex';
+            const targetLbl = document.getElementById('wl-modal-active-target-lbl');
+            const activeWatch = watchlistsList.find(w => w.id == activeWatchlistId);
+            if (targetLbl) {
+                targetLbl.innerText = activeWatch ? activeWatch.name : 'Select a Watchlist';
+            }
+            const modalRenameInput = document.getElementById('watchlist-modal-rename-input');
+            if (modalRenameInput && activeWatch) {
+                modalRenameInput.value = activeWatch.name;
+            }
+            const modalAddInput = document.getElementById('watchlist-modal-add-input');
+            if (modalAddInput) {
+                setTimeout(() => modalAddInput.focus(), 100);
+            }
+        });
+    }
+
+    // Tabbed Manage Lists Modal Switching Logic
+    document.querySelectorAll('.wl-modal-tab-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const tab = btn.getAttribute('data-tab');
+            document.querySelectorAll('.wl-modal-tab-btn').forEach(b => {
+                b.classList.remove('active');
+                b.style.background = 'transparent';
+                b.style.color = 'var(--text-secondary)';
+            });
+            btn.classList.add('active');
+            btn.style.background = 'var(--color-primary)';
+            btn.style.color = '#000';
+
+            document.querySelectorAll('.wl-modal-tab-content').forEach(content => {
+                content.style.display = 'none';
+            });
+
+            const targetContent = document.getElementById(`wl-modal-tab-content-${tab}`);
+            if (targetContent) {
+                targetContent.style.display = 'flex';
+            }
+        });
+    });
+
+    // Tab 1: Modal Stock Addition & Auto-Suggestions
+    const modalAddBtn = document.getElementById('watchlist-modal-add-btn');
+    const modalAddInput = document.getElementById('watchlist-modal-add-input');
+    const modalSuggestionsDiv = document.getElementById('watchlist-modal-suggestions');
+
+    async function addModalStockToWatchlist() {
+        if (activeWatchlistId === null) {
+            showToast("Please select a watchlist first.", "warning");
+            return;
+        }
+        const val = modalAddInput ? modalAddInput.value.trim().toUpperCase() : '';
+        if (!val) {
+            showToast("Please enter a stock symbol.", "warning");
+            return;
+        }
+        const cleanSymbol = val.replace('.NS', '');
+        await addStockToWatchlist(activeWatchlistId, cleanSymbol);
+        if (modalAddInput) modalAddInput.value = '';
+        if (modalSuggestionsDiv) modalSuggestionsDiv.style.display = 'none';
+        const manageModalEl = document.getElementById('watchlist-manage-modal');
+        if (manageModalEl) manageModalEl.style.display = 'none';
+    }
+
+    if (modalAddBtn) {
+        modalAddBtn.addEventListener('click', addModalStockToWatchlist);
+    }
+    if (modalAddInput) {
+        modalAddInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') addModalStockToWatchlist();
+        });
+
+        modalAddInput.addEventListener('input', async () => {
+            const query = modalAddInput.value.trim();
+            if (query.length < 2) {
+                if (modalSuggestionsDiv) modalSuggestionsDiv.style.display = 'none';
+                return;
+            }
+
+            try {
+                const res = await fetch(`/api/search/suggestions?q=${encodeURIComponent(query)}`);
+                if (res.ok && modalSuggestionsDiv) {
+                    const data = await res.json();
+                    if (data.length > 0) {
+                        modalSuggestionsDiv.innerHTML = '';
+                        data.forEach(item => {
+                            const div = document.createElement('div');
+                            div.className = 'watchlist-autocomplete-item';
+                            div.style.padding = '8px 12px';
+                            div.style.cursor = 'pointer';
+                            div.style.display = 'flex';
+                            div.style.justifyContent = 'space-between';
+                            div.style.borderBottom = '1px solid var(--border-glass)';
+                            div.innerHTML = `<div><span style="font-weight:700; color:var(--color-primary);">${item.base_symbol}</span><span style="color:var(--text-secondary); margin-left: 6px; font-size:11.5px;">- ${item.name}</span></div>`;
+
+                            div.addEventListener('click', () => {
+                                modalAddInput.value = item.base_symbol;
+                                modalSuggestionsDiv.style.display = 'none';
+                            });
+                            modalSuggestionsDiv.appendChild(div);
+                        });
+                        modalSuggestionsDiv.style.display = 'block';
+                    } else {
+                        modalSuggestionsDiv.style.display = 'none';
+                    }
+                }
+            } catch (err) {
+                console.error("Suggestions fetch error:", err);
+            }
+        });
+    }
+
+    // Tab 2: Modal Active Watchlist Rename
+    const modalSaveRenameBtn = document.getElementById('watchlist-modal-save-rename-btn');
+    const modalRenameInput = document.getElementById('watchlist-modal-rename-input');
+
+    if (modalSaveRenameBtn) {
+        modalSaveRenameBtn.addEventListener('click', async () => {
+            if (activeWatchlistId === null) {
+                showToast("Please select a watchlist first.", "warning");
+                return;
+            }
+            const newName = modalRenameInput ? modalRenameInput.value.trim() : '';
+            if (!newName) {
+                showToast("Watchlist name cannot be empty.", "warning");
+                return;
+            }
+            try {
+                const response = await fetch(`/api/watchlists/${activeWatchlistId}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name: newName })
+                });
+                if (response.ok) {
+                    showToast("Watchlist renamed successfully.", "success");
+                    await fetchWatchlists();
+                    const manageModalEl = document.getElementById('watchlist-manage-modal');
+                    if (manageModalEl) manageModalEl.style.display = 'none';
+                } else {
+                    showToast("Failed to rename watchlist.", "error");
+                }
+            } catch (e) {
+                console.error("Rename failed:", e);
+                showToast("Error renaming watchlist.", "error");
+            }
         });
     }
     if (closeManageModalBtn && manageModal) {
