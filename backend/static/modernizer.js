@@ -3541,24 +3541,7 @@
                     </div>
                 </div>
                 <div class="section-gradient-divider"></div>
-                
-                <!-- 7. Institutional Alert Center -->
-                <div class="cyber-header-wrap" data-section-id="alerts" style="margin-top: 24px;">
-                    <div class="header-ambient-glow red-alerts-glow"></div>
-                    <div class="cyber-header-title">
-                        <span class="cyber-badge-emblem cyber-badge-bull" style="background: radial-gradient(circle at 30% 30%, rgba(239, 68, 68, 0.35), rgba(15, 23, 42, 0.85)); border-color: rgba(239, 68, 68, 0.45); box-shadow: 0 0 12px rgba(239, 68, 68, 0.35);">🚨</span>
-                        <span>Institutional Alert Center</span>
-                        <span class="section-collapse-chevron">▾</span>
-                    </div>
-                    <button class="section-view-all-btn" onclick="window.switchTab && window.switchTab('alerts')" style="background: rgba(239, 68, 68, 0.1); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.3); padding: 4px 12px; font-size: 13.5px; border-radius: 6px; cursor: pointer; font-family: 'Outfit', sans-serif; font-weight: 700;">View All →</button>
-                </div>
-                <div class="mobile-glass-card section-collapsible-body" data-section-id="alerts" style="padding: 12px; margin-bottom: 20px;">
-                    <div id="mobile-home-alerts-container" class="mobile-vertical-list-container" style="display: flex; flex-direction: column; gap: 8px;">
-                        <div class="skeleton-card-row"><div class="skel-circle"></div><div class="skel-lines"><div class="skel-line-short"></div><div class="skel-line-long"></div></div><div class="skel-price-block"></div></div>
-                        <div class="skeleton-card-row"><div class="skel-circle"></div><div class="skel-lines"><div class="skel-line-short"></div><div class="skel-line-long"></div></div><div class="skel-price-block"></div></div>
-                    </div>
-                </div>
-                <div class="section-gradient-divider"></div>
+
 
                 <!-- 9. Live Catalyst News -->
                 <div class="cyber-header-wrap" data-section-id="news" style="margin-top: 24px;">
@@ -4112,7 +4095,6 @@
             const newsContainer = document.getElementById('mobile-home-news-container');
             const mobileWatchlistContainer = document.getElementById('mobile-home-watchlist-container');
             const mobileTechScansContainer = document.getElementById('mobile-home-tech-scans-container');
-            const mobileAlertsContainer = document.getElementById('mobile-home-alerts-container');
             const mobileQuantPicksContainer = document.getElementById('mobile-home-quant-picks-container');
 
             // 1. Render Recent Search Pills
@@ -5542,9 +5524,9 @@
                 };
 
                 if (mobileAlerts) {
-                    mobileAlerts.innerHTML = alerts.slice(0, 5).map(a => renderAlertHtml(a)).join('');
+                    mobileAlerts.remove();
                 }
-                container.innerHTML = alerts.slice(0, 5).map(a => renderAlertHtml(a)).join('');
+                if (container) container.innerHTML = alerts.slice(0, 5).map(a => renderAlertHtml(a)).join('');
             } else {
                 const defaultOnlineHtml = `
                     <div class="alert-home-item" onclick="window.switchTab && window.switchTab('alerts')">
