@@ -30046,3 +30046,108 @@ body.light-theme .sticky-screener-col {
         border-radius: 6px !important;
     }
 }
+
+
+/* ==========================================================================
+   100% SOLID OPAQUE STICKY TICKER COLUMN FIX (LIGHT & DARK THEME)
+   ZERO TRANSPARENCY / ZERO BLEED-THROUGH FOR ALL TABLES & SWING SCANNERS
+   ========================================================================== */
+
+/* Universal Dark Theme Sticky First Column Solid Opaque Background */
+table tbody td:first-child,
+.data-table tbody td:first-child,
+.screener-table tbody td:first-child,
+.tech-scans-table-container table tbody td:first-child,
+#swing-scan-table tbody td:first-child,
+#swing-scan-body td:first-child,
+.sticky-col,
+.sticky-stock-col,
+.sticky-screener-col {
+    position: sticky !important;
+    left: 0 !important;
+    z-index: 10 !important;
+    background: #0b0f19 !important;
+    background-color: #0b0f19 !important;
+    opacity: 1 !important;
+    box-shadow: 4px 0 10px rgba(0, 0, 0, 0.5) !important;
+}
+
+/* Universal Light Theme Sticky First Column 100% Solid Opaque Background */
+[data-mode="light"] table tbody td:first-child,
+[data-mode="light"] .data-table tbody td:first-child,
+[data-mode="light"] .screener-table tbody td:first-child,
+[data-mode="light"] .tech-scans-table-container table tbody td:first-child,
+[data-mode="light"] #swing-scan-table tbody td:first-child,
+[data-mode="light"] #swing-scan-body td:first-child,
+[data-mode="light"] #tab-swingscans table tbody td:first-child,
+[data-mode="light"] #tab-watchlist table tbody td:first-child,
+[data-mode="light"] #tab-alerts table tbody td:first-child,
+[data-mode="light"] #tab-universe table tbody td:first-child,
+[data-mode="light"] #tab-screener table tbody td:first-child,
+[data-mode="light"] #tab-movers table tbody td:first-child,
+[data-mode="light"] #tab-rule-scanner table tbody td:first-child,
+[data-mode="light"] #sector-stocks-modal table tbody td:first-child,
+[data-mode="light"] td.sticky-col,
+[data-mode="light"] td.sticky-stock-col,
+[data-mode="light"] .sticky-screener-col,
+[data-theme="light"] table tbody td:first-child,
+[data-theme="light"] .data-table tbody td:first-child,
+[data-theme="light"] .screener-table tbody td:first-child,
+[data-theme="light"] .tech-scans-table-container table tbody td:first-child,
+[data-theme="light"] #swing-scan-table tbody td:first-child,
+[data-theme="light"] #swing-scan-body td:first-child,
+[data-theme="light"] #tab-swingscans table tbody td:first-child,
+[data-theme="light"] #tab-watchlist table tbody td:first-child,
+[data-theme="light"] #tab-alerts table tbody td:first-child,
+[data-theme="light"] #tab-universe table tbody td:first-child,
+[data-theme="light"] #tab-screener table tbody td:first-child,
+[data-theme="light"] #tab-movers table tbody td:first-child,
+[data-theme="light"] #tab-rule-scanner table tbody td:first-child,
+[data-theme="light"] #sector-stocks-modal table tbody td:first-child,
+[data-theme="light"] td.sticky-col,
+[data-theme="light"] td.sticky-stock-col,
+[data-theme="light"] .sticky-screener-col,
+body.light-theme table tbody td:first-child,
+body.light-theme .data-table tbody td:first-child,
+body.light-theme .screener-table tbody td:first-child,
+body.light-theme .tech-scans-table-container table tbody td:first-child,
+body.light-theme #swing-scan-table tbody td:first-child,
+body.light-theme #swing-scan-body td:first-child,
+body.light-theme #tab-swingscans table tbody td:first-child,
+body.light-theme td.sticky-col,
+body.light-theme td.sticky-stock-col,
+body.light-theme .sticky-screener-col {
+    position: sticky !important;
+    left: 0 !important;
+    z-index: 10 !important;
+    background: #ffffff !important;
+    background-color: #ffffff !important;
+    color: #0f172a !important;
+    opacity: 1 !important;
+    box-shadow: 4px 0 12px rgba(0, 0, 0, 0.08) !important;
+    border-right: 1.5px solid #cbd5e1 !important;
+}
+
+/* Also ensure top-left corner header cells in Light Mode are 100% solid white */
+[data-mode="light"] table thead th:first-child,
+[data-mode="light"] .data-table thead th:first-child,
+[data-mode="light"] .screener-table thead th:first-child,
+[data-mode="light"] .tech-scans-table-container table thead th:first-child,
+[data-mode="light"] #swing-scan-table thead th:first-child,
+[data-theme="light"] table thead th:first-child,
+[data-theme="light"] .data-table thead th:first-child,
+[data-theme="light"] .screener-table thead th:first-child,
+[data-theme="light"] .tech-scans-table-container table thead th:first-child,
+[data-theme="light"] #swing-scan-table thead th:first-child,
+body.light-theme table thead th:first-child,
+body.light-theme #swing-scan-table thead th:first-child {
+    position: sticky !important;
+    left: 0 !important;
+    z-index: 25 !important;
+    background: #f8fafc !important;
+    background-color: #f8fafc !important;
+    color: #0f172a !important;
+    opacity: 1 !important;
+    box-shadow: 4px 0 12px rgba(0, 0, 0, 0.08) !important;
+    border-right: 1.5px solid #cbd5e1 !important;
+}
