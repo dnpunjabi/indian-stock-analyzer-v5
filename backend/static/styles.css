@@ -29681,3 +29681,134 @@ body.light-theme .sticky-screener-col {
         margin-bottom: 85px !important;
     }
 }
+
+
+/* ==========================================================================
+   WATCHLIST REGISTRY MOBILE UI/UX OVERHAUL (OPTION 1 - STRICT MOBILE ONLY)
+   ========================================================================== */
+
+@media (max-width: 768px) {
+    /* 1. Watchlist Card Header Responsiveness */
+    #watchlist-items-card .card-header {
+        flex-direction: column !important;
+        align-items: flex-start !important;
+        gap: 10px !important;
+    }
+
+    #watchlist-items-card .card-header > div:first-child {
+        width: 100% !important;
+        display: flex !important;
+        flex-direction: row !important;
+        align-items: center !important;
+        justify-content: space-between !important;
+        gap: 6px !important;
+    }
+
+    #watchlist-select {
+        min-width: 140px !important;
+        max-width: 180px !important;
+        font-size: 12.5px !important;
+        padding: 5px 8px !important;
+    }
+
+    #open-watchlist-manage-modal-btn {
+        font-size: 11px !important;
+        padding: 4px 8px !important;
+        white-space: nowrap !important;
+    }
+
+    /* 2. Single-Row Horizontal Action Toolbar for Watchlist */
+    #watchlist-items-card .card-header > div:nth-child(2) {
+        display: flex !important;
+        flex-direction: row !important;
+        flex-wrap: nowrap !important;
+        overflow-x: auto !important;
+        -webkit-overflow-scrolling: touch !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        padding-bottom: 4px !important;
+        gap: 6px !important;
+    }
+
+    #watchlist-inline-add-container {
+        flex: 0 0 auto !important;
+        display: flex !important;
+        align-items: center !important;
+        gap: 4px !important;
+        margin-right: 4px !important;
+    }
+
+    #watchlist-inline-add-input {
+        width: 120px !important;
+        font-size: 11.5px !important;
+        padding: 4px 6px !important;
+    }
+
+    #watchlist-inline-add-btn,
+    #analyze-watchlist-btn,
+    #watchlist-refresh-btn,
+    #watchlist-export-csv-btn,
+    #watchlist-alert-toggle-btn {
+        flex: 0 0 auto !important;
+        width: auto !important;
+        min-width: auto !important;
+        font-size: 11px !important;
+        padding: 4px 10px !important;
+        height: 32px !important;
+        white-space: nowrap !important;
+        border-radius: 6px !important;
+    }
+
+    /* 3. Horizontal Touch-Swipe View Switcher & Filter Chips */
+    #watchlist-items-card > div:nth-child(2) {
+        flex-direction: column !important;
+        align-items: flex-start !important;
+        gap: 8px !important;
+        padding: 8px 10px !important;
+    }
+
+    #watchlist-items-card > div:nth-child(2) > div:first-child {
+        display: flex !important;
+        flex-direction: row !important;
+        flex-wrap: nowrap !important;
+        overflow-x: auto !important;
+        -webkit-overflow-scrolling: touch !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        gap: 4px !important;
+        padding: 2px !important;
+    }
+
+    .wl-view-btn {
+        flex: 0 0 auto !important;
+        font-size: 11px !important;
+        padding: 4px 8px !important;
+        white-space: nowrap !important;
+    }
+
+    #watchlist-items-card > div:nth-child(2) > div:nth-child(2) {
+        display: flex !important;
+        flex-direction: row !important;
+        flex-wrap: nowrap !important;
+        overflow-x: auto !important;
+        -webkit-overflow-scrolling: touch !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        gap: 6px !important;
+        padding-bottom: 2px !important;
+    }
+
+    .watchlist-filter-chip {
+        flex: 0 0 auto !important;
+        font-size: 10.5px !important;
+        padding: 3px 8px !important;
+        white-space: nowrap !important;
+    }
+
+    /* 4. Bottom Mobile Navigation Clearance */
+    #tab-watchlist,
+    .watchlist-grid,
+    #watchlist-items-card {
+        padding-bottom: 85px !important;
+    }
+}
