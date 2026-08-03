@@ -5606,8 +5606,12 @@
 
             function renderWatchlistList() {
                 window.renderWatchlistList = renderWatchlistList;
+                const mobileWatchlist = document.getElementById('mobile-home-watchlist-container');
+                const desktopWatchlist = document.getElementById('desktop-watchlist-container');
+
                 if (watchlistCachedItems.length === 0) {
-                    container.innerHTML = `<div class="recent-research-empty" style="font-size: 13.5px;">No stocks in this watchlist.</div>`;
+                    if (mobileWatchlist) mobileWatchlist.innerHTML = `<div class="recent-research-empty" style="font-size: 13.5px;">No stocks in this watchlist.</div>`;
+                    if (desktopWatchlist) desktopWatchlist.innerHTML = `<div class="recent-research-empty" style="font-size: 13.5px;">No stocks in this watchlist.</div>`;
                     return;
                 }
 
@@ -5631,7 +5635,7 @@
                     });
                 }
 
-                const mobileWatchlist = document.getElementById('mobile-home-watchlist-container');
+                // 1. MOBILE WATCHLIST HOME WIDGET RENDER
                 if (mobileWatchlist) {
                     if (displayItems.length > 0) {
                         const activeTab = window.activeMobileWatchlistTab || 'gainers';
@@ -5641,12 +5645,30 @@
                             return valB - valA;
                         });
 
-                        const topGainers = sortedByChange.filter(i => parseFloat(i.change_pct || 0) >= 0).slice(0, 5);
-                        const topLosers = sortedByChange.filter(i => parseFloat(i.change_pct || 0) < 0).reverse().slice(0, 5);
+                        // Separate Gainers and Losers
+                        const topGainers = sortedByChange.filter(i => parseFloat(i.change_pct || 0) >= 0);
+                        const topLosers = sortedByChange.filter(i => parseFloat(i.change_pct || 0) < 0).reverse();
 
-                        const listToDisplay = (activeTab === 'gainers') 
-                            ? (topGainers.length > 0 ? topGainers : sortedByChange.slice(0, 5))
-                            : (topLosers.length > 0 ? topLosers : sortedByChange.slice(-5).reverse());
+                        // Guarantee that if there are <= 5 stocks in the watchlist, ALL items are shown!
+                        let listToDisplay = [];
+                        if (activeTab === 'gainers') {
+                            if (topGainers.length > 0) {
+                                listToDisplay = topGainers.slice(0, 5);
+                            } else {
+                                listToDisplay = sortedByChange.slice(0, 5);
+                            }
+                        } else {
+                            if (topLosers.length > 0) {
+                                listToDisplay = topLosers.slice(0, 5);
+                            } else {
+                                listToDisplay = sortedByChange.slice(-5).reverse();
+                            }
+                        }
+
+                        // If total watchlist length is <= 5, display ALL 5 items so no stock is ever missing!
+                        if (displayItems.length <= 5) {
+                            listToDisplay = sortedByChange;
+                        }
 
                         const renderMobileWatchlistCard = (item) => {
                             const cleanSym = (item.symbol || '').replace('.NS', '').replace('.BO', '');
@@ -5683,13 +5705,13 @@
 
                         const htmlContent = `
                             <div class="movers-segmented-control" style="margin-bottom: 10px; display: flex; gap: 6px;">
-                                <button class="tech-segmented-tab ${activeTab === 'gainers' ? 'active' : ''}" id="mobile-wl-tab-gainers" onclick="window.switchMobileWatchlistTab('gainers')" style="flex: 1; text-align: center; font-size: 13px; font-weight: 800; padding: 6px 0; border-radius: 6px;">🔥 Gainers (${topGainers.length})</button>
+                                <button class="tech-segmented-tab ${activeTab === 'gainers' ? 'active' : ''}" id="mobile-wl-tab-gainers" onclick="window.switchMobileWatchlistTab('gainers')" style="flex: 1; text-align: center; font-size: 13px; font-weight: 800; padding: 6px 0; border-radius: 6px;">🔥 Gainers (${topGainers.length > 0 ? topGainers.length : displayItems.length})</button>
                                 <button class="tech-segmented-tab ${activeTab === 'losers' ? 'active' : ''}" id="mobile-wl-tab-losers" onclick="window.switchMobileWatchlistTab('losers')" style="flex: 1; text-align: center; font-size: 13px; font-weight: 800; padding: 6px 0; border-radius: 6px;">❄️ Losers (${topLosers.length})</button>
                             </div>
                             <div id="mobile-watchlist-tab-content">
                                 ${listToDisplay.length > 0 
                                     ? listToDisplay.map(item => renderMobileWatchlistCard(item)).join('') 
-                                    : `<div class="recent-research-empty" style="font-size: 13.5px; padding: 10px;">No ${activeTab} items in this watchlist.</div>`
+                                    : `<div class="recent-research-empty" style="font-size: 13.5px; padding: 10px;">No items in this watchlist.</div>`
                                 }
                             </div>
                         `;
@@ -5699,74 +5721,74 @@
                         mobileWatchlist.innerHTML = '<div class="recent-research-empty" style="font-size: 13.5px;">No stocks in watchlist.</div>';
                     }
                 }
-                                // Define row element renderer
-                const renderRowItem = (item) => {
-                    const price = item.live_price !== undefined ? parseFloat(item.live_price).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '--';
-                    const changeVal = item.change_pct !== undefined ? parseFloat(item.change_pct) : 0;
-                    const changeStr = item.change_pct !== undefined ? `${changeVal >= 0 ? '+' : ''}${changeVal.toFixed(2)}%` : '--';
-                    const isPositive = changeVal >= 0;
-                    const arrow = isPositive ? '▲' : '▼';
-                    const color = isPositive ? '#10b981' : '#ef4444';
-                    const bg = isPositive ? 'rgba(16,185,129,0.1)' : 'rgba(239,68,68,0.1)';
-                    const cleanSym = item.symbol.replace('.NS', '');
 
-                    return `
-                        <div class="watchlist-row-item" data-symbol="${cleanSym}" style="display: flex; justify-content: space-between; align-items: center; padding: 6px 8px; background: rgba(255, 255, 255, 0.015); border: 1px solid var(--border-glass); border-radius: 6px; cursor: pointer; transition: background 0.15s, transform 0.1s; height: 38px; box-sizing: border-box;">
-                            <div style="font-weight: 700; color: var(--text-primary); font-size: 13.5px; width: 85px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${cleanSym}</div>
-                            <div style="text-align: right; color: var(--text-primary); font-weight: 600; font-family: 'Inter', monospace; font-size: 13.5px; flex-grow: 1; padding-right: 12px;">₹${price}</div>
-                            <div style="text-align: right; font-weight: 700; font-family: 'Inter', monospace; font-size: 13px; width: 68px; flex-shrink: 0;">
-                                <span style="color: ${color}; padding: 2px 6px; border-radius: 4px; background: ${bg}; display: inline-block; min-width: 54px; text-align: right;">${arrow}${changeStr}</span>
+                // 2. DESKTOP WATCHLIST RENDER (ONLY IF DESKTOP CONTAINER EXISTS)
+                if (desktopWatchlist) {
+                    const renderRowItem = (item) => {
+                        const price = item.live_price !== undefined ? parseFloat(item.live_price).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '--';
+                        const changeVal = item.change_pct !== undefined ? parseFloat(item.change_pct) : 0;
+                        const changeStr = item.change_pct !== undefined ? `${changeVal >= 0 ? '+' : ''}${changeVal.toFixed(2)}%` : '--';
+                        const isPositive = changeVal >= 0;
+                        const arrow = isPositive ? '▲' : '▼';
+                        const color = isPositive ? '#10b981' : '#ef4444';
+                        const bg = isPositive ? 'rgba(16,185,129,0.1)' : 'rgba(239,68,68,0.1)';
+                        const cleanSym = item.symbol.replace('.NS', '');
+
+                        return `
+                            <div class="watchlist-row-item" data-symbol="${cleanSym}" style="display: flex; justify-content: space-between; align-items: center; padding: 6px 8px; background: rgba(255, 255, 255, 0.015); border: 1px solid var(--border-glass); border-radius: 6px; cursor: pointer; transition: background 0.15s, transform 0.1s; height: 38px; box-sizing: border-box;">
+                                <div style="font-weight: 700; color: var(--text-primary); font-size: 13.5px; width: 85px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${cleanSym}</div>
+                                <div style="text-align: right; color: var(--text-primary); font-weight: 600; font-family: 'Inter', monospace; font-size: 13.5px; flex-grow: 1; padding-right: 12px;">₹${price}</div>
+                                <div style="text-align: right; font-weight: 700; font-family: 'Inter', monospace; font-size: 13px; width: 68px; flex-shrink: 0;">
+                                    <span style="color: ${color}; padding: 2px 6px; border-radius: 4px; background: ${bg}; display: inline-block; min-width: 54px; text-align: right;">${arrow}${changeStr}</span>
+                                </div>
                             </div>
-                        </div>
-                    `;
-                };
-
-                // Split displayItems into Top 3 Gainers and Bottom 3 Losers by change_pct
-                const sortedByChange = [...displayItems].sort((a, b) => {
-                    const valA = parseFloat(a.change_pct || 0);
-                    const valB = parseFloat(b.change_pct || 0);
-                    return valB - valA;
-                });
-
-                if (sortedByChange.length > 3) {
-                    const gainers = sortedByChange.slice(0, 3);
-                    const losers = sortedByChange.slice(-3).reverse();
-
-                    container.innerHTML = `
-                        <div style="display: flex; gap: 16px; width: 100%;">
-                            <!-- Left Column (Gainers) -->
-                            <div style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 6px;">
-                                <div style="font-size: 12.5px; font-weight: 700; color: #10b981; text-transform: uppercase; letter-spacing: 0.03em; border-left: 2px solid #10b981; padding-left: 6px; margin-bottom: 2px;">🔥 Watchlist Gainers</div>
-                                ${gainers.map(item => renderRowItem(item)).join('')}
-                            </div>
-                            <!-- Right Column (Losers) -->
-                            <div style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 6px;">
-                                <div style="font-size: 12.5px; font-weight: 700; color: #ef4444; text-transform: uppercase; letter-spacing: 0.03em; border-left: 2px solid #ef4444; padding-left: 6px; margin-bottom: 2px;">❄️ Watchlist Losers</div>
-                                ${losers.map(item => renderRowItem(item)).join('')}
-                            </div>
-                        </div>
-                    `;
-                } else {
-                    container.innerHTML = `
-                        <div style="display: flex; flex-direction: column; gap: 6px; width: 100%;">
-                            ${sortedByChange.map(item => renderRowItem(item)).join('')}
-                        </div>
-                    `;
-                }
-
-                container.querySelectorAll('.watchlist-row-item').forEach(row => {
-                    row.onclick = (e) => {
-                        e.stopPropagation();
-                        const symbol = row.getAttribute('data-symbol');
-                        const searchInput = document.getElementById('analyzer-search-input');
-                        const searchBtn = document.getElementById('analyzer-search-btn');
-                        if (searchInput) {
-                            searchInput.value = symbol;
-                            searchInput.focus();
-                            if (searchBtn) searchBtn.click();
-                        }
+                        `;
                     };
-                });
+
+                    const sortedByChange = [...displayItems].sort((a, b) => {
+                        const valA = parseFloat(a.change_pct || 0);
+                        const valB = parseFloat(b.change_pct || 0);
+                        return valB - valA;
+                    });
+
+                    if (sortedByChange.length > 3) {
+                        const gainers = sortedByChange.slice(0, 3);
+                        const losers = sortedByChange.slice(-3).reverse();
+
+                        desktopWatchlist.innerHTML = `
+                            <div style="display: flex; gap: 16px; width: 100%;">
+                                <div style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 6px;">
+                                    <div style="font-size: 12.5px; font-weight: 700; color: #10b981; text-transform: uppercase; letter-spacing: 0.03em; border-left: 2px solid #10b981; padding-left: 6px; margin-bottom: 2px;">🔥 Watchlist Gainers</div>
+                                    ${gainers.map(item => renderRowItem(item)).join('')}
+                                </div>
+                                <div style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 6px;">
+                                    <div style="font-size: 12.5px; font-weight: 700; color: #ef4444; text-transform: uppercase; letter-spacing: 0.03em; border-left: 2px solid #ef4444; padding-left: 6px; margin-bottom: 2px;">❄️ Watchlist Losers</div>
+                                    ${losers.map(item => renderRowItem(item)).join('')}
+                                </div>
+                            </div>
+                        `;
+                    } else {
+                        desktopWatchlist.innerHTML = `
+                            <div style="display: flex; flex-direction: column; gap: 6px; width: 100%;">
+                                ${sortedByChange.map(item => renderRowItem(item)).join('')}
+                            </div>
+                        `;
+                    }
+
+                    desktopWatchlist.querySelectorAll('.watchlist-row-item').forEach(row => {
+                        row.onclick = (e) => {
+                            e.stopPropagation();
+                            const symbol = row.getAttribute('data-symbol');
+                            const searchInput = document.getElementById('analyzer-search-input');
+                            const searchBtn = document.getElementById('analyzer-search-btn');
+                            if (searchInput) {
+                                searchInput.value = symbol;
+                                searchInput.focus();
+                                if (searchBtn) searchBtn.click();
+                            }
+                        };
+                    });
+                }
             };
 
             async function onWatchlistChange(watchlistId) {
