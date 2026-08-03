@@ -16431,22 +16431,74 @@ async function setupWatchlistControls() {
     const modalAddInput = document.getElementById('watchlist-modal-add-input');
     const modalSuggestionsDiv = document.getElementById('watchlist-modal-suggestions');
 
+    async function addStockToActiveWatchlist(symbolQuery) {
+        if (activeWatchlistId === null) {
+            showToast("Please select or create a watchlist first.", "warning");
+            return false;
+        }
+
+        if (!symbolQuery) {
+            showToast("Please enter a stock symbol or name.", "warning");
+            return false;
+        }
+
+        try {
+            let baseSymbol = symbolQuery.toUpperCase().trim().replace(/\.NS$|\.BO$/i, '');
+            let fullTicker = symbolQuery.toUpperCase().trim().includes('.') ? symbolQuery.toUpperCase().trim() : `${baseSymbol}.NS`;
+
+            try {
+                const searchRes = await fetch(`/api/search?q=${encodeURIComponent(symbolQuery)}`);
+                if (searchRes.ok) {
+                    const resolved = await safeFetchJson(searchRes, "Search resolution failed.");
+                    if (resolved && resolved.base_symbol) {
+                        baseSymbol = resolved.base_symbol;
+                        fullTicker = resolved.yf_ticker || `${baseSymbol}.NS`;
+                    }
+                }
+            } catch (searchErr) {
+                console.warn("Search resolution fallback applied:", searchErr);
+            }
+
+            const response = await fetch(`/api/watchlists/${activeWatchlistId}/items`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ symbol: fullTicker })
+            });
+
+            const addedItem = await safeFetchJson(response, "Failed to add stock to watchlist.");
+            const displayName = (addedItem && (addedItem.name || addedItem.symbol)) ? `${addedItem.name || addedItem.symbol}` : fullTicker;
+            showToast(`Successfully added ${displayName} to the watchlist.`, "success");
+
+            await fetchWatchlists(true);
+            return true;
+        } catch (e) {
+            console.error("Error adding stock to watchlist:", e);
+            showToast("Error: " + e.message, "error");
+            return false;
+        }
+    }
+    window.addStockToWatchlist = function(id, sym) { return addStockToActiveWatchlist(sym); };
+    window.addStockToActiveWatchlist = addStockToActiveWatchlist;
+
     async function addModalStockToWatchlist() {
         if (activeWatchlistId === null) {
             showToast("Please select a watchlist first.", "warning");
             return;
         }
-        const val = modalAddInput ? modalAddInput.value.trim().toUpperCase() : '';
+        const val = modalAddInput ? modalAddInput.value.trim() : '';
         if (!val) {
             showToast("Please enter a stock symbol.", "warning");
             return;
         }
-        const cleanSymbol = val.replace('.NS', '');
-        await addStockToWatchlist(activeWatchlistId, cleanSymbol);
-        if (modalAddInput) modalAddInput.value = '';
-        if (modalSuggestionsDiv) modalSuggestionsDiv.style.display = 'none';
-        const manageModalEl = document.getElementById('watchlist-manage-modal');
-        if (manageModalEl) manageModalEl.style.display = 'none';
+        if (modalAddBtn) modalAddBtn.innerText = 'Adding...';
+        const success = await addStockToActiveWatchlist(val);
+        if (modalAddBtn) modalAddBtn.innerText = '+ Add Stock to Watchlist';
+        if (success) {
+            if (modalAddInput) modalAddInput.value = '';
+            if (modalSuggestionsDiv) modalSuggestionsDiv.style.display = 'none';
+            const manageModalEl = document.getElementById('watchlist-manage-modal');
+            if (manageModalEl) manageModalEl.style.display = 'none';
+        }
     }
 
     if (modalAddBtn) {
