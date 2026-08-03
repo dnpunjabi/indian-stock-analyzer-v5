@@ -49890,13 +49890,20 @@ async function loadMarketEvents() {
     var tbody = document.getElementById('events-market-tbody');
     var mobileCards = document.getElementById('events-market-cards');
     var countBadge = document.getElementById('events-market-count');
-    var summaryBar = document.getElementById('events-summary-bar');
-    var loadMoreBtn = document.getElementById('events-load-more');
     var rangeSelect = document.getElementById('events-range-select');
 
     if (!tbody) return;
 
     var days = rangeSelect ? parseInt(rangeSelect.value) : 30;
+    var endpoint = '/api/events/calendar?days=' + days;
+
+    // 1. If SWR cache is available, render instantly from cache in 0ms
+    if (window.swrFetchJson) {
+        await window.swrFetchJson(endpoint, function(data) {
+            if (data) _processAndRenderEventsCalendar(data);
+        });
+        return;
+    }
 
     // Show loading state
     tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; padding: 30px; color: var(--text-muted); font-size: 11.5px;">' +
@@ -49905,42 +49912,10 @@ async function loadMarketEvents() {
     if (mobileCards) mobileCards.innerHTML = '';
 
     try {
-        var resp = await fetch('/api/events/calendar?days=' + days);
+        var resp = await fetch(endpoint);
         if (!resp.ok) throw new Error('HTTP ' + resp.status);
         var data = await resp.json();
-
-        _eventsMarketData = (data.events || []).filter(function(e) {
-            // Only show future events + last 7 days of passed
-            var cd = _eventCountdown(e.event_date);
-            return cd.days === null || cd.days >= -7;
-        });
-
-        // Sort by date ascending by default
-        _eventsMarketData.sort(function(a, b) {
-            return new Date(a.event_date) - new Date(b.event_date);
-        });
-
-        _eventsMarketSortKey = 'event_date';
-        _eventsMarketSortAsc = true;
-        _updateSortHeaders();
-
-        _eventsMarketPage = 0;
-        _eventsActiveFilter = 'all';
-        _eventsWatchlistOnly = false;
-
-        // Reset active pill
-        document.querySelectorAll('#events-filter-pills button[data-filter]').forEach(function(p) { p.classList.remove('active'); });
-        var allPill = document.querySelector('.events-pill[data-filter="all"]');
-        if (allPill) allPill.classList.add('active');
-        var wlBtn = document.getElementById('events-watchlist-btn');
-        if (wlBtn) wlBtn.classList.remove('active');
-
-        // Build summary
-        _renderEventsSummary(data.type_counts || {});
-
-        // Apply filters and render
-        _applyEventsFilter();
-
+        _processAndRenderEventsCalendar(data);
     } catch (err) {
         console.error('[Events] Failed to load market events:', err);
         tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; padding: 30px; color: var(--text-muted);">' +
@@ -49948,6 +49923,35 @@ async function loadMarketEvents() {
             '</td></tr>';
         if (countBadge) countBadge.textContent = '0';
     }
+}
+
+function _processAndRenderEventsCalendar(data) {
+    if (!data) return;
+    _eventsMarketData = (data.events || []).filter(function(e) {
+        var cd = _eventCountdown(e.event_date);
+        return cd.days === null || cd.days >= -7;
+    });
+
+    _eventsMarketData.sort(function(a, b) {
+        return new Date(a.event_date) - new Date(b.event_date);
+    });
+
+    _eventsMarketSortKey = 'event_date';
+    _eventsMarketSortAsc = true;
+    _updateSortHeaders();
+
+    _eventsMarketPage = 0;
+    _eventsActiveFilter = 'all';
+    _eventsWatchlistOnly = false;
+
+    document.querySelectorAll('#events-filter-pills button[data-filter]').forEach(function(p) { p.classList.remove('active'); });
+    var allPill = document.querySelector('.events-pill[data-filter="all"]');
+    if (allPill) allPill.classList.add('active');
+    var wlBtn = document.getElementById('events-watchlist-btn');
+    if (wlBtn) wlBtn.classList.remove('active');
+
+    _renderEventsSummary(data.type_counts || {});
+    _applyEventsFilter();
 }
 
 /** Render the summary stats bar */
