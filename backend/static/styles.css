@@ -24757,6 +24757,17 @@ body.light-mode .mobile-deck-card {
     background: radial-gradient(circle, rgba(245, 158, 11, 0.25) 0%, transparent 70%);
 }
 
+@media (max-width: 768px) {
+    .header-ambient-glow {
+        filter: none !important;
+        animation: none !important;
+        opacity: 0.3 !important;
+    }
+    .section-collapsible-body {
+        transition: none !important;
+    }
+}
+
 /* 3D Cybernetic Section Header Badges (Foreground Art) */
 .cyber-header-wrap {
     position: relative;
