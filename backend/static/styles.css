@@ -24234,7 +24234,7 @@ body, .card, .desktop-header, .institutional-footer, .desktop-top-ticker-banner 
     }
 
     body {
-        padding-top: calc(88px + env(safe-area-inset-top, 0px)) !important;
+        padding-top: calc(108px + env(safe-area-inset-top, 0px)) !important;
     }
     
     .app-container {
@@ -24288,6 +24288,7 @@ body, .card, .desktop-header, .institutional-footer, .desktop-top-ticker-banner 
     .market-pulse-hero-banner {
         padding: 14px 16px !important;
         border-radius: 14px !important;
+        margin-top: 12px !important;
         margin-bottom: 16px !important;
     }
 
@@ -24311,6 +24312,7 @@ body, .card, .desktop-header, .institutional-footer, .desktop-top-ticker-banner 
     .market-pulse-hero-banner {
         padding: 12px !important;
         border-radius: 12px !important;
+        margin-top: 14px !important;
     }
 }
 
