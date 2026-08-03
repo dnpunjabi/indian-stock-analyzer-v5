@@ -5770,8 +5770,7 @@
             };
 
             async function onWatchlistChange(watchlistId) {
-                watchlistCachedItems = [];
-
+                // Do NOT wipe watchlistCachedItems = [] here to prevent layout flickering/disappearing items
                 try {
                     await window.swrFetchJson(`/api/watchlists/${watchlistId}`, async (data) => {
                         if (!data) return;
@@ -5783,6 +5782,31 @@
                             return;
                         }
 
+                        // Preserve existing quotes if symbols match
+                        const prevQuoteMap = {};
+                        (watchlistCachedItems || []).forEach(oldItem => {
+                            if (oldItem.symbol && oldItem.live_price !== undefined) {
+                                prevQuoteMap[oldItem.symbol] = {
+                                    live_price: oldItem.live_price,
+                                    change: oldItem.change,
+                                    change_pct: oldItem.change_pct
+                                };
+                            }
+                        });
+
+                        items.forEach(item => {
+                            if (prevQuoteMap[item.symbol]) {
+                                item.live_price = prevQuoteMap[item.symbol].live_price;
+                                item.change = prevQuoteMap[item.symbol].change;
+                                item.change_pct = prevQuoteMap[item.symbol].change_pct;
+                            }
+                        });
+
+                        // Render immediately with cached/known items so list never disappears
+                        watchlistCachedItems = items;
+                        renderWatchlistList();
+
+                        // Now fetch batch live quotes in background and smoothly update prices
                         const symbols = items.map(item => item.symbol);
                         if (symbols.length > 0) {
                             try {
@@ -5802,14 +5826,14 @@
                                             item.change_pct = q.change_pct;
                                         }
                                     });
+                                    watchlistCachedItems = items;
+                                    renderWatchlistList();
                                 }
                             } catch (e) {
                                 console.warn("Watchlist strip live quotes fetch error:", e);
                             }
                         }
 
-                        watchlistCachedItems = items;
-                        renderWatchlistList();
                         setTimeout(bindMobileSortHeaders, 100);
                     });
                 } catch (err) {
