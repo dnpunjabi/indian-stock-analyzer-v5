@@ -29432,3 +29432,118 @@ body.light-theme .sticky-screener-col {
         padding: 4px 8px !important;
     }
 }
+
+
+/* ==========================================================================
+   QUANT SCREENER & SCANNER MOBILE UI/UX OVERHAUL (OPTION 1)
+   ========================================================================== */
+
+@media (max-width: 768px) {
+    /* 1. Horizontal Touch-Swipe Strategy Selector Pills */
+    .screener-controls-card .strategy-selector {
+        display: flex !important;
+        flex-direction: row !important;
+        flex-wrap: nowrap !important;
+        overflow-x: auto !important;
+        -webkit-overflow-scrolling: touch !important;
+        gap: 8px !important;
+        padding: 4px !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        box-sizing: border-box !important;
+        margin-bottom: 16px !important;
+    }
+
+    .screener-controls-card .strategy-selector > div {
+        flex: 0 0 auto !important;
+        min-width: 180px !important;
+        max-width: 220px !important;
+        padding: 10px 12px !important;
+        border-radius: 10px !important;
+        margin-bottom: 0 !important;
+        box-sizing: border-box !important;
+    }
+
+    .screener-controls-card .strategy-selector > div h4 {
+        font-size: 12.5px !important;
+        font-weight: 700 !important;
+        white-space: nowrap !important;
+        margin-bottom: 2px !important;
+    }
+
+    .screener-controls-card .strategy-selector > div p {
+        font-size: 10.5px !important;
+        line-height: 1.3 !important;
+        display: -webkit-box !important;
+        -webkit-line-clamp: 2 !important;
+        -webkit-box-orient: vertical !important;
+        overflow: hidden !important;
+        margin-top: 0 !important;
+    }
+
+    /* 2. Single-Row Horizontal Action Toolbar */
+    .screener-card-header {
+        flex-direction: column !important;
+        align-items: flex-start !important;
+        gap: 12px !important;
+    }
+
+    .screener-actions-cluster {
+        display: flex !important;
+        flex-direction: row !important;
+        flex-wrap: nowrap !important;
+        overflow-x: auto !important;
+        -webkit-overflow-scrolling: touch !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        padding-bottom: 6px !important;
+        gap: 8px !important;
+    }
+
+    .screener-actions-cluster button {
+        flex: 0 0 auto !important;
+        font-size: 12px !important;
+        padding: 6px 12px !important;
+        height: 34px !important;
+        white-space: nowrap !important;
+        border-radius: 8px !important;
+    }
+
+    /* 3. Horizontal Filter Chips Toolbar */
+    .screener-chips-wrapper {
+        display: flex !important;
+        flex-direction: row !important;
+        flex-wrap: nowrap !important;
+        overflow-x: auto !important;
+        -webkit-overflow-scrolling: touch !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        gap: 6px !important;
+        margin-bottom: 12px !important;
+        padding-bottom: 4px !important;
+    }
+
+    .screener-chips-wrapper > span,
+    .screener-chips-wrapper > div {
+        flex: 0 0 auto !important;
+        white-space: nowrap !important;
+        font-size: 11px !important;
+    }
+
+    /* 4. Full-Width High-Converting Mobile Run Scan Trigger */
+    #run-screener-btn {
+        width: 100% !important;
+        height: 46px !important;
+        border-radius: 10px !important;
+        font-size: 13.5px !important;
+        font-weight: 800 !important;
+        box-shadow: 0 4px 16px var(--color-primary-glow) !important;
+    }
+
+    /* 5. Mobile Bottom Navigation Clearance */
+    #tab-screener,
+    #screener-results-box,
+    .screener-results-container {
+        padding-bottom: 90px !important;
+    }
+}
