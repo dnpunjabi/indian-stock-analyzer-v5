@@ -79,6 +79,15 @@
     };
 
     // SWR (Stale-While-Revalidate) Universal Helper for 0ms instant load
+    // Scroll-guard: defer Phase 2 re-render if user is actively scrolling to prevent layout thrash
+    let _swrScrolling = false;
+    let _swrScrollTimer = null;
+    window.addEventListener('scroll', function() {
+        _swrScrolling = true;
+        clearTimeout(_swrScrollTimer);
+        _swrScrollTimer = setTimeout(function() { _swrScrolling = false; }, 300);
+    }, { passive: true });
+
     window.swrFetchJson = async function(endpoint, renderCallback) {
         if (typeof renderCallback !== 'function') return;
         const cacheKey = 'swr_v3_' + endpoint.replace(/[^a-zA-Z0-9]/g, '_');
@@ -97,6 +106,16 @@
             const freshData = await window.safeFetchJson(endpoint);
             if (freshData) {
                 try { localStorage.setItem(cacheKey, JSON.stringify(freshData)); } catch(e) {}
+                // Defer re-render if user is actively scrolling to prevent layout thrash
+                if (_swrScrolling) {
+                    await new Promise(resolve => {
+                        const waitForScrollEnd = () => {
+                            if (!_swrScrolling) { resolve(); }
+                            else { setTimeout(waitForScrollEnd, 100); }
+                        };
+                        waitForScrollEnd();
+                    });
+                }
                 renderCallback(freshData, false);
             }
         } catch(e) {}
@@ -3313,7 +3332,7 @@
                     <p style="margin: 0; font-size: 14px; color: var(--text-secondary); line-height: 1.45;" id="mobile-home-copilot-summary">
                         ${derivedGreeting}
                     </p>
-                    <div class="breadth-gauge-wrap" id="mobile-home-breadth-gauge" style="margin-top: 14px; background: rgba(15, 23, 42, 0.5); border: 1px solid var(--border-glass); padding: 14px; border-radius: 12px; backdrop-filter: blur(12px); display: none;">
+                    <div class="breadth-gauge-wrap" id="mobile-home-breadth-gauge" style="margin-top: 14px; background: rgba(15, 23, 42, 0.5); border: 1px solid var(--border-glass); padding: 14px; border-radius: 12px; display: none;">
                         <div style="display: flex; align-items: center; justify-content: space-between; gap: 14px;">
                             <!-- Conic Dial Gauge SVG -->
                             <div style="position: relative; width: 64px; height: 64px; flex-shrink: 0;">

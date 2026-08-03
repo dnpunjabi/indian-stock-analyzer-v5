@@ -20092,32 +20092,28 @@ select option {
 }
 
 /* --- HYBRID MOBILE UI ENHANCEMENTS & GLASSMORPHISM --- */
+/* NOTE: backdrop-filter removed from scrollable cards to prevent GPU layer explosion
+   on real mobile devices. Fixed elements (header, bottom nav) retain blur. */
 .mobile-glass-card {
     background: var(--bg-card) !important;
     border: 1px solid var(--border-glass) !important;
-    backdrop-filter: blur(12px) !important;
-    -webkit-backdrop-filter: blur(12px) !important;
     border-radius: 12px !important;
     padding: 14px !important;
     margin-bottom: 12px !important;
     box-shadow: var(--glow-shadow) !important;
 }
 
-/* Glassmorphism for Quick Action Workspaces cards */
+/* Quick Action Workspaces cards */
 .mobile-cmd-card {
     background: var(--bg-card) !important;
     border: 1px solid var(--border-glass) !important;
-    backdrop-filter: blur(12px) !important;
-    -webkit-backdrop-filter: blur(12px) !important;
     box-shadow: var(--glow-shadow) !important;
 }
 
-/* Glassmorphism for Movers list items */
+/* Movers list items */
 .recent-stock-card {
     background: var(--bg-card) !important;
     border: 1px solid var(--border-glass) !important;
-    backdrop-filter: blur(12px) !important;
-    -webkit-backdrop-filter: blur(12px) !important;
     box-shadow: var(--glow-shadow) !important;
     margin-bottom: 8px !important;
     border-radius: 8px !important;
@@ -20938,24 +20934,10 @@ body.mobile-sheet-open {
     touch-action: pan-y !important;
 }
 
-/* GPU Hardware Acceleration for smooth, flicker-free mobile home page scrolling */
+/* Mobile scroll container — use only -webkit-overflow-scrolling, no forced GPU layers */
 #mobile-home-view,
 .mobile-command-center-content {
     -webkit-overflow-scrolling: touch !important;
-    backface-visibility: hidden !important;
-    -webkit-backface-visibility: hidden !important;
-    transform: translateZ(0) !important;
-    -webkit-transform: translateZ(0) !important;
-}
-
-.cyber-stock-card-row,
-.mobile-wl-card-item,
-.bloomberg-news-card,
-.mobile-glass-card,
-.event-row-item,
-.alert-home-item {
-    contain: content;
-    will-change: transform, opacity;
 }
 
 .mobile-wl-card-item {

@@ -52633,6 +52633,7 @@ function renderFuzzyRadarContent(data, desktopBuyRadar, desktopSellRadar, mobile
 
         // Mobile segmented tab renderer with horizontal snap carousel
         window.renderMobileFuzzyRadar = (mode) => {
+            const mobileRadarContainer = document.getElementById('mobile-home-fuzzy-radar-container');
             if (!mobileRadarContainer) return;
             const isBuy = mode !== 'sells';
             const items = isBuy ? (window.fuzzyHomepageData ? window.fuzzyHomepageData.top_buys : []) : (window.fuzzyHomepageData ? window.fuzzyHomepageData.top_sells : []);
