@@ -3560,24 +3560,6 @@
                 </div>
                 <div class="section-gradient-divider"></div>
 
-                <!-- 8. Corporate Events -->
-                <div class="cyber-header-wrap" data-section-id="events" style="margin-top: 24px;">
-                    <div class="header-ambient-glow pink-events-glow"></div>
-                    <div class="cyber-header-title">
-                        <span class="cyber-badge-emblem cyber-badge-compass" style="background: radial-gradient(circle at 30% 30%, rgba(236, 72, 153, 0.35), rgba(15, 23, 42, 0.85)); border-color: rgba(236, 72, 153, 0.45); box-shadow: 0 0 12px rgba(236, 72, 153, 0.35);">📅</span>
-                        <span>Corporate Events</span>
-                        <span class="section-collapse-chevron">▾</span>
-                    </div>
-                    <button class="section-view-all-btn" onclick="window.switchTab && window.switchTab('events')" style="background: rgba(236, 72, 153, 0.1); color: #ec4899; border: 1px solid rgba(236, 72, 153, 0.3); padding: 4px 12px; font-size: 13.5px; border-radius: 6px; cursor: pointer; font-family: 'Outfit', sans-serif; font-weight: 700;">View All →</button>
-                </div>
-                <div class="mobile-glass-card section-collapsible-body" data-section-id="events" style="padding: 12px; margin-bottom: 20px;">
-                    <div id="mobile-home-events-container" class="mobile-vertical-list-container" style="display: flex; flex-direction: column; gap: 8px;">
-                        <div class="skeleton-card-row"><div class="skel-circle"></div><div class="skel-lines"><div class="skel-line-short"></div><div class="skel-line-long"></div></div><div class="skel-price-block"></div></div>
-                        <div class="skeleton-card-row"><div class="skel-circle"></div><div class="skel-lines"><div class="skel-line-short"></div><div class="skel-line-long"></div></div><div class="skel-price-block"></div></div>
-                    </div>
-                </div>
-                <div class="section-gradient-divider"></div>
-
                 <!-- 9. Live Catalyst News -->
                 <div class="cyber-header-wrap" data-section-id="news" style="margin-top: 24px;">
                     <div class="header-ambient-glow orange-news-glow"></div>
@@ -4131,7 +4113,6 @@
             const mobileWatchlistContainer = document.getElementById('mobile-home-watchlist-container');
             const mobileTechScansContainer = document.getElementById('mobile-home-tech-scans-container');
             const mobileAlertsContainer = document.getElementById('mobile-home-alerts-container');
-            const mobileEventsContainer = document.getElementById('mobile-home-events-container');
             const mobileQuantPicksContainer = document.getElementById('mobile-home-quant-picks-container');
 
             // 1. Render Recent Search Pills
@@ -5409,12 +5390,11 @@
             }
         };
 
-        // 4. Fetch & Render Upcoming Corporate Events
+        // 4. Fetch & Render Upcoming Corporate Events (Desktop)
         const loadUpcomingEvents = async () => {
             const container = document.getElementById('desktop-events-container');
-            const mobileEvents = document.getElementById('mobile-home-events-container');
             const viewAllBtn = document.getElementById('desktop-events-view-all-btn');
-            if (!container && !mobileEvents) return;
+            if (!container) return;
 
         if (viewAllBtn) {
             viewAllBtn.onclick = (e) => {
@@ -5449,68 +5429,7 @@
 
                 const mobileEvents = document.getElementById('mobile-home-events-container');
                 if (mobileEvents) {
-                    mobileEvents.style.maxHeight = '280px';
-                    mobileEvents.style.overflowY = 'auto';
-                    mobileEvents.style.paddingRight = '4px';
-
-                    mobileEvents.innerHTML = targetEvents.map(item => {
-                        let eventTitle = "";
-                        let eventDesc = "";
-                        let badgeLabel = "";
-                        let badgeClass = "";
-
-                        const type = (item.event_type || "").toLowerCase();
-                        if (type.includes("result") || type.includes("earning")) {
-                            eventTitle = `${item.symbol} Q1 Results`;
-                            badgeLabel = "RESULTS";
-                            badgeClass = "results";
-                            if (item.details?.earnings_estimate) {
-                                eventDesc = `Consensus EPS: ${parseFloat(item.details.earnings_estimate).toFixed(2)}`;
-                            } else {
-                                eventDesc = "Upcoming quarterly disclosures.";
-                            }
-                        } else if (type.includes("dividend")) {
-                            eventTitle = `${item.symbol} Dividend`;
-                            badgeLabel = "DIVIDEND";
-                            badgeClass = "dividend";
-                            if (item.details?.dividend_rate) {
-                                eventDesc = `${parseFloat(item.details.dividend_rate).toFixed(2)}/share Dividend`;
-                            } else {
-                                eventDesc = "Dividend record consideration.";
-                            }
-                        } else {
-                            eventTitle = `${item.symbol} Corporate Action`;
-                            badgeLabel = "OTHER";
-                            badgeClass = "other";
-                            eventDesc = item.description || "Board meeting/ Capex update";
-                        }
-
-                        const parts = item.event_date.split('-');
-                        const day = parts[2] || '01';
-                        const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-                        const monthIdx = parseInt(parts[1] || '1', 10) - 1;
-                        const monthStr = monthNames[monthIdx] || 'Event';
-
-                        let displayBadgeClass = 'event-earnings';
-                        if (badgeClass === 'dividend') displayBadgeClass = 'event-dividend';
-                        else if (badgeClass === 'other') displayBadgeClass = 'event-split';
-
-                        return `
-                                <div class="event-row-item" style="display: flex; align-items: center; padding: 10px 0; border-bottom: 1px solid var(--border-glass); cursor: pointer;" onclick="window.switchTab && window.switchTab('events')">
-                                    <div class="event-date-wrap" style="width: 45px; flex-shrink: 0; display: flex; flex-direction: row; gap: 3px; align-items: baseline;">
-                                        <span style="font-size: 13px; font-weight: 700; color: var(--text-secondary); text-transform: uppercase;">${monthStr}</span>
-                                        <span style="font-size: 12.5px; font-weight: 800; color: var(--text-primary);">${day}</span>
-                                    </div>
-                                    <div style="flex-grow: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; text-align: left; padding: 0 4px;">
-                                        <span style="font-size: 13.5px; font-weight: 700; color: var(--text-primary);">${eventTitle}</span>
-                                        <span style="font-size: 13px; color: var(--text-secondary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 95%;">${eventDesc}</span>
-                                    </div>
-                                    <div style="flex-shrink: 0; text-align: right;">
-                                        <span class="event-badge ${displayBadgeClass}" style="font-size: 12.5px; padding: 2px 6px;">${badgeLabel}</span>
-                                    </div>
-                                </div>
-                            `;
-                    }).join('');
+                    mobileEvents.remove();
                 }
 
                 container.innerHTML = targetEvents.map((item, idx) => {
