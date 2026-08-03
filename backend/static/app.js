@@ -35672,6 +35672,16 @@ window.renderTVAdvancedChart = renderTVAdvancedChart;
 
     async function fetchMarketMoversData() {
         try {
+            if (window.swrFetchJson) {
+                await window.swrFetchJson('/api/market-movers', (data) => {
+                    if (data) {
+                        moversDataCache = data;
+                        renderMarketMovers(data);
+                    }
+                });
+                return;
+            }
+
             const res = await fetch('/api/market-movers');
             if (res.ok) {
                 const data = await res.json();
