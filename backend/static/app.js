@@ -12090,6 +12090,15 @@ function updateNotificationBell(list) {
 
 async function fetchAlertsList() {
     try {
+        if (window.swrFetchJson) {
+            await window.swrFetchJson('/api/alerts/list', (list) => {
+                if (list && Array.isArray(list)) {
+                    renderAlertsList(list);
+                }
+            });
+            return;
+        }
+
         const response = await fetch('/api/alerts/list');
         const list = await response.json();
         renderAlertsList(list);
