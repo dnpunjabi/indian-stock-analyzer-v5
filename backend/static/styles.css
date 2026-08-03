@@ -30151,3 +30151,91 @@ body.light-theme #swing-scan-table thead th:first-child {
     box-shadow: 4px 0 12px rgba(0, 0, 0, 0.08) !important;
     border-right: 1.5px solid #cbd5e1 !important;
 }
+
+/* ==========================================================================
+   QUANT SCREENER STRATEGY CARDS HIGH-CONTRAST VISIBILITY ENHANCEMENTS (DARK & LIGHT)
+   ========================================================================== */
+
+/* Dark Mode (Default) Strategy Cards */
+.strategy-btn {
+    background: rgba(15, 23, 42, 0.65) !important;
+    border: 1px solid rgba(255, 255, 255, 0.12) !important;
+    border-radius: 10px !important;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+.strategy-btn .strat-title {
+    color: #f8fafc !important;
+    font-weight: 700 !important;
+    letter-spacing: 0.01em !important;
+}
+
+.strategy-btn .strat-desc {
+    color: #cbd5e1 !important;
+    opacity: 0.9 !important;
+}
+
+.strategy-btn:hover {
+    background: rgba(30, 41, 59, 0.85) !important;
+    border-color: rgba(56, 189, 248, 0.4) !important;
+    transform: translateY(-2px) !important;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3) !important;
+}
+
+/* Active Selected Strategy Card (Dark Mode) */
+.strategy-btn.active {
+    background: linear-gradient(135deg, rgba(14, 116, 144, 0.35) 0%, rgba(15, 23, 42, 0.95) 100%) !important;
+    border: 1.5px solid #38bdf8 !important;
+    box-shadow: 0 0 16px rgba(56, 189, 248, 0.35), inset 0 0 12px rgba(56, 189, 248, 0.15) !important;
+    transform: translateY(-1px) !important;
+}
+
+.strategy-btn.active .strat-title {
+    color: #38bdf8 !important;
+    font-weight: 800 !important;
+    text-shadow: 0 0 10px rgba(56, 189, 248, 0.4) !important;
+}
+
+.strategy-btn.active .strat-desc {
+    color: #ffffff !important;
+    opacity: 1 !important;
+    font-weight: 600 !important;
+}
+
+/* Light Theme Strategy Cards Overrides */
+[data-theme="light"] .strategy-btn,
+[data-mode="light"] .strategy-btn {
+    background: #ffffff !important;
+    border: 1px solid #cbd5e1 !important;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05) !important;
+}
+
+[data-theme="light"] .strategy-btn .strat-title,
+[data-mode="light"] .strategy-btn .strat-title {
+    color: #0f172a !important;
+    font-weight: 700 !important;
+}
+
+[data-theme="light"] .strategy-btn .strat-desc,
+[data-mode="light"] .strategy-btn .strat-desc {
+    color: #475569 !important;
+}
+
+[data-theme="light"] .strategy-btn.active,
+[data-mode="light"] .strategy-btn.active {
+    background: #e0f2fe !important;
+    border: 1.5px solid #0284c7 !important;
+    box-shadow: 0 0 12px rgba(2, 132, 199, 0.25) !important;
+}
+
+[data-theme="light"] .strategy-btn.active .strat-title,
+[data-mode="light"] .strategy-btn.active .strat-title {
+    color: #0369a1 !important;
+    font-weight: 800 !important;
+}
+
+[data-theme="light"] .strategy-btn.active .strat-desc,
+[data-mode="light"] .strategy-btn.active .strat-desc {
+    color: #0f172a !important;
+    font-weight: 600 !important;
+}
