@@ -34775,6 +34775,16 @@ window.renderTVAdvancedChart = renderTVAdvancedChart;
         }
 
         try {
+            if (window.swrFetchJson && !forceRefresh) {
+                await window.swrFetchJson('/api/screener/sector-regime', (data) => {
+                    if (data) {
+                        window.activeSectorRegimeData = Array.isArray(data) ? data : (data.data || []);
+                        window.renderSectorRegimeList();
+                    }
+                });
+                return;
+            }
+
             const url = forceRefresh ? '/api/screener/sector-regime/refresh' : '/api/screener/sector-regime';
             const method = forceRefresh ? 'POST' : 'GET';
             const response = await fetch(url, { method: method });
