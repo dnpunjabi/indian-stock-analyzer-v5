@@ -72,6 +72,70 @@ def get_db():
     finally:
         conn.close()
 
+def migrate_legacy_watchlist_added_prices():
+    """Migrates legacy watchlist items (where added_price IS NULL, 0.0, or added_date is default migration date)
+    to a 30-day historical baseline ('04 Jul, \'26').
+    """
+    try:
+        with get_db() as conn:
+            cursor = conn.cursor()
+            cursor.execute("""
+                SELECT i.id, i.symbol, i.purchase_price, i.added_price, i.added_date, p.profile_json
+                FROM watchlist_items i
+                LEFT JOIN cached_profiles p ON i.symbol = p.symbol OR i.symbol = REPLACE(p.symbol, '.NS', '')
+                WHERE i.added_price IS NULL 
+                   OR i.added_price <= 0 
+                   OR i.added_date IS NULL 
+                   OR i.added_date = '' 
+                   OR i.added_date = '2026-07-17'
+            """)
+            legacy_rows = [dict(row) for row in cursor.fetchall()]
+            if not legacy_rows:
+                return
+
+            print(f"Executing legacy watchlist price backfill migration for {len(legacy_rows)} items...")
+            baseline_date_str = "04 Jul, '26"
+
+            for item in legacy_rows:
+                item_id = item["id"]
+                symbol = item["symbol"]
+                purchase_p = float(item.get("purchase_price") or 0.0)
+                
+                p_json = {}
+                if item.get("profile_json"):
+                    try:
+                        p_json = json.loads(item["profile_json"])
+                    except Exception:
+                        pass
+                
+                tech = p_json.get("technicals") or {}
+                fund = p_json.get("fundamentals") or {}
+                cp = float(tech.get("current_price") or fund.get("current_price") or 0.0)
+                
+                # Step 1: Use purchase_price if available > 0
+                if purchase_p > 0:
+                    target_added_price = purchase_p
+                else:
+                    # Step 2: Use 1M performance metric to backfill 30-day historical baseline price
+                    perf_dict = (p_json.get("swot_performance") or {}).get("performance") or p_json.get("performance") or {}
+                    chg_1m = float(perf_dict.get("1M") or tech.get("chg_1m") or 0.0)
+                    
+                    if cp > 0 and (1 + chg_1m / 100.0) > 0:
+                        target_added_price = round(cp / (1.0 + chg_1m / 100.0), 2)
+                    elif cp > 0:
+                        target_added_price = cp
+                    else:
+                        target_added_price = 100.0
+
+                cursor.execute(
+                    "UPDATE watchlist_items SET added_price = ?, added_date = ? WHERE id = ?",
+                    (target_added_price, baseline_date_str, item_id)
+                )
+            conn.commit()
+            print(f"Successfully migrated {len(legacy_rows)} legacy watchlist items to 30-day baseline date ({baseline_date_str})!")
+    except Exception as e:
+        print(f"Error during legacy watchlist backfill migration: {e}")
+
 def init_db():
     with get_db() as conn:
         cursor = conn.cursor()
