@@ -17080,6 +17080,7 @@ function renderWatchlistControls() {
                 <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">⭐ <strong>${wName}</strong></span>
                 <span style="display: inline-flex; align-items: center; gap: 4px;">
                     <span style="font-size:12px; color:var(--text-muted); font-weight:700;">(${wItemsCount})</span>
+                    <button class="watchlist-sidebar-action-btn export-wl-btn" title="Export watchlist to CSV" style="font-size: 11px; padding: 2px 6px;">📥 Export</button>
                     <button class="watchlist-sidebar-action-btn duplicate-wl-btn" title="Duplicate watchlist (Ctrl+D)" style="margin-left: 3px;">📋</button>
                     <button class="watchlist-sidebar-action-btn edit-wl-btn" title="Rename watchlist">✏️</button>
                     <button class="watchlist-sidebar-action-btn delete-wl-btn" title="Delete watchlist">🗑️</button>
@@ -17088,6 +17089,11 @@ function renderWatchlistControls() {
 
             btn.addEventListener('click', (e) => {
                 // If user clicked quick action buttons inside the row
+                if (e.target.classList.contains('export-wl-btn')) {
+                    e.stopPropagation();
+                    exportWatchlistCSVById(w.id);
+                    return;
+                }
                 if (e.target.classList.contains('duplicate-wl-btn')) {
                     e.stopPropagation();
                     duplicateWatchlistById(w.id);
@@ -17225,16 +17231,20 @@ async function duplicateActiveWatchlist() {
     await duplicateWatchlistById(activeWatchlistId);
 }
 
-function exportActiveWatchlistCSV() {
-    if (activeWatchlistId === null) return;
-    const activeWatch = watchlistsList.find(w => w.id == activeWatchlistId);
-    if (!activeWatch || !activeWatch.items || activeWatch.items.length === 0) {
-        showToast("Active watchlist has no stock items to export.", "warning");
+function exportWatchlistCSVById(targetId) {
+    const wId = (targetId !== undefined && targetId !== null) ? targetId : activeWatchlistId;
+    if (wId === null || wId === undefined) {
+        showToast("Please select a watchlist first.", "warning");
+        return;
+    }
+    const targetWatch = Array.isArray(watchlistsList) ? watchlistsList.find(w => w && w.id == wId) : null;
+    if (!targetWatch || !targetWatch.items || targetWatch.items.length === 0) {
+        showToast("Watchlist has no stock items to export.", "warning");
         return;
     }
 
     const headers = ["Symbol", "Name", "Sector", "LTP (INR)", "Added Price", "Added Date", "Day Change %", "Margin of Safety %", "P/E Ratio", "ROE %", "ROCE %"];
-    const rows = activeWatch.items.map(item => [
+    const rows = targetWatch.items.map(item => [
         `"${item.symbol}"`,
         `"${(item.name || '').replace(/"/g, '""')}"`,
         `"${(item.sector || '').replace(/"/g, '""')}"`,
@@ -17252,12 +17262,16 @@ function exportActiveWatchlistCSV() {
     const encodedUri = encodeURI(csvContent);
     const link = document.createElement("a");
     link.setAttribute("href", encodedUri);
-    link.setAttribute("download", `${activeWatch.name.toLowerCase().replace(/\s+/g, '_')}_watchlist.csv`);
+    link.setAttribute("download", `${targetWatch.name.toLowerCase().replace(/\s+/g, '_')}_watchlist.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
 
-    showToast(`Exported ${activeWatch.items.length} stocks from "${activeWatch.name}" to CSV.`, "success");
+    showToast(`Exported ${targetWatch.items.length} stocks from "${targetWatch.name}" to CSV.`, "success");
+}
+
+function exportActiveWatchlistCSV() {
+    exportWatchlistCSVById(activeWatchlistId);
 }
 
 function toggleWatchlistDipAlerts() {
