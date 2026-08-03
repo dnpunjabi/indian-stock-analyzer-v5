@@ -211,10 +211,15 @@
     function getStockLogoHtml(symbol) {
         const showLogos = localStorage.getItem('settings-show-logos') !== 'false';
         if (!showLogos) return '';
-        const cleanSym = symbol.replace(".NS", "").toUpperCase();
+        const cleanSym = symbol.replace(".NS", "").replace(".BO", "").toUpperCase();
+        const fallbackHtml = window.getStockFallbackLogoHtml ? window.getStockFallbackLogoHtml(cleanSym) : `<div style="width:28px; height:28px; border-radius:50%; background:#3b82f6; display:flex; align-items:center; justify-content:center; color:#fff; font-size:12px; font-weight:800;">${cleanSym.charAt(0)}</div>`;
+        
         return `
-            <div style="width:28px; height:28px; border-radius:50%; background:#ffffff; border:1px solid var(--border-glass); display:flex; align-items:center; justify-content:center; flex-shrink:0; overflow:hidden; padding:2px; box-sizing:border-box;">
-                <img src="${apiBaseUrl}/logos/${cleanSym}.png" style="width:100%; height:100%; object-fit:contain; display:block;" onerror="this.onerror=null; this.parentNode.outerHTML=window.getStockFallbackLogoHtml('${cleanSym}');">
+            <div class="stock-logo-container" style="display:inline-flex; flex-shrink:0;">
+                <div class="stock-logo-img-wrap" style="width:28px; height:28px; border-radius:50%; background:#ffffff; border:1px solid var(--border-glass); display:flex; align-items:center; justify-content:center; flex-shrink:0; overflow:hidden; padding:2px; box-sizing:border-box;">
+                    <img src="${apiBaseUrl}/logos/${cleanSym}.png" style="width:100%; height:100%; object-fit:contain; display:block;" onerror="const c=this.closest('.stock-logo-container'); if(c){ const f=c.querySelector('.stock-circle-fallback'); if(f) f.style.display='flex'; this.parentNode.style.display='none'; }">
+                </div>
+                <div class="stock-circle-fallback" style="display:none; flex-shrink:0;">${fallbackHtml}</div>
             </div>
         `;
     }
@@ -3527,12 +3532,12 @@
                 </div>
                 <div class="mobile-glass-card section-collapsible-body" data-section-id="tech-breakouts" style="padding: 12px; margin-bottom: 20px;">
                     <div class="tech-segmented-control scroll-fade-mask" style="margin-bottom: 12px; display: flex; gap: 6px; overflow-x: auto; white-space: nowrap; -webkit-overflow-scrolling: touch; padding-bottom: 4px; scrollbar-width: none;">
-                        <button class="tech-segmented-tab active" id="mobile-tech-tab-near_high" style="font-size: 13px; padding: 6px 12px; border-radius: 20px; font-family:'Outfit', sans-serif; font-weight:800;">🔥 52W High</button>
-                        <button class="tech-segmented-tab" id="mobile-tech-tab-volume_shockers" style="font-size: 13px; padding: 6px 12px; border-radius: 20px; font-family:'Outfit', sans-serif; font-weight:800;">📈 Vol Surge</button>
-                        <button class="tech-segmented-tab" id="mobile-tech-tab-golden_crossover" style="font-size: 13px; padding: 6px 12px; border-radius: 20px; font-family:'Outfit', sans-serif; font-weight:800;">🟢 MACD Cross</button>
-                        <button class="tech-segmented-tab" id="mobile-tech-tab-gap_up" style="font-size: 13px; padding: 6px 12px; border-radius: 20px; font-family:'Outfit', sans-serif; font-weight:800;">⚡ Gap Up</button>
-                        <button class="tech-segmented-tab" id="mobile-tech-tab-rsi_oversold" style="font-size: 13px; padding: 6px 12px; border-radius: 20px; font-family:'Outfit', sans-serif; font-weight:800;">⚠️ RSI Oversold</button>
-                        <button class="tech-segmented-tab" id="mobile-tech-tab-near_low" style="font-size: 13px; padding: 6px 12px; border-radius: 20px; font-family:'Outfit', sans-serif; font-weight:800;">🔻 52W Low</button>
+                        <button class="tech-segmented-tab active" id="mobile-tech-tab-near_high" onclick="window.switchMobileTechTab('near_high')" style="font-size: 13px; padding: 6px 12px; border-radius: 20px; font-family:'Outfit', sans-serif; font-weight:800;">🔥 52W High</button>
+                        <button class="tech-segmented-tab" id="mobile-tech-tab-volume_shockers" onclick="window.switchMobileTechTab('volume_shockers')" style="font-size: 13px; padding: 6px 12px; border-radius: 20px; font-family:'Outfit', sans-serif; font-weight:800;">📈 Vol Surge</button>
+                        <button class="tech-segmented-tab" id="mobile-tech-tab-golden_crossover" onclick="window.switchMobileTechTab('golden_crossover')" style="font-size: 13px; padding: 6px 12px; border-radius: 20px; font-family:'Outfit', sans-serif; font-weight:800;">🟢 MACD Cross</button>
+                        <button class="tech-segmented-tab" id="mobile-tech-tab-gap_up" onclick="window.switchMobileTechTab('gap_up')" style="font-size: 13px; padding: 6px 12px; border-radius: 20px; font-family:'Outfit', sans-serif; font-weight:800;">⚡ Gap Up</button>
+                        <button class="tech-segmented-tab" id="mobile-tech-tab-rsi_oversold" onclick="window.switchMobileTechTab('rsi_oversold')" style="font-size: 13px; padding: 6px 12px; border-radius: 20px; font-family:'Outfit', sans-serif; font-weight:800;">⚠️ RSI Oversold</button>
+                        <button class="tech-segmented-tab" id="mobile-tech-tab-near_low" onclick="window.switchMobileTechTab('near_low')" style="font-size: 13px; padding: 6px 12px; border-radius: 20px; font-family:'Outfit', sans-serif; font-weight:800;">🔻 52W Low</button>
                     </div>
                     <div id="mobile-home-tech-scans-container" class="mobile-vertical-list-container" style="display: flex; flex-direction: column; gap: 8px;">
                         <div class="skeleton-card-row"><div class="skel-circle"></div><div class="skel-lines"><div class="skel-line-short"></div><div class="skel-line-long"></div></div><div class="skel-price-block"></div></div>
@@ -6218,6 +6223,16 @@
             sma_50_pullback: [], sma_100_pullback: [], sma_200_pullback: [], fib_618_support: [], fib_500_support: []
         };
         window.activeTechnicalScan = 'near_high';
+        window.switchMobileTechTab = function(scanKey) {
+            window.activeTechnicalScan = scanKey || 'near_high';
+            document.querySelectorAll('.tech-segmented-tab').forEach(btn => {
+                const isMatch = btn.id === `mobile-tech-tab-${window.activeTechnicalScan}`;
+                btn.classList.toggle('active', isMatch);
+            });
+            if (typeof renderTechnicalScansList === 'function') {
+                renderTechnicalScansList();
+            }
+        };
         let fullscreenActiveScan = 'near_high';
         let fullscreenSortCol = 'value'; // Default sort metric value
         let fullscreenSortDir = 'asc';   // Default sort asc
@@ -6307,10 +6322,11 @@
             });
         };
 
-        const renderTechnicalScansList = () => { window.renderTechnicalScansList = renderTechnicalScansList;
+        const renderTechnicalScansList = () => { 
+            window.renderTechnicalScansList = renderTechnicalScansList;
             const tbody = document.getElementById('desktop-technical-scans-body');
             const desktopMetricHeader = document.getElementById('desktop-tech-scan-metric-header');
-            if (!tbody) return;
+            const mobileTechScans = document.getElementById('mobile-home-tech-scans-container');
 
             if (desktopMetricHeader) {
                 if (window.activeTechnicalScan === 'near_high') desktopMetricHeader.innerText = 'Dist to High';
@@ -6814,7 +6830,8 @@
         const loadTechnicalScans = async () => {
             const tbody = document.getElementById('desktop-technical-scans-body');
             const fullscreenTbody = document.getElementById('fullscreen-technical-scans-body');
-            if (!tbody && !fullscreenTbody) return;
+            const mobileTechScans = document.getElementById('mobile-home-tech-scans-container');
+            if (!tbody && !fullscreenTbody && !mobileTechScans) return;
 
             // 1. Wire homepage selectors once
             const tabs = document.querySelectorAll('.tech-scan-tab-btn:not(.fullscreen-tech-scan-tab)');
