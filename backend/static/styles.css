@@ -30329,15 +30329,85 @@ body.light-theme #swing-scan-table thead th:first-child {
     border-right: 1.5px solid #cbd5e1 !important;
 }
 
-/* 4. Mobile Screen Specific Scroll Constraints */
+/* 4. Real Mobile Device Hardware Fix for Sector Constituents Modal Cards */
 @media (max-width: 768px) {
+    #sector-stocks-modal,
+    .modal-overlay#sector-stocks-modal {
+        padding: 0 !important;
+        align-items: stretch !important;
+        justify-content: center !important;
+        background: rgba(0, 0, 0, 0.75) !important;
+    }
+
     #sector-stocks-modal .modal-card {
-        max-height: calc(100vh - 65px) !important;
+        position: fixed !important;
+        top: calc(48px + env(safe-area-inset-top, 0px)) !important;
+        bottom: calc(12px + env(safe-area-inset-bottom, 0px)) !important;
+        left: 8px !important;
+        right: 8px !important;
+        width: auto !important;
+        max-width: none !important;
+        height: auto !important;
+        max-height: none !important;
+        margin: 0 !important;
+        border-radius: 14px !important;
+        background: #0b1329 !important;
+        background-color: #0b1329 !important;
+        backdrop-filter: none !important;
+        -webkit-backdrop-filter: none !important;
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.8) !important;
+        display: flex !important;
+        flex-direction: column !important;
+        overflow: hidden !important;
     }
+
+    [data-theme="light"] #sector-stocks-modal .modal-card,
+    [data-mode="light"] #sector-stocks-modal .modal-card {
+        background: #ffffff !important;
+        background-color: #ffffff !important;
+    }
+
+    /* Single dedicated vertical scroll container on mobile */
+    #sector-stocks-modal .modal-card-body {
+        padding: 10px !important;
+        overflow-y: auto !important;
+        overflow-x: hidden !important;
+        -webkit-overflow-scrolling: touch !important;
+        flex: 1 !important;
+        display: flex !important;
+        flex-direction: column !important;
+    }
+
+    /* Unset inner table-scroll height and scroll constraints on mobile to prevent nested scroll conflict */
     #sector-stocks-modal .table-scroll {
-        max-height: calc(100vh - 165px) !important;
+        flex: 1 !important;
+        max-height: none !important;
+        height: auto !important;
+        overflow-y: visible !important;
+        overflow-x: auto !important;
+        border: none !important;
+        border-radius: 0 !important;
     }
+
     #sector-stocks-search {
         width: 140px !important;
     }
 }
+
+/* Hardware Acceleration & Compositing Layer Isolation for Mobile Stock Cards */
+.sector-stock-mobile-card {
+    transform: translateZ(0) !important;
+    -webkit-transform: translateZ(0) !important;
+    backface-visibility: hidden !important;
+    -webkit-backface-visibility: hidden !important;
+    contain: content !important;
+    will-change: transform !important;
+    touch-action: pan-y !important;
+    margin-bottom: 2px !important;
+}
+
+/* Suppress scroll shadow overlay inside sector stocks modal to prevent WebKit height reflows */
+#sector-stocks-modal .table-scroll::after {
+    display: none !important;
+}
+

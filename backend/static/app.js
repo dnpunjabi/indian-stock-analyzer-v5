@@ -35307,7 +35307,7 @@ window.renderTVAdvancedChart = renderTVAdvancedChart;
                 if (mobileCardsContainer) {
                     const card = document.createElement('div');
                     card.className = 'sector-stock-mobile-card';
-                    card.style.cssText = 'background: rgba(255, 255, 255, 0.03); border: 1px solid var(--border-glass, rgba(255,255,255,0.08)); border-radius: 12px; padding: 12px; display: flex; flex-direction: column; gap: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.25);';
+                    card.style.cssText = 'background: rgba(255, 255, 255, 0.03); border: 1px solid var(--border-glass, rgba(255,255,255,0.08)); border-radius: 12px; padding: 12px; display: flex; flex-direction: column; gap: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.25); transform: translateZ(0); -webkit-transform: translateZ(0); backface-visibility: hidden; contain: content; will-change: transform; touch-action: pan-y;';
 
                     const activeRetVal = stk[activeCol] || 0.0;
                     const activePill = getPillHtml(activeRetVal);
