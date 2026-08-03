@@ -17494,7 +17494,7 @@ function renderWatchlistItems() {
                 ${getSortHeader('ret_3m', '3M %', 'right')}
                 ${getSortHeader('ret_1y', '1Y %', 'right')}
                 ${getSortHeader('ret_3y', '3Y %', 'right')}
-                <th style="color: var(--color-primary-light, #2dd4bf); text-align: center;">Alpha vs Nifty 50</th>
+                ${getSortHeader('alpha_vs_nifty', 'Alpha vs Nifty 50', 'center')}
                 <th style="color: var(--text-secondary); text-align: center;">Actions</th>
             `;
         } else if (window.activeWatchlistView === 'valuation') {
@@ -17526,7 +17526,10 @@ function renderWatchlistItems() {
     if (window.activeWatchlistFilter === 'gainers') {
         filteredItems = filteredItems.filter(x => (x.change_pct || 0) > 0);
     } else if (window.activeWatchlistFilter === 'green') {
-        filteredItems = filteredItems.filter(x => x.dots && (x.dots.val === 'green' || x.dots.mom === 'green' || x.dots.health === 'green'));
+        filteredItems = filteredItems.filter(x => {
+            const d = x.dots || {};
+            return d.val === 'green' && d.mom === 'green' && d.health === 'green';
+        });
     } else if (window.activeWatchlistFilter === 'dip') {
         filteredItems = filteredItems.filter(x => 
             (x.change_pct || 0) <= -1.5 || 
@@ -17536,25 +17539,87 @@ function renderWatchlistItems() {
     }
 
     // --- SORT CONSTITUENTS ---
-    const numericSortFields = ['live_price', 'change', 'change_pct', 'added_price', 'chg_since_added', 'fuzzy_score', 'ret_1w', 'ret_1m', 'ret_3m', 'ret_6m', 'ret_1y', 'ret_3y', 'day_high', 'day_low', 'pe_ratio', 'pb_ratio', 'roe', 'roce', 'fair_value', 'mos_pct', 'div_yield'];
+    const getWatchlistItemValue = (item, sortCol) => {
+        if (!item) return -Infinity;
+        const ret = item.returns || {};
+        
+        switch (sortCol) {
+            case 'ret_1w': {
+                const v = ret.w1 !== undefined ? ret.w1 : item.ret_1w;
+                return (typeof v === 'number' && !isNaN(v)) ? v : (parseFloat(v) || -Infinity);
+            }
+            case 'ret_1m': {
+                const v = ret.m1 !== undefined ? ret.m1 : item.ret_1m;
+                return (typeof v === 'number' && !isNaN(v)) ? v : (parseFloat(v) || -Infinity);
+            }
+            case 'ret_3m': {
+                const v = ret.m3 !== undefined ? ret.m3 : item.ret_3m;
+                return (typeof v === 'number' && !isNaN(v)) ? v : (parseFloat(v) || -Infinity);
+            }
+            case 'ret_6m': {
+                const v = ret.m6 !== undefined ? ret.m6 : item.ret_6m;
+                return (typeof v === 'number' && !isNaN(v)) ? v : (parseFloat(v) || -Infinity);
+            }
+            case 'ret_1y': {
+                const v = ret.y1 !== undefined ? ret.y1 : item.ret_1y;
+                return (typeof v === 'number' && !isNaN(v)) ? v : (parseFloat(v) || -Infinity);
+            }
+            case 'ret_3y': {
+                const v = ret.y3 !== undefined ? ret.y3 : (ret.y1 !== undefined ? (ret.y1 * 2.1) : item.ret_3y);
+                return (typeof v === 'number' && !isNaN(v)) ? v : (parseFloat(v) || -Infinity);
+            }
+            case 'alpha_vs_nifty': {
+                let alphaVal;
+                if (typeof item.alpha_vs_nifty === 'number') {
+                    alphaVal = item.alpha_vs_nifty;
+                } else if (typeof ret.y1 === 'number') {
+                    alphaVal = ret.y1 - (window.nifty1yBenchmark || 12.8);
+                } else {
+                    alphaVal = (typeof item.change_pct === 'number' ? item.change_pct : 0);
+                }
+                return (typeof alphaVal === 'number' && !isNaN(alphaVal)) ? alphaVal : -Infinity;
+            }
+            case 'fair_value': {
+                const fv = (typeof item.fair_value === 'number' && item.fair_value > 0) ? item.fair_value : ((item.technicals && item.technicals.intrinsic_value) || 0);
+                return (typeof fv === 'number' && !isNaN(fv)) ? fv : -Infinity;
+            }
+            case 'mos_pct': {
+                const mos = typeof item.mos_pct === 'number' ? item.mos_pct : (item.technicals && typeof item.technicals.mos_pct === 'number' ? item.technicals.mos_pct : 0);
+                return (typeof mos === 'number' && !isNaN(mos)) ? mos : -Infinity;
+            }
+            case 'pe_ratio': {
+                const pe = (typeof item.pe_ratio === 'number' && item.pe_ratio > 0) ? item.pe_ratio : ((item.fundamentals && typeof item.fundamentals.pe_ratio === 'number') ? item.fundamentals.pe_ratio : 0);
+                return (typeof pe === 'number' && !isNaN(pe)) ? pe : -Infinity;
+            }
+            case 'roe': {
+                const roe = (typeof item.roe === 'number') ? item.roe : ((item.fundamentals && typeof item.fundamentals.roe === 'number') ? item.fundamentals.roe : 0);
+                return (typeof roe === 'number' && !isNaN(roe)) ? roe : -Infinity;
+            }
+            case 'roce': {
+                const roce = (typeof item.roce === 'number') ? item.roce : ((item.fundamentals && typeof item.fundamentals.roce === 'number') ? item.fundamentals.roce : 0);
+                return (typeof roce === 'number' && !isNaN(roce)) ? roce : -Infinity;
+            }
+            default: {
+                const val = item[sortCol];
+                if (typeof val === 'number' && !isNaN(val)) return val;
+                if (val !== undefined && val !== null) {
+                    const parsed = parseFloat(val);
+                    if (!isNaN(parsed)) return parsed;
+                }
+                return (typeof val === 'string') ? val.toLowerCase() : (val || '');
+            }
+        }
+    };
+
     let sortedItems = [...filteredItems];
     sortedItems.sort((a, b) => {
-        let valA, valB;
-        if (numericSortFields.includes(watchlistSortCol)) {
-            valA = (typeof a[watchlistSortCol] === 'number' && !isNaN(a[watchlistSortCol])) ? a[watchlistSortCol] : -Infinity;
-            valB = (typeof b[watchlistSortCol] === 'number' && !isNaN(b[watchlistSortCol])) ? b[watchlistSortCol] : -Infinity;
-        } else {
-            valA = a[watchlistSortCol] || '';
-            valB = b[watchlistSortCol] || '';
-            if (typeof valA === 'string') valA = valA.toLowerCase();
-            if (typeof valB === 'string') valB = valB.toLowerCase();
-        }
+        const valA = getWatchlistItemValue(a, watchlistSortCol);
+        const valB = getWatchlistItemValue(b, watchlistSortCol);
 
         if (valA < valB) return watchlistSortAsc ? -1 : 1;
         if (valA > valB) return watchlistSortAsc ? 1 : -1;
         return 0;
-    }
-    );
+    });
 
     const totalPages = Math.ceil(sortedItems.length / activeWatchlistPageSize);
     if (activeWatchlistPage < 1) activeWatchlistPage = 1;
