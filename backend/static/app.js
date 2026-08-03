@@ -37133,6 +37133,14 @@ async function loadGlobalMarketNews(forceRefresh = false, runLLM = false) {
 
     if (!newsFeed) return;
 
+    // 1. If SWR cache is available and not forcing refresh / running LLM, render instantly from cache in 0ms
+    if (window.swrFetchJson && !forceRefresh && !runLLM) {
+        await window.swrFetchJson('/api/market-news?refresh=false&run_llm=false', async (data) => {
+            if (data) renderGlobalMarketNewsDataContent(data, forceRefresh, runLLM, newsFeed, marquee, aiBriefingWrap, aiTimeBadge, aiSynthesis, aiDrivers, aiPlaceholder);
+        });
+        return;
+    }
+
     // Show dynamic loader
     const loaderMsg = runLLM ? "Generating AI Market consensus briefing via AI..." : "Aggregating news from ET, LiveMint, Business Standard & Yahoo Finance...";
     newsFeed.innerHTML = `
@@ -37147,6 +37155,14 @@ async function loadGlobalMarketNews(forceRefresh = false, runLLM = false) {
         const res = await fetch(url);
         if (!res.ok) throw new Error("Failed to fetch market news from API");
         const data = await res.json();
+        renderGlobalMarketNewsDataContent(data, forceRefresh, runLLM, newsFeed, marquee, aiBriefingWrap, aiTimeBadge, aiSynthesis, aiDrivers, aiPlaceholder);
+    } catch (err) {
+        console.error("Market news fetch error:", err);
+    }
+}
+
+function renderGlobalMarketNewsDataContent(data, forceRefresh, runLLM, newsFeed, marquee, aiBriefingWrap, aiTimeBadge, aiSynthesis, aiDrivers, aiPlaceholder) {
+    try {
 
         globalMarketNewsData = data;
 
