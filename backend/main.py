@@ -12332,6 +12332,26 @@ async def get_google_ai_overview(symbol: str, force_refresh: bool = False):
                         return f" <span class='citation-chip' style='display:inline-flex; padding: 2px 7px; font-size: 10px; margin-left: 6px;'>🌐 {found[0]}{suffix}</span>"
                     return ""
 
+                def format_bullet_content(raw_text: str, item_obj: dict) -> str:
+                    if not raw_text:
+                        return ""
+                    t = raw_text.replace("\n", " ").replace("\r", " ")
+                    t = re.sub(r'\s+', ' ', t).strip()
+
+                    if ":" in t and not t.startswith("http"):
+                        parts = t.split(":", 1)
+                        k_head = parts[0].strip()
+                        k_body = parts[1].strip()
+                        t = f"<strong>{k_head}</strong>: {k_body}"
+
+                    t = re.sub(
+                        r'(₹\s*[\d,\.]+\s*(?:crore|cr|million|m|billion|b)?|[\d,\.]+\s*(?:crore|cr|million|m|billion|b|%|bps|times|x)\b)',
+                        r'<strong>\1</strong>',
+                        t,
+                        flags=re.IGNORECASE
+                    )
+                    return t + resolve_publisher_tag(item_obj)
+
                 for block in blocks:
                     b_type = block.get("type")
                     snippet = block.get("snippet", "").strip()
@@ -12349,7 +12369,7 @@ async def get_google_ai_overview(symbol: str, force_refresh: bool = False):
                         for item in list_items:
                             s_text = item.get("snippet", "").strip()
                             if s_text and not any(j in s_text.lower() for j in junk_phrases):
-                                full_text = s_text + resolve_publisher_tag(item)
+                                full_text = format_bullet_content(s_text, item)
                                 if current_section:
                                     current_section["bullet_points"].append(full_text)
                                 else:
@@ -12365,12 +12385,12 @@ async def get_google_ai_overview(symbol: str, force_refresh: bool = False):
                         if not snippet or any(j in snippet.lower() for j in junk_phrases):
                             continue
                         if not intro_text:
-                            intro_text = snippet + resolve_publisher_tag(block)
+                            intro_text = format_bullet_content(snippet, block)
                         elif current_section:
-                            full_text = snippet + resolve_publisher_tag(block)
+                            full_text = format_bullet_content(snippet, block)
                             current_section["bullet_points"].append(full_text)
                         else:
-                            full_text = snippet + resolve_publisher_tag(block)
+                            full_text = format_bullet_content(snippet, block)
                             if not sections:
                                 current_section = {
                                     "title": "Market Overview & Key Highlights",
