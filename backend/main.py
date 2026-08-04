@@ -12301,6 +12301,37 @@ async def get_google_ai_overview(symbol: str, force_refresh: bool = False):
                 organic = data1.get("organic_results", [])
                 organic_bullets = [f"{item.get('title', '')}: {item.get('snippet', '')}" for item in organic[:3] if item.get('snippet')]
 
+                def resolve_publisher_tag(item_obj):
+                    links = item_obj.get("snippet_links", []) if isinstance(item_obj, dict) else []
+                    if not links:
+                        return ""
+                    domain_map = {
+                        "economictimes": "The Economic Times",
+                        "livemint": "LiveMint",
+                        "angelone": "Angel One",
+                        "screener": "Screener",
+                        "moneycontrol": "Moneycontrol",
+                        "business-standard": "Business Standard",
+                        "levelblue": "LevelBlue",
+                        "investing": "Investing.com",
+                        "marketsmith": "MarketSmith",
+                        "perplexity": "Perplexity",
+                        "youtube": "YouTube",
+                        "simplywall": "Simply Wall St",
+                        "polycab": "Polycab Investor"
+                    }
+                    found = []
+                    for l in links:
+                        url = l.get("link", "").lower()
+                        for dom, name in domain_map.items():
+                            if dom in url and name not in found:
+                                found.append(name)
+                    if found:
+                        count = len(links)
+                        suffix = f" +{count}" if count > 1 else ""
+                        return f" <span class='citation-chip' style='display:inline-flex; padding: 2px 7px; font-size: 10px; margin-left: 6px;'>🌐 {found[0]}{suffix}</span>"
+                    return ""
+
                 for block in blocks:
                     b_type = block.get("type")
                     snippet = block.get("snippet", "").strip()
@@ -12318,33 +12349,36 @@ async def get_google_ai_overview(symbol: str, force_refresh: bool = False):
                         for item in list_items:
                             s_text = item.get("snippet", "").strip()
                             if s_text and not any(j in s_text.lower() for j in junk_phrases):
+                                full_text = s_text + resolve_publisher_tag(item)
                                 if current_section:
-                                    current_section["bullet_points"].append(s_text)
+                                    current_section["bullet_points"].append(full_text)
                                 else:
                                     if not sections:
                                         current_section = {
                                             "title": "Financial Performance & Highlights",
-                                            "bullet_points": [s_text],
+                                            "bullet_points": [full_text],
                                             "sources": top_sources
                                         }
                                     else:
-                                        sections[-1]["bullet_points"].append(s_text)
+                                        sections[-1]["bullet_points"].append(full_text)
                     elif b_type in ["paragraph", "list_item", "bullet"]:
                         if not snippet or any(j in snippet.lower() for j in junk_phrases):
                             continue
                         if not intro_text:
-                            intro_text = snippet
+                            intro_text = snippet + resolve_publisher_tag(block)
                         elif current_section:
-                            current_section["bullet_points"].append(snippet)
+                            full_text = snippet + resolve_publisher_tag(block)
+                            current_section["bullet_points"].append(full_text)
                         else:
+                            full_text = snippet + resolve_publisher_tag(block)
                             if not sections:
                                 current_section = {
                                     "title": "Market Overview & Key Highlights",
-                                    "bullet_points": [snippet],
+                                    "bullet_points": [full_text],
                                     "sources": top_sources
                                 }
                             else:
-                                sections[-1]["bullet_points"].append(snippet)
+                                sections[-1]["bullet_points"].append(full_text)
 
                 if current_section and current_section["bullet_points"]:
                     sections.append(current_section)
