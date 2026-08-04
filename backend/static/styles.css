@@ -11560,16 +11560,15 @@ tr.active-peer-row td:first-child {
     display: inline-block !important;
     visibility: visible !important;
     opacity: 1 !important;
-    font-size: 10px !important;
+    font-size: 10.5px !important;
     font-weight: 800 !important;
-    padding: 3px 8px !important;
+    padding: 4px 9px !important;
     border-radius: 4px !important;
     white-space: nowrap !important;
     text-transform: uppercase !important;
     letter-spacing: 0.04em !important;
     flex-shrink: 0 !important;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2) !important;
-    margin-left: auto !important;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3) !important;
 }
 
 .tech-row-4col {
