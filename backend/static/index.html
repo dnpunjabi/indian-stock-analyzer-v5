@@ -4399,99 +4399,101 @@
                                 <!-- Row 4: Moving Average Crossovers & Oscillators (2 Columns) -->
                                 <div class="tech-crossover-oscillators-grid" style="gap: 12px; width: 100%; box-sizing: border-box; margin-top: 15px;">
                                     <!-- Column 1: Moving Average Crossovers -->
-                                    <div style="background: var(--bg-card-sub); border: 1px solid var(--border-sub); border-radius: 8px; padding: 12px; box-sizing: border-box;">
+                                    <div class="tech-crossover-col" style="background: var(--bg-card-sub); border: 1px solid var(--border-sub); border-radius: 8px; padding: 12px; box-sizing: border-box;">
                                         <h4 style="font-family: 'Outfit', sans-serif; font-size: 13px; font-weight: 700; color: var(--text-primary); text-transform: uppercase; letter-spacing: 0.05em; margin: 0 0 10px 0; display: flex; align-items: center; gap: 6px;">
                                             <span>📈</span> Moving Average Crossovers
                                         </h4>
-                                        <table style="width: 100%; border-collapse: collapse; font-size: 13.5px;">
-                                            <thead>
-                                                <tr style="border-bottom: 1px solid rgba(255,255,255,0.06); text-align: left; font-size: 12.5px; text-transform: uppercase; color: var(--text-secondary);">
-                                                    <th style="padding: 6px 4px;">Timeframe</th>
-                                                    <th style="padding: 6px 4px;">DMA Crossover</th>
-                                                    <th style="padding: 6px 4px; text-align: right;">Indication</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody>
-                                                <tr style="border-bottom: 1px dashed rgba(255,255,255,0.04);">
-                                                    <td style="padding: 8px 4px; font-weight: 600; color: var(--text-secondary);">Short Term</td>
-                                                    <td style="padding: 8px 4px;">5 & 20 DMA Crossover</td>
-                                                    <td style="padding: 8px 4px; text-align: right; font-weight: 700;" id="tech-cross-short">--</td>
-                                                </tr>
-                                                <tr style="border-bottom: 1px dashed rgba(255,255,255,0.04);">
-                                                    <td style="padding: 8px 4px; font-weight: 600; color: var(--text-secondary);">Medium Term</td>
-                                                    <td style="padding: 8px 4px;">20 & 50 DMA Crossover</td>
-                                                    <td style="padding: 8px 4px; text-align: right; font-weight: 700;" id="tech-cross-medium">--</td>
-                                                </tr>
-                                                <tr>
-                                                    <td style="padding: 8px 4px; font-weight: 600; color: var(--text-secondary);">Long Term</td>
-                                                    <td style="padding: 8px 4px;">50 & 200 DMA Crossover</td>
-                                                    <td style="padding: 8px 4px; text-align: right; font-weight: 700;" id="tech-cross-long">--</td>
-                                                </tr>
-                                            </tbody>
-                                        </table>
+                                        <div style="width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch;">
+                                            <table style="width: 100%; border-collapse: collapse; font-size: 13.5px;">
+                                                <thead>
+                                                    <tr style="border-bottom: 1px solid rgba(255,255,255,0.06); text-align: left; font-size: 12.5px; text-transform: uppercase; color: var(--text-secondary);">
+                                                        <th style="padding: 6px 4px;">Timeframe</th>
+                                                        <th style="padding: 6px 4px;">DMA Crossover</th>
+                                                        <th style="padding: 6px 4px; text-align: right;">Indication</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    <tr style="border-bottom: 1px dashed rgba(255,255,255,0.04);">
+                                                        <td style="padding: 8px 4px; font-weight: 600; color: var(--text-secondary);">Short Term</td>
+                                                        <td style="padding: 8px 4px;">5 & 20 DMA Crossover</td>
+                                                        <td style="padding: 8px 4px; text-align: right; font-weight: 700;" id="tech-cross-short">--</td>
+                                                    </tr>
+                                                    <tr style="border-bottom: 1px dashed rgba(255,255,255,0.04);">
+                                                        <td style="padding: 8px 4px; font-weight: 600; color: var(--text-secondary);">Medium Term</td>
+                                                        <td style="padding: 8px 4px;">20 & 50 DMA Crossover</td>
+                                                        <td style="padding: 8px 4px; text-align: right; font-weight: 700;" id="tech-cross-medium">--</td>
+                                                    </tr>
+                                                    <tr>
+                                                        <td style="padding: 8px 4px; font-weight: 600; color: var(--text-secondary);">Long Term</td>
+                                                        <td style="padding: 8px 4px;">50 & 200 DMA Crossover</td>
+                                                        <td style="padding: 8px 4px; text-align: right; font-weight: 700;" id="tech-cross-long">--</td>
+                                                    </tr>
+                                                </tbody>
+                                            </table>
+                                        </div>
                                     </div>
                                     
                                     <!-- Column 2: Advanced Oscillators & Performance -->
-                                    <div style="background: var(--bg-card-sub); border: 1px solid var(--border-sub); border-radius: 8px; padding: 12px; box-sizing: border-box;">
+                                    <div class="tech-oscillators-col" style="background: var(--bg-card-sub); border: 1px solid var(--border-sub); border-radius: 8px; padding: 12px; box-sizing: border-box;">
                                         <h4 style="font-family: 'Outfit', sans-serif; font-size: 13px; font-weight: 700; color: var(--text-primary); text-transform: uppercase; letter-spacing: 0.05em; margin: 0 0 10px 0; display: flex; align-items: center; gap: 6px;">
                                             <span>📊</span> Momentum Oscillators
                                         </h4>
                                         <div class="tech-oscillators-inner-grid" style="gap: 10px; font-size: 13px;">
-                                            <div style="display: flex; align-items: center; justify-content: space-between; background: rgba(255,255,255,0.02); border: 1px solid var(--border-glass); padding: 10px 12px; border-radius: 6px; width: 100%; box-sizing: border-box;">
-                                                <div style="display: flex; flex-direction: column; gap: 2px;">
-                                                    <span style="font-size: 11px; color: var(--text-secondary); text-transform: uppercase; font-weight: 700; letter-spacing: 0.03em;">MACD (12,26,9)</span>
-                                                    <strong id="tech-macd-val" style="font-size: 13.5px; font-weight: 800; color: var(--text-primary);">--</strong>
+                                            <div class="tech-osc-card" style="display: flex; align-items: center; justify-content: space-between; background: rgba(255,255,255,0.02); border: 1px solid var(--border-glass); padding: 10px 12px; border-radius: 6px; width: 100%; box-sizing: border-box; min-height: 48px;">
+                                                <div style="display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1; margin-right: 8px;">
+                                                    <span style="font-size: 11px; color: var(--text-secondary); text-transform: uppercase; font-weight: 700; letter-spacing: 0.03em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">MACD (12,26,9)</span>
+                                                    <strong id="tech-macd-val" class="tech-osc-val" style="font-size: 13.5px; font-weight: 800; color: var(--text-primary); display: block; visibility: visible; line-height: 1.2;">--</strong>
                                                 </div>
-                                                <span id="tech-macd-status" style="font-size: 10.5px; font-weight: 800; padding: 4px 9px; border-radius: 4px; display: inline-block; white-space: nowrap; text-transform: uppercase; letter-spacing: 0.04em; background: rgba(148, 163, 184, 0.2); color: #e2e8f0; border: 1px solid rgba(255, 255, 255, 0.2); flex-shrink: 0;">--</span>
+                                                <span id="tech-macd-status" class="tech-osc-status" style="font-size: 10.5px; font-weight: 800; padding: 4px 9px; border-radius: 4px; display: inline-block; white-space: nowrap; text-transform: uppercase; letter-spacing: 0.04em; background: rgba(148, 163, 184, 0.2); color: #e2e8f0; border: 1px solid rgba(255, 255, 255, 0.2); flex-shrink: 0;">--</span>
                                             </div>
-                                            <div style="display: flex; align-items: center; justify-content: space-between; background: rgba(255,255,255,0.02); border: 1px solid var(--border-glass); padding: 10px 12px; border-radius: 6px; width: 100%; box-sizing: border-box;">
-                                                <div style="display: flex; flex-direction: column; gap: 2px;">
-                                                    <span style="font-size: 11px; color: var(--text-secondary); text-transform: uppercase; font-weight: 700; letter-spacing: 0.03em;">Stochastic (20,3)</span>
-                                                    <strong id="tech-stoch-val" style="font-size: 13.5px; font-weight: 800; color: var(--text-primary);">--</strong>
+                                            <div class="tech-osc-card" style="display: flex; align-items: center; justify-content: space-between; background: rgba(255,255,255,0.02); border: 1px solid var(--border-glass); padding: 10px 12px; border-radius: 6px; width: 100%; box-sizing: border-box; min-height: 48px;">
+                                                <div style="display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1; margin-right: 8px;">
+                                                    <span style="font-size: 11px; color: var(--text-secondary); text-transform: uppercase; font-weight: 700; letter-spacing: 0.03em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Stochastic (20,3)</span>
+                                                    <strong id="tech-stoch-val" class="tech-osc-val" style="font-size: 13.5px; font-weight: 800; color: var(--text-primary); display: block; visibility: visible; line-height: 1.2;">--</strong>
                                                 </div>
-                                                <span id="tech-stoch-status" style="font-size: 10.5px; font-weight: 800; padding: 4px 9px; border-radius: 4px; display: inline-block; white-space: nowrap; text-transform: uppercase; letter-spacing: 0.04em; background: rgba(148, 163, 184, 0.2); color: #e2e8f0; border: 1px solid rgba(255, 255, 255, 0.2); flex-shrink: 0;">NEUTRAL</span>
+                                                <span id="tech-stoch-status" class="tech-osc-status" style="font-size: 10.5px; font-weight: 800; padding: 4px 9px; border-radius: 4px; display: inline-block; white-space: nowrap; text-transform: uppercase; letter-spacing: 0.04em; background: rgba(148, 163, 184, 0.2); color: #e2e8f0; border: 1px solid rgba(255, 255, 255, 0.2); flex-shrink: 0;">NEUTRAL</span>
                                             </div>
-                                            <div style="display: flex; align-items: center; justify-content: space-between; background: rgba(255,255,255,0.02); border: 1px solid var(--border-glass); padding: 10px 12px; border-radius: 6px; width: 100%; box-sizing: border-box;">
-                                                <div style="display: flex; flex-direction: column; gap: 2px;">
-                                                    <span style="font-size: 11px; color: var(--text-secondary); text-transform: uppercase; font-weight: 700; letter-spacing: 0.03em;">ROC (20)</span>
-                                                    <strong id="tech-roc-val" style="font-size: 13.5px; font-weight: 800; color: var(--text-primary);">--</strong>
+                                            <div class="tech-osc-card" style="display: flex; align-items: center; justify-content: space-between; background: rgba(255,255,255,0.02); border: 1px solid var(--border-glass); padding: 10px 12px; border-radius: 6px; width: 100%; box-sizing: border-box; min-height: 48px;">
+                                                <div style="display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1; margin-right: 8px;">
+                                                    <span style="font-size: 11px; color: var(--text-secondary); text-transform: uppercase; font-weight: 700; letter-spacing: 0.03em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">ROC (20)</span>
+                                                    <strong id="tech-roc-val" class="tech-osc-val" style="font-size: 13.5px; font-weight: 800; color: var(--text-primary); display: block; visibility: visible; line-height: 1.2;">--</strong>
                                                 </div>
-                                                <span id="tech-roc-status" style="font-size: 10.5px; font-weight: 800; padding: 4px 9px; border-radius: 4px; display: inline-block; white-space: nowrap; text-transform: uppercase; letter-spacing: 0.04em; background: rgba(148, 163, 184, 0.2); color: #e2e8f0; border: 1px solid rgba(255, 255, 255, 0.2); flex-shrink: 0;">NEUTRAL</span>
+                                                <span id="tech-roc-status" class="tech-osc-status" style="font-size: 10.5px; font-weight: 800; padding: 4px 9px; border-radius: 4px; display: inline-block; white-space: nowrap; text-transform: uppercase; letter-spacing: 0.04em; background: rgba(148, 163, 184, 0.2); color: #e2e8f0; border: 1px solid rgba(255, 255, 255, 0.2); flex-shrink: 0;">NEUTRAL</span>
                                             </div>
-                                            <div style="display: flex; align-items: center; justify-content: space-between; background: rgba(255,255,255,0.02); border: 1px solid var(--border-glass); padding: 10px 12px; border-radius: 6px; width: 100%; box-sizing: border-box;">
-                                                <div style="display: flex; flex-direction: column; gap: 2px;">
-                                                    <span style="font-size: 11px; color: var(--text-secondary); text-transform: uppercase; font-weight: 700; letter-spacing: 0.03em;">CCI (20)</span>
-                                                    <strong id="tech-cci-val" style="font-size: 13.5px; font-weight: 800; color: var(--text-primary);">--</strong>
+                                            <div class="tech-osc-card" style="display: flex; align-items: center; justify-content: space-between; background: rgba(255,255,255,0.02); border: 1px solid var(--border-glass); padding: 10px 12px; border-radius: 6px; width: 100%; box-sizing: border-box; min-height: 48px;">
+                                                <div style="display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1; margin-right: 8px;">
+                                                    <span style="font-size: 11px; color: var(--text-secondary); text-transform: uppercase; font-weight: 700; letter-spacing: 0.03em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">CCI (20)</span>
+                                                    <strong id="tech-cci-val" class="tech-osc-val" style="font-size: 13.5px; font-weight: 800; color: var(--text-primary); display: block; visibility: visible; line-height: 1.2;">--</strong>
                                                 </div>
-                                                <span id="tech-cci-status" style="font-size: 10.5px; font-weight: 800; padding: 4px 9px; border-radius: 4px; display: inline-block; white-space: nowrap; text-transform: uppercase; letter-spacing: 0.04em; background: rgba(148, 163, 184, 0.2); color: #e2e8f0; border: 1px solid rgba(255, 255, 255, 0.2); flex-shrink: 0;">NEUTRAL</span>
+                                                <span id="tech-cci-status" class="tech-osc-status" style="font-size: 10.5px; font-weight: 800; padding: 4px 9px; border-radius: 4px; display: inline-block; white-space: nowrap; text-transform: uppercase; letter-spacing: 0.04em; background: rgba(148, 163, 184, 0.2); color: #e2e8f0; border: 1px solid rgba(255, 255, 255, 0.2); flex-shrink: 0;">NEUTRAL</span>
                                             </div>
-                                            <div style="display: flex; align-items: center; justify-content: space-between; background: rgba(255,255,255,0.02); border: 1px solid var(--border-glass); padding: 10px 12px; border-radius: 6px; width: 100%; box-sizing: border-box;">
-                                                <div style="display: flex; flex-direction: column; gap: 2px;">
-                                                    <span style="font-size: 11px; color: var(--text-secondary); text-transform: uppercase; font-weight: 700; letter-spacing: 0.03em;">Williamson %R (14)</span>
-                                                    <strong id="tech-willr-val" style="font-size: 13.5px; font-weight: 800; color: var(--text-primary);">--</strong>
+                                            <div class="tech-osc-card" style="display: flex; align-items: center; justify-content: space-between; background: rgba(255,255,255,0.02); border: 1px solid var(--border-glass); padding: 10px 12px; border-radius: 6px; width: 100%; box-sizing: border-box; min-height: 48px;">
+                                                <div style="display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1; margin-right: 8px;">
+                                                    <span style="font-size: 11px; color: var(--text-secondary); text-transform: uppercase; font-weight: 700; letter-spacing: 0.03em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Williamson %R (14)</span>
+                                                    <strong id="tech-willr-val" class="tech-osc-val" style="font-size: 13.5px; font-weight: 800; color: var(--text-primary); display: block; visibility: visible; line-height: 1.2;">--</strong>
                                                 </div>
-                                                <span id="tech-willr-status" style="font-size: 10.5px; font-weight: 800; padding: 4px 9px; border-radius: 4px; display: inline-block; white-space: nowrap; text-transform: uppercase; letter-spacing: 0.04em; background: rgba(148, 163, 184, 0.2); color: #e2e8f0; border: 1px solid rgba(255, 255, 255, 0.2); flex-shrink: 0;">NEUTRAL</span>
+                                                <span id="tech-willr-status" class="tech-osc-status" style="font-size: 10.5px; font-weight: 800; padding: 4px 9px; border-radius: 4px; display: inline-block; white-space: nowrap; text-transform: uppercase; letter-spacing: 0.04em; background: rgba(148, 163, 184, 0.2); color: #e2e8f0; border: 1px solid rgba(255, 255, 255, 0.2); flex-shrink: 0;">NEUTRAL</span>
                                             </div>
-                                            <div style="display: flex; align-items: center; justify-content: space-between; background: rgba(255,255,255,0.02); border: 1px solid var(--border-glass); padding: 10px 12px; border-radius: 6px; width: 100%; box-sizing: border-box;">
-                                                <div style="display: flex; flex-direction: column; gap: 2px;">
-                                                    <span style="font-size: 11px; color: var(--text-secondary); text-transform: uppercase; font-weight: 700; letter-spacing: 0.03em;">MFI (14)</span>
-                                                    <strong id="tech-mfi-val" style="font-size: 13.5px; font-weight: 800; color: var(--text-primary);">--</strong>
+                                            <div class="tech-osc-card" style="display: flex; align-items: center; justify-content: space-between; background: rgba(255,255,255,0.02); border: 1px solid var(--border-glass); padding: 10px 12px; border-radius: 6px; width: 100%; box-sizing: border-box; min-height: 48px;">
+                                                <div style="display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1; margin-right: 8px;">
+                                                    <span style="font-size: 11px; color: var(--text-secondary); text-transform: uppercase; font-weight: 700; letter-spacing: 0.03em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">MFI (14)</span>
+                                                    <strong id="tech-mfi-val" class="tech-osc-val" style="font-size: 13.5px; font-weight: 800; color: var(--text-primary); display: block; visibility: visible; line-height: 1.2;">--</strong>
                                                 </div>
-                                                <span id="tech-mfi-status" style="font-size: 10.5px; font-weight: 800; padding: 4px 9px; border-radius: 4px; display: inline-block; white-space: nowrap; text-transform: uppercase; letter-spacing: 0.04em; background: rgba(148, 163, 184, 0.2); color: #e2e8f0; border: 1px solid rgba(255, 255, 255, 0.2); flex-shrink: 0;">NEUTRAL</span>
+                                                <span id="tech-mfi-status" class="tech-osc-status" style="font-size: 10.5px; font-weight: 800; padding: 4px 9px; border-radius: 4px; display: inline-block; white-space: nowrap; text-transform: uppercase; letter-spacing: 0.04em; background: rgba(148, 163, 184, 0.2); color: #e2e8f0; border: 1px solid rgba(255, 255, 255, 0.2); flex-shrink: 0;">NEUTRAL</span>
                                             </div>
-                                            <div style="display: flex; align-items: center; justify-content: space-between; background: rgba(255,255,255,0.02); border: 1px solid var(--border-glass); padding: 10px 12px; border-radius: 6px; width: 100%; box-sizing: border-box;">
-                                                <div style="display: flex; flex-direction: column; gap: 2px;">
-                                                    <span style="font-size: 11px; color: var(--text-secondary); text-transform: uppercase; font-weight: 700; letter-spacing: 0.03em;">ADX (14)</span>
-                                                    <strong id="tech-adx-val" style="font-size: 13.5px; font-weight: 800; color: var(--text-primary);">--</strong>
+                                            <div class="tech-osc-card" style="display: flex; align-items: center; justify-content: space-between; background: rgba(255,255,255,0.02); border: 1px solid var(--border-glass); padding: 10px 12px; border-radius: 6px; width: 100%; box-sizing: border-box; min-height: 48px;">
+                                                <div style="display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1; margin-right: 8px;">
+                                                    <span style="font-size: 11px; color: var(--text-secondary); text-transform: uppercase; font-weight: 700; letter-spacing: 0.03em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">ADX (14)</span>
+                                                    <strong id="tech-adx-val" class="tech-osc-val" style="font-size: 13.5px; font-weight: 800; color: var(--text-primary); display: block; visibility: visible; line-height: 1.2;">--</strong>
                                                 </div>
-                                                <span id="tech-adx-status" style="font-size: 10.5px; font-weight: 800; padding: 4px 9px; border-radius: 4px; display: inline-block; white-space: nowrap; text-transform: uppercase; letter-spacing: 0.04em; background: rgba(148, 163, 184, 0.2); color: #e2e8f0; border: 1px solid rgba(255, 255, 255, 0.2); flex-shrink: 0;">WEAK TREND</span>
+                                                <span id="tech-adx-status" class="tech-osc-status" style="font-size: 10.5px; font-weight: 800; padding: 4px 9px; border-radius: 4px; display: inline-block; white-space: nowrap; text-transform: uppercase; letter-spacing: 0.04em; background: rgba(148, 163, 184, 0.2); color: #e2e8f0; border: 1px solid rgba(255, 255, 255, 0.2); flex-shrink: 0;">WEAK TREND</span>
                                             </div>
-                                            <div style="display: flex; align-items: center; justify-content: space-between; background: rgba(255,255,255,0.02); border: 1px solid var(--border-glass); padding: 10px 12px; border-radius: 6px; width: 100%; box-sizing: border-box;">
-                                                <div style="display: flex; flex-direction: column; gap: 2px;">
-                                                    <span style="font-size: 11px; color: var(--text-secondary); text-transform: uppercase; font-weight: 700; letter-spacing: 0.03em;">Relative Strength (RSC)</span>
-                                                    <strong id="tech-rsc-val" style="font-size: 13.5px; font-weight: 800; color: var(--text-primary);">--</strong>
+                                            <div class="tech-osc-card" style="display: flex; align-items: center; justify-content: space-between; background: rgba(255,255,255,0.02); border: 1px solid var(--border-glass); padding: 10px 12px; border-radius: 6px; width: 100%; box-sizing: border-box; min-height: 48px;">
+                                                <div style="display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1; margin-right: 8px;">
+                                                    <span style="font-size: 11px; color: var(--text-secondary); text-transform: uppercase; font-weight: 700; letter-spacing: 0.03em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Relative Strength (RSC)</span>
+                                                    <strong id="tech-rsc-val" class="tech-osc-val" style="font-size: 13.5px; font-weight: 800; color: var(--text-primary); display: block; visibility: visible; line-height: 1.2;">--</strong>
                                                 </div>
-                                                <span id="tech-rsc-status" style="font-size: 10.5px; font-weight: 800; padding: 4px 9px; border-radius: 4px; display: inline-block; white-space: nowrap; text-transform: uppercase; letter-spacing: 0.04em; background: rgba(16, 185, 129, 0.2); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.4); flex-shrink: 0;">OUTPERFORMER</span>
+                                                <span id="tech-rsc-status" class="tech-osc-status" style="font-size: 10.5px; font-weight: 800; padding: 4px 9px; border-radius: 4px; display: inline-block; white-space: nowrap; text-transform: uppercase; letter-spacing: 0.04em; background: rgba(16, 185, 129, 0.2); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.4); flex-shrink: 0;">OUTPERFORMER</span>
                                             </div>
                                         </div>
                                     </div>

@@ -11548,6 +11548,16 @@ tr.active-peer-row td:first-child {
     box-sizing: border-box;
 }
 
+.tech-osc-card {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    min-height: 48px !important;
+    height: auto !important;
+    box-sizing: border-box !important;
+    overflow: visible !important;
+}
+
 /* Explicit Status Badges styling rule to guarantee visibility on all mobile screens & themes */
 #tech-macd-status,
 #tech-stoch-status,
@@ -11556,7 +11566,8 @@ tr.active-peer-row td:first-child {
 #tech-willr-status,
 #tech-mfi-status,
 #tech-adx-status,
-#tech-rsc-status {
+#tech-rsc-status,
+.tech-osc-status {
     display: inline-block !important;
     visibility: visible !important;
     opacity: 1 !important;
@@ -11569,6 +11580,25 @@ tr.active-peer-row td:first-child {
     letter-spacing: 0.04em !important;
     flex-shrink: 0 !important;
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3) !important;
+}
+
+/* Explicit Values styling rule to guarantee value text visibility on mobile portrait & landscape */
+#tech-macd-val,
+#tech-stoch-val,
+#tech-roc-val,
+#tech-cci-val,
+#tech-willr-val,
+#tech-mfi-val,
+#tech-adx-val,
+#tech-rsc-val,
+.tech-osc-val {
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    font-size: 13.5px !important;
+    font-weight: 800 !important;
+    line-height: 1.2 !important;
+    color: var(--text-primary) !important;
 }
 
 .tech-row-4col {
@@ -11585,18 +11615,59 @@ tr.active-peer-row td:first-child {
         grid-template-columns: 1fr !important;
         width: 100% !important;
         max-width: 100% !important;
+        box-sizing: border-box !important;
+        overflow: hidden !important;
+    }
+    .tech-crossover-col,
+    .tech-oscillators-col {
+        width: 100% !important;
+        max-width: 100% !important;
+        padding: 8px !important;
+        box-sizing: border-box !important;
+        overflow: hidden !important;
     }
     .tech-oscillators-inner-grid {
         grid-template-columns: 1fr !important;
         width: 100% !important;
         max-width: 100% !important;
+        gap: 6px !important;
+        box-sizing: border-box !important;
     }
-    .tech-row-4col {
-        grid-template-columns: repeat(2, 1fr) !important;
+    .tech-osc-card {
+        padding: 6px 8px !important;
+        min-height: 42px !important;
         width: 100% !important;
         max-width: 100% !important;
+        box-sizing: border-box !important;
     }
-
+    #tech-macd-val,
+    #tech-stoch-val,
+    #tech-roc-val,
+    #tech-cci-val,
+    #tech-willr-val,
+    #tech-mfi-val,
+    #tech-adx-val,
+    #tech-rsc-val,
+    .tech-osc-val {
+        font-size: 11.5px !important;
+    }
+    #tech-macd-status,
+    #tech-stoch-status,
+    #tech-roc-status,
+    #tech-cci-status,
+    #tech-willr-status,
+    #tech-mfi-status,
+    #tech-adx-status,
+    #tech-rsc-status,
+    .tech-osc-status {
+        font-size: 8.5px !important;
+        padding: 2.5px 5.5px !important;
+        letter-spacing: 0.01em !important;
+        box-sizing: border-box !important;
+        max-width: 95px !important;
+        text-align: center !important;
+        flex-shrink: 0 !important;
+    }
     /* Disable inline mobile meta dropdown panel rendering in favor of the global bottom sheet */
     .meta-dropdown-panel {
         display: none !important;
