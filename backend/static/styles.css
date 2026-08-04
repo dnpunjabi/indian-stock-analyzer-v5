@@ -11548,6 +11548,29 @@ tr.active-peer-row td:first-child {
     box-sizing: border-box;
 }
 
+/* Explicit Status Badges styling rule to guarantee visibility on all mobile screens & themes */
+#tech-macd-status,
+#tech-stoch-status,
+#tech-roc-status,
+#tech-cci-status,
+#tech-willr-status,
+#tech-mfi-status,
+#tech-adx-status,
+#tech-rsc-status {
+    display: inline-block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    font-size: 10.5px !important;
+    font-weight: 800 !important;
+    padding: 4px 9px !important;
+    border-radius: 4px !important;
+    white-space: nowrap !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.04em !important;
+    flex-shrink: 0 !important;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3) !important;
+}
+
 .tech-row-4col {
     display: grid;
     grid-template-columns: repeat(4, 1fr);

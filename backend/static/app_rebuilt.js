@@ -5442,105 +5442,122 @@ function renderStockDashboard(p) {
     // Render Momentum Oscillators dashboard
     const macdValEl = document.getElementById('tech-macd-val');
     const macdStatusEl = document.getElementById('tech-macd-status');
-    if (macdValEl && p.technicals.macd !== undefined) {
+    if (macdValEl && p.technicals && p.technicals.macd !== undefined) {
         macdValEl.innerText = p.technicals.macd.toFixed(2);
         if (macdStatusEl) {
-            macdStatusEl.innerText = p.technicals.macd_hist > 0 ? "BULLISH" : "BEARISH";
-            macdStatusEl.style.background = p.technicals.macd_hist > 0 ? "rgba(16, 185, 129, 0.15)" : "rgba(239, 68, 68, 0.15)";
-            macdStatusEl.style.color = p.technicals.macd_hist > 0 ? "#10b981" : "#ef4444";
+            const isBullish = p.technicals.macd_hist > 0;
+            macdStatusEl.innerText = isBullish ? "BULLISH" : "BEARISH";
+            macdStatusEl.style.background = isBullish ? "rgba(16, 185, 129, 0.2)" : "rgba(239, 68, 68, 0.2)";
+            macdStatusEl.style.color = isBullish ? "#34d399" : "#f87171";
+            macdStatusEl.style.border = isBullish ? "1px solid rgba(16, 185, 129, 0.4)" : "1px solid rgba(239, 68, 68, 0.4)";
         }
     }
 
     const stochValEl = document.getElementById('tech-stoch-val');
     const stochStatusEl = document.getElementById('tech-stoch-status');
-    if (stochValEl && p.technicals.stoch_k !== undefined) {
+    if (stochValEl && p.technicals && p.technicals.stoch_k !== undefined) {
         stochValEl.innerText = `${p.technicals.stoch_k.toFixed(1)} / ${p.technicals.stoch_d.toFixed(1)}`;
         if (stochStatusEl) {
-            stochStatusEl.innerText = p.technicals.stoch_status.toUpperCase();
-            let bg = 'rgba(255,255,255,0.08)', fg = 'var(--text-primary)';
-            if (p.technicals.stoch_status === "Overbought") { bg = "rgba(239, 68, 68, 0.15)"; fg = "#ef4444"; }
-            else if (p.technicals.stoch_status === "Oversold") { bg = "rgba(16, 185, 129, 0.15)"; fg = "#10b981"; }
+            const rawStatus = p.technicals.stoch_status || 'Neutral';
+            stochStatusEl.innerText = rawStatus.toUpperCase();
+            let bg = 'rgba(148, 163, 184, 0.2)', fg = '#e2e8f0', border = '1px solid rgba(255, 255, 255, 0.2)';
+            if (rawStatus === "Overbought") { bg = "rgba(239, 68, 68, 0.2)"; fg = "#f87171"; border = "1px solid rgba(239, 68, 68, 0.4)"; }
+            else if (rawStatus === "Oversold") { bg = "rgba(16, 185, 129, 0.2)"; fg = "#34d399"; border = "1px solid rgba(16, 185, 129, 0.4)"; }
             stochStatusEl.style.background = bg;
             stochStatusEl.style.color = fg;
+            stochStatusEl.style.border = border;
         }
     }
 
     const rocValEl = document.getElementById('tech-roc-val');
     const rocStatusEl = document.getElementById('tech-roc-status');
-    if (rocValEl && p.technicals.roc_20 !== undefined) {
+    if (rocValEl && p.technicals && p.technicals.roc_20 !== undefined) {
         rocValEl.innerText = `${p.technicals.roc_20.toFixed(2)}%`;
         if (rocStatusEl) {
-            rocStatusEl.innerText = p.technicals.roc_status.toUpperCase();
-            rocStatusEl.style.background = p.technicals.roc_status === "Bullish" ? "rgba(16, 185, 129, 0.15)" : "rgba(239, 68, 68, 0.15)";
-            rocStatusEl.style.color = p.technicals.roc_status === "Bullish" ? "#10b981" : "#ef4444";
+            const rawStatus = p.technicals.roc_status || (p.technicals.roc_20 >= 0 ? 'Bullish' : 'Bearish');
+            const isBullish = rawStatus === "Bullish";
+            rocStatusEl.innerText = rawStatus.toUpperCase();
+            rocStatusEl.style.background = isBullish ? "rgba(16, 185, 129, 0.2)" : "rgba(239, 68, 68, 0.2)";
+            rocStatusEl.style.color = isBullish ? "#34d399" : "#f87171";
+            rocStatusEl.style.border = isBullish ? "1px solid rgba(16, 185, 129, 0.4)" : "1px solid rgba(239, 68, 68, 0.4)";
         }
     }
 
     const cciValEl = document.getElementById('tech-cci-val');
     const cciStatusEl = document.getElementById('tech-cci-status');
-    if (cciValEl && p.technicals.cci_20 !== undefined) {
+    if (cciValEl && p.technicals && p.technicals.cci_20 !== undefined) {
         cciValEl.innerText = p.technicals.cci_20.toFixed(1);
         if (cciStatusEl) {
-            cciStatusEl.innerText = p.technicals.cci_status.toUpperCase();
-            let bg = 'rgba(255,255,255,0.08)', fg = 'var(--text-primary)';
-            if (p.technicals.cci_status === "Overbought") { bg = "rgba(239, 68, 68, 0.15)"; fg = "#ef4444"; }
-            else if (p.technicals.cci_status === "Oversold") { bg = "rgba(16, 185, 129, 0.15)"; fg = "#10b981"; }
+            const rawStatus = p.technicals.cci_status || 'Neutral';
+            cciStatusEl.innerText = rawStatus.toUpperCase();
+            let bg = 'rgba(148, 163, 184, 0.2)', fg = '#e2e8f0', border = '1px solid rgba(255, 255, 255, 0.2)';
+            if (rawStatus === "Overbought") { bg = "rgba(239, 68, 68, 0.2)"; fg = "#f87171"; border = "1px solid rgba(239, 68, 68, 0.4)"; }
+            else if (rawStatus === "Oversold") { bg = "rgba(16, 185, 129, 0.2)"; fg = "#34d399"; border = "1px solid rgba(16, 185, 129, 0.4)"; }
             cciStatusEl.style.background = bg;
             cciStatusEl.style.color = fg;
+            cciStatusEl.style.border = border;
         }
     }
 
     const willrValEl = document.getElementById('tech-willr-val');
     const willrStatusEl = document.getElementById('tech-willr-status');
-    if (willrValEl && p.technicals.will_r_14 !== undefined) {
+    if (willrValEl && p.technicals && p.technicals.will_r_14 !== undefined) {
         willrValEl.innerText = p.technicals.will_r_14.toFixed(1);
         if (willrStatusEl) {
-            willrStatusEl.innerText = p.technicals.will_r_status.toUpperCase();
-            let bg = 'rgba(255,255,255,0.08)', fg = 'var(--text-primary)';
-            if (p.technicals.will_r_status === "Overbought") { bg = "rgba(239, 68, 68, 0.15)"; fg = "#ef4444"; }
-            else if (p.technicals.will_r_status === "Oversold") { bg = "rgba(16, 185, 129, 0.15)"; fg = "#10b981"; }
+            const rawStatus = p.technicals.will_r_status || 'Neutral';
+            willrStatusEl.innerText = rawStatus.toUpperCase();
+            let bg = 'rgba(148, 163, 184, 0.2)', fg = '#e2e8f0', border = '1px solid rgba(255, 255, 255, 0.2)';
+            if (rawStatus === "Overbought") { bg = "rgba(239, 68, 68, 0.2)"; fg = "#f87171"; border = "1px solid rgba(239, 68, 68, 0.4)"; }
+            else if (rawStatus === "Oversold") { bg = "rgba(16, 185, 129, 0.2)"; fg = "#34d399"; border = "1px solid rgba(16, 185, 129, 0.4)"; }
             willrStatusEl.style.background = bg;
             willrStatusEl.style.color = fg;
+            willrStatusEl.style.border = border;
         }
     }
 
     const mfiValEl = document.getElementById('tech-mfi-val');
     const mfiStatusEl = document.getElementById('tech-mfi-status');
-    if (mfiValEl && p.technicals.mfi_14 !== undefined) {
+    if (mfiValEl && p.technicals && p.technicals.mfi_14 !== undefined) {
         mfiValEl.innerText = p.technicals.mfi_14.toFixed(1);
         if (mfiStatusEl) {
-            mfiStatusEl.innerText = p.technicals.mfi_status.toUpperCase();
-            let bg = 'rgba(255,255,255,0.08)', fg = 'var(--text-primary)';
-            if (p.technicals.mfi_status === "Overbought") { bg = "rgba(239, 68, 68, 0.15)"; fg = "#ef4444"; }
-            else if (p.technicals.mfi_status === "Oversold") { bg = "rgba(16, 185, 129, 0.15)"; fg = "#10b981"; }
+            const rawStatus = p.technicals.mfi_status || 'Neutral';
+            mfiStatusEl.innerText = rawStatus.toUpperCase();
+            let bg = 'rgba(148, 163, 184, 0.2)', fg = '#e2e8f0', border = '1px solid rgba(255, 255, 255, 0.2)';
+            if (rawStatus === "Overbought") { bg = "rgba(239, 68, 68, 0.2)"; fg = "#f87171"; border = "1px solid rgba(239, 68, 68, 0.4)"; }
+            else if (rawStatus === "Oversold") { bg = "rgba(16, 185, 129, 0.2)"; fg = "#34d399"; border = "1px solid rgba(16, 185, 129, 0.4)"; }
             mfiStatusEl.style.background = bg;
             mfiStatusEl.style.color = fg;
+            mfiStatusEl.style.border = border;
         }
     }
 
     const adxValEl = document.getElementById('tech-adx-val');
     const adxStatusEl = document.getElementById('tech-adx-status');
-    if (adxValEl && p.technicals.adx !== undefined) {
+    if (adxValEl && p.technicals && p.technicals.adx !== undefined) {
         adxValEl.innerText = p.technicals.adx.toFixed(1);
         if (adxStatusEl) {
-            adxStatusEl.innerText = p.technicals.adx_status.toUpperCase();
-            let bg = 'rgba(255,255,255,0.08)', fg = 'var(--text-primary)';
-            if (p.technicals.adx_status.includes("Strong")) { bg = "rgba(16, 185, 129, 0.15)"; fg = "#10b981"; }
-            else if (p.technicals.adx_status.includes("Weak")) { bg = "rgba(239, 68, 68, 0.05)"; fg = "var(--text-muted)"; }
+            const rawStatus = (p.technicals.adx_status || 'Weak Trend').toUpperCase();
+            adxStatusEl.innerText = rawStatus;
+            let bg = 'rgba(148, 163, 184, 0.2)', fg = '#e2e8f0', border = '1px solid rgba(255, 255, 255, 0.2)';
+            if (rawStatus.includes("STRONG")) { bg = "rgba(16, 185, 129, 0.2)"; fg = "#34d399"; border = "1px solid rgba(16, 185, 129, 0.4)"; }
+            else if (rawStatus.includes("WEAK")) { bg = "rgba(239, 68, 68, 0.15)"; fg = "#f87171"; border = "1px solid rgba(239, 68, 68, 0.3)"; }
             adxStatusEl.style.background = bg;
             adxStatusEl.style.color = fg;
+            adxStatusEl.style.border = border;
         }
     }
 
     const rscValEl = document.getElementById('tech-rsc-val');
     const rscStatusEl = document.getElementById('tech-rsc-status');
-    if (rscValEl && p.technicals.rsc_6m !== undefined) {
+    if (rscValEl && p.technicals && p.technicals.rsc_6m !== undefined) {
         const sign = p.technicals.rsc_6m >= 0 ? "+" : "";
         rscValEl.innerText = `${sign}${p.technicals.rsc_6m.toFixed(1)}%`;
         if (rscStatusEl) {
-            rscStatusEl.innerText = p.technicals.rsc_status.toUpperCase();
-            rscStatusEl.style.background = p.technicals.rsc_6m >= 0 ? "rgba(16, 185, 129, 0.15)" : "rgba(239, 68, 68, 0.15)";
-            rscStatusEl.style.color = p.technicals.rsc_6m >= 0 ? "#10b981" : "#ef4444";
+            const isOutperformer = p.technicals.rsc_6m >= 0;
+            rscStatusEl.innerText = isOutperformer ? "OUTPERFORMER" : "UNDERPERFORMER";
+            rscStatusEl.style.background = isOutperformer ? "rgba(16, 185, 129, 0.2)" : "rgba(239, 68, 68, 0.2)";
+            rscStatusEl.style.color = isOutperformer ? "#34d399" : "#f87171";
+            rscStatusEl.style.border = isOutperformer ? "1px solid rgba(16, 185, 129, 0.4)" : "1px solid rgba(239, 68, 68, 0.4)";
         }
     }
 
