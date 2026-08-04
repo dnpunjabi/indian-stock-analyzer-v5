@@ -1366,12 +1366,12 @@ body.light-theme .llm-execution-badge .badge-latency,
 /* ---- Mobile Scroll Performance ---- */
 @media (max-width: 768px) {
     html, body {
-        overscroll-behavior-y: contain;
+        overscroll-behavior-y: auto;
         -webkit-overflow-scrolling: touch;
     }
     #tab-analyzer, #mobile-homepage-command-center {
         -webkit-overflow-scrolling: touch;
-        will-change: scroll-position;
+        will-change: auto !important;
     }
 }
 

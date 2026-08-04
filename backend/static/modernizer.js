@@ -7144,45 +7144,8 @@
     };
 
     // ==================== SUBTAB GLANCE BADGES DYNAMIC UPDATES ====================
-    // ==================== STICKY PRICE HUD BAR INITIALIZATION ====================
-    window.initStickyPriceHUD = function() {
-        const hudBar = document.getElementById('sticky-price-hud-bar');
-        const targetBanner = document.querySelector('.stock-meta-banner');
-        if (!hudBar || !targetBanner) return;
+    window.initStickyPriceHUD = function() {}; // No-op: HUD removed
 
-        window.addEventListener('scroll', () => {
-            const activeTabEl = document.querySelector('.workspace-tab.active-tab-content');
-            const activeTab = activeTabEl ? activeTabEl.id.replace('tab-', '') : 'analyzer';
-            if (activeTab !== 'analyzer') {
-                hudBar.classList.remove('visible');
-                return;
-            }
-            const bannerRect = targetBanner.getBoundingClientRect();
-            if (bannerRect.bottom < 0) {
-                const ticker = document.getElementById('meta-ticker')?.innerText || '--';
-                const company = document.getElementById('meta-company-name')?.innerText || '--';
-                const price = document.getElementById('meta-price')?.innerText || '--';
-                const change = document.getElementById('meta-change')?.innerText || '--';
-                const changeClass = document.getElementById('meta-change')?.className || '';
-
-                const hudTicker = document.getElementById('hud-ticker');
-                const hudCompany = document.getElementById('hud-company');
-                const hudPrice = document.getElementById('hud-price');
-                const hudChange = document.getElementById('hud-change');
-
-                if (hudTicker) hudTicker.innerText = ticker;
-                if (hudCompany) hudCompany.innerText = company;
-                if (hudPrice) hudPrice.innerText = price;
-                if (hudChange) {
-                    hudChange.innerText = change;
-                    hudChange.className = 'hud-change ' + changeClass;
-                }
-                hudBar.classList.add('visible');
-            } else {
-                hudBar.classList.remove('visible');
-            }
-        }, { passive: true });
-    };
 
 
     // ==================== MULTI-AGENT AI CONFLUENCE RADAR CHART ====================
