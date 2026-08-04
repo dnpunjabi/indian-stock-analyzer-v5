@@ -11534,20 +11534,44 @@ tr.active-peer-row td:first-child {
 .tech-crossover-oscillators-grid {
     display: grid;
     grid-template-columns: 1fr 1fr;
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
 }
 
 .tech-oscillators-inner-grid {
     display: grid !important;
     grid-template-columns: 1fr 1fr;
     gap: 10px;
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+}
+
+.tech-row-4col {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 10px;
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
 }
 
 @media (max-width: 768px) {
     .tech-crossover-oscillators-grid {
         grid-template-columns: 1fr !important;
+        width: 100% !important;
+        max-width: 100% !important;
     }
     .tech-oscillators-inner-grid {
         grid-template-columns: 1fr !important;
+        width: 100% !important;
+        max-width: 100% !important;
+    }
+    .tech-row-4col {
+        grid-template-columns: repeat(2, 1fr) !important;
+        width: 100% !important;
+        max-width: 100% !important;
     }
 
     /* Disable inline mobile meta dropdown panel rendering in favor of the global bottom sheet */
