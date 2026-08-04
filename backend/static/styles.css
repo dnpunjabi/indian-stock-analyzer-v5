@@ -11536,8 +11536,17 @@ tr.active-peer-row td:first-child {
     grid-template-columns: 1fr 1fr;
 }
 
+.tech-oscillators-inner-grid {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+}
+
 @media (max-width: 768px) {
     .tech-crossover-oscillators-grid {
+        grid-template-columns: 1fr !important;
+    }
+    .tech-oscillators-inner-grid {
         grid-template-columns: 1fr !important;
     }
 
