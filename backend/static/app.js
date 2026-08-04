@@ -44401,7 +44401,7 @@ function renderActiveStatementTable() {
             const cagrColor = cagrVal >= 0 ? 'var(--color-emerald, #10b981)' : 'var(--color-crimson, #ef4444)';
             const cagrBg = cagrVal >= 0 ? 'rgba(16, 185, 129, 0.12)' : 'rgba(239, 68, 68, 0.12)';
             const cagrBorder = cagrVal >= 0 ? 'rgba(16, 185, 129, 0.25)' : 'rgba(239, 68, 68, 0.25)';
-            cagrBadge = `<span style="font-size: 10.5px; color: ${cagrColor}; background: ${cagrBg}; padding: 1px 5px; border-radius: 4px; font-weight: 700; border: 1px solid ${cagrBorder}; white-space: nowrap; display: inline-flex; align-items: center; gap: 3px; font-family: 'JetBrains Mono', monospace;"><span style="font-size: 9.5px; opacity: 0.8; font-family: 'Outfit', sans-serif;">CAGR</span> <span>${cagrVal >= 0 ? '+' : ''}${(cagrVal * 100).toFixed(1)}%</span></span>`;
+            cagrBadge = `<span class="fs-cagr-badge" style="color: ${cagrColor}; background: ${cagrBg}; border: 1px solid ${cagrBorder};"><span class="cagr-lbl" style="opacity: 0.8; font-family: 'Outfit', sans-serif;">CAGR</span> <span>${cagrVal >= 0 ? '+' : ''}${(cagrVal * 100).toFixed(1)}%</span></span>`;
         }
         
         // Anomaly badge injection
@@ -44442,12 +44442,12 @@ function renderActiveStatementTable() {
             </div>` : '';
 
         html += `
-            <td style="position: sticky; left: 0; z-index: 25; background: #0d1117 !important; background-color: #0d1117 !important; opacity: 1 !important; border-right: 1px solid var(--border-glass); text-align: left; white-space: nowrap; min-width: 175px; max-width: 240px; width: 185px; padding: 7px 12px; font-family: 'Outfit', sans-serif; box-shadow: 4px 0 12px rgba(0,0,0,0.75);">
+            <td class="fs-sticky-metric-td" style="position: sticky; left: 0; z-index: 25; background: #0d1117 !important; background-color: #0d1117 !important; opacity: 1 !important; border-right: 1px solid var(--border-glass); text-align: left; white-space: nowrap; font-family: 'Outfit', sans-serif; box-shadow: 4px 0 12px rgba(0,0,0,0.75);">
                 <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px; white-space: nowrap; width: 100%;">
                     <div style="display: flex; flex-direction: column; gap: 2px; overflow: hidden; flex: 1;">
                         <div style="display: flex; align-items: center; gap: 5px; white-space: nowrap;">
                             ${compareCheckbox}
-                            <span style="font-weight: inherit; white-space: nowrap;">${label}</span>
+                            <span style="font-weight: inherit; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${label}</span>
                         </div>
                         ${subBadgeRow}
                     </div>
@@ -48890,6 +48890,8 @@ function renderPoPComparison() {
     const isLight = document.documentElement.getAttribute('data-theme') === 'light' || document.body.getAttribute('data-theme') === 'light';
     const popBarBg = isLight ? 'rgba(0, 0, 0, 0.08)' : 'rgba(255, 255, 255, 0.05)';
     const popBorderColor = isLight ? 'rgba(0, 0, 0, 0.05)' : 'rgba(255, 255, 255, 0.03)';
+    const thBg = isLight ? '#f1f5f9' : '#0f172a';
+    const cellBg = isLight ? '#ffffff' : '#0f172a';
     
     const selA = document.getElementById('fs-pop-period-a');
     const selB = document.getElementById('fs-pop-period-b');
@@ -48906,14 +48908,14 @@ function renderPoPComparison() {
         return;
     }
     
-    let html = '<table style="width:100%;border-collapse:collapse;font-size:11px;">';
+    let html = '<table class="pop-comparison-table" style="width:100%;border-collapse:separate;border-spacing:0;font-size:12px;">';
     html += `<thead><tr>
-        <th style="text-align:left;padding:6px 10px;border-bottom:2px solid var(--border-glass);font-family:'Outfit',sans-serif;min-width:140px;">Metric</th>
-        <th style="text-align:right;padding:6px 10px;border-bottom:2px solid var(--border-glass);font-family:'Outfit',sans-serif;color:#3b82f6;">${headers[idxA] || 'Period A'}</th>
-        <th style="text-align:right;padding:6px 10px;border-bottom:2px solid var(--border-glass);font-family:'Outfit',sans-serif;color:#f59e0b;">${headers[idxB] || 'Period B'}</th>
-        <th style="text-align:right;padding:6px 10px;border-bottom:2px solid var(--border-glass);font-family:'Outfit',sans-serif;">Abs Δ</th>
-        <th style="text-align:right;padding:6px 10px;border-bottom:2px solid var(--border-glass);font-family:'Outfit',sans-serif;">% Δ</th>
-        <th style="text-align:center;padding:6px 10px;border-bottom:2px solid var(--border-glass);font-family:'Outfit',sans-serif;width:80px;">Visual</th>
+        <th style="position:sticky;top:0;left:0;z-index:30;background:${thBg};text-align:left;padding:8px 10px;border-bottom:2px solid var(--border-glass);font-family:'Outfit',sans-serif;min-width:140px;box-shadow:2px 0 5px rgba(0,0,0,0.15);">METRIC</th>
+        <th style="position:sticky;top:0;z-index:20;background:${thBg};text-align:right;padding:8px 10px;border-bottom:2px solid var(--border-glass);font-family:'Outfit',sans-serif;color:#3b82f6;font-weight:800;">${headers[idxA] || 'Period A'}</th>
+        <th style="position:sticky;top:0;z-index:20;background:${thBg};text-align:right;padding:8px 10px;border-bottom:2px solid var(--border-glass);font-family:'Outfit',sans-serif;color:#f59e0b;font-weight:800;">${headers[idxB] || 'Period B'}</th>
+        <th style="position:sticky;top:0;z-index:20;background:${thBg};text-align:right;padding:8px 10px;border-bottom:2px solid var(--border-glass);font-family:'Outfit',sans-serif;font-weight:700;">ABS Δ</th>
+        <th style="position:sticky;top:0;z-index:20;background:${thBg};text-align:right;padding:8px 10px;border-bottom:2px solid var(--border-glass);font-family:'Outfit',sans-serif;font-weight:700;">% Δ</th>
+        <th style="position:sticky;top:0;z-index:20;background:${thBg};text-align:center;padding:8px 10px;border-bottom:2px solid var(--border-glass);font-family:'Outfit',sans-serif;width:80px;font-weight:700;">VISUAL</th>
     </tr></thead><tbody>`;
     
     rows.forEach(r => {
@@ -48950,12 +48952,12 @@ function renderPoPComparison() {
         const fw = isBold ? 'font-weight:700;' : '';
         
         html += `<tr style="${fw}border-bottom:1px solid ${popBorderColor};">
-            <td style="text-align:left;padding:5px 10px;font-family:'Outfit',sans-serif;">${r.label}</td>
-            <td style="text-align:right;padding:5px 10px;font-family:'Inter',sans-serif;">${formatFsValue(valA, false)}</td>
-            <td style="text-align:right;padding:5px 10px;font-family:'Inter',sans-serif;">${formatFsValue(valB, false)}</td>
-            <td style="text-align:right;padding:5px 10px;font-family:'Inter',sans-serif;color:${deltaColor};">${absDelta}</td>
-            <td style="text-align:right;padding:5px 10px;font-family:'Inter',sans-serif;font-weight:600;color:${deltaColor};">${pctDelta}</td>
-            <td style="text-align:center;padding:5px 10px;">${barHtml}</td>
+            <td style="position:sticky;left:0;z-index:10;background:${cellBg};text-align:left;padding:7px 10px;font-family:'Outfit',sans-serif;box-shadow:2px 0 5px rgba(0,0,0,0.15);">${r.label}</td>
+            <td style="text-align:right;padding:7px 10px;font-family:'Inter',sans-serif;">${formatFsValue(valA, false)}</td>
+            <td style="text-align:right;padding:7px 10px;font-family:'Inter',sans-serif;">${formatFsValue(valB, false)}</td>
+            <td style="text-align:right;padding:7px 10px;font-family:'Inter',sans-serif;color:${deltaColor};">${absDelta}</td>
+            <td style="text-align:right;padding:7px 10px;font-family:'Inter',sans-serif;font-weight:700;color:${deltaColor};">${pctDelta}</td>
+            <td style="text-align:center;padding:7px 10px;">${barHtml}</td>
         </tr>`;
     });
     

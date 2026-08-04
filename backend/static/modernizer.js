@@ -5571,43 +5571,43 @@
             const container = document.getElementById('desktop-watchlist-container') || document.getElementById('mobile-home-watchlist-container');
             if (!container) return;
 
+            try {
                 await window.swrFetchJson('/api/watchlists', (watchlists) => {
                     if (!watchlists || !Array.isArray(watchlists)) return;
-                    const safeWatchlists = watchlists.filter(w => w && w.id);
-                    if (safeWatchlists.length === 0) return;
 
                     selector.innerHTML = '<option value="" disabled selected>Select Watchlist</option>';
                     const mobileSel = document.getElementById('mobile-watchlist-selector');
                     if (mobileSel) {
                         mobileSel.innerHTML = '<option value="" disabled selected>Select Watchlist</option>';
                     }
+                    if (watchlists && watchlists.length > 0) {
+                        const mainSelectedId = document.getElementById('watchlist-select')?.value;
+                        const defaultId = (mainSelectedId && mainSelectedId !== "") ? mainSelectedId : (watchlists.find(w => w && w.id) || {}).id;
 
-                    const mainSelectedId = document.getElementById('watchlist-select')?.value;
-                    const defaultId = (mainSelectedId && mainSelectedId !== "" && mainSelectedId !== "null" && mainSelectedId !== "undefined") ? mainSelectedId : safeWatchlists[0].id;
+                        watchlists.forEach(w => {
+                            const opt = document.createElement('option');
+                            opt.value = w.id;
+                            opt.innerText = w.name;
+                            if (w.id === defaultId) opt.selected = true;
+                            selector.appendChild(opt);
 
-                    safeWatchlists.forEach(w => {
-                        if (!w || !w.id) return;
-                        const opt = document.createElement('option');
-                        opt.value = w.id;
-                        opt.innerText = w.name || 'Watchlist';
-                        if (w.id == defaultId) opt.selected = true;
-                        selector.appendChild(opt);
+                            if (mobileSel) {
+                                const mOpt = document.createElement('option');
+                                mOpt.value = w.id;
+                                mOpt.innerText = w.name;
+                                if (w.id === defaultId) mOpt.selected = true;
+                                mobileSel.appendChild(mOpt);
+                            }
+                        });
 
-                        if (mobileSel) {
-                            const mOpt = document.createElement('option');
-                            mOpt.value = w.id;
-                            mOpt.innerText = w.name || 'Watchlist';
-                            if (w.id == defaultId) mOpt.selected = true;
-                            mobileSel.appendChild(mOpt);
-                        }
-                    });
-
-                    if (defaultId) {
                         selector.value = defaultId;
                         if (mobileSel) mobileSel.value = defaultId;
                         onWatchlistChange(defaultId);
                     }
                 });
+            } catch (err) {
+                console.error("Desktop watchlists load error:", err);
+            }
 
             function renderWatchlistList() {
                 window.renderWatchlistList = renderWatchlistList;
@@ -5658,12 +5658,24 @@
                         let listToDisplay = [];
                         if (activeTab === 'gainers') {
                             if (topGainers.length > 0) {
-                                listToDisplay = topGainers;
+                                listToDisplay = topGainers.slice(0, 5);
                             } else {
-                                listToDisplay = displayItems;
+                                listToDisplay = sortedByChange.slice(0, 5);
                             }
-                        } else if (activeTab === 'losers') {
+                        } else {
                             if (topLosers.length > 0) {
+                                listToDisplay = topLosers.slice(0, 5);
+                            } else {
+                                listToDisplay = sortedByChange.slice(-5).reverse();
+                            }
+                        }
+
+                        // If total watchlist length is <= 5, display ALL 5 items so no stock is ever missing!
+                        if (displayItems.length <= 5) {
+                            listToDisplay = sortedByChange;
+                        }
+
+                        const renderMobileWatchlistCard = (item) => {
                             const cleanSym = (item.symbol || '').replace('.NS', '').replace('.BO', '');
                             const priceVal = parseFloat(item.live_price || item.price || 0);
                             const priceStr = priceVal > 0 ? `₹${priceVal.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '--';
@@ -5785,6 +5797,7 @@
             };
 
             async function onWatchlistChange(watchlistId) {
+                if (!watchlistId || watchlistId === 'null' || watchlistId === 'undefined') return;
                 // Do NOT wipe watchlistCachedItems = [] here to prevent layout flickering/disappearing items
                 try {
                     await window.swrFetchJson(`/api/watchlists/${watchlistId}`, async (data) => {
@@ -5951,7 +5964,8 @@
         let quantPicksCache = { hybrid: [], bottom_up: [], top_down: [] };
         window.activeQuantStrategy = 'hybrid';
 
-        const renderQuantTopPicksList = () => { window.renderQuantTopPicksList = renderQuantTopPicksList;
+        const renderQuantTopPicksList = () => { 
+            window.renderQuantTopPicksList = renderQuantTopPicksList;
             // Synchronize active indicator on mobile strategy tabs
             const qTabHybrid = document.getElementById('mobile-quant-tab-hybrid');
             const qTabBU = document.getElementById('mobile-quant-tab-bottom_up');
@@ -5969,139 +5983,139 @@
             if (!tbody && !mobileQuantPicks) return;
 
             const data = quantPicksCache[window.activeQuantStrategy] || [];
-            if (data && data.length > 0) {
-                // Sort by score descending
-                const sorted = [...data].sort((a, b) => (b.score || 0) - (a.score || 0));
-                const top5 = sorted.slice(0, 5);
+            const sorted = data.length > 0 ? [...data].sort((a, b) => (b.score || 0) - (a.score || 0)) : [];
+            const top5 = sorted.slice(0, 5);
 
-                const mobileQuantPicks = document.getElementById('mobile-home-quant-picks-container');
             if (mobileQuantPicks) {
                 if (top5.length > 0) {
                     let quantHtml = `<div class="mobile-vertical-list-container">`;
-                        top5.forEach((item, index) => {
-                            const cleanSym = item.symbol.replace('.NS', '');
-                            const scoreVal = parseInt(item.score || 0);
-                            const scoreColor = scoreVal >= 70 ? 'var(--neon-green, #10b981)' : '#f59e0b';
-                            const actionStr = (item.action || 'BUY').toUpperCase().includes('BUY') ? 'BUY' : 'SELL';
-                            const actionBg = actionStr === 'BUY' ? 'rgba(16,185,129,0.12)' : 'rgba(239,68,68,0.12)';
-                            const actionBorder = actionStr === 'BUY' ? 'rgba(16,185,129,0.3)' : 'rgba(239,68,68,0.3)';
-                            const actionColor = actionStr === 'BUY' ? 'var(--neon-green, #10b981)' : 'var(--neon-red, #ef4444)';
-                            const drawerId = `quant-drawer-${cleanSym}-${index}`;
+                    top5.forEach((item, index) => {
+                        const cleanSym = item.symbol.replace('.NS', '');
+                        const scoreVal = parseInt(item.score || 0);
+                        const scoreColor = scoreVal >= 70 ? 'var(--neon-green, #10b981)' : '#f59e0b';
+                        const actionStr = (item.action || 'BUY').toUpperCase().includes('BUY') ? 'BUY' : 'SELL';
+                        const actionBg = actionStr === 'BUY' ? 'rgba(16,185,129,0.12)' : 'rgba(239,68,68,0.12)';
+                        const actionBorder = actionStr === 'BUY' ? 'rgba(16,185,129,0.3)' : 'rgba(239,68,68,0.3)';
+                        const actionColor = actionStr === 'BUY' ? 'var(--neon-green, #10b981)' : 'var(--neon-red, #ef4444)';
+                        const drawerId = `quant-drawer-${cleanSym}-${index}`;
 
-                            // Seed pseudo metrics based on symbol for demonstration prospectus
-                            let symHash = 0;
-                            for (let c = 0; c < cleanSym.length; c++) symHash += cleanSym.charCodeAt(c);
-                            const rsiVal = (45 + (symHash % 25)).toFixed(1);
-                            const mosVal = (12 + (symHash % 18)).toFixed(1);
-                            const isLast = index === top5.length - 1;
-                            const borderStyle = isLast ? '' : 'border-bottom: 1px solid var(--border-glass, rgba(255,255,255,0.06));';
+                        // Seed pseudo metrics based on symbol for demonstration prospectus
+                        let symHash = 0;
+                        for (let c = 0; c < cleanSym.length; c++) symHash += cleanSym.charCodeAt(c);
+                        const rsiVal = (45 + (symHash % 25)).toFixed(1);
+                        const mosVal = (12 + (symHash % 18)).toFixed(1);
+                        const isLast = index === top5.length - 1;
+                        const borderStyle = isLast ? '' : 'border-bottom: 1px solid var(--border-glass, rgba(255,255,255,0.06));';
 
-                            quantHtml += `
-                                <div class="cyber-stock-card-row quant-pick-row" style="cursor:default;">
-                                    <div style="display:flex; align-items:center; justify-content:space-between;">
-                                        <div style="display:flex; align-items:center; gap:8px;">
-                                            <strong style="color: var(--text-primary); font-size:14px; font-weight:800; font-family:'Outfit', sans-serif;">${cleanSym}</strong>
-                                        </div>
-                                        <div style="display:flex; align-items:center; gap:10px;">
-                                            <div style="text-align:right;">
-                                                <span style="font-size:14px; font-weight:800; color:${scoreColor}; font-family:monospace;">${scoreVal}</span>
-                                                <span style="font-size: 12.5px; color:var(--text-muted);">/100</span>
-                                            </div>
-                                            <button onclick="
-                                                if(typeof playHaptic==='function') playHaptic(10);
-                                                const d = document.getElementById('${drawerId}');
-                                                if(d) {
-                                                    const open = d.style.display !== 'none';
-                                                    d.style.display = open ? 'none' : 'block';
-                                                    this.innerText = open ? 'Prospectus ▾' : 'Close ▴';
-                                                }
-                                            " style="background:rgba(59,130,246,0.1); border:1px solid rgba(59,130,246,0.3); color:#3b82f6; font-size: 13px; font-weight:700; border-radius:6px; padding:3px 8px; cursor:pointer;">Prospectus ▾</button>
-                                        </div>
+                        quantHtml += `
+                            <div class="cyber-stock-card-row quant-pick-row" style="cursor:default;">
+                                <div style="display:flex; align-items:center; justify-content:space-between;">
+                                    <div style="display:flex; align-items:center; gap:8px;">
+                                        <strong style="color: var(--text-primary); font-size:14px; font-weight:800; font-family:'Outfit', sans-serif;">${cleanSym}</strong>
                                     </div>
-
-                                    <!-- Expandable Touch Detail Drawer (Inline Prospectus View) -->
-                                    <div id="${drawerId}" style="display:none; margin-top:10px; padding-top:10px; border-top:1px dashed var(--border-glass, rgba(255,255,255,0.1)); font-size: 13.5px; color:var(--text-secondary); transition:all 0.3s ease;">
-                                        <div style="display:grid; grid-template-columns:1fr 1fr; gap:6px; margin-bottom:8px;">
-                                            <div style="background:rgba(255,255,255,0.03); padding:6px; border-radius:4px;">
-                                                <div style="font-size: 12.5px; color:var(--text-muted);">RSI (14)</div>
-                                                <div style="font-weight:800; color:var(--neon-green); font-family:monospace;">${rsiVal} (Bullish)</div>
-                                            </div>
-                                            <div style="background:rgba(255,255,255,0.03); padding:6px; border-radius:4px;">
-                                                <div style="font-size: 12.5px; color:var(--text-muted);">Margin of Safety</div>
-                                                <div style="font-weight:800; color:var(--neon-green); font-family:monospace;">+${mosVal}%</div>
-                                            </div>
+                                    <div style="display:flex; align-items:center; gap:10px;">
+                                        <div style="text-align:right;">
+                                            <span style="font-size:14px; font-weight:800; color:${scoreColor}; font-family:monospace;">${scoreVal}</span>
+                                            <span style="font-size: 12.5px; color:var(--text-muted);">/100</span>
                                         </div>
                                         <button onclick="
-                                            if (typeof window.loadStockAnalyzer === 'function') {
-                                                window.loadStockAnalyzer('${cleanSym}');
-                                            } else if (typeof window.switchTab === 'function') {
-                                                window.switchTab('analyzer');
+                                            if(typeof playHaptic==='function') playHaptic(10);
+                                            const d = document.getElementById('${drawerId}');
+                                            if(d) {
+                                                const open = d.style.display !== 'none';
+                                                d.style.display = open ? 'none' : 'block';
+                                                this.innerText = open ? 'Prospectus ▾' : 'Close ▴';
                                             }
-                                        " style="width:100%; background:var(--color-primary); color:#fff; border:none; padding:6px; border-radius:4px; font-weight:800; font-size: 13.5px; cursor:pointer;">Deep Dive Research →</button>
+                                        " style="background:rgba(59,130,246,0.1); border:1px solid rgba(59,130,246,0.3); color:#3b82f6; font-size: 13px; font-weight:700; border-radius:6px; padding:3px 8px; cursor:pointer;">Prospectus ▾</button>
                                     </div>
                                 </div>
-                            `;
-                        });
+
+                                <!-- Expandable Touch Detail Drawer (Inline Prospectus View) -->
+                                <div id="${drawerId}" style="display:none; margin-top:10px; padding-top:10px; border-top:1px dashed var(--border-glass, rgba(255,255,255,0.1)); font-size: 13.5px; color:var(--text-secondary); transition:all 0.3s ease;">
+                                    <div style="display:grid; grid-template-columns:1fr 1fr; gap:6px; margin-bottom:8px;">
+                                        <div style="background:rgba(255,255,255,0.03); padding:6px; border-radius:4px;">
+                                            <div style="font-size: 12.5px; color:var(--text-muted);">RSI (14)</div>
+                                            <div style="font-weight:800; color:var(--neon-green); font-family:monospace;">${rsiVal} (Bullish)</div>
+                                        </div>
+                                        <div style="background:rgba(255,255,255,0.03); padding:6px; border-radius:4px;">
+                                            <div style="font-size: 12.5px; color:var(--text-muted);">Margin of Safety</div>
+                                            <div style="font-weight:800; color:var(--neon-green); font-family:monospace;">+${mosVal}%</div>
+                                        </div>
+                                    </div>
+                                    <button onclick="
+                                        if (typeof window.loadStockAnalyzer === 'function') {
+                                            window.loadStockAnalyzer('${cleanSym}');
+                                        } else if (typeof window.switchTab === 'function') {
+                                            window.switchTab('analyzer');
+                                        }
+                                    " style="width:100%; background:var(--color-primary); color:#fff; border:none; padding:6px; border-radius:4px; font-weight:800; font-size: 13.5px; cursor:pointer;">Deep Dive Research →</button>
+                                </div>
+                            </div>
+                        `;
+                    });
                     quantHtml += `</div>`;
                     mobileQuantPicks.innerHTML = quantHtml;
                 } else {
                     mobileQuantPicks.innerHTML = `<div class="recent-research-empty" style="font-size: 13.5px;">Scanning market for picks...</div>`;
                 }
             }
-            tbody.innerHTML = top5.map((item, idx) => {
-                    const cleanSym = item.symbol.replace('.NS', '');
-                    let compName = item.name || '';
-                    compName = compName.replace(/(Limited|Ltd\.|\(India\)|\(I\))/gi, '').trim();
+            if (tbody) {
+                if (top5 && top5.length > 0) {
+                    tbody.innerHTML = top5.map((item, idx) => {
+                        const cleanSym = item.symbol.replace('.NS', '');
+                        let compName = item.name || '';
+                        compName = compName.replace(/(Limited|Ltd\.|\(India\)|\(I\))/gi, '').trim();
 
-                    const scoreVal = parseInt(item.score || 0);
-                    let scoreColor = '#ef4444';
-                    if (scoreVal >= 70) {
-                        scoreColor = '#10b981';
-                    } else if (scoreVal >= 50) {
-                        scoreColor = '#f59e0b';
-                    }
-
-                    const actionStr = (item.action || 'HOLD').toUpperCase();
-                    let signalText = 'HOLD';
-                    let badgeClass = 'hold';
-
-                    if (actionStr.includes('BUY')) {
-                        signalText = 'BUY';
-                        badgeClass = 'buy';
-                    } else if (actionStr.includes('SELL') || actionStr.includes('UNDERPERFORM') || actionStr.includes('RED')) {
-                        signalText = 'SELL';
-                        badgeClass = 'sell';
-                    }
-
-                    return `
-                        <tr class="quant-pick-row" data-symbol="${cleanSym}" style="border-bottom: 1px solid var(--border-glass); height: 42px;">
-                            <td style="padding: 6px 8px;">
-                                <strong style="color: var(--text-primary); font-size: 13.5px; font-weight: 800; font-family: 'Outfit', sans-serif; display: block; line-height: 1.2;">${cleanSym}</strong>
-                                <span style="font-size: 11px; color: var(--text-muted); display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 220px;" title="${item.name || ''}">${compName}</span>
-                            </td>
-                            <td style="padding: 6px 8px; text-align: center; font-weight: 700; color: ${scoreColor}; font-family: 'Inter', monospace;">${scoreVal}</td>
-                            <td style="padding: 6px 8px; text-align: center;">
-                                <span class="signal-badge ${badgeClass}">${signalText}</span>
-                            </td>
-                        </tr>
-                    `;
-                }).join('');
-
-                tbody.querySelectorAll('.quant-pick-row').forEach(row => {
-                    row.addEventListener('click', (e) => {
-                        e.stopPropagation();
-                        const symbol = row.getAttribute('data-symbol');
-                        const searchInput = document.getElementById('analyzer-search-input');
-                        const searchBtn = document.getElementById('analyzer-search-btn');
-                        if (searchInput) {
-                            searchInput.value = symbol;
-                            searchInput.focus();
-                            if (searchBtn) searchBtn.click();
+                        const scoreVal = parseInt(item.score || 0);
+                        let scoreColor = '#ef4444';
+                        if (scoreVal >= 70) {
+                            scoreColor = '#10b981';
+                        } else if (scoreVal >= 50) {
+                            scoreColor = '#f59e0b';
                         }
+
+                        const actionStr = (item.action || 'HOLD').toUpperCase();
+                        let signalText = 'HOLD';
+                        let badgeClass = 'hold';
+
+                        if (actionStr.includes('BUY')) {
+                            signalText = 'BUY';
+                            badgeClass = 'buy';
+                        } else if (actionStr.includes('SELL') || actionStr.includes('UNDERPERFORM') || actionStr.includes('RED')) {
+                            signalText = 'SELL';
+                            badgeClass = 'sell';
+                        }
+
+                        return `
+                            <tr class="quant-pick-row" data-symbol="${cleanSym}" style="border-bottom: 1px solid var(--border-glass); height: 42px;">
+                                <td style="padding: 6px 8px;">
+                                    <strong style="color: var(--text-primary); font-size: 13.5px; font-weight: 800; font-family: 'Outfit', sans-serif; display: block; line-height: 1.2;">${cleanSym}</strong>
+                                    <span style="font-size: 11px; color: var(--text-muted); display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 220px;" title="${item.name || ''}">${compName}</span>
+                                </td>
+                                <td style="padding: 6px 8px; text-align: center; font-weight: 700; color: ${scoreColor}; font-family: 'Inter', monospace;">${scoreVal}</td>
+                                <td style="padding: 6px 8px; text-align: center;">
+                                    <span class="signal-badge ${badgeClass}">${signalText}</span>
+                                </td>
+                            </tr>
+                        `;
+                    }).join('');
+
+                    tbody.querySelectorAll('.quant-pick-row').forEach(row => {
+                        row.addEventListener('click', (e) => {
+                            e.stopPropagation();
+                            const symbol = row.getAttribute('data-symbol');
+                            const searchInput = document.getElementById('analyzer-search-input');
+                            const searchBtn = document.getElementById('analyzer-search-btn');
+                            if (searchInput) {
+                                searchInput.value = symbol;
+                                searchInput.focus();
+                                if (searchBtn) searchBtn.click();
+                            }
+                        });
                     });
-                });
-            } else {
-                tbody.innerHTML = `<tr><td colspan="5" class="recent-research-empty" style="padding: 20px 0; text-align: center;">No constituents qualified.</td></tr>`;
+                } else {
+                    tbody.innerHTML = `<tr><td colspan="5" class="recent-research-empty" style="padding: 20px 0; text-align: center;">No constituents qualified.</td></tr>`;
+                }
             }
         };
 
@@ -6332,8 +6346,7 @@
             }
 
             const list = technicalScansCache[window.activeTechnicalScan] || [];
-            if (list && list.length > 0) {
-                const mobileTechScans = document.getElementById('mobile-home-tech-scans-container');
+
             // Synchronize active indicator on mobile tech tabs
             const mtHigh = document.getElementById('mobile-tech-tab-near_high');
             const mtLow = document.getElementById('mobile-tech-tab-near_low');
@@ -6447,70 +6460,73 @@
                 }
             }
             
-            tbody.innerHTML = list.slice(0, 5).map((item, idx) => {
-                    const cleanSym = item.symbol;
-                    let compName = item.name || '';
-                    compName = compName.replace(/(Limited|Ltd\.|\(India\)|\(I\))/gi, '').trim();
+            if (tbody) {
+                if (list && list.length > 0) {
+                    tbody.innerHTML = list.slice(0, 5).map((item, idx) => {
+                        const cleanSym = item.symbol;
+                        let compName = item.name || '';
+                        compName = compName.replace(/(Limited|Ltd\.|\(India\)|\(I\))/gi, '').trim();
 
-                    // Determine sentiment color badge based on active scan strategy
-                    let badgeClass = 'buy';
-                    let badgeText = 'BULLISH';
-                    if (window.activeTechnicalScan === 'near_low' || window.activeTechnicalScan === 'gap_down' || activeTechnicalScan === 'rsi_overbought') {
-                        badgeClass = 'sell';
-                        badgeText = 'BEARISH';
-                    }
+                        // Determine sentiment color badge based on active scan strategy
+                        let badgeClass = 'buy';
+                        let badgeText = 'BULLISH';
+                        if (window.activeTechnicalScan === 'near_low' || window.activeTechnicalScan === 'gap_down' || activeTechnicalScan === 'rsi_overbought') {
+                            badgeClass = 'sell';
+                            badgeText = 'BEARISH';
+                        }
 
-                    // Format values
-                    let formattedVal = item.value;
-                    let metricStyle = 'color: var(--text-primary); font-weight: 600;';
+                        // Format values
+                        let formattedVal = item.value;
+                        let metricStyle = 'color: var(--text-primary); font-weight: 600;';
 
-                    if (window.activeTechnicalScan.includes('rsi')) {
-                        const rsiVal = (item.rsi !== undefined && item.rsi !== null) ? Number(item.rsi) : (item.value !== undefined ? Number(item.value) : null);
-                        if (rsiVal !== null && !isNaN(rsiVal)) {
-                            formattedVal = rsiVal.toFixed(1);
-                            if (rsiVal <= 35) {
-                                metricStyle = 'color: #10b981; font-weight: 700;';
-                            } else if (rsiVal >= 65) {
-                                metricStyle = 'color: #ef4444; font-weight: 700;';
+                        if (window.activeTechnicalScan.includes('rsi')) {
+                            const rsiVal = (item.rsi !== undefined && item.rsi !== null) ? Number(item.rsi) : (item.value !== undefined ? Number(item.value) : null);
+                            if (rsiVal !== null && !isNaN(rsiVal)) {
+                                formattedVal = rsiVal.toFixed(1);
+                                if (rsiVal <= 35) {
+                                    metricStyle = 'color: #10b981; font-weight: 700;';
+                                } else if (rsiVal >= 65) {
+                                    metricStyle = 'color: #ef4444; font-weight: 700;';
+                                }
+                            }
+                        } else if (typeof formattedVal === 'number') {
+                            if (window.activeTechnicalScan.includes('near') || window.activeTechnicalScan.includes('gap') || window.activeTechnicalScan.includes('pullback') || window.activeTechnicalScan.includes('fib')) {
+                                formattedVal = formattedVal.toFixed(2) + '%';
+                            } else if (window.activeTechnicalScan.includes('volume')) {
+                                formattedVal = formattedVal.toFixed(1) + 'x';
                             }
                         }
-                    } else if (typeof formattedVal === 'number') {
-                        if (window.activeTechnicalScan.includes('near') || window.activeTechnicalScan.includes('gap') || window.activeTechnicalScan.includes('pullback') || window.activeTechnicalScan.includes('fib')) {
-                            formattedVal = formattedVal.toFixed(2) + '%';
-                        } else if (window.activeTechnicalScan.includes('volume')) {
-                            formattedVal = formattedVal.toFixed(1) + 'x';
-                        }
-                    }
 
-                    return `
-                        <tr class="technical-scan-row" data-symbol="${cleanSym}" style="border-bottom: 1px solid var(--border-glass); height: 42px;">
-                            <td style="padding: 6px 8px;">
-                                <strong style="color: var(--text-primary); font-size: 13.5px; font-weight: 800; font-family: 'Outfit', sans-serif; display: block; line-height: 1.2;">${cleanSym}</strong>
-                                <span style="font-size: 11px; color: var(--text-muted); display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 220px;" title="${item.name || ''}">${compName}</span>
-                            </td>
-                            <td style="padding: 6px 8px; text-align: right; font-family: 'Inter', monospace; ${metricStyle}">${formattedVal}</td>
-                            <td style="padding: 6px 8px; text-align: center;">
-                                <span class="signal-badge ${badgeClass}">${badgeText}</span>
-                            </td>
-                        </tr>
-                    `;
-                }).join('');
+                        return `
+                            <tr class="technical-scan-row" data-symbol="${cleanSym}" style="border-bottom: 1px solid var(--border-glass); height: 42px;">
+                                <td style="padding: 6px 8px;">
+                                    <strong style="color: var(--text-primary); font-size: 13.5px; font-weight: 800; font-family: 'Outfit', sans-serif; display: block; line-height: 1.2;">${cleanSym}</strong>
+                                    <span style="font-size: 11px; color: var(--text-muted); display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 220px;" title="${item.name || ''}">${compName}</span>
+                                </td>
+                                <td style="padding: 6px 8px; text-align: right; font-family: 'Inter', monospace; ${metricStyle}">${formattedVal}</td>
+                                <td style="padding: 6px 8px; text-align: center;">
+                                    <span class="signal-badge ${badgeClass}">${badgeText}</span>
+                                </td>
+                            </tr>
+                        `;
+                    }).join('');
 
-                tbody.querySelectorAll('.technical-scan-row').forEach(row => {
-                    row.addEventListener('click', (e) => {
-                        e.stopPropagation();
-                        const symbol = row.getAttribute('data-symbol');
-                        const searchInput = document.getElementById('analyzer-search-input');
-                        const searchBtn = document.getElementById('analyzer-search-btn');
-                        if (searchInput) {
-                            searchInput.value = symbol;
-                            searchInput.focus();
-                            if (searchBtn) searchBtn.click();
-                        }
+                    tbody.querySelectorAll('.technical-scan-row').forEach(row => {
+                        row.addEventListener('click', (e) => {
+                            e.stopPropagation();
+                            const symbol = row.getAttribute('data-symbol');
+                            const searchInput = document.getElementById('analyzer-search-input');
+                            const searchBtn = document.getElementById('analyzer-search-btn');
+                            if (searchInput) {
+                                searchInput.value = symbol;
+                                searchInput.focus();
+                                if (searchBtn) searchBtn.click();
+                            }
+                        });
                     });
-                });
-            } else {
-                tbody.innerHTML = `<tr><td colspan="3" class="recent-research-empty" style="padding: 20px 0; text-align: center;">No stocks qualifying under this scan.</td></tr>`;
+                } else {
+                    tbody.innerHTML = `<tr><td colspan="3" class="recent-research-empty" style="padding: 20px 0; text-align: center;">No stocks qualifying under this scan.</td></tr>`;
+                }
             }
         };
 

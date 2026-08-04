@@ -30424,3 +30424,110 @@ body.light-theme #swing-scan-table thead th:first-child {
     display: none !important;
 }
 
+/* ==================== FINANCIAL STATEMENT MOBILE CAGR OPTION 1 ==================== */
+.fs-cagr-badge {
+    font-size: 10px;
+    padding: 1px 5px;
+    border-radius: 4px;
+    font-weight: 700;
+    white-space: nowrap;
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    font-family: 'JetBrains Mono', monospace;
+}
+
+@media (max-width: 768px) {
+    .fs-sticky-metric-td {
+        min-width: 150px !important;
+        width: 160px !important;
+        padding: 6px 8px !important;
+    }
+    .fs-cagr-badge {
+        font-size: 9.5px !important;
+        padding: 1px 4px !important;
+        letter-spacing: -0.02em;
+    }
+    .fs-cagr-badge .cagr-lbl {
+        font-size: 8.5px !important;
+        opacity: 0.9 !important;
+    }
+}
+
+@media (max-width: 480px) {
+    .fs-sticky-metric-td {
+        min-width: 140px !important;
+        width: 145px !important;
+    }
+    .fs-cagr-badge {
+        font-size: 9px !important;
+        padding: 0px 3px !important;
+    }
+    .fs-cagr-badge .cagr-lbl {
+        display: none !important;
+    }
+}
+
+/* ==================== PERIOD-OVER-PERIOD COMPARISON PANEL & STICKY TABLE ==================== */
+#fs-period-comparison-panel {
+    border-radius: 10px !important;
+    overflow: hidden !important;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.25) !important;
+    border: 1px solid var(--border-glass, rgba(255, 255, 255, 0.1)) !important;
+}
+
+#fs-pop-table-container {
+    max-height: 400px !important;
+    overflow-y: auto !important;
+    overflow-x: auto !important;
+    position: relative !important;
+    -webkit-overflow-scrolling: touch !important;
+}
+
+/* Sticky top header row */
+.pop-comparison-table thead th {
+    position: sticky !important;
+    top: 0 !important;
+    z-index: 20 !important;
+    border-bottom: 2px solid var(--border-glass, rgba(255, 255, 255, 0.15)) !important;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3) !important;
+}
+
+/* Sticky left column (Metric column) */
+.pop-comparison-table th:first-child,
+.pop-comparison-table td:first-child {
+    position: sticky !important;
+    left: 0 !important;
+    z-index: 10 !important;
+    box-shadow: 3px 0 6px rgba(0, 0, 0, 0.25) !important;
+    min-width: 140px !important;
+    max-width: 170px !important;
+    white-space: normal !important;
+    word-break: break-word !important;
+}
+
+/* Top-Left Corner Header Cell (Metric th) gets highest z-index so top header overlaps left column */
+.pop-comparison-table th:first-child {
+    z-index: 30 !important;
+}
+
+@media (max-width: 768px) {
+    .pop-panel-header {
+        padding: 8px 10px !important;
+        gap: 6px !important;
+    }
+    .pop-period-select {
+        height: 30px !important;
+        font-size: 12px !important;
+        padding: 0 6px !important;
+    }
+    .pop-comparison-table th:first-child,
+    .pop-comparison-table td:first-child {
+        min-width: 125px !important;
+        max-width: 140px !important;
+        font-size: 11.5px !important;
+        padding-left: 8px !important;
+        padding-right: 6px !important;
+    }
+}
+
