@@ -3888,6 +3888,7 @@
                         <button class="subtabs-nav-btn prev-btn hidden" aria-label="Scroll left">◀</button>
                         <div class="analyzer-subtabs">
                             <button class="subtab-btn active" data-subtab="summary">📋 Executive Summary</button>
+                            <button class="subtab-btn" data-subtab="ai-overview">✨ Google AI Overview</button>
                             <button class="subtab-btn" data-subtab="valuation">📊 Valuation & DCF</button>
                             <button class="subtab-btn" data-subtab="technical">📉 Technical Timing</button>
                             <button class="subtab-btn" data-subtab="tv-chart">📈 Interactive Chart</button>
@@ -3955,6 +3956,9 @@
                             </div>
                         </div>
                         
+                        <!-- Embedded ✨ Google SGE AI Overview Card (Dedicated Subtab) -->
+                        <div id="google-ai-overview-card-container" class="card col-span-4 no-print" data-subtab="ai-overview" style="margin-top: 0px; margin-bottom: 15px; padding: 0; background: transparent; border: none;"></div>
+
                         <!-- Price Performance & Shareholding Card -->
                         <div class="card col-span-2 no-print" id="performance-shareholding-card" data-subtab="summary" style="margin-top: 15px; margin-bottom: 15px;">
                             <div class="card-header" style="border: none; padding-bottom: 0;">
@@ -7167,6 +7171,9 @@
                                 </div>
                             </div>
                         </div>
+
+                        <!-- Embedded Google SGE AI Overview Card Container -->
+                        <div id="google-ai-overview-card-container" class="col-span-4 no-print" data-subtab="summary" style="margin-bottom: 20px;"></div>
 
                         <!-- Governance & News Feed -->
                         <div id="news-feed-card" class="card col-span-4 no-print" data-subtab="summary">

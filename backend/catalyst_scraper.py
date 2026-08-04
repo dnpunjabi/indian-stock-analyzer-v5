@@ -219,3 +219,82 @@ def fetch_latest_news_for_query(
         print(f"[Catalyst Scraper] Google News RSS failed: {e}")
         
     return [], "None"
+
+
+def fetch_serpapi_google_ai_overview(query: str, serpapi_keys: list) -> dict:
+    """
+    Queries SerpApi with Google AI Overview (SGE) engine and extracts
+    structured sections, bullet points, source citation badges, and
+    Google AI generated follow-up prompts.
+    """
+    if not serpapi_keys:
+        return {}
+
+    for sk in serpapi_keys:
+        if not sk:
+            continue
+        try:
+            masked_sk = f"{sk[:6]}...{sk[-4:]}" if len(sk) > 10 else sk
+            print(f"[Catalyst Scraper] Querying SerpApi SGE for Google AI Overview with key {masked_sk}: '{query}'")
+            encoded_query = urllib.parse.quote(query)
+            url = f"https://serpapi.com/search.json?engine=google&q={encoded_query}&api_key={sk}&gl=in&hl=en"
+            r = requests.get(url, timeout=15.0)
+            if r.status_code == 200:
+                data = r.json()
+                ai_overview = data.get("ai_overview", {})
+                if ai_overview:
+                    text = ai_overview.get("text", "")
+                    
+                    # 1. Extract sections
+                    sections = []
+                    raw_sections = ai_overview.get("sections", [])
+                    if isinstance(raw_sections, list):
+                        for sec in raw_sections:
+                            if isinstance(sec, dict):
+                                title = sec.get("title", "Market Update")
+                                bullets = sec.get("bullet_points", [])
+                                if isinstance(bullets, list):
+                                    clean_bullets = [str(b.get("text", b)) if isinstance(b, dict) else str(b) for b in bullets]
+                                else:
+                                    clean_bullets = [str(bullets)] if bullets else []
+                                sources = [str(s.get("name", s.get("title", s))) if isinstance(s, dict) else str(s) for s in sec.get("sources", sec.get("references", []))]
+                                sections.append({
+                                    "title": title,
+                                    "bullet_points": clean_bullets,
+                                    "sources": sources
+                                })
+                    
+                    # 2. Extract references/citations at top-level
+                    top_sources = []
+                    for ref in ai_overview.get("references", []):
+                        if isinstance(ref, dict):
+                            src_name = ref.get("source", ref.get("title", "Web"))
+                            if src_name and src_name not in top_sources:
+                                top_sources.append(src_name)
+
+                    # 3. Extract Google AI generated follow-up prompts
+                    suggested_followups = []
+                    for followup in ai_overview.get("suggested_questions", ai_overview.get("follow_ups", [])):
+                        if isinstance(followup, dict):
+                            txt = followup.get("question", followup.get("text", ""))
+                        else:
+                            txt = str(followup)
+                        if txt:
+                            suggested_followups.append(txt)
+                            
+                    print(f"[Catalyst Scraper] SerpApi SGE successfully returned AI Overview ({len(sections)} sections, {len(suggested_followups)} followups).")
+                    return {
+                        "text": text,
+                        "sections": sections,
+                        "sources": top_sources,
+                        "suggested_followups": suggested_followups,
+                        "data_source": "SerpApi SGE"
+                    }
+                else:
+                    print(f"[Catalyst Scraper] SerpApi returned HTTP 200 but no 'ai_overview' block for this query.")
+        except Exception as e:
+            print(f"[Catalyst Scraper] SerpApi SGE query failed: {e}")
+            continue
+
+    return {}
+

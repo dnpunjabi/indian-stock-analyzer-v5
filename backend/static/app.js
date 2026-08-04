@@ -7182,6 +7182,11 @@ function renderStockDashboard(p) {
         }, 2000);
     }
 
+    // Auto-load Google SGE AI Overview Card
+    if (typeof loadGoogleAIOverviewCard === 'function' && p && p.ticker) {
+        loadGoogleAIOverviewCard(p.ticker);
+    }
+
     // Populate Corporate Business Summary Collapsible Card (Two-Column Layout)
     const sectorVal = p.sector || 'N/A';
     const capVal = p.cap_type ? (p.cap_type.toUpperCase() + ' CAP') : 'N/A';
@@ -8476,6 +8481,9 @@ function renderStockDashboard(p) {
         });
     }
     loadPortfolioNewsImpact(p.ticker, false, false);
+    if (window.loadGoogleAIOverviewCard) {
+        window.loadGoogleAIOverviewCard(p.ticker, false);
+    }
     // Initial fetch of the default chart duration (1 year daily)
     fetchAndRenderChart();
 
@@ -22169,6 +22177,14 @@ function setupAnalyzerSubtabs() {
             }
 
             const activeSubtab = btn.getAttribute('data-subtab');
+
+            if (activeSubtab === 'ai-overview') {
+                if (activeStockProfile && activeStockProfile.ticker) {
+                    loadGoogleAIOverviewCard(activeStockProfile.ticker);
+                } else {
+                    showToast("Please load a stock analyzer profile first.", "warning");
+                }
+            }
 
             if (activeSubtab === 'volume') {
                 if (activeStockProfile && activeStockProfile.ticker) {
@@ -53699,3 +53715,130 @@ document.addEventListener('click', (e) => {
         if (activePane) activePane.style.display = 'block';
     }
 });
+
+/* ==========================================================================
+   Google SGE AI Overview Card Component Implementation
+   ========================================================================== */
+async function loadGoogleAIOverviewCard(symbol, forceRefresh = false) {
+    const container = document.getElementById('google-ai-overview-card-container');
+    if (!container) return;
+
+    container.innerHTML = `
+        <div class="google-ai-overview-card" style="align-items: center; justify-content: center; padding: 30px; color: var(--text-muted); font-size: 13px;">
+            <div class="spinner" style="width: 24px; height: 24px; border: 2px solid rgba(168, 85, 247, 0.2); border-top-color: #a855f7; border-radius: 50%; animation: spin 1s linear infinite; margin-bottom: 10px;"></div>
+            <span>Fetching Google SGE AI Overview for ${symbol}...</span>
+        </div>
+    `;
+
+    try {
+        const url = `/api/google-ai-overview/${encodeURIComponent(symbol)}?force_refresh=${forceRefresh ? 'true' : 'false'}`;
+        const res = await fetch(url);
+        if (!res.ok) throw new Error("API call failed");
+        const data = await res.json();
+        renderGoogleAIOverviewCard(data);
+    } catch (err) {
+        console.warn("Failed to load Google AI Overview Card:", err);
+        container.innerHTML = '';
+    }
+}
+window.loadGoogleAIOverviewCard = loadGoogleAIOverviewCard;
+
+function renderGoogleAIOverviewCard(data) {
+    const container = document.getElementById('google-ai-overview-card-container');
+    if (!container || !data) return;
+
+    const symbol = data.symbol || "";
+    const companyName = data.company_name || symbol;
+    const sourceBadge = data.data_source || "Google AI";
+    const cacheStatus = data.from_cache ? "💾 Cache" : "⚡ Live";
+    const textIntro = data.text || "";
+    const sections = data.sections || [];
+    const followups = data.suggested_followups || [];
+
+    let sectionsHtml = "";
+    sections.forEach(sec => {
+        const title = sec.title || "Market Update";
+        const bullets = sec.bullet_points || [];
+        const sources = sec.sources || [];
+
+        let bulletsHtml = bullets.map(b => `<li class="google-ai-bullet-item">${b}</li>`).join('');
+        let sourcesHtml = sources.map(s => `<span class="citation-chip"><span>🌐</span> ${s}</span>`).join('');
+
+        sectionsHtml += `
+            <div style="margin-top: 10px;">
+                <div class="google-ai-section-title">
+                    <span>📌</span> ${title}
+                </div>
+                <ul class="google-ai-bullet-list">
+                    ${bulletsHtml}
+                </ul>
+                ${sources.length > 0 ? `<div class="citation-chip-row">${sourcesHtml}</div>` : ''}
+            </div>
+        `;
+    });
+
+    let followupsHtml = "";
+    if (followups.length > 0) {
+        let chipsHtml = followups.map(f => {
+            const escapedText = f.replace(/'/g, "\\'");
+            return `
+                <button class="followup-chip" onclick="handleGoogleAIFollowup('${symbol}', '${escapedText}')">
+                    <span>💡</span> ${f}
+                </button>
+            `;
+        }).join('');
+        followupsHtml = `
+            <div class="google-ai-followup-container">
+                <div style="font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; margin-bottom: 8px; font-family: monospace;">Suggested Follow-Up Prompts</div>
+                <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                    ${chipsHtml}
+                </div>
+            </div>
+        `;
+    }
+
+    container.innerHTML = `
+        <div class="google-ai-overview-card">
+            <div class="google-ai-header">
+                <div class="google-ai-title-wrapper">
+                    <span class="google-ai-spark-icon">✨</span>
+                    <div>
+                        <h3 style="margin: 0; font-size: 16px; font-family: 'Outfit', sans-serif; color: var(--text-primary);">
+                            Google AI Overview <span style="font-size: 13px; color: var(--text-muted);">(${symbol})</span>
+                        </h3>
+                        <span style="font-size: 11px; color: var(--text-muted); font-family: monospace;">Updated: ${data.timestamp || "Just Now"}</span>
+                    </div>
+                </div>
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <span class="google-ai-badge">${sourceBadge} | ${cacheStatus}</span>
+                    <button class="section-speak-btn" data-target="google-ai-summary-text-${symbol}" style="font-size: 12px; padding: 4px 10px; border-radius: 6px; background: rgba(168,85,247,0.15); border: 1px solid rgba(168,85,247,0.3); color: #c084fc; cursor: pointer; display: inline-flex; align-items: center; gap: 4px;">
+                        <span>🔊</span> Listen
+                    </button>
+                    <button onclick="loadGoogleAIOverviewCard('${symbol}', true)" style="font-size: 12px; padding: 4px 10px; border-radius: 6px; background: rgba(255,255,255,0.05); border: 1px solid var(--border-glass); color: var(--text-secondary); cursor: pointer; display: inline-flex; align-items: center; gap: 4px;">
+                        <span>🔄</span> Refresh
+                    </button>
+                </div>
+            </div>
+
+            ${textIntro ? `<div id="google-ai-summary-text-${symbol}" class="google-ai-intro-text">${textIntro}</div>` : `<div id="google-ai-summary-text-${symbol}" style="display:none;">${symbol} Google AI Overview summary.</div>`}
+
+            <div style="display: flex; flex-direction: column; gap: 14px;">
+                ${sectionsHtml}
+            </div>
+
+            ${followupsHtml}
+        </div>
+    `;
+
+    // Re-attach speech listener to section-speak-btn
+    if (window.setupSectionSpeakButtons) {
+        window.setupSectionSpeakButtons();
+    }
+}
+
+window.handleGoogleAIFollowup = function(symbol, promptText) {
+    if (window.showToast) {
+        window.showToast(`Google AI Prompt: ${promptText}`);
+    }
+};
+
