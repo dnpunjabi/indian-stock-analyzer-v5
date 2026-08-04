@@ -5571,43 +5571,43 @@
             const container = document.getElementById('desktop-watchlist-container') || document.getElementById('mobile-home-watchlist-container');
             if (!container) return;
 
-            try {
                 await window.swrFetchJson('/api/watchlists', (watchlists) => {
                     if (!watchlists || !Array.isArray(watchlists)) return;
+                    const safeWatchlists = watchlists.filter(w => w && w.id);
+                    if (safeWatchlists.length === 0) return;
 
                     selector.innerHTML = '<option value="" disabled selected>Select Watchlist</option>';
                     const mobileSel = document.getElementById('mobile-watchlist-selector');
                     if (mobileSel) {
                         mobileSel.innerHTML = '<option value="" disabled selected>Select Watchlist</option>';
                     }
-                    if (watchlists && watchlists.length > 0) {
-                        const mainSelectedId = document.getElementById('watchlist-select')?.value;
-                        const defaultId = (mainSelectedId && mainSelectedId !== "") ? mainSelectedId : (watchlists.find(w => w && w.id) || {}).id;
 
-                        watchlists.forEach(w => {
-                            const opt = document.createElement('option');
-                            opt.value = w.id;
-                            opt.innerText = w.name;
-                            if (w.id === defaultId) opt.selected = true;
-                            selector.appendChild(opt);
+                    const mainSelectedId = document.getElementById('watchlist-select')?.value;
+                    const defaultId = (mainSelectedId && mainSelectedId !== "" && mainSelectedId !== "null" && mainSelectedId !== "undefined") ? mainSelectedId : safeWatchlists[0].id;
 
-                            if (mobileSel) {
-                                const mOpt = document.createElement('option');
-                                mOpt.value = w.id;
-                                mOpt.innerText = w.name;
-                                if (w.id === defaultId) mOpt.selected = true;
-                                mobileSel.appendChild(mOpt);
-                            }
-                        });
+                    safeWatchlists.forEach(w => {
+                        if (!w || !w.id) return;
+                        const opt = document.createElement('option');
+                        opt.value = w.id;
+                        opt.innerText = w.name || 'Watchlist';
+                        if (w.id == defaultId) opt.selected = true;
+                        selector.appendChild(opt);
 
+                        if (mobileSel) {
+                            const mOpt = document.createElement('option');
+                            mOpt.value = w.id;
+                            mOpt.innerText = w.name || 'Watchlist';
+                            if (w.id == defaultId) mOpt.selected = true;
+                            mobileSel.appendChild(mOpt);
+                        }
+                    });
+
+                    if (defaultId) {
                         selector.value = defaultId;
                         if (mobileSel) mobileSel.value = defaultId;
                         onWatchlistChange(defaultId);
                     }
                 });
-            } catch (err) {
-                console.error("Desktop watchlists load error:", err);
-            }
 
             function renderWatchlistList() {
                 window.renderWatchlistList = renderWatchlistList;
@@ -5658,24 +5658,12 @@
                         let listToDisplay = [];
                         if (activeTab === 'gainers') {
                             if (topGainers.length > 0) {
-                                listToDisplay = topGainers.slice(0, 5);
+                                listToDisplay = topGainers;
                             } else {
-                                listToDisplay = sortedByChange.slice(0, 5);
+                                listToDisplay = displayItems;
                             }
-                        } else {
+                        } else if (activeTab === 'losers') {
                             if (topLosers.length > 0) {
-                                listToDisplay = topLosers.slice(0, 5);
-                            } else {
-                                listToDisplay = sortedByChange.slice(-5).reverse();
-                            }
-                        }
-
-                        // If total watchlist length is <= 5, display ALL 5 items so no stock is ever missing!
-                        if (displayItems.length <= 5) {
-                            listToDisplay = sortedByChange;
-                        }
-
-                        const renderMobileWatchlistCard = (item) => {
                             const cleanSym = (item.symbol || '').replace('.NS', '').replace('.BO', '');
                             const priceVal = parseFloat(item.live_price || item.price || 0);
                             const priceStr = priceVal > 0 ? `₹${priceVal.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '--';
