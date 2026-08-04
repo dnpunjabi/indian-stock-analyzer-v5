@@ -1699,20 +1699,48 @@ function setupMetaBannerToggles() {
     const sheetTitle = document.getElementById('mobile-bottom-sheet-title');
     const sheetBody = document.getElementById('mobile-bottom-sheet-body');
     const sheetCloseBtn = document.getElementById('mobile-bottom-sheet-close');
-    const sheetOverlay = bottomSheet ? bottomSheet.querySelector('.bottom-sheet-overlay') : null;
+    const sheetOverlay = bottomSheet ? bottomSheet.querySelector('.bottom-sheet-overlay, .mobile-bottom-sheet-overlay') : null;
 
     // Helper to close mobile bottom sheet
     function closeBottomSheet() {
         if (bottomSheet) {
+            const cardEl = bottomSheet.querySelector('.bottom-sheet-content');
+            if (cardEl) cardEl.style.setProperty('transform', 'translateY(100%)', 'important');
+            
             bottomSheet.classList.remove('active');
+            if (sheetOverlay) sheetOverlay.classList.remove('active');
+            document.body.classList.remove('sheet-active');
+            document.body.style.overflow = '';
+            
+            // Restore mobile bottom navigation and FAB triggers visibility
+            const bottomNav = document.querySelector('.mobile-bottom-nav');
+            if (bottomNav) bottomNav.style.removeProperty('display');
+            const fabContainer = document.querySelector('.mobile-fab-container');
+            if (fabContainer) fabContainer.style.removeProperty('display');
+
+            setTimeout(() => {
+                if (!bottomSheet.classList.contains('active')) {
+                    bottomSheet.style.display = 'none';
+                }
+            }, 250);
         }
     }
 
     if (sheetCloseBtn) {
-        sheetCloseBtn.addEventListener('click', closeBottomSheet);
+        sheetCloseBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            closeBottomSheet();
+        });
     }
-    if (sheetOverlay) {
-        sheetOverlay.addEventListener('click', closeBottomSheet);
+    if (bottomSheet) {
+        bottomSheet.addEventListener('click', (e) => {
+            if (e.target === bottomSheet || e.target.classList.contains('bottom-sheet-overlay') || e.target.classList.contains('mobile-bottom-sheet-overlay')) {
+                e.preventDefault();
+                e.stopPropagation();
+                closeBottomSheet();
+            }
+        });
     }
 
     cards.forEach(card => {
@@ -1742,7 +1770,23 @@ function setupMetaBannerToggles() {
                 }
                 
                 if (bottomSheet) {
-                    bottomSheet.classList.add('active');
+                    bottomSheet.style.display = 'flex';
+                    document.body.style.overflow = 'hidden';
+                    
+                    const cardEl = bottomSheet.querySelector('.bottom-sheet-content');
+                    if (cardEl) cardEl.style.setProperty('transform', 'translateY(0%)', 'important');
+
+                    setTimeout(() => {
+                        bottomSheet.classList.add('active');
+                        if (sheetOverlay) sheetOverlay.classList.add('active');
+                        document.body.classList.add('sheet-active');
+                    }, 10);
+                    
+                    // Hide mobile bottom navigation and FAB triggers immediately
+                    const bottomNav = document.querySelector('.mobile-bottom-nav');
+                    if (bottomNav) bottomNav.style.setProperty('display', 'none', 'important');
+                    const fabContainer = document.querySelector('.mobile-fab-container');
+                    if (fabContainer) fabContainer.style.setProperty('display', 'none', 'important');
                 }
                 
                 // Close any open desktop hover states
