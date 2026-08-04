@@ -31930,22 +31930,32 @@ function setupMetricHoverTooltips() {
         const bottomSheet = document.getElementById('mobile-meta-bottom-sheet');
         const sheetTitle = document.getElementById('mobile-bottom-sheet-title');
         const sheetBody = document.getElementById('mobile-bottom-sheet-body');
+        const sheetOverlay = bottomSheet ? bottomSheet.querySelector('.bottom-sheet-overlay, .mobile-bottom-sheet-overlay') : null;
 
         if (!bottomSheet || !sheetBody) return;
 
         if (sheetTitle) sheetTitle.innerText = title;
 
-        // Inject chart container canvas cleanly
+        // Prevent background body scrolling while modal is open
+        document.body.style.overflow = 'hidden';
+
+        // Inject chart container canvas cleanly with explicit layout containment
         sheetBody.innerHTML = `
-            <div style="font-size: 11px; color: var(--text-secondary); margin-bottom: 12px; text-transform: uppercase; letter-spacing:0.04em; font-family: 'Outfit', sans-serif;">${subtitle}</div>
-            <div style="height: 200px; width: 100%; position: relative;">
-                <canvas id="mobile-hover-chart"></canvas>
+            <div style="font-size: 11px; color: var(--text-secondary); margin-bottom: 10px; text-transform: uppercase; letter-spacing:0.04em; font-family: 'Outfit', sans-serif;">${subtitle}</div>
+            <div style="height: 180px; min-height: 180px; width: 100%; position: relative; overflow: hidden; contain: layout; border-radius: 8px;">
+                <canvas id="mobile-hover-chart" style="width: 100% !important; height: 180px !important; display: block;"></canvas>
             </div>
         `;
 
         bottomSheet.style.display = 'flex';
+        const cardContent = bottomSheet.querySelector('.bottom-sheet-content');
+        if (cardContent) {
+            cardContent.style.setProperty('transform', 'translateY(0%)', 'important');
+        }
+
         setTimeout(() => {
             bottomSheet.classList.add('active');
+            if (sheetOverlay) sheetOverlay.classList.add('active');
         }, 10);
 
         setTimeout(() => {
@@ -31972,14 +31982,15 @@ function setupMetricHoverTooltips() {
                             backgroundColor: areaColor,
                             fill: true,
                             borderWidth: 2.5,
-                            pointRadius: 4,
-                            pointHoverRadius: 6,
+                            pointRadius: 3,
+                            pointHoverRadius: 5,
                             tension: 0.25
                         }]
                     },
                     options: {
                         responsive: true,
                         maintainAspectRatio: false,
+                        animation: { duration: 250 },
                         plugins: {
                             legend: { display: false }
                         },
@@ -32001,16 +32012,46 @@ function setupMetricHoverTooltips() {
         }, 80);
     });
 
-    // Bottom Sheet Backdrop Close Listener
-    document.addEventListener('click', (e) => {
-        const overlay = document.getElementById('mobile-meta-bottom-sheet');
-        if (!overlay || !overlay.classList.contains('active')) return;
+    // Helper to safely close & reset the mobile bottom sheet modal
+    function closeMobileMetaBottomSheetModal() {
+        const bottomSheet = document.getElementById('mobile-meta-bottom-sheet');
+        if (!bottomSheet) return;
 
-        if (e.target.closest('#mobile-bottom-sheet-close') || e.target === overlay) {
-            overlay.classList.remove('active');
-            setTimeout(() => {
-                overlay.style.display = 'none';
-            }, 300);
+        const sheetOverlay = bottomSheet.querySelector('.bottom-sheet-overlay, .mobile-bottom-sheet-overlay');
+        const cardContent = bottomSheet.querySelector('.bottom-sheet-content');
+
+        bottomSheet.classList.remove('active');
+        if (sheetOverlay) sheetOverlay.classList.remove('active');
+        if (cardContent) cardContent.style.setProperty('transform', 'translateY(100%)', 'important');
+        document.body.style.overflow = '';
+
+        if (hoverChartInstance) {
+            try { hoverChartInstance.destroy(); } catch(err) {}
+            hoverChartInstance = null;
+        }
+
+        setTimeout(() => {
+            if (!bottomSheet.classList.contains('active')) {
+                bottomSheet.style.display = 'none';
+            }
+        }, 250);
+    }
+
+    // Bottom Sheet Backdrop, Close Button, and Swipe Handle Dismiss Listener
+    document.addEventListener('click', (e) => {
+        const bottomSheet = document.getElementById('mobile-meta-bottom-sheet');
+        if (!bottomSheet) return;
+
+        const isCloseBtn = e.target.closest('#mobile-bottom-sheet-close');
+        const isOverlay = e.target.classList.contains('bottom-sheet-overlay') || 
+                          e.target.classList.contains('mobile-bottom-sheet-overlay') || 
+                          e.target === bottomSheet;
+        const isHandle = e.target.classList.contains('bottom-sheet-handle');
+
+        if (isCloseBtn || isOverlay || isHandle) {
+            e.preventDefault();
+            e.stopPropagation();
+            closeMobileMetaBottomSheetModal();
         }
     });
 }

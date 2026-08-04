@@ -7873,7 +7873,10 @@
         const closeSheet = () => {
             console.log("Triggering closeSheet.");
             bottomSheet.classList.remove('active');
+            const sheetOverlay = bottomSheet.querySelector('.bottom-sheet-overlay, .mobile-bottom-sheet-overlay');
+            if (sheetOverlay) sheetOverlay.classList.remove('active');
             document.body.classList.remove('sheet-active');
+            document.body.style.overflow = '';
             
             // Directly translate the card down inline
             const cardEl = bottomSheet.querySelector('.bottom-sheet-content');
@@ -7898,7 +7901,7 @@
         };
 
         bottomSheet.onclick = (e) => {
-            if (e.target === bottomSheet) {
+            if (e.target === bottomSheet || e.target.classList.contains('bottom-sheet-overlay') || e.target.classList.contains('mobile-bottom-sheet-overlay')) {
                 closeSheet();
             }
         };
