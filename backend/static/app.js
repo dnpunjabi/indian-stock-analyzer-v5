@@ -642,7 +642,7 @@ function handleLiveTickMessage(ticksData) {
     }
 
     // Update in-memory watchlist item data for sorting
-    const activeWatch = (typeof watchlistsList !== 'undefined') ? watchlistsList.find(w => w.id == activeWatchlistId) : null;
+    const activeWatch = (typeof watchlistsList !== 'undefined') ? watchlistsList.find(w => w && w.id == activeWatchlistId) : null;
     if (activeWatch && activeWatch.items) {
         activeWatch.items.forEach(item => {
             const q = ticksData[item.symbol] || ticksData[item.symbol.replace('.NS', '')];
@@ -2439,7 +2439,7 @@ window.setupBrandReset = setupBrandReset;
 function resetWorkspace() {
     if (activeStockProfile && activeStockProfile.ticker) {
         const oldTicker = activeStockProfile.ticker;
-        const activeWatch = (typeof watchlistsList !== 'undefined') ? watchlistsList.find(w => w.id == activeWatchlistId) : null;
+        const activeWatch = (typeof watchlistsList !== 'undefined') ? watchlistsList.find(w => w && w.id == activeWatchlistId) : null;
         const inWatchlist = activeWatch && activeWatch.items && activeWatch.items.some(item => item.symbol.toUpperCase() === oldTicker.toUpperCase());
         if (!inWatchlist) {
             wsUnsubscribeSymbols([oldTicker]);
@@ -6309,7 +6309,7 @@ async function loadStockAnalyzer(query, force_llm = false, silent = false) {
         }
         if (oldTicker && oldTicker !== profile.ticker) {
             // Unsubscribe from old ticker if it's not in the watchlist
-            const activeWatch = (typeof watchlistsList !== 'undefined') ? watchlistsList.find(w => w.id == activeWatchlistId) : null;
+            const activeWatch = (typeof watchlistsList !== 'undefined') ? watchlistsList.find(w => w && w.id == activeWatchlistId) : null;
             const inWatchlist = activeWatch && activeWatch.items && activeWatch.items.some(item => item.symbol.toUpperCase() === oldTicker.toUpperCase());
             if (!inWatchlist) {
                 wsUnsubscribeSymbols([oldTicker]);
@@ -16396,7 +16396,7 @@ async function setupWatchlistControls() {
         openManageModalBtn.addEventListener('click', () => {
             manageModal.style.display = 'flex';
             const targetLbl = document.getElementById('wl-modal-active-target-lbl');
-            const activeWatch = watchlistsList.find(w => w.id == activeWatchlistId);
+            const activeWatch = watchlistsList.find(w => w && w.id == activeWatchlistId);
             if (targetLbl) {
                 targetLbl.innerText = activeWatch ? activeWatch.name : 'Select a Watchlist';
             }
@@ -16673,7 +16673,7 @@ async function setupWatchlistControls() {
     if (renameBtn) {
         renameBtn.addEventListener('click', () => {
             if (activeWatchlistId === null) return;
-            const activeWatch = watchlistsList.find(w => w.id == activeWatchlistId);
+            const activeWatch = watchlistsList.find(w => w && w.id == activeWatchlistId);
             if (!activeWatch) return;
             
             const container = document.getElementById('watchlist-rename-inline-container');
@@ -16709,7 +16709,7 @@ async function setupWatchlistControls() {
     if (watchlistRefreshBtn) {
         watchlistRefreshBtn.addEventListener('click', async () => {
             if (activeWatchlistId === null) return;
-            const activeWatch = watchlistsList.find(w => w.id == activeWatchlistId);
+            const activeWatch = watchlistsList.find(w => w && w.id == activeWatchlistId);
             if (activeWatch && activeWatch.items.length > 0) {
                 try {
                     const symbols = activeWatch.items.map(item => item.symbol);
@@ -16916,7 +16916,7 @@ async function fetchWatchlists(forceFresh = false) {
                 if (!data || !Array.isArray(data)) return;
                 watchlistsList = data;
                 if (activeWatchlistId === null && watchlistsList.length > 0) {
-                    activeWatchlistId = watchlistsList[0].id;
+                    activeWatchlistId = (watchlistsList.find(w => w && w.id) || {}).id;
                 }
                 renderWatchlistControls();
                 renderWatchlistItems();
@@ -16926,7 +16926,7 @@ async function fetchWatchlists(forceFresh = false) {
             if (!response.ok) throw new Error("Failed to load watchlists.");
             watchlistsList = await response.json();
             if (activeWatchlistId === null && watchlistsList.length > 0) {
-                activeWatchlistId = watchlistsList[0].id;
+                activeWatchlistId = (watchlistsList.find(w => w && w.id) || {}).id;
             }
             if (window.swrCache) {
                 window.swrCache.set('/api/watchlists', { data: watchlistsList, timestamp: Date.now() });
@@ -17002,7 +17002,7 @@ async function renameWatchlist(watchlistId, newName) {
         const updated = await safeFetchJson(response, "Failed to rename watchlist.");
         
         // Update local watchlist in list
-        const item = watchlistsList.find(w => w.id == watchlistId);
+        const item = watchlistsList.find(w => w && w.id == watchlistId);
         if (item) {
             item.name = updated.name;
         }
@@ -17171,7 +17171,7 @@ async function createNewWatchlist() {
 }
 
 function promptDeleteWatchlist(targetId) {
-    const targetWatch = watchlistsList.find(w => w.id == targetId);
+    const targetWatch = watchlistsList.find(w => w && w.id == targetId);
     if (!targetWatch) return;
 
     showWatchlistConfirmModal({
@@ -17413,7 +17413,7 @@ function renderWatchlistItems() {
         return;
     }
 
-    const activeWatch = watchlistsList.find(w => w.id == activeWatchlistId);
+    const activeWatch = watchlistsList.find(w => w && w.id == activeWatchlistId);
     if (!activeWatch) {
         if (titleEl) titleEl.innerText = "SELECT A WATCHLIST";
         if (deleteBtn) deleteBtn.style.display = 'none';
@@ -18103,7 +18103,7 @@ async function fetchWatchlistLiveQuotes(symbols) {
         const quotes = data.quotes || {};
 
         // Persist quote data onto watchlist item objects so sorting works on these columns
-        const activeWatch = watchlistsList.find(w => w.id == activeWatchlistId);
+        const activeWatch = watchlistsList.find(w => w && w.id == activeWatchlistId);
         if (activeWatch && activeWatch.items) {
             activeWatch.items.forEach(item => {
                 const q = quotes[item.symbol];
@@ -18195,7 +18195,7 @@ function setupWatchlistPagination() {
 
     if (nextBtn) {
         nextBtn.addEventListener('click', () => {
-            const activeWatch = watchlistsList.find(w => w.id == activeWatchlistId);
+            const activeWatch = watchlistsList.find(w => w && w.id == activeWatchlistId);
             if (activeWatch) {
                 const totalPages = Math.ceil(activeWatch.items.length / activeWatchlistPageSize);
                 if (activeWatchlistPage < totalPages) {
@@ -23787,7 +23787,7 @@ function setupWatchlistSummary() {
 
             try {
                 // Compile dynamic watchlist prompt
-                const activeWatch = watchlistsList.find(w => w.id == activeWatchlistId);
+                const activeWatch = watchlistsList.find(w => w && w.id == activeWatchlistId);
                 const watchlistName = activeWatch ? activeWatch.name : "Custom Watchlist";
 
                 let promptText = `As a Senior Equities Portfolio Manager, analyze the following batch analysis scorecard results for my watchlist "${watchlistName}":\n\n`;
@@ -23891,7 +23891,7 @@ Keep the response professional, mathematically grounded, and extremely concise. 
                 return;
             }
 
-            const activeWatch = watchlistsList.find(w => w.id == activeWatchlistId);
+            const activeWatch = watchlistsList.find(w => w && w.id == activeWatchlistId);
             const watchlistName = activeWatch ? activeWatch.name : "Custom Watchlist";
 
             // Build the table rows for printing
@@ -50107,7 +50107,7 @@ function _applyEventsFilter() {
     var subset = _eventsMarketData.filter(function(ev) {
         // Watchlist Only filter
         if (_eventsWatchlistOnly) {
-            const activeWatch = (typeof watchlistsList !== 'undefined') ? watchlistsList.find(w => w.id == activeWatchlistId) : null;
+            const activeWatch = (typeof watchlistsList !== 'undefined') ? watchlistsList.find(w => w && w.id == activeWatchlistId) : null;
             if (!activeWatch || !activeWatch.items) return false;
             const cleanEvSym = (ev.symbol || '').replace('.NS', '').replace('.BO', '').toUpperCase();
             const inWatchlist = activeWatch.items.some(item => {
@@ -53460,7 +53460,7 @@ function openWatchlistStockAlertModal(symbol, watchlistId, itemData = null) {
 
     let item = itemData;
     if (!item && window.watchlistsList) {
-        const activeWatch = window.watchlistsList.find(w => w.id == currentAlertModalWatchlistId);
+        const activeWatch = window.watchlistsList.find(w => w && w.id == currentAlertModalWatchlistId);
         if (activeWatch && activeWatch.items) {
             item = activeWatch.items.find(i => i.symbol.toUpperCase() === symbol.toUpperCase());
         }

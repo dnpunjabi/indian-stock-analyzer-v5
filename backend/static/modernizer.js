@@ -5582,7 +5582,7 @@
                     }
                     if (watchlists && watchlists.length > 0) {
                         const mainSelectedId = document.getElementById('watchlist-select')?.value;
-                        const defaultId = (mainSelectedId && mainSelectedId !== "") ? mainSelectedId : watchlists[0].id;
+                        const defaultId = (mainSelectedId && mainSelectedId !== "") ? mainSelectedId : (watchlists.find(w => w && w.id) || {}).id;
 
                         watchlists.forEach(w => {
                             const opt = document.createElement('option');
