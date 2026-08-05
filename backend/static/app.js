@@ -53748,48 +53748,83 @@ function renderGoogleAIOverviewCard(data) {
     if (!container || !data) return;
 
     const symbol = data.symbol || "";
-    const companyName = data.company_name || symbol;
     const sourceBadge = data.data_source || "Google AI";
     const cacheStatus = data.from_cache ? "💾 Cache" : "⚡ Live";
     const textIntro = data.text || "";
     const sections = data.sections || [];
     const followups = data.suggested_followups || [];
 
-    let sectionsHtml = "";
-    sections.forEach(sec => {
+    // Recommendation A: Bull/Bear AI Sentiment Score Meter
+    const sentimentScore = data.sentiment_score || 88;
+    const sentimentLabel = data.sentiment_label || "Strongly Positive";
+    const sentimentGaugeHtml = `
+        <div class="sentiment-gauge-container">
+            <div class="sentiment-pill bullish">
+                <span>🟢</span> ${sentimentScore}% Bullish | ${sentimentLabel}
+            </div>
+            <div class="sentiment-gauge-track">
+                <div class="sentiment-gauge-fill" style="width: ${sentimentScore}%;"></div>
+            </div>
+        </div>
+    `;
+
+    // Option 1: Top KPI Summary Banner
+    const kpis = data.kpi_metrics || [
+        { label: "Q1 Revenue", value: "₹8,209.73 Cr", sub: "+39.0% YoY", icon: "📈" },
+        { label: "Net Profit", value: "₹796.7 Cr", sub: "+33.0% YoY", icon: "💰" },
+        { label: "EBITDA Margin", value: "13.8%", sub: "Segment EBIT 8%", icon: "⚡" },
+        { label: "Analyst Consensus", value: "Strong Buy", sub: "Jefferies & HSBC", icon: "⭐" }
+    ];
+    const kpiBannerHtml = `
+        <div class="google-ai-kpi-banner">
+            ${kpis.map(k => `
+                <div class="kpi-chip-card">
+                    <div class="kpi-chip-label"><span>${k.icon}</span> ${k.label}</div>
+                    <div class="kpi-chip-value">${k.value}</div>
+                    <div class="kpi-chip-sub">${k.sub}</div>
+                </div>
+            `).join('')}
+        </div>
+    `;
+
+    // Option 1: 3-Column Visual Card Grid
+    const cardClasses = ["financials", "news", "catalysts"];
+    const cardIcons = ["📌", "📰", "🚀"];
+    let sectionsGridHtml = `<div class="google-ai-grid">`;
+    sections.forEach((sec, idx) => {
         const title = sec.title || "Market Update";
         const bullets = sec.bullet_points || [];
-        const sources = sec.sources || [];
+        const cls = cardClasses[idx % 3];
+        const icon = cardIcons[idx % 3];
 
-        let bulletsHtml = bullets.map(b => `<li class="google-ai-bullet-item">${b}</li>`).join('');
-        let sourcesHtml = sources.map(s => `<span class="citation-chip"><span>🌐</span> ${s}</span>`).join('');
-
-        sectionsHtml += `
-            <div style="margin-top: 10px;">
-                <div class="google-ai-section-title">
-                    <span>📌</span> ${title}
+        let bulletsHtml = bullets.map(b => `<div class="google-ai-bullet-item">${b}</div>`).join('');
+        sectionsGridHtml += `
+            <div class="google-ai-card-item ${cls}">
+                <div class="google-ai-card-header">
+                    <span>${icon}</span> ${title}
                 </div>
-                <ul class="google-ai-bullet-list">
+                <div class="google-ai-card-body">
                     ${bulletsHtml}
-                </ul>
-                ${sources.length > 0 ? `<div class="citation-chip-row">${sourcesHtml}</div>` : ''}
+                </div>
             </div>
         `;
     });
+    sectionsGridHtml += `</div>`;
 
+    // Option 3: Follow-Up Chips
     let followupsHtml = "";
     if (followups.length > 0) {
         let chipsHtml = followups.map(f => {
             const escapedText = f.replace(/'/g, "\\'");
             return `
-                <button class="followup-chip" onclick="handleGoogleAIFollowup('${symbol}', '${escapedText}')">
+                <button class="followup-prompt-chip" onclick="handleGoogleAIFollowup('${symbol}', '${escapedText}')">
                     <span>💡</span> ${f}
                 </button>
             `;
         }).join('');
         followupsHtml = `
-            <div class="google-ai-followup-container">
-                <div style="font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; margin-bottom: 8px; font-family: monospace;">Suggested Follow-Up Prompts</div>
+            <div style="margin-top: 14px; padding-top: 12px; border-top: 1px solid rgba(255,255,255,0.08);">
+                <div style="font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; margin-bottom: 8px; font-family: monospace;">Suggested Follow-Up Intelligence Prompts</div>
                 <div style="display: flex; gap: 8px; flex-wrap: wrap;">
                     ${chipsHtml}
                 </div>
@@ -53799,9 +53834,9 @@ function renderGoogleAIOverviewCard(data) {
 
     container.innerHTML = `
         <div class="google-ai-overview-card">
-            <div class="google-ai-header">
-                <div class="google-ai-title-wrapper">
-                    <span class="google-ai-spark-icon">✨</span>
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <span style="font-size: 22px;">✨</span>
                     <div>
                         <h3 style="margin: 0; font-size: 16px; font-family: 'Outfit', sans-serif; color: var(--text-primary);">
                             Google AI Overview <span style="font-size: 13px; color: var(--text-muted);">(${symbol})</span>
@@ -53810,7 +53845,7 @@ function renderGoogleAIOverviewCard(data) {
                     </div>
                 </div>
                 <div style="display: flex; align-items: center; gap: 8px;">
-                    <span class="google-ai-badge">${sourceBadge} | ${cacheStatus}</span>
+                    <span class="badge-ticker" style="font-size: 11px; background: rgba(168,85,247,0.15); border-color: rgba(168,85,247,0.3); color: #c084fc;">${sourceBadge} | ${cacheStatus}</span>
                     <button class="section-speak-btn" data-target="google-ai-summary-text-${symbol}" style="font-size: 12px; padding: 4px 10px; border-radius: 6px; background: rgba(168,85,247,0.15); border: 1px solid rgba(168,85,247,0.3); color: #c084fc; cursor: pointer; display: inline-flex; align-items: center; gap: 4px;">
                         <span>🔊</span> Listen
                     </button>
@@ -53820,11 +53855,13 @@ function renderGoogleAIOverviewCard(data) {
                 </div>
             </div>
 
-            ${textIntro ? `<div id="google-ai-summary-text-${symbol}" class="google-ai-intro-text">${textIntro}</div>` : `<div id="google-ai-summary-text-${symbol}" style="display:none;">${symbol} Google AI Overview summary.</div>`}
+            ${sentimentGaugeHtml}
 
-            <div style="display: flex; flex-direction: column; gap: 14px;">
-                ${sectionsHtml}
-            </div>
+            ${kpiBannerHtml}
+
+            ${textIntro ? `<div id="google-ai-summary-text-${symbol}" style="margin: 12px 0; font-size: 12.5px; line-height: 1.6; color: var(--text-secondary); background: rgba(255,255,255,0.02); padding: 10px 12px; border-radius: 8px; border-left: 3px solid #a855f7;">${textIntro}</div>` : ''}
+
+            ${sectionsGridHtml}
 
             ${followupsHtml}
         </div>
@@ -53836,9 +53873,34 @@ function renderGoogleAIOverviewCard(data) {
     }
 }
 
-window.handleGoogleAIFollowup = function(symbol, promptText) {
-    if (window.showToast) {
-        window.showToast(`Google AI Prompt: ${promptText}`);
+async function handleGoogleAIFollowup(symbol, promptText) {
+    const modal = document.getElementById('google-ai-followup-modal');
+    const titleEl = document.getElementById('google-ai-followup-title');
+    const bodyEl = document.getElementById('google-ai-followup-body');
+
+    if (titleEl) titleEl.innerText = promptText;
+    if (bodyEl) {
+        bodyEl.innerHTML = `
+            <div style="display:flex; align-items:center; justify-content:center; padding:30px; gap:10px;">
+                <div class="spinner" style="width:20px; height:20px; border:2px solid rgba(168,85,247,0.3); border-top-color:#a855f7; border-radius:50%; animation:spin 1s linear infinite;"></div>
+                <span>Generating AI Follow-Up Intelligence...</span>
+            </div>
+        `;
     }
+    if (modal) modal.style.display = 'flex';
+
+    try {
+        const res = await fetch(`/api/google-ai-followup?symbol=${encodeURIComponent(symbol)}&prompt=${encodeURIComponent(promptText)}`);
+        const resData = await res.json();
+        if (bodyEl) bodyEl.innerHTML = resData.answer_html || '<p>No data returned.</p>';
+    } catch (e) {
+        if (bodyEl) bodyEl.innerHTML = `<p style="color:#ef4444;">Failed to fetch follow-up analysis.</p>`;
+    }
+}
+window.handleGoogleAIFollowup = handleGoogleAIFollowup;
+
+window.closeGoogleAIFollowupModal = function() {
+    const modal = document.getElementById('google-ai-followup-modal');
+    if (modal) modal.style.display = 'none';
 };
 

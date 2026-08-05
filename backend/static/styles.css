@@ -30783,18 +30783,266 @@ body.light-theme #swing-scan-table thead th:first-child {
     border-color: rgba(168, 85, 247, 0.3);
 }
 
+/* ==========================================================================
+   ✨ GOOGLE AI OVERVIEW UI/UX & MOBILE EDGE-TO-EDGE SYSTEM
+   ========================================================================== */
+#google-ai-overview-card-container {
+    width: 100%;
+    margin-bottom: 20px;
+    padding: 0;
+}
+
+.google-ai-overview-card {
+    background: linear-gradient(135deg, rgba(15, 23, 42, 0.95), rgba(30, 41, 59, 0.92));
+    border: 1px solid rgba(168, 85, 247, 0.35);
+    border-radius: 14px;
+    padding: 18px 20px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(16px);
+    font-family: 'Inter', sans-serif;
+    color: var(--text-primary);
+}
+
+/* Recommendation A: Sentiment Meter Gauge */
+.sentiment-gauge-container {
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 10px;
+    padding: 10px 14px;
+    margin: 14px 0;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+}
+
+.sentiment-gauge-track {
+    flex: 1;
+    height: 8px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 4px;
+    overflow: hidden;
+    position: relative;
+}
+
+.sentiment-gauge-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #f59e0b, #10b981, #34d399);
+    border-radius: 4px;
+    transition: width 0.8s ease-out;
+}
+
+.sentiment-pill {
+    padding: 3px 10px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    white-space: nowrap;
+}
+
+.sentiment-pill.bullish {
+    background: rgba(16, 185, 129, 0.18);
+    border: 1px solid rgba(16, 185, 129, 0.4);
+    color: #34d399;
+}
+
+.sentiment-pill.neutral {
+    background: rgba(245, 158, 11, 0.18);
+    border: 1px solid rgba(245, 158, 11, 0.4);
+    color: #fbbf24;
+}
+
+/* Option 1: Top KPI Metric Banner */
+.google-ai-kpi-banner {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 10px;
+    margin: 14px 0;
+}
+
+.kpi-chip-card {
+    background: rgba(15, 23, 42, 0.6);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 10px;
+    padding: 10px 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.kpi-chip-label {
+    font-size: 11px;
+    color: var(--text-muted);
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.kpi-chip-value {
+    font-size: 14px;
+    font-weight: 800;
+    color: #ffffff;
+    font-family: 'Outfit', sans-serif;
+}
+
+.kpi-chip-sub {
+    font-size: 10.5px;
+    color: #34d399;
+    font-weight: 600;
+}
+
+/* Option 1: 3-Column Glassmorphic Grid */
+.google-ai-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 14px;
+    margin: 16px 0;
+}
+
+.google-ai-card-item {
+    background: rgba(15, 23, 42, 0.5);
+    border-radius: 12px;
+    padding: 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.google-ai-card-item.financials {
+    border: 1px solid rgba(168, 85, 247, 0.3);
+    background: linear-gradient(180deg, rgba(168, 85, 247, 0.06), rgba(15, 23, 42, 0.4));
+}
+
+.google-ai-card-item.news {
+    border: 1px solid rgba(245, 158, 11, 0.3);
+    background: linear-gradient(180deg, rgba(245, 158, 11, 0.06), rgba(15, 23, 42, 0.4));
+}
+
+.google-ai-card-item.catalysts {
+    border: 1px solid rgba(16, 185, 129, 0.3);
+    background: linear-gradient(180deg, rgba(16, 185, 129, 0.06), rgba(15, 23, 42, 0.4));
+}
+
+.google-ai-card-header {
+    font-size: 13.5px;
+    font-weight: 700;
+    color: #ffffff;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.google-ai-card-body {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    font-size: 12px;
+    line-height: 1.55;
+    color: var(--text-secondary);
+}
+
+.google-ai-bullet-item {
+    position: relative;
+    padding-left: 12px;
+}
+
+.google-ai-bullet-item::before {
+    content: '•';
+    position: absolute;
+    left: 0;
+    color: #a855f7;
+    font-weight: bold;
+}
+
+/* Option 2: Clickable Citation Link Chips */
+.citation-chip-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    background: rgba(168, 85, 247, 0.12);
+    border: 1px solid rgba(168, 85, 247, 0.3);
+    color: #c084fc !important;
+    padding: 2px 7px;
+    border-radius: 6px;
+    font-size: 10.5px;
+    font-weight: 600;
+    text-decoration: none !important;
+    transition: all 0.2s ease;
+    cursor: pointer;
+    margin-left: 4px;
+}
+
+.citation-chip-link:hover {
+    background: rgba(168, 85, 247, 0.25);
+    border-color: rgba(168, 85, 247, 0.6);
+    color: #ffffff !important;
+    box-shadow: 0 0 8px rgba(168, 85, 247, 0.4);
+}
+
+/* Option 3: Follow-Up Interactive Prompt Chips */
+.followup-prompt-chip {
+    background: rgba(56, 189, 248, 0.1);
+    border: 1px solid rgba(56, 189, 248, 0.3);
+    color: #38bdf8;
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-size: 11.5px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.followup-prompt-chip:hover {
+    background: rgba(56, 189, 248, 0.22);
+    border-color: rgba(56, 189, 248, 0.6);
+    color: #ffffff;
+    box-shadow: 0 0 10px rgba(56, 189, 248, 0.3);
+    transform: translateY(-1px);
+}
+
+/* Mobile Responsiveness & Edge-to-Edge Typography */
 @media (max-width: 768px) {
     .google-ai-overview-card {
-        padding: 16px;
+        padding: 14px;
+        border-radius: 12px;
     }
-    .google-ai-header {
+
+    .google-ai-kpi-banner {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 8px;
+    }
+
+    .google-ai-grid {
+        grid-template-columns: 1fr;
+        gap: 10px;
+    }
+
+    .kpi-chip-value {
+        font-size: 13px;
+    }
+
+    .google-ai-card-header {
+        font-size: 13px;
+    }
+
+    .google-ai-card-body {
+        font-size: 12px;
+        line-height: 1.5;
+    }
+
+    .sentiment-gauge-container {
         flex-direction: column;
         align-items: flex-start;
-    }
-    .followup-chip {
-        width: 100%;
-        min-height: 44px;
-        justify-content: flex-start;
+        gap: 8px;
     }
 }
 

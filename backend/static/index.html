@@ -11953,6 +11953,22 @@
         </div>
     </div>
 
+    <!-- Google AI Overview Follow-Up Slide-Over Modal -->
+    <div id="google-ai-followup-modal" class="modal-overlay" style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0, 0, 0, 0.75); backdrop-filter: blur(10px); z-index: 100000; align-items: center; justify-content: center; padding: 16px;">
+        <div class="google-ai-followup-modal-card" style="background: linear-gradient(135deg, rgba(15, 23, 42, 0.98), rgba(30, 41, 59, 0.98)); border: 1px solid rgba(168, 85, 247, 0.4); border-radius: 16px; width: 100%; max-width: 680px; max-height: 85vh; display: flex; flex-direction: column; box-shadow: 0 20px 50px rgba(0,0,0,0.6); overflow: hidden;">
+            <div style="padding: 16px 20px; border-bottom: 1px solid rgba(255,255,255,0.08); display: flex; justify-content: space-between; align-items: center; background: rgba(168, 85, 247, 0.1);">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <span style="font-size: 18px;">💡</span>
+                    <h3 id="google-ai-followup-title" style="margin: 0; font-size: 15px; font-weight: 700; color: #fff; font-family: 'Outfit', sans-serif;">Google AI Overview Follow-Up</h3>
+                </div>
+                <button onclick="closeGoogleAIFollowupModal()" style="background: none; border: none; color: var(--text-muted); font-size: 20px; cursor: pointer; padding: 0 4px;">&times;</button>
+            </div>
+            <div id="google-ai-followup-body" style="padding: 20px; overflow-y: auto; font-size: 13px; color: var(--text-secondary); line-height: 1.6;">
+                <!-- Dynamically populated -->
+            </div>
+        </div>
+    </div>
+
     <!-- Floating Scroll To Top Glass Button -->
     <button id="footer-scroll-top-btn" class="scroll-top-glass-btn no-print" title="Scroll to Top" aria-label="Scroll to Top">
         <svg class="scroll-top-arrow" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 15 12 9 6 15"></polyline></svg>
