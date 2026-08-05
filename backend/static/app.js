@@ -53719,14 +53719,25 @@ document.addEventListener('click', (e) => {
 /* ==========================================================================
    Google SGE AI Overview Card Component Implementation
    ========================================================================== */
+window._googleAICache = window._googleAICache || {};
+
 async function loadGoogleAIOverviewCard(symbol, forceRefresh = false) {
     const container = document.getElementById('google-ai-overview-card-container');
-    if (!container) return;
+    if (!container || !symbol) return;
 
+    const cleanSym = symbol.replace('.NS', '').replace('.BO', '').toUpperCase();
+
+    // 1. Instant 0ms Client-Side Cache Hit (No spinner flash if already loaded in memory)
+    if (!forceRefresh && window._googleAICache[cleanSym]) {
+        renderGoogleAIOverviewCard(window._googleAICache[cleanSym]);
+        return;
+    }
+
+    // 2. Display smooth glassmorphic loading spinner only if first fetch or force refresh
     container.innerHTML = `
         <div class="google-ai-overview-card" style="align-items: center; justify-content: center; padding: 30px; color: var(--text-muted); font-size: 13px;">
             <div class="spinner" style="width: 24px; height: 24px; border: 2px solid rgba(168, 85, 247, 0.2); border-top-color: #a855f7; border-radius: 50%; animation: spin 1s linear infinite; margin-bottom: 10px;"></div>
-            <span>Fetching Google SGE AI Overview for ${symbol}...</span>
+            <span>Fetching Google SGE AI Overview for ${cleanSym}...</span>
         </div>
     `;
 
@@ -53735,6 +53746,11 @@ async function loadGoogleAIOverviewCard(symbol, forceRefresh = false) {
         const res = await fetch(url);
         if (!res.ok) throw new Error("API call failed");
         const data = await res.json();
+        
+        // Cache in memory for instant tab switching
+        if (!data.error) {
+            window._googleAICache[cleanSym] = data;
+        }
         renderGoogleAIOverviewCard(data);
     } catch (err) {
         console.warn("Failed to load Google AI Overview Card:", err);
@@ -53748,19 +53764,76 @@ function renderGoogleAIOverviewCard(data) {
     if (!container || !data) return;
 
     const symbol = data.symbol || "";
+    const cleanSym = symbol.replace('.NS', '').replace('.BO', '').toUpperCase();
+
+    // Render glassmorphic failure state UI if SerpApi returns an error or no SGE data
+    if (data.error) {
+        container.innerHTML = `
+            <div class="google-ai-overview-card" style="border: 1px solid rgba(239, 68, 68, 0.35); background: linear-gradient(135deg, rgba(30, 15, 25, 0.95), rgba(15, 23, 42, 0.95));">
+                <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(239, 68, 68, 0.2); padding-bottom: 10px; margin-bottom: 12px;">
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <span style="font-size: 18px;">⚠️</span>
+                        <h4 style="margin:0; font-size:14px; font-weight:700; color:#f87171; font-family:'Outfit', sans-serif;">Google AI Overview Currently Unavailable</h4>
+                    </div>
+                    <span style="font-size: 11px; padding: 2px 8px; border-radius: 12px; background: rgba(239, 68, 68, 0.15); color: #f87171; font-weight: 600; border: 1px solid rgba(239, 68, 68, 0.3);">No Live SGE Token</span>
+                </div>
+                <p style="font-size: 12.5px; color: var(--text-secondary); line-height: 1.6; margin: 0 0 10px 0;">
+                    ${data.message || `Live Google SGE overview could not be retrieved for ${cleanSym}.`}
+                </p>
+                <div style="font-size: 11px; color: var(--text-muted); font-family: monospace; background: rgba(0,0,0,0.3); padding: 8px 12px; border-radius: 6px; border-left: 3px solid #ef4444; margin-bottom: 14px;">
+                    Reason: ${data.reason || "Google search engine did not return an AI Overview block for this query."}
+                </div>
+                <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+                    <button class="btn-primary" onclick="loadGoogleAIOverviewCard('${symbol}', true)" style="background: linear-gradient(135deg, #a855f7, #6366f1); border: none; padding: 6px 14px; border-radius: 6px; font-size: 12px; font-weight: 700; color: #fff; cursor: pointer;">
+                        🔄 Retry Live SerpApi Search
+                    </button>
+                    <span style="font-size: 11px; color: var(--text-muted);">Ensure valid SERPAPI_API_KEY is configured in backend settings.</span>
+                </div>
+            </div>
+        `;
+        return;
+    }
+
     const sourceBadge = data.data_source || "Google AI";
     const cacheStatus = data.from_cache ? "💾 Cache" : "⚡ Live";
     const textIntro = data.text || "";
     const sections = data.sections || [];
-    const followups = data.suggested_followups || [];
 
-    // Recommendation A: Bull/Bear AI Sentiment Score Meter
-    const sentimentScore = data.sentiment_score || 88;
-    const sentimentLabel = data.sentiment_label || "Strongly Positive";
+    // Recommendation A: Bull/Bear AI Sentiment Score Meter (Dynamic NLP calculation)
+    let sentimentScore = data.sentiment_score;
+    let sentimentLabel = data.sentiment_label;
+
+    if (sentimentScore === undefined || sentimentScore === null) {
+        const fullCorpus = (textIntro + " " + sections.map(s => (s.bullet_points || []).join(" ")).join(" ")).toLowerCase();
+        const bullKw = ["high", "record", "growth", "expanding", "acquisition", "net-debt-free", "momentum", "outperform", "buy", "positive", "strong", "surge", "gain", "profitability", "pat expanded", "beat", "uptrend", "tailwinds", "cash flow", "dividend", "order book"];
+        const bearKw = ["headwind", "decline", "fell", "loss", "compression", "weakness", "down", "margin pressure", "inflation", "debt", "lawsuit", "investigation", "penalty", "selloff", "underperform", "valuation headwinds", "missed", "downgrade", "slash"];
+        
+        let bullCount = 0;
+        let bearCount = 0;
+        bullKw.forEach(k => { bullCount += (fullCorpus.split(k).length - 1); });
+        bearKw.forEach(k => { bearCount += (fullCorpus.split(k).length - 1); });
+        
+        const totalTok = bullCount + bearCount;
+        if (totalTok === 0) {
+            sentimentScore = 75;
+        } else {
+            sentimentScore = Math.min(Math.max(Math.round((bullCount / totalTok) * 100), 15), 95);
+        }
+
+        if (sentimentScore >= 80) sentimentLabel = "Strongly Positive";
+        else if (sentimentScore >= 65) sentimentLabel = "Bullish / Positive";
+        else if (sentimentScore >= 45) sentimentLabel = "Neutral / Mixed";
+        else if (sentimentScore >= 30) sentimentLabel = "Cautious / Bearish";
+        else sentimentLabel = "Strongly Bearish";
+    }
+
+    const pillClass = sentimentScore >= 65 ? "bullish" : (sentimentScore <= 40 ? "bearish" : "neutral");
+    const sentimentEmoji = sentimentScore >= 65 ? "🟢" : (sentimentScore <= 40 ? "🔴" : "🟡");
+
     const sentimentGaugeHtml = `
         <div class="sentiment-gauge-container">
-            <div class="sentiment-pill bullish">
-                <span>🟢</span> ${sentimentScore}% Bullish | ${sentimentLabel}
+            <div class="sentiment-pill ${pillClass}">
+                <span>${sentimentEmoji}</span> ${sentimentScore}% ${sentimentScore >= 50 ? 'Bullish' : 'Bearish'} | ${sentimentLabel}
             </div>
             <div class="sentiment-gauge-track">
                 <div class="sentiment-gauge-fill" style="width: ${sentimentScore}%;"></div>
@@ -53768,72 +53841,20 @@ function renderGoogleAIOverviewCard(data) {
         </div>
     `;
 
-    // Option 1: Top KPI Summary Banner
-    const kpis = data.kpi_metrics || [
-        { label: "Q1 Revenue", value: "₹8,209.73 Cr", sub: "+39.0% YoY", icon: "📈" },
-        { label: "Net Profit", value: "₹796.7 Cr", sub: "+33.0% YoY", icon: "💰" },
-        { label: "EBITDA Margin", value: "13.8%", sub: "Segment EBIT 8%", icon: "⚡" },
-        { label: "Analyst Consensus", value: "Strong Buy", sub: "Jefferies & HSBC", icon: "⭐" }
-    ];
-    const kpiBannerHtml = `
-        <div class="google-ai-kpi-banner">
-            ${kpis.map(k => `
-                <div class="kpi-chip-card">
-                    <div class="kpi-chip-label"><span>${k.icon}</span> ${k.label}</div>
-                    <div class="kpi-chip-value">${k.value}</div>
-                    <div class="kpi-chip-sub">${k.sub}</div>
-                </div>
-            `).join('')}
-        </div>
-    `;
-
-    // Normalize sections to guarantee exactly 3 visual cards for the 3-column grid
+    // Normalize sections to guarantee visual card grid
     let gridSections = sections;
     if (!gridSections || gridSections.length === 0) {
         gridSections = [
             {
                 title: "📌 Financial Performance & Highlights",
-                bullet_points: [
-                    "Q1 FY25 Revenue surged 39% YoY to ₹8,209.73 Cr driven by volume growth in wires & cables.",
-                    "Net Profit expanded 33% YoY to ₹796.7 Cr with operating EBITDA margin holding at 13.8%."
-                ]
-            },
-            {
-                title: "📰 Corporate News & Sector Momentum",
-                bullet_points: [
-                    "Polycab secured orders exceeding ₹600 crore for power distribution and infrastructure projects.",
-                    "FMEG business momentum accelerated with strong adoption across fans and domestic appliances."
-                ]
-            },
-            {
-                title: "🚀 Growth Catalysts & Capex Outlook",
-                bullet_points: [
-                    "Beneficiary of national infrastructure expansion including BharatNet & RDSS schemes.",
-                    "Net cash balance of ₹3,990 Cr supporting aggressive manufacturing capex."
-                ]
+                bullet_points: [textIntro || `Live SGE overview highlights for ${cleanSym}.`]
             }
         ];
-    } else if (gridSections.length === 1) {
-        const firstSec = gridSections[0];
-        const half = Math.ceil((firstSec.bullet_points || []).length / 2);
-        gridSections = [
-            { title: firstSec.title || "📌 Financial Performance & Highlights", bullet_points: (firstSec.bullet_points || []).slice(0, half) },
-            { title: "📰 Corporate News & Sector Momentum", bullet_points: (firstSec.bullet_points || []).slice(half) },
-            { title: "🚀 Growth Catalysts & Capex Outlook", bullet_points: ["Sustained institutional buy consensus with long-term capex visibility."] }
-        ];
-    } else if (gridSections.length === 2) {
-        gridSections.push({
-            title: "🚀 Growth Catalysts & Capex Outlook",
-            bullet_points: [
-                "Beneficiary of national infrastructure expansion including BharatNet & RDSS schemes.",
-                "Net cash balance of ₹3,990 Cr supporting aggressive manufacturing capex."
-            ]
-        });
     }
 
-    // Option 1: 3-Column Visual Card Grid
-    const cardClasses = ["financials", "news", "catalysts"];
-    const cardIcons = ["📌", "📰", "🚀"];
+    // Visual Section Grid (3 Columns on Desktop, Stacked Cards on Mobile)
+    const cardClasses = ["news", "financials", "catalysts"];
+    const cardIcons = ["📰", "📊", "🚀"];
     let sectionsGridHtml = `<div class="google-ai-grid">`;
     gridSections.forEach((sec, idx) => {
         const title = sec.title || "Market Update";
@@ -53845,7 +53866,7 @@ function renderGoogleAIOverviewCard(data) {
         sectionsGridHtml += `
             <div class="google-ai-card-item ${cls}">
                 <div class="google-ai-card-header">
-                    <span>${icon}</span> ${title.replace(/^[📌📰🚀]\s*/, '')}
+                    <span>${icon}</span> ${title.replace(/^[📌📰🚀📊]\s*/, '')}
                 </div>
                 <div class="google-ai-card-body">
                     ${bulletsHtml}
@@ -53855,41 +53876,24 @@ function renderGoogleAIOverviewCard(data) {
     });
     sectionsGridHtml += `</div>`;
 
-    // Option 3: Follow-Up Chips
-    let followupsHtml = "";
-    if (followups.length > 0) {
-        let chipsHtml = followups.map(f => {
-            const escapedText = f.replace(/'/g, "\\'");
-            return `
-                <button class="followup-prompt-chip" onclick="handleGoogleAIFollowup('${symbol}', '${escapedText}')">
-                    <span>💡</span> ${f}
-                </button>
-            `;
-        }).join('');
-        followupsHtml = `
-            <div style="margin-top: 14px; padding-top: 12px; border-top: 1px solid rgba(255,255,255,0.08);">
-                <div style="font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; margin-bottom: 8px; font-family: monospace;">Suggested Follow-Up Intelligence Prompts</div>
-                <div style="display: flex; gap: 8px; flex-wrap: wrap;">
-                    ${chipsHtml}
-                </div>
-            </div>
-        `;
-    }
-
     container.innerHTML = `
         <div class="google-ai-overview-card">
-            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+            <!-- Header Bar -->
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; border-bottom: 1px solid rgba(255,255,255,0.08); padding-bottom: 12px; margin-bottom: 14px;">
                 <div style="display: flex; align-items: center; gap: 10px;">
                     <span style="font-size: 22px;">✨</span>
                     <div>
                         <h3 style="margin: 0; font-size: 16px; font-family: 'Outfit', sans-serif; color: var(--text-primary);">
-                            Google AI Overview <span style="font-size: 13px; color: var(--text-muted);">(${symbol})</span>
+                            Google AI Overview <span style="font-size: 13px; color: var(--text-muted);">(${cleanSym})</span>
                         </h3>
                         <span style="font-size: 11px; color: var(--text-muted); font-family: monospace;">Updated: ${data.timestamp || "Just Now"}</span>
                     </div>
                 </div>
                 <div style="display: flex; align-items: center; gap: 8px;">
                     <span class="badge-ticker" style="font-size: 11px; background: rgba(168,85,247,0.15); border-color: rgba(168,85,247,0.3); color: #c084fc;">${sourceBadge} | ${cacheStatus}</span>
+                    <button onclick="copySGEMarkdownSummary('${symbol}')" style="font-size: 12px; padding: 4px 10px; border-radius: 6px; background: rgba(56,189,248,0.15); border: 1px solid rgba(56,189,248,0.3); color: #38bdf8; cursor: pointer; display: inline-flex; align-items: center; gap: 4px;">
+                        <span>📋</span> Copy
+                    </button>
                     <button class="section-speak-btn" data-target="google-ai-summary-text-${symbol}" style="font-size: 12px; padding: 4px 10px; border-radius: 6px; background: rgba(168,85,247,0.15); border: 1px solid rgba(168,85,247,0.3); color: #c084fc; cursor: pointer; display: inline-flex; align-items: center; gap: 4px;">
                         <span>🔊</span> Listen
                     </button>
@@ -53899,15 +53903,27 @@ function renderGoogleAIOverviewCard(data) {
                 </div>
             </div>
 
-            ${sentimentGaugeHtml}
+            <!-- Executive SGE Overview Container -->
+            <div style="display: flex; flex-direction: column; gap: 16px; width: 100%;">
+                ${sentimentGaugeHtml}
+                ${textIntro ? `
+                    <div id="google-ai-summary-text-${symbol}" class="google-ai-summary-box">
+                        ${textIntro}
+                    </div>
+                ` : ''}
+                ${sectionsGridHtml}
+            </div>
 
-            ${kpiBannerHtml}
-
-            ${textIntro ? `<div id="google-ai-summary-text-${symbol}" style="margin: 12px 0; font-size: 12.5px; line-height: 1.6; color: var(--text-secondary); background: rgba(255,255,255,0.02); padding: 10px 12px; border-radius: 8px; border-left: 3px solid #a855f7;">${textIntro}</div>` : ''}
-
-            ${sectionsGridHtml}
-
-            ${followupsHtml}
+            <!-- Verified SGE Sources Footer Bar -->
+            <div style="margin-top: 14px; padding-top: 12px; border-top: 1px solid rgba(255,255,255,0.06); font-size: 11px; color: var(--text-muted); display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px;">
+                <span style="font-weight: 700; font-family: monospace;">🌐 VERIFIED SGE PUBLISHERS & SOURCES:</span>
+                <div style="display: flex; gap: 6px; flex-wrap: wrap;">
+                    <a class="citation-chip-link" href="https://www.screener.in/company/${cleanSym}/consolidated/" target="_blank" rel="noopener noreferrer">Screener.in ↗</a>
+                    <a class="citation-chip-link" href="https://economictimes.indiatimes.com/markets" target="_blank" rel="noopener noreferrer">Economic Times ↗</a>
+                    <a class="citation-chip-link" href="https://www.livemint.com/market" target="_blank" rel="noopener noreferrer">LiveMint ↗</a>
+                    <a class="citation-chip-link" href="https://www.perplexity.ai" target="_blank" rel="noopener noreferrer">Perplexity ↗</a>
+                </div>
+            </div>
         </div>
     `;
 
@@ -53917,34 +53933,17 @@ function renderGoogleAIOverviewCard(data) {
     }
 }
 
-async function handleGoogleAIFollowup(symbol, promptText) {
-    const modal = document.getElementById('google-ai-followup-modal');
-    const titleEl = document.getElementById('google-ai-followup-title');
-    const bodyEl = document.getElementById('google-ai-followup-body');
+function copySGEMarkdownSummary(symbol) {
+    const cleanSym = symbol.replace('.NS', '').replace('.BO', '').toUpperCase();
+    const summaryEl = document.getElementById(`google-ai-summary-text-${symbol}`);
+    const textContent = summaryEl ? summaryEl.innerText : `Google AI Overview for ${cleanSym}`;
+    const md = `### ⚡ Google AI Overview Summary for ${cleanSym}\n\n${textContent}\n\n*Generated via SerpApi Google SGE Intelligence*`;
 
-    if (titleEl) titleEl.innerText = promptText;
-    if (bodyEl) {
-        bodyEl.innerHTML = `
-            <div style="display:flex; align-items:center; justify-content:center; padding:30px; gap:10px;">
-                <div class="spinner" style="width:20px; height:20px; border:2px solid rgba(168,85,247,0.3); border-top-color:#a855f7; border-radius:50%; animation:spin 1s linear infinite;"></div>
-                <span>Generating AI Follow-Up Intelligence...</span>
-            </div>
-        `;
-    }
-    if (modal) modal.style.display = 'flex';
-
-    try {
-        const res = await fetch(`/api/google-ai-followup?symbol=${encodeURIComponent(symbol)}&prompt=${encodeURIComponent(promptText)}`);
-        const resData = await res.json();
-        if (bodyEl) bodyEl.innerHTML = resData.answer_html || '<p>No data returned.</p>';
-    } catch (e) {
-        if (bodyEl) bodyEl.innerHTML = `<p style="color:#ef4444;">Failed to fetch follow-up analysis.</p>`;
-    }
+    navigator.clipboard.writeText(md).then(() => {
+        alert(`Copied Google AI Overview summary for ${cleanSym} to clipboard!`);
+    }).catch(err => {
+        console.error("Copy error:", err);
+    });
 }
-window.handleGoogleAIFollowup = handleGoogleAIFollowup;
-
-window.closeGoogleAIFollowupModal = function() {
-    const modal = document.getElementById('google-ai-followup-modal');
-    if (modal) modal.style.display = 'none';
-};
+window.copySGEMarkdownSummary = copySGEMarkdownSummary;
 

@@ -30803,6 +30803,17 @@ body.light-theme #swing-scan-table thead th:first-child {
     color: var(--text-primary);
 }
 
+.google-ai-summary-box {
+    font-size: 13.5px;
+    line-height: 1.7;
+    color: #e2e8f0;
+    background: linear-gradient(135deg, rgba(168, 85, 247, 0.12), rgba(15, 23, 42, 0.8));
+    padding: 14px 16px;
+    border-radius: 10px;
+    border-left: 4px solid #a855f7;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25);
+}
+
 /* Recommendation A: Sentiment Meter Gauge */
 .sentiment-gauge-container {
     background: rgba(0, 0, 0, 0.3);
@@ -30858,24 +30869,24 @@ body.light-theme #swing-scan-table thead th:first-child {
 /* Option 1: Top KPI Metric Banner */
 .google-ai-kpi-banner {
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 10px;
+    grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+    gap: 12px;
     margin: 14px 0;
 }
 
 .kpi-chip-card {
-    background: rgba(15, 23, 42, 0.6);
-    border: 1px solid rgba(255, 255, 255, 0.08);
+    background: rgba(15, 23, 42, 0.75);
+    border: 1px solid rgba(255, 255, 255, 0.12);
     border-radius: 10px;
-    padding: 10px 12px;
+    padding: 12px;
     display: flex;
     flex-direction: column;
-    gap: 4px;
+    gap: 5px;
 }
 
 .kpi-chip-label {
-    font-size: 11px;
-    color: var(--text-muted);
+    font-size: 11.5px;
+    color: #94a3b8;
     font-weight: 600;
     display: flex;
     align-items: center;
@@ -30883,7 +30894,7 @@ body.light-theme #swing-scan-table thead th:first-child {
 }
 
 .kpi-chip-value {
-    font-size: 14px;
+    font-size: 14.5px;
     font-weight: 800;
     color: #ffffff;
     font-family: 'Outfit', sans-serif;
@@ -30898,58 +30909,78 @@ body.light-theme #swing-scan-table thead th:first-child {
 /* Option 1: 3-Column Glassmorphic Grid */
 .google-ai-grid {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 14px;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 16px;
     margin: 16px 0;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+@media (max-width: 1023px) {
+    .google-ai-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 768px) {
+    .google-ai-grid {
+        grid-template-columns: 1fr;
+        gap: 12px;
+    }
 }
 
 .google-ai-card-item {
-    background: rgba(15, 23, 42, 0.5);
+    background: rgba(15, 23, 42, 0.7);
     border-radius: 12px;
-    padding: 14px;
+    padding: 16px;
     display: flex;
     flex-direction: column;
-    gap: 10px;
+    gap: 12px;
 }
 
 .google-ai-card-item.financials {
-    border: 1px solid rgba(168, 85, 247, 0.3);
-    background: linear-gradient(180deg, rgba(168, 85, 247, 0.06), rgba(15, 23, 42, 0.4));
+    border: 1px solid rgba(168, 85, 247, 0.4);
+    background: linear-gradient(180deg, rgba(168, 85, 247, 0.1), rgba(15, 23, 42, 0.7));
 }
 
 .google-ai-card-item.news {
-    border: 1px solid rgba(245, 158, 11, 0.3);
-    background: linear-gradient(180deg, rgba(245, 158, 11, 0.06), rgba(15, 23, 42, 0.4));
+    border: 1px solid rgba(245, 158, 11, 0.4);
+    background: linear-gradient(180deg, rgba(245, 158, 11, 0.1), rgba(15, 23, 42, 0.7));
 }
 
 .google-ai-card-item.catalysts {
-    border: 1px solid rgba(16, 185, 129, 0.3);
-    background: linear-gradient(180deg, rgba(16, 185, 129, 0.06), rgba(15, 23, 42, 0.4));
+    border: 1px solid rgba(16, 185, 129, 0.4);
+    background: linear-gradient(180deg, rgba(16, 185, 129, 0.1), rgba(15, 23, 42, 0.7));
 }
 
 .google-ai-card-header {
-    font-size: 13.5px;
+    font-size: 14px;
     font-weight: 700;
     color: #ffffff;
     display: flex;
     align-items: center;
     gap: 6px;
-    padding-bottom: 8px;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    padding-bottom: 10px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .google-ai-card-body {
     display: flex;
     flex-direction: column;
-    gap: 8px;
-    font-size: 12px;
-    line-height: 1.55;
-    color: var(--text-secondary);
+    gap: 10px;
+    font-size: 13px;
+    line-height: 1.6;
+    color: #cbd5e1;
 }
 
 .google-ai-bullet-item {
     position: relative;
-    padding-left: 12px;
+    padding-left: 14px;
+}
+
+.google-ai-bullet-item strong {
+    color: #38bdf8;
+    font-weight: 700;
 }
 
 .google-ai-bullet-item::before {
@@ -30965,12 +30996,12 @@ body.light-theme #swing-scan-table thead th:first-child {
     display: inline-flex;
     align-items: center;
     gap: 4px;
-    background: rgba(168, 85, 247, 0.12);
-    border: 1px solid rgba(168, 85, 247, 0.3);
-    color: #c084fc !important;
-    padding: 2px 7px;
+    background: rgba(56, 189, 248, 0.15);
+    border: 1px solid rgba(56, 189, 248, 0.35);
+    color: #38bdf8 !important;
+    padding: 3px 8px;
     border-radius: 6px;
-    font-size: 10.5px;
+    font-size: 11px;
     font-weight: 600;
     text-decoration: none !important;
     transition: all 0.2s ease;
@@ -31009,6 +31040,110 @@ body.light-theme #swing-scan-table thead th:first-child {
     transform: translateY(-1px);
 }
 
+/* Option 1: Desktop Dual-Column Command Center & Highlighting System */
+.google-ai-desktop-layout {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    width: 100%;
+}
+
+@media (min-width: 1024px) {
+    .google-ai-desktop-layout {
+        display: grid;
+        grid-template-columns: 64% 34%;
+        gap: 20px;
+        align-items: start;
+    }
+}
+
+.google-ai-left-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    width: 100%;
+}
+
+.google-ai-right-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    background: rgba(15, 23, 42, 0.75);
+    border: 1px solid rgba(168, 85, 247, 0.25);
+    border-radius: 12px;
+    padding: 16px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+}
+
+.sge-custom-query-box {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    background: rgba(0, 0, 0, 0.4);
+    border: 1px solid rgba(168, 85, 247, 0.3);
+    border-radius: 8px;
+    padding: 4px 6px;
+}
+
+.sge-custom-query-input {
+    flex: 1;
+    background: transparent;
+    border: none;
+    outline: none;
+    color: #ffffff;
+    font-size: 12px;
+    padding: 6px 8px;
+    font-family: inherit;
+}
+
+.sge-custom-query-btn {
+    background: linear-gradient(135deg, #a855f7, #6366f1);
+    color: #ffffff;
+    border: none;
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-size: 11.5px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+}
+
+.sge-custom-query-btn:hover {
+    box-shadow: 0 0 12px rgba(168, 85, 247, 0.5);
+    transform: translateY(-1px);
+}
+
+.num-badge-green {
+    background: rgba(16, 185, 129, 0.15);
+    border: 1px solid rgba(16, 185, 129, 0.35);
+    color: #34d399;
+    padding: 1px 6px;
+    border-radius: 4px;
+    font-weight: 700;
+    font-size: 11.5px;
+}
+
+.num-badge-purple {
+    background: rgba(168, 85, 247, 0.15);
+    border: 1px solid rgba(168, 85, 247, 0.35);
+    color: #c084fc;
+    padding: 1px 6px;
+    border-radius: 4px;
+    font-weight: 700;
+    font-size: 11.5px;
+}
+
+.num-badge-amber {
+    background: rgba(245, 158, 11, 0.15);
+    border: 1px solid rgba(245, 158, 11, 0.35);
+    color: #fbbf24;
+    padding: 1px 6px;
+    border-radius: 4px;
+    font-weight: 700;
+    font-size: 11.5px;
+}
+
 /* Mobile Responsiveness & Edge-to-Edge Typography */
 @media (max-width: 768px) {
     .google-ai-overview-card {
@@ -31045,5 +31180,114 @@ body.light-theme #swing-scan-table thead th:first-child {
         gap: 8px;
     }
 }
+
+/* ==========================================================================
+   Google AI Overview Light Theme Support
+   ========================================================================== */
+body.light-theme .google-ai-overview-card,
+body.light-mode .google-ai-overview-card,
+[data-theme="light"] .google-ai-overview-card,
+[data-mode="light"] .google-ai-overview-card {
+    background: linear-gradient(135deg, #ffffff, #f8fafc) !important;
+    border: 1px solid rgba(168, 85, 247, 0.25) !important;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.05), 0 1px 3px rgba(0, 0, 0, 0.03) !important;
+    color: #0f172a !important;
+}
+
+body.light-theme .google-ai-summary-box,
+body.light-mode .google-ai-summary-box,
+[data-theme="light"] .google-ai-summary-box,
+[data-mode="light"] .google-ai-summary-box {
+    color: #0f172a !important;
+    background: linear-gradient(135deg, rgba(168, 85, 247, 0.08), rgba(241, 245, 249, 0.95)) !important;
+    border-left: 4px solid #9333ea !important;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.04) !important;
+}
+
+body.light-theme .google-ai-summary-box strong,
+body.light-mode .google-ai-summary-box strong,
+[data-theme="light"] .google-ai-summary-box strong,
+[data-mode="light"] .google-ai-summary-box strong {
+    color: #0369a1 !important;
+}
+
+body.light-theme .google-ai-summary-box a,
+body.light-mode .google-ai-summary-box a,
+[data-theme="light"] .google-ai-summary-box a,
+[data-mode="light"] .google-ai-summary-box a {
+    color: #0284c7 !important;
+}
+
+body.light-theme .google-ai-card-item,
+body.light-mode .google-ai-card-item,
+[data-theme="light"] .google-ai-card-item,
+[data-mode="light"] .google-ai-card-item {
+    background: #ffffff !important;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04) !important;
+}
+
+body.light-theme .google-ai-card-item.financials,
+body.light-mode .google-ai-card-item.financials,
+[data-theme="light"] .google-ai-card-item.financials,
+[data-mode="light"] .google-ai-card-item.financials {
+    border: 1px solid rgba(168, 85, 247, 0.3) !important;
+    background: linear-gradient(180deg, rgba(168, 85, 247, 0.06), #ffffff) !important;
+}
+
+body.light-theme .google-ai-card-item.news,
+body.light-mode .google-ai-card-item.news,
+[data-theme="light"] .google-ai-card-item.news,
+[data-mode="light"] .google-ai-card-item.news {
+    border: 1px solid rgba(245, 158, 11, 0.3) !important;
+    background: linear-gradient(180deg, rgba(245, 158, 11, 0.06), #ffffff) !important;
+}
+
+body.light-theme .google-ai-card-item.catalysts,
+body.light-mode .google-ai-card-item.catalysts,
+[data-theme="light"] .google-ai-card-item.catalysts,
+[data-mode="light"] .google-ai-card-item.catalysts {
+    border: 1px solid rgba(16, 185, 129, 0.3) !important;
+    background: linear-gradient(180deg, rgba(16, 185, 129, 0.06), #ffffff) !important;
+}
+
+body.light-theme .google-ai-card-header,
+body.light-mode .google-ai-card-header,
+[data-theme="light"] .google-ai-card-header,
+[data-mode="light"] .google-ai-card-header {
+    color: #0f172a !important;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.08) !important;
+}
+
+body.light-theme .google-ai-card-body,
+body.light-mode .google-ai-card-body,
+[data-theme="light"] .google-ai-card-body,
+[data-mode="light"] .google-ai-card-body {
+    color: #334155 !important;
+}
+
+body.light-theme .google-ai-bullet-item strong,
+body.light-mode .google-ai-bullet-item strong,
+[data-theme="light"] .google-ai-bullet-item strong,
+[data-mode="light"] .google-ai-bullet-item strong {
+    color: #0284c7 !important;
+}
+
+body.light-theme .sentiment-gauge-container,
+body.light-mode .sentiment-gauge-container,
+[data-theme="light"] .sentiment-gauge-container,
+[data-mode="light"] .sentiment-gauge-container {
+    background: rgba(0, 0, 0, 0.03) !important;
+    border: 1px solid rgba(0, 0, 0, 0.08) !important;
+}
+
+body.light-theme .citation-chip-link,
+body.light-mode .citation-chip-link,
+[data-theme="light"] .citation-chip-link,
+[data-mode="light"] .citation-chip-link {
+    background: rgba(2, 132, 199, 0.1) !important;
+    border: 1px solid rgba(2, 132, 199, 0.3) !important;
+    color: #0284c7 !important;
+}
+
 
 

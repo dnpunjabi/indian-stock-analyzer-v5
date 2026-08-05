@@ -34,10 +34,11 @@ Upgrade the **✨ Google AI Overview** subtab into a state-of-the-art equity int
   - Bullet Points: `font-size: 12px`, `line-height: 1.55`, `color: var(--text-secondary)`.
   - Citation Link Pills: `font-size: 10.5px`, `padding: 2px 7px`, `border-radius: 6px`.
 - **Bull/Bear Sentiment Gauge**: `.sentiment-gauge-bar` gradient progress container with percentage text badge and sentiment pill (`Strongly Positive`).
-- **Top KPI Summary Banner**: `.google-ai-kpi-banner` grid with 4 glowing metric badges (Revenue, Profit, Margins, Consensus).
 - **3-Column Grid Layout & Mobile Auto-Collapse**:
-  - Desktop: `grid-template-columns: repeat(auto-fit, minmax(320px, 1fr))`
-  - Mobile `@media (max-width: 768px)`: Collapses to `grid-template-columns: 1fr`, `gap: 10px`, zero horizontal overflow.
+  - Desktop ($\ge 1024\text{px}$): `grid-template-columns: repeat(3, minmax(0, 1fr))` (enforces strict 3-column horizontal layout for Market News, Financial Performance, and Growth Catalysts).
+  - Tablet ($769\text{px} - 1023\text{px}$): `grid-template-columns: repeat(2, minmax(0, 1fr))`.
+  - Mobile ($\le 768\text{px}$): `grid-template-columns: 1fr`, `gap: 12px`, zero horizontal overflow.
+- **Clean Executive Focus**: Removed unparsed filler KPI blocks ("Live SGE Growth", "Audited Filings") to keep the interface 100% relevant and uncluttered.
 - **Interactive Citation Link Pills**: `.citation-chip-link` with hover animations, glowing borders, and external link arrow (`↗`).
 - **Follow-Up Slide-Over Modal**: `.google-ai-modal` overlay with smooth transition and backdrop blur.
 
