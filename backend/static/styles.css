@@ -4695,44 +4695,107 @@ body.chat-drawer-active {
     transition: all 0.3s ease;
 }
 
-/* Altman Ratios Mathematical Rows */
+/* Altman Ratios Mathematical Rows - Strict Fit & Responsive Scoped Styles */
+#altman-components-breakdown {
+    overflow: hidden !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+}
+
 .altman-comp-row {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    font-size: 12.5px;
-    padding: 2.5px 0;
+    font-size: 11px;
+    padding: 5px 8px;
+    background: rgba(255, 255, 255, 0.01);
+    border: 1px solid rgba(255, 255, 255, 0.03);
+    border-radius: 6px;
+    gap: 8px;
+    margin-bottom: 4px;
+    cursor: pointer;
     width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+    overflow: hidden;
 }
+
 .altman-comp-label {
     color: var(--text-secondary);
-    font-weight: 500;
-    width: 125px;
+    font-weight: 600;
+    width: 110px;
+    flex-shrink: 0;
     text-overflow: ellipsis;
     white-space: nowrap;
     overflow: hidden;
 }
+
 .altman-comp-progress-container {
-    flex-grow: 1;
-    height: 4px;
-    background: rgba(255, 255, 255, 0.05);
-    border-radius: 2px;
+    flex: 1;
+    min-width: 40px;
+    max-width: 100%;
+    height: 6px;
+    background: rgba(0, 0, 0, 0.25);
+    border-radius: 3px;
     overflow: hidden;
-    margin: 0 8px;
-    position: relative;
+    border: 1px solid rgba(255, 255, 255, 0.02);
+    box-sizing: border-box;
 }
+
 .altman-comp-progress-fill {
     height: 100%;
-    border-radius: 2px;
-    transition: width 0.8s cubic-bezier(0.25, 1, 0.5, 1);
-    width: 0%;
+    max-width: 100%;
+    border-radius: 3px;
+    transition: width 0.8s ease;
+    box-sizing: border-box;
 }
+
 .altman-comp-val {
     color: var(--text-primary);
     font-weight: 700;
-    width: 45px;
-    text-align: right;
+    font-size: 10px;
     font-family: monospace;
+    white-space: nowrap;
+    text-align: right;
+    flex-shrink: 0;
+}
+
+@media (max-width: 600px) {
+    .altman-comp-row {
+        flex-wrap: wrap !important;
+        padding: 6px 8px !important;
+        gap: 2px 4px !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        box-sizing: border-box !important;
+        overflow: hidden !important;
+    }
+    .altman-comp-label {
+        width: auto !important;
+        max-width: 55% !important;
+        font-size: 10.5px !important;
+        order: 1 !important;
+        flex: 1 1 auto !important;
+    }
+    .altman-comp-val {
+        font-size: 9.5px !important;
+        order: 2 !important;
+        width: auto !important;
+        flex: 0 0 auto !important;
+    }
+    .altman-comp-progress-container {
+        width: 100% !important;
+        max-width: 100% !important;
+        flex: 0 0 100% !important;
+        order: 3 !important;
+        margin: 3px 0 1px 0 !important;
+        height: 6px !important;
+        box-sizing: border-box !important;
+    }
+    .altman-comp-progress-fill {
+        max-width: 100% !important;
+        box-sizing: border-box !important;
+    }
 }
 
 /* ==========================================================================
@@ -4949,10 +5012,43 @@ body.chat-drawer-active {
     gap: 6px;
 }
 
+[data-mode="dark"] .ticker-item {
+    color: #cbd5e1 !important;
+}
+
 .ticker-item strong.val {
     color: var(--text-primary);
     font-family: monospace;
     font-size: 13.5px;
+}
+
+[data-mode="dark"] .ticker-item strong.val {
+    color: #f8fafc !important;
+}
+
+/* High Contrast Ticker Badges & Status Text */
+.green-text, .green-badge {
+    color: #10b981 !important;
+    font-weight: 600;
+}
+.red-text, .red-badge {
+    color: #ef4444 !important;
+    font-weight: 600;
+}
+[data-mode="dark"] .green-text,
+[data-mode="dark"] .green-badge {
+    color: #34d399 !important; /* Bright vivid emerald in dark mode */
+}
+[data-mode="dark"] .red-text,
+[data-mode="dark"] .red-badge {
+    color: #f87171 !important; /* Bright coral red in dark mode */
+}
+
+/* Sticky Header Dark Contrast */
+[data-mode="dark"] .main-header,
+[data-mode="dark"] .index-ticker-container {
+    background: rgba(15, 23, 42, 0.95) !important;
+    border-color: rgba(255, 255, 255, 0.1) !important;
 }
 
 @keyframes indexTicker {

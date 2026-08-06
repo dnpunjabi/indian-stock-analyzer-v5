@@ -21322,24 +21322,13 @@ function renderEarningsQuality(p) {
             const row = document.createElement('div');
             row.className = 'altman-comp-row hover-chart-trigger';
             row.setAttribute('data-hover-chart', `altman_${item.key}`);
-            row.style.display = 'flex';
-            row.style.alignItems = 'center';
-            row.style.justifyContent = 'space-between';
-            row.style.background = 'rgba(255, 255, 255, 0.01)';
-            row.style.border = '1px solid rgba(255, 255, 255, 0.03)';
-            row.style.borderRadius = '5px';
-            row.style.padding = '4px 8px';
-            row.style.fontSize = '9.5px';
-            row.style.gap = '8px';
-            row.style.marginBottom = '2px';
-            row.style.cursor = 'pointer';
 
             row.innerHTML = `
-                <span class="altman-comp-label" style="font-weight: 600; color: var(--text-secondary); width: 85px; text-align: left; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${item.desc}">${item.name}</span>
-                <div class="altman-comp-progress-container" style="flex: 1; height: 6px; background: rgba(0,0,0,0.3); border-radius: 3px; overflow: hidden; border: 1px solid rgba(255,255,255,0.02);">
-                    <div class="altman-comp-progress-fill" style="height: 100%; width: ${barPct}%; background: ${activeColor}; box-shadow: 0 0 3px ${activeColor}; border-radius: 3px; transition: width 0.8s ease;"></div>
+                <span class="altman-comp-label" title="${item.desc}">${item.name}</span>
+                <div class="altman-comp-progress-container">
+                    <div class="altman-comp-progress-fill" style="width: ${barPct}%; background: ${activeColor}; box-shadow: 0 0 3px ${activeColor};"></div>
                 </div>
-                <span class="altman-comp-val" style="font-family: monospace; width: 100px; text-align: right; font-size: 8.5px;">${item.coef}×${ratioVal.toFixed(2)} = <strong style="color: ${activeColor}">${contrib >= 0 ? '+' : ''}${contrib.toFixed(2)}</strong></span>
+                <span class="altman-comp-val">${item.coef}×${ratioVal.toFixed(2)} = <strong style="color: ${activeColor}">${contrib >= 0 ? '+' : ''}${contrib.toFixed(2)}</strong></span>
             `;
 
             // Click to expand and highlight glossary
