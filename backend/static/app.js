@@ -53879,8 +53879,8 @@ function renderGoogleAIOverviewCard(data) {
     container.innerHTML = `
         <div class="google-ai-overview-card">
             <!-- Header Bar -->
-            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; border-bottom: 1px solid rgba(255,255,255,0.08); padding-bottom: 12px; margin-bottom: 14px;">
-                <div style="display: flex; align-items: center; gap: 10px;">
+            <div class="google-ai-header-bar">
+                <div class="google-ai-header-title-box">
                     <span style="font-size: 22px;">✨</span>
                     <div>
                         <h3 style="margin: 0; font-size: 16px; font-family: 'Outfit', sans-serif; color: var(--text-primary);">
@@ -53889,17 +53889,19 @@ function renderGoogleAIOverviewCard(data) {
                         <span style="font-size: 11px; color: var(--text-muted); font-family: monospace;">Updated: ${data.timestamp || "Just Now"}</span>
                     </div>
                 </div>
-                <div style="display: flex; align-items: center; gap: 8px;">
+                <div class="google-ai-header-actions">
                     <span class="badge-ticker" style="font-size: 11px; background: rgba(168,85,247,0.15); border-color: rgba(168,85,247,0.3); color: #c084fc;">${sourceBadge} | ${cacheStatus}</span>
-                    <button onclick="copySGEMarkdownSummary('${symbol}')" style="font-size: 12px; padding: 4px 10px; border-radius: 6px; background: rgba(56,189,248,0.15); border: 1px solid rgba(56,189,248,0.3); color: #38bdf8; cursor: pointer; display: inline-flex; align-items: center; gap: 4px;">
-                        <span>📋</span> Copy
-                    </button>
-                    <button class="section-speak-btn" data-target="google-ai-summary-text-${symbol}" style="font-size: 12px; padding: 4px 10px; border-radius: 6px; background: rgba(168,85,247,0.15); border: 1px solid rgba(168,85,247,0.3); color: #c084fc; cursor: pointer; display: inline-flex; align-items: center; gap: 4px;">
-                        <span>🔊</span> Listen
-                    </button>
-                    <button onclick="loadGoogleAIOverviewCard('${symbol}', true)" style="font-size: 12px; padding: 4px 10px; border-radius: 6px; background: rgba(255,255,255,0.05); border: 1px solid var(--border-glass); color: var(--text-secondary); cursor: pointer; display: inline-flex; align-items: center; gap: 4px;">
-                        <span>🔄</span> Refresh
-                    </button>
+                    <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
+                        <button onclick="copySGEMarkdownSummary('${symbol}')" class="google-ai-act-btn btn-copy">
+                            <span>📋</span> Copy
+                        </button>
+                        <button class="section-speak-btn google-ai-act-btn btn-listen" data-target="google-ai-summary-text-${symbol}">
+                            <span>🔊</span> Listen
+                        </button>
+                        <button onclick="loadGoogleAIOverviewCard('${symbol}', true)" class="google-ai-act-btn btn-refresh">
+                            <span>🔄</span> Refresh
+                        </button>
+                    </div>
                 </div>
             </div>
 

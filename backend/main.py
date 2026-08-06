@@ -16631,11 +16631,15 @@ Respond strictly in valid JSON matching this exact structure:
     else:
         sent_label = "Strongly Bearish"
 
+    from datetime import timezone, timedelta
+    ist_tz = timezone(timedelta(hours=5, minutes=30))
+    ist_now_str = datetime.now(ist_tz).strftime("%d %b %Y, %I:%M %p IST")
+
     payload = {
         "symbol": clean_symbol,
         "company_name": company_name,
         "data_source": data_source,
-        "timestamp": datetime.now().strftime("%d %b %Y, %I:%M %p"),
+        "timestamp": ist_now_str,
         "from_cache": False,
         "text": text,
         "sections": sections,
