@@ -13909,7 +13909,8 @@ function setupBusinessSummaryCollapsible() {
         bsToggle.addEventListener('click', () => {
             const isCollapsed = bsContent.style.maxHeight === '0px' || bsContent.style.maxHeight === '';
             if (isCollapsed) {
-                bsContent.style.maxHeight = '500px';
+                const targetHeight = bsContent.scrollHeight ? (bsContent.scrollHeight + 100) + 'px' : '3000px';
+                bsContent.style.maxHeight = targetHeight;
                 bsArrow.style.transform = 'rotate(180deg)';
             } else {
                 bsContent.style.maxHeight = '0px';

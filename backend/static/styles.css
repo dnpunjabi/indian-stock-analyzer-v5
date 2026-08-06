@@ -5321,16 +5321,16 @@ body.chat-drawer-active {
 }
 
 .subtab-btn {
-    padding: 8px 16px;
-    border-radius: 8px;
+    padding: 7px 14px;
+    border-radius: 7px;
     font-family: var(--font-heading);
-    font-size: 13.5px;
+    font-size: 12.5px;
     font-weight: 700;
-    background: transparent;
-    color: var(--text-secondary);
-    border: 1px solid transparent;
+    background: rgba(30, 41, 59, 0.85);
+    color: rgba(226, 232, 240, 0.95);
+    border: 1px solid rgba(148, 163, 184, 0.35);
     cursor: pointer;
-    transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    transition: all 0.2s ease;
     white-space: nowrap;
     display: flex;
     align-items: center;
@@ -5338,29 +5338,37 @@ body.chat-drawer-active {
     user-select: none;
     text-transform: uppercase;
     letter-spacing: 0.03em;
-    opacity: 0.85;
+    opacity: 1;
 }
 
 .subtab-btn:hover {
-    background: rgba(255, 255, 255, 0.02);
-    color: var(--text-primary);
-    border-color: var(--border-glass);
+    background: rgba(59, 130, 246, 0.25);
+    color: #ffffff;
+    border-color: rgba(59, 130, 246, 0.7);
+    box-shadow: 0 0 10px rgba(59, 130, 246, 0.3);
     transform: translateY(-1px);
     opacity: 1;
 }
 
 .subtab-btn.active {
-    background: linear-gradient(135deg, rgba(59, 130, 246, 0.15), rgba(147, 51, 234, 0.1));
-    color: var(--color-primary-light);
-    border-color: rgba(59, 130, 246, 0.45);
-    box-shadow: 0 0 15px rgba(59, 130, 246, 0.15);
-    font-weight: 700;
+    background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%) !important;
+    color: #ffffff !important;
+    border: 1px solid #60a5fa !important;
+    box-shadow: 0 0 16px rgba(59, 130, 246, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.3) !important;
+    font-weight: 800;
     opacity: 1;
 }
 
+[data-theme="light"] .subtab-btn {
+    background: #e2e8f0;
+    color: #1e293b;
+    border: 1px solid #cbd5e1;
+}
+
 [data-theme="light"] .subtab-btn.active {
-    background: linear-gradient(135deg, rgba(59, 130, 246, 0.08), rgba(147, 51, 234, 0.05));
-    border-color: rgba(59, 130, 246, 0.3);
+    background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%) !important;
+    color: #ffffff !important;
+    border-color: #3b82f6 !important;
 }
 
 .fs-subtab-btn {
@@ -7951,10 +7959,12 @@ input[type="date"]::-webkit-calendar-picker-indicator:hover {
     width: 100%;
     max-width: 100% !important;
     min-width: 0 !important;
-    margin-bottom: 24px;
+    margin-bottom: 20px;
     display: flex;
     align-items: center;
     box-sizing: border-box;
+    background: transparent;
+    padding: 4px 0 !important;
 }
 
 .analyzer-subtabs {
@@ -7962,16 +7972,17 @@ input[type="date"]::-webkit-calendar-picker-indicator:hover {
     flex-wrap: nowrap !important;
     gap: 8px !important;
     margin-bottom: 0 !important;
-    border-bottom: 1px solid var(--border-glass) !important;
-    padding-bottom: 12px !important;
+    border-bottom: none !important;
+    padding-bottom: 4px !important;
+    padding-top: 2px !important;
     overflow-x: auto !important;
     -webkit-overflow-scrolling: touch !important;
     scroll-behavior: smooth;
     width: 100%;
     min-width: 0 !important;
     max-width: 100% !important;
-    scrollbar-width: thin !important; /* Force thin scrollbar in Firefox */
-    scrollbar-color: var(--color-primary-glow, rgba(59, 130, 246, 0.35)) var(--border-glass) !important;
+    scrollbar-width: thin !important;
+    scrollbar-color: var(--color-primary-glow, rgba(59, 130, 246, 0.45)) transparent !important;
 }
 
 .analyzer-subtabs::-webkit-scrollbar {
@@ -8002,7 +8013,7 @@ input[type="date"]::-webkit-calendar-picker-indicator:hover {
 /* Nav navigation arrows */
 .subtabs-nav-btn {
     position: absolute;
-    top: calc(50% - 6px); /* Align relative to buttons, ignoring padding-bottom */
+    top: 50%;
     transform: translateY(-50%);
     width: 28px;
     height: 28px;
@@ -8027,6 +8038,46 @@ input[type="date"]::-webkit-calendar-picker-indicator:hover {
     border-color: transparent;
     box-shadow: 0 0 10px var(--color-primary-glow);
     transform: translateY(-50%) scale(1.1);
+}
+
+/* ========================================================
+   LIGHT THEME OVERRIDES FOR SUBTABS STRIP
+   ======================================================== */
+[data-theme="light"] .subtabs-scroll-container {
+    background: transparent !important;
+}
+
+[data-theme="light"] .subtab-btn {
+    background: #f1f5f9 !important;
+    color: #334155 !important;
+    border: 1px solid #cbd5e1 !important;
+}
+
+[data-theme="light"] .subtab-btn:hover {
+    background: rgba(37, 99, 235, 0.12) !important;
+    color: #1d4ed8 !important;
+    border-color: #3b82f6 !important;
+    box-shadow: 0 0 8px rgba(37, 99, 235, 0.2) !important;
+}
+
+[data-theme="light"] .subtab-btn.active {
+    background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%) !important;
+    color: #ffffff !important;
+    border: 1px solid #1d4ed8 !important;
+    box-shadow: 0 4px 14px rgba(37, 99, 235, 0.35) !important;
+}
+
+[data-theme="light"] .subtabs-nav-btn {
+    background: #ffffff !important;
+    color: #1e293b !important;
+    border: 1px solid #cbd5e1 !important;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1) !important;
+}
+
+[data-theme="light"] .subtabs-nav-btn:hover {
+    background: #2563eb !important;
+    color: #ffffff !important;
+    border-color: #2563eb !important;
 }
 
 .subtabs-nav-btn.prev-btn {

@@ -272,11 +272,12 @@ def _call_gemini_with_rotation(task_type: str,
                 "parts": [{"text": user_prompt}]
             })
             
+    safe_max_tokens = min(16384, max(max_tokens, 4096))
     payload = {
         "contents": contents,
         "generationConfig": {
             "temperature": temperature,
-            "maxOutputTokens": min(max_tokens, 16384)
+            "maxOutputTokens": safe_max_tokens
         }
     }
     
@@ -383,11 +384,12 @@ def _stream_gemini_with_rotation(task_type: str,
                 "parts": [{"text": user_prompt}]
             })
             
+    safe_max_tokens = min(16384, max(max_tokens, 4096))
     payload = {
         "contents": contents,
         "generationConfig": {
             "temperature": temperature,
-            "maxOutputTokens": min(max_tokens, 16384)
+            "maxOutputTokens": safe_max_tokens
         }
     }
     

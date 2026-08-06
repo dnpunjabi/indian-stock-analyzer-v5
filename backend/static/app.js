@@ -6363,7 +6363,7 @@ async function loadStockAnalyzer(query, force_llm = false, silent = false) {
         setupPegPriceChartListeners();
         setupPeersSorting();
         triggerLiveCompoundingCalculation();
-        if (!silent && window.resetAnalyzerSubtabs) window.resetAnalyzerSubtabs();
+        if (window.resetAnalyzerSubtabs) window.resetAnalyzerSubtabs();
 
         // Load per-stock events for the summary tab
         if (typeof loadStockEvents === 'function') {
@@ -18861,7 +18861,8 @@ function setupBusinessSummaryCollapsible() {
         bsToggle.addEventListener('click', () => {
             const isCollapsed = bsContent.style.maxHeight === '0px' || bsContent.style.maxHeight === '';
             if (isCollapsed) {
-                bsContent.style.maxHeight = '500px';
+                const targetHeight = bsContent.scrollHeight ? (bsContent.scrollHeight + 100) + 'px' : '3000px';
+                bsContent.style.maxHeight = targetHeight;
                 bsArrow.style.transform = 'rotate(180deg)';
             } else {
                 bsContent.style.maxHeight = '0px';
@@ -22267,6 +22268,9 @@ function setupAnalyzerSubtabs() {
         }
         setTimeout(updateNavButtons, 200);
     };
+
+    // Ensure Executive Summary is active by default on setup
+    window.resetAnalyzerSubtabs();
 }
 
 

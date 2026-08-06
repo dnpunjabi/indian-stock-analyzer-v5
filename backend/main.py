@@ -2506,7 +2506,7 @@ async def upgrade_prospectus(
             - Median Target Price: Rs. {profile['consensus']['target_median']}
             """
             
-            response_text = call_llm(TASK_HEAVY, system_prompt, user_prompt, max_tokens=1500)
+            response_text = call_llm(TASK_HEAVY, system_prompt, user_prompt, max_tokens=4096)
             
             clean_json = response_text.strip()
             if clean_json.startswith("```json"):
@@ -7828,7 +7828,7 @@ async def audit_financial_statements(data: AuditFinancialsRequest):
 
         def stream_generator():
             try:
-                for chunk in call_llm_stream(TASK_FAST, system_prompt, user_prompt, max_tokens=1500):
+                for chunk in call_llm_stream(TASK_FAST, system_prompt, user_prompt, max_tokens=8000):
                     yield chunk
             except Exception as e:
                 yield f"\nERROR: Streaming failed mid-execution. Details: {str(e)}"
@@ -11031,7 +11031,7 @@ async def run_portfolio_stress_test(data: StressTestRequest):
         {json.dumps(portfolio_summary, indent=2)}
         """
         
-        response_text = await asyncio.to_thread(call_llm, TASK_FAST, system_prompt, user_prompt, max_tokens=1500)
+        response_text = await asyncio.to_thread(call_llm, TASK_FAST, system_prompt, user_prompt, max_tokens=4096)
         
         # Parse JSON from response
         try:
@@ -11919,7 +11919,7 @@ def run_groq_news_sentiment_analysis(symbol: str, news_list: list, anomalies_lis
         f"Also calculate the aggregated overall sentiment_index rating from 0 to 100 based on all articles."
     )
     
-    raw_response = call_llm(TASK_FAST, system_prompt, user_prompt, max_tokens=1500)
+    raw_response = call_llm(TASK_FAST, system_prompt, user_prompt, max_tokens=4096)
     
     try:
         clean_json = raw_response.strip()

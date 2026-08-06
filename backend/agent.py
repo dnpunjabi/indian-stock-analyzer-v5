@@ -476,7 +476,7 @@ async def run_cio_parent_agent(query: str, horizon: str, risk_profile: str, cust
     - Median Target Price: Rs. {profile['consensus']['target_median']}
     """
     
-    response_text = call_llm(TASK_HEAVY, system_prompt, user_prompt, max_tokens=1500)
+    response_text = call_llm(TASK_HEAVY, system_prompt, user_prompt, max_tokens=4096)
     
     if "ERROR_401" in response_text:
         # Secondary API fail catcher
