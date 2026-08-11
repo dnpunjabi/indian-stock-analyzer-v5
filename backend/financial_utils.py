@@ -42,13 +42,15 @@ _cache_lock = threading.Lock()
 _screener_scraper = None
 _scraper_lock = threading.Lock()
 
-def make_screener_request(url: str, headers: dict = None, cookies: dict = None, timeout: int = 10) -> requests.Response:
+def make_screener_request(url: str, headers: dict = None, cookies: dict = None, timeout: int = 4) -> requests.Response:
     """
     Centralized HTTP requester for Screener.in.
-    Uses cloudscraper to bypass Cloudflare anti-bot fingerprinting.
-    Gracefully falls back to standard requests if cloudscraper encounters issues.
+    Uses cloudscraper with tight timeouts (capped at 4s) to prevent cloud VM thread pool starvation.
     """
     global _screener_scraper
+    
+    # Cap timeout to prevent multi-second thread pool hangs on Cloudflare blocks
+    req_timeout = (2, min(timeout, 4))
     
     # Lazily initialize cloudscraper safely across threads
     if _screener_scraper is None:
@@ -58,31 +60,27 @@ def make_screener_request(url: str, headers: dict = None, cookies: dict = None, 
                     import cloudscraper
                     _screener_scraper = cloudscraper.create_scraper()
                 except Exception as scraper_init_err:
-                    print(f"[Cloudscraper] Failed to initialize: {scraper_init_err}. Using fallback requests.get.")
                     _screener_scraper = False
 
     # Attempt to request using cloudscraper if successfully initialized
     if _screener_scraper:
         try:
-            res = _screener_scraper.get(url, headers=headers, cookies=cookies, timeout=timeout)
+            res = _screener_scraper.get(url, headers=headers, cookies=cookies, timeout=req_timeout)
             if res.status_code == 429 and cookies:
-                print(f"[Cloudscraper] 429 received with cookies for {url}. Retrying as guest...")
-                res = _screener_scraper.get(url, headers=headers, timeout=timeout)
+                res = _screener_scraper.get(url, headers=headers, timeout=req_timeout)
             return res
-        except Exception as e:
-            print(f"[Cloudscraper] Request failed for {url}: {e}. Falling back to standard requests.get.")
+        except Exception:
+            pass  # Fallback to standard requests below
 
-    # Fallback to standard requests
-    if cookies:
-        try:
-            res = requests.get(url, headers=headers, cookies=cookies, timeout=max(2, timeout // 2))
+    # Fallback to standard requests if cloudscraper fails
+    try:
+        if cookies:
+            res = requests.get(url, headers=headers, cookies=cookies, timeout=req_timeout)
             if res.status_code != 429:
                 return res
-            print(f"Standard requests returned 429 for {url} with cookies. Retrying as guest...")
-        except Exception as e:
-            print(f"Standard requests failed/timed out for {url} with cookies: {e}. Retrying as guest...")
-
-    return requests.get(url, headers=headers, timeout=timeout)
+        return requests.get(url, headers=headers, timeout=req_timeout)
+    except Exception as e:
+        raise e
 
 def clear_profile_cache():
     """Thread-safe purge of the in-memory TTLCache."""

@@ -870,8 +870,8 @@ def rebalance_index_universe() -> int:
     return 0
 
 async def run_background_cache_warmer():
-    print("Background cache warmer: initial 10s delay before start...")
-    await asyncio.sleep(10)
+    print("Background cache warmer: initial 120s delay before start...")
+    await asyncio.sleep(120)
     while True:
         try:
             with get_db() as conn:
@@ -913,6 +913,7 @@ async def run_background_cache_warmer():
                         )
                         conn.commit()
                     print(f"Background cache warmer: successfully cached {sym}")
+                    await asyncio.sleep(3)  # Paced sleep to prevent threadpool & SQLite locking
 
                     # Warm events cache in background
                     try:
