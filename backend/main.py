@@ -2090,10 +2090,10 @@ async def startup_warm_caching():
             else:
                 logger.warning("Angel One authentication failed. Falling back to yfinance only.")
                 angel_connector = None
+        else:
+            logger.info("Angel One credentials not configured. Using yfinance only.")
 
     asyncio.create_task(init_angel_one())
-    else:
-        logger.info("Angel One credentials not configured. Using yfinance only.")
 
 
 @app.on_event("shutdown")
