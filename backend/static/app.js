@@ -446,6 +446,10 @@ let liveTicksReconnectTimer = null;
 let liveTicksConnected = false;
 let _wsSubscribedSymbols = new Set();
 let activePortfolioLedgerItems = [];
+let _isWsConnecting = false;
+let _wsPingInterval = null;
+let _wsLastResponseTime = 0;
+let _wsReconnectAttempts = 0;
 
 async function fetchRealtimeIndices() {
     const indexSymbols = ["^NSEI", "^BSESN", "^NSEBANK", "^CNXIT", "^CNXINFRA", "^CNXAUTO", "SPOTGOLD", "SPOTSILVER", "USDINR=X", "CL=F", "RELIANCE.NS", "TCS.NS", "HDFCBANK.NS", "INFY.NS", "BAJFINANCE.NS", "BHARTIARTL.NS"];
@@ -466,27 +470,35 @@ async function fetchRealtimeIndices() {
 }
 
 function connectLiveTicksWS() {
+    if (_isWsConnecting) {
+        return; // Connection attempt already in flight
+    }
+
     if (liveTicksWS && (liveTicksWS.readyState === WebSocket.CONNECTING || liveTicksWS.readyState === WebSocket.OPEN)) {
         return; // Already connected or connecting
     }
+
+    // Clean up previous dead socket if any
+    if (liveTicksWS) {
+        try {
+            liveTicksWS.onopen = null;
+            liveTicksWS.onmessage = null;
+            liveTicksWS.onclose = null;
+            liveTicksWS.onerror = null;
+            if (liveTicksWS.readyState !== WebSocket.CLOSED) liveTicksWS.close();
+        } catch (e) {}
+        liveTicksWS = null;
+    }
+
+    _isWsConnecting = true;
 
     const isCapacitor = window.hasOwnProperty('Capacitor') || 
                         (window.Capacitor !== undefined) || 
                         ((location.hostname === 'localhost' || location.hostname === '127.0.0.1' || location.protocol === 'capacitor:') && 
                          (location.port !== '8000' && location.port !== '8001' && location.port !== '8002' && location.port !== '5000'));
     const protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const authToken = localStorage.getItem('server_auth_token');
     
     let host = isCapacitor ? 'my-stock-advisor.duckdns.org' : location.host;
-    if (isCapacitor && authToken) {
-        try {
-            const rawCreds = atob(authToken); // "username:password"
-            host = `${rawCreds}@my-stock-advisor.duckdns.org`;
-        } catch (e) {
-            console.error('Error decoding auth token for WS:', e);
-        }
-    }
-    
     const wsProto = isCapacitor ? 'wss:' : protocol;
     const wsUrl = `${wsProto}//${host}/ws/live-ticks`;
 
@@ -494,6 +506,7 @@ function connectLiveTicksWS() {
         liveTicksWS = new WebSocket(wsUrl);
     } catch (e) {
         console.warn('WebSocket connection failed:', e);
+        _isWsConnecting = false;
         updateConnectionIndicator('offline');
         scheduleWsReconnect();
         return;
@@ -501,8 +514,27 @@ function connectLiveTicksWS() {
 
     liveTicksWS.onopen = () => {
         console.log('🟢 Live Ticks WebSocket connected');
+        _isWsConnecting = false;
         liveTicksConnected = true;
+        _wsReconnectAttempts = 0;
+        _wsLastResponseTime = Date.now();
         updateConnectionIndicator('live');
+
+        // Start 15s Heartbeat Ping/Pong Keep-Alive
+        if (_wsPingInterval) clearInterval(_wsPingInterval);
+        _wsPingInterval = setInterval(() => {
+            if (liveTicksWS && liveTicksWS.readyState === WebSocket.OPEN) {
+                try {
+                    liveTicksWS.send(JSON.stringify({ action: 'ping' }));
+                } catch (pe) {}
+                
+                // Detect silent drop if no message received for >35s
+                if (_wsLastResponseTime > 0 && (Date.now() - _wsLastResponseTime > 35000)) {
+                    console.warn('⚠️ WebSocket silent drop detected (no data/pong for 35s). Forcing reconnect...');
+                    try { liveTicksWS.close(); } catch (ce) {}
+                }
+            }
+        }, 15000);
         
         const indices = ["^NSEI", "^BSESN", "^NSEBANK", "^CNXIT", "^CNXINFRA", "^CNXAUTO", "MCXGOLD", "SPOTGOLD", "MCXSILVER", "SPOTSILVER", "PLATINUM"];
         indices.forEach(s => _wsSubscribedSymbols.add(s));
@@ -514,8 +546,13 @@ function connectLiveTicksWS() {
     };
 
     liveTicksWS.onmessage = (event) => {
+        _wsLastResponseTime = Date.now();
         try {
             const msg = JSON.parse(event.data);
+            if (msg.type === 'pong') {
+                // Heartbeat pong received successfully
+                return;
+            }
             if (msg.type === 'ticks') {
                 if (msg.source) {
                     const st = (msg.source === 'angel') ? 'live' : 'polling';
@@ -533,24 +570,31 @@ function connectLiveTicksWS() {
 
     liveTicksWS.onclose = (event) => {
         console.warn('🔴 Live Ticks WebSocket closed:', event.code, event.reason);
+        _isWsConnecting = false;
         liveTicksConnected = false;
+        if (_wsPingInterval) clearInterval(_wsPingInterval);
         updateConnectionIndicator('polling');
         scheduleWsReconnect();
     };
 
     liveTicksWS.onerror = (error) => {
         console.error('WebSocket error:', error);
+        _isWsConnecting = false;
         liveTicksConnected = false;
+        if (_wsPingInterval) clearInterval(_wsPingInterval);
         updateConnectionIndicator('offline');
     };
 }
 
 function scheduleWsReconnect() {
     if (liveTicksReconnectTimer) clearTimeout(liveTicksReconnectTimer);
+    _wsReconnectAttempts++;
+    // Exponential backoff with jitter: 1s, 2s, 4s, 8s, 16s... up to max 30s
+    const backoffMs = Math.min(30000, Math.pow(2, Math.min(_wsReconnectAttempts - 1, 5)) * 1000 + Math.floor(Math.random() * 1000));
+    console.log(`Scheduling WebSocket reconnect attempt #${_wsReconnectAttempts} in ${Math.round(backoffMs / 1000)}s...`);
     liveTicksReconnectTimer = setTimeout(() => {
-        console.log('Attempting WebSocket reconnection...');
         connectLiveTicksWS();
-    }, 3000);
+    }, backoffMs);
 }
 
 function wsSubscribeSymbols(symbols) {
@@ -13264,7 +13308,7 @@ function setupLLMKeysListeners() {
                 updateLLMKeysHealth();
             }
             fetchLLMConfig();
-        }, 10000);
+        }, 60000);
     }
 }
 

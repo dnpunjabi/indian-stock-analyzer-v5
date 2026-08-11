@@ -254,7 +254,8 @@ class ConnectionManager:
     def get_all_subscribed_symbols(self) -> Set[str]:
         """Returns the union of all symbols subscribed by all clients."""
         result = set()
-        for symbols in self._connections.values():
+        # Take a snapshot copy of connections to avoid dict size mutation during iteration
+        for symbols in list(self._connections.values()):
             result.update(symbols)
         return result
 
@@ -387,20 +388,32 @@ def _on_close(wsapp, close_status_code=None, close_msg=None):
     """Callback: Angel One WebSocket closed."""
     global _angel_running
     logger.warning(f"Angel One WebSocket closed. Code: {close_status_code}, Msg: {close_msg}")
-    # Auto-reconnect after 5 seconds
+    # Auto-reconnect after 2 seconds with re-authentication check
     if _angel_running and _angel_connector:
-        logger.info("Scheduling Angel One WebSocket reconnection in 5 seconds...")
-        time.sleep(5)
-        _start_upstream_thread()
+        logger.info("Scheduling Angel One WebSocket reconnection with re-authentication check...")
+        def delayed_reconnect():
+            time.sleep(2)
+            if _angel_running and _angel_connector:
+                if not _angel_connector.is_authenticated():
+                    logger.info("Session stale upon WS close. Re-authenticating Angel One...")
+                    _angel_connector.re_authenticate()
+                _start_upstream_thread()
+        threading.Thread(target=delayed_reconnect, daemon=True, name="AngelOneReconnect").start()
 
 
 def _start_upstream_thread():
     """Start the Angel One SmartWebSocketV2 in a background thread."""
     global _angel_sws, _angel_thread
 
-    if not _angel_connector or not _angel_connector.is_authenticated():
-        logger.error("Cannot start upstream WS: Angel One not authenticated.")
+    if not _angel_connector:
+        logger.error("Cannot start upstream WS: Angel One connector not set.")
         return
+
+    if not _angel_connector.is_authenticated():
+        logger.info("Angel One not authenticated. Attempting auto re-authentication...")
+        if not _angel_connector.re_authenticate():
+            logger.error("Cannot start upstream WS: Angel One re-authentication failed.")
+            return
 
     if not SMARTWS_AVAILABLE:
         logger.error("Cannot start upstream WS: SmartWebSocketV2 not available.")
@@ -711,7 +724,7 @@ async def _broadcast_loop():
 
             # Watchdog check: Auto-recover if upstream connection thread is dead
             now = time.time()
-            if _angel_running and _angel_connector and (now - _last_watchdog_time > 15):
+            if _angel_running and _angel_connector and (now - _last_watchdog_time > 3.0):
                 _last_watchdog_time = now
                 is_alive = _angel_thread is not None and _angel_thread.is_alive()
                 if not is_alive:
@@ -882,7 +895,10 @@ async def websocket_live_ticks(websocket: WebSocket):
                 action = msg.get("action", "")
                 symbols = msg.get("symbols", [])
 
-                if action == "subscribe" and symbols:
+                if action == "ping":
+                    await websocket.send_json({"type": "pong", "timestamp": time.time()})
+
+                elif action == "subscribe" and symbols:
                     await connection_manager.subscribe(websocket, symbols)
                     # Also subscribe on Angel One upstream if not already
                     new_symbols = [s for s in symbols if not tick_store.get(s.upper())]
