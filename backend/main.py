@@ -2057,37 +2057,40 @@ async def startup_warm_caching():
     from backend.events_scraper import run_background_events_scheduler
     asyncio.create_task(run_background_events_scheduler())
 
-    # 5. Initialize Angel One real-time WebSocket feed (optional)
+    # 5. Initialize Angel One real-time WebSocket feed asynchronously in background
     angel_api_key = os.environ.get("ANGEL_API_KEY", "")
     angel_client_code = os.environ.get("ANGEL_CLIENT_CODE", "")
     angel_password = os.environ.get("ANGEL_PASSWORD", "")
     angel_totp_key = os.environ.get("ANGEL_TOTP_KEY", "")
 
-    if angel_api_key and angel_client_code and angel_password and angel_totp_key:
-        logger.info("Angel One credentials detected. Initializing SmartAPI...")
-        angel_connector = AngelOneConnector(
-            api_key=angel_api_key,
-            client_code=angel_client_code,
-            password=angel_password,
-            totp_key=angel_totp_key,
-        )
-        auth_ok = await asyncio.to_thread(angel_connector.authenticate)
-        if auth_ok:
-            await asyncio.to_thread(angel_connector.load_instrument_master)
-            # Collect watchlist symbols for initial subscription
-            extra_symbols = []
-            try:
-                with get_db() as conn:
-                    cursor = conn.cursor()
-                    cursor.execute("SELECT DISTINCT symbol FROM watchlist_items")
-                    extra_symbols = [row["symbol"] for row in cursor.fetchall()]
-            except Exception:
-                pass
-            start_angel_upstream(angel_connector, DATABASE_PATH, extra_symbols=extra_symbols)
-            logger.info(f"Angel One WebSocket streaming started with {len(extra_symbols)} watchlist symbols.")
-        else:
-            logger.warning("Angel One authentication failed. Falling back to yfinance only.")
-            angel_connector = None
+    async def init_angel_one():
+        global angel_connector
+        if angel_api_key and angel_client_code and angel_password and angel_totp_key:
+            logger.info("Angel One credentials detected. Initializing SmartAPI asynchronously...")
+            angel_connector = AngelOneConnector(
+                api_key=angel_api_key,
+                client_code=angel_client_code,
+                password=angel_password,
+                totp_key=angel_totp_key,
+            )
+            auth_ok = await asyncio.to_thread(angel_connector.authenticate)
+            if auth_ok:
+                await asyncio.to_thread(angel_connector.load_instrument_master)
+                extra_symbols = []
+                try:
+                    with get_db() as conn:
+                        cursor = conn.cursor()
+                        cursor.execute("SELECT DISTINCT symbol FROM watchlist_items")
+                        extra_symbols = [row["symbol"] for row in cursor.fetchall()]
+                except Exception:
+                    pass
+                start_angel_upstream(angel_connector, DATABASE_PATH, extra_symbols=extra_symbols)
+                logger.info(f"Angel One WebSocket streaming started with {len(extra_symbols)} watchlist symbols.")
+            else:
+                logger.warning("Angel One authentication failed. Falling back to yfinance only.")
+                angel_connector = None
+
+    asyncio.create_task(init_angel_one())
     else:
         logger.info("Angel One credentials not configured. Using yfinance only.")
 
