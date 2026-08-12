@@ -9,7 +9,7 @@ import requests
 from bs4 import BeautifulSoup
 
 from backend.main import get_db, compute_active_holdings, fetch_enriched_sector_regime, _MARKET_MOVERS_CACHE, get_market_news
-from backend.financial_utils import get_complete_financial_profile
+from backend.financial_utils import get_complete_financial_profile, normalize_symbol
 from backend.llm_config import call_llm, TASK_FAST
 
 def fetch_portfolio_summary() -> dict:
@@ -161,7 +161,7 @@ def fetch_portfolio_summary() -> dict:
             "total_return_pct": total_return_pct,
             "top_gainer": top_gainer,
             "top_loser": top_loser,
-            "distressed_symbols": distressed_symbols
+            "distressed_symbols": list(set(distressed_symbols))
         }
     except Exception as e:
         print(f"Daily Wrap-up: Portfolio aggregation error: {e}")
@@ -694,10 +694,10 @@ def fetch_smart_money_delivery_radar(portfolio_symbols: list, watchlist_symbols:
                         vol_ratio = (curr_vol / avg_10d_vol) if avg_10d_vol > 0 else 1.0
                         sym_base = sym.replace(".NS", "").replace(".BO", "")
                         
-                        db_stats = delivery_map.get(sym_base, delivery_map.get(sym, {}))
+                        db_stats = delivery_map.get(sym, delivery_map.get(f"{sym_base}.NS", delivery_map.get(sym_base, {})))
                         deliv_pct = db_stats.get("deliv_pct", 52.5)
                         
-                        hist_stats = hist_deliv_map.get(sym_base, hist_deliv_map.get(sym, {}))
+                        hist_stats = hist_deliv_map.get(sym, hist_deliv_map.get(f"{sym_base}.NS", hist_deliv_map.get(sym_base, {})))
                         avg_deliv_pct = hist_stats.get("avg_deliv_pct", 40.0)
                         
                         deliv_pct_surge = (deliv_pct / avg_deliv_pct) if avg_deliv_pct > 0 else 1.0
@@ -713,7 +713,7 @@ def fetch_smart_money_delivery_radar(portfolio_symbols: list, watchlist_symbols:
     if not spikes:
         return ""
         
-    res = "📦 *SMART MONEY ACCUMULATION RADAR*\n"
+    res = "📦 *5. SMART MONEY ACCUMULATION RADAR*\n"
     res += "\n".join(spikes[:4]) + "\n\n"
     return res
 
@@ -966,7 +966,7 @@ async def generate_daily_wrapup_text(persona_override: str = None, is_weekly_ove
             cursor.execute("SELECT id, symbol, name, sector, quantity, purchase_price, purchase_date, transaction_type FROM portfolio_items")
             all_txs = [dict(row) for row in cursor.fetchall()]
         active_holdings = compute_active_holdings(all_txs)
-        port_symbols = [h["symbol"] for h in active_holdings]
+        port_symbols = [normalize_symbol(h["symbol"]) for h in active_holdings]
     except Exception as e:
         print(f"Daily Wrap-up symbols query error: {e}")
 
@@ -975,7 +975,7 @@ async def generate_daily_wrapup_text(persona_override: str = None, is_weekly_ove
         with get_db() as conn:
             cursor = conn.cursor()
             cursor.execute("SELECT symbol FROM watchlist_items")
-            watchlist_symbols = [row["symbol"] for row in cursor.fetchall()]
+            watchlist_symbols = [normalize_symbol(row["symbol"]) for row in cursor.fetchall()]
     except Exception as e:
         print(f"Daily Wrap-up watchlist query error: {e}")
 
@@ -991,7 +991,7 @@ async def generate_daily_wrapup_text(persona_override: str = None, is_weekly_ove
     events_summary = {}
     if include_events:
         events_summary = fetch_upcoming_events_summary(port_symbols, watchlist_symbols)
-        events_block += f"📅 *6. UPCOMING PORTFOLIO EVENTS*\n"
+        events_block += f"📅 *7. UPCOMING PORTFOLIO EVENTS*\n"
         events_block += f"{events_summary['portfolio_text']}\n"
         if events_summary['watchlist_count'] > 0:
             events_block += f"• _Watchlist summary: {events_summary['watchlist_count']} upcoming events scheduled._\n"
@@ -1001,7 +1001,7 @@ async def generate_daily_wrapup_text(persona_override: str = None, is_weekly_ove
     deals_summary = {}
     if include_deals:
         deals_summary = fetch_recent_deals_summary(port_symbols, watchlist_symbols)
-        deals_block += f"🤝 *7. PORTFOLIO INSIDER FLOWS*\n"
+        deals_block += f"🤝 *8. PORTFOLIO INSIDER FLOWS*\n"
         deals_block += f"{deals_summary['portfolio_text']}\n"
         if deals_summary['watchlist_count'] > 0:
             deals_block += f"• _Watchlist summary: {deals_summary['watchlist_count']} recent promoter deals detected._\n"
@@ -1086,7 +1086,7 @@ async def generate_daily_wrapup_text(persona_override: str = None, is_weekly_ove
         f"{breakouts_block}"
         f"{smart_money_block}"
         
-        f"📰 *5. MARKET CATALYST HEADLINES*\n"
+        f"📰 *6. MARKET CATALYST HEADLINES*\n"
         f"{news_str}\n"
         
         f"{events_block}"
