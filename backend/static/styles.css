@@ -18797,12 +18797,61 @@ select option {
         color: #0284c7 !important;
     }
 
-    [data-mode="light"] #tab-analyzer #analyzer-empty-state .card:not(.research-hero-card),
-    [data-theme="light"] #tab-analyzer #analyzer-empty-state .card:not(.research-hero-card),
-    body.light-mode #tab-analyzer #analyzer-empty-state .card:not(.research-hero-card) {
+    [data-mode="light"] #tab-analyzer #analyzer-empty-state .card:not(.research-hero-header),
+    [data-theme="light"] #tab-analyzer #analyzer-empty-state .card:not(.research-hero-header),
+    body.light-mode #tab-analyzer #analyzer-empty-state .card:not(.research-hero-header) {
         background: #ffffff !important;
         border: 1px solid #e2e8f0 !important;
         box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04) !important;
+    }
+
+    /* Research Hero Header Dark Slate Glass Theme Enforcement across Light & Dark modes */
+    .research-hero-header,
+    [data-mode="light"] .research-hero-header,
+    [data-theme="light"] .research-hero-header,
+    body.light-mode .research-hero-header {
+        background: linear-gradient(135deg, rgba(15, 23, 42, 0.95), rgba(30, 41, 59, 0.92), rgba(15, 23, 42, 0.95)) !important;
+        border: 1px solid rgba(59, 130, 246, 0.35) !important;
+        box-shadow: 0 12px 32px -4px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.1) !important;
+        color: #ffffff !important;
+    }
+
+    .research-hero-header h2,
+    [data-mode="light"] .research-hero-header h2,
+    [data-theme="light"] .research-hero-header h2,
+    body.light-mode .research-hero-header h2 {
+        color: #ffffff !important;
+    }
+
+    .research-hero-header p,
+    [data-mode="light"] .research-hero-header p,
+    [data-theme="light"] .research-hero-header p,
+    body.light-mode .research-hero-header p {
+        color: #94a3b8 !important;
+    }
+
+    .research-hero-header .hero-metrics-pill,
+    [data-mode="light"] .research-hero-header .hero-metrics-pill,
+    [data-theme="light"] .research-hero-header .hero-metrics-pill,
+    body.light-mode .research-hero-header .hero-metrics-pill {
+        background: rgba(0, 0, 0, 0.45) !important;
+        border: 1px solid rgba(255, 255, 255, 0.15) !important;
+    }
+
+    .research-hero-header #research-empty-search-input,
+    [data-mode="light"] .research-hero-header #research-empty-search-input,
+    [data-theme="light"] .research-hero-header #research-empty-search-input,
+    body.light-mode .research-hero-header #research-empty-search-input {
+        background: rgba(0, 0, 0, 0.45) !important;
+        border: 1px solid rgba(255, 255, 255, 0.2) !important;
+        color: #ffffff !important;
+    }
+
+    .research-hero-header #research-empty-search-input::placeholder,
+    [data-mode="light"] .research-hero-header #research-empty-search-input::placeholder,
+    [data-theme="light"] .research-hero-header #research-empty-search-input::placeholder,
+    body.light-mode .research-hero-header #research-empty-search-input::placeholder {
+        color: #94a3b8 !important;
     }
 
 
