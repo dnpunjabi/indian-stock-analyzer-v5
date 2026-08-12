@@ -7529,8 +7529,18 @@
 
     // ==================== SEGMENT REVENUE CONTRIBUTION DONUT CHART ====================
     window.getSegmentsFromProfile = function(p) {
+        if (!p) return null;
+        
+        // 1. Return authentic segment breakdown if explicitly provided in profile object
+        if (Array.isArray(p.segments) && p.segments.length > 0) {
+            return p.segments;
+        }
+        if (Array.isArray(p.business_segments) && p.business_segments.length > 0) {
+            return p.business_segments;
+        }
+
+        // 2. Parse explicit percentages from company business summary text if present
         const text = (p.business_summary || '').toLowerCase();
-        // Look for explicit percentages in text descriptions
         const matches = [...text.matchAll(/([A-Za-z\s]{3,20})\s+(?:contributed|contributes|accounted for|accounts for|segment|division|revenue|sales)?\s*(\d+)%/g)];
         if (matches.length >= 2) {
             return matches.map(m => ({
@@ -7539,53 +7549,27 @@
             }));
         }
         
-        // Smart simulated fallback based on industry/sector
-        const industry = (p.industry || p.sector || 'Conglomerate').toLowerCase();
-        if (industry.includes('software') || industry.includes('it services') || industry.includes('technology')) {
-            return [
-                { label: 'CLOUDS & INFRASTRUCTURE', value: 40 },
-                { label: 'ENTERPRISE APPLICATIONS', value: 25 },
-                { label: 'DIGITAL TRANSFORMATION', value: 20 },
-                { label: 'CONSULTING & SUPPORT', value: 15 }
-            ];
-        } else if (industry.includes('bank') || industry.includes('financial') || industry.includes('credit')) {
-            return [
-                { label: 'RETAIL BANKING', value: 35 },
-                { label: 'CORPORATE LENDING', value: 30 },
-                { label: 'TREASURY & INVESTMENT', value: 20 },
-                { label: 'DIGITAL PAYMENTS', value: 15 }
-            ];
-        } else if (industry.includes('auto') || industry.includes('car') || industry.includes('vehicle')) {
-            return [
-                { label: 'PASSENGER VEHICLES', value: 45 },
-                { label: 'COMMERCIAL VEHICLES', value: 30 },
-                { label: 'SPARE PARTS & LEASING', value: 15 },
-                { label: 'EV & FUTURE TECH', value: 10 }
-            ];
-        } else if (industry.includes('pharm') || industry.includes('drug') || industry.includes('health')) {
-            return [
-                { label: 'GENERIC FORMULATIONS', value: 50 },
-                { label: 'ACTIVE INGREDIENTS (API)', value: 25 },
-                { label: 'BIOSIMILARS & BIOLOGICS', value: 15 },
-                { label: 'RESEARCH & CONTRACT MFG', value: 10 }
-            ];
-        } else if (industry.includes('power') || industry.includes('energy') || industry.includes('utility')) {
-            return [
-                { label: 'THERMAL POWER GEN', value: 55 },
-                { label: 'RENEWABLE ENERGY', value: 25 },
-                { label: 'TRANSMISSION & DIST', value: 20 }
-            ];
-        } else {
-            return [
-                { label: 'CORE OPERATIONS', value: 50 },
-                { label: 'DOMESTIC SALES', value: 30 },
-                { label: 'EXPORTS & LOGISTICS', value: 20 }
-            ];
-        }
+        // Return null when no authentic segment breakdown is reported (prevents showing false/simulated data)
+        return null;
     };
 
     window.drawSegmentDonutChart = function(segments) {
+        const donutColumn = document.querySelector('.segment-donut-column');
         const canvas = document.getElementById('segment-donut-canvas');
+        const legendEl = document.getElementById('segment-legend');
+        const centerValEl = document.getElementById('segment-center-val');
+
+        if (!segments || !Array.isArray(segments) || segments.length === 0) {
+            if (donutColumn) {
+                donutColumn.style.display = 'none';
+            }
+            return;
+        }
+
+        if (donutColumn) {
+            donutColumn.style.display = 'flex';
+        }
+
         if (!canvas) return;
         const ctx = canvas.getContext('2d');
         if (!ctx) return;
@@ -7602,7 +7586,10 @@
 
         let total = 0;
         segments.forEach(s => total += s.value);
-        if (total === 0) return;
+        if (total === 0) {
+            if (donutColumn) donutColumn.style.display = 'none';
+            return;
+        }
 
         let startAngle = -Math.PI / 2;
         const colors = [
@@ -7628,7 +7615,6 @@
         });
 
         // Legend population
-        const legendEl = document.getElementById('segment-legend');
         if (legendEl) {
             legendEl.innerHTML = '';
             segments.forEach((s, idx) => {
@@ -7650,7 +7636,6 @@
             });
         }
 
-        const centerValEl = document.getElementById('segment-center-val');
         if (centerValEl && segments.length > 0) {
             const largest = [...segments].sort((a, b) => b.value - a.value)[0];
             centerValEl.innerText = largest.value + "%";
