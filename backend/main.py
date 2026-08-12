@@ -1496,12 +1496,98 @@ def update_nse_delivery_data():
                 conn.commit()
     return ""
 
+def backfill_historical_nse_delivery(days: int = 15):
+    """
+    Backfills the past N days of official NSE delivery Bhavcopies into 
+    the daily_delivery_history table in SQLite if missing.
+    """
+    headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'}
+    from datetime import datetime, timedelta
+    import io, pandas as pd
+    
+    try:
+        with get_db() as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT DISTINCT trade_date FROM daily_delivery_history")
+            existing_dates = set(r["trade_date"] for r in cursor.fetchall())
+            
+        backfilled_count = 0
+        now = datetime.now()
+        
+        for i in range(1, days + 1):
+            dt = now - timedelta(days=i)
+            if dt.weekday() >= 5: # Skip weekends
+                continue
+                
+            trade_date_iso = dt.strftime("%Y-%m-%d")
+            if trade_date_iso in existing_dates:
+                continue
+                
+            date_str = dt.strftime("%d%m%Y") # DDMMYYYY
+            url = f"https://archives.nseindia.com/products/content/sec_bhavdata_full_{date_str}.csv"
+            try:
+                res = requests.get(url, headers=headers, timeout=10)
+                if res.status_code == 200 and len(res.content) > 100:
+                    df = pd.read_csv(io.StringIO(res.text))
+                    df.columns = [c.strip() for c in df.columns]
+                    df['SERIES'] = df['SERIES'].astype(str).str.strip()
+                    df['SYMBOL'] = df['SYMBOL'].astype(str).str.strip()
+                    df = df[df['SERIES'] == 'EQ']
+                    
+                    rows_to_insert = []
+                    for _, row in df.iterrows():
+                        sym = row['SYMBOL'] + ".NS"
+                        try:
+                            traded_qty = int(float(str(row['TTL_TRD_QNTY']).strip()))
+                        except Exception:
+                            traded_qty = 0
+                        try:
+                            deliv_qty = int(float(str(row['DELIV_QTY']).strip()))
+                        except Exception:
+                            deliv_qty = 0
+                        deliv_pct = 0.0
+                        for col_name in ['DELIV_PER', 'DELIV_PCT']:
+                            if col_name in row and not pd.isna(row[col_name]):
+                                try:
+                                    deliv_pct = float(str(row[col_name]).strip())
+                                    break
+                                except Exception:
+                                    pass
+                        else:
+                            deliv_pct = (deliv_qty / traded_qty * 100) if traded_qty > 0 else 0.0
+                        
+                        rows_to_insert.append((sym, trade_date_iso, deliv_qty, traded_qty, round(deliv_pct, 2)))
+                    
+                    with get_db() as conn:
+                        cursor = conn.cursor()
+                        cursor.executemany("""
+                            INSERT OR REPLACE INTO daily_delivery_history 
+                            (symbol, trade_date, delivery_qty, traded_qty, delivery_percentage)
+                            VALUES (?, ?, ?, ?, ?)
+                        """, rows_to_insert)
+                        conn.commit()
+                    
+                    print(f"Historical Bhavcopy Backfill: Loaded {len(rows_to_insert)} equity delivery records for {trade_date_iso}")
+                    backfilled_count += 1
+            except Exception as e:
+                print(f"Historical Bhavcopy Backfill error for {trade_date_iso}: {e}")
+                
+        print(f"Historical Bhavcopy Backfill completed. New sessions loaded: {backfilled_count}")
+    except Exception as e:
+        print(f"Historical Bhavcopy Backfill runner error: {e}")
+
 async def run_background_bhavcopy_sync():
     """
-    Background loop that runs at 4:20 PM IST on weekdays to pre-fetch 
-    the new NSE Bhavcopy into SQLite prior to the 4:30 PM daily wrap-up dispatch.
+    Background loop that runs at 7:00 PM IST on weekdays to pre-fetch 
+    the new NSE Bhavcopy into SQLite prior to the 7:30 PM daily wrap-up dispatch.
+    Also backfills past historical sessions on startup.
     """
-    await asyncio.sleep(30)
+    await asyncio.sleep(15)
+    try:
+        await asyncio.to_thread(backfill_historical_nse_delivery, 15)
+    except Exception as e:
+        print(f"Bhavcopy startup backfill warning: {e}")
+        
     last_synced_date = ""
     while True:
         try:
