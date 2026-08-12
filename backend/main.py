@@ -1456,11 +1456,17 @@ def update_nse_delivery_data():
                         else:
                             deliv_pct = (deliv_qty / traded_qty * 100) if traded_qty > 0 else 0.0
                             
+                        trade_date_iso = dt.strftime("%Y-%m-%d")
                         cursor.execute("""
                             INSERT OR REPLACE INTO daily_delivery_stats 
                             (symbol, delivery_qty, traded_qty, delivery_percentage, updated_at)
                             VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)
                         """, (sym, deliv_qty, traded_qty, round(deliv_pct, 2)))
+                        cursor.execute("""
+                            INSERT OR REPLACE INTO daily_delivery_history 
+                            (symbol, trade_date, delivery_qty, traded_qty, delivery_percentage)
+                            VALUES (?, ?, ?, ?, ?)
+                        """, (sym, trade_date_iso, deliv_qty, traded_qty, round(deliv_pct, 2)))
                     conn.commit()
                 print(f"Successfully loaded daily delivery statistics for {date_str}")
                 return dt.strftime("%Y-%m-%d")

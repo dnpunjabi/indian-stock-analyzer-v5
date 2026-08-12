@@ -640,6 +640,7 @@ def fetch_smart_money_delivery_radar(portfolio_symbols: list, watchlist_symbols:
         return ""
         
     delivery_map = {}
+    hist_deliv_map = {}
     try:
         with get_db() as conn:
             cursor = conn.cursor()
@@ -650,6 +651,21 @@ def fetch_smart_money_delivery_radar(portfolio_symbols: list, watchlist_symbols:
                     "deliv_pct": float(r["delivery_percentage"] or 0.0),
                     "deliv_qty": int(r["delivery_qty"] or 0),
                     "traded_qty": int(r["traded_qty"] or 0)
+                }
+            
+            cursor.execute("""
+                SELECT symbol, 
+                       AVG(delivery_percentage) as avg_deliv_pct, 
+                       AVG(delivery_qty) as avg_deliv_qty
+                FROM daily_delivery_history
+                WHERE trade_date >= date('now', '-15 days')
+                GROUP BY symbol
+            """)
+            for r in cursor.fetchall():
+                sym = r["symbol"].upper()
+                hist_deliv_map[sym] = {
+                    "avg_deliv_pct": float(r["avg_deliv_pct"] or 0.0),
+                    "avg_deliv_qty": float(r["avg_deliv_qty"] or 0.0)
                 }
     except Exception as e:
         print(f"Daily Wrap-up: Delivery stats DB error: {e}")
@@ -681,7 +697,12 @@ def fetch_smart_money_delivery_radar(portfolio_symbols: list, watchlist_symbols:
                         db_stats = delivery_map.get(sym_base, delivery_map.get(sym, {}))
                         deliv_pct = db_stats.get("deliv_pct", 52.5)
                         
-                        if vol_ratio >= 1.5 or deliv_pct >= 55.0:
+                        hist_stats = hist_deliv_map.get(sym_base, hist_deliv_map.get(sym, {}))
+                        avg_deliv_pct = hist_stats.get("avg_deliv_pct", 40.0)
+                        
+                        deliv_pct_surge = (deliv_pct / avg_deliv_pct) if avg_deliv_pct > 0 else 1.0
+                        
+                        if vol_ratio >= 1.5 or deliv_pct >= 55.0 or deliv_pct_surge >= 1.4:
                             signal = "Strong institutional accumulation" if p_chg >= 0 else "Institutional distribution"
                             spikes.append(f"• *{sym_base}*: `{deliv_pct:.1f}% Delivery` (`{vol_ratio:.1f}x` 10-day avg volume) — _{signal}_")
                 except Exception:
