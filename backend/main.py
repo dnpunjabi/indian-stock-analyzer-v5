@@ -1011,7 +1011,7 @@ async def run_background_daily_wrapup_scheduler():
     while True:
         try:
             enabled = "true"
-            trigger_time_str = "16:00"
+            trigger_time_str = "16:30"
             last_sent = ""
             
             with get_db() as conn:
@@ -1045,6 +1045,10 @@ async def run_background_daily_wrapup_scheduler():
                             # Trigger if past target, but not too late (within 2 hours) to avoid stale boots
                             if target_minutes <= current_minutes <= (target_minutes + 120):
                                 print(f"Daily Wrap-up: Scheduled trigger time reached ({trigger_time_str} IST). Starting dispatch...")
+                                try:
+                                    await asyncio.to_thread(update_nse_delivery_data)
+                                except Exception as deliv_err:
+                                    print(f"Daily Wrap-up delivery pre-sync error: {deliv_err}")
                                 from backend.daily_wrapup import generate_daily_wrapup_text, send_whatsapp_wrapup
                                 
                                 msg = await generate_daily_wrapup_text()
