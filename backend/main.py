@@ -589,7 +589,8 @@ def init_db():
         # Seed default WhatsApp daily wrap up configurations
         try:
             cursor.execute("INSERT OR IGNORE INTO alert_settings (key, value) VALUES ('daily_wrapup_enabled', 'false')")
-            cursor.execute("INSERT OR IGNORE INTO alert_settings (key, value) VALUES ('daily_wrapup_time', '16:30')")
+            cursor.execute("INSERT OR IGNORE INTO alert_settings (key, value) VALUES ('daily_wrapup_time', '19:30')")
+            cursor.execute("UPDATE alert_settings SET value = '19:30' WHERE key = 'daily_wrapup_time' AND value IN ('16:00', '16:30')")
             cursor.execute("INSERT OR IGNORE INTO alert_settings (key, value) VALUES ('daily_wrapup_persona', 'institutional')")
             cursor.execute("INSERT OR IGNORE INTO alert_settings (key, value) VALUES ('daily_wrapup_include_events', 'true')")
             cursor.execute("INSERT OR IGNORE INTO alert_settings (key, value) VALUES ('daily_wrapup_include_deals', 'true')")
@@ -1011,7 +1012,7 @@ async def run_background_daily_wrapup_scheduler():
     while True:
         try:
             enabled = "true"
-            trigger_time_str = "16:30"
+            trigger_time_str = "19:30"
             last_sent = ""
             
             with get_db() as conn:
@@ -1503,10 +1504,10 @@ async def run_background_bhavcopy_sync():
             now_ist = now_utc + timedelta(hours=5, minutes=30)
             today_str = now_ist.strftime("%Y-%m-%d")
             
-            # If weekday (Mon-Fri) and past 16:20 IST and not synced today
+            # If weekday (Mon-Fri) and past 19:00 IST (7:00 PM IST) and not synced today
             if now_ist.weekday() < 5 and last_synced_date != today_str:
-                if (now_ist.hour == 16 and now_ist.minute >= 20) or now_ist.hour > 16:
-                    print("Background Bhavcopy Sync: Pre-fetching daily NSE delivery data...")
+                if now_ist.hour >= 19:
+                    print("Background Bhavcopy Sync: Pre-fetching daily NSE delivery data (7:00 PM IST)...")
                     synced_date = await asyncio.to_thread(update_nse_delivery_data)
                     if synced_date == today_str:
                         print(f"Background Bhavcopy Sync: Successfully confirmed today's Bhavcopy ({today_str})")
@@ -6483,7 +6484,7 @@ async def test_whatsapp():
 async def get_daily_wrapup_settings():
     """Returns WhatsApp Daily Wrap-Up schedule and activation settings."""
     enabled = "false"
-    trigger_time = "16:30"
+    trigger_time = "19:30"
     persona = "institutional"
     last_sent = ""
     include_events = "true"
