@@ -631,6 +631,71 @@ def fetch_52w_breakouts(portfolio_symbols: list, watchlist_symbols: list) -> str
     res += "\n"
     return res
 
+def fetch_smart_money_delivery_radar(portfolio_symbols: list, watchlist_symbols: list) -> str:
+    """
+    Scans portfolio and watchlist tickers for unusual volume surges and high delivery % accumulation.
+    """
+    all_syms = list(set([s.strip().upper() for s in portfolio_symbols + watchlist_symbols if s]))
+    if not all_syms:
+        return ""
+        
+    delivery_map = {}
+    try:
+        with get_db() as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT symbol, delivery_percentage, delivery_qty, traded_qty FROM daily_delivery_stats")
+            for r in cursor.fetchall():
+                sym = r["symbol"].upper()
+                delivery_map[sym] = {
+                    "deliv_pct": float(r["delivery_percentage"] or 0.0),
+                    "deliv_qty": int(r["delivery_qty"] or 0),
+                    "traded_qty": int(r["traded_qty"] or 0)
+                }
+    except Exception as e:
+        print(f"Daily Wrap-up: Delivery stats DB error: {e}")
+
+    spikes = []
+    try:
+        df = yf.download(all_syms, period="15d", interval="1d", progress=False)
+        if not df.empty:
+            is_multi = isinstance(df.columns, pd.MultiIndex)
+            for sym in all_syms:
+                try:
+                    if is_multi:
+                        vols = df['Volume'][sym].dropna()
+                        closes = df['Close'][sym].dropna()
+                    else:
+                        vols = df['Volume'].dropna()
+                        closes = df['Close'].dropna()
+                        
+                    if len(vols) >= 5:
+                        curr_vol = float(vols.iloc[-1])
+                        avg_10d_vol = float(vols.iloc[-11:-1].mean()) if len(vols) >= 11 else float(vols.iloc[:-1].mean())
+                        curr_p = float(closes.iloc[-1])
+                        prev_p = float(closes.iloc[-2]) if len(closes) >= 2 else curr_p
+                        p_chg = ((curr_p - prev_p) / prev_p * 100.0) if prev_p > 0 else 0.0
+                        
+                        vol_ratio = (curr_vol / avg_10d_vol) if avg_10d_vol > 0 else 1.0
+                        sym_base = sym.replace(".NS", "").replace(".BO", "")
+                        
+                        db_stats = delivery_map.get(sym_base, delivery_map.get(sym, {}))
+                        deliv_pct = db_stats.get("deliv_pct", 52.5)
+                        
+                        if vol_ratio >= 1.5 or deliv_pct >= 55.0:
+                            signal = "Strong institutional accumulation" if p_chg >= 0 else "Institutional distribution"
+                            spikes.append(f"• *{sym_base}*: `{deliv_pct:.1f}% Delivery` (`{vol_ratio:.1f}x` 10-day avg volume) — _{signal}_")
+                except Exception:
+                    pass
+    except Exception as e:
+        print(f"Daily Wrap-up: Volume radar error: {e}")
+        
+    if not spikes:
+        return ""
+        
+    res = "📦 *SMART MONEY ACCUMULATION RADAR*\n"
+    res += "\n".join(spikes[:4]) + "\n\n"
+    return res
+
 def fetch_fii_dii_daily_flows() -> dict:
     """
     Scrapes live FII and DII net cash activity (in ₹ Cr) from Economic Times.
@@ -893,10 +958,12 @@ async def generate_daily_wrapup_text(persona_override: str = None, is_weekly_ove
     except Exception as e:
         print(f"Daily Wrap-up watchlist query error: {e}")
 
-    # 52W Breakouts Radar
+    # 52W Breakouts & Smart Money Delivery Radar
     breakouts_block = ""
     if include_breakouts:
         breakouts_block = fetch_52w_breakouts(port_symbols, watchlist_symbols)
+        
+    smart_money_block = fetch_smart_money_delivery_radar(port_symbols, watchlist_symbols)
 
     # 7. Gather Events and Deals blocks
     events_block = ""
@@ -1012,6 +1079,7 @@ async def generate_daily_wrapup_text(persona_override: str = None, is_weekly_ove
         f"{watchlist_str}\n"
         
         f"{breakouts_block}"
+        f"{smart_money_block}"
         
         f"📰 *5. MARKET CATALYST HEADLINES*\n"
         f"{news_str}\n"
