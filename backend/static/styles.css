@@ -4707,39 +4707,63 @@ body.chat-drawer-active {
     align-items: center;
     justify-content: space-between;
     font-size: 11px;
-    padding: 5px 8px;
-    background: rgba(255, 255, 255, 0.01);
-    border: 1px solid rgba(255, 255, 255, 0.03);
+    padding: 6px 10px;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.08);
     border-radius: 6px;
-    gap: 8px;
-    margin-bottom: 4px;
+    gap: 10px;
+    margin-bottom: 5px;
     cursor: pointer;
     width: 100%;
     max-width: 100%;
     box-sizing: border-box;
     overflow: hidden;
+    transition: all 0.2s ease;
+}
+
+.altman-comp-row:hover {
+    background: rgba(255, 255, 255, 0.07);
+    border-color: rgba(59, 130, 246, 0.4);
 }
 
 .altman-comp-label {
-    color: var(--text-secondary);
-    font-weight: 600;
-    width: 110px;
+    color: var(--text-primary, #f8fafc) !important;
+    font-weight: 700 !important;
+    font-size: 11.5px !important;
+    width: 125px;
     flex-shrink: 0;
     text-overflow: ellipsis;
     white-space: nowrap;
     overflow: hidden;
+    letter-spacing: 0.01em;
 }
 
 .altman-comp-progress-container {
     flex: 1;
-    min-width: 40px;
+    min-width: 50px;
     max-width: 100%;
-    height: 6px;
-    background: rgba(0, 0, 0, 0.25);
-    border-radius: 3px;
+    height: 8px !important;
+    background: rgba(255, 255, 255, 0.12) !important;
+    border-radius: 4px;
     overflow: hidden;
-    border: 1px solid rgba(255, 255, 255, 0.02);
+    border: 1px solid rgba(255, 255, 255, 0.18) !important;
+    box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.5) !important;
     box-sizing: border-box;
+}
+
+[data-mode="light"] .altman-comp-progress-container,
+[data-theme="light"] .altman-comp-progress-container,
+body.light-mode .altman-comp-progress-container {
+    background: rgba(0, 0, 0, 0.08) !important;
+    border: 1px solid rgba(0, 0, 0, 0.15) !important;
+    box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.1) !important;
+}
+
+[data-mode="light"] .altman-comp-row,
+[data-theme="light"] .altman-comp-row,
+body.light-mode .altman-comp-row {
+    background: #f8fafc !important;
+    border: 1px solid #e2e8f0 !important;
 }
 
 .altman-comp-progress-fill {
@@ -4748,12 +4772,13 @@ body.chat-drawer-active {
     border-radius: 3px;
     transition: width 0.8s ease;
     box-sizing: border-box;
+    box-shadow: 0 0 6px rgba(0, 0, 0, 0.3);
 }
 
 .altman-comp-val {
-    color: var(--text-primary);
+    color: var(--text-primary, #f8fafc) !important;
     font-weight: 700;
-    font-size: 10px;
+    font-size: 11px;
     font-family: monospace;
     white-space: nowrap;
     text-align: right;
@@ -4763,8 +4788,8 @@ body.chat-drawer-active {
 @media (max-width: 600px) {
     .altman-comp-row {
         flex-wrap: wrap !important;
-        padding: 6px 8px !important;
-        gap: 2px 4px !important;
+        padding: 7px 9px !important;
+        gap: 3px 6px !important;
         width: 100% !important;
         max-width: 100% !important;
         box-sizing: border-box !important;
@@ -4772,13 +4797,13 @@ body.chat-drawer-active {
     }
     .altman-comp-label {
         width: auto !important;
-        max-width: 55% !important;
-        font-size: 10.5px !important;
+        max-width: 60% !important;
+        font-size: 11px !important;
         order: 1 !important;
         flex: 1 1 auto !important;
     }
     .altman-comp-val {
-        font-size: 9.5px !important;
+        font-size: 10px !important;
         order: 2 !important;
         width: auto !important;
         flex: 0 0 auto !important;
@@ -4788,8 +4813,8 @@ body.chat-drawer-active {
         max-width: 100% !important;
         flex: 0 0 100% !important;
         order: 3 !important;
-        margin: 3px 0 1px 0 !important;
-        height: 6px !important;
+        margin: 4px 0 2px 0 !important;
+        height: 8px !important;
         box-sizing: border-box !important;
     }
     .altman-comp-progress-fill {
