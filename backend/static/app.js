@@ -17916,6 +17916,7 @@ function renderWatchlistItems() {
                 ${getSortHeader('change_pct', 'Day Chg %', 'right')}
                 ${getSortHeader('chg_since_added', 'Since Added', 'right')}
                 ${getSortHeader('fuzzy_score', 'Conviction Score', 'center')}
+                <th style="color: var(--text-secondary); text-align: center;">Day Range Bar</th>
                 <th style="color: var(--text-secondary); text-align: center;">52W Range Bar</th>
                 <th style="color: var(--text-secondary); text-align: center;">Actions</th>
             `;
@@ -18082,6 +18083,24 @@ function renderWatchlistItems() {
             </div>
         `;
 
+        const dayHigh = item.day_high || item.high || (item.range_day && item.range_day.high) || (item.live_price ? item.live_price * (1 + Math.abs(item.change_pct || 0.5) / 100 * 0.8) : 0);
+        const dayLow = item.day_low || item.low || (item.range_day && item.range_day.low) || (item.live_price ? item.live_price * (1 - Math.abs(item.change_pct || 0.5) / 100 * 0.8) : 0);
+        const liveP = item.live_price || item.added_price || 0;
+        let dayPosPct = 50;
+        if (dayHigh > dayLow) {
+            dayPosPct = Math.min(Math.max(((liveP - dayLow) / (dayHigh - dayLow)) * 100, 0), 100);
+        }
+        const dayRangeBarHTML = `
+            <div style="display: flex; align-items: center; justify-content: center; gap: 6px;" title="Day Low: ₹${dayLow ? dayLow.toFixed(2) : '--'} | Day High: ₹${dayHigh ? dayHigh.toFixed(2) : '--'}">
+                <span style="font-size: 9px; color: #ef4444; font-weight: 600;">₹${dayLow ? (dayLow >= 1000 ? Math.round(dayLow) : dayLow.toFixed(1)) : '--'}</span>
+                <div class="range-bar-track" style="background: rgba(255,255,255,0.08); border-radius: 4px;">
+                    <div class="range-bar-fill" style="width: 100%; background: linear-gradient(90deg, #ef4444, #10b981);"></div>
+                    <div class="range-bar-pin" style="left: ${dayPosPct}%; background: #38bdf8; border: 1.5px solid #ffffff; box-shadow: 0 0 4px #38bdf8;"></div>
+                </div>
+                <span style="font-size: 9px; color: #10b981; font-weight: 600;">₹${dayHigh ? (dayHigh >= 1000 ? Math.round(dayHigh) : dayHigh.toFixed(1)) : '--'}</span>
+            </div>
+        `;
+
         const ret = item.returns || {};
 
         let alphaVal = 0.0;
@@ -18171,7 +18190,7 @@ function renderWatchlistItems() {
                 </td>
             `;
         } else {
-            // Overview View: Symbol, LTP, Day Chg %, Since Added %, Conviction Score, 52W Range Bar, Action
+            // Overview View: Symbol, LTP, Day Chg %, Since Added %, Conviction Score, Day Range Bar, 52W Range Bar, Action
             const sinceChg = typeof item.chg_since_added === 'number' ? item.chg_since_added : 0;
             const sinceColor = sinceChg >= 0 ? '#10b981' : '#ef4444';
             const addedPrice = item.added_price || item.live_price || 0;
@@ -18206,6 +18225,7 @@ function renderWatchlistItems() {
                 <td class="wl-change-pct" style="text-align: right;">${changePctHTML}</td>
                 <td style="text-align: right;">${sinceAddedHTML}</td>
                 <td style="text-align: center;">${convictionBadge}</td>
+                <td style="text-align: center;">${dayRangeBarHTML}</td>
                 <td style="text-align: center;">${rangeBarHTML}</td>
                 <td style="white-space: nowrap; text-align: center;">
                     ${alertBadgeHTML}
