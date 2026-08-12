@@ -6,6 +6,7 @@ from datetime import datetime
 import yfinance as yf
 import pandas as pd
 import requests
+from bs4 import BeautifulSoup
 
 from backend.main import get_db, compute_active_holdings, fetch_enriched_sector_regime, _MARKET_MOVERS_CACHE, get_market_news
 from backend.financial_utils import get_complete_financial_profile
@@ -630,6 +631,53 @@ def fetch_52w_breakouts(portfolio_symbols: list, watchlist_symbols: list) -> str
     res += "\n"
     return res
 
+def fetch_fii_dii_daily_flows() -> dict:
+    """
+    Scrapes live FII and DII net cash activity (in ₹ Cr) from Economic Times.
+    """
+    headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'}
+    try:
+        res = requests.get('https://economictimes.indiatimes.com/markets/fii-dii-activity', headers=headers, timeout=5)
+        if res.status_code == 200:
+            soup = BeautifulSoup(res.text, 'html.parser')
+            for table in soup.find_all('table'):
+                rows = table.find_all('tr')
+                for i, r in enumerate(rows):
+                    text = r.get_text()
+                    if 'FII Cash' in text and 'DII Cash' in text:
+                        if i + 1 < len(rows):
+                            data_cols = [c.get_text(strip=True) for c in rows[i+1].find_all(['td', 'th']) if c.get_text(strip=True)]
+                            if len(data_cols) >= 2:
+                                fii_val = float(data_cols[0].replace(',', ''))
+                                dii_val = float(data_cols[1].replace(',', ''))
+                                return {
+                                    'fii_net': fii_val,
+                                    'dii_net': dii_val,
+                                    'active': True
+                                }
+    except Exception as e:
+        print(f"Daily Wrap-up: FII/DII fetch error: {e}")
+    return {'active': False}
+
+def fetch_tech_levels(symbol: str) -> dict:
+    """
+    Calculates Pivot, Support (S1) and Resistance (R1) levels for a given ticker symbol.
+    """
+    try:
+        ticker_sym = symbol if symbol.endswith('.NS') or symbol.endswith('.BO') or symbol.startswith('^') else f'{symbol}.NS'
+        df = yf.Ticker(ticker_sym).history(period='1mo')
+        if not df.empty and len(df) >= 2:
+            high = float(df['High'].iloc[-2])
+            low = float(df['Low'].iloc[-2])
+            close = float(df['Close'].iloc[-2])
+            pivot = (high + low + close) / 3.0
+            r1 = (2.0 * pivot) - low
+            s1 = (2.0 * pivot) - high
+            return {'s1': round(s1, 2), 'r1': round(r1, 2)}
+    except Exception as e:
+        print(f"Daily Wrap-up: Tech levels error for {symbol}: {e}")
+    return {}
+
 async def generate_daily_wrapup_text(persona_override: str = None, is_weekly_override: bool = False) -> str:
     """
     Assembles data from all components, invokes LLM to compile commentary based on selected persona,
@@ -674,7 +722,17 @@ async def generate_daily_wrapup_text(persona_override: str = None, is_weekly_ove
     if cache and cache.get("status") == "success":
         indices = cache.get("indices", [])
         for idx in indices[:4]:
-            indices_str += f"• {idx['name']}:   `{idx['price']:.2f} ({idx['change_pct']:+.2f}%)`\n"
+            pts_val = idx.get("change_val")
+            if pts_val is None:
+                try:
+                    price_val = float(idx['price'])
+                    pct_val = float(idx['change_pct'])
+                    prev_val = price_val / (1.0 + (pct_val / 100.0)) if pct_val != -100 else price_val
+                    pts_val = price_val - prev_val
+                except Exception:
+                    pts_val = 0.0
+            pts_sign = "+" if pts_val >= 0 else ""
+            indices_str += f"• {idx['name']}:   `{idx['price']:.2f} ({pts_sign}{pts_val:,.2f} pts, {idx['change_pct']:+.2f}%)`\n"
         
         # Extract Gold and Silver prices if present
         comm_items = []
@@ -702,13 +760,15 @@ async def generate_daily_wrapup_text(persona_override: str = None, is_weekly_ove
                 for sym, name in [("^NSEI", "Nifty 50"), ("^BSESN", "BSE Sensex")]:
                     try:
                         if isinstance(ticks.columns, pd.MultiIndex):
-                            curr = ticks["Close"][sym].iloc[-1]
-                            prev = ticks["Close"][sym].iloc[-2]
+                            curr = float(ticks["Close"][sym].iloc[-1])
+                            prev = float(ticks["Close"][sym].iloc[-2])
                         else:
-                            curr = ticks["Close"].iloc[-1]
-                            prev = ticks["Close"].iloc[-2]
+                            curr = float(ticks["Close"].iloc[-1])
+                            prev = float(ticks["Close"].iloc[-2])
                         pct = (curr - prev) / prev * 100.0
-                        indices_str += f"• {name}:   `{curr:.2f} ({pct:+.2f}%)`\n"
+                        pts_val = curr - prev
+                        pts_sign = "+" if pts_val >= 0 else ""
+                        indices_str += f"• {name}:   `{curr:.2f} ({pts_sign}{pts_val:,.2f} pts, {pct:+.2f}%)`\n"
                     except Exception:
                         pass
             if not indices_str:
@@ -744,14 +804,18 @@ async def generate_daily_wrapup_text(persona_override: str = None, is_weekly_ove
         port_str += f"• Total Return:  `{sign_ret}Rs. {port['total_return_val']:,.2f} ({port['total_return_pct']:+.2f}%)`\n"
         if port.get("top_gainer"):
             g_sym = port['top_gainer']['symbol'].replace('.NS','')
+            g_tech = fetch_tech_levels(port['top_gainer']['symbol'])
+            g_levels = f" (Supp: `₹{g_tech['s1']:,.2f}` | Res: `₹{g_tech['r1']:,.2f}`)" if g_tech.get("s1") else ""
             if g_sym in port.get("distressed_symbols", []):
                 g_sym = f"⚠️ {g_sym} (Solvency Warning)"
-            port_str += f"  ├─ 🏆 *Top Gainer:* {g_sym} (`{port['top_gainer']['day_change_pct']:+.2f}%`)\n"
+            port_str += f"  ├─ 🏆 *Top Gainer:* {g_sym} (`{port['top_gainer']['day_change_pct']:+.2f}%`){g_levels}\n"
         if port.get("top_loser"):
             l_sym = port['top_loser']['symbol'].replace('.NS','')
+            l_tech = fetch_tech_levels(port['top_loser']['symbol'])
+            l_levels = f" (Supp: `₹{l_tech['s1']:,.2f}` | Res: `₹{l_tech['r1']:,.2f}`)" if l_tech.get("s1") else ""
             if l_sym in port.get("distressed_symbols", []):
                 l_sym = f"⚠️ {l_sym} (Solvency Warning)"
-            port_str += f"  ├─ ⚠️ *Top Loser:*  {l_sym} (`{port['top_loser']['day_change_pct']:+.2f}%`)\n"
+            port_str += f"  ├─ ⚠️ *Top Loser:*  {l_sym} (`{port['top_loser']['day_change_pct']:+.2f}%`){l_levels}\n"
         if port.get("distressed_symbols"):
             port_str += f"  └─ ⚠️ *Solvency Warnings:* {', '.join(port['distressed_symbols'])} flagged distressed\n"
         else:
@@ -905,6 +969,20 @@ async def generate_daily_wrapup_text(persona_override: str = None, is_weekly_ove
         print(f"Daily Wrap-up AI commentary failed: {ai_err}")
         ai_commentary = "Market closed with standard distributions. Rebalancing and sector rotation remained active within structural bands."
 
+    # 8.5 Gather FII/DII cash flows
+    fii_dii = fetch_fii_dii_daily_flows()
+    fii_dii_str = ""
+    if fii_dii.get("active"):
+        fii_sign = "+" if fii_dii['fii_net'] >= 0 else ""
+        dii_sign = "+" if fii_dii['dii_net'] >= 0 else ""
+        fii_label = "Net Buyers" if fii_dii['fii_net'] >= 0 else "Net Sellers"
+        dii_label = "Net Buyers" if fii_dii['dii_net'] >= 0 else "Net Sellers"
+        fii_dii_str = (
+            f"🏛️ *FII / DII INSTITUTIONAL FLOWS*\n"
+            f"• FII Net Activity: `{fii_sign}₹{fii_dii['fii_net']:,.2f} Cr` ({fii_label})\n"
+            f"• DII Net Activity: `{dii_sign}₹{fii_dii['dii_net']:,.2f} Cr` ({dii_label})\n\n"
+        )
+
     # 9. Assemble final WhatsApp payload
     today_date = datetime.now().strftime("%B %d, %Y")
     is_saturday = (datetime.now().weekday() == 5) or is_weekly_override
@@ -921,6 +999,8 @@ async def generate_daily_wrapup_text(persona_override: str = None, is_weekly_ove
         f"📊 *1. KEY MARKET INDICES*\n"
         f"{indices_str}"
         f"{breadth_str}\n\n"
+        
+        f"{fii_dii_str}"
         
         f"💼 *2. PORTFOLIO DAILY STATUS*\n"
         f"{port_str}\n"
