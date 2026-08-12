@@ -1128,7 +1128,7 @@ async def run_background_market_movers_updater():
             indices_tickers = [
                 "^NSEI", "^BSESN", "^NSEBANK", "^CNXIT", "^CNXPHARMA", 
                 "^CNXFMCG", "^CNXMETAL", "^CNXAUTO", "^CNXREALTY", 
-                "NIFTY_INFRA.NS", "^CNXENERGY", "^CNXFIN", "^CNXPSUBANK", 
+                "^CNXINFRA", "^CNXENERGY", "^CNXFIN", "^CNXPSUBANK", 
                 "^CNXMEDIA", "^CNXCONSUM", "GC=F", "SI=F", "INR=X", "^INDIAVIX"
             ]
             index_names = {
@@ -1141,7 +1141,7 @@ async def run_background_market_movers_updater():
                 "^CNXMETAL": "Nifty Metal",
                 "^CNXAUTO": "Nifty Auto",
                 "^CNXREALTY": "Nifty Realty",
-                "NIFTY_INFRA.NS": "Nifty Infra",
+                "^CNXINFRA": "Nifty Infra",
                 "^CNXENERGY": "Nifty Energy",
                 "^CNXFIN": "Nifty Financial Services",
                 "^CNXPSUBANK": "Nifty PSU Bank",
@@ -16250,7 +16250,7 @@ def _determine_sector_index_symbol(clean_symbol: str) -> str:
     # 13. Infrastructure & Logistics
     infra_keywords = ["LT", "L&T", "ADANIPORTS", "CONCOR", "INFRASTRUCTURE", "LOGISTICS"]
     if any(k in sym for k in infra_keywords):
-        return "NIFTY_INFRA.NS"
+        return "^CNXINFRA"
 
     # 14. MNC Index
     mnc_keywords = ["PROCTER", "HONEYWELL", "3MINDIA", "MNC"]
