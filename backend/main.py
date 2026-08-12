@@ -1462,8 +1462,7 @@ def update_nse_delivery_data():
                         """, (sym, deliv_qty, traded_qty, round(deliv_pct, 2)))
                     conn.commit()
                 print(f"Successfully loaded daily delivery statistics for {date_str}")
-                success = True
-                break
+                return dt.strftime("%Y-%m-%d")
         except Exception as e:
             print(f"Failed to fetch/parse delivery data for {date_str}: {e}")
             
@@ -1488,6 +1487,7 @@ def update_nse_delivery_data():
                         VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)
                     """, (sym, deliv_qty, traded_qty, deliv_pct))
                 conn.commit()
+    return ""
 
 async def run_background_bhavcopy_sync():
     """
@@ -1506,9 +1506,11 @@ async def run_background_bhavcopy_sync():
             # If weekday (Mon-Fri) and past 16:20 IST and not synced today
             if now_ist.weekday() < 5 and last_synced_date != today_str:
                 if (now_ist.hour == 16 and now_ist.minute >= 20) or now_ist.hour > 16:
-                    print("Background Bhavcopy Sync: Pre-fetching daily NSE delivery data at 16:20 IST...")
-                    await asyncio.to_thread(update_nse_delivery_data)
-                    last_synced_date = today_str
+                    print("Background Bhavcopy Sync: Pre-fetching daily NSE delivery data...")
+                    synced_date = await asyncio.to_thread(update_nse_delivery_data)
+                    if synced_date == today_str:
+                        print(f"Background Bhavcopy Sync: Successfully confirmed today's Bhavcopy ({today_str})")
+                        last_synced_date = today_str
         except Exception as e:
             print(f"Background Bhavcopy Sync loop error: {e}")
             
