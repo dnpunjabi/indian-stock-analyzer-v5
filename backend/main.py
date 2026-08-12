@@ -471,6 +471,19 @@ def init_db():
         cursor.execute("CREATE INDEX IF NOT EXISTS idx_events_date ON stock_events(event_date)")
         cursor.execute("CREATE INDEX IF NOT EXISTS idx_events_symbol ON stock_events(symbol)")
 
+        # Auto-correct legacy/mismatched symbol names in watchlist_items
+        alias_updates = [
+            ("RAJDARSH.NS", "RAJDARSHANINDS.NS"),
+            ("JKCEMENT.NS", "JKCEMENTS.NS"),
+            ("DALBHARAT.NS", "DALMIABHARATLTD.NS"),
+            ("IRB.NS", "IRBINFRADEVL.NS"),
+            ("TI.NS", "TILAKNAGARINDS.NS"),
+            ("BEPL.NS", "BHANSALIENGG.NS"),
+            ("TNPETRO.NS", "TNPETROPROD.NS"),
+        ]
+        for correct_sym, old_sym in alias_updates:
+            cursor.execute("UPDATE watchlist_items SET symbol = ? WHERE symbol = ?", (correct_sym, old_sym))
+
 
         
         # Mock loader for history, block deals, and corporate actions if empty
@@ -1115,7 +1128,7 @@ async def run_background_market_movers_updater():
             indices_tickers = [
                 "^NSEI", "^BSESN", "^NSEBANK", "^CNXIT", "^CNXPHARMA", 
                 "^CNXFMCG", "^CNXMETAL", "^CNXAUTO", "^CNXREALTY", 
-                "^CNXINFRA", "^CNXENERGY", "^CNXFIN", "^CNXPSUBANK", 
+                "NIFTY_INFRA.NS", "^CNXENERGY", "^CNXFIN", "^CNXPSUBANK", 
                 "^CNXMEDIA", "^CNXCONSUM", "GC=F", "SI=F", "INR=X", "^INDIAVIX"
             ]
             index_names = {
@@ -1128,7 +1141,7 @@ async def run_background_market_movers_updater():
                 "^CNXMETAL": "Nifty Metal",
                 "^CNXAUTO": "Nifty Auto",
                 "^CNXREALTY": "Nifty Realty",
-                "^CNXINFRA": "Nifty Infra",
+                "NIFTY_INFRA.NS": "Nifty Infra",
                 "^CNXENERGY": "Nifty Energy",
                 "^CNXFIN": "Nifty Financial Services",
                 "^CNXPSUBANK": "Nifty PSU Bank",
@@ -16237,7 +16250,7 @@ def _determine_sector_index_symbol(clean_symbol: str) -> str:
     # 13. Infrastructure & Logistics
     infra_keywords = ["LT", "L&T", "ADANIPORTS", "CONCOR", "INFRASTRUCTURE", "LOGISTICS"]
     if any(k in sym for k in infra_keywords):
-        return "^CNXINFRA"
+        return "NIFTY_INFRA.NS"
 
     # 14. MNC Index
     mnc_keywords = ["PROCTER", "HONEYWELL", "3MINDIA", "MNC"]

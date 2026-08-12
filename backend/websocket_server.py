@@ -262,7 +262,7 @@ class ConnectionManager:
     async def broadcast_ticks(self, ticks: Dict[str, Dict], source: str = "yfinance_fallback"):
         """Send tick updates to each client, filtered by their subscription set."""
         disconnected = []
-        indices = {"^NSEI", "^BSESN", "^NSEBANK", "^CNXIT", "^CNXINFRA", "^CNXAUTO"}
+        indices = {"^NSEI", "^BSESN", "^NSEBANK", "^CNXIT", "NIFTY_INFRA.NS", "^CNXAUTO"}
         for ws, subscribed_symbols in list(self._connections.items()):
             # Filter ticks to only those the client cares about, plus index tickers
             client_ticks = {s: t for s, t in ticks.items() if s in subscribed_symbols or s in indices}
@@ -737,7 +737,7 @@ async def _broadcast_loop():
                 
                 symbols_to_fetch = set()
                 # Always fetch index tickers
-                indices = ["^NSEI", "^BSESN", "^NSEBANK", "^CNXIT", "^CNXINFRA", "^CNXAUTO", "GC=F", "SI=F", "INR=X"]
+                indices = ["^NSEI", "^BSESN", "^NSEBANK", "^CNXIT", "NIFTY_INFRA.NS", "^CNXAUTO", "GC=F", "SI=F", "INR=X"]
                 symbols_to_fetch.update(indices)
                 
                 # If Angel One is not authenticated or not active, fetch active subscriptions as fallback
@@ -908,7 +908,7 @@ async def websocket_live_ticks(websocket: WebSocket):
                     # Immediately send any cached ticks for the subscribed symbols
                     cached_ticks = tick_store.get_batch(symbols)
                     # Also send indices immediately
-                    indices = ["^NSEI", "^BSESN", "^NSEBANK", "^CNXIT", "^CNXINFRA", "^CNXAUTO"]
+                    indices = ["^NSEI", "^BSESN", "^NSEBANK", "^CNXIT", "NIFTY_INFRA.NS", "^CNXAUTO"]
                     cached_indices = tick_store.get_batch(indices)
                     if cached_indices:
                         cached_ticks.update(cached_indices)

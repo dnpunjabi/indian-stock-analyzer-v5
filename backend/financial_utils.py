@@ -2712,7 +2712,7 @@ def calculate_full_returns_matrix(ticker: str, company_name: str = "", peers: li
         # 13. Infrastructure & Logistics
         infra_keywords = ["LT", "L&T", "ADANIPORTS", "CONCOR", "INFRASTRUCTURE", "LOGISTICS"]
         if any(k in sym_str for k in infra_keywords):
-            return "^CNXINFRA"
+            return "NIFTY_INFRA.NS"
 
         # 14. MNC Index
         mnc_keywords = ["PROCTER", "HONEYWELL", "3MINDIA", "MNC"]
