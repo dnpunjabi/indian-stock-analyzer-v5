@@ -18083,11 +18083,12 @@ function renderWatchlistItems() {
             </div>
         `;
 
-        const dayHigh = item.day_high || item.high || (item.range_day && item.range_day.high) || (item.live_price ? item.live_price * (1 + Math.abs(item.change_pct || 0.5) / 100 * 0.8) : 0);
-        const dayLow = item.day_low || item.low || (item.range_day && item.range_day.low) || (item.live_price ? item.live_price * (1 - Math.abs(item.change_pct || 0.5) / 100 * 0.8) : 0);
+        const dayRange = item.range_day || {};
+        const dayHigh = typeof dayRange.high === 'number' && dayRange.high > 0 ? dayRange.high : (item.day_high || item.high || (item.live_price ? item.live_price * (1 + Math.abs(item.change_pct || 0.5) / 100 * 0.8) : 0));
+        const dayLow = typeof dayRange.low === 'number' && dayRange.low > 0 ? dayRange.low : (item.day_low || item.low || (item.live_price ? item.live_price * (1 - Math.abs(item.change_pct || 0.5) / 100 * 0.8) : 0));
         const liveP = item.live_price || item.added_price || 0;
-        let dayPosPct = 50;
-        if (dayHigh > dayLow) {
+        let dayPosPct = typeof dayRange.pos_pct === 'number' ? dayRange.pos_pct : 50;
+        if (typeof dayRange.pos_pct !== 'number' && dayHigh > dayLow && liveP > 0) {
             dayPosPct = Math.min(Math.max(((liveP - dayLow) / (dayHigh - dayLow)) * 100, 0), 100);
         }
         const dayRangeBarHTML = `

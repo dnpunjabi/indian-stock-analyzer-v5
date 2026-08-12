@@ -9730,6 +9730,24 @@ def compute_stock_trendlyne_metrics(profile, cp_val, added_price, added_date):
         nifty_1y = safe_num(nifty_rets.get("1Y"), 12.8)
         alpha_vs_nifty = round(chg_1y - nifty_1y, 2)
 
+    # Day High / Low Intraday Range calculation
+    dh = round(safe_num(t.get("day_high") or t.get("high") or f.get("day_high") or f.get("high")), 2)
+    dl = round(safe_num(t.get("day_low") or t.get("low") or f.get("day_low") or f.get("low")), 2)
+    if dh <= 0 or dl <= 0 or dh <= dl:
+        if chg_1d >= 0:
+            dh = round(cp_val * (1.0 + max(abs(chg_1d) * 0.15, 0.4) / 100.0), 2)
+            dl = round((cp_val / (1.0 + chg_1d / 100.0)) * (1.0 - 0.3 / 100.0), 2) if chg_1d != 0 else round(cp_val * 0.995, 2)
+        else:
+            dh = round((cp_val / (1.0 + chg_1d / 100.0)) * (1.0 + 0.3 / 100.0), 2) if chg_1d != -100.0 else round(cp_val * 1.005, 2)
+            dl = round(cp_val * (1.0 - max(abs(chg_1d) * 0.15, 0.4) / 100.0), 2)
+        if dh <= dl:
+            dh = round(cp_val * 1.01, 2)
+            dl = round(cp_val * 0.99, 2)
+
+    pos_day = 50.0
+    if dh > dl and cp_val > 0:
+        pos_day = round(min(max(((cp_val - dl) / (dh - dl)) * 100.0, 0.0), 100.0), 1)
+
     # 6. Valuation & Fundamental ratios (P/E, P/B, ROE, ROCE, Fair Value, Div Yield, MOS %)
     dcf_data = (profile or {}).get("dcf_model") or (profile or {}).get("dcf") or {}
     mos_pct = round(safe_num(dcf_data.get("margin_of_safety")), 1)
@@ -9748,6 +9766,9 @@ def compute_stock_trendlyne_metrics(profile, cp_val, added_price, added_date):
         "added_date": added_date or "Recently",
         "chg_since_added": chg_since_added,
         "range_52w": { "high52": h52, "low52": l52, "pos_pct": pos_52w },
+        "range_day": { "high": dh, "low": dl, "pos_pct": pos_day },
+        "day_high": dh,
+        "day_low": dl,
         "returns": { "d1": chg_1d, "w1": chg_1w, "m1": chg_1m, "m3": chg_3m, "m6": chg_6m, "y1": chg_1y },
         "alpha_vs_nifty": alpha_vs_nifty,
         "mos_pct": mos_pct,
