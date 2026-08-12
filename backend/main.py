@@ -1489,6 +1489,30 @@ def update_nse_delivery_data():
                     """, (sym, deliv_qty, traded_qty, deliv_pct))
                 conn.commit()
 
+async def run_background_bhavcopy_sync():
+    """
+    Background loop that runs at 4:20 PM IST on weekdays to pre-fetch 
+    the new NSE Bhavcopy into SQLite prior to the 4:30 PM daily wrap-up dispatch.
+    """
+    await asyncio.sleep(30)
+    last_synced_date = ""
+    while True:
+        try:
+            from datetime import datetime, timedelta
+            now_utc = datetime.utcnow()
+            now_ist = now_utc + timedelta(hours=5, minutes=30)
+            today_str = now_ist.strftime("%Y-%m-%d")
+            
+            # If weekday (Mon-Fri) and past 16:20 IST and not synced today
+            if now_ist.weekday() < 5 and last_synced_date != today_str:
+                if (now_ist.hour == 16 and now_ist.minute >= 20) or now_ist.hour > 16:
+                    print("Background Bhavcopy Sync: Pre-fetching daily NSE delivery data at 16:20 IST...")
+                    await asyncio.to_thread(update_nse_delivery_data)
+                    last_synced_date = today_str
+        except Exception as e:
+            print(f"Background Bhavcopy Sync loop error: {e}")
+            
+        await asyncio.sleep(300)
 
 def update_nse_bulk_block_deals():
     """
@@ -2073,6 +2097,7 @@ async def startup_warm_caching():
 
     # 4. Fire background delivery stats scraper & sector returns computation
     asyncio.create_task(asyncio.to_thread(update_nse_delivery_data))
+    asyncio.create_task(run_background_bhavcopy_sync())
     asyncio.create_task(asyncio.to_thread(update_nse_bulk_block_deals))
     asyncio.create_task(asyncio.to_thread(update_sector_regime_stats))
     asyncio.create_task(run_background_market_movers_updater())
