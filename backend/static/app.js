@@ -17465,36 +17465,51 @@ function exportActiveWatchlistCSV() {
     exportWatchlistCSVById(activeWatchlistId);
 }
 
-function toggleWatchlistDipAlerts() {
-    if (typeof window.watchlistDipAlertsEnabled === 'undefined') {
-        window.watchlistDipAlertsEnabled = false;
+function syncWatchlistDipAlertsState(enabled) {
+    if (typeof enabled === 'boolean') {
+        window.watchlistDipAlertsEnabled = enabled;
+        try { localStorage.setItem('watchlistDipAlertsEnabled', enabled ? 'true' : 'false'); } catch (e) {}
+    } else {
+        const stored = (function() { try { return localStorage.getItem('watchlistDipAlertsEnabled'); } catch (e) { return null; } })();
+        // Default to ON if never set before, or restore stored preference
+        window.watchlistDipAlertsEnabled = stored === null ? true : (stored === 'true');
     }
-    window.watchlistDipAlertsEnabled = !window.watchlistDipAlertsEnabled;
     const btn = document.getElementById('watchlist-alert-toggle-btn');
     if (btn) {
         if (window.watchlistDipAlertsEnabled) {
             btn.style.background = 'rgba(245,158,11,0.25)';
             btn.style.borderColor = '#f59e0b';
+            btn.style.color = 'var(--text-primary)';
             btn.style.fontWeight = '700';
             btn.innerText = '🔔 Dip Alerts: ON';
-            showToast('Watchlist Dip & Valuation Alerts active: Threshold alerts (Day Dip >3%, MOS >25%) will dispatch via WhatsApp.', 'info');
-
-            // Dispatch automated alert check sweep to backend
-            fetch('/api/alerts/check', { method: 'GET' })
-                .then(res => res.json())
-                .then(data => {
-                    if (data && data.triggered_count > 0) {
-                        showToast(`⚡ ${data.triggered_count} automated alert(s) evaluated and dispatched to WhatsApp!`, 'success');
-                    }
-                })
-                .catch(err => console.warn('Watchlist alert check background sync error:', err));
         } else {
             btn.style.background = 'rgba(245,158,11,0.06)';
             btn.style.borderColor = 'rgba(245,158,11,0.35)';
+            btn.style.color = 'var(--text-secondary)';
             btn.style.fontWeight = 'normal';
             btn.innerText = '🔔 Dip Alerts';
-            showToast('Watchlist Dip Alerts disabled.', 'info');
         }
+    }
+}
+
+function toggleWatchlistDipAlerts() {
+    const currentState = typeof window.watchlistDipAlertsEnabled !== 'undefined' 
+        ? window.watchlistDipAlertsEnabled 
+        : (function() { try { return localStorage.getItem('watchlistDipAlertsEnabled') !== 'false'; } catch (e) { return true; } })();
+    const newState = !currentState;
+    syncWatchlistDipAlertsState(newState);
+    if (newState) {
+        showToast('Watchlist Dip & Valuation Alerts active: Threshold alerts (Day Dip >3%, MOS >25%) will dispatch via WhatsApp.', 'info');
+        fetch('/api/alerts/check', { method: 'GET' })
+            .then(res => res.json())
+            .then(data => {
+                if (data && data.triggered_count > 0) {
+                    showToast(`⚡ ${data.triggered_count} automated alert(s) evaluated and dispatched to WhatsApp!`, 'success');
+                }
+            })
+            .catch(err => console.warn('Watchlist alert check background sync error:', err));
+    } else {
+        showToast('Watchlist Dip Alerts disabled.', 'info');
     }
 }
 
@@ -17620,6 +17635,7 @@ function renderWatchlistItems() {
     if (duplicateBtn) duplicateBtn.style.display = 'inline-block';
     if (exportCsvBtn) exportCsvBtn.style.display = 'inline-block';
     if (alertToggleBtn) alertToggleBtn.style.display = 'inline-block';
+    syncWatchlistDipAlertsState();
     cancelWatchlistRename();
 
     const pagContainer = document.getElementById('watchlist-table-pagination');
