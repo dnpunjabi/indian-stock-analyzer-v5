@@ -264,6 +264,16 @@ def init_db():
             triggered_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
         """)
+        # Persistent Fuzzy WhatsApp Alert history table
+        cursor.execute("""
+        CREATE TABLE IF NOT EXISTS fuzzy_alert_sent_history (
+            symbol TEXT NOT NULL,
+            target_state TEXT NOT NULL,
+            score REAL,
+            sent_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY (symbol, target_state)
+        )
+        """)
         # Persistent screener universe table
         cursor.execute("""
         CREATE TABLE IF NOT EXISTS screener_universe (
@@ -8659,7 +8669,12 @@ async def check_fuzzy_watchlist_whatsapp_alerts():
     """
     Sweeps all active watchlist items, evaluates Fuzzy Conviction,
     and dispatches a WhatsApp alert if any stock crosses >= +70% (Strong Buy) or <= -40% (Avoid).
+    Uses RAM cache + SQLite DB persistent storage to avoid duplicate notifications across server restarts.
     """
+    global _fuzzy_whatsapp_sent_cache
+    if "_fuzzy_whatsapp_sent_cache" not in globals() or _fuzzy_whatsapp_sent_cache is None:
+        _fuzzy_whatsapp_sent_cache = {}
+
     wa_token = os.environ.get("WHATSAPP_TOKEN", "")
     wa_phone_id = os.environ.get("WHATSAPP_PHONE_ID", "")
     wa_recipient = os.environ.get("WHATSAPP_RECIPIENT", "")
@@ -8685,9 +8700,37 @@ async def check_fuzzy_watchlist_whatsapp_alerts():
                 target_state = "AVOID"
 
             if target_state:
+                # 1. Check RAM cache first
                 last_sent = _fuzzy_whatsapp_sent_cache.get(symbol)
+                
+                # 2. If not in RAM cache, check persistent SQLite database
+                if last_sent is None:
+                    with get_db() as conn:
+                        cursor = conn.cursor()
+                        cursor.execute(
+                            "SELECT target_state FROM fuzzy_alert_sent_history WHERE symbol = ? AND target_state = ?",
+                            (symbol, target_state)
+                        )
+                        row = cursor.fetchone()
+                        if row:
+                            last_sent = row["target_state"]
+                            _fuzzy_whatsapp_sent_cache[symbol] = last_sent
+
                 if last_sent != target_state:
                     _fuzzy_whatsapp_sent_cache[symbol] = target_state
+                    
+                    # Persist to SQLite DB
+                    try:
+                        with get_db() as conn:
+                            cursor = conn.cursor()
+                            cursor.execute("""
+                                INSERT OR REPLACE INTO fuzzy_alert_sent_history (symbol, target_state, score, sent_at)
+                                VALUES (?, ?, ?, CURRENT_TIMESTAMP)
+                            """, (symbol, target_state, float(score)))
+                            conn.commit()
+                    except Exception as db_err:
+                        print(f"Failed to record fuzzy_alert_sent_history for {symbol}: {db_err}")
+
                     trigger_date = datetime.now().strftime("%Y-%m-%d %H:%M")
                     
                     header_emoji = "🚀" if target_state == "STRONG_BUY" else "⚠️"
