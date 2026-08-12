@@ -117,6 +117,54 @@ def fetch_weekly_portfolio_summary() -> dict:
         top_gainers = enriched_holdings[:2]
         top_drag = sorted(enriched_holdings, key=lambda x: x["weekly_change_pct"])[:2]
 
+        top_leader_symbols = [g["symbol"] for g in top_gainers]
+        top_drag_symbols = [d["symbol"] for d in top_drag]
+        all_tech_symbols = list(set(top_leader_symbols + top_drag_symbols))
+
+        leader_technicals = {}
+        drag_technicals = {}
+
+        if all_tech_symbols:
+            yf_tech = [s if s.endswith('.NS') or s.startswith('^') else f"{s}.NS" for s in all_tech_symbols]
+            try:
+                df_tech = yf.download(yf_tech, period="3mo", progress=False)
+                if not df_tech.empty:
+                    is_multi = isinstance(df_tech.columns, pd.MultiIndex)
+                    for sym in all_tech_symbols:
+                        try:
+                            yf_key = sym if (sym.endswith('.NS') or sym.startswith('^')) else f"{sym}.NS"
+                            if is_multi:
+                                close_s = df_tech['Close'][yf_key].dropna()
+                                low_s = df_tech['Low'][yf_key].dropna()
+                                high_s = df_tech['High'][yf_key].dropna()
+                            else:
+                                close_s = df_tech['Close'].dropna()
+                                low_s = df_tech['Low'].dropna()
+                                high_s = df_tech['High'].dropna()
+
+                            curr_p = float(close_s.iloc[-1]) if len(close_s) > 0 else 0.0
+                            sma_20 = float(close_s.iloc[-20:].mean()) if len(close_s) >= 20 else curr_p
+                            sma_50 = float(close_s.iloc[-50:].mean()) if len(close_s) >= 50 else sma_20
+                            support_20d = float(low_s.iloc[-20:].min()) if len(low_s) >= 20 else curr_p * 0.95
+                            resistance_20d = float(high_s.iloc[-20:].max()) if len(high_s) >= 20 else curr_p * 1.05
+
+                            t_info = {
+                                "current_price": curr_p,
+                                "sma_20": sma_20,
+                                "sma_50": sma_50,
+                                "support": min(support_20d, sma_20),
+                                "resistance": max(resistance_20d, sma_50)
+                            }
+                            clean_sym = sym.replace('.NS', '')
+                            if sym in top_leader_symbols:
+                                leader_technicals[clean_sym] = t_info
+                            if sym in top_drag_symbols:
+                                drag_technicals[clean_sym] = t_info
+                        except Exception:
+                            pass
+            except Exception as d_err:
+                print(f"Weekly Wrap-up: Technicals fetch error: {d_err}")
+
         return {
             "active": True,
             "total_cost": total_cost,
@@ -126,7 +174,9 @@ def fetch_weekly_portfolio_summary() -> dict:
             "total_return_val": total_return_val,
             "total_return_pct": total_return_pct,
             "top_gainers": top_gainers,
-            "top_drag": top_drag
+            "top_drag": top_drag,
+            "leader_technicals": leader_technicals,
+            "drag_technicals": drag_technicals
         }
     except Exception as e:
         print(f"Weekly Wrap-up: Portfolio aggregation error: {e}")
@@ -134,11 +184,11 @@ def fetch_weekly_portfolio_summary() -> dict:
 
 def fetch_weekly_market_benchmarks() -> dict:
     """
-    Fetches 5-day performance for Nifty 50 (^NSEI) and Bank Nifty (^NSEBANK).
+    Fetches 5-day performance for Nifty 50 (^NSEI) and BSE Sensex (^BSESN).
     Also checks benchmark return % for portfolio alpha calculation.
     """
     try:
-        benchmarks = {"^NSEI": "Nifty 50", "^NSEBANK": "Bank Nifty"}
+        benchmarks = {"^NSEI": "Nifty 50", "^BSESN": "BSE Sensex"}
         df = yf.download(list(benchmarks.keys()), period="7d", interval="1d", progress=False)
         result = {}
         if not df.empty:
@@ -152,9 +202,11 @@ def fetch_weekly_market_benchmarks() -> dict:
                     if len(series) >= 2:
                         curr = float(series.iloc[-1])
                         start = float(series.iloc[0])
+                        chg_val = curr - start
                         chg_pct = ((curr - start) / start * 100.0) if start > 0 else 0.0
                         result[name] = {
                             "current": curr,
+                            "weekly_chg_val": chg_val,
                             "weekly_chg_pct": chg_pct
                         }
                 except Exception:
@@ -192,33 +244,58 @@ def fetch_weekly_sector_rotation() -> dict:
 
 def fetch_weekly_catalysts_and_breakouts() -> dict:
     """
-    Collects watchlist weekly breakouts, bulk/block deals, and upcoming corporate events for next week.
+    Collects weekly breakouts and upcoming corporate events specifically scoped
+    to user's Portfolio Holdings + Watchlist stocks.
     """
     try:
         events = []
         watchlist_breakouts = []
+        target_syms = []
         with get_db() as conn:
             cursor = conn.cursor()
-            cursor.execute("SELECT symbol FROM watchlist_items LIMIT 15")
-            watchlist_syms = [row["symbol"] for row in cursor.fetchall()]
+            # Combine Portfolio and Watchlist unique symbols
+            cursor.execute("""
+                SELECT symbol FROM portfolio_items
+                UNION
+                SELECT symbol FROM watchlist_items
+            """)
+            target_syms = [row["symbol"] for row in cursor.fetchall() if row["symbol"]]
 
-            cursor.execute("SELECT symbol, description AS event_title, event_date, event_type FROM stock_events ORDER BY event_date DESC LIMIT 5")
-            events = [dict(row) for row in cursor.fetchall()]
+            if target_syms:
+                raw_syms = [s.replace(".NS", "") for s in target_syms]
+                all_possible = list(set(target_syms + raw_syms))
+                placeholders = ",".join(["?"] * len(all_possible))
+                
+                query = f"""
+                    SELECT symbol, description AS event_title, event_date, event_type
+                    FROM stock_events
+                    WHERE (symbol IN ({placeholders}) OR REPLACE(symbol, '.NS', '') IN ({placeholders}))
+                      AND date(event_date) >= date('now', '-1 day')
+                    ORDER BY event_date ASC
+                    LIMIT 6
+                """
+                cursor.execute(query, all_possible + all_possible)
+                events = [dict(row) for row in cursor.fetchall()]
 
-        if watchlist_syms:
-            df = yf.download(watchlist_syms[:10], period="1mo", progress=False)
-            if not df.empty and isinstance(df.columns, pd.MultiIndex):
-                for sym in watchlist_syms[:10]:
-                    try:
-                        c = df['Close'][sym].dropna()
-                        h = df['High'][sym].dropna()
-                        if len(c) >= 5 and len(h) >= 20:
-                            curr = float(c.iloc[-1])
-                            max_h = float(h.max())
-                            if curr >= max_h * 0.98:
-                                watchlist_breakouts.append({"symbol": sym, "price": curr, "high": max_h})
-                    except Exception:
-                        pass
+        if target_syms:
+            yf_syms = [s if s.endswith('.NS') or s.startswith('^') else f"{s}.NS" for s in target_syms[:15]]
+            try:
+                df = yf.download(yf_syms, period="1mo", progress=False)
+                if not df.empty and isinstance(df.columns, pd.MultiIndex):
+                    for sym in yf_syms:
+                        try:
+                            c = df['Close'][sym].dropna()
+                            h = df['High'][sym].dropna()
+                            if len(c) >= 5 and len(h) >= 20:
+                                curr = float(c.iloc[-1])
+                                max_h = float(h.max())
+                                if curr >= max_h * 0.98:
+                                    clean_name = sym.replace('.NS', '')
+                                    watchlist_breakouts.append({"symbol": clean_name, "price": curr, "high": max_h})
+                        except Exception:
+                            pass
+            except Exception as batch_err:
+                print(f"Weekly Wrap-up: Breakout batch download error: {batch_err}")
 
         return {
             "events": events,
@@ -292,10 +369,14 @@ def generate_weekly_wrapup_content(settings: dict, mode: str = "preview") -> str
     persona = settings.get("persona", "Institutional Analyst")
     
     nifty = market_data.get("Nifty 50", {})
-    banknifty = market_data.get("Bank Nifty", {})
+    sensex = market_data.get("BSE Sensex", {})
+    nifty_chg_p = nifty.get("weekly_chg_pct", 0.0) if nifty else 0.0
+    nifty_chg_v = nifty.get("weekly_chg_val", 0.0) if nifty else 0.0
+    sensex_chg_p = sensex.get("weekly_chg_pct", 0.0) if sensex else 0.0
+    sensex_chg_v = sensex.get("weekly_chg_val", 0.0) if sensex else 0.0
     
-    nifty_str = f"Nifty 50: {nifty.get('current', 'N/A')} ({nifty.get('weekly_chg_pct', 0):+.2f}% 5-Day)" if nifty else "Nifty 50: N/A"
-    banknifty_str = f"Bank Nifty: {banknifty.get('current', 'N/A')} ({banknifty.get('weekly_chg_pct', 0):+.2f}% 5-Day)" if banknifty else "Bank Nifty: N/A"
+    nifty_str = f"Nifty 50: {nifty.get('current', 'N/A'):,.2f} ({nifty_chg_v:+.2f} pts, {nifty_chg_p:+.2f}%)" if nifty else "Nifty 50: N/A"
+    sensex_str = f"BSE Sensex: {sensex.get('current', 'N/A'):,.2f} ({sensex_chg_v:+.2f} pts, {sensex_chg_p:+.2f}%)" if sensex else "BSE Sensex: N/A"
 
     port_str = "N/A"
     if portfolio_data.get("active"):
@@ -305,10 +386,14 @@ def generate_weekly_wrapup_content(settings: dict, mode: str = "preview") -> str
         top_g = portfolio_data.get("top_gainers", [])
         top_d = portfolio_data.get("top_drag", [])
         
+        # Calculate 5-day Portfolio Alpha vs Nifty 50
+        alpha_val = p_chg_p - nifty_chg_p
+        alpha_str = f"Alpha: {alpha_val:+.2f}% vs Nifty 50 ({nifty_chg_p:+.2f}%)"
+        
         g_text = ", ".join([f"{x.get('symbol', '').replace('.NS','')} ({x.get('weekly_change_pct', x.get('chg_pct', 0)):+.1f}%)" for x in top_g]) if top_g else "None"
         d_text = ", ".join([f"{x.get('symbol', '').replace('.NS','')} ({x.get('weekly_change_pct', x.get('chg_pct', 0)):+.1f}%)" for x in top_d]) if top_d else "None"
         
-        port_str = f"Valuation: ₹{p_val:,.2f} | 5-Day Net P&L: ₹{p_chg_v:,.2f} ({p_chg_p:+.2f}%)\nTop Weekly Outperformers: {g_text}\nWeekly Drag Holdings: {d_text}"
+        port_str = f"Valuation: ₹{p_val:,.2f} | 5-Day Net P&L: ₹{p_chg_v:,.2f} ({p_chg_p:+.2f}%) | {alpha_str}\nTop Weekly Outperformers: {g_text}\nWeekly Drag Holdings: {d_text}"
 
     sectors_str = "N/A"
     if sector_data.get("active"):
@@ -321,6 +406,38 @@ def generate_weekly_wrapup_content(settings: dict, mode: str = "preview") -> str
     inc_events = settings.get("include_events", True)
     inc_breakouts = settings.get("include_breakouts", True)
 
+    breakout_list = catalysts_data.get('breakouts', [])
+    events_list = catalysts_data.get('events', [])
+
+    if breakout_list:
+        breakouts_formatted = ", ".join([f"{b['symbol']} (₹{b['price']:,.2f})" for b in breakout_list])
+    else:
+        breakouts_formatted = "None detected this week for tracked holdings"
+
+    if events_list:
+        events_formatted = "\n".join([
+            f"• {e.get('symbol','').replace('.NS','')}: {e.get('event_title', e.get('event_type','Corporate Action'))} ({e.get('event_date','TBD')})"
+            for e in events_list
+        ])
+    else:
+        events_formatted = "• No upcoming corporate events scheduled for tracked holdings/watchlist."
+
+    leader_tech_map = portfolio_data.get("leader_technicals", {})
+    drag_tech_map = portfolio_data.get("drag_technicals", {})
+
+    all_tech_lines = []
+    if leader_tech_map:
+        all_tech_lines.append("• Leader Outperformers:")
+        for sym, t in leader_tech_map.items():
+            all_tech_lines.append(f"  • {sym} (₹{t['current_price']:,.2f}): Support ₹{t['support']:,.2f} (20-DMA/Low) | Resistance ₹{t['resistance']:,.2f}")
+    
+    if drag_tech_map:
+        all_tech_lines.append("• Drag Holdings:")
+        for sym, t in drag_tech_map.items():
+            all_tech_lines.append(f"  • {sym} (₹{t['current_price']:,.2f}): Support ₹{t['support']:,.2f} (20-DMA/Low) | Resistance ₹{t['resistance']:,.2f}")
+
+    tech_levels_str = "\n".join(all_tech_lines) if all_tech_lines else "• No technical levels calculated."
+
     prompt = f"""
 You are an expert Indian Stock Market {persona}. Construct a concise, publication-grade WEEKLY MARKET & PORTFOLIO RETROSPECTIVE report formatted for WhatsApp messages.
 
@@ -328,7 +445,7 @@ MANDATORY SECTIONS TO INCLUDE IN YOUR OUTPUT:
 
 1. *📊 BENCHMARK SNAPSHOT (5-DAY)*
 - {nifty_str}
-- {banknifty_str}
+- {sensex_str}
 
 {"2. *📈 PORTFOLIO PERFORMANCE*" if inc_portfolio else ""}
 {port_str if inc_portfolio else ""}
@@ -336,11 +453,13 @@ MANDATORY SECTIONS TO INCLUDE IN YOUR OUTPUT:
 {"3. *⚡ SECTOR ROTATION HEATMAP*" if inc_sectors else ""}
 {sectors_str if inc_sectors else ""}
 
-{"4. *📅 CATALYSTS & RADAR*" if (inc_events or inc_breakouts) else ""}
-{"- Watchlist 52W / MTF Breakouts: " + str(len(catalysts_data.get('breakouts', []))) + " stocks" if inc_breakouts else ""}
-{"- Upcoming Events Next Week: " + str(len(catalysts_data.get('events', []))) + " corporate announcements" if inc_events else ""}
+{"4. *📅 CATALYSTS & RADAR (TRACKED HOLDINGS & WATCHLIST)*" if (inc_events or inc_breakouts) else ""}
+{"- Portfolio/Watchlist 52W Breakouts: " + breakouts_formatted if inc_breakouts else ""}
+{"- Upcoming Corporate Events & Earnings:\n" + events_formatted if inc_events else ""}
 
-5. *🎯 Tactical Playbook for Next Week*
+{"5. *🛡️ KEY TECHNICAL LEVELS (LEADER & DRAG HOLDINGS)*\n" + tech_levels_str if (inc_portfolio and (leader_tech_map or drag_tech_map)) else ""}
+
+6. *🎯 Tactical Playbook for Next Week*
 - Provide 2-3 sentences of actionable guidance (e.g. stop-loss discipline, sector rebalancing, risk management).
 
 FORMAT INSTRUCTIONS:
@@ -361,7 +480,7 @@ FORMAT INSTRUCTIONS:
         f"Persona: _{persona}_\n",
         "*📊 MARKET BENCHMARKS*",
         f"• {nifty_str}",
-        f"• {banknifty_str}\n"
+        f"• {sensex_str}\n"
     ]
     if inc_portfolio:
         fallback_parts.extend(["*📈 PORTFOLIO 5-DAY PERFORMANCE*", f"• {port_str}\n"])
@@ -370,11 +489,13 @@ FORMAT INSTRUCTIONS:
     if inc_events or inc_breakouts:
         cat_lines = ["*📅 CATALYSTS & RADAR*"]
         if inc_breakouts:
-            cat_lines.append(f"• Watchlist Breakouts: {len(catalysts_data.get('breakouts', []))} stocks")
+            cat_lines.append(f"• Breakouts: {breakouts_formatted}")
         if inc_events:
-            cat_lines.append(f"• Corporate Events: {len(catalysts_data.get('events', []))} events scheduled")
+            cat_lines.append(f"• Corporate Events:\n{events_formatted}")
         fallback_parts.extend(cat_lines)
         fallback_parts.append("")
+    if inc_portfolio and (leader_tech_map or drag_tech_map):
+        fallback_parts.extend(["*🛡️ KEY TECHNICAL LEVELS (LEADER & DRAG HOLDINGS)*", tech_levels_str, ""])
     fallback_parts.extend([
         "*🎯 TACTICAL PLAYBOOK*",
         "Review portfolio holdings against 20-day moving averages and maintain disciplined stop-loss levels ahead of next week's market open."

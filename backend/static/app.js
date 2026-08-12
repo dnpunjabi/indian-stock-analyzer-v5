@@ -12650,71 +12650,93 @@ async function fetchWhatsAppSettings() {
     }
 }
 
+function applyDailyWrapupDataToUI(data) {
+    if (!data) return;
+    const enabledChkbx = document.getElementById('wrapup-enabled');
+    const timeInput = document.getElementById('wrapup-time');
+    const personaSelect = document.getElementById('wrapup-persona');
+    const lastSentLbl = document.getElementById('wrapup-last-sent-lbl');
+    const includeEventsChkbx = document.getElementById('wrapup-include-events');
+    const includeDealsChkbx = document.getElementById('wrapup-include-deals');
+    const includeSentimentChkbx = document.getElementById('wrapup-include-sentiment');
+    const includeBreakoutsChkbx = document.getElementById('wrapup-include-breakouts');
+
+    if (enabledChkbx) enabledChkbx.checked = !!data.enabled;
+    if (timeInput && data.time) timeInput.value = data.time;
+    if (personaSelect && data.persona) personaSelect.value = data.persona;
+    if (includeEventsChkbx) includeEventsChkbx.checked = !!data.include_events;
+    if (includeDealsChkbx) includeDealsChkbx.checked = !!data.include_deals;
+    if (includeSentimentChkbx) includeSentimentChkbx.checked = data.include_sentiment !== false;
+    if (includeBreakoutsChkbx) includeBreakoutsChkbx.checked = data.include_breakouts !== false;
+    if (lastSentLbl) {
+        lastSentLbl.textContent = data.last_sent ? `Last dispatched: ${data.last_sent}` : "Last dispatched: Never";
+    }
+}
+
+async function saveDailyWrapupSettingsAuto(showFeedback = false) {
+    const enabled = document.getElementById('wrapup-enabled')?.checked;
+    const time = document.getElementById('wrapup-time')?.value || "16:30";
+    const persona = document.getElementById('wrapup-persona')?.value || "institutional";
+    const include_events = document.getElementById('wrapup-include-events')?.checked;
+    const include_deals = document.getElementById('wrapup-include-deals')?.checked;
+    const include_sentiment = document.getElementById('wrapup-include-sentiment')?.checked;
+    const include_breakouts = document.getElementById('wrapup-include-breakouts')?.checked;
+
+    const payload = { enabled, time, persona, include_events, include_deals, include_sentiment, include_breakouts };
+    try {
+        localStorage.setItem('daily_wrapup_settings_cache', JSON.stringify(payload));
+    } catch (e) {}
+
+    try {
+        const response = await fetch('/api/alerts/daily-wrapup/settings', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+        if (response.ok && showFeedback) {
+            showToast("Daily Wrap-Up settings updated successfully.", "success");
+        }
+    } catch (err) {
+        console.error("Auto-save daily wrap-up error:", err);
+    }
+}
+
 async function fetchDailyWrapupSettings() {
+    try {
+        const cached = localStorage.getItem('daily_wrapup_settings_cache');
+        if (cached) {
+            applyDailyWrapupDataToUI(JSON.parse(cached));
+        }
+    } catch (e) {}
+
     try {
         const response = await fetch('/api/alerts/daily-wrapup/settings');
         if (!response.ok) return;
         const data = await response.json();
-
-        const enabledChkbx = document.getElementById('wrapup-enabled');
-        const timeInput = document.getElementById('wrapup-time');
-        const personaSelect = document.getElementById('wrapup-persona');
-        const lastSentLbl = document.getElementById('wrapup-last-sent-lbl');
-        const includeEventsChkbx = document.getElementById('wrapup-include-events');
-        const includeDealsChkbx = document.getElementById('wrapup-include-deals');
-        const includeSentimentChkbx = document.getElementById('wrapup-include-sentiment');
-        const includeBreakoutsChkbx = document.getElementById('wrapup-include-breakouts');
-
-        if (enabledChkbx) enabledChkbx.checked = data.enabled;
-        if (timeInput) timeInput.value = data.time;
-        if (personaSelect) personaSelect.value = data.persona;
-        if (includeEventsChkbx) includeEventsChkbx.checked = data.include_events;
-        if (includeDealsChkbx) includeDealsChkbx.checked = data.include_deals;
-        if (includeSentimentChkbx) includeSentimentChkbx.checked = data.include_sentiment !== false;
-        if (includeBreakoutsChkbx) includeBreakoutsChkbx.checked = data.include_breakouts !== false;
-        if (lastSentLbl) {
-            lastSentLbl.textContent = data.last_sent ? `Last dispatched: ${data.last_sent}` : "Last dispatched: Never";
-        }
+        applyDailyWrapupDataToUI(data);
+        try {
+            localStorage.setItem('daily_wrapup_settings_cache', JSON.stringify(data));
+        } catch (e) {}
     } catch (err) {
         console.error("Failed to fetch daily wrap-up settings:", err);
     }
 }
 
 function setupDailyWrapupListeners() {
+    const ids = ['wrapup-enabled', 'wrapup-time', 'wrapup-persona', 'wrapup-include-events', 'wrapup-include-deals', 'wrapup-include-sentiment', 'wrapup-include-breakouts'];
+    ids.forEach(id => {
+        const el = document.getElementById(id);
+        if (el && !el.dataset.autoBound) {
+            el.dataset.autoBound = 'true';
+            el.addEventListener('change', () => saveDailyWrapupSettingsAuto(false));
+        }
+    });
+
     const saveBtn = document.getElementById('save-wrapup-settings-btn');
     if (saveBtn && !saveBtn.dataset.bound) {
         saveBtn.dataset.bound = 'true';
         saveBtn.addEventListener('click', async () => {
-            const enabled = document.getElementById('wrapup-enabled')?.checked;
-            const time = document.getElementById('wrapup-time')?.value;
-            const persona = document.getElementById('wrapup-persona')?.value;
-            const include_events = document.getElementById('wrapup-include-events')?.checked;
-            const include_deals = document.getElementById('wrapup-include-deals')?.checked;
-            const include_sentiment = document.getElementById('wrapup-include-sentiment')?.checked;
-            const include_breakouts = document.getElementById('wrapup-include-breakouts')?.checked;
-
-            if (!time) {
-                showToast("Please select a valid dispatch time.", "error");
-                return;
-            }
-
-            try {
-                const response = await fetch('/api/alerts/daily-wrapup/settings', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ enabled, time, persona, include_events, include_deals, include_sentiment, include_breakouts })
-                });
-
-                if (response.ok) {
-                    showToast("Daily Wrap-Up settings updated successfully.", "success");
-                    await fetchDailyWrapupSettings();
-                } else {
-                    showToast("Failed to save wrap-up settings.", "error");
-                }
-            } catch (err) {
-                console.error("Error saving wrap-up settings:", err);
-                showToast("Error updating wrap-up settings.", "error");
-            }
+            await saveDailyWrapupSettingsAuto(true);
         });
     }
 
@@ -12790,69 +12812,96 @@ function setupDailyWrapupListeners() {
     }
 }
 
+function applyWeeklyWrapupDataToUI(data) {
+    if (!data) return;
+    const enabledChkbx = document.getElementById('weekly-wrapup-enabled');
+    const dayTimeSelect = document.getElementById('weekly-wrapup-day-time');
+    const personaSelect = document.getElementById('weekly-wrapup-persona');
+    const lastSentLbl = document.getElementById('weekly-wrapup-last-sent-lbl');
+    const includePortfolioChkbx = document.getElementById('weekly-wrapup-include-portfolio');
+    const includeSectorsChkbx = document.getElementById('weekly-wrapup-include-sectors');
+    const includeEventsChkbx = document.getElementById('weekly-wrapup-include-events');
+    const includeBreakoutsChkbx = document.getElementById('weekly-wrapup-include-breakouts');
+
+    if (enabledChkbx) enabledChkbx.checked = !!data.enabled;
+    if (dayTimeSelect && data.day && data.time) dayTimeSelect.value = `${data.day} ${data.time}`;
+    if (personaSelect && data.persona) personaSelect.value = data.persona;
+    if (includePortfolioChkbx) includePortfolioChkbx.checked = data.include_portfolio !== false;
+    if (includeSectorsChkbx) includeSectorsChkbx.checked = data.include_sectors !== false;
+    if (includeEventsChkbx) includeEventsChkbx.checked = data.include_events !== false;
+    if (includeBreakoutsChkbx) includeBreakoutsChkbx.checked = data.include_breakouts !== false;
+    if (lastSentLbl) {
+        lastSentLbl.textContent = data.last_sent ? `Last dispatched: ${data.last_sent}` : "Last dispatched: Never";
+    }
+}
+
+async function saveWeeklyWrapupSettingsAuto(showFeedback = false) {
+    const enabled = document.getElementById('weekly-wrapup-enabled')?.checked;
+    const dayTimeVal = document.getElementById('weekly-wrapup-day-time')?.value || "Saturday 10:00";
+    const parts = dayTimeVal.split(' ');
+    const day = parts[0] || "Saturday";
+    const time = parts[1] || "10:00";
+    const persona = document.getElementById('weekly-wrapup-persona')?.value || "Institutional Analyst";
+    const include_portfolio = document.getElementById('weekly-wrapup-include-portfolio')?.checked;
+    const include_sectors = document.getElementById('weekly-wrapup-include-sectors')?.checked;
+    const include_events = document.getElementById('weekly-wrapup-include-events')?.checked;
+    const include_breakouts = document.getElementById('weekly-wrapup-include-breakouts')?.checked;
+
+    const payload = { enabled, day, time, persona, include_portfolio, include_sectors, include_events, include_breakouts };
+    try {
+        localStorage.setItem('weekly_wrapup_settings_cache', JSON.stringify(payload));
+    } catch (e) {}
+
+    try {
+        const response = await fetch('/api/alerts/weekly-wrapup/settings', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+        if (response.ok && showFeedback) {
+            showToast("Weekly Wrap-Up schedule settings saved successfully.", "success");
+        }
+    } catch (err) {
+        console.error("Auto-save weekly wrap-up error:", err);
+    }
+}
+
 async function fetchWeeklyWrapupSettings() {
+    try {
+        const cached = localStorage.getItem('weekly_wrapup_settings_cache');
+        if (cached) {
+            applyWeeklyWrapupDataToUI(JSON.parse(cached));
+        }
+    } catch (e) {}
+
     try {
         const response = await fetch('/api/alerts/weekly-wrapup/settings');
         if (!response.ok) return;
         const data = await response.json();
-
-        const enabledChkbx = document.getElementById('weekly-wrapup-enabled');
-        const dayTimeSelect = document.getElementById('weekly-wrapup-day-time');
-        const personaSelect = document.getElementById('weekly-wrapup-persona');
-        const lastSentLbl = document.getElementById('weekly-wrapup-last-sent-lbl');
-        const includePortfolioChkbx = document.getElementById('weekly-wrapup-include-portfolio');
-        const includeSectorsChkbx = document.getElementById('weekly-wrapup-include-sectors');
-        const includeEventsChkbx = document.getElementById('weekly-wrapup-include-events');
-        const includeBreakoutsChkbx = document.getElementById('weekly-wrapup-include-breakouts');
-
-        if (enabledChkbx) enabledChkbx.checked = !!data.enabled;
-        if (dayTimeSelect && data.day && data.time) dayTimeSelect.value = `${data.day} ${data.time}`;
-        if (personaSelect && data.persona) personaSelect.value = data.persona;
-        if (includePortfolioChkbx) includePortfolioChkbx.checked = data.include_portfolio !== false;
-        if (includeSectorsChkbx) includeSectorsChkbx.checked = data.include_sectors !== false;
-        if (includeEventsChkbx) includeEventsChkbx.checked = data.include_events !== false;
-        if (includeBreakoutsChkbx) includeBreakoutsChkbx.checked = data.include_breakouts !== false;
-        if (lastSentLbl) {
-            lastSentLbl.textContent = data.last_sent ? `Last dispatched: ${data.last_sent}` : "Last dispatched: Never";
-        }
+        applyWeeklyWrapupDataToUI(data);
+        try {
+            localStorage.setItem('weekly_wrapup_settings_cache', JSON.stringify(data));
+        } catch (e) {}
     } catch (err) {
         console.error("Failed to fetch weekly wrap-up settings:", err);
     }
 }
 
 function setupWeeklyWrapupListeners() {
+    const ids = ['weekly-wrapup-enabled', 'weekly-wrapup-day-time', 'weekly-wrapup-persona', 'weekly-wrapup-include-portfolio', 'weekly-wrapup-include-sectors', 'weekly-wrapup-include-events', 'weekly-wrapup-include-breakouts'];
+    ids.forEach(id => {
+        const el = document.getElementById(id);
+        if (el && !el.dataset.autoBound) {
+            el.dataset.autoBound = 'true';
+            el.addEventListener('change', () => saveWeeklyWrapupSettingsAuto(false));
+        }
+    });
+
     const saveBtn = document.getElementById('save-weekly-wrapup-settings-btn');
     if (saveBtn && !saveBtn.dataset.bound) {
         saveBtn.dataset.bound = 'true';
         saveBtn.addEventListener('click', async () => {
-            const enabled = document.getElementById('weekly-wrapup-enabled')?.checked;
-            const dayTimeVal = document.getElementById('weekly-wrapup-day-time')?.value || "Saturday 10:00";
-            const parts = dayTimeVal.split(' ');
-            const day = parts[0] || "Saturday";
-            const time = parts[1] || "10:00";
-            const persona = document.getElementById('weekly-wrapup-persona')?.value || "Institutional Analyst";
-            const include_portfolio = document.getElementById('weekly-wrapup-include-portfolio')?.checked;
-            const include_sectors = document.getElementById('weekly-wrapup-include-sectors')?.checked;
-            const include_events = document.getElementById('weekly-wrapup-include-events')?.checked;
-            const include_breakouts = document.getElementById('weekly-wrapup-include-breakouts')?.checked;
-
-            try {
-                const response = await fetch('/api/alerts/weekly-wrapup/settings', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ enabled, day, time, persona, include_portfolio, include_sectors, include_events, include_breakouts })
-                });
-
-                if (response.ok) {
-                    showToast("Weekly Wrap-Up schedule settings saved successfully.", "success");
-                    await fetchWeeklyWrapupSettings();
-                } else {
-                    showToast("Failed to save weekly wrap-up settings.", "error");
-                }
-            } catch (err) {
-                console.error("Error saving weekly wrap-up settings:", err);
-                showToast("Error updating weekly wrap-up settings.", "error");
-            }
+            await saveWeeklyWrapupSettingsAuto(true);
         });
     }
 

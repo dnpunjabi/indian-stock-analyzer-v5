@@ -565,11 +565,13 @@ def init_db():
             
         # Seed default WhatsApp daily wrap up configurations
         try:
-            cursor.execute("INSERT OR IGNORE INTO alert_settings (key, value) VALUES ('daily_wrapup_enabled', 'true')")
-            cursor.execute("INSERT OR IGNORE INTO alert_settings (key, value) VALUES ('daily_wrapup_time', '16:00')")
+            cursor.execute("INSERT OR IGNORE INTO alert_settings (key, value) VALUES ('daily_wrapup_enabled', 'false')")
+            cursor.execute("INSERT OR IGNORE INTO alert_settings (key, value) VALUES ('daily_wrapup_time', '16:30')")
             cursor.execute("INSERT OR IGNORE INTO alert_settings (key, value) VALUES ('daily_wrapup_persona', 'institutional')")
             cursor.execute("INSERT OR IGNORE INTO alert_settings (key, value) VALUES ('daily_wrapup_include_events', 'true')")
             cursor.execute("INSERT OR IGNORE INTO alert_settings (key, value) VALUES ('daily_wrapup_include_deals', 'true')")
+            cursor.execute("INSERT OR IGNORE INTO alert_settings (key, value) VALUES ('daily_wrapup_include_sentiment', 'true')")
+            cursor.execute("INSERT OR IGNORE INTO alert_settings (key, value) VALUES ('daily_wrapup_include_breakouts', 'true')")
         except Exception as e:
             print(f"Error seeding daily wrap up configurations: {e}")
             
@@ -6426,8 +6428,8 @@ async def test_whatsapp():
 @app.get("/api/alerts/daily-wrapup/settings")
 async def get_daily_wrapup_settings():
     """Returns WhatsApp Daily Wrap-Up schedule and activation settings."""
-    enabled = "true"
-    trigger_time = "16:00"
+    enabled = "false"
+    trigger_time = "16:30"
     persona = "institutional"
     last_sent = ""
     include_events = "true"
@@ -6539,14 +6541,18 @@ async def trigger_daily_wrapup(payload: Optional[dict] = None):
 @app.get("/api/alerts/weekly-wrapup/settings")
 async def get_weekly_wrapup_settings_route():
     """Returns WhatsApp Weekly Market & Portfolio Wrap-Up schedule and activation settings."""
-    from backend.weekly_wrapup import get_weekly_wrapup_settings
-    return get_weekly_wrapup_settings()
+    import importlib
+    import backend.weekly_wrapup as ww
+    importlib.reload(ww)
+    return ww.get_weekly_wrapup_settings()
 
 @app.post("/api/alerts/weekly-wrapup/settings")
 async def save_weekly_wrapup_settings_route(payload: dict):
     """Updates weekly wrap-up schedule and activation state in SQLite."""
-    from backend.weekly_wrapup import save_weekly_wrapup_settings
-    success = save_weekly_wrapup_settings(payload)
+    import importlib
+    import backend.weekly_wrapup as ww
+    importlib.reload(ww)
+    success = ww.save_weekly_wrapup_settings(payload)
     if not success:
         raise HTTPException(status_code=500, detail="Failed to save weekly wrap-up settings")
     return {"status": "success"}
@@ -6554,9 +6560,11 @@ async def save_weekly_wrapup_settings_route(payload: dict):
 @app.post("/api/alerts/weekly-wrapup/trigger")
 async def trigger_weekly_wrapup_route(payload: Optional[dict] = None):
     """Manually compiles the weekly market & portfolio wrap-up summary and dispatches to WhatsApp."""
-    from backend.weekly_wrapup import trigger_weekly_wrapup
+    import importlib
+    import backend.weekly_wrapup as ww
+    importlib.reload(ww)
     persona = payload.get("persona") if payload else None
-    res = await trigger_weekly_wrapup(on_demand=True, persona=persona)
+    res = await ww.trigger_weekly_wrapup(on_demand=True, persona=persona)
     return res
 
 @app.delete("/api/alerts/{alert_id}")
@@ -8644,6 +8652,8 @@ async def sweep_watchlist_custom_alerts():
         except Exception as item_err:
             print(f"Error evaluating custom watchlist alert for item {item.get('symbol')}: {item_err}")
 
+
+_fuzzy_whatsapp_sent_cache: Dict[str, str] = {}
 
 async def check_fuzzy_watchlist_whatsapp_alerts():
     """
