@@ -1036,20 +1036,6 @@ async def generate_daily_wrapup_text(persona_override: str = None, is_weekly_ove
         print(f"Daily Wrap-up AI commentary failed: {ai_err}")
         ai_commentary = "Market closed with standard distributions. Rebalancing and sector rotation remained active within structural bands."
 
-    # 8.5 Gather FII/DII cash flows
-    fii_dii = fetch_fii_dii_daily_flows()
-    fii_dii_str = ""
-    if fii_dii.get("active"):
-        fii_sign = "+" if fii_dii['fii_net'] >= 0 else ""
-        dii_sign = "+" if fii_dii['dii_net'] >= 0 else ""
-        fii_label = "Net Buyers" if fii_dii['fii_net'] >= 0 else "Net Sellers"
-        dii_label = "Net Buyers" if fii_dii['dii_net'] >= 0 else "Net Sellers"
-        fii_dii_str = (
-            f"🏛️ *FII / DII INSTITUTIONAL FLOWS*\n"
-            f"• FII Net Activity: `{fii_sign}₹{fii_dii['fii_net']:,.2f} Cr` ({fii_label})\n"
-            f"• DII Net Activity: `{dii_sign}₹{fii_dii['dii_net']:,.2f} Cr` ({dii_label})\n\n"
-        )
-
     # 9. Assemble final WhatsApp payload
     today_date = datetime.now().strftime("%B %d, %Y")
     is_saturday = (datetime.now().weekday() == 5) or is_weekly_override
@@ -1066,8 +1052,6 @@ async def generate_daily_wrapup_text(persona_override: str = None, is_weekly_ove
         f"📊 *1. KEY MARKET INDICES*\n"
         f"{indices_str}"
         f"{breadth_str}\n\n"
-        
-        f"{fii_dii_str}"
         
         f"💼 *2. PORTFOLIO DAILY STATUS*\n"
         f"{port_str}\n"
