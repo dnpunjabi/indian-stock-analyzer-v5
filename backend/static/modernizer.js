@@ -7150,10 +7150,23 @@
 
     // ==================== MULTI-AGENT AI CONFLUENCE RADAR CHART ====================
     window.drawAIRadarChart = function(scores) {
+        if (scores && Array.isArray(scores)) {
+            window._lastRadarScores = scores;
+        } else if (window._lastRadarScores) {
+            scores = window._lastRadarScores;
+        } else {
+            scores = [60, 60, 60, 60, 60];
+        }
+
         const canvas = document.getElementById('ai-radar-canvas');
         if (!canvas) return;
         const ctx = canvas.getContext('2d');
         if (!ctx) return;
+
+        const isLight = document.body.classList.contains('light-theme') || 
+                        document.body.classList.contains('light-mode') || 
+                        document.documentElement.getAttribute('data-theme') === 'light' || 
+                        document.documentElement.getAttribute('data-mode') === 'light';
 
         // Clear canvas
         ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -7167,8 +7180,13 @@
         const numAxes = 5;
         const labels = ["Technical", "Forensic", "Intrinsic", "Industry", "Flow"];
 
+        // Colors for Light vs Dark
+        const gridColor = isLight ? 'rgba(15, 23, 42, 0.22)' : 'rgba(255, 255, 255, 0.12)';
+        const axisColor = isLight ? 'rgba(15, 23, 42, 0.35)' : 'rgba(255, 255, 255, 0.22)';
+        const labelColor = isLight ? '#0f172a' : 'rgba(255, 255, 255, 0.75)';
+
         // Draw grid lines
-        ctx.strokeStyle = 'rgba(255, 255, 255, 0.08)';
+        ctx.strokeStyle = gridColor;
         ctx.lineWidth = 1;
         for (let r = 1; r <= 4; r++) {
             const radius = (r / 4) * maxRadius;
@@ -7185,7 +7203,7 @@
         }
 
         // Draw axes
-        ctx.strokeStyle = 'rgba(255, 255, 255, 0.15)';
+        ctx.strokeStyle = axisColor;
         for (let i = 0; i < numAxes; i++) {
             const angle = (i * 2 * Math.PI) / numAxes - Math.PI / 2;
             const x = centerX + maxRadius * Math.cos(angle);
@@ -7196,8 +7214,8 @@
             ctx.stroke();
 
             // Label rendering
-            ctx.fillStyle = 'rgba(255, 255, 255, 0.55)';
-            ctx.font = '7.5px sans-serif';
+            ctx.fillStyle = labelColor;
+            ctx.font = isLight ? 'bold 8.5px Inter, sans-serif' : '7.5px sans-serif';
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
             const labelX = centerX + (maxRadius + 14) * Math.cos(angle);
@@ -7206,8 +7224,8 @@
         }
 
         // Draw scores polygon
-        ctx.strokeStyle = 'rgba(59, 130, 246, 0.85)';
-        ctx.fillStyle = 'rgba(59, 130, 246, 0.2)';
+        ctx.strokeStyle = isLight ? '#2563eb' : 'rgba(59, 130, 246, 0.85)';
+        ctx.fillStyle = isLight ? 'rgba(37, 99, 235, 0.25)' : 'rgba(59, 130, 246, 0.2)';
         ctx.lineWidth = 2;
         ctx.beginPath();
         for (let i = 0; i < numAxes; i++) {
@@ -7224,7 +7242,7 @@
         ctx.stroke();
 
         // Draw points
-        ctx.fillStyle = '#3b82f6';
+        ctx.fillStyle = isLight ? '#1d4ed8' : '#3b82f6';
         for (let i = 0; i < numAxes; i++) {
             const score = scores[i] || 50;
             const radius = (score / 100) * maxRadius;

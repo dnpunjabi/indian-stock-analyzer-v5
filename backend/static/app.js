@@ -5698,10 +5698,10 @@ function renderPeersTable(peersList) {
         }
 
         tr.innerHTML = `
-            <td style="position: sticky; left: 0; z-index: 20; background: #0d1117 !important; background-color: #0d1117 !important; opacity: 1 !important; border-right: 1px solid var(--border-glass); text-align: left; white-space: nowrap; min-width: 175px; max-width: 240px; width: 185px; padding: 8px 10px; font-family: 'Outfit', sans-serif; box-shadow: 4px 0 12px rgba(0,0,0,0.75);">
+            <td class="sticky-peer-col" style="position: sticky; left: 0; z-index: 20; border-right: 1px solid var(--border-glass); text-align: left; white-space: nowrap; min-width: 175px; max-width: 240px; width: 185px; padding: 8px 10px; font-family: 'Outfit', sans-serif;">
                 <div style="display: flex; align-items: center; gap: 8px; white-space: nowrap;">
                     <input type="checkbox" class="peer-select-checkbox" data-ticker="${name}" checked style="cursor: pointer; transform: scale(1.15); flex-shrink: 0;">
-                    <strong class="peer-name-click" style="color: var(--neon-blue); cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="Click to load workspace for this peer company">${name}</strong>
+                    <strong class="peer-name-click" style="cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="Click to load workspace for this peer company">${name}</strong>
                 </div>
             </td>
             <td style="${getCellColor(pe, peBounds, true)}">${pe}</td>
@@ -8181,6 +8181,62 @@ function renderStockDashboard(p) {
         crossLongEl.style.color = p.technicals.crossover_long === "Bullish" ? "var(--neon-green)" : "var(--neon-red)";
     }
 
+    // Helper for high-contrast Momentum Oscillator badges in Dark & Light modes
+    function setOscillatorBadgeStyle(el, type, text) {
+        if (!el) return;
+        if (text) el.innerText = text;
+        const normalizedType = (type === 'bullish' ? 'green' : type === 'bearish' ? 'red' : type) || 'neutral';
+        el.dataset.badgeType = normalizedType;
+        el.classList.remove('badge-green', 'badge-red', 'badge-neutral');
+        el.classList.add('badge-' + normalizedType);
+
+        const isLight = document.documentElement.getAttribute('data-mode') === 'light' || 
+                        document.documentElement.getAttribute('data-theme') === 'light' || 
+                        document.body.getAttribute('data-theme') === 'light' || 
+                        document.body.getAttribute('data-mode') === 'light' || 
+                        document.body.classList.contains('light-theme') ||
+                        document.body.classList.contains('light-mode');
+        
+        if (normalizedType === 'green') {
+            el.style.setProperty('background', isLight ? "#d1fae5" : "rgba(16, 185, 129, 0.2)", 'important');
+            el.style.setProperty('color', isLight ? "#065f46" : "#34d399", 'important');
+            el.style.setProperty('border', isLight ? "1px solid #a7f3d0" : "1px solid rgba(16, 185, 129, 0.4)", 'important');
+        } else if (normalizedType === 'red') {
+            el.style.setProperty('background', isLight ? "#fee2e2" : "rgba(239, 68, 68, 0.2)", 'important');
+            el.style.setProperty('color', isLight ? "#991b1b" : "#f87171", 'important');
+            el.style.setProperty('border', isLight ? "1px solid #fca5a5" : "1px solid rgba(239, 68, 68, 0.4)", 'important');
+        } else {
+            el.style.setProperty('background', isLight ? "#e2e8f0" : "rgba(148, 163, 184, 0.2)", 'important');
+            el.style.setProperty('color', isLight ? "#1e293b" : "#e2e8f0", 'important');
+            el.style.setProperty('border', isLight ? "1px solid #cbd5e1" : "1px solid rgba(255, 255, 255, 0.2)", 'important');
+        }
+    }
+    window.setOscillatorBadgeStyle = setOscillatorBadgeStyle;
+
+    window.updateMomentumOscillatorsBadgeTheme = function() {
+        const badgeIds = ['tech-macd-status', 'tech-stoch-status', 'tech-roc-status', 'tech-cci-status', 'tech-willr-status', 'tech-mfi-status', 'tech-adx-status', 'tech-rsc-status'];
+        badgeIds.forEach(id => {
+            const el = document.getElementById(id);
+            if (el && el.dataset.badgeType) {
+                setOscillatorBadgeStyle(el, el.dataset.badgeType);
+            }
+        });
+    };
+
+    // MutationObserver to auto-update oscillator badges when dark/light mode toggles
+    try {
+        if (!window._oscillatorThemeObserverInitialized) {
+            window._oscillatorThemeObserverInitialized = true;
+            const themeObserver = new MutationObserver(() => {
+                if (typeof window.updateMomentumOscillatorsBadgeTheme === 'function') {
+                    window.updateMomentumOscillatorsBadgeTheme();
+                }
+            });
+            themeObserver.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme', 'data-mode', 'class'] });
+            themeObserver.observe(document.body, { attributes: true, attributeFilter: ['data-theme', 'data-mode', 'class'] });
+        }
+    } catch(e) {}
+
     // Render Momentum Oscillators dashboard
     const macdValEl = document.getElementById('tech-macd-val');
     const macdStatusEl = document.getElementById('tech-macd-status');
@@ -8188,26 +8244,21 @@ function renderStockDashboard(p) {
         macdValEl.innerText = p.technicals.macd.toFixed(2);
         if (macdStatusEl) {
             const isBullish = p.technicals.macd_hist > 0;
-            macdStatusEl.innerText = isBullish ? "BULLISH" : "BEARISH";
-            macdStatusEl.style.background = isBullish ? "rgba(16, 185, 129, 0.2)" : "rgba(239, 68, 68, 0.2)";
-            macdStatusEl.style.color = isBullish ? "#34d399" : "#f87171";
-            macdStatusEl.style.border = isBullish ? "1px solid rgba(16, 185, 129, 0.4)" : "1px solid rgba(239, 68, 68, 0.4)";
+            setOscillatorBadgeStyle(macdStatusEl, isBullish ? 'green' : 'red', isBullish ? "BULLISH" : "BEARISH");
         }
     }
 
     const stochValEl = document.getElementById('tech-stoch-val');
     const stochStatusEl = document.getElementById('tech-stoch-status');
+
     if (stochValEl && p.technicals && p.technicals.stoch_k !== undefined) {
         stochValEl.innerText = `${p.technicals.stoch_k.toFixed(1)} / ${p.technicals.stoch_d.toFixed(1)}`;
         if (stochStatusEl) {
             const rawStatus = p.technicals.stoch_status || 'Neutral';
-            stochStatusEl.innerText = rawStatus.toUpperCase();
-            let bg = 'rgba(148, 163, 184, 0.2)', fg = '#e2e8f0', border = '1px solid rgba(255, 255, 255, 0.2)';
-            if (rawStatus === "Overbought") { bg = "rgba(239, 68, 68, 0.2)"; fg = "#f87171"; border = "1px solid rgba(239, 68, 68, 0.4)"; }
-            else if (rawStatus === "Oversold") { bg = "rgba(16, 185, 129, 0.2)"; fg = "#34d399"; border = "1px solid rgba(16, 185, 129, 0.4)"; }
-            stochStatusEl.style.background = bg;
-            stochStatusEl.style.color = fg;
-            stochStatusEl.style.border = border;
+            let badgeType = 'neutral';
+            if (rawStatus === "Overbought") badgeType = 'red';
+            else if (rawStatus === "Oversold") badgeType = 'green';
+            setOscillatorBadgeStyle(stochStatusEl, badgeType, rawStatus.toUpperCase());
         }
     }
 
@@ -8218,10 +8269,7 @@ function renderStockDashboard(p) {
         if (rocStatusEl) {
             const rawStatus = p.technicals.roc_status || (p.technicals.roc_20 >= 0 ? 'Bullish' : 'Bearish');
             const isBullish = rawStatus === "Bullish";
-            rocStatusEl.innerText = rawStatus.toUpperCase();
-            rocStatusEl.style.background = isBullish ? "rgba(16, 185, 129, 0.2)" : "rgba(239, 68, 68, 0.2)";
-            rocStatusEl.style.color = isBullish ? "#34d399" : "#f87171";
-            rocStatusEl.style.border = isBullish ? "1px solid rgba(16, 185, 129, 0.4)" : "1px solid rgba(239, 68, 68, 0.4)";
+            setOscillatorBadgeStyle(rocStatusEl, isBullish ? 'green' : 'red', rawStatus.toUpperCase());
         }
     }
 
@@ -8231,13 +8279,10 @@ function renderStockDashboard(p) {
         cciValEl.innerText = p.technicals.cci_20.toFixed(1);
         if (cciStatusEl) {
             const rawStatus = p.technicals.cci_status || 'Neutral';
-            cciStatusEl.innerText = rawStatus.toUpperCase();
-            let bg = 'rgba(148, 163, 184, 0.2)', fg = '#e2e8f0', border = '1px solid rgba(255, 255, 255, 0.2)';
-            if (rawStatus === "Overbought") { bg = "rgba(239, 68, 68, 0.2)"; fg = "#f87171"; border = "1px solid rgba(239, 68, 68, 0.4)"; }
-            else if (rawStatus === "Oversold") { bg = "rgba(16, 185, 129, 0.2)"; fg = "#34d399"; border = "1px solid rgba(16, 185, 129, 0.4)"; }
-            cciStatusEl.style.background = bg;
-            cciStatusEl.style.color = fg;
-            cciStatusEl.style.border = border;
+            let badgeType = 'neutral';
+            if (rawStatus === "Overbought") badgeType = 'red';
+            else if (rawStatus === "Oversold") badgeType = 'green';
+            setOscillatorBadgeStyle(cciStatusEl, badgeType, rawStatus.toUpperCase());
         }
     }
 
@@ -8247,13 +8292,10 @@ function renderStockDashboard(p) {
         willrValEl.innerText = p.technicals.will_r_14.toFixed(1);
         if (willrStatusEl) {
             const rawStatus = p.technicals.will_r_status || 'Neutral';
-            willrStatusEl.innerText = rawStatus.toUpperCase();
-            let bg = 'rgba(148, 163, 184, 0.2)', fg = '#e2e8f0', border = '1px solid rgba(255, 255, 255, 0.2)';
-            if (rawStatus === "Overbought") { bg = "rgba(239, 68, 68, 0.2)"; fg = "#f87171"; border = "1px solid rgba(239, 68, 68, 0.4)"; }
-            else if (rawStatus === "Oversold") { bg = "rgba(16, 185, 129, 0.2)"; fg = "#34d399"; border = "1px solid rgba(16, 185, 129, 0.4)"; }
-            willrStatusEl.style.background = bg;
-            willrStatusEl.style.color = fg;
-            willrStatusEl.style.border = border;
+            let badgeType = 'neutral';
+            if (rawStatus === "Overbought") badgeType = 'red';
+            else if (rawStatus === "Oversold") badgeType = 'green';
+            setOscillatorBadgeStyle(willrStatusEl, badgeType, rawStatus.toUpperCase());
         }
     }
 
@@ -8263,13 +8305,10 @@ function renderStockDashboard(p) {
         mfiValEl.innerText = p.technicals.mfi_14.toFixed(1);
         if (mfiStatusEl) {
             const rawStatus = p.technicals.mfi_status || 'Neutral';
-            mfiStatusEl.innerText = rawStatus.toUpperCase();
-            let bg = 'rgba(148, 163, 184, 0.2)', fg = '#e2e8f0', border = '1px solid rgba(255, 255, 255, 0.2)';
-            if (rawStatus === "Overbought") { bg = "rgba(239, 68, 68, 0.2)"; fg = "#f87171"; border = "1px solid rgba(239, 68, 68, 0.4)"; }
-            else if (rawStatus === "Oversold") { bg = "rgba(16, 185, 129, 0.2)"; fg = "#34d399"; border = "1px solid rgba(16, 185, 129, 0.4)"; }
-            mfiStatusEl.style.background = bg;
-            mfiStatusEl.style.color = fg;
-            mfiStatusEl.style.border = border;
+            let badgeType = 'neutral';
+            if (rawStatus === "Overbought") badgeType = 'red';
+            else if (rawStatus === "Oversold") badgeType = 'green';
+            setOscillatorBadgeStyle(mfiStatusEl, badgeType, rawStatus.toUpperCase());
         }
     }
 
@@ -8279,13 +8318,10 @@ function renderStockDashboard(p) {
         adxValEl.innerText = p.technicals.adx.toFixed(1);
         if (adxStatusEl) {
             const rawStatus = (p.technicals.adx_status || 'Weak Trend').toUpperCase();
-            adxStatusEl.innerText = rawStatus;
-            let bg = 'rgba(148, 163, 184, 0.2)', fg = '#e2e8f0', border = '1px solid rgba(255, 255, 255, 0.2)';
-            if (rawStatus.includes("STRONG")) { bg = "rgba(16, 185, 129, 0.2)"; fg = "#34d399"; border = "1px solid rgba(16, 185, 129, 0.4)"; }
-            else if (rawStatus.includes("WEAK")) { bg = "rgba(239, 68, 68, 0.15)"; fg = "#f87171"; border = "1px solid rgba(239, 68, 68, 0.3)"; }
-            adxStatusEl.style.background = bg;
-            adxStatusEl.style.color = fg;
-            adxStatusEl.style.border = border;
+            let badgeType = 'neutral';
+            if (rawStatus.includes("STRONG")) badgeType = 'green';
+            else if (rawStatus.includes("WEAK")) badgeType = 'red';
+            setOscillatorBadgeStyle(adxStatusEl, badgeType, rawStatus);
         }
     }
 
@@ -8296,10 +8332,7 @@ function renderStockDashboard(p) {
         rscValEl.innerText = `${sign}${p.technicals.rsc_6m.toFixed(1)}%`;
         if (rscStatusEl) {
             const isOutperformer = p.technicals.rsc_6m >= 0;
-            rscStatusEl.innerText = isOutperformer ? "OUTPERFORMER" : "UNDERPERFORMER";
-            rscStatusEl.style.background = isOutperformer ? "rgba(16, 185, 129, 0.2)" : "rgba(239, 68, 68, 0.2)";
-            rscStatusEl.style.color = isOutperformer ? "#34d399" : "#f87171";
-            rscStatusEl.style.border = isOutperformer ? "1px solid rgba(16, 185, 129, 0.4)" : "1px solid rgba(239, 68, 68, 0.4)";
+            setOscillatorBadgeStyle(rscStatusEl, isOutperformer ? 'green' : 'red', isOutperformer ? "OUTPERFORMER" : "UNDERPERFORMER");
         }
     }
 
@@ -11283,7 +11316,7 @@ function renderComparisonArena(data) {
 
     metrics.forEach(m => {
         const tr = document.createElement('tr');
-        tr.innerHTML = `<td style="position: sticky; left: 0; z-index: 20; background: #0d1117 !important; min-width: 175px; max-width: 230px; width: 180px; white-space: nowrap; box-shadow: 4px 0 12px rgba(0,0,0,0.75);"><span class="metric-lead-icon">${m.icon}</span><strong style="white-space: nowrap;">${m.label}</strong></td>`;
+        tr.innerHTML = `<td class="fs-sticky-metric-td" style="position: sticky; left: 0; z-index: 20; min-width: 175px; max-width: 230px; width: 180px; white-space: nowrap;"><span class="metric-lead-icon">${m.icon}</span><strong style="white-space: nowrap;">${m.label}</strong></td>`;
 
         matrix.forEach((item, index) => {
             const val = item[m.key];
@@ -19375,6 +19408,9 @@ function refreshChartThemeColors() {
     }
     if (typeof window.redrawFinancialTrendChart === 'function') {
         window.redrawFinancialTrendChart();
+    }
+    if (typeof window.drawAIRadarChart === 'function') {
+        window.drawAIRadarChart();
     }
 
     // Re-render the advanced TradingView widget if active to match theme toggle
@@ -44490,7 +44526,7 @@ function renderActiveStatementTable() {
     html += '<thead><tr>';
     // Sticky Metric column header
     const firstColTitle = isPeers ? 'Company Name' : 'Metric';
-    html += `<th style="position: sticky; top: 0; left: 0; z-index: 35; background: #0d1117; border-right: 1px solid var(--border-glass); border-bottom: 2px solid var(--border-glass); text-align: left; min-width: 175px; max-width: 240px; width: 185px; white-space: nowrap; font-family: 'Outfit', sans-serif;">${firstColTitle}</th>`;
+    html += `<th class="fs-sticky-metric-hdr" style="position: sticky; top: 0; left: 0; z-index: 35; border-right: 1px solid var(--border-glass); border-bottom: 2px solid var(--border-glass); text-align: left; min-width: 175px; max-width: 240px; width: 185px; white-space: nowrap; font-family: 'Outfit', sans-serif;">${firstColTitle}</th>`;
     
     if (!isPeers) {
         // Trend column header
@@ -44584,7 +44620,7 @@ function renderActiveStatementTable() {
             </div>` : '';
 
         html += `
-            <td class="fs-sticky-metric-td" style="position: sticky; left: 0; z-index: 25; background: #0d1117 !important; background-color: #0d1117 !important; opacity: 1 !important; border-right: 1px solid var(--border-glass); text-align: left; white-space: nowrap; font-family: 'Outfit', sans-serif; box-shadow: 4px 0 12px rgba(0,0,0,0.75);">
+            <td class="fs-sticky-metric-td" style="position: sticky; left: 0; z-index: 25; border-right: 1px solid var(--border-glass); text-align: left; white-space: nowrap; font-family: 'Outfit', sans-serif;">
                 <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px; white-space: nowrap; width: 100%;">
                     <div style="display: flex; flex-direction: column; gap: 2px; overflow: hidden; flex: 1;">
                         <div style="display: flex; align-items: center; gap: 5px; white-space: nowrap;">
