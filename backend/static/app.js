@@ -496,6 +496,7 @@ function connectLiveTicksWS() {
                         (window.Capacitor !== undefined) || 
                         ((location.hostname === 'localhost' || location.hostname === '127.0.0.1' || location.protocol === 'capacitor:') && 
                          (location.port !== '8000' && location.port !== '8001' && location.port !== '8002' && location.port !== '5000'));
+    const protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
     const authToken = localStorage.getItem('server_auth_token');
     let host = isCapacitor ? 'my-stock-advisor.duckdns.org' : location.host;
     if (isCapacitor && authToken) {
