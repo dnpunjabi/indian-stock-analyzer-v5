@@ -38,6 +38,41 @@ import threading
 _profile_cache = TTLCache(maxsize=200, ttl=300)
 _cache_lock = threading.Lock()
 
+SYMBOL_ALIAS_MAP = {
+    "RAJDARSHANINDS.NS": "RAJDARSH.NS",
+    "RAJDARSHANINDS": "RAJDARSH.NS",
+    "JKCEMENTS.NS": "JKCEMENT.NS",
+    "JKCEMENTS": "JKCEMENT.NS",
+    "DALMIABHARATLTD.NS": "DALBHARAT.NS",
+    "DALMIABHARATLTD": "DALBHARAT.NS",
+    "IRBINFRADEVL.NS": "IRB.NS",
+    "IRBINFRADEVL": "IRB.NS",
+    "TILAKNAGARINDS.NS": "TI.NS",
+    "TILAKNAGARINDS": "TI.NS",
+    "BHANSALIENGG.NS": "BEPL.NS",
+    "BHANSALIENGG": "BEPL.NS",
+    "TNPETROPROD.NS": "TNPETRO.NS",
+    "TNPETROPROD": "TNPETRO.NS",
+    "^CNXINFRA": "NIFTY_INFRA.NS",
+}
+
+def normalize_symbol(symbol: str) -> str:
+    """
+    Normalizes stock symbol strings, resolving common misspellings or legacy ticker formats.
+    """
+    if not symbol or not isinstance(symbol, str):
+        return symbol
+    clean = symbol.strip().upper()
+    if clean in SYMBOL_ALIAS_MAP:
+        return SYMBOL_ALIAS_MAP[clean]
+    base = clean.split('.')[0]
+    if base in SYMBOL_ALIAS_MAP:
+        target = SYMBOL_ALIAS_MAP[base]
+        if clean.endswith('.NS') and not target.endswith('.NS') and not target.startswith('^'):
+            return f"{target}.NS"
+        return target
+    return clean
+
 # Centralized Cloudscraper requester session to bypass Cloudflare fingerprints
 _screener_scraper = None
 _scraper_lock = threading.Lock()
@@ -201,6 +236,7 @@ def resolve_company_ticker(query: str) -> dict:
     Resolves a conversational name like 'Reliance Industries' into its standard 
     NSE ticker symbol (e.g. 'RELIANCE.NS') and base symbol ('RELIANCE').
     """
+    query = normalize_symbol(query)
     # Clean common search annotations and suffixes first
     cleaned = query.strip()
     cleaned = re.sub(r'\s*\(\s*(Target|Peer)\s*\)\s*', '', cleaned, flags=re.IGNORECASE)
@@ -484,6 +520,7 @@ def fetch_screener_data(symbol: str) -> dict:
     to extract top ratios, peer groups, and shareholding structures.
     Uses Consolidated view if available to prevent Standalone vs Consolidated mismatches.
     """
+    symbol = normalize_symbol(symbol)
     base_symbol = symbol.split(".")[0].strip().upper()
     headers = {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"

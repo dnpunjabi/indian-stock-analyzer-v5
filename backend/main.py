@@ -740,7 +740,7 @@ def compute_active_holdings(transactions: list) -> list:
 load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), "..", ".env"))
 
 # Import analytical and agent engines
-from backend.financial_utils import get_complete_financial_profile, resolve_company_ticker, calculate_portfolio_backtest, calculate_dcf_valuation
+from backend.financial_utils import get_complete_financial_profile, resolve_company_ticker, calculate_portfolio_backtest, calculate_dcf_valuation, normalize_symbol
 from backend.agent import run_cio_parent_agent, run_ai_stock_screener, run_comparison_synthesizer, run_conversational_chat, run_portfolio_doctor, run_single_stock_audit, generate_backtest_synthesis, calculate_portfolio_taxes
 from backend.llm_config import call_llm, TASK_HEAVY, TASK_FAST, get_llm_config, get_last_llm_meta
 
@@ -9843,7 +9843,7 @@ def compute_stock_trendlyne_metrics(profile, cp_val, added_price, added_date):
 
 @app.post("/api/watchlists/{watchlist_id}/items")
 async def add_watchlist_item(watchlist_id: int, data: WatchlistItemCreate):
-    symbol = data.symbol.strip().upper()
+    symbol = normalize_symbol(data.symbol.strip().upper())
     if not symbol:
         raise HTTPException(status_code=400, detail="Stock symbol is required.")
         
