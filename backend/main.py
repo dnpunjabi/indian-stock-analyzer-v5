@@ -8653,7 +8653,7 @@ async def sweep_watchlist_custom_alerts():
             print(f"Error evaluating custom watchlist alert for item {item.get('symbol')}: {item_err}")
 
 
-_fuzzy_whatsapp_sent_cache: Dict[str, str] = {}
+_fuzzy_whatsapp_sent_cache: dict = {}
 
 async def check_fuzzy_watchlist_whatsapp_alerts():
     """
