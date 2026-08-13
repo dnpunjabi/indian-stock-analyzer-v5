@@ -23395,15 +23395,8 @@ async function renderPortfolioDoctorLedgerContent(portfolioItems, ledgerBody, em
             const target12M = item.target_12m ? safeFormatRupees(item.target_12m, 0) : 'Rs. --';
             const stopLoss12M = item.stop_loss_12m ? safeFormatRupees(item.stop_loss_12m, 0) : 'Rs. --';
 
-            let qtyHTML = '';
-            let priceHTML = '';
-            if (isMultiTranche) {
-                qtyHTML = `<span style="font-weight: 600; color: var(--text-secondary);" title="Aggregated from multiple tranches (Edit in Tax tab)">${safeFormatNumber(qty, 3)} 🔗</span>`;
-                priceHTML = `<span style="font-weight: 600; color: var(--text-secondary);" title="Weighted Average Price">${safeFormatRupees(avgPrice, 2)}</span>`;
-            } else {
-                qtyHTML = `<input type="number" class="portfolio-qty-input" data-id="${item.id}" data-symbol="${item.symbol}" value="${qty}" style="width: 70px; padding: 4px; border-radius:4px; background:rgba(0,0,0,0.3); border:1px solid var(--border-glass); color:#fff; font-size:11px; text-align: right;">`;
-                priceHTML = `<input type="number" class="portfolio-price-input" data-id="${item.id}" data-symbol="${item.symbol}" value="${avgPrice}" style="width: 90px; padding: 4px; border-radius:4px; background:rgba(0,0,0,0.3); border:1px solid var(--border-glass); color:#fff; font-size:11px; text-align: right;">`;
-            }
+            const qtyHTML = `<span style="font-weight: 600; color: var(--text-primary); font-family: 'Inter', monospace;" title="Maintained centrally in Tax & Harvesting ledger">${safeFormatNumber(qty, 3)}</span>`;
+            const priceHTML = `<span style="font-weight: 600; color: var(--text-primary); font-family: 'Inter', monospace;" title="Maintained centrally in Tax & Harvesting ledger">${safeFormatRupees(avgPrice, 2)}</span>`;
 
             tr.innerHTML = `
                 <td style="padding: 10px;">
@@ -23445,9 +23438,6 @@ async function renderPortfolioDoctorLedgerContent(portfolioItems, ledgerBody, em
                 <td style="padding: 10px; text-align: right; color: var(--neon-red); font-weight: 600;">
                     ${stopLoss12M}
                 </td>
-                <td class="no-print" style="padding: 10px; text-align: center;">
-                    <button class="btn-secondary remove-portfolio-ledger-item-btn" data-id="${item.id}" data-symbol="${item.symbol}" style="font-size: 11px; padding: 4px 8px; border-color: rgba(239,68,68,0.25); color: var(--color-crimson); background: rgba(239,68,68,0.03); cursor:pointer; font-weight: 600; border-radius: 4px; transition: all 0.2s;">Remove 🗑️</button>
-                </td>
             `;
 
             // Wire Research Link
@@ -23460,54 +23450,6 @@ async function renderPortfolioDoctorLedgerContent(portfolioItems, ledgerBody, em
                 }
                 switchTab('analyzer');
                 loadStockAnalyzer(sym);
-            });
-
-            // Wire edit listeners if NOT multi-tranche
-            if (!isMultiTranche) {
-                const qtyInput = tr.querySelector('.portfolio-qty-input');
-                const priceInput = tr.querySelector('.portfolio-price-input');
-
-                const saveHoldings = async () => {
-                    const qtyVal = parseFloat(qtyInput.value) || 0.0;
-                    const priceVal = parseFloat(priceInput.value) || 0.0;
-
-                    try {
-                        await fetch(`/api/portfolio/${item.id}`, {
-                            method: 'PUT',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ quantity: qtyVal, purchase_price: priceVal })
-                        });
-                        await loadTaxHarvestingPanel();
-                        await loadPortfolioDoctorLedger(false);
-                    } catch (err) {
-                        console.error("Error saving portfolio holdings:", err);
-                    }
-                };
-
-                qtyInput.addEventListener('change', saveHoldings);
-                qtyInput.addEventListener('blur', saveHoldings);
-                priceInput.addEventListener('change', saveHoldings);
-                priceInput.addEventListener('blur', saveHoldings);
-            }
-
-            // Wire remove button to delete by symbol
-            tr.querySelector('.remove-portfolio-ledger-item-btn').addEventListener('click', async () => {
-                const confirmMsg = isMultiTranche
-                    ? `Remove all tranches of ${item.symbol} from your active diagnostics portfolio?`
-                    : `Remove ${item.symbol} from your active portfolio diagnostics ledger?`;
-                if (!confirm(confirmMsg)) return;
-                if (!confirm(`CONFIRM REMOVAL: Are you absolutely sure?`)) return;
-
-                try {
-                    await fetch(`/api/portfolio/${item.symbol}`, {
-                        method: 'DELETE'
-                    });
-                    showToast(`Removed ${item.symbol} from your portfolio diagnostics ledger.`, "success");
-                    await loadPortfolioDoctorLedger(false);
-                    await loadTaxHarvestingPanel();
-                } catch (err) {
-                    console.error("Error removing stock from ledger:", err);
-                }
             });
 
             ledgerBody.appendChild(tr);
