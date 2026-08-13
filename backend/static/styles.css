@@ -17721,8 +17721,19 @@ html[data-mode="light"] .clickable-price-level:hover {
     position: sticky;
     left: 0;
     z-index: 5;
+    background: #0d1117 !important;
+    background-color: #0d1117 !important;
+    opacity: 1 !important;
     border-right: 1px solid var(--border-glass) !important;
-    box-shadow: 2px 0 5px rgba(0, 0, 0, 0.04);
+    box-shadow: 2px 0 5px rgba(0, 0, 0, 0.4);
+}
+
+[data-theme="light"] .fs-sticky-col,
+[data-mode="light"] .fs-sticky-col,
+body.light-theme .fs-sticky-col {
+    background: #ffffff !important;
+    background-color: #ffffff !important;
+    opacity: 1 !important;
 }
 
 /* ═══════════════════════════════════════════════════════════════════
@@ -18537,25 +18548,32 @@ select option {
     }
 
     /* Tier 2: Sticky Headers (Top=0, z-index=20) for Vertical Scroll */
+    /* Tier 2: Sticky Headers (Top=0, z-index=20) for Vertical Scroll */
     #tab-portfolio .ledger-table-wrap table thead th,
     #tab-watchlist .table-scroll table thead th,
     #financial-statements-table thead th {
         position: sticky !important;
         top: 0 !important;
         z-index: 20 !important;
-        background: #1e293b !important;
-        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3) !important;
+        background: #0d1117 !important;
+        background-color: #0d1117 !important;
+        opacity: 1 !important;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.4) !important;
     }
 
     /* Tier 1: Sticky First Column Data Cells (Left=0, z-index=10) for Horizontal Scroll */
     #tab-watchlist .data-table tbody td:first-child,
     #tab-portfolio .ledger-table-wrap tbody td:first-child,
-    #financial-statements-table tbody tr:not(.fs-cat-header-row) td:first-child {
+    #financial-statements-table tbody tr:not(.fs-cat-header-row) td:first-child,
+    #financial-statements-table tbody td:first-child,
+    .fs-sticky-col {
         position: sticky !important;
         left: 0 !important;
         z-index: 10 !important;
-        background: var(--bg-card, #121826) !important;
-        box-shadow: 4px 0 10px -2px rgba(0, 0, 0, 0.4) !important;
+        background: #0d1117 !important;
+        background-color: #0d1117 !important;
+        opacity: 1 !important;
+        box-shadow: 4px 0 10px -2px rgba(0, 0, 0, 0.5) !important;
         min-width: 150px !important;
         width: 150px !important;
         max-width: 160px !important;
@@ -18572,8 +18590,10 @@ select option {
         top: 0 !important;
         left: 0 !important;
         z-index: 30 !important;
-        background: #1e293b !important;
-        box-shadow: 4px 2px 10px -2px rgba(0, 0, 0, 0.5) !important;
+        background: #0d1117 !important;
+        background-color: #0d1117 !important;
+        opacity: 1 !important;
+        box-shadow: 4px 2px 10px -2px rgba(0, 0, 0, 0.6) !important;
         min-width: 150px !important;
         width: 150px !important;
         max-width: 160px !important;
@@ -18585,29 +18605,51 @@ select option {
         position: sticky !important;
         left: 0 !important;
         z-index: 12 !important;
-        background: #1e293b !important;
+        background: #0d1117 !important;
+        background-color: #0d1117 !important;
+        opacity: 1 !important;
     }
 
     /* Light Theme Compatibility for Sticky Headers & Sticky First Column */
     [data-theme="light"] #tab-portfolio .ledger-table-wrap table thead th,
     [data-theme="light"] #tab-watchlist .table-scroll table thead th,
-    [data-theme="light"] #financial-statements-table thead th {
+    [data-theme="light"] #financial-statements-table thead th,
+    [data-mode="light"] #tab-portfolio .ledger-table-wrap table thead th,
+    [data-mode="light"] #tab-watchlist .table-scroll table thead th,
+    [data-mode="light"] #financial-statements-table thead th {
         background: #f8fafc !important;
+        background-color: #f8fafc !important;
+        opacity: 1 !important;
         box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05) !important;
     }
 
     [data-theme="light"] #tab-watchlist .data-table tbody td:first-child,
     [data-theme="light"] #tab-portfolio .ledger-table-wrap tbody td:first-child,
-    [data-theme="light"] #financial-statements-table tbody tr:not(.fs-cat-header-row) td:first-child {
+    [data-theme="light"] #financial-statements-table tbody tr:not(.fs-cat-header-row) td:first-child,
+    [data-theme="light"] #financial-statements-table tbody td:first-child,
+    [data-mode="light"] #tab-watchlist .data-table tbody td:first-child,
+    [data-mode="light"] #tab-portfolio .ledger-table-wrap tbody td:first-child,
+    [data-mode="light"] #financial-statements-table tbody tr:not(.fs-cat-header-row) td:first-child,
+    [data-mode="light"] #financial-statements-table tbody td:first-child {
         background: #ffffff !important;
+        background-color: #ffffff !important;
+        opacity: 1 !important;
+        color: #0f172a !important;
         box-shadow: 4px 0 10px -2px rgba(0, 0, 0, 0.1) !important;
     }
 
     [data-theme="light"] #tab-watchlist .data-table th:first-child,
     [data-theme="light"] #tab-portfolio .ledger-table-wrap th:first-child,
     [data-theme="light"] #financial-statements-table th:first-child,
-    [data-theme="light"] #financial-statements-table tbody tr.fs-cat-header-row td {
+    [data-theme="light"] #financial-statements-table tbody tr.fs-cat-header-row td,
+    [data-mode="light"] #tab-watchlist .data-table th:first-child,
+    [data-mode="light"] #tab-portfolio .ledger-table-wrap th:first-child,
+    [data-mode="light"] #financial-statements-table th:first-child,
+    [data-mode="light"] #financial-statements-table tbody tr.fs-cat-header-row td {
         background: #f8fafc !important;
+        background-color: #f8fafc !important;
+        opacity: 1 !important;
+        color: #0f172a !important;
         box-shadow: 4px 2px 10px -2px rgba(0, 0, 0, 0.1) !important;
     }
 
