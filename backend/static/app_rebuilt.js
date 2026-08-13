@@ -1360,17 +1360,53 @@ function setupEnterpriseHeader() {
         const currentDisp = window.getComputedStyle(notifDropdown).display;
         const willShow = (currentDisp === 'none');
         
-        notifDropdown.style.display = willShow ? 'block' : 'none';
-        if (settingsDropdown) settingsDropdown.style.display = 'none';
-        if (linksDropdown) linksDropdown.style.display = 'none';
-
         if (willShow) {
+            // Smart positioning for desktop & mobile viewports
+            let triggerBtn = (e && e.currentTarget && typeof e.currentTarget.getBoundingClientRect === 'function') ? e.currentTarget : null;
+            if (!triggerBtn && e && e.target && e.target.closest) {
+                triggerBtn = e.target.closest('.header-bell-wrapper');
+            }
+            if (!triggerBtn) {
+                const deskBtn = document.getElementById('header-bell-btn-desktop');
+                if (deskBtn && deskBtn.offsetWidth > 0) triggerBtn = deskBtn;
+            }
+            if (!triggerBtn) {
+                const mobBtn = document.getElementById('mobile-header-bell-btn');
+                if (mobBtn && mobBtn.offsetWidth > 0) triggerBtn = mobBtn;
+            }
+            if (!triggerBtn) {
+                const genBtn = document.getElementById('header-bell-btn');
+                if (genBtn && genBtn.offsetWidth > 0) triggerBtn = genBtn;
+            }
+
+            if (window.innerWidth > 600 && triggerBtn && typeof triggerBtn.getBoundingClientRect === 'function') {
+                const rect = triggerBtn.getBoundingClientRect();
+                notifDropdown.style.position = 'fixed';
+                notifDropdown.style.top = (rect.bottom + 8) + 'px';
+                notifDropdown.style.right = Math.max(12, (window.innerWidth - rect.right)) + 'px';
+                notifDropdown.style.left = 'auto';
+                notifDropdown.style.zIndex = '100005';
+            } else {
+                notifDropdown.style.position = '';
+                notifDropdown.style.top = '';
+                notifDropdown.style.right = '';
+                notifDropdown.style.left = '';
+                notifDropdown.style.zIndex = '';
+            }
+
+            notifDropdown.style.display = 'block';
+
+            if (settingsDropdown) settingsDropdown.style.display = 'none';
+            if (linksDropdown) linksDropdown.style.display = 'none';
+
             if (typeof updateNotificationBell === 'function') {
                 updateNotificationBell(lastAlertsList);
             }
             if (typeof fetchAlertsList === 'function' && (!lastAlertsList || lastAlertsList.length === 0)) {
                 fetchAlertsList();
             }
+        } else {
+            notifDropdown.style.display = 'none';
         }
     };
 
@@ -1418,8 +1454,11 @@ function setupEnterpriseHeader() {
 
     // Close on click outside
     document.addEventListener('click', (e) => {
-        const isClickInsideBell = (bellBtn && bellBtn.contains(e.target)) || (bellBtnDesktop && bellBtnDesktop.contains(e.target));
-        if (!isClickInsideBell && !notifDropdown.contains(e.target)) {
+        const isClickInsideBell = (bellBtn && bellBtn.contains(e.target)) || 
+                                  (bellBtnDesktop && bellBtnDesktop.contains(e.target)) || 
+                                  (mobileBellBtn && mobileBellBtn.contains(e.target)) ||
+                                  (e.target && e.target.closest && e.target.closest('.header-bell-wrapper'));
+        if (!isClickInsideBell && notifDropdown && !notifDropdown.contains(e.target)) {
             notifDropdown.style.display = 'none';
         }
         if (settingsBtn && settingsDropdown && !settingsBtn.contains(e.target) && !settingsDropdown.contains(e.target)) {
