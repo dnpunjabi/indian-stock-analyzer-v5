@@ -13229,6 +13229,7 @@ async function fetchWatchlistLiveQuotes(symbols) {
 
         // Persist quote data onto watchlist item objects so sorting works on these columns
         const activeWatch = watchlistsList.find(w => w && w.id === activeWatchlistId);
+        let updatedAny = false;
         if (activeWatch && activeWatch.items) {
             activeWatch.items.forEach(item => {
                 const q = quotes[item.symbol];
@@ -13238,12 +13239,29 @@ async function fetchWatchlistLiveQuotes(symbols) {
                     item.change_pct = q.change_pct;
                     item.day_high = q.high;
                     item.day_low = q.low;
+
+                    const existingHigh = item.range_day && typeof item.range_day.high === 'number' ? item.range_day.high : 0;
+                    const existingLow = item.range_day && typeof item.range_day.low === 'number' ? item.range_day.low : 0;
+
+                    const curHigh = (typeof q.high === 'number' && q.high > 0) ? q.high : existingHigh;
+                    const curLow = (typeof q.low === 'number' && q.low > 0) ? q.low : existingLow;
+
+                    const finalHigh = Math.max(curHigh, q.price, existingHigh);
+                    const finalLow = existingLow > 0 ? Math.min(curLow, q.price, existingLow) : (curLow > 0 ? Math.min(curLow, q.price) : q.price);
+
+                    item.range_day = { high: finalHigh, low: finalLow };
+
                     const addedP = (item.added_price && item.added_price > 0) ? item.added_price : item.live_price;
                     if (addedP > 0 && item.live_price > 0) {
                         item.chg_since_added = ((item.live_price - addedP) / addedP) * 100;
                     }
+                    updatedAny = true;
                 }
             });
+            if (updatedAny) {
+                renderWatchlistItems();
+                return;
+            }
         }
 
         const tbody = document.getElementById('watchlist-table-body');

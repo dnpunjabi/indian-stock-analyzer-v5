@@ -9987,6 +9987,14 @@ def compute_stock_trendlyne_metrics(profile, cp_val, added_price, added_date):
     # Day High / Low Intraday Range calculation
     dh = round(safe_num(t.get("day_high") or t.get("high") or f.get("day_high") or f.get("high")), 2)
     dl = round(safe_num(t.get("day_low") or t.get("low") or f.get("day_low") or f.get("low")), 2)
+
+    # Dynamic Intraday Bounds Guarantee: Current live price cp_val must be within [dl, dh]
+    if cp_val > 0:
+        if dh <= 0 or cp_val > dh:
+            dh = round(max(dh, cp_val), 2)
+        if dl <= 0 or cp_val < dl:
+            dl = round(cp_val if dl <= 0 else min(dl, cp_val), 2)
+
     if dh <= 0 or dl <= 0 or dh <= dl:
         if chg_1d >= 0:
             dh = round(cp_val * (1.0 + max(abs(chg_1d) * 0.15, 0.4) / 100.0), 2)
@@ -9997,6 +10005,10 @@ def compute_stock_trendlyne_metrics(profile, cp_val, added_price, added_date):
         if dh <= dl:
             dh = round(cp_val * 1.01, 2)
             dl = round(cp_val * 0.99, 2)
+
+    if cp_val > 0:
+        dh = round(max(dh, cp_val), 2)
+        dl = round(min(dl, cp_val), 2)
 
     pos_day = 50.0
     if dh > dl and cp_val > 0:

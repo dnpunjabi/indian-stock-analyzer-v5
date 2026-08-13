@@ -18128,15 +18128,23 @@ function renderWatchlistItems() {
         `;
 
         const dayRange = item.range_day || {};
-        const dayHigh = typeof dayRange.high === 'number' && dayRange.high > 0 ? dayRange.high : (item.day_high || item.high || (item.live_price ? item.live_price * (1 + Math.abs(item.change_pct || 0.5) / 100 * 0.8) : 0));
-        const dayLow = typeof dayRange.low === 'number' && dayRange.low > 0 ? dayRange.low : (item.day_low || item.low || (item.live_price ? item.live_price * (1 - Math.abs(item.change_pct || 0.5) / 100 * 0.8) : 0));
         const liveP = item.live_price || item.added_price || 0;
-        let dayPosPct = typeof dayRange.pos_pct === 'number' ? dayRange.pos_pct : 50;
-        if (typeof dayRange.pos_pct !== 'number' && dayHigh > dayLow && liveP > 0) {
+        let dayHigh = typeof dayRange.high === 'number' && dayRange.high > 0 ? dayRange.high : (item.day_high || item.high || 0);
+        let dayLow = typeof dayRange.low === 'number' && dayRange.low > 0 ? dayRange.low : (item.day_low || item.low || 0);
+        
+        if (liveP > 0) {
+            if (dayHigh <= 0 || liveP > dayHigh) dayHigh = liveP;
+            if (dayLow <= 0 || liveP < dayLow) dayLow = liveP;
+        }
+        if (dayHigh <= 0 && liveP > 0) dayHigh = liveP * 1.01;
+        if (dayLow <= 0 && liveP > 0) dayLow = liveP * 0.99;
+
+        let dayPosPct = 50;
+        if (dayHigh > dayLow && liveP > 0) {
             dayPosPct = Math.min(Math.max(((liveP - dayLow) / (dayHigh - dayLow)) * 100, 0), 100);
         }
         const dayRangeBarHTML = `
-            <div style="display: flex; align-items: center; justify-content: center; gap: 6px;" title="Day Low: ₹${dayLow ? dayLow.toFixed(2) : '--'} | Day High: ₹${dayHigh ? dayHigh.toFixed(2) : '--'}">
+            <div style="display: flex; align-items: center; justify-content: center; gap: 6px;" title="Day Low: ₹${dayLow ? dayLow.toFixed(2) : '--'} | Day High: ₹${dayHigh ? dayHigh.toFixed(2) : '--'} (LTP: ₹${liveP ? liveP.toFixed(2) : '--'})">
                 <span style="font-size: 9px; color: #ef4444; font-weight: 600;">₹${dayLow ? (dayLow >= 1000 ? Math.round(dayLow) : dayLow.toFixed(1)) : '--'}</span>
                 <div class="range-bar-track" style="background: rgba(255,255,255,0.08); border-radius: 4px;">
                     <div class="range-bar-fill" style="width: 100%; background: linear-gradient(90deg, #ef4444, #10b981);"></div>
@@ -18351,6 +18359,7 @@ async function fetchWatchlistLiveQuotes(symbols) {
 
         // Persist quote data onto watchlist item objects so sorting works on these columns
         const activeWatch = watchlistsList.find(w => w && w.id == activeWatchlistId);
+        let updatedAny = false;
         if (activeWatch && activeWatch.items) {
             activeWatch.items.forEach(item => {
                 const q = quotes[item.symbol];
@@ -18360,12 +18369,29 @@ async function fetchWatchlistLiveQuotes(symbols) {
                     item.change_pct = q.change_pct;
                     item.day_high = q.high;
                     item.day_low = q.low;
+                    
+                    const existingHigh = item.range_day && typeof item.range_day.high === 'number' ? item.range_day.high : 0;
+                    const existingLow = item.range_day && typeof item.range_day.low === 'number' ? item.range_day.low : 0;
+                    
+                    const curHigh = (typeof q.high === 'number' && q.high > 0) ? q.high : existingHigh;
+                    const curLow = (typeof q.low === 'number' && q.low > 0) ? q.low : existingLow;
+                    
+                    const finalHigh = Math.max(curHigh, q.price, existingHigh);
+                    const finalLow = existingLow > 0 ? Math.min(curLow, q.price, existingLow) : (curLow > 0 ? Math.min(curLow, q.price) : q.price);
+                    
+                    item.range_day = { high: finalHigh, low: finalLow };
+
                     const addedP = (item.added_price && item.added_price > 0) ? item.added_price : item.live_price;
                     if (addedP > 0 && item.live_price > 0) {
                         item.chg_since_added = ((item.live_price - addedP) / addedP) * 100;
                     }
+                    updatedAny = true;
                 }
             });
+            if (updatedAny) {
+                renderWatchlistItems();
+                return;
+            }
         }
 
         const tbody = document.getElementById('watchlist-table-body');
