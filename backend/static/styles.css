@@ -21357,7 +21357,7 @@ body.mobile-sheet-open {
         max-height: 84vh !important;
         height: auto !important;
         border-radius: 20px 20px 0 0 !important;
-        background: rgba(13, 19, 33, 0.98) !important;
+        background: #0f172a !important;
         backdrop-filter: blur(20px) !important;
         -webkit-backdrop-filter: blur(20px) !important;
         border: 1px solid var(--border-glass, rgba(59, 130, 246, 0.35)) !important;
@@ -21386,7 +21386,7 @@ body.mobile-sheet-open {
         justify-content: center !important;
         padding: 10px 0 4px 0 !important;
         cursor: grab !important;
-        background: rgba(0, 0, 0, 0.2);
+        background: rgba(0, 0, 0, 0.25);
     }
     .mobile-sheet-drag-handle {
         width: 42px !important;
@@ -21402,7 +21402,7 @@ body.mobile-sheet-open {
         justify-content: space-between !important;
         padding: 8px 16px 12px 16px !important;
         border-bottom: 1px solid var(--border-glass, rgba(255, 255, 255, 0.1)) !important;
-        background: rgba(0, 0, 0, 0.2);
+        background: rgba(0, 0, 0, 0.25);
     }
     .mobile-sheet-title {
         font-size: 14.5px !important;
@@ -21499,6 +21499,137 @@ body.mobile-sheet-open {
         margin-bottom: 6px !important;
         flex-wrap: wrap !important;
         gap: 6px !important;
+    }
+
+    /* Pro Settings Mobile Bottom Sheet — Light Theme Overrides */
+    [data-mode="light"] #desktop-profile-popover.desktop-profile-card,
+    [data-theme="light"] #desktop-profile-popover.desktop-profile-card,
+    [data-theme="alabaster-day"] #desktop-profile-popover.desktop-profile-card,
+    [data-theme="geist-light"] #desktop-profile-popover.desktop-profile-card,
+    [data-theme="nord-light"] #desktop-profile-popover.desktop-profile-card,
+    [data-theme="solarized-light"] #desktop-profile-popover.desktop-profile-card,
+    [data-theme="github-light"] #desktop-profile-popover.desktop-profile-card,
+    [data-theme="paytm-money"] #desktop-profile-popover.desktop-profile-card,
+    body.light-theme #desktop-profile-popover.desktop-profile-card,
+    body.light-mode #desktop-profile-popover.desktop-profile-card,
+    .light-theme #desktop-profile-popover.desktop-profile-card,
+    html.light-mode #desktop-profile-popover.desktop-profile-card,
+    html[data-mode="light"] #desktop-profile-popover.desktop-profile-card {
+        background: #ffffff !important;
+        background-color: #ffffff !important;
+        border: 1px solid #cbd5e1 !important;
+        box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.15), 0 0 25px rgba(37, 99, 235, 0.15) !important;
+        color: #0f172a !important;
+    }
+
+    [data-mode="light"] .mobile-settings-backdrop,
+    [data-theme="light"] .mobile-settings-backdrop,
+    body.light-theme .mobile-settings-backdrop,
+    body.light-mode .mobile-settings-backdrop,
+    .light-theme .mobile-settings-backdrop {
+        background: rgba(15, 23, 42, 0.4) !important;
+    }
+
+    [data-mode="light"] .mobile-sheet-drag-handle-wrap,
+    [data-theme="light"] .mobile-sheet-drag-handle-wrap,
+    body.light-theme .mobile-sheet-drag-handle-wrap,
+    body.light-mode .mobile-sheet-drag-handle-wrap,
+    .light-theme .mobile-sheet-drag-handle-wrap {
+        background: #f1f5f9 !important;
+    }
+
+    [data-mode="light"] .mobile-sheet-drag-handle,
+    [data-theme="light"] .mobile-sheet-drag-handle,
+    body.light-theme .mobile-sheet-drag-handle,
+    body.light-mode .mobile-sheet-drag-handle,
+    .light-theme .mobile-sheet-drag-handle {
+        background: #94a3b8 !important;
+    }
+
+    [data-mode="light"] .mobile-sheet-header-bar,
+    [data-theme="light"] .mobile-sheet-header-bar,
+    body.light-theme .mobile-sheet-header-bar,
+    body.light-mode .mobile-sheet-header-bar,
+    .light-theme .mobile-sheet-header-bar {
+        background: #f8fafc !important;
+        border-bottom: 1px solid #e2e8f0 !important;
+    }
+
+    [data-mode="light"] .mobile-sheet-title,
+    [data-theme="light"] .mobile-sheet-title,
+    body.light-theme .mobile-sheet-title,
+    body.light-mode .mobile-sheet-title,
+    .light-theme .mobile-sheet-title {
+        color: #0f172a !important;
+        font-weight: 800 !important;
+    }
+
+    [data-mode="light"] .mobile-sheet-close-btn,
+    [data-theme="light"] .mobile-sheet-close-btn,
+    body.light-theme .mobile-sheet-close-btn,
+    body.light-mode .mobile-sheet-close-btn,
+    .light-theme .mobile-sheet-close-btn {
+        background: #e2e8f0 !important;
+        border: 1px solid #cbd5e1 !important;
+        color: #334155 !important;
+    }
+
+    [data-mode="light"] #desktop-profile-popover .popover-field label,
+    [data-theme="light"] #desktop-profile-popover .popover-field label,
+    body.light-theme #desktop-profile-popover .popover-field label,
+    body.light-mode #desktop-profile-popover .popover-field label,
+    .light-theme #desktop-profile-popover .popover-field label {
+        color: #334155 !important;
+    }
+
+    [data-mode="light"] #desktop-profile-popover .popover-field select,
+    [data-theme="light"] #desktop-profile-popover .popover-field select,
+    [data-mode="light"] #desktop-profile-popover .popover-field input[type="text"],
+    [data-theme="light"] #desktop-profile-popover .popover-field input[type="text"],
+    body.light-theme #desktop-profile-popover .popover-field select,
+    body.light-mode #desktop-profile-popover .popover-field select,
+    .light-theme #desktop-profile-popover .popover-field select {
+        background: #f8fafc !important;
+        border: 1px solid #cbd5e1 !important;
+        color: #0f172a !important;
+        font-weight: 600 !important;
+    }
+
+    [data-mode="light"] #desktop-profile-popover .popover-field select option,
+    [data-theme="light"] #desktop-profile-popover .popover-field select option,
+    body.light-theme #desktop-profile-popover .popover-field select option,
+    body.light-mode #desktop-profile-popover .popover-field select option,
+    .light-theme #desktop-profile-popover .popover-field select option,
+    [data-mode="light"] #desktop-profile-popover .popover-field select optgroup,
+    [data-theme="light"] #desktop-profile-popover .popover-field select optgroup {
+        background: #ffffff !important;
+        color: #0f172a !important;
+    }
+
+    [data-mode="light"] #desktop-profile-popover .popover-checkbox-row,
+    [data-theme="light"] #desktop-profile-popover .popover-checkbox-row,
+    body.light-theme #desktop-profile-popover .popover-checkbox-row,
+    body.light-mode #desktop-profile-popover .popover-checkbox-row,
+    .light-theme #desktop-profile-popover .popover-checkbox-row {
+        background: #f8fafc !important;
+        border: 1px solid #e2e8f0 !important;
+    }
+
+    [data-mode="light"] #desktop-profile-popover .popover-checkbox-row label,
+    [data-theme="light"] #desktop-profile-popover .popover-checkbox-row label,
+    body.light-theme #desktop-profile-popover .popover-checkbox-row label,
+    body.light-mode #desktop-profile-popover .popover-checkbox-row label,
+    .light-theme #desktop-profile-popover .popover-checkbox-row label {
+        color: #0f172a !important;
+        font-weight: 600 !important;
+    }
+
+    [data-mode="light"] #desktop-profile-popover .popover-section-header,
+    [data-theme="light"] #desktop-profile-popover .popover-section-header,
+    body.light-theme #desktop-profile-popover .popover-section-header,
+    body.light-mode #desktop-profile-popover .popover-section-header,
+    .light-theme #desktop-profile-popover .popover-section-header {
+        color: #2563eb !important;
     }
 }
 
@@ -23261,107 +23392,161 @@ body.light-mode #returns-matrix-tbody tr:hover {
     /* Light Mode Universal Theme Overrides for Popover */
     [data-mode="light"] .desktop-profile-card,
     [data-theme="light"] .desktop-profile-card,
+    [data-theme="alabaster-day"] .desktop-profile-card,
     [data-theme="geist-light"] .desktop-profile-card,
     [data-theme="nord-light"] .desktop-profile-card,
     [data-theme="solarized-light"] .desktop-profile-card,
     [data-theme="github-light"] .desktop-profile-card,
     [data-theme="paytm-money"] .desktop-profile-card,
     body.light-mode .desktop-profile-card,
-    html.light-mode .desktop-profile-card {
-        background: var(--bg-card) !important;
-        background-color: var(--bg-card) !important;
-        color: var(--text-primary) !important;
+    body.light-theme .desktop-profile-card,
+    .light-theme .desktop-profile-card,
+    html.light-mode .desktop-profile-card,
+    html[data-mode="light"] .desktop-profile-card {
+        background: #ffffff !important;
+        background-color: #ffffff !important;
+        color: #0f172a !important;
         opacity: 1 !important;
-        border: 1px solid var(--border-glass) !important;
-        box-shadow: 0 20px 50px rgba(0, 0, 0, 0.08), var(--glow-shadow) !important;
+        border: 1px solid #cbd5e1 !important;
+        box-shadow: 0 20px 50px rgba(0, 0, 0, 0.12), 0 0 20px rgba(37, 99, 235, 0.1) !important;
     }
 
     [data-mode="light"] .popover-section-header,
     [data-theme="light"] .popover-section-header,
+    [data-theme="alabaster-day"] .popover-section-header,
     [data-theme="geist-light"] .popover-section-header,
     [data-theme="nord-light"] .popover-section-header,
     [data-theme="solarized-light"] .popover-section-header,
     [data-theme="github-light"] .popover-section-header,
-    body.light-mode .popover-section-header {
-        color: #1d4ed8 !important;
+    body.light-mode .popover-section-header,
+    body.light-theme .popover-section-header,
+    .light-theme .popover-section-header {
+        color: #2563eb !important;
+        font-weight: 800 !important;
     }
 
     [data-mode="light"] .popover-field label,
     [data-theme="light"] .popover-field label,
+    [data-theme="alabaster-day"] .popover-field label,
     [data-theme="geist-light"] .popover-field label,
     [data-theme="nord-light"] .popover-field label,
     [data-theme="solarized-light"] .popover-field label,
     [data-theme="github-light"] .popover-field label,
-    body.light-mode .popover-field label {
+    body.light-mode .popover-field label,
+    body.light-theme .popover-field label,
+    .light-theme .popover-field label {
         color: #334155 !important;
+        font-weight: 700 !important;
     }
 
     [data-mode="light"] .popover-checkbox-row label,
     [data-theme="light"] .popover-checkbox-row label,
     [data-mode="light"] .popover-checkbox-row,
     [data-theme="light"] .popover-checkbox-row,
-    body.light-mode .popover-checkbox-row label {
+    body.light-mode .popover-checkbox-row label,
+    body.light-theme .popover-checkbox-row label,
+    .light-theme .popover-checkbox-row label {
         color: #0f172a !important;
+        font-weight: 600 !important;
     }
 
     [data-mode="light"] .popover-field select,
     [data-theme="light"] .popover-field select,
+    [data-theme="alabaster-day"] .popover-field select,
     [data-theme="geist-light"] .popover-field select,
     [data-theme="nord-light"] .popover-field select,
     [data-theme="solarized-light"] .popover-field select,
     [data-theme="github-light"] .popover-field select,
     [data-theme="paytm-money"] .popover-field select,
-    body.light-mode .popover-field select {
-        background: var(--bg-glass-input) !important;
-        border: 1px solid var(--border-glass) !important;
-        color: var(--text-primary) !important;
+    body.light-mode .popover-field select,
+    body.light-theme .popover-field select,
+    .light-theme .popover-field select {
+        background: #f8fafc !important;
+        border: 1px solid #cbd5e1 !important;
+        color: #0f172a !important;
+        font-weight: 600 !important;
     }
 
     [data-mode="light"] .popover-field select option,
     [data-theme="light"] .popover-field select option,
-    body.light-mode .popover-field select option {
-        background: var(--bg-sidebar) !important;
-        color: var(--text-primary) !important;
+    [data-theme="alabaster-day"] .popover-field select option,
+    body.light-mode .popover-field select option,
+    body.light-theme .popover-field select option,
+    .light-theme .popover-field select option,
+    [data-mode="light"] .popover-field select optgroup,
+    [data-theme="light"] .popover-field select optgroup {
+        background: #ffffff !important;
+        color: #0f172a !important;
     }
 
     [data-mode="light"] .rebalancer-stats,
     [data-theme="light"] .rebalancer-stats,
-    body.light-mode .rebalancer-stats {
+    body.light-mode .rebalancer-stats,
+    body.light-theme .rebalancer-stats,
+    .light-theme .rebalancer-stats {
         background: #f1f5f9 !important;
-        border: 1px solid #e2e8f0 !important;
+        border: 1px solid #cbd5e1 !important;
         color: #0f172a !important;
     }
 
     [data-mode="light"] .rebalancer-stats span,
     [data-theme="light"] .rebalancer-stats span,
-    body.light-mode .rebalancer-stats span {
-        color: #334155 !important;
+    body.light-mode .rebalancer-stats span,
+    body.light-theme .rebalancer-stats span,
+    .light-theme .rebalancer-stats span {
+        color: #475569 !important;
     }
 
     [data-mode="light"] .rebalancer-stats strong,
     [data-theme="light"] .rebalancer-stats strong,
-    body.light-mode .rebalancer-stats strong {
+    body.light-mode .rebalancer-stats strong,
+    body.light-theme .rebalancer-stats strong,
+    .light-theme .rebalancer-stats strong {
         color: #0f172a !important;
+        font-weight: 700 !important;
+    }
+
+    [data-mode="light"] #popover-pdf-sections-content > div,
+    [data-theme="light"] #popover-pdf-sections-content > div,
+    body.light-theme #popover-pdf-sections-content > div,
+    .light-theme #popover-pdf-sections-content > div {
+        background: #f1f5f9 !important;
+        border: 1px solid #cbd5e1 !important;
     }
 
     [data-mode="light"] .pdf-checklist-item,
     [data-theme="light"] .pdf-checklist-item,
-    body.light-mode .pdf-checklist-item {
+    body.light-mode .pdf-checklist-item,
+    body.light-theme .pdf-checklist-item,
+    .light-theme .pdf-checklist-item {
         color: #334155 !important;
+        font-weight: 500 !important;
     }
 
     [data-mode="light"] #screener-session-cookie,
     [data-theme="light"] #screener-session-cookie,
-    body.light-mode #screener-session-cookie {
-        background: #ffffff !important;
+    body.light-mode #screener-session-cookie,
+    body.light-theme #screener-session-cookie,
+    .light-theme #screener-session-cookie {
+        background: #f8fafc !important;
         border: 1px solid #cbd5e1 !important;
         color: #0f172a !important;
     }
 
+    [data-mode="light"] #save-screener-cookie-btn,
+    [data-theme="light"] #save-screener-cookie-btn,
+    body.light-theme #save-screener-cookie-btn,
+    .light-theme #save-screener-cookie-btn {
+        background: #2563eb !important;
+        color: #ffffff !important;
+    }
+
     [data-mode="light"] .popover-divider,
     [data-theme="light"] .popover-divider,
-    body.light-mode .popover-divider {
-        background: rgba(0, 0, 0, 0.12) !important;
+    body.light-mode .popover-divider,
+    body.light-theme .popover-divider,
+    .light-theme .popover-divider {
+        background: #e2e8f0 !important;
     }
 
     .popover-action-row {
