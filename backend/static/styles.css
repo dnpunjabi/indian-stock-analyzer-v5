@@ -27187,6 +27187,10 @@ body.light-theme #rule-scanner-results-card table thead th:first-child {
 }
 
 /* Light Theme Compatibility for Sticky Columns */
+[data-mode="light"] .tech-scans-table-container table tbody td:first-child,
+[data-mode="light"] .tech-scans-table-container table thead th:first-child,
+[data-mode="light"] .tech-scans-table-container table tbody td:nth-child(2),
+[data-mode="light"] .tech-scans-table-container table thead th:nth-child(2),
 [data-theme="light"] .tech-scans-table-container table tbody td:first-child,
 [data-theme="light"] .tech-scans-table-container table thead th:first-child,
 [data-theme="light"] .tech-scans-table-container table tbody td:nth-child(2),
@@ -27194,8 +27198,27 @@ body.light-theme #rule-scanner-results-card table thead th:first-child {
 body.light-theme .tech-scans-table-container table tbody td:first-child,
 body.light-theme .tech-scans-table-container table thead th:first-child,
 body.light-theme .tech-scans-table-container table tbody td:nth-child(2),
-body.light-theme .tech-scans-table-container table thead th:nth-child(2) {
+body.light-theme .tech-scans-table-container table thead th:nth-child(2),
+.light-theme .tech-scans-table-container table tbody td:first-child,
+.light-theme .tech-scans-table-container table thead th:first-child,
+.light-theme .tech-scans-table-container table tbody td:nth-child(2),
+.light-theme .tech-scans-table-container table thead th:nth-child(2) {
     background: #ffffff !important;
+    background-color: #ffffff !important;
+    color: #0f172a !important;
+    opacity: 1 !important;
+    box-shadow: 4px 0 12px rgba(0, 0, 0, 0.08) !important;
+    border-right: 1.5px solid #cbd5e1 !important;
+}
+
+[data-mode="light"] .tech-scan-expand-row td,
+[data-theme="light"] .tech-scan-expand-row td,
+body.light-theme .tech-scan-expand-row td,
+.light-theme .tech-scan-expand-row td {
+    background: #ffffff !important;
+    background-color: #ffffff !important;
+    color: #0f172a !important;
+    opacity: 1 !important;
 }
 
 .tech-scans-table-container table thead th:first-child,
@@ -27204,7 +27227,7 @@ body.light-theme .tech-scans-table-container table thead th:nth-child(2) {
     z-index: 35 !important;
 }
 
-/* Sticky Chevron Expanded Snapshot Card Aligned Under Ticker (Left: 45px) */
+/* Sticky Chevron Expanded Snapshot Card Aligned Under Ticker (Left: 45px on desktop) */
 .tech-scan-expand-row td {
     position: sticky !important;
     left: 45px !important;
@@ -27215,6 +27238,15 @@ body.light-theme .tech-scans-table-container table thead th:nth-child(2) {
 }
 
 @media (max-width: 768px) {
+    /* When # column 1 is hidden on mobile via .col-hide-mobile, column 2 becomes left-most column at left: 0 */
+    .tech-scans-table-container table tbody td:nth-child(2),
+    .tech-scans-table-container table thead th:nth-child(2) {
+        left: 0 !important;
+    }
+    .tech-scan-expand-row td {
+        left: 0 !important;
+        max-width: 100vw !important;
+    }
     .tech-snapshot-card {
         grid-template-columns: repeat(2, 1fr) !important;
         gap: 10px !important;
@@ -29578,8 +29610,8 @@ body.light-theme .sticky-screener-col {
 [data-theme="light"] #tab-movers table tbody td:first-child,
 [data-theme="light"] #tab-rule-scanner table tbody td:first-child,
 [data-theme="light"] #sector-stocks-modal table tbody td:first-child {
-    background: var(--bg-card) !important;
-    background-color: var(--bg-card) !important;
+    background: #ffffff !important;
+    background-color: #ffffff !important;
     color: var(--text-primary) !important;
     opacity: 1 !important;
     box-shadow: 4px 0 12px rgba(0, 0, 0, 0.08) !important;
@@ -29597,8 +29629,8 @@ body.light-theme .sticky-screener-col {
 [data-theme="light"] .screener-table thead th:first-child,
 [data-theme="light"] .tech-scans-table-container table thead th:first-child,
 [data-theme="light"] .tech-scans-table-container table thead th:nth-child(2) {
-    background: var(--bg-sidebar) !important;
-    background-color: var(--bg-sidebar) !important;
+    background: #ffffff !important;
+    background-color: #ffffff !important;
     color: var(--text-primary) !important;
     box-shadow: 4px 2px 12px rgba(0, 0, 0, 0.08) !important;
     border-right: 1.5px solid var(--border-glass) !important;
@@ -30474,16 +30506,16 @@ table tbody td:first-child,
 .data-table tbody td:first-child,
 .screener-table tbody td:first-child,
 .tech-scans-table-container table tbody td:first-child,
+.tech-scans-table-container table tbody td:nth-child(2),
 #swing-scan-table tbody td:first-child,
 #swing-scan-body td:first-child,
 .sticky-col,
 .sticky-stock-col,
 .sticky-screener-col {
     position: sticky !important;
-    left: 0 !important;
     z-index: 10 !important;
-    background: #0b0f19 !important;
-    background-color: #0b0f19 !important;
+    background: #0d1117 !important;
+    background-color: #0d1117 !important;
     opacity: 1 !important;
     box-shadow: 4px 0 10px rgba(0, 0, 0, 0.5) !important;
 }
@@ -30493,6 +30525,7 @@ table tbody td:first-child,
 [data-mode="light"] .data-table tbody td:first-child,
 [data-mode="light"] .screener-table tbody td:first-child,
 [data-mode="light"] .tech-scans-table-container table tbody td:first-child,
+[data-mode="light"] .tech-scans-table-container table tbody td:nth-child(2),
 [data-mode="light"] #swing-scan-table tbody td:first-child,
 [data-mode="light"] #swing-scan-body td:first-child,
 [data-mode="light"] #tab-swingscans table tbody td:first-child,
@@ -30510,6 +30543,7 @@ table tbody td:first-child,
 [data-theme="light"] .data-table tbody td:first-child,
 [data-theme="light"] .screener-table tbody td:first-child,
 [data-theme="light"] .tech-scans-table-container table tbody td:first-child,
+[data-theme="light"] .tech-scans-table-container table tbody td:nth-child(2),
 [data-theme="light"] #swing-scan-table tbody td:first-child,
 [data-theme="light"] #swing-scan-body td:first-child,
 [data-theme="light"] #tab-swingscans table tbody td:first-child,
@@ -30527,6 +30561,7 @@ body.light-theme table tbody td:first-child,
 body.light-theme .data-table tbody td:first-child,
 body.light-theme .screener-table tbody td:first-child,
 body.light-theme .tech-scans-table-container table tbody td:first-child,
+body.light-theme .tech-scans-table-container table tbody td:nth-child(2),
 body.light-theme #swing-scan-table tbody td:first-child,
 body.light-theme #swing-scan-body td:first-child,
 body.light-theme #tab-swingscans table tbody td:first-child,
@@ -30534,7 +30569,6 @@ body.light-theme td.sticky-col,
 body.light-theme td.sticky-stock-col,
 body.light-theme .sticky-screener-col {
     position: sticky !important;
-    left: 0 !important;
     z-index: 10 !important;
     background: #ffffff !important;
     background-color: #ffffff !important;
@@ -30549,19 +30583,22 @@ body.light-theme .sticky-screener-col {
 [data-mode="light"] .data-table thead th:first-child,
 [data-mode="light"] .screener-table thead th:first-child,
 [data-mode="light"] .tech-scans-table-container table thead th:first-child,
+[data-mode="light"] .tech-scans-table-container table thead th:nth-child(2),
 [data-mode="light"] #swing-scan-table thead th:first-child,
 [data-theme="light"] table thead th:first-child,
 [data-theme="light"] .data-table thead th:first-child,
 [data-theme="light"] .screener-table thead th:first-child,
 [data-theme="light"] .tech-scans-table-container table thead th:first-child,
+[data-theme="light"] .tech-scans-table-container table thead th:nth-child(2),
 [data-theme="light"] #swing-scan-table thead th:first-child,
 body.light-theme table thead th:first-child,
+body.light-theme .tech-scans-table-container table thead th:first-child,
+body.light-theme .tech-scans-table-container table thead th:nth-child(2),
 body.light-theme #swing-scan-table thead th:first-child {
     position: sticky !important;
-    left: 0 !important;
     z-index: 25 !important;
-    background: #f8fafc !important;
-    background-color: #f8fafc !important;
+    background: #ffffff !important;
+    background-color: #ffffff !important;
     color: #0f172a !important;
     opacity: 1 !important;
     box-shadow: 4px 0 12px rgba(0, 0, 0, 0.08) !important;
