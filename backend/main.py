@@ -3192,6 +3192,31 @@ async def get_technical_scans():
                 """)
                 rows = cursor.fetchall()
                 
+                delivery_stats_map = {}
+                delivery_hist_map = {}
+                try:
+                    cursor.execute("SELECT symbol, delivery_percentage, delivery_qty, traded_qty, updated_at FROM daily_delivery_stats")
+                    for d_row in cursor.fetchall():
+                        delivery_stats_map[d_row["symbol"].upper()] = {
+                            "deliv_pct": float(d_row["delivery_percentage"] or 0.0),
+                            "deliv_qty": int(d_row["delivery_qty"] or 0),
+                            "traded_qty": int(d_row["traded_qty"] or 0),
+                            "updated_at": str(d_row["updated_at"] or "")
+                        }
+                    
+                    cursor.execute("""
+                        SELECT symbol, trade_date, delivery_percentage, delivery_qty, traded_qty
+                        FROM daily_delivery_history
+                        ORDER BY symbol, trade_date ASC
+                    """)
+                    for h_row in cursor.fetchall():
+                        sym_u = h_row["symbol"].upper()
+                        if sym_u not in delivery_hist_map:
+                            delivery_hist_map[sym_u] = []
+                        delivery_hist_map[sym_u].append(dict(h_row))
+                except Exception as d_err:
+                    print(f"Technical Scans: Delivery map fetch error: {d_err}")
+
                 near_high = []
                 near_low = []
                 gap_up = []
@@ -3199,6 +3224,7 @@ async def get_technical_scans():
                 rsi_oversold = []
                 rsi_overbought = []
                 volume_shockers = []
+                delivery_shockers = []
                 golden_crossover = []
                 sma_50_pullback = []
                 sma_100_pullback = []
@@ -3425,6 +3451,46 @@ async def get_technical_scans():
                                     "sort_val": abs(dist)
                                 })
                                 
+                    # 13. Delivery Shockers (NSE EOD Delivery Surge)
+                    d_info = delivery_stats_map.get(symbol.upper(), delivery_stats_map.get(f"{clean_sym}.NS", {}))
+                    h_list = delivery_hist_map.get(symbol.upper(), delivery_hist_map.get(f"{clean_sym}.NS", []))
+                    
+                    if d_info or h_list:
+                        latest_deliv_pct = d_info.get("deliv_pct", 0.0) if d_info else (float(h_list[-1]["delivery_percentage"] or 0.0) if h_list else 0.0)
+                        
+                        latest_date_raw = h_list[-1]["trade_date"] if h_list else ""
+                        if latest_date_raw:
+                            try:
+                                d_obj = datetime.strptime(latest_date_raw, "%Y-%m-%d")
+                                date_fmt = d_obj.strftime("%b %d")
+                            except Exception:
+                                date_fmt = latest_date_raw
+                        else:
+                            date_fmt = "EOD"
+                            
+                        if h_list:
+                            prior_10 = h_list[-11:-1] if len(h_list) >= 11 else h_list[:-1]
+                            avg_10d_pct = sum(float(x["delivery_percentage"] or 0.0) for x in prior_10) / len(prior_10) if prior_10 else 40.0
+                            deliv_qtys = [int(x["delivery_qty"] or 0) for x in h_list]
+                            from backend.quant_scoring import calculate_delivery_zscore
+                            d_zscore = calculate_delivery_zscore(deliv_qtys)
+                        else:
+                            avg_10d_pct = 40.0
+                            d_zscore = 0.0
+                            
+                        surge_ratio = (latest_deliv_pct / avg_10d_pct) if avg_10d_pct > 0 else 1.0
+                        
+                        if latest_deliv_pct >= 48.0 or surge_ratio >= 1.35 or d_zscore >= 1.5:
+                            delivery_shockers.append({
+                                **item_meta,
+                                "deliv_pct": round(latest_deliv_pct, 1),
+                                "deliv_surge": round(surge_ratio, 2),
+                                "deliv_zscore": round(d_zscore, 2),
+                                "trade_date": date_fmt,
+                                "value": f"{latest_deliv_pct:.1f}% ({date_fmt})",
+                                "sort_val": latest_deliv_pct
+                            })
+                                
                 # Sort and slice top 50
                 near_high = sorted(near_high, key=lambda x: x["sort_val"])[:50]
                 near_low = sorted(near_low, key=lambda x: x["sort_val"])[:50]
@@ -3433,6 +3499,7 @@ async def get_technical_scans():
                 rsi_oversold = sorted(rsi_oversold, key=lambda x: x["sort_val"])[:50]
                 rsi_overbought = sorted(rsi_overbought, key=lambda x: x["sort_val"], reverse=True)[:50]
                 volume_shockers = sorted(volume_shockers, key=lambda x: x["sort_val"], reverse=True)[:50]
+                delivery_shockers = sorted(delivery_shockers, key=lambda x: x["sort_val"], reverse=True)[:50]
                 golden_crossover = sorted(golden_crossover, key=lambda x: x["sort_val"])[:50]
                 sma_50_pullback = sorted(sma_50_pullback, key=lambda x: x["sort_val"])[:50]
                 sma_100_pullback = sorted(sma_100_pullback, key=lambda x: x["sort_val"])[:50]
@@ -3441,7 +3508,7 @@ async def get_technical_scans():
                 fib_500_support = sorted(fib_500_support, key=lambda x: x["sort_val"])[:50]
                 
                 # Cleanup sort_val
-                for lst in [near_high, near_low, gap_up, gap_down, rsi_oversold, rsi_overbought, volume_shockers, golden_crossover, sma_50_pullback, sma_100_pullback, sma_200_pullback, fib_618_support, fib_500_support]:
+                for lst in [near_high, near_low, gap_up, gap_down, rsi_oversold, rsi_overbought, volume_shockers, delivery_shockers, golden_crossover, sma_50_pullback, sma_100_pullback, sma_200_pullback, fib_618_support, fib_500_support]:
                     for item in lst:
                         item.pop("sort_val", None)
                         
@@ -3453,6 +3520,7 @@ async def get_technical_scans():
                     "rsi_oversold": rsi_oversold,
                     "rsi_overbought": rsi_overbought,
                     "volume_shockers": volume_shockers,
+                    "delivery_shockers": delivery_shockers,
                     "golden_crossover": golden_crossover,
                     "sma_50_pullback": sma_50_pullback,
                     "sma_100_pullback": sma_100_pullback,

@@ -6221,7 +6221,7 @@
         // 7. Fetch & Render Technical Scans (Near 52W High/Low, Gap Up/Down, RSI, Fib, SMA Pullbacks)
         let technicalScansCache = {
             near_high: [], near_low: [], gap_up: [], gap_down: [],
-            rsi_oversold: [], rsi_overbought: [], volume_shockers: [], golden_crossover: [],
+            rsi_oversold: [], rsi_overbought: [], volume_shockers: [], delivery_shockers: [], golden_crossover: [],
             sma_50_pullback: [], sma_100_pullback: [], sma_200_pullback: [], fib_618_support: [], fib_500_support: []
         };
         window.activeTechnicalScan = 'near_high';
@@ -6336,6 +6336,7 @@
                 else if (window.activeTechnicalScan === 'gap_up' || window.activeTechnicalScan === 'gap_down') desktopMetricHeader.innerText = 'Opening Gap';
                 else if (window.activeTechnicalScan.includes('rsi')) desktopMetricHeader.innerText = 'RSI (14)';
                 else if (activeTechnicalScan === 'volume_shockers') desktopMetricHeader.innerText = 'Vol Multiplier';
+                else if (activeTechnicalScan === 'delivery_shockers') desktopMetricHeader.innerText = 'Delivery % (Date EOD)';
                 else if (activeTechnicalScan === 'golden_crossover') desktopMetricHeader.innerText = 'Golden Cross Spread';
                 else if (activeTechnicalScan === 'sma_50_pullback') desktopMetricHeader.innerText = 'Dist to 50MA';
                 else if (activeTechnicalScan === 'sma_100_pullback') desktopMetricHeader.innerText = 'Dist to 100MA';
@@ -6544,6 +6545,7 @@
                 else if (fullscreenActiveScan === 'gap_up' || fullscreenActiveScan === 'gap_down') metricHeader.innerHTML = `Opening Gap <span class="sort-direction"></span>`;
                 else if (fullscreenActiveScan.includes('rsi')) metricHeader.innerHTML = `RSI (14) <span class="sort-direction"></span>`;
                 else if (fullscreenActiveScan === 'volume_shockers') metricHeader.innerHTML = `Vol Multiplier <span class="sort-direction"></span>`;
+                else if (fullscreenActiveScan === 'delivery_shockers') metricHeader.innerHTML = `Delivery % (Date EOD) <span class="sort-direction"></span>`;
                 else if (fullscreenActiveScan === 'golden_crossover') metricHeader.innerHTML = `Golden Cross Spread <span class="sort-direction"></span>`;
                 else if (fullscreenActiveScan === 'sma_50_pullback') metricHeader.innerHTML = `Dist to 50MA <span class="sort-direction"></span>`;
                 else if (fullscreenActiveScan === 'sma_100_pullback') metricHeader.innerHTML = `Dist to 100MA <span class="sort-direction"></span>`;
@@ -6688,6 +6690,7 @@
                     else if (fullscreenActiveScan === 'rsi_oversold') { badgeClass = 'rsi-reversal'; badgeText = 'Oversold'; }
                     else if (fullscreenActiveScan === 'rsi_overbought') { badgeClass = 'overbought-shield'; badgeText = 'Overbought'; }
                     else if (fullscreenActiveScan === 'volume_shockers') { badgeClass = 'volume-surge'; badgeText = 'Volume Surge'; }
+                    else if (fullscreenActiveScan === 'delivery_shockers') { badgeClass = 'volume-surge'; badgeText = 'Delivery Surge'; }
                     else if (fullscreenActiveScan === 'golden_crossover') { badgeClass = 'golden-cross'; badgeText = 'Golden Cross'; }
                     else if (fullscreenActiveScan === 'sma_50_pullback') { badgeClass = 'pullback-50'; badgeText = '50MA Support'; }
                     else if (fullscreenActiveScan === 'sma_100_pullback') { badgeClass = 'pullback-100'; badgeText = '100MA Support'; }
@@ -7016,6 +7019,7 @@
                     technicalScansCache.rsi_oversold = data.rsi_oversold || [];
                     technicalScansCache.rsi_overbought = data.rsi_overbought || [];
                     technicalScansCache.volume_shockers = data.volume_shockers || [];
+                    technicalScansCache.delivery_shockers = data.delivery_shockers || [];
                     technicalScansCache.golden_crossover = data.golden_crossover || [];
                     technicalScansCache.sma_50_pullback = data.sma_50_pullback || [];
                     technicalScansCache.sma_100_pullback = data.sma_100_pullback || [];
