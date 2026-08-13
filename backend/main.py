@@ -3480,12 +3480,18 @@ async def get_technical_scans():
                             
                         surge_ratio = (latest_deliv_pct / avg_10d_pct) if avg_10d_pct > 0 else 1.0
                         
+                        deliv_qty = d_info.get("deliv_qty", 0) if d_info else (int(h_list[-1]["delivery_qty"] or 0) if h_list else 0)
+                        traded_qty = d_info.get("traded_qty", 0) if d_info else (int(h_list[-1]["traded_qty"] or 0) if h_list else 0)
+
                         if latest_deliv_pct >= 48.0 or surge_ratio >= 1.35 or d_zscore >= 1.5:
                             delivery_shockers.append({
                                 **item_meta,
                                 "deliv_pct": round(latest_deliv_pct, 1),
+                                "avg_10d_pct": round(avg_10d_pct, 1),
                                 "deliv_surge": round(surge_ratio, 2),
                                 "deliv_zscore": round(d_zscore, 2),
+                                "deliv_qty": deliv_qty,
+                                "traded_qty": traded_qty,
                                 "trade_date": date_fmt,
                                 "value": f"{latest_deliv_pct:.1f}% ({date_fmt})",
                                 "sort_val": latest_deliv_pct

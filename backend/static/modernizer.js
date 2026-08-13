@@ -6657,6 +6657,33 @@
                             metricValDisplay = rsiVal.toFixed(1);
                             metricStyle = rsiStyle;
                         }
+                    } else if (fullscreenActiveScan === 'delivery_shockers') {
+                        const dPct = item.deliv_pct !== undefined ? item.deliv_pct : '--';
+                        const avgPct = item.avg_10d_pct !== undefined ? item.avg_10d_pct : '--';
+                        const surge = item.deliv_surge !== undefined ? item.deliv_surge : '--';
+                        const zscRaw = item.deliv_zscore !== undefined ? Number(item.deliv_zscore) : 0;
+                        const zsc = zscRaw > 0 ? `+${zscRaw.toFixed(2)}` : zscRaw.toFixed(2);
+                        const dQty = item.deliv_qty ? Number(item.deliv_qty).toLocaleString('en-IN') : '--';
+                        const tQty = item.traded_qty ? Number(item.traded_qty).toLocaleString('en-IN') : '--';
+                        const tDate = item.trade_date || 'EOD';
+                        
+                        let zLabel = 'Surge';
+                        if (zscRaw >= 3.0) zLabel = 'Extreme';
+                        else if (zscRaw < 1.0) zLabel = 'Elevated';
+
+                        metricValDisplay = `
+                            <div style="text-align: right; font-family: 'Inter', sans-serif;">
+                                <div style="font-weight: 700; color: #10b981; font-size: 13px;">
+                                    ${dPct}% Delivery <span style="font-weight: 500; color: var(--text-muted); font-size: 11px;">(vs ${avgPct}% 10d Avg)</span>
+                                </div>
+                                <div style="font-size: 11px; margin-top: 2px; color: var(--text-secondary);">
+                                    ⚡ <strong style="color:#f59e0b;">${surge}x Surge</strong> • Z: <strong style="color:#3b82f6;">${zsc}</strong> <span style="color:#10b981; font-weight:600;">(${zLabel})</span>
+                                </div>
+                                <div style="font-size: 10.5px; margin-top: 2px; color: var(--text-muted);">
+                                    📦 <strong>${dQty}</strong> Demat / <strong>${tQty}</strong> Traded • <span style="color:var(--text-secondary); font-weight:600;">${tDate} EOD</span>
+                                </div>
+                            </div>
+                        `;
                     }
 
                     // Format CMP & Day Change %
@@ -6744,6 +6771,18 @@
                                         <span class="tech-snapshot-label">🏢 Sector & Segment</span>
                                         <span class="tech-snapshot-val" style="font-size: 13.5px; font-weight: 600;">${sector} • ${segment}</span>
                                     </div>
+                                    ${item.deliv_pct !== undefined ? `
+                                    <div class="tech-snapshot-item" style="grid-column: span 2; background: rgba(16, 185, 129, 0.05); border: 1px solid rgba(16, 185, 129, 0.2); border-radius: 6px; padding: 8px 12px; margin-top: 4px;">
+                                        <span class="tech-snapshot-label" style="color: #10b981; font-weight: 700; font-size: 13px;">📦 Institutional Delivery Prospectus (${item.trade_date || 'EOD'})</span>
+                                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 6px; font-size: 12.5px; color: var(--text-primary);">
+                                            <div>• <strong>Delivery %:</strong> <span style="color:#10b981;">${item.deliv_pct}%</span> (vs ${item.avg_10d_pct}% 10D Avg)</div>
+                                            <div>• <strong>Surge Multiplier:</strong> <span style="color:#f59e0b;">${item.deliv_surge}x</span></div>
+                                            <div>• <strong>Volume Z-Score:</strong> <span style="color:#3b82f6;">${item.deliv_zscore > 0 ? '+' + item.deliv_zscore : item.deliv_zscore}</span></div>
+                                            <div>• <strong>Demat Quantity:</strong> ${item.deliv_qty ? Number(item.deliv_qty).toLocaleString('en-IN') : '--'} Shares</div>
+                                            <div style="grid-column: span 2;">• <strong>Total Traded Volume:</strong> ${item.traded_qty ? Number(item.traded_qty).toLocaleString('en-IN') : '--'} Shares</div>
+                                        </div>
+                                    </div>
+                                    ` : ''}
                                 </div>
                             </td>
                         </tr>
