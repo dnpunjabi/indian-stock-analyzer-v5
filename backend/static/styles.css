@@ -31952,5 +31952,204 @@ body.light-mode .badge-sentiment.sentiment-neutral,
 }
 
 
+/* ==========================================================================
+   FINTECH PILL & PASTEL ICON CONTAINER MOBILE SIDEBAR DRAWER (LIGHT & DARK THEME)
+   ========================================================================== */
+
+/* Light Theme Mobile Drawer Card Container & Backdrop */
+[data-mode="light"] .sidebar,
+[data-theme="light"] .sidebar,
+body.light-theme .sidebar,
+.light-theme .sidebar {
+    background: #f8fafc !important;
+    background-color: #f8fafc !important;
+    border-right: 1px solid rgba(0, 0, 0, 0.08) !important;
+    box-shadow: 12px 0 35px rgba(0, 0, 0, 0.12) !important;
+}
+
+[data-mode="light"] .sidebar .logo-area,
+[data-theme="light"] .sidebar .logo-area,
+body.light-theme .sidebar .logo-area,
+.light-theme .sidebar .logo-area {
+    background: #ffffff !important;
+    border: 1px solid rgba(0, 0, 0, 0.08) !important;
+    border-radius: 12px !important;
+    padding: 12px 14px !important;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.04) !important;
+    margin-bottom: 22px !important;
+}
+
+/* Dark Theme Mobile Drawer Card Container & Logo Header Card */
+[data-mode="dark"] .sidebar .logo-area,
+.sidebar .logo-area {
+    background: rgba(15, 23, 42, 0.65) !important;
+    border: 1px solid rgba(255, 255, 255, 0.1) !important;
+    border-radius: 12px !important;
+    padding: 12px 14px !important;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.3) !important;
+    margin-bottom: 22px !important;
+}
+
+/* Sidebar Category Headers with Accent Dot Pill */
+.sidebar .nav-category-header {
+    font-size: 11px !important;
+    font-weight: 800 !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.09em !important;
+    margin-top: 18px !important;
+    margin-bottom: 8px !important;
+    padding: 6px 12px !important;
+    border-radius: 6px !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 6px !important;
+}
+
+[data-mode="light"] .sidebar .nav-category-header,
+[data-theme="light"] .sidebar .nav-category-header,
+body.light-theme .sidebar .nav-category-header,
+.light-theme .sidebar .nav-category-header {
+    color: #475569 !important;
+    background: rgba(0, 0, 0, 0.03) !important;
+    border: 1px solid rgba(0, 0, 0, 0.05) !important;
+}
+
+[data-mode="dark"] .sidebar .nav-category-header,
+.sidebar .nav-category-header {
+    color: #94a3b8 !important;
+    background: rgba(255, 255, 255, 0.04) !important;
+    border: 1px solid rgba(255, 255, 255, 0.06) !important;
+}
+
+/* FinTech Navigation Item Pills */
+.sidebar .nav-menu {
+    gap: 4px !important;
+}
+
+.sidebar .nav-btn {
+    width: 100% !important;
+    padding: 8px 12px !important;
+    margin: 2px 0 !important;
+    border-radius: 10px !important;
+    font-size: 12.5px !important;
+    font-weight: 600 !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 12px !important;
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
+    box-sizing: border-box !important;
+}
+
+/* Pastel Icon Container Wrappers */
+.sidebar .nav-btn .btn-icon {
+    width: 32px !important;
+    height: 32px !important;
+    min-width: 32px !important;
+    border-radius: 8px !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    font-size: 15px !important;
+    transition: all 0.2s ease !important;
+}
+
+/* Default Pastel Icon Colors - Light Mode */
+[data-mode="light"] .sidebar .nav-btn .btn-icon,
+[data-theme="light"] .sidebar .nav-btn .btn-icon,
+body.light-theme .sidebar .nav-btn .btn-icon,
+.light-theme .sidebar .nav-btn .btn-icon {
+    background: rgba(37, 99, 235, 0.07) !important;
+    border: 1px solid rgba(37, 99, 235, 0.12) !important;
+    color: #2563eb !important;
+}
+
+[data-mode="light"] .sidebar .nav-btn,
+[data-theme="light"] .sidebar .nav-btn,
+body.light-theme .sidebar .nav-btn,
+.light-theme .sidebar .nav-btn {
+    background: transparent !important;
+    color: #334155 !important;
+    border: 1px solid transparent !important;
+}
+
+[data-mode="light"] .sidebar .nav-btn:hover,
+[data-theme="light"] .sidebar .nav-btn:hover,
+body.light-theme .sidebar .nav-btn:hover,
+.light-theme .sidebar .nav-btn:hover {
+    background: #ffffff !important;
+    color: #0f172a !important;
+    border-color: rgba(0, 0, 0, 0.08) !important;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04) !important;
+    transform: translateX(3px) !important;
+}
+
+/* Active State Pill - Light Mode */
+[data-mode="light"] .sidebar .nav-btn.active,
+[data-theme="light"] .sidebar .nav-btn.active,
+body.light-theme .sidebar .nav-btn.active,
+.light-theme .sidebar .nav-btn.active {
+    background: #ffffff !important;
+    color: #1d4ed8 !important;
+    border: 1px solid rgba(37, 99, 235, 0.25) !important;
+    border-left: 4px solid #2563eb !important;
+    box-shadow: 0 4px 14px rgba(37, 99, 235, 0.12) !important;
+    font-weight: 700 !important;
+    transform: translateX(3px) !important;
+}
+
+[data-mode="light"] .sidebar .nav-btn.active .btn-icon,
+[data-theme="light"] .sidebar .nav-btn.active .btn-icon,
+body.light-theme .sidebar .nav-btn.active .btn-icon,
+.light-theme .sidebar .nav-btn.active .btn-icon {
+    background: linear-gradient(135deg, #2563eb, #3b82f6) !important;
+    color: #ffffff !important;
+    border-color: #2563eb !important;
+    box-shadow: 0 2px 8px rgba(37, 99, 235, 0.35) !important;
+}
+
+/* Default Pastel Icon Colors - Dark Mode */
+[data-mode="dark"] .sidebar .nav-btn .btn-icon,
+.sidebar .nav-btn .btn-icon {
+    background: rgba(56, 189, 248, 0.08) !important;
+    border: 1px solid rgba(56, 189, 248, 0.18) !important;
+    color: #38bdf8 !important;
+}
+
+[data-mode="dark"] .sidebar .nav-btn,
+.sidebar .nav-btn {
+    background: transparent !important;
+    color: #94a3b8 !important;
+    border: 1px solid transparent !important;
+}
+
+[data-mode="dark"] .sidebar .nav-btn:hover,
+.sidebar .nav-btn:hover {
+    background: rgba(255, 255, 255, 0.05) !important;
+    color: #f8fafc !important;
+    border-color: rgba(255, 255, 255, 0.12) !important;
+    transform: translateX(3px) !important;
+}
+
+/* Active State Pill - Dark Mode */
+[data-mode="dark"] .sidebar .nav-btn.active,
+.sidebar .nav-btn.active {
+    background: rgba(30, 41, 59, 0.85) !important;
+    color: #38bdf8 !important;
+    border: 1px solid rgba(56, 189, 248, 0.3) !important;
+    border-left: 4px solid #38bdf8 !important;
+    box-shadow: 0 4px 14px rgba(56, 189, 248, 0.2) !important;
+    font-weight: 700 !important;
+    transform: translateX(3px) !important;
+}
+
+[data-mode="dark"] .sidebar .nav-btn.active .btn-icon,
+.sidebar .nav-btn.active .btn-icon {
+    background: linear-gradient(135deg, #0284c7, #38bdf8) !important;
+    color: #ffffff !important;
+    border-color: #38bdf8 !important;
+    box-shadow: 0 2px 8px rgba(56, 189, 248, 0.4) !important;
+}
+
+
 
 
