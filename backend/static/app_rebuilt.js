@@ -3631,11 +3631,39 @@ function renderPeersTable(peersList) {
             tr.className = 'active-peer-row';
         }
 
+        function getShortPeerTicker(peerObj, fullName) {
+            if (peerObj && peerObj["Symbol"]) return peerObj["Symbol"].toString().trim().toUpperCase();
+            if (peerObj && peerObj["Ticker"]) return peerObj["Ticker"].toString().trim().toUpperCase();
+            
+            let clean = (fullName || "PEER").split('.')[0]
+                .replace(/\(Target\s*Company\)/gi, '')
+                .replace(/\(Target\)/gi, '')
+                .replace(/\b(Limited|Ltd|Industries|Inds|Corporation|Corp|India|Holdings|Group|Co|Services)\b/gi, '')
+                .trim();
+                
+            const cleanUpper = clean.toUpperCase();
+            if (cleanUpper.includes('FINOLEX')) return 'FINCABLES';
+            if (cleanUpper.includes('POLY') && cleanUpper.includes('CAB')) return 'POLYCAB';
+            if (cleanUpper.includes('KEI')) return 'KEI';
+            if (cleanUpper.includes('KABEL') || cleanUpper.includes('RR')) return 'RRKABEL';
+            
+            const words = clean.split(/\s+/).filter(w => w.length > 0);
+            if (words.length === 0) return (fullName || "PEER").substring(0, 8).toUpperCase();
+            if (words.length === 1) return words[0].substring(0, 9).toUpperCase();
+            if (words[0].length <= 3 && words[1]) return (words[0] + words[1]).substring(0, 9).toUpperCase();
+            return words[0].substring(0, 9).toUpperCase();
+        }
+
+        const displaySymbol = getShortPeerTicker(peer, name);
+
         tr.innerHTML = `
-            <td style="position: sticky; left: 0; z-index: 20; background: #0d1117 !important; background-color: #0d1117 !important; opacity: 1 !important; border-right: 1px solid var(--border-glass); text-align: left; white-space: nowrap; min-width: 175px; max-width: 240px; width: 185px; padding: 8px 10px; font-family: 'Outfit', sans-serif; box-shadow: 4px 0 12px rgba(0,0,0,0.75);">
-                <div style="display: flex; align-items: center; gap: 8px; white-space: nowrap;">
-                    <input type="checkbox" class="peer-select-checkbox" data-ticker="${name}" checked style="cursor: pointer; transform: scale(1.15); flex-shrink: 0;">
-                    <strong class="peer-name-click" style="color: var(--neon-blue); cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="Click to load workspace for this peer company">${name}</strong>
+            <td class="sticky-peer-col" style="position: sticky; left: 0; z-index: 20; border-right: 1px solid var(--border-glass); text-align: left; white-space: nowrap; padding: 8px 6px; font-family: 'Outfit', sans-serif;">
+                <div style="display: flex; align-items: center; gap: 6px; white-space: nowrap;">
+                    <input type="checkbox" class="peer-select-checkbox" data-ticker="${name}" checked style="cursor: pointer; transform: scale(1.1); flex-shrink: 0;">
+                    <strong class="peer-name-click" style="color: var(--neon-blue); cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="Click to load workspace for this peer company">
+                        <span class="peer-full-name">${name}</span>
+                        <span class="peer-short-symbol">${displaySymbol}</span>
+                    </strong>
                 </div>
             </td>
             <td style="${getCellColor(pe, peBounds, true)}">${pe}</td>

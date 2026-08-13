@@ -29302,8 +29302,16 @@ body.light-theme #compare-table-body td:first-child {
 
 
 /* ==========================================================================
-   PEER BENCHMARKING COCKPIT TABLE STICKY COLUMN 1 FIX (OPTION 1 INTEGRATED CHECKBOX)
+   PEER BENCHMARKING COCKPIT TABLE STICKY COLUMN 1 FIX (OPTION B 90PX TICKER SYMBOLS)
    ========================================================================== */
+
+.peer-full-name {
+    display: inline !important;
+}
+
+.peer-short-symbol {
+    display: none !important;
+}
 
 #peer-benchmarking-table {
     border-collapse: separate !important;
@@ -29352,6 +29360,39 @@ body.light-theme #peer-benchmarking-table tbody td:first-child {
     background-color: #ffffff !important;
     box-shadow: 4px 0 12px rgba(0, 0, 0, 0.1) !important;
     color: #0f172a !important;
+}
+
+/* Mobile View (max-width: 768px): Option B 90px Ultra-Compact Ticker Symbols */
+@media (max-width: 768px) {
+    .peer-full-name {
+        display: none !important;
+    }
+
+    .peer-short-symbol {
+        display: inline !important;
+        font-weight: 800 !important;
+        font-size: 11.5px !important;
+        color: #38bdf8 !important;
+        letter-spacing: 0.02em !important;
+    }
+
+    [data-theme="light"] .peer-short-symbol,
+    [data-mode="light"] .peer-short-symbol,
+    body.light-theme .peer-short-symbol {
+        color: #0284c7 !important;
+    }
+
+    #peer-benchmarking-table thead th:first-child,
+    #peer-benchmarking-table tbody td:first-child,
+    .sticky-peer-col,
+    td.sticky-peer-col,
+    th.sticky-peer-col {
+        min-width: 90px !important;
+        max-width: 105px !important;
+        width: 90px !important;
+        padding: 8px 5px !important;
+        box-sizing: border-box !important;
+    }
 }
 
 /* Sticky Ticker Column for Quant Screener & Scanner */
