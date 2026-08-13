@@ -26409,24 +26409,56 @@ th.sticky-stock-hdr,
 [data-theme="light"] table tbody td:first-child,
 [data-theme="light"] .sticky-stock-col,
 [data-theme="light"] td.sticky-stock-col,
+[data-theme="light"] .ledger-table-wrap tbody td:first-child,
+[data-theme="light"] #tab-portfolio .ledger-table-wrap tbody td:first-child,
+[data-theme="light"] #portfolio-ledger-body td:first-child,
+[data-mode="light"] .data-table tbody td:first-child,
+[data-mode="light"] table tbody td:first-child,
+[data-mode="light"] .sticky-stock-col,
+[data-mode="light"] td.sticky-stock-col,
+[data-mode="light"] .ledger-table-wrap tbody td:first-child,
+[data-mode="light"] #tab-portfolio .ledger-table-wrap tbody td:first-child,
+[data-mode="light"] #portfolio-ledger-body td:first-child,
 body.light-theme .data-table tbody td:first-child,
-body.light-theme table tbody td:first-child {
+body.light-theme table tbody td:first-child,
+body.light-theme .ledger-table-wrap tbody td:first-child,
+body.light-theme #portfolio-ledger-body td:first-child,
+body.light-mode .data-table tbody td:first-child,
+body.light-mode table tbody td:first-child,
+body.light-mode .ledger-table-wrap tbody td:first-child,
+body.light-mode #portfolio-ledger-body td:first-child {
     background: #ffffff !important;
+    background-color: #ffffff !important;
+    color: var(--text-primary) !important;
     opacity: 1 !important;
-    box-shadow: 4px 0 12px rgba(0, 0, 0, 0.12) !important;
-    border-right: 1.5px solid rgba(0, 0, 0, 0.15) !important;
+    box-shadow: 4px 0 12px rgba(0, 0, 0, 0.08) !important;
+    border-right: 1.5px solid rgba(0, 0, 0, 0.12) !important;
 }
 
 [data-theme="light"] .data-table th:first-child,
 [data-theme="light"] table th:first-child,
 [data-theme="light"] .sticky-stock-hdr,
 [data-theme="light"] th.sticky-stock-hdr,
+[data-theme="light"] .ledger-table-wrap th:first-child,
+[data-theme="light"] #tab-portfolio .ledger-table-wrap th:first-child,
+[data-mode="light"] .data-table th:first-child,
+[data-mode="light"] table th:first-child,
+[data-mode="light"] .sticky-stock-hdr,
+[data-mode="light"] th.sticky-stock-hdr,
+[data-mode="light"] .ledger-table-wrap th:first-child,
+[data-mode="light"] #tab-portfolio .ledger-table-wrap th:first-child,
 body.light-theme .data-table th:first-child,
-body.light-theme table th:first-child {
+body.light-theme table th:first-child,
+body.light-theme .ledger-table-wrap th:first-child,
+body.light-mode .data-table th:first-child,
+body.light-mode table th:first-child,
+body.light-mode .ledger-table-wrap th:first-child {
     background: #f8fafc !important;
+    background-color: #f8fafc !important;
+    color: var(--text-primary) !important;
     opacity: 1 !important;
-    box-shadow: 4px 2px 12px rgba(0, 0, 0, 0.15) !important;
-    border-right: 1.5px solid rgba(0, 0, 0, 0.15) !important;
+    box-shadow: 4px 2px 12px rgba(0, 0, 0, 0.08) !important;
+    border-right: 1.5px solid rgba(0, 0, 0, 0.12) !important;
 }
 
 
@@ -26750,23 +26782,64 @@ th.sticky-stock-hdr {
 [data-theme="light"] .data-table tbody td:first-child,
 [data-theme="light"] .screener-table tbody td:first-child,
 [data-theme="light"] .ledger-table tbody td:first-child,
+[data-theme="light"] .ledger-table-wrap tbody td:first-child,
+[data-theme="light"] #portfolio-ledger-body td:first-child,
+[data-mode="light"] table tbody td:first-child,
+[data-mode="light"] .data-table tbody td:first-child,
+[data-mode="light"] .screener-table tbody td:first-child,
+[data-mode="light"] .ledger-table tbody td:first-child,
+[data-mode="light"] .ledger-table-wrap tbody td:first-child,
+[data-mode="light"] #portfolio-ledger-body td:first-child,
 body.light-theme table tbody td:first-child,
-body.light-theme .data-table tbody td:first-child {
+body.light-theme .data-table tbody td:first-child,
+body.light-theme .ledger-table-wrap tbody td:first-child,
+body.light-theme #portfolio-ledger-body td:first-child,
+body.light-mode table tbody td:first-child,
+body.light-mode .data-table tbody td:first-child,
+body.light-mode .ledger-table-wrap tbody td:first-child,
+body.light-mode #portfolio-ledger-body td:first-child {
     background: #ffffff !important;
+    background-color: #ffffff !important;
+    color: var(--text-primary) !important;
     opacity: 1 !important;
-    box-shadow: 4px 0 12px rgba(0, 0, 0, 0.12) !important;
-    border-right: 1.5px solid rgba(0, 0, 0, 0.15) !important;
+    box-shadow: 4px 0 12px rgba(0, 0, 0, 0.08) !important;
+    border-right: 1.5px solid rgba(0, 0, 0, 0.12) !important;
 }
 
 [data-theme="light"] table thead th:first-child,
 [data-theme="light"] .data-table thead th:first-child,
 [data-theme="light"] .screener-table thead th:first-child,
+[data-theme="light"] .ledger-table-wrap thead th:first-child,
+[data-mode="light"] table thead th:first-child,
+[data-mode="light"] .data-table thead th:first-child,
+[data-mode="light"] .screener-table thead th:first-child,
+[data-mode="light"] .ledger-table-wrap thead th:first-child,
 body.light-theme table thead th:first-child,
-body.light-theme .data-table thead th:first-child {
+body.light-theme .data-table thead th:first-child,
+body.light-theme .ledger-table-wrap thead th:first-child,
+body.light-mode table thead th:first-child,
+body.light-mode .data-table thead th:first-child,
+body.light-mode .ledger-table-wrap thead th:first-child {
     background: #f8fafc !important;
+    background-color: #f8fafc !important;
+    color: var(--text-primary) !important;
     opacity: 1 !important;
-    box-shadow: 4px 2px 12px rgba(0, 0, 0, 0.15) !important;
-    border-right: 1.5px solid rgba(0, 0, 0, 0.15) !important;
+    box-shadow: 4px 2px 12px rgba(0, 0, 0, 0.08) !important;
+    border-right: 1.5px solid rgba(0, 0, 0, 0.12) !important;
+}
+
+/* 5b. Portfolio Ledger Input Controls Light Theme Fix */
+[data-theme="light"] .portfolio-qty-input,
+[data-theme="light"] .portfolio-price-input,
+[data-mode="light"] .portfolio-qty-input,
+[data-mode="light"] .portfolio-price-input,
+body.light-theme .portfolio-qty-input,
+body.light-theme .portfolio-price-input,
+body.light-mode .portfolio-qty-input,
+body.light-mode .portfolio-price-input {
+    background: #f1f5f9 !important;
+    color: #0f172a !important;
+    border-color: #cbd5e1 !important;
 }
 
 /* 6. Clean Ticker Badge Styling inside First Column App-Wide */
