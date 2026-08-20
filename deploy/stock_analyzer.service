@@ -5,7 +5,7 @@ After=network.target
 [Service]
 User=ubuntu
 WorkingDirectory=/home/ubuntu/indian-stock-analyzer
-ExecStart=/home/ubuntu/indian-stock-analyzer/venv/bin/uvicorn backend.main:app --host 127.0.0.1 --port 8000 --workers 1
+ExecStart=/home/ubuntu/indian-stock-analyzer/venv/bin/uvicorn backend.main:app --host 127.0.0.1 --port 8000 --workers 1 --log-level warning --no-access-log
 Restart=always
 RestartSec=5
 MemoryHigh=600M
@@ -13,6 +13,7 @@ MemoryMax=750M
 Environment=PORT=8000
 Environment=DATABASE_DIR=/home/ubuntu/indian-stock-analyzer/backend/data
 EnvironmentFile=/home/ubuntu/indian-stock-analyzer/.env
+LimitNOFILE=65536
 
 [Install]
 WantedBy=multi-user.target
