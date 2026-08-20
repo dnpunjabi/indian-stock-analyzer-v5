@@ -8,6 +8,7 @@ import asyncio
 import time
 import uuid
 import threading
+import gc
 
 # Dynamic IPv6/IPv4 selector to support both normal networks and restricted environments (e.g. Oracle VM)
 try:
@@ -894,7 +895,6 @@ def rebalance_index_universe() -> int:
             conn.commit()
         return len(new_universe)
     return 0
-
 async def run_background_cache_warmer():
     print("Background cache warmer: initial 120s delay before start...")
     await asyncio.sleep(120)
@@ -907,7 +907,7 @@ async def run_background_cache_warmer():
             
             print(f"Background cache warmer: starting sweep for {len(symbols)} symbols...")
             
-            for sym in symbols:
+            for idx, sym in enumerate(symbols):
                 try:
                     # Check if profile needs refresh
                     with get_db() as conn:
@@ -925,9 +925,9 @@ async def run_background_cache_warmer():
                             pass  # Force refresh if date parsing fails
                     
                     if not needs_update:
-                        await asyncio.sleep(1)  # Reduced sleep to speed up sweep
+                        await asyncio.sleep(0.2)  # Fast skip for warm cache
                         continue
-                            
+                             
                     print(f"Background cache warmer: fetching profile for {sym}...")
                     profile = await asyncio.to_thread(get_complete_financial_profile, sym)
                     
@@ -939,7 +939,7 @@ async def run_background_cache_warmer():
                         )
                         conn.commit()
                     print(f"Background cache warmer: successfully cached {sym}")
-                    await asyncio.sleep(3)  # Paced sleep to prevent threadpool & SQLite locking
+                    await asyncio.sleep(4)  # Paced sleep to prevent API flooding & SQLite locking
 
                     # Warm events cache in background
                     try:
@@ -949,18 +949,32 @@ async def run_background_cache_warmer():
                             await asyncio.to_thread(cache_stock_events, full_sym)
                             print(f"Background cache warmer: warmed events for {sym}")
                     except Exception as e:
-                        print(f"Background cache warmer: failed to warm events for {sym}: {e}")
+                        err_msg = str(e)
+                        print(f"Background cache warmer: failed to warm events for {sym}: {err_msg}")
+                        if "401" in err_msg or "Unauthorized" in err_msg or "Invalid Crumb" in err_msg:
+                            print("Background cache warmer: Yahoo rate-limit (401 Invalid Crumb) detected. Pausing warmer for 10 mins...")
+                            await asyncio.sleep(600)  # Cool off period for Yahoo Finance cookie/crumb
 
-                    await asyncio.sleep(2)  # Reduced sleep between updates
+                    # Periodic Garbage Collection every 10 stocks to clear unused DataFrames from RAM
+                    if idx % 10 == 0:
+                        gc.collect()
+
+                    await asyncio.sleep(3)  # Gentle delay between stocks
                 except Exception as e:
-                    print(f"Background warming error for {sym}: {e}")
-                    await asyncio.sleep(5)  # Reduced error sleep
+                    err_str = str(e)
+                    print(f"Background warming error for {sym}: {err_str}")
+                    if "401" in err_str or "Unauthorized" in err_str or "Invalid Crumb" in err_str:
+                        print("Background cache warmer: Yahoo rate-limit (401 Invalid Crumb) detected. Pausing warmer for 10 mins...")
+                        await asyncio.sleep(600)
+                    else:
+                        await asyncio.sleep(10)
             
-            print("Background cache warmer: sweep complete. Sleeping for 1 hour.")
+            gc.collect()
+            print("Background cache warmer: sweep complete. Sleeping for 4 hours.")
+            await asyncio.sleep(14400)  # 4 hour sleep between full sweeps to keep VM RAM light
         except Exception as e:
             print(f"Universe cache warmer loop error: {e}")
-            
-        await asyncio.sleep(3600)
+            await asyncio.sleep(1800)
 
 
 _MARKET_MOVERS_CACHE = {
