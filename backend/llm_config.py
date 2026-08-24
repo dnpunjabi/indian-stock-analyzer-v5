@@ -289,6 +289,8 @@ def _call_gemini_with_rotation(task_type: str,
     if structured_schema:
         payload["generationConfig"]["responseMimeType"] = "application/json"
         
+    gemini_timeout = float(os.environ.get("GEMINI_TIMEOUT", "60.0"))
+    consecutive_timeouts = 0
     max_attempts = len(keys) * 2
     for attempt in range(max_attempts):
         key, mask = _select_gemini_key(keys)
@@ -299,8 +301,8 @@ def _call_gemini_with_rotation(task_type: str,
         headers = {"Content-Type": "application/json"}
         
         try:
-            print(f"[LLM Rotation] Requesting {model} with key {mask} (Attempt {attempt+1})...")
-            res = requests.post(url, headers=headers, json=payload, timeout=25.0)
+            print(f"[LLM Rotation] Requesting {model} with key {mask} (Attempt {attempt+1}, timeout={gemini_timeout}s)...")
+            res = requests.post(url, headers=headers, json=payload, timeout=gemini_timeout)
             
             if res.status_code == 200:
                 res_json = res.json()
@@ -336,6 +338,15 @@ def _call_gemini_with_rotation(task_type: str,
                     GEMINI_KEYS_COOLDOWN[mask] = datetime.now() + timedelta(seconds=5)
                 continue
                 
+        except requests.exceptions.Timeout as timeout_ex:
+            consecutive_timeouts += 1
+            print(f"[LLM Rotation] Request timed out for key {mask} (Attempt {attempt+1}, timeout={gemini_timeout}s).")
+            if consecutive_timeouts >= 2:
+                print(f"[LLM Rotation] Multiple consecutive timeouts ({consecutive_timeouts}). Fast-failing to fallback provider.")
+                return f"ERROR_TIMEOUT: Gemini requests timed out after {gemini_timeout}s across multiple attempts.", False
+            with _rotation_lock:
+                GEMINI_KEYS_COOLDOWN[mask] = datetime.now() + timedelta(seconds=5)
+            continue
         except requests.exceptions.RequestException as req_ex:
             print(f"[LLM Rotation] Request failed for key {mask}: {req_ex}. Rotating.")
             with _rotation_lock:
@@ -398,6 +409,7 @@ def _stream_gemini_with_rotation(task_type: str,
             "parts": [{"text": gemini_system}]
         }
         
+    gemini_timeout = float(os.environ.get("GEMINI_TIMEOUT", "60.0"))
     max_attempts = len(keys) * 2
     for attempt in range(max_attempts):
         key, mask = _select_gemini_key(keys)
@@ -409,8 +421,8 @@ def _stream_gemini_with_rotation(task_type: str,
         headers = {"Content-Type": "application/json"}
         
         try:
-            print(f"[LLM Rotation] Requesting streaming {model} with key {mask} (Attempt {attempt+1})...")
-            res = requests.post(url, headers=headers, json=payload, timeout=30.0, stream=True)
+            print(f"[LLM Rotation] Requesting streaming {model} with key {mask} (Attempt {attempt+1}, timeout={gemini_timeout}s)...")
+            res = requests.post(url, headers=headers, json=payload, timeout=gemini_timeout, stream=True)
             
             if res.status_code == 200:
                 decoder = json.JSONDecoder()
@@ -591,47 +603,47 @@ def call_llm(task_type: str,
     model = config["heavy_model"] if task_type == TASK_HEAVY else config["fast_model"]
     label = config["heavy_label"] if task_type == TASK_HEAVY else config["fast_label"]
     temperature = config["temperature"]
-
-    # Prevent token truncation: scale max_tokens up to allow headroom for thinking logs
     safe_max_tokens = min(16384, max(max_tokens, 4096))
 
-    try:
-        print(f"[LLM] Calling {label} (model: {model}, task: {task_type}, tokens: {safe_max_tokens})...")
-        chat_completion = client.chat.completions.create(
-            messages=messages_with_suppression,
-            model=model,
-            max_tokens=safe_max_tokens,
-            temperature=temperature
-        )
-        response_content = chat_completion.choices[0].message.content
-        print(f"[LLM] Successfully received response from {label} ({len(response_content)} chars)")
-        is_fallback = (config["provider"] != "gemini")
-        _set_last_llm_meta(label, config["provider"], start_time, is_fallback=is_fallback)
-        return _clean_reasoning_metadata(response_content)
-    except Exception as e:
-        print(f"[LLM] Error calling {label}: {e}")
-        err_msg = str(e)
-        if "invalid_api_key" in err_msg or "401" in err_msg or "Invalid API Key" in err_msg:
-            return "ERROR_401: Invalid API Key. Activating local high-fidelity fallback reasoning."
+    # Candidate models for resilient fallback if primary model returns 404 or fails
+    groq_candidates = [
+        model,
+        "llama-3.3-70b-versatile",
+        "llama-3.1-70b-versatile",
+        "llama-3.1-8b-instant",
+        "llama3-70b-8192",
+        "mixtral-8x7b-32768"
+    ]
+    
+    tried_models = set()
+    last_err_msg = ""
 
-        fallback_model = config["fast_model"] if task_type == TASK_HEAVY else config["heavy_model"]
-        if fallback_model != model:
-            try:
-                print(f"[LLM] Retrying with fallback model: {fallback_model}...")
-                chat_completion = client.chat.completions.create(
-                    messages=messages_with_suppression,
-                    model=fallback_model,
-                    max_tokens=safe_max_tokens,
-                    temperature=temperature
-                )
-                _set_last_llm_meta(f"Fallback {fallback_model}", config["provider"], start_time, is_fallback=True)
-                return _clean_reasoning_metadata(chat_completion.choices[0].message.content)
-            except Exception as e2:
-                if "invalid_api_key" in str(e2) or "401" in str(e2):
-                    return "ERROR_401: Invalid API Key. Activating local high-fidelity fallback reasoning."
-                return f"ERROR: Failed to query LLM. Details: {str(e2)}"
+    for target_model in groq_candidates:
+        if not target_model or target_model in tried_models:
+            continue
+        tried_models.add(target_model)
         
-        return f"ERROR: Failed to query LLM model {model}. Details: {err_msg}"
+        try:
+            print(f"[LLM] Calling {label} (model: {target_model}, task: {task_type}, tokens: {safe_max_tokens})...")
+            chat_completion = client.chat.completions.create(
+                messages=messages_with_suppression,
+                model=target_model,
+                max_tokens=safe_max_tokens,
+                temperature=temperature
+            )
+            response_content = chat_completion.choices[0].message.content
+            print(f"[LLM] Successfully received response from {label} ({target_model}) ({len(response_content)} chars)")
+            is_fallback = (config["provider"] != "gemini")
+            _set_last_llm_meta(f"{label} ({target_model})", config["provider"], start_time, is_fallback=is_fallback)
+            return _clean_reasoning_metadata(response_content)
+        except Exception as e:
+            last_err_msg = str(e)
+            print(f"[LLM] Error calling model {target_model}: {last_err_msg}")
+            if "invalid_api_key" in last_err_msg or "401" in last_err_msg or "Invalid API Key" in last_err_msg:
+                return "ERROR_401: Invalid API Key. Activating local high-fidelity fallback reasoning."
+            continue
+
+    return f"ERROR: Failed to query LLM models {list(tried_models)}. Last error: {last_err_msg}"
 
 def call_llm_with_meta(task_type: str,
                        system_prompt: str,
