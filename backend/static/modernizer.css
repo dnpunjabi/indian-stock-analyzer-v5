@@ -187,24 +187,13 @@ body::before {
     scrollbar-color: rgba(var(--primary-rgb), 0.15) transparent;
 }
 
-/* 10. Spotlight Hover Glow Effect */
+/* 10. Spotlight Hover Glow Effect (Disabled for Option C - Flat Clean View) */
 .card::after {
-    content: "";
-    position: absolute;
-    inset: 0;
-    background: radial-gradient(
-        600px circle at var(--mouse-x, 0) var(--mouse-y, 0),
-        rgba(var(--primary-rgb), 0.06),
-        transparent 40%
-    );
-    opacity: 0;
-    transition: opacity 0.35s ease;
-    pointer-events: none;
-    z-index: 0;
+    display: none !important;
 }
 
 .card:hover::after {
-    opacity: 1;
+    opacity: 0 !important;
 }
 
 /* 11. Theme-Adaptive Shimmer Skeletons */
@@ -472,32 +461,22 @@ select option {
 
 /* ==================== FINAL ADVANCED ADDITIONS ==================== */
 
-/* 18. Sibling Table Row Focus Dimming */
+/* 18. Sibling Table Row Focus Dimming (Disabled across Application) */
 table {
     border-collapse: collapse;
 }
 
-table:hover tbody tr {
-    opacity: 0.45;
-}
-
-table tbody tr {
-    transition: opacity 0.25s cubic-bezier(0.16, 1, 0.3, 1), background-color 0.2s ease !important;
+table:hover tbody tr,
+table tbody tr,
+table tbody tr:hover,
+[data-theme="light"] table:hover tbody tr,
+[data-theme="light"] table tbody tr:hover {
+    opacity: 1 !important;
+    filter: none !important;
 }
 
 table tbody tr:hover {
-    opacity: 1 !important;
-    background-color: rgba(var(--primary-rgb), 0.06) !important;
-    box-shadow: inset 2px 0 0 var(--color-primary);
-}
-
-/* Light theme overrides for row contrast */
-[data-theme="light"] table:hover tbody tr {
-    opacity: 0.6;
-}
-[data-theme="light"] table tbody tr:hover {
-    opacity: 1 !important;
-    background-color: rgba(var(--primary-rgb), 0.04) !important;
+    background-color: rgba(var(--primary-rgb), 0.05) !important;
 }
 
 /* 19. TTS Equalizer Waveform style overrides */

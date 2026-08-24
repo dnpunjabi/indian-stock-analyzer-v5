@@ -628,8 +628,8 @@ function handleLiveTickMessage(ticksData) {
 
     // Update marquee elements dynamically from live index ticks
     const indexMappings = {
-        '^NSEI': { textElId: 'ticker-nifty', desktopId: 'desktop-ticker-nifty', label: 'NIFTY 50' },
-        '^BSESN': { textElId: 'ticker-sensex', desktopId: 'desktop-ticker-sensex', label: 'SENSEX' },
+        '^NSEI': { textElId: 'ticker-nifty', desktopId: 'desktop-ticker-nifty', pillId: 'desktop-pill-nifty', label: 'NIFTY 50' },
+        '^BSESN': { textElId: 'ticker-sensex', desktopId: 'desktop-ticker-sensex', pillId: 'desktop-pill-sensex', label: 'SENSEX' },
         '^NSEBANK': { textElId: 'ticker-banknifty', desktopId: 'desktop-ticker-banknifty', label: 'BANK NIFTY' },
         '^CNXIT': { textElId: 'ticker-niftyit', desktopId: 'desktop-ticker-niftyit', label: 'NIFTY IT' },
         '^CNXINFRA': { textElId: 'ticker-niftyinfra', desktopId: 'desktop-ticker-niftyinfra', label: 'NIFTY INFRA' },
@@ -649,7 +649,7 @@ function handleLiveTickMessage(ticksData) {
     for (const [sym, cfg] of Object.entries(indexMappings)) {
         const q = ticksData[sym] || ticksData[sym.replace('.NS', '')];
         if (q && q.price > 0) {
-            const targets = [cfg.textElId, cfg.desktopId].filter(Boolean);
+            const targets = [cfg.textElId, cfg.desktopId, cfg.pillId].filter(Boolean);
             targets.forEach(id => {
                 const els = document.querySelectorAll(`[id="${id}"]`);
                 els.forEach(el => {
@@ -662,7 +662,15 @@ function handleLiveTickMessage(ticksData) {
                     const absChange = (q.change !== undefined && q.change !== null) ? Math.abs(q.change).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '--';
                     const pctVal = (q.change_pct !== undefined && q.change_pct !== null) ? `${sign}${q.change_pct.toFixed(2)}%` : '--';
                     
-                    if (id.startsWith('desktop-ticker-')) {
+                    if (id.startsWith('desktop-pill-')) {
+                        const valEl = el.querySelector('.pill-val');
+                        const changeEl = el.querySelector('.pill-change');
+                        if (valEl) valEl.textContent = formattedPrice;
+                        if (changeEl) {
+                            changeEl.className = `pill-change change ${changeBadgeClass}`;
+                            changeEl.textContent = `${changeArrow} ${sign}${absChange} (${pctVal})`;
+                        }
+                    } else if (id.startsWith('desktop-ticker-')) {
                         el.innerHTML = `${cfg.label}: <strong class="val">${formattedPrice}</strong> <span class="${changeBadgeClass}">${changeArrow} ${sign}${absChange} (${pctVal})</span>`;
                     } else {
                         el.innerHTML = `${cfg.label}: <strong class="val">${formattedPrice}</strong> <span class="${changeClass}">${changeArrow} ${sign}${absChange} (${pctVal})</span>`;
