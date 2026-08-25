@@ -162,10 +162,10 @@ def _get_config():
         heavy_label = _format_model_label(heavy_model)
         fast_label = _format_model_label(fast_model)
     else:
-        heavy_model = os.environ.get("LLM_HEAVY_MODEL", "llama-3.3-70b-versatile")
-        fast_model = os.environ.get("LLM_FAST_MODEL", "llama-3.3-70b-versatile")
-        heavy_label = os.environ.get("LLM_HEAVY_LABEL", "Groq Llama 3.3 70B")
-        fast_label = os.environ.get("LLM_FAST_LABEL", "Groq Llama 3.3 70B")
+        heavy_model = os.environ.get("LLM_HEAVY_MODEL", "gpt-oss-120b")
+        fast_model = os.environ.get("LLM_FAST_MODEL", "gpt-oss-20b")
+        heavy_label = os.environ.get("LLM_HEAVY_LABEL", "Groq GPT OSS 120B")
+        fast_label = os.environ.get("LLM_FAST_LABEL", "Groq GPT OSS 20B")
     
     temperature = float(os.environ.get("LLM_TEMPERATURE", "0.2"))
     
@@ -591,10 +591,10 @@ def call_llm(task_type: str,
             
         print(f"[LLM Config] Gemini rotation failed ({result}). Falling back to Groq...")
         config["provider"] = "groq"
-        config["heavy_model"] = os.environ.get("LLM_HEAVY_MODEL", "llama-3.3-70b-versatile")
-        config["fast_model"] = os.environ.get("LLM_FAST_MODEL", "llama-3.3-70b-versatile")
-        config["heavy_label"] = "Fallback Groq Llama 3.3"
-        config["fast_label"] = "Fallback Groq Llama 3.3"
+        config["heavy_model"] = os.environ.get("LLM_HEAVY_MODEL", "gpt-oss-120b")
+        config["fast_model"] = os.environ.get("LLM_FAST_MODEL", "gpt-oss-20b")
+        config["heavy_label"] = "Fallback Groq GPT OSS 120B"
+        config["fast_label"] = "Fallback Groq GPT OSS 20B"
 
     client = _get_client(config)
     if client is None:
@@ -608,10 +608,10 @@ def call_llm(task_type: str,
     # Candidate models for resilient fallback if primary model returns 404 or fails
     groq_candidates = [
         model,
-        "llama-3.3-70b-versatile",
-        "llama-3.1-70b-versatile",
-        "llama-3.1-8b-instant",
-        "llama3-70b-8192",
+        "gpt-oss-120b",
+        "qwen3.6-27b",
+        "gpt-oss-20b",
+        "deepseek-r1-distill-llama-70b",
         "mixtral-8x7b-32768"
     ]
     
