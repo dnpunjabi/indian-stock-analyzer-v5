@@ -3396,12 +3396,6 @@
                         <div class="pulse-change" id="pulse-change-sensex">--</div>
                         <div class="pulse-sparkline-wrap" id="pulse-spark-sensex"></div>
                     </div>
-                    <div class="market-pulse-cell" id="pulse-cell-banknifty">
-                        <div class="pulse-label">BANK NIFTY</div>
-                        <div class="pulse-price" id="pulse-price-banknifty">--</div>
-                        <div class="pulse-change" id="pulse-change-banknifty">--</div>
-                        <div class="pulse-sparkline-wrap" id="pulse-spark-banknifty"></div>
-                    </div>
                 </div>
 
                 <!-- Last Updated Timestamp -->
@@ -3784,8 +3778,7 @@
                 if (!ticksData) return;
                 const indices = [
                     { sym: '^NSEI', priceId: 'pulse-price-nifty', changeId: 'pulse-change-nifty', sparkId: 'pulse-spark-nifty', histKey: 'nifty' },
-                    { sym: '^BSESN', priceId: 'pulse-price-sensex', changeId: 'pulse-change-sensex', sparkId: 'pulse-spark-sensex', histKey: 'sensex' },
-                    { sym: '^NSEBANK', priceId: 'pulse-price-banknifty', changeId: 'pulse-change-banknifty', sparkId: 'pulse-spark-banknifty', histKey: 'banknifty' }
+                    { sym: '^BSESN', priceId: 'pulse-price-sensex', changeId: 'pulse-change-sensex', sparkId: 'pulse-spark-sensex', histKey: 'sensex' }
                 ];
 
                 indices.forEach(({ sym, priceId, changeId, sparkId, histKey }) => {
@@ -3799,9 +3792,10 @@
                     priceEl.textContent = q.price.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
                     if (changeEl && q.change_pct !== undefined) {
-                        const isPos = q.change >= 0;
+                        const isPos = (q.change !== undefined ? q.change : q.change_pct) >= 0;
                         const sign = isPos ? '+' : '';
-                        changeEl.textContent = `${isPos ? '▲' : '▼'} ${sign}${q.change_pct.toFixed(2)}%`;
+                        const ptsStr = (q.change !== undefined && q.change !== null) ? `${sign}${q.change.toFixed(2)} ` : '';
+                        changeEl.textContent = `${isPos ? '▲' : '▼'} ${ptsStr}(${sign}${q.change_pct.toFixed(2)}%)`;
                         changeEl.className = `pulse-change ${isPos ? 'positive' : 'negative'}`;
                     }
 
