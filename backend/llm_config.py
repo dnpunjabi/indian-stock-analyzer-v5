@@ -157,13 +157,13 @@ def _get_config():
     api_key = os.environ.get("LLM_API_KEY", "") or os.environ.get("GROQ_API_KEY", "")
     
     if provider == "gemini":
-        heavy_model = os.environ.get("GEMINI_HEAVY_MODEL", "gemini-1.5-pro")
-        fast_model = os.environ.get("GEMINI_FAST_MODEL", "gemini-1.5-flash")
+        heavy_model = os.environ.get("GEMINI_HEAVY_MODEL", "gemini-3.6-flash")
+        fast_model = os.environ.get("GEMINI_FAST_MODEL", "gemini-2.5-flash")
         heavy_label = _format_model_label(heavy_model)
         fast_label = _format_model_label(fast_model)
     else:
-        heavy_model = os.environ.get("LLM_HEAVY_MODEL", "gpt-oss-120b")
-        fast_model = os.environ.get("LLM_FAST_MODEL", "gpt-oss-20b")
+        heavy_model = os.environ.get("LLM_HEAVY_MODEL", "openai/gpt-oss-120b")
+        fast_model = os.environ.get("LLM_FAST_MODEL", "openai/gpt-oss-20b")
         heavy_label = os.environ.get("LLM_HEAVY_LABEL", "Groq GPT OSS 120B")
         fast_label = os.environ.get("LLM_FAST_LABEL", "Groq GPT OSS 20B")
     
@@ -591,8 +591,8 @@ def call_llm(task_type: str,
             
         print(f"[LLM Config] Gemini rotation failed ({result}). Falling back to Groq...")
         config["provider"] = "groq"
-        config["heavy_model"] = os.environ.get("LLM_HEAVY_MODEL", "gpt-oss-120b")
-        config["fast_model"] = os.environ.get("LLM_FAST_MODEL", "gpt-oss-20b")
+        config["heavy_model"] = os.environ.get("LLM_HEAVY_MODEL", "openai/gpt-oss-120b")
+        config["fast_model"] = os.environ.get("LLM_FAST_MODEL", "openai/gpt-oss-20b")
         config["heavy_label"] = "Fallback Groq GPT OSS 120B"
         config["fast_label"] = "Fallback Groq GPT OSS 20B"
 
@@ -608,11 +608,11 @@ def call_llm(task_type: str,
     # Candidate models for resilient fallback if primary model returns 404 or fails
     groq_candidates = [
         model,
-        "gpt-oss-120b",
-        "qwen3.6-27b",
-        "gpt-oss-20b",
-        "deepseek-r1-distill-llama-70b",
-        "mixtral-8x7b-32768"
+        "openai/gpt-oss-120b",
+        "openai/gpt-oss-20b",
+        "qwen/qwen3.6-27b",
+        "groq/compound-mini",
+        "groq/compound"
     ]
     
     tried_models = set()
