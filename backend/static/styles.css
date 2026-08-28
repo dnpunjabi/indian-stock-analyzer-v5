@@ -33027,6 +33027,248 @@ table tbody tr:not(:hover),
     }
 }
 
+/* =========================================================
+   WATCHLIST, SCREENER & PORTFOLIO TABLE TYPOGRAPHY & THEMES
+   ========================================================= */
+
+/* 1. Remove Ticker Underlines Across All Tables & Themes */
+.data-table td a,
+.sticky-stock-col a,
+#watchlist-table-body td a,
+#screener-results-body td a,
+#portfolio-ledger-body td a,
+.universe-symbol-link,
+.stock-link,
+.symbol-link {
+    text-decoration: none !important;
+    font-family: 'JetBrains Mono', 'Outfit', sans-serif !important;
+    font-weight: 700 !important;
+    letter-spacing: 0.03em !important;
+    color: #38bdf8 !important;
+    transition: color 0.15s ease, transform 0.15s ease !important;
+    display: inline-flex;
+    align-items: center;
+}
+
+.data-table td a:hover,
+.sticky-stock-col a:hover,
+#watchlist-table-body td a:hover,
+#screener-results-body td a:hover,
+#portfolio-ledger-body td a:hover,
+.universe-symbol-link:hover {
+    text-decoration: none !important;
+    color: #60a5fa !important;
+    transform: translateY(-1px);
+}
+
+/* Light Theme Ticker Link Color Overrides */
+[data-theme="light"] .data-table td a,
+[data-mode="light"] .data-table td a,
+[data-theme="light"] .sticky-stock-col a,
+[data-mode="light"] .sticky-stock-col a,
+[data-theme="light"] #watchlist-table-body td a,
+[data-mode="light"] #watchlist-table-body td a,
+[data-theme="light"] #screener-results-body td a,
+[data-mode="light"] #screener-results-body td a,
+[data-theme="light"] #portfolio-ledger-body td a,
+[data-mode="light"] #portfolio-ledger-body td a,
+body.light-theme .data-table td a {
+    color: #1d4ed8 !important;
+}
+
+[data-theme="light"] .data-table td a:hover,
+[data-mode="light"] .data-table td a:hover,
+[data-theme="light"] .sticky-stock-col a:hover,
+[data-mode="light"] .sticky-stock-col a:hover {
+    color: #2563eb !important;
+}
+
+/* 2. Sticky Stock Column Shadow & Seamless Border (Dark & Light) */
+.sticky-stock-col,
+th.sticky-stock-hdr,
+td.sticky-stock-col {
+    position: sticky !important;
+    left: 0 !important;
+    z-index: 10 !important;
+    box-shadow: 6px 0 16px -2px rgba(0, 0, 0, 0.45) !important;
+    border-right: 1px solid rgba(255, 255, 255, 0.08) !important;
+}
+
+th.sticky-stock-hdr {
+    z-index: 12 !important;
+}
+
+[data-theme="light"] .sticky-stock-col,
+[data-mode="light"] .sticky-stock-col,
+[data-theme="light"] th.sticky-stock-hdr,
+[data-mode="light"] th.sticky-stock-hdr,
+[data-theme="light"] td.sticky-stock-col,
+[data-mode="light"] td.sticky-stock-col {
+    box-shadow: 4px 0 12px -2px rgba(0, 0, 0, 0.08) !important;
+    border-right: 1px solid rgba(0, 0, 0, 0.08) !important;
+}
+
+/* 3. JetBrains Mono Price Numbers & Percentage Badges */
+.data-table td.col-ltp,
+.data-table td.col-chg,
+.data-table td.col-target,
+.data-table td.col-score,
+.data-table td.col-val,
+.ltp-cell,
+.price-cell,
+.data-table td:nth-child(2),
+.data-table td:nth-child(3) {
+    font-family: 'JetBrains Mono', 'Roboto Mono', monospace !important;
+    font-size: 13.5px !important;
+    letter-spacing: 0.01em !important;
+}
+
+/* 4. Compact 2-Line Row Layout for Mobile Watchlist (< 768px) */
+@media (max-width: 768px) {
+    #watchlist-table-body tr td.sticky-stock-col,
+    #portfolio-ledger-body tr td.sticky-stock-col {
+        padding: 8px 10px !important;
+        vertical-align: middle !important;
+    }
+
+    .mobile-symbol-wrapper {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+    }
+
+    .mobile-symbol-row {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+    .mobile-company-subtext {
+        font-size: 10.5px;
+        color: #94a3b8;
+        font-weight: 400;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        max-width: 140px;
+    }
+
+    [data-theme="light"] .mobile-company-subtext,
+    [data-mode="light"] .mobile-company-subtext {
+        color: #64748b;
+    }
+}
+
+/* =========================================================
+   WATCHLIST TABLE SPECIFIC FONT SIZE & COLOR POLISH
+   ========================================================= */
+
+/* Watchlist Table Headers */
+#watchlist-table-head th {
+    font-size: 11.5px !important;
+    font-weight: 700 !important;
+    letter-spacing: 0.05em !important;
+    text-transform: uppercase !important;
+    color: #94a3b8 !important;
+    padding: 10px 12px !important;
+    background: rgba(15, 23, 42, 0.95) !important;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1) !important;
+}
+
+[data-theme="light"] #watchlist-table-head th,
+[data-mode="light"] #watchlist-table-head th {
+    color: #475569 !important;
+    background: rgba(248, 250, 252, 0.95) !important;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.08) !important;
+}
+
+/* Watchlist Table Data Cells */
+#watchlist-table-body td {
+    font-size: 13px !important;
+    color: #f8fafc !important;
+    padding: 10px 12px !important;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05) !important;
+    vertical-align: middle !important;
+}
+
+[data-theme="light"] #watchlist-table-body td,
+[data-mode="light"] #watchlist-table-body td {
+    color: #0f172a !important;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.06) !important;
+}
+
+/* Watchlist Ticker Links */
+#watchlist-table-body td.sticky-stock-col a,
+#watchlist-table-body td .stock-symbol-link {
+    font-size: 13.5px !important;
+    font-weight: 700 !important;
+    color: #38bdf8 !important;
+}
+
+[data-theme="light"] #watchlist-table-body td.sticky-stock-col a,
+[data-mode="light"] #watchlist-table-body td.sticky-stock-col a,
+[data-theme="light"] #watchlist-table-body td .stock-symbol-link,
+[data-mode="light"] #watchlist-table-body td .stock-symbol-link {
+    color: #1d4ed8 !important;
+}
+
+/* Watchlist LTP Price Font & Color */
+#watchlist-table-body td.col-ltp,
+#watchlist-table-body .price-cell {
+    font-family: 'JetBrains Mono', monospace !important;
+    font-size: 14px !important;
+    font-weight: 600 !important;
+    color: #ffffff !important;
+}
+
+[data-theme="light"] #watchlist-table-body td.col-ltp,
+[data-theme="light"] #watchlist-table-body .price-cell,
+[data-mode="light"] #watchlist-table-body td.col-ltp,
+[data-mode="light"] #watchlist-table-body .price-cell {
+    color: #0f172a !important;
+}
+
+/* Day Change Badges (+ / -) */
+.col-chg-positive,
+.badge-green {
+    background: rgba(16, 185, 129, 0.15) !important;
+    color: #34d399 !important;
+    border: 1px solid rgba(16, 185, 129, 0.3) !important;
+    padding: 3px 8px !important;
+    border-radius: 6px !important;
+    font-weight: 700 !important;
+    font-size: 12px !important;
+}
+
+[data-theme="light"] .col-chg-positive,
+[data-mode="light"] .col-chg-positive,
+[data-theme="light"] .badge-green,
+[data-mode="light"] .badge-green {
+    background: rgba(16, 185, 129, 0.12) !important;
+    color: #047857 !important;
+    border: 1px solid rgba(16, 185, 129, 0.25) !important;
+}
+
+.col-chg-negative,
+.badge-red {
+    background: rgba(239, 68, 68, 0.15) !important;
+    color: #f87171 !important;
+    border: 1px solid rgba(239, 68, 68, 0.3) !important;
+    padding: 3px 8px !important;
+    border-radius: 6px !important;
+    font-weight: 700 !important;
+    font-size: 12px !important;
+}
+
+[data-theme="light"] .col-chg-negative,
+[data-mode="light"] .col-chg-negative,
+[data-theme="light"] .badge-red,
+[data-mode="light"] .badge-red {
+    background: rgba(239, 68, 68, 0.12) !important;
+    color: #b91c1c !important;
+    border: 1px solid rgba(239, 68, 68, 0.25) !important;
+}
+
 
 
 
