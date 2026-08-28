@@ -33090,8 +33090,8 @@ td.sticky-stock-col {
     position: sticky !important;
     left: 0 !important;
     z-index: 10 !important;
-    box-shadow: 6px 0 16px -2px rgba(0, 0, 0, 0.45) !important;
-    border-right: 1px solid rgba(255, 255, 255, 0.08) !important;
+    box-shadow: none !important;
+    border-right: 1px solid rgba(56, 189, 248, 0.25) !important;
 }
 
 th.sticky-stock-hdr {
@@ -33104,8 +33104,8 @@ th.sticky-stock-hdr {
 [data-mode="light"] th.sticky-stock-hdr,
 [data-theme="light"] td.sticky-stock-col,
 [data-mode="light"] td.sticky-stock-col {
-    box-shadow: 4px 0 12px -2px rgba(0, 0, 0, 0.08) !important;
-    border-right: 1px solid rgba(0, 0, 0, 0.08) !important;
+    box-shadow: none !important;
+    border-right: 1px solid rgba(0, 0, 0, 0.12) !important;
 }
 
 /* 3. JetBrains Mono Price Numbers & Percentage Badges */
@@ -33438,8 +33438,8 @@ th.sticky-stock-hdr {
 #tab-watchlist .data-table tbody td:first-child {
     background: #0d1117 !important;
     background-color: #0d1117 !important;
-    box-shadow: 4px 0 10px -2px rgba(0, 0, 0, 0.5) !important;
-    border-right: 1px solid rgba(255, 255, 255, 0.08) !important;
+    box-shadow: none !important;
+    border-right: 1px solid rgba(56, 189, 248, 0.25) !important;
 }
 
 [data-theme="light"] #watchlist-table-body td.sticky-stock-col,
@@ -33448,18 +33448,18 @@ th.sticky-stock-hdr {
 [data-mode="light"] #tab-watchlist .data-table tbody td:first-child {
     background: #ffffff !important;
     background-color: #ffffff !important;
-    box-shadow: 4px 0 12px rgba(0, 0, 0, 0.08) !important;
+    box-shadow: none !important;
     border-right: 1.5px solid rgba(0, 0, 0, 0.12) !important;
 }
 
-/* 3. Portfolio Ticker Symbol Extra-Bold Monospace Typography */
+/* 3. Portfolio Ticker Symbol Extra-Bold Monospace Typography (Sleek Compact 12px) */
 #watchlist-table-body td.sticky-stock-col a,
 #watchlist-table-body td .stock-symbol-link,
 #tab-watchlist .data-table td:first-child a {
     font-family: 'JetBrains Mono', 'IBM Plex Sans', sans-serif !important;
     font-weight: 800 !important;
-    font-size: 13.5px !important;
-    letter-spacing: 0.04em !important;
+    font-size: 12px !important;
+    letter-spacing: 0.03em !important;
     color: #38bdf8 !important;
     text-decoration: none !important;
 }
@@ -33471,14 +33471,14 @@ th.sticky-stock-hdr {
     color: #1d4ed8 !important;
 }
 
-/* 4. Portfolio Monospace Numeric Data Alignment */
+/* 4. Portfolio Monospace Numeric Data Alignment (Compact 12px) */
 #watchlist-table-body td.col-ltp,
 #watchlist-table-body .price-cell,
 #watchlist-table-body td:nth-child(2),
 #watchlist-table-body td:nth-child(3) {
     font-family: 'JetBrains Mono', 'IBM Plex Sans', monospace !important;
     font-weight: 700 !important;
-    font-size: 13.5px !important;
+    font-size: 12px !important;
     color: #ffffff !important;
 }
 
