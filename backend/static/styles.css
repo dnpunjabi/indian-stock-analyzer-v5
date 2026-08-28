@@ -33489,6 +33489,16 @@ th.sticky-stock-hdr {
     color: #0f172a !important;
 }
 
+/* Mobile Touch & Fast Response Optimization for Sortable Headers */
+.sortable-wl,
+th[data-sort],
+#watchlist-table-head th {
+    touch-action: manipulation !important;
+    user-select: none !important;
+    -webkit-user-select: none !important;
+    cursor: pointer !important;
+}
+
 
 
 

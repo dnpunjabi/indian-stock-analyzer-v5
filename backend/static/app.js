@@ -17040,25 +17040,30 @@ async function setupWatchlistControls() {
         }
     }
 
-    // Sortable header click listeners for Watchlist Constituents (Event Delegation)
-    const headerRow = document.getElementById('watchlist-table-header-row');
-    if (headerRow && !headerRow.hasAttribute('data-sort-listener')) {
-        headerRow.setAttribute('data-sort-listener', 'true');
-        headerRow.addEventListener('click', (e) => {
-            const th = e.target.closest('th.sortable-wl');
+    // Permanent Resilient Document-Level Event Delegation for Watchlist Column Sorting
+    if (!window.watchlistSortListenerWired) {
+        window.watchlistSortListenerWired = true;
+        document.addEventListener('click', (e) => {
+            const th = e.target.closest('#trendlyne-watchlist-table th.sortable-wl, #trendlyne-watchlist-table th[data-sort], #watchlist-table-head th');
             if (!th) return;
             const field = th.getAttribute('data-sort');
             if (!field) return;
 
-            if (watchlistSortCol === field) {
-                watchlistSortAsc = !watchlistSortAsc;
+            e.stopPropagation();
+            if (typeof window.sortWatchlistBy === 'function') {
+                window.sortWatchlistBy(field);
             } else {
-                watchlistSortCol = field;
-                watchlistSortAsc = true;
+                if (watchlistSortCol === field) {
+                    watchlistSortAsc = !watchlistSortAsc;
+                } else {
+                    watchlistSortCol = field;
+                    watchlistSortAsc = true;
+                }
+                activeWatchlistPage = 1;
+                if (typeof renderWatchlistItems === 'function') {
+                    renderWatchlistItems();
+                }
             }
-
-            activeWatchlistPage = 1;
-            renderWatchlistItems();
         });
     }
 
@@ -18104,10 +18109,31 @@ function renderWatchlistItems() {
         }
     };
 
+    // Global helper function to trigger Watchlist column sorting safely from anywhere
+    window.sortWatchlistBy = (colKey) => {
+        if (!colKey) return;
+        if (watchlistSortCol === colKey) {
+            watchlistSortAsc = !watchlistSortAsc;
+        } else {
+            watchlistSortCol = colKey;
+            watchlistSortAsc = true;
+        }
+        activeWatchlistPage = 1;
+        renderWatchlistItems();
+    };
+
     let sortedItems = [...filteredItems];
     sortedItems.sort((a, b) => {
-        const valA = getWatchlistItemValue(a, watchlistSortCol);
-        const valB = getWatchlistItemValue(b, watchlistSortCol);
+        let valA = getWatchlistItemValue(a, watchlistSortCol);
+        let valB = getWatchlistItemValue(b, watchlistSortCol);
+
+        // Sanitize NaN / null / undefined to safely avoid Timsort comparison locks
+        const invalidA = valA === null || valA === undefined || (typeof valA === 'number' && isNaN(valA));
+        const invalidB = valB === null || valB === undefined || (typeof valB === 'number' && isNaN(valB));
+
+        if (invalidA && invalidB) return 0;
+        if (invalidA) return watchlistSortAsc ? 1 : -1;
+        if (invalidB) return watchlistSortAsc ? -1 : 1;
 
         if (valA < valB) return watchlistSortAsc ? -1 : 1;
         if (valA > valB) return watchlistSortAsc ? 1 : -1;
