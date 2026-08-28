@@ -18171,12 +18171,12 @@ function renderWatchlistItems() {
         const alertBadgeHTML = `<button class="btn-secondary configure-stock-alert-btn" data-ticker="${item.symbol}" style="font-size: 10px; padding: 3px 8px; cursor:pointer; margin-right: 4px; border-color: ${hasAlert ? '#10b981' : 'var(--border-glass)'}; background: ${hasAlert ? 'rgba(16,185,129,0.15)' : 'transparent'};" title="Configure alerts for ${item.symbol}">🔔${hasAlert ? '🟢' : ''}</button>`;
 
         const priceHTML = (item.live_price !== undefined && item.live_price !== null)
-            ? `<span style="font-family: 'Inter', monospace; font-weight: 700;">₹${item.live_price.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>`
-            : `<span style="font-family: 'Inter', monospace; font-weight: 700;">₹${(item.added_price || 0).toFixed(2)}</span>`;
+            ? `<span style="font-family: 'Inter', monospace; font-weight: 700; font-size: 10px;">₹${item.live_price.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>`
+            : `<span style="font-family: 'Inter', monospace; font-weight: 700; font-size: 10px;">₹${(item.added_price || 0).toFixed(2)}</span>`;
 
         const isPositive = (item.change_pct || 0) >= 0;
         const changeColor = isPositive ? '#10b981' : '#ef4444';
-        const changePctHTML = `<span style="color: ${changeColor}; padding: 2px 6px; border-radius: 4px; background: ${isPositive ? 'rgba(16,185,129,0.1)' : 'rgba(239,68,68,0.1)'}; font-size: 11px; font-weight: 700; font-family: 'Inter', monospace;">${isPositive ? '+' : ''}${(item.change_pct || 0).toFixed(2)}%</span>`;
+        const changePctHTML = `<span style="color: ${changeColor}; padding: 2px 6px; border-radius: 4px; background: ${isPositive ? 'rgba(16,185,129,0.1)' : 'rgba(239,68,68,0.1)'}; font-size: 10px; font-weight: 700; font-family: 'Inter', monospace;">${isPositive ? '+' : ''}${(item.change_pct || 0).toFixed(2)}%</span>`;
 
         const dots = item.dots || { val: 'yellow', mom: 'yellow', health: 'yellow' };
         const dotsHTML = `
@@ -18249,7 +18249,7 @@ function renderWatchlistItems() {
                     <div style="display: flex; flex-direction: column; gap: 2px;">
                         <div style="display: flex; align-items: center; gap: 6px;">
                             <div class="watchlist-symbol-link" style="cursor: pointer;" title="Click to load research workspace">
-                                <strong style="color: var(--color-primary); text-decoration: underline; font-weight: 700; font-size: 12px;">${item.symbol.replace('.NS','')}</strong>
+                                <strong style="color: var(--color-primary); text-decoration: underline; font-weight: 700; font-size: 10px;">${item.symbol.replace('.NS','')}</strong>
                             </div>
                             ${cacheBadgeHTML}
                         </div>
@@ -18297,7 +18297,7 @@ function renderWatchlistItems() {
                     <div style="display: flex; flex-direction: column; gap: 2px;">
                         <div style="display: flex; align-items: center; gap: 6px;">
                             <div class="watchlist-symbol-link" style="cursor: pointer;" title="Click to load research workspace">
-                                <strong style="color: var(--color-primary); text-decoration: underline; font-weight: 700; font-size: 12px;">${item.symbol.replace('.NS','')}</strong>
+                                <strong style="color: var(--color-primary); text-decoration: underline; font-weight: 700; font-size: 10px;">${item.symbol.replace('.NS','')}</strong>
                             </div>
                             ${cacheBadgeHTML}
                         </div>
@@ -18340,7 +18340,7 @@ function renderWatchlistItems() {
                     <div style="display: flex; flex-direction: column; gap: 2px;">
                         <div style="display: flex; align-items: center; gap: 6px;">
                             <div class="watchlist-symbol-link" style="cursor: pointer;" title="Click to load research workspace">
-                                <strong style="color: var(--color-primary); text-decoration: underline; font-weight: 700; font-size: 12px;">${item.symbol.replace('.NS','')}</strong>
+                                <strong style="color: var(--color-primary); text-decoration: underline; font-weight: 700; font-size: 10px;">${item.symbol.replace('.NS','')}</strong>
                             </div>
                             ${cacheBadgeHTML}
                         </div>
