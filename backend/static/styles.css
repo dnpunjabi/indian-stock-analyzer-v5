@@ -33269,6 +33269,138 @@ th.sticky-stock-hdr {
     border: 1px solid rgba(239, 68, 68, 0.25) !important;
 }
 
+/* =========================================================
+   WATCHLIST UI ENHANCEMENTS (ZEBRA, HOVER ACCENT, FLASH, 52W BAR)
+   ========================================================= */
+
+/* 1. Zebra Striped Row Backgrounds (Dark & Light) */
+#watchlist-table-body tr:nth-child(even) {
+    background: rgba(255, 255, 255, 0.015) !important;
+}
+
+#watchlist-table-body tr:nth-child(even) td.sticky-stock-col {
+    background: #0d1527 !important;
+}
+
+[data-theme="light"] #watchlist-table-body tr:nth-child(even),
+[data-mode="light"] #watchlist-table-body tr:nth-child(even) {
+    background: rgba(241, 245, 249, 0.55) !important;
+}
+
+[data-theme="light"] #watchlist-table-body tr:nth-child(even) td.sticky-stock-col,
+[data-mode="light"] #watchlist-table-body tr:nth-child(even) td.sticky-stock-col {
+    background: #f8fafc !important;
+}
+
+/* 2. Interactive Row Hover Accent Bar & Card Elevation */
+#watchlist-table-body tr {
+    transition: background 0.18s ease, transform 0.15s ease !important;
+}
+
+#watchlist-table-body tr:hover {
+    background: rgba(30, 41, 59, 0.75) !important;
+}
+
+#watchlist-table-body tr:hover td.sticky-stock-col {
+    background: #0f172a !important;
+    border-left: 3.5px solid #38bdf8 !important;
+}
+
+[data-theme="light"] #watchlist-table-body tr:hover,
+[data-mode="light"] #watchlist-table-body tr:hover {
+    background: rgba(239, 246, 255, 0.9) !important;
+}
+
+[data-theme="light"] #watchlist-table-body tr:hover td.sticky-stock-col,
+[data-mode="light"] #watchlist-table-body tr:hover td.sticky-stock-col {
+    background: #ffffff !important;
+    border-left: 3.5px solid #1d4ed8 !important;
+}
+
+/* 3. Live Price Flashing Pulse Animations */
+@keyframes priceFlashUp {
+    0% { background-color: rgba(16, 185, 129, 0.35); color: #34d399; }
+    100% { background-color: transparent; }
+}
+
+@keyframes priceFlashDown {
+    0% { background-color: rgba(239, 68, 68, 0.35); color: #f87171; }
+    100% { background-color: transparent; }
+}
+
+.price-flash-up {
+    animation: priceFlashUp 0.9s cubic-bezier(0.25, 1, 0.5, 1) !important;
+    border-radius: 4px;
+}
+
+.price-flash-down {
+    animation: priceFlashDown 0.9s cubic-bezier(0.25, 1, 0.5, 1) !important;
+    border-radius: 4px;
+}
+
+/* 4. Minimalist 52-Week Range Micro Progress Bar */
+.range-52w-wrapper {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 100px;
+}
+
+.range-52w-labels {
+    display: flex;
+    justify-content: space-between;
+    font-size: 10px;
+    color: #94a3b8;
+    font-family: 'JetBrains Mono', monospace;
+}
+
+[data-theme="light"] .range-52w-labels,
+[data-mode="light"] .range-52w-labels {
+    color: #64748b;
+}
+
+.range-52w-track {
+    position: relative;
+    height: 4px;
+    width: 100%;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 2px;
+    overflow: visible;
+}
+
+[data-theme="light"] .range-52w-track,
+[data-mode="light"] .range-52w-track {
+    background: rgba(0, 0, 0, 0.08);
+}
+
+.range-52w-fill {
+    position: absolute;
+    top: 0;
+    left: 0;
+    height: 100%;
+    background: linear-gradient(90deg, #3b82f6, #38bdf8);
+    border-radius: 2px;
+}
+
+.range-52w-dot {
+    position: absolute;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    width: 8px;
+    height: 8px;
+    background: #38bdf8;
+    border: 1.5px solid #0f172a;
+    border-radius: 50%;
+    box-shadow: 0 0 6px rgba(56, 189, 248, 0.8);
+}
+
+[data-theme="light"] .range-52w-dot,
+[data-mode="light"] .range-52w-dot {
+    background: #1d4ed8;
+    border: 1.5px solid #ffffff;
+    box-shadow: 0 0 6px rgba(29, 78, 216, 0.5);
+}
+
 
 
 
