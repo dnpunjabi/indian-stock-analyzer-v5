@@ -11772,10 +11772,11 @@
                     <p class="footer-tagline">Institutional-grade quantitative research & Mamdani Fuzzy AI swing trading terminal for Indian Equities.</p>
                     <div class="footer-status-pills">
                         <div class="footer-status-pill" title="Real-time NSE/BSE Data Stream">
-                            <span class="status-pulse-dot"></span>
+                            <span class="status-pulse-dot pulse-green"></span>
                             <span>NSE/BSE Live Feed (~12ms)</span>
                         </div>
                         <div class="footer-status-pill ai-pill" title="19-Rule Mamdani Fuzzy Decision Engine Active">
+                            <span class="status-pulse-dot pulse-cyan"></span>
                             <span class="ai-sparkle-icon">🧠</span>
                             <span>Mamdani Fuzzy AI v5.0</span>
                         </div>
@@ -11836,6 +11837,12 @@
                     <span class="keyboard-hint"><kbd>Esc</kbd> Close Modals</span>
                 </div>
                 <div class="footer-bottom-right">
+                    <div class="footer-theme-quick-bar" title="Switch Light Theme Footer Style">
+                        <span class="quick-bar-label">Footer:</span>
+                        <button class="footer-theme-quick-btn active" data-style="midnight-navy" onclick="window.setLightFooterStyle('midnight-navy')">🌊 Navy</button>
+                        <button class="footer-theme-quick-btn" data-style="charcoal-black" onclick="window.setLightFooterStyle('charcoal-black')">⬛ Black</button>
+                        <button class="footer-theme-quick-btn" data-style="seamless-light" onclick="window.setLightFooterStyle('seamless-light')">🕊️ Light</button>
+                    </div>
                     <span class="stats-pill">500+ NSE Equities • WebSocket Push Connected</span>
                 </div>
             </div>
@@ -11984,6 +11991,16 @@
 
     <!-- Floating Scroll To Top Glass Button -->
     <button id="footer-scroll-top-btn" class="scroll-top-glass-btn no-print" title="Scroll to Top" aria-label="Scroll to Top">
+        <svg class="scroll-top-ring" width="40" height="40" viewBox="0 0 36 36">
+            <path class="ring-bg" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="rgba(255, 255, 255, 0.15)" stroke-width="2.5"/>
+            <path id="scroll-progress-path" class="ring-progress" stroke-dasharray="0, 100" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="url(#scrollTopGrad)" stroke-width="2.5" stroke-linecap="round"/>
+            <defs>
+                <linearGradient id="scrollTopGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stop-color="#00f2fe"/>
+                    <stop offset="100%" stop-color="#3b82f6"/>
+                </linearGradient>
+            </defs>
+        </svg>
         <svg class="scroll-top-arrow" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 15 12 9 6 15"></polyline></svg>
         <span class="scroll-top-text">TOP</span>
     </button>

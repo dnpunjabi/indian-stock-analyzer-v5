@@ -2538,6 +2538,35 @@
                     location.reload();
                 });
             }
+
+            // Light Theme Footer Background Preference
+            window.setLightFooterStyle = function(style) {
+                const validStyles = ['midnight-navy', 'charcoal-black', 'seamless-light'];
+                const chosen = validStyles.includes(style) ? style : 'midnight-navy';
+                document.documentElement.setAttribute('data-light-footer', chosen);
+                try { localStorage.setItem('settings-light-footer-style', chosen); } catch(e) {}
+                
+                document.querySelectorAll('.footer-theme-quick-btn').forEach(btn => {
+                    if (btn.getAttribute('data-style') === chosen) {
+                        btn.classList.add('active');
+                    } else {
+                        btn.classList.remove('active');
+                    }
+                });
+            };
+
+            const savedFooterStyle = localStorage.getItem('settings-light-footer-style') || 'midnight-navy';
+            window.setLightFooterStyle(savedFooterStyle);
+
+            // Scroll progress percentage ring for floating scroll-to-top button
+            window.addEventListener('scroll', function() {
+                const scrollPath = document.getElementById('scroll-progress-path');
+                if (!scrollPath) return;
+                const scrollTop = window.pageYOffset || document.documentElement.scrollTop || 0;
+                const docHeight = Math.max(document.body.scrollHeight, document.documentElement.scrollHeight) - window.innerHeight;
+                const scrollPct = docHeight > 0 ? Math.min(100, Math.max(0, (scrollTop / docHeight) * 100)) : 0;
+                scrollPath.setAttribute('stroke-dasharray', `${scrollPct.toFixed(1)}, 100`);
+            }, { passive: true });
         }
 
         function decorateWatchlistRowsForMobile() {
