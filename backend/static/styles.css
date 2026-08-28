@@ -33401,6 +33401,94 @@ th.sticky-stock-hdr {
     box-shadow: 0 0 6px rgba(29, 78, 216, 0.5);
 }
 
+/* =========================================================
+   PORTFOLIO-EQUIVALENT WATCHLIST TYPOGRAPHY & STYLING
+   ========================================================= */
+
+/* 1. Portfolio Header Typography & Obsidian Background */
+#watchlist-table-head th,
+#trendlyne-watchlist-table thead th,
+#tab-watchlist .table-scroll table thead th {
+    background: #0d1117 !important;
+    background-color: #0d1117 !important;
+    color: #38bdf8 !important;
+    font-family: 'Outfit', 'IBM Plex Sans', sans-serif !important;
+    font-weight: 700 !important;
+    font-size: 11.5px !important;
+    letter-spacing: 0.05em !important;
+    text-transform: uppercase !important;
+    padding: 11px 14px !important;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4) !important;
+}
+
+[data-theme="light"] #watchlist-table-head th,
+[data-theme="light"] #trendlyne-watchlist-table thead th,
+[data-mode="light"] #watchlist-table-head th,
+[data-mode="light"] #trendlyne-watchlist-table thead th {
+    background: #f8fafc !important;
+    background-color: #f8fafc !important;
+    color: #1d4ed8 !important;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.08) !important;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04) !important;
+}
+
+/* 2. Portfolio Sticky Stock Column Cell Background & Elevation Shadow */
+#watchlist-table-body td.sticky-stock-col,
+#tab-watchlist .data-table tbody td:first-child {
+    background: #0d1117 !important;
+    background-color: #0d1117 !important;
+    box-shadow: 4px 0 10px -2px rgba(0, 0, 0, 0.5) !important;
+    border-right: 1px solid rgba(255, 255, 255, 0.08) !important;
+}
+
+[data-theme="light"] #watchlist-table-body td.sticky-stock-col,
+[data-theme="light"] #tab-watchlist .data-table tbody td:first-child,
+[data-mode="light"] #watchlist-table-body td.sticky-stock-col,
+[data-mode="light"] #tab-watchlist .data-table tbody td:first-child {
+    background: #ffffff !important;
+    background-color: #ffffff !important;
+    box-shadow: 4px 0 12px rgba(0, 0, 0, 0.08) !important;
+    border-right: 1.5px solid rgba(0, 0, 0, 0.12) !important;
+}
+
+/* 3. Portfolio Ticker Symbol Extra-Bold Monospace Typography */
+#watchlist-table-body td.sticky-stock-col a,
+#watchlist-table-body td .stock-symbol-link,
+#tab-watchlist .data-table td:first-child a {
+    font-family: 'JetBrains Mono', 'IBM Plex Sans', sans-serif !important;
+    font-weight: 800 !important;
+    font-size: 13.5px !important;
+    letter-spacing: 0.04em !important;
+    color: #38bdf8 !important;
+    text-decoration: none !important;
+}
+
+[data-theme="light"] #watchlist-table-body td.sticky-stock-col a,
+[data-theme="light"] #watchlist-table-body td .stock-symbol-link,
+[data-mode="light"] #watchlist-table-body td.sticky-stock-col a,
+[data-mode="light"] #watchlist-table-body td .stock-symbol-link {
+    color: #1d4ed8 !important;
+}
+
+/* 4. Portfolio Monospace Numeric Data Alignment */
+#watchlist-table-body td.col-ltp,
+#watchlist-table-body .price-cell,
+#watchlist-table-body td:nth-child(2),
+#watchlist-table-body td:nth-child(3) {
+    font-family: 'JetBrains Mono', 'IBM Plex Sans', monospace !important;
+    font-weight: 700 !important;
+    font-size: 13.5px !important;
+    color: #ffffff !important;
+}
+
+[data-theme="light"] #watchlist-table-body td.col-ltp,
+[data-theme="light"] #watchlist-table-body .price-cell,
+[data-mode="light"] #watchlist-table-body td.col-ltp,
+[data-mode="light"] #watchlist-table-body .price-cell {
+    color: #0f172a !important;
+}
+
 
 
 
