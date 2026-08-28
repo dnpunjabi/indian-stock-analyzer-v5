@@ -2558,6 +2558,40 @@
             const savedFooterStyle = localStorage.getItem('settings-light-footer-style') || 'midnight-navy';
             window.setLightFooterStyle(savedFooterStyle);
 
+            // Android Haptic Vibration Helper & Event Delegation
+            window.triggerAndroidHaptic = function(ms) {
+                try {
+                    if ('vibrate' in navigator && typeof navigator.vibrate === 'function') {
+                        navigator.vibrate(ms || 10);
+                    }
+                } catch(e) {}
+            };
+
+            document.addEventListener('click', function(e) {
+                const target = e.target.closest('.mobile-bottom-nav-item, .btn-primary, .action-btn, .category-pill, .subtab-pill');
+                if (target) {
+                    window.triggerAndroidHaptic(10);
+                }
+            }, { passive: true });
+
+            // Android System Theme-Color Sync Handler
+            window.syncAndroidThemeColor = function() {
+                const meta = document.getElementById('meta-theme-color');
+                if (!meta) return;
+                const isLight = document.documentElement.getAttribute('data-mode') === 'light' || 
+                                document.documentElement.getAttribute('data-theme') === 'light' ||
+                                document.body.classList.contains('light-mode');
+                meta.setAttribute('content', isLight ? '#FFFFFF' : '#0F172A');
+            };
+
+            window.syncAndroidThemeColor();
+            try {
+                const themeObserver = new MutationObserver(function() {
+                    window.syncAndroidThemeColor();
+                });
+                themeObserver.observe(document.documentElement, { attributes: true, attributeFilter: ['data-mode', 'data-theme'] });
+            } catch(e) {}
+
             // Scroll progress percentage ring for floating scroll-to-top button
             window.addEventListener('scroll', function() {
                 const scrollPath = document.getElementById('scroll-progress-path');

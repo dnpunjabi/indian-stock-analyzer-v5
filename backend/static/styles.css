@@ -32828,6 +32828,206 @@ table tbody tr:not(:hover),
     background-color: rgba(0, 0, 0, 0.03) !important;
 }
 
+/* =========================================================
+   SUBTLE NON-DISRUPTIVE MOBILE UI REFINEMENTS
+   ========================================================= */
+
+@media (max-width: 768px) {
+    /* 1. Glassmorphic Card Backdrops */
+    .card,
+    .panel-card,
+    .modal-content,
+    .drawer-content,
+    .screener-card,
+    .watchlist-card,
+    .analysis-card,
+    .data-table-wrapper {
+        backdrop-filter: blur(12px) !important;
+        -webkit-backdrop-filter: blur(12px) !important;
+        border: 1px solid rgba(255, 255, 255, 0.08) !important;
+        box-shadow: 0 8px 24px -4px rgba(0, 0, 0, 0.35) !important;
+    }
+
+    /* 2. Tactile Touch Feedback on Tap */
+    .btn-primary:active,
+    .btn-secondary:active,
+    .mobile-bottom-nav-item:active,
+    .nav-tab-btn:active,
+    .data-table tbody tr:active,
+    .action-btn:active,
+    .preset-btn:active {
+        transform: scale(0.97) !important;
+        transition: transform 0.08s ease !important;
+    }
+
+    /* 3. Glowing Status Badges & Indicator Pulse */
+    .status-badge,
+    .signal-badge,
+    .badge-success,
+    .badge-buy {
+        box-shadow: 0 0 12px rgba(16, 185, 129, 0.3) !important;
+        border: 1px solid rgba(16, 185, 129, 0.4) !important;
+    }
+
+    .badge-danger,
+    .badge-sell {
+        box-shadow: 0 0 12px rgba(239, 68, 68, 0.3) !important;
+        border: 1px solid rgba(239, 68, 68, 0.4) !important;
+    }
+
+    /* 4. Refined Mobile Typography */
+    .stock-symbol,
+    .ticker-symbol {
+        font-family: 'Outfit', 'Inter', sans-serif !important;
+        letter-spacing: 0.03em !important;
+        font-weight: 700 !important;
+    }
+
+    /* 5. Floating Glass Pill Bottom Dock (Dark & Light Mode Polish) */
+    .mobile-bottom-nav {
+        position: fixed !important;
+        bottom: calc(10px + env(safe-area-inset-bottom, 6px)) !important;
+        left: 12px !important;
+        right: 12px !important;
+        height: 58px !important;
+        background: rgba(15, 23, 42, 0.88) !important;
+        backdrop-filter: blur(20px) !important;
+        -webkit-backdrop-filter: blur(20px) !important;
+        border: 1px solid rgba(255, 255, 255, 0.14) !important;
+        border-radius: 28px !important;
+        box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.15) !important;
+        display: flex !important;
+        justify-content: space-around !important;
+        align-items: center !important;
+        padding: 4px 8px !important;
+        z-index: 99989 !important;
+    }
+
+    [data-theme="light"] .mobile-bottom-nav,
+    [data-mode="light"] .mobile-bottom-nav {
+        background: rgba(255, 255, 255, 0.92) !important;
+        border: 1px solid rgba(0, 0, 0, 0.1) !important;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.8) !important;
+    }
+
+    .mobile-bottom-nav-item {
+        display: flex !important;
+        flex-direction: column !important;
+        align-items: center !important;
+        justify-content: center !important;
+        background: transparent !important;
+        color: #94a3b8 !important;
+        font-size: 11px !important;
+        font-weight: 600 !important;
+        padding: 5px 12px !important;
+        margin: 0 2px !important;
+        border-radius: 18px !important;
+        transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1) !important;
+        cursor: pointer !important;
+        border: 1px solid transparent !important;
+    }
+
+    [data-theme="light"] .mobile-bottom-nav-item,
+    [data-mode="light"] .mobile-bottom-nav-item {
+        color: #64748b !important;
+    }
+
+    .mobile-bottom-nav-item.active {
+        background: rgba(37, 99, 235, 0.22) !important;
+        border: 1px solid rgba(59, 130, 246, 0.45) !important;
+        color: #38bdf8 !important;
+        font-weight: 700 !important;
+        box-shadow: 0 4px 14px rgba(37, 99, 235, 0.3) !important;
+    }
+
+    .mobile-bottom-nav-item.active svg,
+    .mobile-bottom-nav-item.active i {
+        stroke: #38bdf8 !important;
+        transform: scale(1.08) !important;
+    }
+
+    [data-theme="light"] .mobile-bottom-nav-item.active,
+    [data-mode="light"] .mobile-bottom-nav-item.active {
+        background: rgba(37, 99, 235, 0.12) !important;
+        border: 1px solid rgba(37, 99, 235, 0.3) !important;
+        color: #1d4ed8 !important;
+        box-shadow: 0 4px 12px rgba(37, 99, 235, 0.15) !important;
+    }
+
+    [data-theme="light"] .mobile-bottom-nav-item.active svg,
+    [data-mode="light"] .mobile-bottom-nav-item.active svg,
+    [data-theme="light"] .mobile-bottom-nav-item.active i,
+    [data-mode="light"] .mobile-bottom-nav-item.active i {
+        stroke: #1d4ed8 !important;
+    }
+
+    /* 6. Android-Optimized Compact Header Spacing (for 19.5:9 / 20:9 Screens) */
+    .screener-hero-header,
+    .research-hero-header,
+    .hero-banner-card {
+        padding: 16px 18px !important;
+        margin-bottom: 16px !important;
+        border-radius: 16px !important;
+    }
+
+    /* 7. Android Material 3 Floating Toast / Snackbar Styling */
+    #toast-container,
+    .toast-container {
+        top: 14px !important;
+        left: 50% !important;
+        transform: translateX(-50%) !important;
+        right: auto !important;
+        width: calc(100% - 32px) !important;
+        max-width: 420px !important;
+        z-index: 999999 !important;
+    }
+
+    .toast,
+    .toast-message {
+        border-radius: 16px !important;
+        background: rgba(15, 23, 42, 0.92) !important;
+        backdrop-filter: blur(16px) !important;
+        -webkit-backdrop-filter: blur(16px) !important;
+        border: 1px solid rgba(255, 255, 255, 0.12) !important;
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4) !important;
+        padding: 12px 18px !important;
+    }
+
+    [data-theme="light"] .toast,
+    [data-mode="light"] .toast {
+        background: rgba(255, 255, 255, 0.95) !important;
+        border: 1px solid rgba(0, 0, 0, 0.1) !important;
+        color: #0f172a !important;
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15) !important;
+    }
+
+    /* 8. Table Horizontal Scroll Indicator for Android Touch Sweeps */
+    .data-table-wrapper,
+    .table-responsive {
+        position: relative !important;
+        -webkit-overflow-scrolling: touch !important;
+        scroll-behavior: smooth !important;
+        border-radius: 14px !important;
+    }
+
+    /* 9. Android Chrome Tap Highlight Cleanup (Eliminates Gray Box Flicker) */
+    *,
+    *::before,
+    *::after {
+        -webkit-tap-highlight-color: transparent !important;
+    }
+
+    /* 10. Android Pull-to-Refresh Indicator Glow */
+    .pull-to-refresh-indicator {
+        background: rgba(15, 23, 42, 0.92) !important;
+        backdrop-filter: blur(16px) !important;
+        border: 1px solid rgba(56, 189, 248, 0.3) !important;
+        border-radius: 24px !important;
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4) !important;
+    }
+}
+
+
 
 
 
