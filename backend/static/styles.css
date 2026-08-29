@@ -26433,8 +26433,8 @@ body.light-theme .watchlist-filter-chip.active {
 .watchlist-symbol-link strong,
 .sticky-stock-col strong {
     font-family: 'Inter', monospace !important;
-    font-size: 10px !important;
-    font-weight: 700 !important;
+    font-size: 15.5px !important;
+    font-weight: 800 !important;
     color: #ffffff !important;
     text-decoration: none !important;
     letter-spacing: 0.01em !important;
@@ -33128,6 +33128,23 @@ th.sticky-stock-hdr {
         vertical-align: middle !important;
     }
 
+    #watchlist-table-body td.sticky-stock-col a,
+    #watchlist-table-body td .stock-symbol-link,
+    #watchlist-table-body .watchlist-symbol-link strong,
+    #watchlist-table-body td.sticky-stock-col strong,
+    .sticky-stock-col strong,
+    .watchlist-symbol-link strong {
+        font-size: 13px !important;
+        font-weight: 800 !important;
+        letter-spacing: 0.015em !important;
+    }
+
+    #watchlist-table-body .wl-live-price,
+    #watchlist-table-body .wl-live-price span {
+        font-size: 13px !important;
+        font-weight: 700 !important;
+    }
+
     .mobile-symbol-wrapper {
         display: flex;
         flex-direction: column;
@@ -33141,9 +33158,9 @@ th.sticky-stock-hdr {
     }
 
     .mobile-company-subtext {
-        font-size: 10.5px;
+        font-size: 11px;
         color: #94a3b8;
-        font-weight: 400;
+        font-weight: 600;
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
@@ -33199,8 +33216,8 @@ th.sticky-stock-hdr {
 #watchlist-table-body td .stock-symbol-link,
 #watchlist-table-body .watchlist-symbol-link strong {
     font-family: 'Inter', monospace !important;
-    font-size: 10px !important;
-    font-weight: 700 !important;
+    font-size: 15.5px !important;
+    font-weight: 800 !important;
     color: #ffffff !important;
     text-decoration: none !important;
     letter-spacing: 0.01em !important;
@@ -33217,11 +33234,13 @@ th.sticky-stock-hdr {
     color: #0f172a !important;
 }
 
-/* Watchlist LTP Price Font & Color (Compact 10px) */
+/* Watchlist LTP Price Font & Color (Synced 13px) */
 #watchlist-table-body td.col-ltp,
-#watchlist-table-body .price-cell {
+#watchlist-table-body .price-cell,
+#watchlist-table-body td.wl-live-price,
+#watchlist-table-body .wl-live-price span {
     font-family: 'JetBrains Mono', monospace !important;
-    font-size: 10px !important;
+    font-size: 13px !important;
     font-weight: 700 !important;
     color: #ffffff !important;
 }
@@ -33463,8 +33482,8 @@ th.sticky-stock-hdr {
 #watchlist-table-body .watchlist-symbol-link strong,
 #tab-watchlist .data-table td:first-child a {
     font-family: 'Inter', monospace !important;
-    font-weight: 700 !important;
-    font-size: 10px !important;
+    font-weight: 800 !important;
+    font-size: 13px !important;
     letter-spacing: 0.01em !important;
     color: #ffffff !important;
     text-decoration: none !important;
@@ -33481,14 +33500,14 @@ th.sticky-stock-hdr {
     color: #0f172a !important;
 }
 
-/* 4. Portfolio Monospace Numeric Data Alignment (Compact 10px) */
+/* 4. Portfolio Monospace Numeric Data Alignment (Synced 13px) */
 #watchlist-table-body td.col-ltp,
 #watchlist-table-body .price-cell,
-#watchlist-table-body td:nth-child(2),
-#watchlist-table-body td:nth-child(3) {
+#watchlist-table-body td.wl-live-price,
+#watchlist-table-body .wl-live-price span {
     font-family: 'JetBrains Mono', 'IBM Plex Sans', monospace !important;
     font-weight: 700 !important;
-    font-size: 10px !important;
+    font-size: 13px !important;
     color: #ffffff !important;
 }
 

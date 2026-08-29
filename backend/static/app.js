@@ -18152,7 +18152,7 @@ function renderWatchlistItems() {
         if (val === undefined || val === null) return '<span style="color:var(--text-muted)">--</span>';
         const num = parseFloat(val);
         const col = num >= 0 ? '#10b981' : '#ef4444';
-        return `<span style="color:${col}; font-weight:600; font-family:'Inter',monospace; font-size:11px;">${num >= 0 ? '+' : ''}${num.toFixed(1)}%</span>`;
+        return `<span style="color:${col}; font-weight:700; font-family:'Inter',monospace; font-size:11.5px;">${num >= 0 ? '+' : ''}${num.toFixed(1)}%</span>`;
     };
 
     pageData.forEach(item => {
@@ -18171,12 +18171,12 @@ function renderWatchlistItems() {
         const alertBadgeHTML = `<button class="btn-secondary configure-stock-alert-btn" data-ticker="${item.symbol}" style="font-size: 10px; padding: 3px 8px; cursor:pointer; margin-right: 4px; border-color: ${hasAlert ? '#10b981' : 'var(--border-glass)'}; background: ${hasAlert ? 'rgba(16,185,129,0.15)' : 'transparent'};" title="Configure alerts for ${item.symbol}">🔔${hasAlert ? '🟢' : ''}</button>`;
 
         const priceHTML = (item.live_price !== undefined && item.live_price !== null)
-            ? `<span style="font-family: 'Inter', monospace; font-weight: 700; font-size: 10px;">₹${item.live_price.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>`
-            : `<span style="font-family: 'Inter', monospace; font-weight: 700; font-size: 10px;">₹${(item.added_price || 0).toFixed(2)}</span>`;
+            ? `<span style="font-family: 'Inter', monospace; font-weight: 700; font-size: 13px;">₹${item.live_price.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>`
+            : `<span style="font-family: 'Inter', monospace; font-weight: 700; font-size: 13px;">₹${(item.added_price || 0).toFixed(2)}</span>`;
 
         const isPositive = (item.change_pct || 0) >= 0;
         const changeColor = isPositive ? '#10b981' : '#ef4444';
-        const changePctHTML = `<span style="color: ${changeColor}; padding: 2px 6px; border-radius: 4px; background: ${isPositive ? 'rgba(16,185,129,0.1)' : 'rgba(239,68,68,0.1)'}; font-size: 10px; font-weight: 700; font-family: 'Inter', monospace;">${isPositive ? '+' : ''}${(item.change_pct || 0).toFixed(2)}%</span>`;
+        const changePctHTML = `<span style="color: ${changeColor}; padding: 2px 6px; border-radius: 4px; background: ${isPositive ? 'rgba(16,185,129,0.1)' : 'rgba(239,68,68,0.1)'}; font-size: 12px; font-weight: 700; font-family: 'Inter', monospace;">${isPositive ? '+' : ''}${(item.change_pct || 0).toFixed(2)}%</span>`;
 
         const dots = item.dots || { val: 'yellow', mom: 'yellow', health: 'yellow' };
         const dotsHTML = `
@@ -18191,12 +18191,12 @@ function renderWatchlistItems() {
         const posPct = Math.min(Math.max(range52.pos_pct || 50, 0), 100);
         const rangeBarHTML = `
             <div style="display: flex; align-items: center; justify-content: center; gap: 6px;" title="52W Low: ₹${range52.low52} | 52W High: ₹${range52.high52}">
-                <span style="font-size: 9px; color: var(--text-muted);">₹${range52.low52 ? Math.round(range52.low52) : '--'}</span>
+                <span style="font-size: 9.5px; color: var(--text-muted); font-weight: 600;">₹${range52.low52 ? Math.round(range52.low52) : '--'}</span>
                 <div class="range-bar-track">
                     <div class="range-bar-fill" style="width: 100%;"></div>
                     <div class="range-bar-pin" style="left: ${posPct}%;"></div>
                 </div>
-                <span style="font-size: 9px; color: var(--text-muted);">₹${range52.high52 ? Math.round(range52.high52) : '--'}</span>
+                <span style="font-size: 9.5px; color: var(--text-muted); font-weight: 600;">₹${range52.high52 ? Math.round(range52.high52) : '--'}</span>
             </div>
         `;
 
@@ -18218,12 +18218,12 @@ function renderWatchlistItems() {
         }
         const dayRangeBarHTML = `
             <div style="display: flex; align-items: center; justify-content: center; gap: 6px;" title="Day Low: ₹${dayLow ? dayLow.toFixed(2) : '--'} | Day High: ₹${dayHigh ? dayHigh.toFixed(2) : '--'} (LTP: ₹${liveP ? liveP.toFixed(2) : '--'})">
-                <span style="font-size: 9px; color: #ef4444; font-weight: 600;">₹${dayLow ? (dayLow >= 1000 ? Math.round(dayLow) : dayLow.toFixed(1)) : '--'}</span>
+                <span style="font-size: 9.5px; color: #ef4444; font-weight: 600;">₹${dayLow ? (dayLow >= 1000 ? Math.round(dayLow) : dayLow.toFixed(1)) : '--'}</span>
                 <div class="range-bar-track" style="background: rgba(255,255,255,0.08); border-radius: 4px;">
                     <div class="range-bar-fill" style="width: 100%; background: linear-gradient(90deg, #ef4444, #10b981);"></div>
                     <div class="range-bar-pin" style="left: ${dayPosPct}%; background: #38bdf8; border: 1.5px solid #ffffff; box-shadow: 0 0 4px #38bdf8;"></div>
                 </div>
-                <span style="font-size: 9px; color: #10b981; font-weight: 600;">₹${dayHigh ? (dayHigh >= 1000 ? Math.round(dayHigh) : dayHigh.toFixed(1)) : '--'}</span>
+                <span style="font-size: 9.5px; color: #10b981; font-weight: 600;">₹${dayHigh ? (dayHigh >= 1000 ? Math.round(dayHigh) : dayHigh.toFixed(1)) : '--'}</span>
             </div>
         `;
 
@@ -18238,7 +18238,7 @@ function renderWatchlistItems() {
             alphaVal = (typeof item.change_pct === 'number' ? item.change_pct : 0);
         }
         const alphaColor = alphaVal >= 0 ? '#10b981' : '#ef4444';
-        const alphaHTML = `<span style="color: ${alphaColor}; background: ${alphaVal >= 0 ? 'rgba(16,185,129,0.12)' : 'rgba(239,68,68,0.12)'}; padding: 2px 8px; border-radius: 12px; font-weight: 700; font-family: 'Inter', monospace; font-size: 11px;" title="Risk-adjusted CAPM / 1Y Excess Return vs Nifty 50">${alphaVal >= 0 ? '+' : ''}${alphaVal.toFixed(1)}% Alpha</span>`;
+        const alphaHTML = `<span style="color: ${alphaColor}; background: ${alphaVal >= 0 ? 'rgba(16,185,129,0.12)' : 'rgba(239,68,68,0.12)'}; padding: 2px 8px; border-radius: 12px; font-weight: 700; font-family: 'Inter', monospace; font-size: 11.5px;" title="Risk-adjusted CAPM / 1Y Excess Return vs Nifty 50">${alphaVal >= 0 ? '+' : ''}${alphaVal.toFixed(1)}% Alpha</span>`;
 
         const tr = document.createElement('tr');
         tr.setAttribute('data-wl-symbol', item.symbol);
@@ -18249,7 +18249,7 @@ function renderWatchlistItems() {
                     <div style="display: flex; flex-direction: column; gap: 2px;">
                         <div style="display: flex; align-items: center; gap: 6px;">
                             <div class="watchlist-symbol-link" style="cursor: pointer; white-space: nowrap;" title="Click to load research workspace">
-                                <strong style="color: #ffffff; text-decoration: none; font-weight: 700; font-size: 10px; font-family: 'Inter', monospace; white-space: nowrap;">${item.symbol.replace('.NS','')}</strong>
+                                <strong style="color: #ffffff; text-decoration: none; font-weight: 800; font-size: 13px; font-family: 'Inter', monospace; white-space: nowrap;">${item.symbol.replace('.NS','')}</strong>
                             </div>
                         </div>
                         ${dotsHTML}
@@ -18270,33 +18270,33 @@ function renderWatchlistItems() {
             `;
         } else if (window.activeWatchlistView === 'valuation') {
             const fvVal = (typeof item.fair_value === 'number' && item.fair_value > 0) ? item.fair_value : ((item.technicals && item.technicals.intrinsic_value) || 0);
-            const fvHTML = fvVal > 0 ? `<span style="font-family: 'Inter', monospace; font-size: 11px; font-weight: 600;">₹${fvVal.toFixed(1)}</span>` : '<span style="color: var(--text-muted); font-size: 11px;">--</span>';
+            const fvHTML = fvVal > 0 ? `<span style="font-family: 'Inter', monospace; font-size: 12px; font-weight: 600;">₹${fvVal.toFixed(1)}</span>` : '<span style="color: var(--text-muted); font-size: 12px;">--</span>';
 
             const mosVal = typeof item.mos_pct === 'number' ? item.mos_pct : (item.technicals && typeof item.technicals.mos_pct === 'number' ? item.technicals.mos_pct : 0);
             const mosColor = mosVal >= 20 ? '#10b981' : (mosVal > 0 ? '#f59e0b' : '#ef4444');
-            const mosHTML = `<span style="color: ${mosColor}; font-weight: 700; font-family: 'Inter', monospace; font-size: 11px;">${mosVal > 0 ? '+' : ''}${mosVal.toFixed(1)}%</span>`;
+            const mosHTML = `<span style="color: ${mosColor}; font-weight: 700; font-family: 'Inter', monospace; font-size: 12px;">${mosVal > 0 ? '+' : ''}${mosVal.toFixed(1)}%</span>`;
 
             const peVal = typeof item.pe_ratio === 'number' ? item.pe_ratio : ((item.fundamentals && item.fundamentals.pe) || 0);
-            const peHTML = peVal > 0 ? `<span style="font-family: 'Inter', monospace; font-size: 11px;">${peVal.toFixed(1)}x</span>` : '<span style="color: var(--text-muted); font-size: 11px;">--</span>';
+            const peHTML = peVal > 0 ? `<span style="font-family: 'Inter', monospace; font-size: 12px; font-weight: 600;">${peVal.toFixed(1)}x</span>` : '<span style="color: var(--text-muted); font-size: 12px;">--</span>';
 
             const pbVal = typeof item.pb_ratio === 'number' ? item.pb_ratio : ((item.fundamentals && item.fundamentals.pb) || 0);
-            const pbHTML = pbVal > 0 ? `<span style="font-family: 'Inter', monospace; font-size: 11px;">${parseFloat(pbVal).toFixed(1)}x</span>` : '<span style="color: var(--text-muted); font-size: 11px;">--</span>';
+            const pbHTML = pbVal > 0 ? `<span style="font-family: 'Inter', monospace; font-size: 12px; font-weight: 600;">${parseFloat(pbVal).toFixed(1)}x</span>` : '<span style="color: var(--text-muted); font-size: 12px;">--</span>';
 
             const roeVal = typeof item.roe === 'number' ? item.roe : ((item.fundamentals && item.fundamentals.roe) || 0);
-            const roeHTML = roeVal !== 0 ? `<span style="font-family: 'Inter', monospace; font-size: 11px; color: ${roeVal >= 15 ? '#10b981' : 'var(--text-secondary)'}; font-weight: 600;">${roeVal.toFixed(1)}%</span>` : '<span style="color: var(--text-muted); font-size: 11px;">--</span>';
+            const roeHTML = roeVal !== 0 ? `<span style="font-family: 'Inter', monospace; font-size: 12px; color: ${roeVal >= 15 ? '#10b981' : 'var(--text-secondary)'}; font-weight: 600;">${roeVal.toFixed(1)}%</span>` : '<span style="color: var(--text-muted); font-size: 12px;">--</span>';
 
             const roceVal = typeof item.roce === 'number' ? item.roce : ((item.fundamentals && item.fundamentals.roce) || 0);
-            const roceHTML = roceVal !== 0 ? `<span style="font-family: 'Inter', monospace; font-size: 11px; color: ${roceVal >= 15 ? '#10b981' : 'var(--text-secondary)'}; font-weight: 600;">${roceVal.toFixed(1)}%</span>` : '<span style="color: var(--text-muted); font-size: 11px;">--</span>';
+            const roceHTML = roceVal !== 0 ? `<span style="font-family: 'Inter', monospace; font-size: 12px; color: ${roceVal >= 15 ? '#10b981' : 'var(--text-secondary)'}; font-weight: 600;">${roceVal.toFixed(1)}%</span>` : '<span style="color: var(--text-muted); font-size: 12px;">--</span>';
 
             const divYieldVal = (typeof item.div_yield === 'number' && item.div_yield > 0) ? item.div_yield : ((item.fundamentals && typeof item.fundamentals.dividend_yield === 'number' && item.fundamentals.dividend_yield > 0) ? item.fundamentals.dividend_yield : null);
-            const divYieldHTML = (divYieldVal !== null && divYieldVal > 0) ? `<span style="font-family: 'Inter', monospace; font-size: 11px; color: #38bdf8;">${divYieldVal.toFixed(2)}%</span>` : '<span style="color: var(--text-muted); font-size: 11px;">--</span>';
+            const divYieldHTML = (divYieldVal !== null && divYieldVal > 0) ? `<span style="font-family: 'Inter', monospace; font-size: 12px; color: #38bdf8; font-weight: 600;">${divYieldVal.toFixed(2)}%</span>` : '<span style="color: var(--text-muted); font-size: 12px;">--</span>';
 
             tr.innerHTML = `
                 <td class="sticky-stock-col">
                     <div style="display: flex; flex-direction: column; gap: 2px;">
                         <div style="display: flex; align-items: center; gap: 6px;">
                             <div class="watchlist-symbol-link" style="cursor: pointer; white-space: nowrap;" title="Click to load research workspace">
-                                <strong style="color: #ffffff; text-decoration: none; font-weight: 700; font-size: 10px; font-family: 'Inter', monospace; white-space: nowrap;">${item.symbol.replace('.NS','')}</strong>
+                                <strong style="color: #ffffff; text-decoration: none; font-weight: 800; font-size: 13px; font-family: 'Inter', monospace; white-space: nowrap;">${item.symbol.replace('.NS','')}</strong>
                             </div>
                         </div>
                         ${dotsHTML}
@@ -18322,8 +18322,8 @@ function renderWatchlistItems() {
             const addedDateClean = addedDateRaw.includes('T') ? addedDateRaw.split('T')[0] : addedDateRaw;
             const sinceAddedHTML = `
                 <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 1px;" title="Added at ₹${addedPrice.toFixed(2)} on ${addedDateClean}">
-                    <span style="color: ${sinceColor}; font-weight: 700; font-family: 'Inter', monospace; font-size: 11px;">${sinceChg >= 0 ? '+' : ''}${sinceChg.toFixed(1)}%</span>
-                    <span style="font-size: 9px; color: var(--text-muted); font-weight: 500;">📅 ${addedDateClean}</span>
+                    <span style="color: ${sinceColor}; font-weight: 700; font-family: 'Inter', monospace; font-size: 11.5px;">${sinceChg >= 0 ? '+' : ''}${sinceChg.toFixed(1)}%</span>
+                    <span style="font-size: 9.5px; color: var(--text-muted); font-weight: 500;">📅 ${addedDateClean}</span>
                 </div>
             `;
 
@@ -18331,14 +18331,14 @@ function renderWatchlistItems() {
             let scoreBg = 'rgba(245, 158, 11, 0.12)', scoreCol = '#f59e0b', scoreLbl = 'ACCUMULATE';
             if (scoreVal >= 75) { scoreBg = 'rgba(16, 185, 129, 0.12)'; scoreCol = '#10b981'; scoreLbl = 'STRONG BUY'; }
             else if (scoreVal < 50) { scoreBg = 'rgba(239, 68, 68, 0.12)'; scoreCol = '#ef4444'; scoreLbl = 'AVOID'; }
-            const convictionBadge = `<span style="background:${scoreBg}; color:${scoreCol}; padding:3px 8px; border-radius:12px; font-weight:800; font-size:10.5px; border:1px solid ${scoreCol}33;">${scoreVal} • ${scoreLbl}</span>`;
+            const convictionBadge = `<span style="background:${scoreBg}; color:${scoreCol}; padding:3px 8px; border-radius:12px; font-weight:800; font-size:11px; border:1px solid ${scoreCol}33;">${scoreVal} • ${scoreLbl}</span>`;
 
             tr.innerHTML = `
                 <td class="sticky-stock-col">
                     <div style="display: flex; flex-direction: column; gap: 2px;">
                         <div style="display: flex; align-items: center; gap: 6px;">
                             <div class="watchlist-symbol-link" style="cursor: pointer; white-space: nowrap;" title="Click to load research workspace">
-                                <strong style="color: #ffffff; text-decoration: none; font-weight: 700; font-size: 10px; font-family: 'Inter', monospace; white-space: nowrap;">${item.symbol.replace('.NS','')}</strong>
+                                <strong style="color: #ffffff; text-decoration: none; font-weight: 800; font-size: 13px; font-family: 'Inter', monospace; white-space: nowrap;">${item.symbol.replace('.NS','')}</strong>
                             </div>
                         </div>
                         ${dotsHTML}
