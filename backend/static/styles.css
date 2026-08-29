@@ -193,8 +193,34 @@ html[data-typography="paytm"] table {
 
 /* ==================== THE 8 DARK THEMES ==================== */
 
-/* Theme 1: Classic Dark & OLED Pitch Black */
-[data-mode="dark"][data-theme="classic"],
+/* Theme 1: Apex Classic (Deep Financial Navy) */
+[data-mode="dark"][data-theme="classic"] {
+    --bg-main: #060913;
+    --bg-sidebar: #0b0f1d;
+    --bg-card: rgba(18, 25, 41, 0.75);
+    --bg-card-hover: rgba(26, 36, 59, 0.85);
+    --border-glass: rgba(255, 255, 255, 0.06);
+    --bg-glass-input: rgba(15, 23, 42, 0.8);
+    
+    --color-primary: #3b82f6;
+    --color-primary-glow: rgba(59, 130, 246, 0.3);
+    --color-emerald: #10b981;
+    --color-emerald-glow: rgba(16, 185, 129, 0.25);
+    --color-crimson: #ef4444;
+    --color-crimson-glow: rgba(239, 68, 68, 0.25);
+    --color-amber: #f59e0b;
+    --color-amber-glow: rgba(245, 158, 11, 0.25);
+    --neon-green: #10b981;
+
+    --text-primary: #f8fafc;
+    --text-secondary: #94a3b8;
+    --text-muted: #64748b;
+
+    --glow-shadow: 0 0 12px rgba(59, 130, 246, 0.25);
+    --bg-row-hover: rgba(255, 255, 255, 0.035);
+}
+
+/* Theme 1B: OLED Pitch Black (Pure Black Canvas & Obsidian Glass) */
 [data-mode="dark"][data-theme="oled-black"],
 [data-theme="oled-black"] {
     --bg-main: #000000;
