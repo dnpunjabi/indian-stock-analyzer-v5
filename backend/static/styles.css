@@ -18865,94 +18865,123 @@ select option {
         display: none !important;
     }
 
-    /* Tier 2: Sticky Top Header Row (Top=0, z-index=20) */
-    #tab-universe .universe-table-wrapper table thead th {
+    /* Tier 2: Sticky Top Header Row (Top=0, z-index=20) - 100% Solid Opaque Dark Background */
+    #tab-universe .universe-table-wrapper table thead th,
+    .universe-table-wrapper table thead th {
         position: sticky !important;
         top: 0 !important;
         z-index: 20 !important;
-        background-color: var(--bg-card, #0b0f1d) !important;
-        background: var(--bg-card, #0b0f1d) !important;
+        background-color: #0d172e !important;
+        background: #0d172e !important;
         opacity: 1 !important;
-        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15) !important;
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4) !important;
     }
 
-    /* Tier 1: Sticky First Column Data Cells (Left=0, z-index=10) */
-    #tab-universe .universe-table-wrapper table tbody td:nth-child(1) {
+    /* Tier 1: Sticky First Column Data Cells (Left=0, z-index=10) - 100% Solid Opaque */
+    #tab-universe .universe-table-wrapper table tbody td:nth-child(1),
+    .universe-table-wrapper table tbody td:nth-child(1) {
         position: sticky !important;
         left: 0 !important;
         z-index: 10 !important;
-        background-color: var(--bg-card, #0b0f1d) !important;
-        background: var(--bg-card, #0b0f1d) !important;
+        background-color: #0b1329 !important;
+        background: #0b1329 !important;
         opacity: 1 !important;
         min-width: 42px !important;
         width: 42px !important;
         text-align: center !important;
     }
 
-    /* Tier 1: Sticky Second Column Data Cells (Left=42px, z-index=10) */
-    #tab-universe .universe-table-wrapper table tbody td:nth-child(2) {
+    /* Tier 1: Sticky Second Column Data Cells (Left=42px, z-index=10) - 100% Solid Opaque */
+    #tab-universe .universe-table-wrapper table tbody td:nth-child(2),
+    .universe-table-wrapper table tbody td:nth-child(2) {
         position: sticky !important;
         left: 42px !important;
         z-index: 10 !important;
-        background-color: var(--bg-card, #0b0f1d) !important;
-        background: var(--bg-card, #0b0f1d) !important;
+        background-color: #0b1329 !important;
+        background: #0b1329 !important;
         opacity: 1 !important;
-        border-right: 2px solid var(--border-glass, rgba(255, 255, 255, 0.12)) !important;
+        border-right: 2px solid var(--border-glass, rgba(255, 255, 255, 0.15)) !important;
         min-width: 135px !important;
-        box-shadow: 4px 0 10px rgba(0, 0, 0, 0.08) !important;
+        box-shadow: 4px 0 10px rgba(0, 0, 0, 0.4) !important;
     }
 
-    /* Tier 3: Sticky Top-Left Corner Header Cell 1 (Top=0, Left=0, z-index=30) */
-    #tab-universe .universe-table-wrapper table thead th:nth-child(1) {
+    /* Tier 3: Sticky Top-Left Corner Header Cell 1 (Top=0, Left=0, z-index=30) - 100% Solid Opaque */
+    #tab-universe .universe-table-wrapper table thead th:nth-child(1),
+    .universe-table-wrapper table thead th:nth-child(1) {
         position: sticky !important;
         top: 0 !important;
         left: 0 !important;
         z-index: 30 !important;
-        background-color: var(--bg-card, #0b0f1d) !important;
-        background: var(--bg-card, #0b0f1d) !important;
+        background-color: #0d172e !important;
+        background: #0d172e !important;
         opacity: 1 !important;
         min-width: 42px !important;
         width: 42px !important;
         text-align: center !important;
     }
 
-    /* Tier 3: Sticky Top-Left Corner Header Cell 2 (Top=0, Left=42px, z-index=30) */
-    #tab-universe .universe-table-wrapper table thead th:nth-child(2) {
+    /* Tier 3: Sticky Top-Left Corner Header Cell 2 (Top=0, Left=42px, z-index=30) - 100% Solid Opaque */
+    #tab-universe .universe-table-wrapper table thead th:nth-child(2),
+    .universe-table-wrapper table thead th:nth-child(2) {
         position: sticky !important;
         top: 0 !important;
         left: 42px !important;
         z-index: 30 !important;
-        background-color: var(--bg-card, #0b0f1d) !important;
-        background: var(--bg-card, #0b0f1d) !important;
+        background-color: #0d172e !important;
+        background: #0d172e !important;
         opacity: 1 !important;
-        border-right: 2px solid var(--border-glass, rgba(255, 255, 255, 0.12)) !important;
+        border-right: 2px solid var(--border-glass, rgba(255, 255, 255, 0.15)) !important;
         min-width: 135px !important;
-        box-shadow: 4px 0 10px rgba(0, 0, 0, 0.08) !important;
+        box-shadow: 4px 0 10px rgba(0, 0, 0, 0.4) !important;
+    }
+
+    /* OLED Pitch Black Theme Override (True #000000 Solid) */
+    [data-theme="oled-black"] .universe-table-wrapper table thead th,
+    [data-theme="oled-black"] .universe-table-wrapper table tbody td:nth-child(1),
+    [data-theme="oled-black"] .universe-table-wrapper table tbody td:nth-child(2),
+    [data-theme="oled-black"] .universe-table-wrapper table thead th:nth-child(1),
+    [data-theme="oled-black"] .universe-table-wrapper table thead th:nth-child(2),
+    [data-accent="oled-black"] .universe-table-wrapper table thead th,
+    [data-accent="oled-black"] .universe-table-wrapper table tbody td:nth-child(1),
+    [data-accent="oled-black"] .universe-table-wrapper table tbody td:nth-child(2),
+    [data-accent="oled-black"] .universe-table-wrapper table thead th:nth-child(1),
+    [data-accent="oled-black"] .universe-table-wrapper table thead th:nth-child(2) {
+        background-color: #000000 !important;
+        background: #000000 !important;
+        opacity: 1 !important;
     }
 
     /* Light Theme Solid Opaque Background for Sticky Columns */
-    [data-mode="light"] #tab-universe .universe-table-wrapper table thead th,
-    [data-theme="light"] #tab-universe .universe-table-wrapper table thead th,
-    [data-theme="mint-emerald"] #tab-universe .universe-table-wrapper table thead th,
-    [data-theme="cobalt-royal"] #tab-universe .universe-table-wrapper table thead th,
-    [data-accent="mint-emerald"] #tab-universe .universe-table-wrapper table thead th,
-    [data-accent="cobalt-royal"] #tab-universe .universe-table-wrapper table thead th,
-    [data-mode="light"] #tab-universe .universe-table-wrapper table th:nth-child(1),
-    [data-theme="light"] #tab-universe .universe-table-wrapper table th:nth-child(1),
-    [data-theme="mint-emerald"] #tab-universe .universe-table-wrapper table th:nth-child(1),
-    [data-theme="cobalt-royal"] #tab-universe .universe-table-wrapper table th:nth-child(1),
-    [data-mode="light"] #tab-universe .universe-table-wrapper table td:nth-child(1),
-    [data-theme="light"] #tab-universe .universe-table-wrapper table td:nth-child(1),
-    [data-theme="mint-emerald"] #tab-universe .universe-table-wrapper table td:nth-child(1),
-    [data-theme="cobalt-royal"] #tab-universe .universe-table-wrapper table td:nth-child(1),
-    [data-mode="light"] #tab-universe .universe-table-wrapper table th:nth-child(2),
-    [data-theme="light"] #tab-universe .universe-table-wrapper table th:nth-child(2),
-    [data-theme="mint-emerald"] #tab-universe .universe-table-wrapper table th:nth-child(2),
-    [data-theme="cobalt-royal"] #tab-universe .universe-table-wrapper table th:nth-child(2),
-    [data-mode="light"] #tab-universe .universe-table-wrapper table td:nth-child(2),
-    [data-theme="light"] #tab-universe .universe-table-wrapper table td:nth-child(2),
-    [data-theme="mint-emerald"] #tab-universe .universe-table-wrapper table td:nth-child(2),
-    [data-theme="cobalt-royal"] #tab-universe .universe-table-wrapper table td:nth-child(2) {
+    [data-mode="light"] .universe-table-wrapper table thead th,
+    [data-theme="light"] .universe-table-wrapper table thead th,
+    [data-theme="mint-emerald"] .universe-table-wrapper table thead th,
+    [data-theme="cobalt-royal"] .universe-table-wrapper table thead th,
+    [data-theme="neo-mint-light"] .universe-table-wrapper table thead th,
+    [data-theme="volt-neo"] .universe-table-wrapper table thead th,
+    [data-theme="royal-wealth"] .universe-table-wrapper table thead th,
+    [data-accent="mint-emerald"] .universe-table-wrapper table thead th,
+    [data-accent="cobalt-royal"] .universe-table-wrapper table thead th,
+    [data-accent="neo-mint-light"] .universe-table-wrapper table thead th,
+    [data-mode="light"] .universe-table-wrapper table th:nth-child(1),
+    [data-theme="light"] .universe-table-wrapper table th:nth-child(1),
+    [data-theme="mint-emerald"] .universe-table-wrapper table th:nth-child(1),
+    [data-theme="cobalt-royal"] .universe-table-wrapper table th:nth-child(1),
+    [data-theme="neo-mint-light"] .universe-table-wrapper table th:nth-child(1),
+    [data-mode="light"] .universe-table-wrapper table td:nth-child(1),
+    [data-theme="light"] .universe-table-wrapper table td:nth-child(1),
+    [data-theme="mint-emerald"] .universe-table-wrapper table td:nth-child(1),
+    [data-theme="cobalt-royal"] .universe-table-wrapper table td:nth-child(1),
+    [data-theme="neo-mint-light"] .universe-table-wrapper table td:nth-child(1),
+    [data-mode="light"] .universe-table-wrapper table th:nth-child(2),
+    [data-theme="light"] .universe-table-wrapper table th:nth-child(2),
+    [data-theme="mint-emerald"] .universe-table-wrapper table th:nth-child(2),
+    [data-theme="cobalt-royal"] .universe-table-wrapper table th:nth-child(2),
+    [data-theme="neo-mint-light"] .universe-table-wrapper table th:nth-child(2),
+    [data-mode="light"] .universe-table-wrapper table td:nth-child(2),
+    [data-theme="light"] .universe-table-wrapper table td:nth-child(2),
+    [data-theme="mint-emerald"] .universe-table-wrapper table td:nth-child(2),
+    [data-theme="cobalt-royal"] .universe-table-wrapper table td:nth-child(2),
+    [data-theme="neo-mint-light"] .universe-table-wrapper table td:nth-child(2) {
         background-color: #ffffff !important;
         background: #ffffff !important;
         opacity: 1 !important;
