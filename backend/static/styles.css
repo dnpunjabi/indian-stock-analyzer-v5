@@ -193,25 +193,32 @@ html[data-typography="paytm"] table {
 
 /* ==================== THE 8 DARK THEMES ==================== */
 
-/* Theme 1: Classic Dark */
-[data-mode="dark"][data-theme="classic"] {
-    --bg-main: #060913;
-    --bg-sidebar: #0b0f1d;
-    --bg-card: rgba(18, 25, 41, 0.7);
-    --bg-card-hover: rgba(26, 36, 59, 0.85);
-    --border-glass: rgba(255, 255, 255, 0.06);
-    --bg-glass-input: rgba(15, 23, 42, 0.8);
+/* Theme 1: Classic Dark & OLED Pitch Black */
+[data-mode="dark"][data-theme="classic"],
+[data-mode="dark"][data-theme="oled-black"],
+[data-theme="oled-black"] {
+    --bg-main: #000000;
+    --bg-sidebar: #06090e;
+    --bg-card: #0e131f;
+    --bg-card-hover: #141b2b;
+    --border-glass: rgba(255, 255, 255, 0.08);
+    --bg-glass-input: #0e131f;
     
     --color-primary: #3b82f6;
-    --color-primary-glow: rgba(59, 130, 246, 0.3);
-    --color-emerald: #10b981;
-    --color-emerald-glow: rgba(16, 185, 129, 0.25);
-    --color-crimson: #ef4444;
-    --color-crimson-glow: rgba(239, 68, 68, 0.25);
+    --color-primary-glow: rgba(59, 130, 246, 0.25);
+    --color-emerald: #00e676;
+    --color-emerald-glow: rgba(0, 230, 118, 0.2);
+    --color-crimson: #ff5252;
+    --color-crimson-glow: rgba(255, 82, 82, 0.2);
     --color-amber: #f59e0b;
-    --color-amber-glow: rgba(245, 158, 11, 0.25);
-    --neon-green: #10b981;
-    --glow-shadow: 0 0 12px rgba(59, 130, 246, 0.25);
+    --color-amber-glow: rgba(245, 158, 11, 0.2);
+    --neon-green: #00e676;
+
+    --text-primary: #ffffff;
+    --text-secondary: #94a3b8;
+    --text-muted: #64748b;
+
+    --glow-shadow: 0 0 16px rgba(59, 130, 246, 0.25);
     --bg-row-hover: rgba(255, 255, 255, 0.035);
 }
 
