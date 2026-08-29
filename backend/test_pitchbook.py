@@ -15,11 +15,20 @@ class TestPitchbookAPIRoutes(unittest.TestCase):
     def setUpClass(cls):
         cls.client = TestClient(app)
 
+    @patch("backend.main.calculate_dcf_valuation")
     @patch("backend.main.call_llm")
     @patch("backend.main.get_complete_financial_profile")
     @patch("requests.get")
-    def test_get_pitchbook_endpoint(self, mock_requests_get, mock_get_profile, mock_call_groq):
+    def test_get_pitchbook_endpoint(self, mock_requests_get, mock_get_profile, mock_call_groq, mock_calc_dcf):
         """Verifies institutional pitchbook data compilation and Groq LLM parsing."""
+        mock_calc_dcf.return_value = {
+            "wacc": 9.5,
+            "revenue_growth": 12.0,
+            "opm": 18.0,
+            "terminal_growth": 4.5,
+            "intrinsic_value": 2800.0,
+            "margin_of_safety": 14.3
+        }
         # 1. Mock Complete Financial Profile return dictionary
         mock_get_profile.return_value = {
             "symbol": "RELIANCE",

@@ -3010,29 +3010,41 @@ function setScreenerBtnLoading(isLoading, resultCount) {
     }
 }
 
+function updateScreenerHeaderUI() {
+    document.querySelectorAll('#tab-screener th.sortable, #screener-results-table th.sortable').forEach(h => {
+        const field = h.getAttribute('data-sort');
+        let cleanText = h.textContent.replace(/[▲▼↕]/g, '').trim();
+        if (field === screenerSortCol) {
+            h.style.color = 'var(--color-primary)';
+            h.textContent = cleanText + ' ' + (screenerSortAsc ? '▲' : '▼');
+        } else {
+            h.style.color = 'var(--text-secondary)';
+            h.textContent = cleanText + ' ↕';
+        }
+    });
+}
+
 function setupScreenerSorting() {
-    const headers = document.querySelectorAll('#tab-screener th.sortable');
-    headers.forEach(header => {
-        header.addEventListener('click', () => {
-            const field = header.getAttribute('data-sort');
-            if (screenerSortCol === field) {
-                screenerSortAsc = !screenerSortAsc;
-            } else {
-                screenerSortCol = field;
-                screenerSortAsc = false; // default to descending
-            }
+    if (window.screenerSortListenerWired) return;
+    window.screenerSortListenerWired = true;
 
-            // Reset indicator icons and color of non-active headers
-            headers.forEach(h => {
-                h.style.color = 'var(--text-secondary)';
-                h.innerText = h.innerText.replace(/[▲▼↕]/g, '↕');
-            });
+    document.addEventListener('click', (e) => {
+        const header = e.target.closest('#tab-screener th.sortable, #screener-results-table th.sortable');
+        if (!header) return;
 
-            header.style.color = 'var(--color-primary)';
-            header.innerText = header.innerText.replace(/[▲▼↕]/g, screenerSortAsc ? '▲' : '▼');
+        const field = header.getAttribute('data-sort');
+        if (!field) return;
 
-            sortScreenerResults();
-        });
+        e.stopPropagation();
+        if (screenerSortCol === field) {
+            screenerSortAsc = !screenerSortAsc;
+        } else {
+            screenerSortCol = field;
+            screenerSortAsc = false; // default to descending
+        }
+
+        updateScreenerHeaderUI();
+        sortScreenerResults();
     });
 }
 
@@ -19704,7 +19716,8 @@ function setupMobileMenu() {
         }
 
         document.addEventListener('click', (e) => {
-            if (sidebar.classList.contains('open') && !sidebar.contains(e.target) && e.target !== toggleBtn && e.target !== closeBtnMobile) {
+            const navMore = document.getElementById('nav-more');
+            if (sidebar.classList.contains('open') && !sidebar.contains(e.target) && e.target !== toggleBtn && e.target !== closeBtnMobile && (!navMore || !navMore.contains(e.target))) {
                 sidebar.classList.remove('open');
             }
         });
@@ -20678,11 +20691,32 @@ function setupUniverseExplorer() {
         });
     }
 
-    // Sortable header click listeners
-    const headers = document.querySelectorAll('#tab-universe th.sortable-univ');
-    headers.forEach(h => {
-        h.addEventListener('click', () => {
+    // Safe Header UI update for Universe Explorer
+    window.updateUniverseHeaderUI = function() {
+        document.querySelectorAll('.sortable-univ').forEach(h => {
             const field = h.getAttribute('data-sort');
+            let cleanText = h.textContent.replace(/[▲▼↕]/g, '').trim();
+            if (field === universeSortCol) {
+                h.style.color = 'var(--color-primary)';
+                h.textContent = cleanText + ' ' + (universeSortAsc ? '▲' : '▼');
+            } else {
+                h.style.color = 'var(--text-secondary)';
+                h.textContent = cleanText + ' ↕';
+            }
+        });
+    };
+
+    // Resilient Event Delegation for Universe Explorer Table Headers
+    if (!window.universeSortListenerWired) {
+        window.universeSortListenerWired = true;
+        document.addEventListener('click', (e) => {
+            const h = e.target.closest('#tab-universe th.sortable-univ, .sortable-univ');
+            if (!h) return;
+
+            const field = h.getAttribute('data-sort');
+            if (!field) return;
+
+            e.stopPropagation();
             if (universeSortCol === field) {
                 universeSortAsc = !universeSortAsc;
             } else {
@@ -20690,19 +20724,11 @@ function setupUniverseExplorer() {
                 universeSortAsc = true;
             }
 
-            // Reset and set indicators
-            headers.forEach(header => {
-                header.style.color = 'var(--text-secondary)';
-                header.innerText = header.innerText.replace(/[▲▼↕]/g, '↕');
-            });
-
-            h.style.color = 'var(--color-primary)';
-            h.innerText = h.innerText.replace('↕', universeSortAsc ? '▲' : '▼');
-
+            if (typeof window.updateUniverseHeaderUI === 'function') window.updateUniverseHeaderUI();
             activeUniversePage = 1;
             filterAndRenderUniverse();
         });
-    });
+    }
 
     // Auto-load when clicking the tab button (always sync to get fresh cache states)
     const tabBtn = document.getElementById('tab-universe-btn');
@@ -20741,38 +20767,48 @@ async function loadUniverseExplorerData() {
 
         universeConstituents = data;
         filterAndRenderUniverse();
-        showToast("Synchronized persistent index universe from SQLite.", "success");
+        if (typeof showToast === 'function') {
+            showToast("Synchronized persistent index universe from SQLite.", "success");
+        }
     } catch (e) {
         if (tbody) {
             tbody.innerHTML = `<tr><td colspan="7" class="center-text red-text font-weight-bold" style="padding: 30px; text-align: center;">Failed to load constituents: ${e.message}</td></tr>`;
         }
-        showToast("Universe loading failed: " + e.message, "error");
+        if (typeof showToast === 'function') {
+            showToast("Universe loading failed: " + e.message, "error");
+        }
     }
 }
+window.loadUniverseExplorerData = loadUniverseExplorerData;
 
 function filterAndRenderUniverse() {
-    const segment = document.getElementById('universe-explorer-select').value;
-    const query = document.getElementById('universe-explorer-search').value.toLowerCase().trim();
+    const selectEl = document.getElementById('universe-explorer-select');
+    const searchEl = document.getElementById('universe-explorer-search');
     const tbody = document.getElementById('universe-explorer-body');
     const countEl = document.getElementById('universe-explorer-count');
 
     if (!tbody) return;
+    if (typeof window.updateUniverseHeaderUI === 'function') window.updateUniverseHeaderUI();
+
+    const segment = selectEl ? selectEl.value : 'all';
+    const query = searchEl ? searchEl.value.toLowerCase().trim() : '';
+
     tbody.innerHTML = '';
 
-    let filtered = [...universeConstituents];
+    let filtered = Array.isArray(universeConstituents) ? [...universeConstituents] : [];
 
     // 1. Filter by index segment
-    if (segment !== 'all') {
-        filtered = filtered.filter(item => item.cap_type === segment);
+    if (segment && segment !== 'all') {
+        filtered = filtered.filter(item => item && item.cap_type === segment);
     }
 
     // 2. Filter by name/symbol query
     if (query) {
-        filtered = filtered.filter(item =>
-            item.symbol.toLowerCase().includes(query) ||
-            item.company_name.toLowerCase().includes(query) ||
-            item.sector.toLowerCase().includes(query)
-        );
+        filtered = filtered.filter(item => item && (
+            (item.symbol || '').toLowerCase().includes(query) ||
+            (item.company_name || '').toLowerCase().includes(query) ||
+            (item.sector || '').toLowerCase().includes(query)
+        ));
     }
 
     // 3. Sort constituents

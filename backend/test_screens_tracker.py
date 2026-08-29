@@ -15,7 +15,7 @@ class TestScreensTrackerAPI(unittest.TestCase):
     def setUpClass(cls):
         cls.client = TestClient(app)
 
-    @patch("requests.get")
+    @patch("backend.screens_scraper.make_screener_request")
     def test_scrape_saved_screens_mock(self, mock_get):
         """Verify parsing of custom saved screens list from Screener.in explore dashboard."""
         mock_response = MagicMock()
@@ -44,7 +44,7 @@ class TestScreensTrackerAPI(unittest.TestCase):
         self.assertEqual(screens[1]["id"], "/screens/20456/consistent-roce/")
         self.assertEqual(screens[1]["name"], "Consistent Roce")
 
-    @patch("requests.get")
+    @patch("backend.screens_scraper.make_screener_request")
     def test_scrape_screen_results_mock(self, mock_get):
         """Verify parsing of stocks result table from custom saved screen page."""
         mock_response = MagicMock()
@@ -103,7 +103,7 @@ class TestScreensTrackerAPI(unittest.TestCase):
         self.assertEqual(companies[1]["name"], "Infosys Ltd")
         self.assertEqual(companies[1]["price"], 1520.0)
 
-    @patch("requests.get")
+    @patch("backend.screens_scraper.make_screener_request")
     def test_api_screener_screens_endpoint(self, mock_get):
         """Test the GET /api/screener-external/screens endpoint behavior when cookie is mock loaded."""
         mock_response = MagicMock()
@@ -134,7 +134,7 @@ class TestScreensTrackerAPI(unittest.TestCase):
             self.assertTrue(len(data["screens"]) > 0)
             self.assertEqual(data["screens"][0]["id"], "/screens/10123/high-growth-tech/")
 
-    @patch("requests.get")
+    @patch("backend.screens_scraper.make_screener_request")
     def test_api_screener_screens_preview_endpoint(self, mock_get):
         """Test the GET /api/screener-external/screens/{id}/preview endpoint."""
         mock_response = MagicMock()

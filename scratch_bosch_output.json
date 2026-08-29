@@ -1,0 +1,71 @@
+{
+  "symbol": "BOSCHLTD.NS",
+  "company_name": "BOSCHLTD India Ltd.",
+  "data_source": "⚡ SerpApi SGE (Google AI)",
+  "text": "Bosch Ltd. (BOSCHLTD) shares trade around <strong>₹41,200 </strong>to <strong>₹41,525 </strong>on Indian stock exchanges, supported by strong annual results for fiscal year 2026.",
+  "sentiment_score": 85,
+  "sentiment_label": "Strongly Positive",
+  "kpi_metrics": [
+    {
+      "label": "Key Revenue Highlight",
+      "value": "Live SGE Overview",
+      "sub": "Live SGE Growth",
+      "icon": "📈"
+    },
+    {
+      "label": "Net Profit Focus",
+      "value": "Audited Filings",
+      "sub": "Institutional Trajectory",
+      "icon": "💰"
+    },
+    {
+      "label": "EBITDA Margin Profile",
+      "value": "Expanding",
+      "sub": "Operating Efficiency",
+      "icon": "⚡"
+    },
+    {
+      "label": "Analyst Consensus",
+      "value": "Strong Buy",
+      "sub": "Peers: Schaeffler & Timken",
+      "icon": "⭐"
+    }
+  ],
+  "sections": [
+    {
+      "title": "Key Financial Performance Metrics",
+      "bullet_points": [
+        "<strong>Market Capitalization</strong>: ~<strong>₹1.22</strong>T to <strong>₹1.26 </strong>lakh crore",
+        "<strong>P/E Ratio (TTM)</strong>: ~43.8 – 45.3",
+        "<strong>Earnings Per Share (EPS TTM)</strong>: ~<strong>₹940</strong>",
+        "<strong>FY26 Revenue</strong>: <strong>₹20,034.70 crore</strong> (up 10.76% year-on-year)",
+        "<strong>FY26 Net Profit</strong>: <strong>₹2,770 crore</strong> (up 37.6% year-on-year)",
+        "<strong>Balance Sheet</strong>: Virtually debt-free with strong operating margins (~14%) <a class='citation-chip-link' href='https://www.perplexity.ai/finance/BOSCHLTD.BO' target='_blank' rel='noopener noreferrer' title='Open article at Perplexity'>🌐 Perplexity ↗</a>"
+      ],
+      "sources": [
+        "Trendlyne.com",
+        "Whalesbook",
+        "Perplexity"
+      ]
+    },
+    {
+      "title": "Recent News & Strategic Updates",
+      "bullet_points": [
+        "<strong>Strong Annual Performance</strong>: Net profit growth was amplified by solid automotive sector demand (especially in powertrain and two-wheeler segments) and gains from selling the Building Technologies business. <a class='citation-chip-link' href='https://www.screener.in/company/BOSCHLTD/consolidated/' target='_blank' rel='noopener noreferrer' title='Open article at Screener'>🌐 Screener ↗</a>",
+        "<strong>Major Acquisition</strong>: The board approved acquiring a 100% stake in Bosch Chassis Systems India for <strong>₹9,068.68 crore</strong> to expand its ABS, sensor, and vehicle safety portfolio.",
+        "For comprehensive financial breakdowns and deep-dive tables, you can explore the consolidated data on the Screener platform . To track real-time price movements and market updates, visit the Google Finance tracker . Additional forecasting charts and market sentiment are available via Perplexity Finance . <a class='citation-chip-link' href='https://www.screener.in/company/BOSCHLTD/consolidated/' target='_blank' rel='noopener noreferrer' title='Open article at Screener'>🌐 Screener +2 ↗</a>"
+      ],
+      "sources": [
+        "Trendlyne.com",
+        "Whalesbook",
+        "Perplexity"
+      ]
+    }
+  ],
+  "suggested_followups": [
+    "📊 What is BOSCHLTD quarterly profit trend?",
+    "🌐 Peer Comparison (Schaeffler & Timken)"
+  ],
+  "timestamp": "2026-08-05 19:17:37",
+  "from_cache": false
+}

@@ -1,0 +1,55 @@
+════════════════════════
+📈 *APEX EQUITIES WORKSTATION*
+📅 Daily Close Wrap-Up | August 12, 2026
+════════════════════════
+
+🎯 *Market Sentiment Index:* Neutral 🟡 (`56/100`) | Breadth: `186 Adv / 313 Dec` | India VIX: `11.69 (-1.43%)`
+📊 *1. KEY MARKET INDICES*
+• Nifty 50:   `24435.95 (-35.75 pts, -0.15%)`
+• BSE Sensex:   `77966.35 (-187.90 pts, -0.24%)`
+✨ *Commodities Spot Rates:*
+  - Gold 24K 10g (Spot): `154,860.00 (+0.68%)`
+  - Silver 1kg (Spot): `255,000.00 (+0.00%)`
+
+
+💼 *2. PORTFOLIO DAILY STATUS*
+• Daily Change:  `+Rs. 22,222.95 (+0.69%)`
+• Current Value: `Rs. 3,239,491.00`
+• Total Return:  `Rs. -2,032,477,509.00 (-99.84%)`
+  ├─ 🏆 *Top Gainer:* BOSCHLTD (`+2.87%`) (Supp: `₹44,206.67` | Res: `₹45,956.67`)
+  ├─ ⚠️ *Top Loser:*  TCS (`-3.93%`) (Supp: `₹2,430.27` | Res: `₹2,458.87`)
+  └─ ⚠️ *Solvency Warnings:* RVNL flagged distressed
+
+⚡ *3. SECTOR MOMENTUM RADAR*
+_No sector momentum stats compiled._
+
+👀 *4. WATCHLIST HIGHLIGHTS*
+• 🟢 *Watchlist Gainers:*
+  - BOSCHLTD: `46480.00 (+2.87%)`
+  - POWERINDIA: `35800.00 (+2.29%)`
+• 🔴 *Watchlist Losers:*
+  - TCS: `2349.70 (-3.93%)`
+  - BSOFT: `313.30 (-2.19%)`
+
+📦 *5. SMART MONEY ACCUMULATION RADAR*
+• *JSWINFRA*: `50.4% Delivery` (`2.5x` 10-day avg volume) — _Strong institutional accumulation_
+• *INFY*: `59.9% Delivery` (`0.6x` 10-day avg volume) — _Institutional distribution_
+• *BOSCHLTD*: `29.2% Delivery` (`2.0x` 10-day avg volume) — _Strong institutional accumulation_
+• *ACC*: `56.0% Delivery` (`0.6x` 10-day avg volume) — _Institutional distribution_
+
+📰 *6. MARKET CATALYST HEADLINES*
+• 🟢 _Economic Times_: Gokaldas Exports Q1 profit jumps 7% as US tariff pressure eases
+• 🟢 _LiveMint_: Motilal Oswal bullish on jewellery stocks; picks Titan, Kalyan Jewellers as top bets, sees up to 34% upside
+• 🟢 _Business Standard_: Bank credit growth spikes to 19% on year
+
+📅 *7. UPCOMING PORTFOLIO EVENTS*
+• RVNL: Dividend (18-Aug) (₹3.43)
+
+🤝 *8. PORTFOLIO INSIDER FLOWS*
+_No recent promoter or institutional deals._
+
+🤖 *AI COPILOT BRIEFING* (_Institutional_)
+_Indian benchmark indices consolidated marginally, with the Nifty 50 slipping 0.15% amid pronounced sectoral divergence. Auto ancillaries demonstrated relative strength led by Bosch (+2.87%), contrasting sharp weakness in IT heavyweights like TCS (-3.93%). Institutional sentiment remains anchored by robust domestic credit growth surging 19% YoY, providing a fundamental floor despite near-term equity headwind._
+
+────────────────────────
+_APEX AI Workstation Client Portal_

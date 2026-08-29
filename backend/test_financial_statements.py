@@ -9,7 +9,7 @@ class TestFinancialStatements(unittest.TestCase):
     def setUp(self):
         self.client = TestClient(app)
 
-    @patch("backend.financial_statements_scraper.requests.get")
+    @patch("backend.financial_statements_scraper.make_screener_request")
     def test_scrape_financial_statements_success(self, mock_get):
         # Mock search API response
         mock_search_res = MagicMock()

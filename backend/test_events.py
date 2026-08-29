@@ -58,6 +58,7 @@ class TestStockEventsCalendar(unittest.TestCase):
 
     def test_database_upsert_and_query(self):
         """Verify database upsert, unique constraints, and cached retrievals."""
+        today_str = date.today().isoformat()
         # Insert initial event
         with _get_db() as conn:
             _upsert_event(
@@ -65,7 +66,7 @@ class TestStockEventsCalendar(unittest.TestCase):
                 symbol="TCS",
                 company_name="Tata Consultancy Services Ltd",
                 event_type="quarterly_results",
-                event_date="2026-07-15",
+                event_date=today_str,
                 description="Q1 Results Board Meeting",
                 details={"isin": "INE467B01029"},
                 source="nse"
@@ -84,7 +85,7 @@ class TestStockEventsCalendar(unittest.TestCase):
                 symbol="TCS",
                 company_name="Tata Consultancy Services Ltd",
                 event_type="quarterly_results",
-                event_date="2026-07-15",
+                event_date=today_str,
                 description="Updated Q1 Results Description",
                 details={"isin": "INE467B01029", "updated": True},
                 source="nse"
@@ -138,9 +139,13 @@ class TestStockEventsCalendar(unittest.TestCase):
         mock_ticker = MagicMock()
         mock_ticker_cls.return_value = mock_ticker
 
+        future_date1 = datetime.now() + timedelta(days=10)
+        future_date2 = datetime.now() + timedelta(days=5)
+        future_date3 = datetime.now() + timedelta(days=15)
+
         # Setup mock .calendar and .info properties
         mock_ticker.calendar = {
-            "Earnings Date": [datetime(2026, 7, 25)],
+            "Earnings Date": [future_date1],
             "Earnings Average": 12.5,
             "Earnings High": 13.0,
             "Earnings Low": 12.0,
@@ -150,8 +155,8 @@ class TestStockEventsCalendar(unittest.TestCase):
             "longName": "Infosys Technologies Ltd",
             "dividendRate": 18.0,
             "dividendYield": 0.012,
-            "exDividendDate": int(datetime(2026, 7, 10).timestamp()),
-            "lastSplitDate": int(datetime(2026, 7, 28).timestamp()),
+            "exDividendDate": int(future_date2.timestamp()),
+            "lastSplitDate": int(future_date3.timestamp()),
             "lastSplitFactor": "2:1",
         }
 

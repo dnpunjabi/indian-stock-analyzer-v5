@@ -67,32 +67,33 @@ Provide a comprehensive, highly detailed 5-part institutional financial analysis
 Make sure the response is exhaustive and thoroughly formatted with Markdown headings and tables.
 """
 
-print("[Test 1] Testing non-streaming call_llm (TASK_HEAVY)...")
-res = call_llm(TASK_HEAVY, "You are a senior institutional equity analyst.", test_prompt, max_tokens=8000)
-print(f"Received non-streaming response length: {len(res)} characters.")
-if len(res) > 500 and not res.startswith("ERROR"):
-    print("[OK] Non-streaming response generated cleanly without truncation.")
-    print("Sample response tail:")
-    print("..." + res[-200:])
-else:
-    print(f"[FAIL] Non-streaming test issue: {res[:200]}")
+if __name__ == "__main__":
+    print("[Test 1] Testing non-streaming call_llm (TASK_HEAVY)...")
+    res = call_llm(TASK_HEAVY, "You are a senior institutional equity analyst.", test_prompt, max_tokens=8000)
+    print(f"Received non-streaming response length: {len(res)} characters.")
+    if len(res) > 500 and not res.startswith("ERROR"):
+        print("[OK] Non-streaming response generated cleanly without truncation.")
+        print("Sample response tail:")
+        print("..." + res[-200:].encode("ascii", errors="replace").decode("ascii"))
+    else:
+        print(f"[FAIL] Non-streaming test issue: {res[:200]}")
 
-print("\n[Test 2] Testing streaming call_llm_stream (TASK_FAST)...")
-chunks = []
-full_stream_text = ""
-for chunk in call_llm_stream(TASK_FAST, "You are an institutional financial analyst.", test_prompt, max_tokens=8000):
-    chunks.append(chunk)
-    full_stream_text += chunk
+    print("\n[Test 2] Testing streaming call_llm_stream (TASK_FAST)...")
+    chunks = []
+    full_stream_text = ""
+    for chunk in call_llm_stream(TASK_FAST, "You are an institutional financial analyst.", test_prompt, max_tokens=8000):
+        chunks.append(chunk)
+        full_stream_text += chunk
 
-print(f"Received {len(chunks)} streaming chunks. Total length: {len(full_stream_text)} characters.")
-if len(full_stream_text) > 500 and not full_stream_text.startswith("ERROR"):
-    print("[OK] Streaming response generated cleanly without truncation or missing tail chunks.")
-    print("Sample streaming response tail:")
-    print("..." + full_stream_text[-200:])
-else:
-    print(f"[FAIL] Streaming test issue: {full_stream_text[:200]}")
+    print(f"Received {len(chunks)} streaming chunks. Total length: {len(full_stream_text)} characters.")
+    if len(full_stream_text) > 500 and not full_stream_text.startswith("ERROR"):
+        print("[OK] Streaming response generated cleanly without truncation or missing tail chunks.")
+        print("Sample streaming response tail:")
+        print("..." + full_stream_text[-200:].encode("ascii", errors="replace").decode("ascii"))
+    else:
+        print(f"[FAIL] Streaming test issue: {full_stream_text[:200]}")
 
-print("\n==================================================")
-print("TESTING COMPLETED SUCCESSFULLY")
-print("==================================================")
+    print("\n==================================================")
+    print("TESTING COMPLETED SUCCESSFULLY")
+    print("==================================================")
 

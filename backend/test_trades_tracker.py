@@ -16,7 +16,7 @@ class TestTradesTrackerAPI(unittest.TestCase):
     def setUpClass(cls):
         cls.client = TestClient(app)
 
-    @patch("requests.get")
+    @patch("backend.trades_scraper.make_screener_request")
     def test_scrape_trades_mock(self, mock_get):
         """Verify stock-specific bulk, block, SAST, and insider trades scraping."""
         # 1. Mock responses: search query Suggest suggest API and the trades company details page
@@ -127,16 +127,32 @@ class TestTradesTrackerAPI(unittest.TestCase):
         self.assertEqual(sast[0]["quantity"], 25000)
         self.assertEqual(sast[0]["relation"], "Market - 0.01%")
 
-    @patch("requests.get")
-    def test_global_scanner_endpoint(self, mock_get):
+    def test_global_scanner_endpoint(self):
         """Test API scanner route returns expected list structure."""
-        # Querying scanner should return array of items
+        from backend.main import get_db
+        with get_db() as conn:
+            c = conn.cursor()
+            c.execute(
+                "INSERT OR REPLACE INTO cached_trades (symbol, data_json, last_updated) VALUES (?, ?, ?)",
+                (
+                    "INFY",
+                    json.dumps({
+                        "insider_trades": [{"symbol": "INFY", "person": "Nilekani", "type": "Buy", "value": 100000, "date": "2026-07-01"}],
+                        "bulk_deals": [],
+                        "block_deals": [],
+                        "sast_deals": []
+                    }),
+                    "2026-07-01 10:00:00"
+                )
+            )
+            conn.commit()
+
         response = self.client.get("/api/trades/global-scanner")
         self.assertEqual(response.status_code, 200)
         data = response.json()
         self.assertIsInstance(data, list)
 
-    @patch("requests.get")
+    @patch("backend.trades_scraper.make_screener_request")
     def test_stock_specific_endpoint(self, mock_get):
         """Test stock-specific trades details endpoint."""
         # Clear cache for INFY to force scraping/mock path
@@ -176,10 +192,17 @@ class TestTradesTrackerAPI(unittest.TestCase):
         """
         mock_get.side_effect = [search_res, trades_res]
 
-        response = self.client.get("/api/stocks/INFY/trades")
-        self.assertEqual(response.status_code, 200)
-        data = response.json()
-        self.assertIn("insider_trades", data)
-        self.assertTrue(len(data["insider_trades"]) > 0)
-        self.assertEqual(data["insider_trades"][0]["person"], "N R Narayana Murthy")
-        self.assertEqual(data["insider_trades"][0]["value"], 7500000)
+        with patch("backend.main.get_db") as mock_get_db:
+            mock_conn = MagicMock()
+            mock_cursor = MagicMock()
+            mock_get_db.return_value.__enter__.return_value = mock_conn
+            mock_conn.cursor.return_value = mock_cursor
+            mock_cursor.fetchone.return_value = {"value": "dummy_cookie"}
+
+            response = self.client.get("/api/stocks/INFY/trades")
+            self.assertEqual(response.status_code, 200)
+            data = response.json()
+            self.assertIn("insider_trades", data)
+            self.assertTrue(len(data["insider_trades"]) > 0)
+            self.assertEqual(data["insider_trades"][0]["person"], "N R Narayana Murthy")
+            self.assertEqual(data["insider_trades"][0]["value"], 7500000)

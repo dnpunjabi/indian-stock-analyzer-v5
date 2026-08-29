@@ -8121,7 +8121,7 @@ async def get_stock_trades(symbol: str):
             (base_symbol, base_symbol + ".NS", base_symbol + "%")
         )
         profile_row = cursor.fetchone()
-        company_name = profile_row["company_name"] if profile_row else None
+        company_name = (profile_row.get("company_name") if hasattr(profile_row, "get") else profile_row["company_name"]) if profile_row and ("company_name" in profile_row if hasattr(profile_row, "__contains__") else True) else None
         
     # Cache miss or expired -> Scrape page
     data = scrape_trades(base_symbol, cookie, company_name=company_name)
@@ -8173,7 +8173,8 @@ async def get_global_trades(
     with get_db() as conn:
         cursor = conn.cursor()
         cursor.execute("SELECT COUNT(*) as cnt FROM cached_trades")
-        count = cursor.fetchone()["cnt"]
+        cnt_row = cursor.fetchone()
+        count = cnt_row[0] if cnt_row else 0
         
     if count == 0:
         if not cookie:
@@ -8191,7 +8192,7 @@ async def get_global_trades(
                 cursor = conn.cursor()
                 cursor.execute("SELECT company_name FROM screener_universe WHERE symbol LIKE ?", (s + "%",))
                 p_row = cursor.fetchone()
-                c_name = p_row["company_name"] if p_row else None
+                c_name = (p_row.get("company_name") if hasattr(p_row, "get") else p_row["company_name"]) if p_row and ("company_name" in p_row if hasattr(p_row, "__contains__") else True) else None
             try:
                 data = scrape_trades(s, cookie, company_name=c_name)
                 if data:

@@ -406,6 +406,14 @@
             } else {
                 originalSwitchTab(tabKey);
             }
+
+            if (tabKey === 'universe' || tabKey === 'tab-universe') {
+                if (typeof window.loadUniverseExplorerData === 'function') {
+                    window.loadUniverseExplorerData();
+                } else if (typeof loadUniverseExplorerData === 'function') {
+                    loadUniverseExplorerData();
+                }
+            }
             
             // Highlight bottom nav active tab
             const bottomNav = document.querySelector('.mobile-bottom-nav');
@@ -1627,7 +1635,7 @@
             document.getElementById('nav-more').addEventListener('click', (e) => {
                 e.stopPropagation();
                 const sidebar = document.getElementById('sidebar');
-                if (sidebar) sidebar.classList.add('open');
+                if (sidebar) sidebar.classList.toggle('open');
             });
 
             if (typeof lucide !== 'undefined') {
@@ -2621,77 +2629,9 @@
         function decorateUniverseRowsForMobile() {
             const tbody = document.getElementById('universe-explorer-body');
             if (!tbody) return;
-
-            if (!isMobile()) {
-                tbody.querySelectorAll('.row-expand-trigger').forEach(el => el.remove());
-                tbody.querySelectorAll('.universe-details-row').forEach(el => el.remove());
-                return;
-            }
-
-            tbody.querySelectorAll('tr').forEach(tr => {
-                if (tr.classList.contains('universe-details-row') || tr.querySelector('.row-expand-trigger') || tr.cells.length < 5) return;
-
-                const firstCell = tr.cells[1];
-                if (!firstCell) return;
-
-                const chevron = document.createElement('span');
-                chevron.className = 'row-expand-trigger';
-                chevron.style.cssText = 'cursor: pointer; padding: 2px 6px; font-size: 13px; color: var(--color-primary-light); user-select: none; transition: transform 0.2s; font-weight: bold; margin-left: 4px;';
-                chevron.innerHTML = '▼';
-                
-                const symbolLink = firstCell.querySelector('.universe-symbol-link') || firstCell;
-                symbolLink.appendChild(chevron);
-
-                chevron.addEventListener('click', (e) => {
-                    e.stopPropagation();
-                    e.preventDefault();
-                    
-                    let nextRow = tr.nextElementSibling;
-                    if (nextRow && nextRow.classList.contains('universe-details-row')) {
-                        nextRow.remove();
-                        chevron.innerHTML = '▼';
-                    } else {
-                        const serialNum = tr.cells[0] ? tr.cells[0].textContent.trim() : '';
-                        const companyName = tr.cells[2] ? tr.cells[2].textContent.trim() : 'N/A';
-                        const sector = tr.cells[3] ? tr.cells[3].textContent.trim() : 'N/A';
-                        const segment = tr.cells[4] ? tr.cells[4].textContent.trim() : 'N/A';
-                        const cacheStatus = tr.cells[5] ? tr.cells[5].innerHTML : 'N/A';
-                        const actionsHtml = tr.cells[6] ? tr.cells[6].innerHTML : '';
-
-                        const detailsTr = document.createElement('tr');
-                        detailsTr.className = 'universe-details-row no-print';
-                        detailsTr.style.background = 'rgba(255, 255, 255, 0.01)';
-                        detailsTr.innerHTML = `
-                            <td colspan="7" style="padding: 10px 15px; border-top: 1px dashed rgba(255,255,255,0.05); border-bottom: 1px dashed rgba(255,255,255,0.05);">
-                                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 13.5px; color: var(--text-secondary); line-height: 1.45;">
-                                    <div style="grid-column: span 2; font-size: 12px; color: var(--color-primary-light); font-weight: bold; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 4px; margin-bottom: 4px;">
-                                        ${companyName}
-                                    </div>
-                                    <div><strong>Index Rank:</strong> #${serialNum}</div>
-                                    <div style="text-align: right; display: flex; justify-content: flex-end; align-items: center; gap: 4px;"><strong>Cache Status:</strong> ${cacheStatus}</div>
-                                </div>
-                                <div style="border-top: 1px dashed rgba(255,255,255,0.08); padding-top: 8px; margin-top: 8px; display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap;">
-                                    <span style="font-size: 13px; color: var(--text-muted);">Explorer Actions:</span>
-                                    <div class="mobile-actions-wrapper" style="display: flex; gap: 6px;">
-                                        ${actionsHtml}
-                                    </div>
-                                </div>
-                            </td>
-                        `;
-                        tr.parentNode.insertBefore(detailsTr, tr.nextSibling);
-
-                        const detailsActions = detailsTr.querySelectorAll('button');
-                        const originalActions = tr.cells[6].querySelectorAll('button');
-                        detailsActions.forEach((btn, idx) => {
-                            btn.addEventListener('click', (evt) => {
-                                if (originalActions[idx]) originalActions[idx].click();
-                            });
-                        });
-
-                        chevron.innerHTML = '▲';
-                    }
-                });
-            });
+            // Clean up any legacy chevron triggers or mobile detail accordion rows for 2D table view
+            tbody.querySelectorAll('.row-expand-trigger').forEach(el => el.remove());
+            tbody.querySelectorAll('.universe-details-row').forEach(el => el.remove());
         }
 
         function decorateAlertsRowsForMobile() {
@@ -9637,6 +9577,10 @@
             window.updateQuantCockpitBanner();
             setTimeout(window.updateQuantCockpitBanner, 500);
             setInterval(window.updateQuantCockpitBanner, 60000);
+
+            if (typeof setupUniverseExplorer === 'function') {
+                setupUniverseExplorer();
+            }
 
         } catch(e) {
             console.error("Error invoking additions:", e);
