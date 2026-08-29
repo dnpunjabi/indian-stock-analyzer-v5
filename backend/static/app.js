@@ -18261,7 +18261,7 @@ function renderWatchlistItems() {
                     <div style="display: flex; flex-direction: column; gap: 2px;">
                         <div style="display: flex; align-items: center; gap: 6px;">
                             <div class="watchlist-symbol-link" style="cursor: pointer; white-space: nowrap;" title="Click to load research workspace">
-                                <strong style="color: #ffffff; text-decoration: none; font-weight: 800; font-size: 13px; font-family: 'Inter', monospace; white-space: nowrap;">${item.symbol.replace('.NS','')}</strong>
+                                <strong class="wl-stock-symbol" style="color: inherit; text-decoration: none; font-weight: 800; font-family: 'Inter', monospace; white-space: nowrap;">${item.symbol.replace('.NS','')}</strong>
                             </div>
                         </div>
                         ${dotsHTML}
@@ -18308,7 +18308,7 @@ function renderWatchlistItems() {
                     <div style="display: flex; flex-direction: column; gap: 2px;">
                         <div style="display: flex; align-items: center; gap: 6px;">
                             <div class="watchlist-symbol-link" style="cursor: pointer; white-space: nowrap;" title="Click to load research workspace">
-                                <strong style="color: #ffffff; text-decoration: none; font-weight: 800; font-size: 13px; font-family: 'Inter', monospace; white-space: nowrap;">${item.symbol.replace('.NS','')}</strong>
+                                <strong class="wl-stock-symbol" style="color: inherit; text-decoration: none; font-weight: 800; font-family: 'Inter', monospace; white-space: nowrap;">${item.symbol.replace('.NS','')}</strong>
                             </div>
                         </div>
                         ${dotsHTML}
@@ -18350,7 +18350,7 @@ function renderWatchlistItems() {
                     <div style="display: flex; flex-direction: column; gap: 2px;">
                         <div style="display: flex; align-items: center; gap: 6px;">
                             <div class="watchlist-symbol-link" style="cursor: pointer; white-space: nowrap;" title="Click to load research workspace">
-                                <strong style="color: #ffffff; text-decoration: none; font-weight: 800; font-size: 13px; font-family: 'Inter', monospace; white-space: nowrap;">${item.symbol.replace('.NS','')}</strong>
+                                <strong class="wl-stock-symbol" style="color: inherit; text-decoration: none; font-weight: 800; font-family: 'Inter', monospace; white-space: nowrap;">${item.symbol.replace('.NS','')}</strong>
                             </div>
                         </div>
                         ${dotsHTML}
@@ -19287,7 +19287,7 @@ function executeSystemPrint(printContent, customFeatures = 'width=850,height=900
         setTimeout(cleanup, 25000);
     }
 }
-const LIGHT_THEMES = ['light', 'geist-light', 'nord-light', 'solarized-light', 'github-light', 'paytm-money'];
+const LIGHT_THEMES = ['light', 'geist-light', 'nord-light', 'solarized-light', 'github-light', 'paytm-money', 'cobalt-royal', 'mint-emerald', 'volt-neo', 'royal-wealth', 'neo-mint-light'];
 
 function updateMetaThemeColor() {
     try {
@@ -19386,6 +19386,19 @@ function setupThemeToggle() {
         });
     }
 
+    // Sync quick-theme segmented pill buttons on load
+    const btnDarkInit = document.getElementById('btn-quick-theme-dark');
+    const btnLightInit = document.getElementById('btn-quick-theme-light');
+    if (btnDarkInit && btnLightInit) {
+        if (savedMode === 'light') {
+            btnLightInit.classList.add('active');
+            btnDarkInit.classList.remove('active');
+        } else {
+            btnDarkInit.classList.add('active');
+            btnLightInit.classList.remove('active');
+        }
+    }
+
     const desktopBtn = document.getElementById('theme-toggle-btn');
     const mobileBtn = document.getElementById('mobile-theme-toggle');
 
@@ -19442,16 +19455,20 @@ function setWorkstationMode(mode) {
     let activeAccent;
     if (mode === 'light') {
         activeAccent = localStorage.getItem('theme-accent-light') || 'light';
+        if (!LIGHT_THEMES.includes(activeAccent)) activeAccent = 'light';
         document.documentElement.setAttribute('data-theme', 'light');
         document.documentElement.setAttribute('data-accent', activeAccent);
         document.body.setAttribute('data-theme', 'light');
         document.body.setAttribute('data-accent', activeAccent);
+        localStorage.setItem('theme-accent-light', activeAccent);
     } else {
         activeAccent = localStorage.getItem('theme-accent') || 'classic';
+        if (LIGHT_THEMES.includes(activeAccent)) activeAccent = 'classic';
         document.documentElement.setAttribute('data-theme', activeAccent);
-        document.documentElement.removeAttribute('data-accent');
+        document.documentElement.setAttribute('data-accent', activeAccent);
         document.body.setAttribute('data-theme', activeAccent);
-        document.body.removeAttribute('data-accent');
+        document.body.setAttribute('data-accent', activeAccent);
+        localStorage.setItem('theme-accent', activeAccent);
     }
 
     localStorage.setItem('theme-mode', mode);
@@ -19495,6 +19512,7 @@ function setWorkstationAccent(accent) {
     document.body.setAttribute('data-mode', mode);
     localStorage.setItem('theme-mode', mode);
     localStorage.setItem('theme', mode); // legacy support
+    localStorage.setItem('apex_theme_mode', mode);
 
     if (isLightAccent) {
         document.documentElement.setAttribute('data-theme', 'light');
@@ -19504,9 +19522,9 @@ function setWorkstationAccent(accent) {
         localStorage.setItem('theme-accent-light', accent);
     } else {
         document.documentElement.setAttribute('data-theme', accent);
-        document.documentElement.removeAttribute('data-accent');
+        document.documentElement.setAttribute('data-accent', accent);
         document.body.setAttribute('data-theme', accent);
-        document.body.removeAttribute('data-accent');
+        document.body.setAttribute('data-accent', accent);
         localStorage.setItem('theme-accent', accent);
     }
 
@@ -19523,6 +19541,19 @@ function setWorkstationAccent(accent) {
     }
     const accentSelectOld = document.getElementById('setting-theme-accent-old');
     if (accentSelectOld) accentSelectOld.value = accent;
+
+    // Sync quick-theme segmented pill buttons
+    const btnDark = document.getElementById('btn-quick-theme-dark');
+    const btnLight = document.getElementById('btn-quick-theme-light');
+    if (btnDark && btnLight) {
+        if (mode === 'light') {
+            btnLight.classList.add('active');
+            btnDark.classList.remove('active');
+        } else {
+            btnDark.classList.add('active');
+            btnLight.classList.remove('active');
+        }
+    }
 
     updateMetaThemeColor();
     showToast(`Visual Theme set to ${textLabel}`, 'success');

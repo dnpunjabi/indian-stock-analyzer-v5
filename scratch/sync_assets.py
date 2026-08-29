@@ -8,8 +8,8 @@ sync_targets = [
     ('backend/static/app.js', 'android/app/build/intermediates/assets/debug/public/app.js'),
     ('backend/static/modernizer.js', 'android/app/src/main/assets/public/modernizer.js'),
     ('backend/static/modernizer.js', 'android/app/build/intermediates/assets/debug/public/modernizer.js'),
-    ('backend/static/modernizer.css', 'android/app/src/main/assets/public/modernizer.css'),
-    ('backend/static/modernizer.css', 'android/app/build/intermediates/assets/debug/public/modernizer.css'),
+    ('backend/static/styles.css', 'android/app/src/main/assets/public/styles.css'),
+    ('backend/static/styles.css', 'android/app/build/intermediates/assets/debug/public/styles.css'),
 ]
 
 for src, dst in sync_targets:

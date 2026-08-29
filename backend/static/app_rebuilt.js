@@ -14112,7 +14112,7 @@ function executeSystemPrint(printContent, customFeatures = 'width=850,height=900
         setTimeout(cleanup, 25000);
     }
 }
-const LIGHT_THEMES = ['light', 'geist-light', 'nord-light', 'solarized-light', 'github-light', 'paytm-money'];
+const LIGHT_THEMES = ['light', 'geist-light', 'nord-light', 'solarized-light', 'github-light', 'paytm-money', 'cobalt-royal', 'mint-emerald', 'volt-neo', 'royal-wealth', 'neo-mint-light'];
 
 // Dark/Light Theme Handler
 function setupThemeToggle() {
