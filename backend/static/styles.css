@@ -46,93 +46,103 @@ html[data-typography="paytm"] table {
 }
 
 :root {
-    /* Base Default Variables (Apex OLED Minimalist Theme) */
+    /* Fonts (FinTech Hybrid) */
+    --font-heading: 'Plus Jakarta Sans', 'Outfit', sans-serif;
+    --font-body: 'Inter', sans-serif;
+    --font-mono: 'JetBrains Mono', monospace;
+
+    /* Base Default Variables (OLED Pure Black & Obsidian Glass Theme) */
     --primary-rgb: 59, 130, 246;
     --academy-accent-hover: rgba(var(--primary-rgb), 0.06);
     --academy-accent-active: rgba(var(--primary-rgb), 0.12);
     --academy-accent-border: rgba(var(--primary-rgb), 0.22);
     --academy-accent-focus: rgba(var(--primary-rgb), 0.1);
 
-    --bg-main: #08090d;
-    --bg-sidebar: #0e1017;
-    --bg-card: #12141d;
-    --bg-card-hover: #171a26;
-    --border-glass: #1e2230;
-    --bg-glass-input: #12141d;
+    --bg-main: #000000;
+    --bg-sidebar: #06090e;
+    --bg-card: #0e131f;
+    --bg-card-hover: #141b2b;
+    --border-glass: rgba(255, 255, 255, 0.08);
+    --bg-glass-input: #0e131f;
     
     --color-primary: #3b82f6;
-    --color-primary-glow: rgba(59, 130, 246, 0.2);
-    --color-emerald: #22c55e;
-    --color-emerald-glow: rgba(34, 197, 94, 0.2);
-    --color-crimson: #ef4444;
-    --color-crimson-glow: rgba(239, 68, 68, 0.2);
+    --color-primary-glow: rgba(59, 130, 246, 0.25);
+    --color-emerald: #00e676;
+    --color-emerald-glow: rgba(0, 230, 118, 0.2);
+    --color-crimson: #ff5252;
+    --color-crimson-glow: rgba(255, 82, 82, 0.2);
     --color-amber: #f59e0b;
     --color-amber-glow: rgba(245, 158, 11, 0.2);
-    --neon-green: #22c55e;
+    --neon-green: #00e676;
     
     --text-primary: #ffffff;
     --text-secondary: #94a3b8;
     --text-muted: #64748b;
     
-    --glow-shadow: 0 0 12px rgba(59, 130, 246, 0.25);
+    --glow-shadow: 0 0 16px rgba(59, 130, 246, 0.25);
 
     /* Audit cell colors */
-    --audit-pass-bg: rgba(16, 185, 129, 0.03);
-    --audit-fail-bg: rgba(239, 68, 68, 0.02);
-    --audit-pass-bg-hover: rgba(16, 185, 129, 0.08);
-    --audit-fail-bg-hover: rgba(239, 68, 68, 0.06);
-    --audit-pass-border-hover: rgba(16, 185, 129, 0.3);
-    --audit-fail-border-hover: rgba(239, 68, 68, 0.3);
-    --audit-pass-border: rgba(16, 185, 129, 0.25);
-    --audit-fail-border: rgba(239, 68, 68, 0.2);
+    --audit-pass-bg: rgba(0, 230, 118, 0.05);
+    --audit-fail-bg: rgba(255, 82, 82, 0.04);
+    --audit-pass-bg-hover: rgba(0, 230, 118, 0.12);
+    --audit-fail-bg-hover: rgba(255, 82, 82, 0.1);
+    --audit-pass-border-hover: rgba(0, 230, 118, 0.35);
+    --audit-fail-border-hover: rgba(255, 82, 82, 0.35);
+    --audit-pass-border: rgba(0, 230, 118, 0.25);
+    --audit-fail-border: rgba(255, 82, 82, 0.2);
 
     /* Piotroski Matrix variables */
-    --matrix-pass: #10B981;
-    --matrix-fail: #EF4444;
-    --matrix-selected-bg: rgba(16, 185, 129, 0.15);
+    --matrix-pass: #00e676;
+    --matrix-fail: #ff5252;
+    --matrix-selected-bg: rgba(0, 230, 118, 0.15);
 
     /* Theme sub-component & track colors */
-    --bg-card-sub: rgba(255, 255, 255, 0.015);
-    --border-sub: rgba(255, 255, 255, 0.04);
-    --bg-track: rgba(255, 255, 255, 0.06);
-    --border-track: rgba(255, 255, 255, 0.03);
-    --stroke-gauge-bg: rgba(255, 255, 255, 0.04);
-    --bg-explanation-panel: rgba(0, 0, 0, 0.25);
-    --bg-select-input: rgba(0, 0, 0, 0.4);
+    --bg-card-sub: rgba(255, 255, 255, 0.02);
+    --border-sub: rgba(255, 255, 255, 0.06);
+    --bg-track: rgba(255, 255, 255, 0.08);
+    --border-track: rgba(255, 255, 255, 0.04);
+    --stroke-gauge-bg: rgba(255, 255, 255, 0.05);
+    --bg-explanation-panel: rgba(0, 0, 0, 0.4);
+    --bg-select-input: rgba(14, 19, 31, 0.85);
 }
 
 /* ==================== BASE MODES ==================== */
 
 /* Dark Mode Base Variables */
 [data-mode="dark"] {
-    --bg-main: #060913;
-    --bg-sidebar: #0b0f1d;
-    --bg-card: rgba(18, 25, 41, 0.7);
-    --bg-card-hover: rgba(26, 36, 59, 0.85);
-    --border-glass: rgba(255, 255, 255, 0.06);
-    --bg-glass-input: rgba(15, 23, 42, 0.8);
+    --bg-main: #000000;
+    --bg-sidebar: #06090e;
+    --bg-card: #0e131f;
+    --bg-card-hover: #141b2b;
+    --border-glass: rgba(255, 255, 255, 0.08);
+    --bg-glass-input: #0e131f;
     
-    --text-primary: #f3f4f6;
-    --text-secondary: #9ca3af;
-    --text-muted: #6b7280;
+    --text-primary: #ffffff;
+    --text-secondary: #94a3b8;
+    --text-muted: #64748b;
 
-    --audit-pass-bg: rgba(16, 185, 129, 0.03);
-    --audit-fail-bg: rgba(239, 68, 68, 0.02);
-    --audit-pass-bg-hover: rgba(16, 185, 129, 0.08);
-    --audit-fail-bg-hover: rgba(239, 68, 68, 0.06);
-    --audit-pass-border-hover: rgba(16, 185, 129, 0.3);
-    --audit-fail-border-hover: rgba(239, 68, 68, 0.3);
-    --audit-pass-border: rgba(16, 185, 129, 0.25);
-    --audit-fail-border: rgba(239, 68, 68, 0.2);
+    --color-emerald: #00e676;
+    --color-emerald-glow: rgba(0, 230, 118, 0.2);
+    --color-crimson: #ff5252;
+    --color-crimson-glow: rgba(255, 82, 82, 0.2);
+
+    --audit-pass-bg: rgba(0, 230, 118, 0.05);
+    --audit-fail-bg: rgba(255, 82, 82, 0.04);
+    --audit-pass-bg-hover: rgba(0, 230, 118, 0.12);
+    --audit-fail-bg-hover: rgba(255, 82, 82, 0.1);
+    --audit-pass-border-hover: rgba(0, 230, 118, 0.35);
+    --audit-fail-border-hover: rgba(255, 82, 82, 0.35);
+    --audit-pass-border: rgba(0, 230, 118, 0.25);
+    --audit-fail-border: rgba(255, 82, 82, 0.2);
 
     /* Theme sub-component & track colors */
-    --bg-card-sub: rgba(255, 255, 255, 0.015);
-    --border-sub: rgba(255, 255, 255, 0.04);
-    --bg-track: rgba(255, 255, 255, 0.06);
-    --border-track: rgba(255, 255, 255, 0.03);
-    --stroke-gauge-bg: rgba(255, 255, 255, 0.04);
-    --bg-explanation-panel: rgba(0, 0, 0, 0.25);
-    --bg-select-input: rgba(0, 0, 0, 0.4);
+    --bg-card-sub: rgba(255, 255, 255, 0.02);
+    --border-sub: rgba(255, 255, 255, 0.06);
+    --bg-track: rgba(255, 255, 255, 0.08);
+    --border-track: rgba(255, 255, 255, 0.04);
+    --stroke-gauge-bg: rgba(255, 255, 255, 0.05);
+    --bg-explanation-panel: rgba(0, 0, 0, 0.4);
+    --bg-select-input: rgba(14, 19, 31, 0.85);
 }
 
 /* Light/Alabaster Mode Base Variables - The 1 Light Theme (Alabaster Day) */
@@ -33255,9 +33265,9 @@ th.sticky-stock-hdr {
 /* Day Change Badges (+ / -) */
 .col-chg-positive,
 .badge-green {
-    background: rgba(16, 185, 129, 0.15) !important;
-    color: #34d399 !important;
-    border: 1px solid rgba(16, 185, 129, 0.3) !important;
+    background: rgba(0, 230, 118, 0.16) !important;
+    color: #00e676 !important;
+    border: 1px solid rgba(0, 230, 118, 0.35) !important;
     padding: 3px 8px !important;
     border-radius: 6px !important;
     font-weight: 700 !important;
@@ -33275,9 +33285,9 @@ th.sticky-stock-hdr {
 
 .col-chg-negative,
 .badge-red {
-    background: rgba(239, 68, 68, 0.15) !important;
-    color: #f87171 !important;
-    border: 1px solid rgba(239, 68, 68, 0.3) !important;
+    background: rgba(255, 82, 82, 0.16) !important;
+    color: #ff5252 !important;
+    border: 1px solid rgba(255, 82, 82, 0.35) !important;
     padding: 3px 8px !important;
     border-radius: 6px !important;
     font-weight: 700 !important;
@@ -33433,10 +33443,10 @@ th.sticky-stock-hdr {
 #watchlist-table-head th,
 #trendlyne-watchlist-table thead th,
 #tab-watchlist .table-scroll table thead th {
-    background: #0d1117 !important;
-    background-color: #0d1117 !important;
+    background: #06090e !important;
+    background-color: #06090e !important;
     color: #38bdf8 !important;
-    font-family: 'Outfit', 'IBM Plex Sans', sans-serif !important;
+    font-family: 'Plus Jakarta Sans', 'Outfit', sans-serif !important;
     font-weight: 700 !important;
     font-size: 11.5px !important;
     letter-spacing: 0.05em !important;
