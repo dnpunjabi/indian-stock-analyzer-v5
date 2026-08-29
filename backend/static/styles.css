@@ -26432,12 +26432,15 @@ body.light-theme .watchlist-filter-chip.active {
 /* 1. Large High-Contrast Typography for Watchlist & Data Tables */
 .watchlist-symbol-link strong,
 .sticky-stock-col strong {
+    font-family: 'Inter', monospace !important;
     font-size: 10px !important;
     font-weight: 700 !important;
-    color: #f8fafc !important;
+    color: #ffffff !important;
     text-decoration: none !important;
-    letter-spacing: 0.02em !important;
+    letter-spacing: 0.01em !important;
+    white-space: nowrap !important;
     display: inline-block !important;
+    line-height: 1.2 !important;
 }
 
 [data-theme="light"] .watchlist-symbol-link strong,
@@ -33191,14 +33194,18 @@ th.sticky-stock-hdr {
     border-bottom: 1px solid rgba(0, 0, 0, 0.06) !important;
 }
 
-/* Watchlist Ticker Links (Institutional Silver/White, No Underline) */
+/* Watchlist Ticker Links (Institutional Silver/White, Same as LTP) */
 #watchlist-table-body td.sticky-stock-col a,
 #watchlist-table-body td .stock-symbol-link,
 #watchlist-table-body .watchlist-symbol-link strong {
+    font-family: 'Inter', monospace !important;
     font-size: 10px !important;
     font-weight: 700 !important;
-    color: #f8fafc !important;
+    color: #ffffff !important;
     text-decoration: none !important;
+    letter-spacing: 0.01em !important;
+    white-space: nowrap !important;
+    line-height: 1.2 !important;
 }
 
 [data-theme="light"] #watchlist-table-body td.sticky-stock-col a,
@@ -33450,17 +33457,19 @@ th.sticky-stock-hdr {
     border-right: 1.5px solid rgba(0, 0, 0, 0.12) !important;
 }
 
-/* 3. Portfolio Ticker Symbol Institutional Typography (Compact 10px, Silver/White) */
+/* 3. Portfolio Ticker Symbol Institutional Typography (Same as LTP) */
 #watchlist-table-body td.sticky-stock-col a,
 #watchlist-table-body td .stock-symbol-link,
 #watchlist-table-body .watchlist-symbol-link strong,
 #tab-watchlist .data-table td:first-child a {
-    font-family: 'JetBrains Mono', 'IBM Plex Sans', sans-serif !important;
+    font-family: 'Inter', monospace !important;
     font-weight: 700 !important;
     font-size: 10px !important;
-    letter-spacing: 0.02em !important;
-    color: #f8fafc !important;
+    letter-spacing: 0.01em !important;
+    color: #ffffff !important;
     text-decoration: none !important;
+    white-space: nowrap !important;
+    line-height: 1.2 !important;
 }
 
 [data-theme="light"] #watchlist-table-body td.sticky-stock-col a,

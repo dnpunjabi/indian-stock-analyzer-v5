@@ -18248,8 +18248,8 @@ function renderWatchlistItems() {
                 <td class="sticky-stock-col">
                     <div style="display: flex; flex-direction: column; gap: 2px;">
                         <div style="display: flex; align-items: center; gap: 6px;">
-                            <div class="watchlist-symbol-link" style="cursor: pointer;" title="Click to load research workspace">
-                                <strong style="color: var(--text-primary, #f8fafc); text-decoration: none; font-weight: 700; font-size: 10px; letter-spacing: 0.02em;">${item.symbol.replace('.NS','')}</strong>
+                            <div class="watchlist-symbol-link" style="cursor: pointer; white-space: nowrap;" title="Click to load research workspace">
+                                <strong style="color: #ffffff; text-decoration: none; font-weight: 700; font-size: 10px; font-family: 'Inter', monospace; white-space: nowrap;">${item.symbol.replace('.NS','')}</strong>
                             </div>
                         </div>
                         ${dotsHTML}
@@ -18295,8 +18295,8 @@ function renderWatchlistItems() {
                 <td class="sticky-stock-col">
                     <div style="display: flex; flex-direction: column; gap: 2px;">
                         <div style="display: flex; align-items: center; gap: 6px;">
-                            <div class="watchlist-symbol-link" style="cursor: pointer;" title="Click to load research workspace">
-                                <strong style="color: var(--text-primary, #f8fafc); text-decoration: none; font-weight: 700; font-size: 10px; letter-spacing: 0.02em;">${item.symbol.replace('.NS','')}</strong>
+                            <div class="watchlist-symbol-link" style="cursor: pointer; white-space: nowrap;" title="Click to load research workspace">
+                                <strong style="color: #ffffff; text-decoration: none; font-weight: 700; font-size: 10px; font-family: 'Inter', monospace; white-space: nowrap;">${item.symbol.replace('.NS','')}</strong>
                             </div>
                         </div>
                         ${dotsHTML}
@@ -18337,8 +18337,8 @@ function renderWatchlistItems() {
                 <td class="sticky-stock-col">
                     <div style="display: flex; flex-direction: column; gap: 2px;">
                         <div style="display: flex; align-items: center; gap: 6px;">
-                            <div class="watchlist-symbol-link" style="cursor: pointer;" title="Click to load research workspace">
-                                <strong style="color: var(--text-primary, #f8fafc); text-decoration: none; font-weight: 700; font-size: 10px; letter-spacing: 0.02em;">${item.symbol.replace('.NS','')}</strong>
+                            <div class="watchlist-symbol-link" style="cursor: pointer; white-space: nowrap;" title="Click to load research workspace">
+                                <strong style="color: #ffffff; text-decoration: none; font-weight: 700; font-size: 10px; font-family: 'Inter', monospace; white-space: nowrap;">${item.symbol.replace('.NS','')}</strong>
                             </div>
                         </div>
                         ${dotsHTML}
