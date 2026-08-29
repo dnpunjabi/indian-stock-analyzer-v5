@@ -26432,11 +26432,19 @@ body.light-theme .watchlist-filter-chip.active {
 /* 1. Large High-Contrast Typography for Watchlist & Data Tables */
 .watchlist-symbol-link strong,
 .sticky-stock-col strong {
-    font-size: 15px !important;
-    font-weight: 800 !important;
-    color: #3b82f6 !important;
-    letter-spacing: -0.01em !important;
+    font-size: 10px !important;
+    font-weight: 700 !important;
+    color: #f8fafc !important;
+    text-decoration: none !important;
+    letter-spacing: 0.02em !important;
     display: inline-block !important;
+}
+
+[data-theme="light"] .watchlist-symbol-link strong,
+[data-mode="light"] .watchlist-symbol-link strong,
+[data-theme="light"] .sticky-stock-col strong,
+[data-mode="light"] .sticky-stock-col strong {
+    color: #0f172a !important;
 }
 
 .wl-live-price span,
@@ -33183,19 +33191,23 @@ th.sticky-stock-hdr {
     border-bottom: 1px solid rgba(0, 0, 0, 0.06) !important;
 }
 
-/* Watchlist Ticker Links (Compact 10px) */
+/* Watchlist Ticker Links (Institutional Silver/White, No Underline) */
 #watchlist-table-body td.sticky-stock-col a,
-#watchlist-table-body td .stock-symbol-link {
+#watchlist-table-body td .stock-symbol-link,
+#watchlist-table-body .watchlist-symbol-link strong {
     font-size: 10px !important;
-    font-weight: 800 !important;
-    color: #38bdf8 !important;
+    font-weight: 700 !important;
+    color: #f8fafc !important;
+    text-decoration: none !important;
 }
 
 [data-theme="light"] #watchlist-table-body td.sticky-stock-col a,
 [data-mode="light"] #watchlist-table-body td.sticky-stock-col a,
 [data-theme="light"] #watchlist-table-body td .stock-symbol-link,
-[data-mode="light"] #watchlist-table-body td .stock-symbol-link {
-    color: #1d4ed8 !important;
+[data-mode="light"] #watchlist-table-body td .stock-symbol-link,
+[data-theme="light"] #watchlist-table-body .watchlist-symbol-link strong,
+[data-mode="light"] #watchlist-table-body .watchlist-symbol-link strong {
+    color: #0f172a !important;
 }
 
 /* Watchlist LTP Price Font & Color (Compact 10px) */
@@ -33438,23 +33450,26 @@ th.sticky-stock-hdr {
     border-right: 1.5px solid rgba(0, 0, 0, 0.12) !important;
 }
 
-/* 3. Portfolio Ticker Symbol Extra-Bold Monospace Typography (Compact 10px) */
+/* 3. Portfolio Ticker Symbol Institutional Typography (Compact 10px, Silver/White) */
 #watchlist-table-body td.sticky-stock-col a,
 #watchlist-table-body td .stock-symbol-link,
+#watchlist-table-body .watchlist-symbol-link strong,
 #tab-watchlist .data-table td:first-child a {
     font-family: 'JetBrains Mono', 'IBM Plex Sans', sans-serif !important;
-    font-weight: 800 !important;
+    font-weight: 700 !important;
     font-size: 10px !important;
     letter-spacing: 0.02em !important;
-    color: #38bdf8 !important;
+    color: #f8fafc !important;
     text-decoration: none !important;
 }
 
 [data-theme="light"] #watchlist-table-body td.sticky-stock-col a,
 [data-theme="light"] #watchlist-table-body td .stock-symbol-link,
+[data-theme="light"] #watchlist-table-body .watchlist-symbol-link strong,
 [data-mode="light"] #watchlist-table-body td.sticky-stock-col a,
-[data-mode="light"] #watchlist-table-body td .stock-symbol-link {
-    color: #1d4ed8 !important;
+[data-mode="light"] #watchlist-table-body td .stock-symbol-link,
+[data-mode="light"] #watchlist-table-body .watchlist-symbol-link strong {
+    color: #0f172a !important;
 }
 
 /* 4. Portfolio Monospace Numeric Data Alignment (Compact 10px) */

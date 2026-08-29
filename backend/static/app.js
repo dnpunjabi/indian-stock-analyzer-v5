@@ -18249,9 +18249,8 @@ function renderWatchlistItems() {
                     <div style="display: flex; flex-direction: column; gap: 2px;">
                         <div style="display: flex; align-items: center; gap: 6px;">
                             <div class="watchlist-symbol-link" style="cursor: pointer;" title="Click to load research workspace">
-                                <strong style="color: var(--color-primary); text-decoration: underline; font-weight: 700; font-size: 10px;">${item.symbol.replace('.NS','')}</strong>
+                                <strong style="color: var(--text-primary, #f8fafc); text-decoration: none; font-weight: 700; font-size: 10px; letter-spacing: 0.02em;">${item.symbol.replace('.NS','')}</strong>
                             </div>
-                            ${cacheBadgeHTML}
                         </div>
                         ${dotsHTML}
                     </div>
@@ -18297,9 +18296,8 @@ function renderWatchlistItems() {
                     <div style="display: flex; flex-direction: column; gap: 2px;">
                         <div style="display: flex; align-items: center; gap: 6px;">
                             <div class="watchlist-symbol-link" style="cursor: pointer;" title="Click to load research workspace">
-                                <strong style="color: var(--color-primary); text-decoration: underline; font-weight: 700; font-size: 10px;">${item.symbol.replace('.NS','')}</strong>
+                                <strong style="color: var(--text-primary, #f8fafc); text-decoration: none; font-weight: 700; font-size: 10px; letter-spacing: 0.02em;">${item.symbol.replace('.NS','')}</strong>
                             </div>
-                            ${cacheBadgeHTML}
                         </div>
                         ${dotsHTML}
                     </div>
@@ -18340,9 +18338,8 @@ function renderWatchlistItems() {
                     <div style="display: flex; flex-direction: column; gap: 2px;">
                         <div style="display: flex; align-items: center; gap: 6px;">
                             <div class="watchlist-symbol-link" style="cursor: pointer;" title="Click to load research workspace">
-                                <strong style="color: var(--color-primary); text-decoration: underline; font-weight: 700; font-size: 10px;">${item.symbol.replace('.NS','')}</strong>
+                                <strong style="color: var(--text-primary, #f8fafc); text-decoration: none; font-weight: 700; font-size: 10px; letter-spacing: 0.02em;">${item.symbol.replace('.NS','')}</strong>
                             </div>
-                            ${cacheBadgeHTML}
                         </div>
                         ${dotsHTML}
                     </div>
