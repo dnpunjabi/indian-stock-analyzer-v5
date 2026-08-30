@@ -18951,42 +18951,78 @@ select option {
         opacity: 1 !important;
     }
 
-    /* Light Theme Solid Opaque Background for Sticky Columns */
+    /* Light Theme Solid Opaque Background for Sticky Columns & Headers in Index Universe Registry Table */
+    body.light-theme #tab-universe .universe-table-wrapper table thead th,
+    body.light-theme .universe-table-wrapper table thead th,
+    [data-mode="light"] #tab-universe .universe-table-wrapper table thead th,
     [data-mode="light"] .universe-table-wrapper table thead th,
+    [data-theme="light"] #tab-universe .universe-table-wrapper table thead th,
     [data-theme="light"] .universe-table-wrapper table thead th,
+    [data-theme="mint-emerald"] #tab-universe .universe-table-wrapper table thead th,
     [data-theme="mint-emerald"] .universe-table-wrapper table thead th,
+    [data-theme="cobalt-royal"] #tab-universe .universe-table-wrapper table thead th,
     [data-theme="cobalt-royal"] .universe-table-wrapper table thead th,
+    [data-theme="neo-mint-light"] #tab-universe .universe-table-wrapper table thead th,
     [data-theme="neo-mint-light"] .universe-table-wrapper table thead th,
+    [data-theme="volt-neo"] #tab-universe .universe-table-wrapper table thead th,
     [data-theme="volt-neo"] .universe-table-wrapper table thead th,
+    [data-theme="royal-wealth"] #tab-universe .universe-table-wrapper table thead th,
     [data-theme="royal-wealth"] .universe-table-wrapper table thead th,
+    [data-accent="mint-emerald"] #tab-universe .universe-table-wrapper table thead th,
     [data-accent="mint-emerald"] .universe-table-wrapper table thead th,
+    [data-accent="cobalt-royal"] #tab-universe .universe-table-wrapper table thead th,
     [data-accent="cobalt-royal"] .universe-table-wrapper table thead th,
+    [data-accent="neo-mint-light"] #tab-universe .universe-table-wrapper table thead th,
     [data-accent="neo-mint-light"] .universe-table-wrapper table thead th,
-    [data-mode="light"] .universe-table-wrapper table th:nth-child(1),
-    [data-theme="light"] .universe-table-wrapper table th:nth-child(1),
-    [data-theme="mint-emerald"] .universe-table-wrapper table th:nth-child(1),
-    [data-theme="cobalt-royal"] .universe-table-wrapper table th:nth-child(1),
-    [data-theme="neo-mint-light"] .universe-table-wrapper table th:nth-child(1),
-    [data-mode="light"] .universe-table-wrapper table td:nth-child(1),
-    [data-theme="light"] .universe-table-wrapper table td:nth-child(1),
-    [data-theme="mint-emerald"] .universe-table-wrapper table td:nth-child(1),
-    [data-theme="cobalt-royal"] .universe-table-wrapper table td:nth-child(1),
-    [data-theme="neo-mint-light"] .universe-table-wrapper table td:nth-child(1),
-    [data-mode="light"] .universe-table-wrapper table th:nth-child(2),
-    [data-theme="light"] .universe-table-wrapper table th:nth-child(2),
-    [data-theme="mint-emerald"] .universe-table-wrapper table th:nth-child(2),
-    [data-theme="cobalt-royal"] .universe-table-wrapper table th:nth-child(2),
-    [data-theme="neo-mint-light"] .universe-table-wrapper table th:nth-child(2),
-    [data-mode="light"] .universe-table-wrapper table td:nth-child(2),
-    [data-theme="light"] .universe-table-wrapper table td:nth-child(2),
-    [data-theme="mint-emerald"] .universe-table-wrapper table td:nth-child(2),
-    [data-theme="cobalt-royal"] .universe-table-wrapper table td:nth-child(2),
-    [data-theme="neo-mint-light"] .universe-table-wrapper table td:nth-child(2) {
+    body.light-theme #tab-universe .universe-table-wrapper table tbody td:nth-child(1),
+    body.light-theme .universe-table-wrapper table tbody td:nth-child(1),
+    [data-mode="light"] #tab-universe .universe-table-wrapper table tbody td:nth-child(1),
+    [data-mode="light"] .universe-table-wrapper table tbody td:nth-child(1),
+    [data-theme="light"] #tab-universe .universe-table-wrapper table tbody td:nth-child(1),
+    [data-theme="light"] .universe-table-wrapper table tbody td:nth-child(1),
+    [data-theme="mint-emerald"] #tab-universe .universe-table-wrapper table tbody td:nth-child(1),
+    [data-theme="cobalt-royal"] #tab-universe .universe-table-wrapper table tbody td:nth-child(1),
+    [data-theme="neo-mint-light"] #tab-universe .universe-table-wrapper table tbody td:nth-child(1),
+    [data-theme="volt-neo"] #tab-universe .universe-table-wrapper table tbody td:nth-child(1),
+    [data-theme="royal-wealth"] #tab-universe .universe-table-wrapper table tbody td:nth-child(1),
+    body.light-theme #tab-universe .universe-table-wrapper table tbody td:nth-child(2),
+    body.light-theme .universe-table-wrapper table tbody td:nth-child(2),
+    [data-mode="light"] #tab-universe .universe-table-wrapper table tbody td:nth-child(2),
+    [data-mode="light"] .universe-table-wrapper table tbody td:nth-child(2),
+    [data-theme="light"] #tab-universe .universe-table-wrapper table tbody td:nth-child(2),
+    [data-theme="light"] .universe-table-wrapper table tbody td:nth-child(2),
+    [data-theme="mint-emerald"] #tab-universe .universe-table-wrapper table tbody td:nth-child(2),
+    [data-theme="cobalt-royal"] #tab-universe .universe-table-wrapper table tbody td:nth-child(2),
+    [data-theme="neo-mint-light"] #tab-universe .universe-table-wrapper table tbody td:nth-child(2),
+    [data-theme="volt-neo"] #tab-universe .universe-table-wrapper table tbody td:nth-child(2),
+    [data-theme="royal-wealth"] #tab-universe .universe-table-wrapper table tbody td:nth-child(2),
+    body.light-theme #tab-universe .universe-table-wrapper table thead th:nth-child(1),
+    body.light-theme .universe-table-wrapper table thead th:nth-child(1),
+    [data-mode="light"] #tab-universe .universe-table-wrapper table thead th:nth-child(1),
+    [data-mode="light"] .universe-table-wrapper table thead th:nth-child(1),
+    [data-theme="light"] #tab-universe .universe-table-wrapper table thead th:nth-child(1),
+    [data-theme="light"] .universe-table-wrapper table thead th:nth-child(1),
+    body.light-theme #tab-universe .universe-table-wrapper table thead th:nth-child(2),
+    body.light-theme .universe-table-wrapper table thead th:nth-child(2),
+    [data-mode="light"] #tab-universe .universe-table-wrapper table thead th:nth-child(2),
+    [data-mode="light"] .universe-table-wrapper table thead th:nth-child(2),
+    [data-theme="light"] #tab-universe .universe-table-wrapper table thead th:nth-child(2),
+    [data-theme="light"] .universe-table-wrapper table thead th:nth-child(2) {
         background-color: #ffffff !important;
         background: #ffffff !important;
         opacity: 1 !important;
         color: #0f172a !important;
-        border-right-color: rgba(15, 23, 42, 0.1) !important;
+        border-right-color: rgba(15, 23, 42, 0.12) !important;
+        box-shadow: 4px 0 10px rgba(0, 0, 0, 0.06) !important;
+    }
+
+    body.light-theme #tab-universe .universe-table-wrapper table tbody td:nth-child(1) *,
+    body.light-theme #tab-universe .universe-table-wrapper table tbody td:nth-child(2) *,
+    [data-mode="light"] #tab-universe .universe-table-wrapper table tbody td:nth-child(1) *,
+    [data-mode="light"] #tab-universe .universe-table-wrapper table tbody td:nth-child(2) *,
+    [data-theme="light"] #tab-universe .universe-table-wrapper table tbody td:nth-child(1) *,
+    [data-theme="light"] #tab-universe .universe-table-wrapper table tbody td:nth-child(2) * {
+        color: #0f172a !important;
     }
 
     /* Force details row td elements to stay visible on mobile */
@@ -21373,7 +21409,7 @@ select option {
     .sticky-tech-scan-header {
         position: sticky;
         top: 0;
-        z-index: 10;
+        z-index: 30;
         background: var(--bg-card, #111827);
         backdrop-filter: blur(8px);
     }
@@ -28035,12 +28071,23 @@ body.light-theme #rule-scanner-results-card table thead th:first-child {
     overflow: visible !important;
 }
 
-/* Sticky Column 1 (# Serial Number) */
-.tech-scans-table-container table tbody td:first-child,
-.tech-scans-table-container table thead th:first-child {
+/* Tier 2: Sticky Top Headers for Vertical Scroll */
+.tech-scans-table-container table thead th {
+    position: sticky !important;
+    top: 0 !important;
+    z-index: 30 !important;
+    background-color: #0d1117 !important;
+    background: #0d1117 !important;
+    opacity: 1 !important;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4) !important;
+}
+
+/* Tier 1: Sticky Column 1 Data Cells (# Serial Number) */
+.tech-scans-table-container table tbody td:first-child {
     position: sticky !important;
     left: 0 !important;
-    z-index: 25 !important;
+    z-index: 15 !important;
+    background-color: #0d1117 !important;
     background: #0d1117 !important;
     opacity: 1 !important;
     min-width: 45px !important;
@@ -28048,12 +28095,12 @@ body.light-theme #rule-scanner-results-card table thead th:first-child {
     border-right: 1px solid rgba(255, 255, 255, 0.05) !important;
 }
 
-/* Sticky Column 2 (Ticker Symbol) */
-.tech-scans-table-container table tbody td:nth-child(2),
-.tech-scans-table-container table thead th:nth-child(2) {
+/* Tier 1: Sticky Column 2 Data Cells (Ticker Symbol) */
+.tech-scans-table-container table tbody td:nth-child(2) {
     position: sticky !important;
     left: 45px !important;
-    z-index: 25 !important;
+    z-index: 15 !important;
+    background-color: #0d1117 !important;
     background: #0d1117 !important;
     opacity: 1 !important;
     min-width: 100px !important;
@@ -28062,7 +28109,47 @@ body.light-theme #rule-scanner-results-card table thead th:first-child {
     border-right: 1.5px solid rgba(56, 189, 248, 0.3) !important;
 }
 
-/* Light Theme Compatibility for Sticky Columns */
+/* Tier 3: Sticky Top-Left Corner Header 1 (# Serial Number Header) */
+.tech-scans-table-container table thead th:first-child {
+    position: sticky !important;
+    top: 0 !important;
+    left: 0 !important;
+    z-index: 40 !important;
+    background-color: #0d1117 !important;
+    background: #0d1117 !important;
+    opacity: 1 !important;
+    min-width: 45px !important;
+    width: 45px !important;
+    border-right: 1px solid rgba(255, 255, 255, 0.05) !important;
+}
+
+/* Tier 3: Sticky Top-Left Corner Header 2 (Ticker Symbol Header) */
+.tech-scans-table-container table thead th:nth-child(2) {
+    position: sticky !important;
+    top: 0 !important;
+    left: 45px !important;
+    z-index: 40 !important;
+    background-color: #0d1117 !important;
+    background: #0d1117 !important;
+    opacity: 1 !important;
+    min-width: 100px !important;
+    width: 100px !important;
+    box-shadow: 4px 0 14px rgba(0, 0, 0, 0.75) !important;
+    border-right: 1.5px solid rgba(56, 189, 248, 0.3) !important;
+}
+
+/* Light Theme Compatibility for Sticky Headers & Sticky Columns */
+[data-mode="light"] .tech-scans-table-container table thead th,
+[data-theme="light"] .tech-scans-table-container table thead th,
+body.light-theme .tech-scans-table-container table thead th,
+.light-theme .tech-scans-table-container table thead th {
+    background-color: #ffffff !important;
+    background: #ffffff !important;
+    color: #0f172a !important;
+    opacity: 1 !important;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06) !important;
+}
+
 [data-mode="light"] .tech-scans-table-container table tbody td:first-child,
 [data-mode="light"] .tech-scans-table-container table thead th:first-child,
 [data-mode="light"] .tech-scans-table-container table tbody td:nth-child(2),
@@ -28087,6 +28174,15 @@ body.light-theme .tech-scans-table-container table thead th:nth-child(2),
     border-right: 1.5px solid #cbd5e1 !important;
 }
 
+body.light-theme .tech-scans-table-container table tbody td:first-child *,
+body.light-theme .tech-scans-table-container table tbody td:nth-child(2) *,
+[data-mode="light"] .tech-scans-table-container table tbody td:first-child *,
+[data-mode="light"] .tech-scans-table-container table tbody td:nth-child(2) *,
+[data-theme="light"] .tech-scans-table-container table tbody td:first-child *,
+[data-theme="light"] .tech-scans-table-container table tbody td:nth-child(2) * {
+    color: #0f172a !important;
+}
+
 [data-mode="light"] .tech-scan-expand-row td,
 [data-theme="light"] .tech-scan-expand-row td,
 body.light-theme .tech-scan-expand-row td,
@@ -28095,12 +28191,6 @@ body.light-theme .tech-scan-expand-row td,
     background-color: #ffffff !important;
     color: #0f172a !important;
     opacity: 1 !important;
-}
-
-.tech-scans-table-container table thead th:first-child,
-.tech-scans-table-container table thead th:nth-child(2) {
-    top: 0 !important;
-    z-index: 35 !important;
 }
 
 /* Sticky Chevron Expanded Snapshot Card Aligned Under Ticker (Left: 45px on desktop) */
