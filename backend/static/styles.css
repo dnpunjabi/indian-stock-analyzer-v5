@@ -10034,7 +10034,8 @@ input[type="date"]::-webkit-calendar-picker-indicator:hover {
     #swing-scan-pagination,
     #universe-explorer-pagination,
     #global-trades-pagination,
-    #events-market-pagination {
+    #events-market-pagination,
+    #fullscreen-tech-scans-pagination {
         display: grid !important;
         grid-template-columns: 1fr 1fr !important;
         gap: 12px !important;
@@ -10052,7 +10053,8 @@ input[type="date"]::-webkit-calendar-picker-indicator:hover {
     #swing-scan-pagination > div,
     #universe-explorer-pagination > div,
     #global-trades-pagination > div,
-    #events-market-pagination > div {
+    #events-market-pagination > div,
+    #fullscreen-tech-scans-pagination > div {
         grid-column: 1 / span 2 !important;
         order: -1 !important;
         display: flex !important;
@@ -10069,7 +10071,8 @@ input[type="date"]::-webkit-calendar-picker-indicator:hover {
     #swing-scan-pagination > button,
     #universe-explorer-pagination > button,
     #global-trades-pagination > button,
-    #events-market-pagination > button {
+    #events-market-pagination > button,
+    #fullscreen-tech-scans-pagination > button {
         width: 100% !important;
         height: 32px !important;
         display: inline-flex !important;
