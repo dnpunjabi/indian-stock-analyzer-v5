@@ -2376,17 +2376,12 @@ function switchTab(tabKey) {
             if (overlay) overlay.classList.add('hidden');
         }
     } else {
-        if (shieldEnabled) {
-            window.portfolioUnlocked = false;
-            const overlay = document.getElementById('portfolio-lock-overlay');
-            if (overlay) {
-                overlay.classList.remove('hidden');
-                const dots = overlay.querySelectorAll('.dot');
-                dots.forEach(dot => dot.classList.remove('filled'));
-            }
-        } else {
-            const overlay = document.getElementById('portfolio-lock-overlay');
-            if (overlay) overlay.classList.add('hidden');
+        window.portfolioUnlocked = false;
+        const overlay = document.getElementById('portfolio-lock-overlay');
+        if (overlay) {
+            overlay.classList.add('hidden');
+            const dots = overlay.querySelectorAll('.dot');
+            dots.forEach(dot => dot.classList.remove('filled'));
         }
     }
 
@@ -27695,127 +27690,130 @@ async function loadSwingCandidate(symbol, timeframe = '1D') {
             }
         }
 
-        // Render candlestick chart
+        // Render candlestick chart asynchronously after tab visibility updates
         const container = document.getElementById('swing-risk-chart');
         if (container && typeof LightweightCharts !== 'undefined') {
-            container.innerHTML = '';
-            const isDarkTheme = document.documentElement.getAttribute('data-mode') !== 'light';
+            requestAnimationFrame(() => {
+                setTimeout(() => {
+                    if (!document.getElementById('swing-risk-chart')) return;
+                    container.innerHTML = '';
+                    const isDarkTheme = document.documentElement.getAttribute('data-mode') !== 'light';
 
-            const computedWidth = (container.clientWidth && container.clientWidth > 50) 
-                ? container.clientWidth 
-                : Math.max(window.innerWidth - 40, 280);
+                    const computedWidth = (container.clientWidth && container.clientWidth > 50) 
+                        ? container.clientWidth 
+                        : Math.max(window.innerWidth - 40, 280);
 
-            const chart = LightweightCharts.createChart(container, {
-                width: computedWidth,
-                height: 260,
-                layout: {
-                    background: { type: 'solid', color: 'transparent' },
-                    textColor: isDarkTheme ? '#94a3b8' : '#334155',
-                    fontFamily: 'Inter, sans-serif',
-                },
-                grid: {
-                    vertLines: { color: isDarkTheme ? 'rgba(255,255,255,0.02)' : 'rgba(0,0,0,0.03)' },
-                    horzLines: { color: isDarkTheme ? 'rgba(255,255,255,0.02)' : 'rgba(0,0,0,0.03)' },
-                },
-                crosshair: {
-                    mode: LightweightCharts.CrosshairMode.Normal,
-                },
-                rightPriceScale: {
-                    borderColor: isDarkTheme ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)',
-                },
-                timeScale: {
-                    borderColor: isDarkTheme ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)',
-                    timeVisible: timeframe === '1H',
-                },
-            });
-            activeSwingRiskChart = chart;
+                    const chart = LightweightCharts.createChart(container, {
+                        width: computedWidth,
+                        height: 260,
+                        layout: {
+                            background: { type: 'solid', color: 'transparent' },
+                            textColor: isDarkTheme ? '#94a3b8' : '#334155',
+                            fontFamily: 'Inter, sans-serif',
+                        },
+                        grid: {
+                            vertLines: { color: isDarkTheme ? 'rgba(255,255,255,0.02)' : 'rgba(0,0,0,0.03)' },
+                            horzLines: { color: isDarkTheme ? 'rgba(255,255,255,0.02)' : 'rgba(0,0,0,0.03)' },
+                        },
+                        crosshair: {
+                            mode: LightweightCharts.CrosshairMode.Normal,
+                        },
+                        rightPriceScale: {
+                            borderColor: isDarkTheme ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)',
+                        },
+                        timeScale: {
+                            borderColor: isDarkTheme ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)',
+                            timeVisible: timeframe === '1H',
+                        },
+                    });
+                    activeSwingRiskChart = chart;
 
-            const candleSeries = chart.addCandlestickSeries({
-                upColor: '#10b981',
-                downColor: '#ef4444',
-                borderVisible: false,
-                wickUpColor: '#10b981',
-                wickDownColor: '#ef4444',
-            });
+                    const candleSeries = chart.addCandlestickSeries({
+                        upColor: '#10b981',
+                        downColor: '#ef4444',
+                        borderVisible: false,
+                        wickUpColor: '#10b981',
+                        wickDownColor: '#ef4444',
+                    });
 
-            const chartData = data.candlesticks.map(c => ({
-                time: timeframe === '1H' ? (new Date(c.time).getTime() / 1000) : c.time,
-                open: c.open,
-                high: c.high,
-                low: c.low,
-                close: c.close
-            }));
+                    const chartData = data.candlesticks.map(c => ({
+                        time: timeframe === '1H' ? (new Date(c.time).getTime() / 1000) : c.time,
+                        open: c.open,
+                        high: c.high,
+                        low: c.low,
+                        close: c.close
+                    }));
 
-            candleSeries.setData(chartData);
-            activeSwingRiskSeries = candleSeries;
+                    candleSeries.setData(chartData);
+                    activeSwingRiskSeries = candleSeries;
 
-            // Draw EMA 20 line (Blue)
-            const ema20Series = chart.addLineSeries({
-                color: '#3b82f6',
-                lineWidth: 1.5,
-                title: 'EMA 20',
-                axisLabelVisible: false,
-                priceLineVisible: false
-            });
-            const ema20Data = data.candlesticks
-                .map(c => ({
-                    time: timeframe === '1H' ? (new Date(c.time).getTime() / 1000) : c.time,
-                    value: c.ema_20
-                }))
-                .filter(d => d.value !== null && d.value !== undefined);
-            ema20Series.setData(ema20Data);
+                    // Draw EMA 20 line (Blue)
+                    const ema20Series = chart.addLineSeries({
+                        color: '#3b82f6',
+                        lineWidth: 1.5,
+                        title: 'EMA 20',
+                        axisLabelVisible: false,
+                        priceLineVisible: false
+                    });
+                    const ema20Data = data.candlesticks
+                        .map(c => ({
+                            time: timeframe === '1H' ? (new Date(c.time).getTime() / 1000) : c.time,
+                            value: c.ema_20
+                        }))
+                        .filter(d => d.value !== null && d.value !== undefined);
+                    ema20Series.setData(ema20Data);
 
-            // Draw EMA 50 line (Orange)
-            const ema50Series = chart.addLineSeries({
-                color: '#f59e0b',
-                lineWidth: 1.5,
-                title: 'EMA 50',
-                axisLabelVisible: false,
-                priceLineVisible: false
-            });
-            const ema50Data = data.candlesticks
-                .map(c => ({
-                    time: timeframe === '1H' ? (new Date(c.time).getTime() / 1000) : c.time,
-                    value: c.ema_50
-                }))
-                .filter(d => d.value !== null && d.value !== undefined);
-            ema50Series.setData(ema50Data);
+                    // Draw EMA 50 line (Orange)
+                    const ema50Series = chart.addLineSeries({
+                        color: '#f59e0b',
+                        lineWidth: 1.5,
+                        title: 'EMA 50',
+                        axisLabelVisible: false,
+                        priceLineVisible: false
+                    });
+                    const ema50Data = data.candlesticks
+                        .map(c => ({
+                            time: timeframe === '1H' ? (new Date(c.time).getTime() / 1000) : c.time,
+                            value: c.ema_50
+                        }))
+                        .filter(d => d.value !== null && d.value !== undefined);
+                    ema50Series.setData(ema50Data);
 
-            // Render VPVR Histogram profile overlays if available
-            if (data.volume_profile && data.volume_profile.length > 0) {
-                const volSeries = chart.addHistogramSeries({
-                    color: isDarkTheme ? 'rgba(59, 130, 246, 0.12)' : 'rgba(59, 130, 246, 0.08)',
-                    priceFormat: { type: 'volume' },
-                    priceScaleId: 'volume',
-                });
-                chart.priceScale('volume').applyOptions({
-                    scaleMargins: { top: 0.1, bottom: 0.1 },
-                    visible: false
-                });
-
-                // Map volumes to bar indexes horizontally
-                const maxVol = Math.max(...data.volume_profile.map(v => v.volume));
-                const barCount = chartData.length;
-                const sliceCount = data.volume_profile.length;
-
-                const volData = [];
-                for (let i = 0; i < sliceCount; i++) {
-                    const bin = data.volume_profile[i];
-                    // Map nodes on the right-most portion of the chart (e.g. last 12 bars)
-                    const targetIdx = Math.max(0, barCount - sliceCount + i);
-                    if (chartData[targetIdx]) {
-                        volData.push({
-                            time: chartData[targetIdx].time,
-                            value: bin.volume,
-                            color: isDarkTheme ? 'rgba(0, 229, 255, 0.15)' : 'rgba(3, 105, 161, 0.12)'
+                    // Render VPVR Histogram profile overlays if available
+                    if (data.volume_profile && data.volume_profile.length > 0) {
+                        const volSeries = chart.addHistogramSeries({
+                            color: isDarkTheme ? 'rgba(59, 130, 246, 0.12)' : 'rgba(59, 130, 246, 0.08)',
+                            priceFormat: { type: 'volume' },
+                            priceScaleId: 'volume',
                         });
-                    }
-                }
-                volSeries.setData(volData);
-            }
+                        chart.priceScale('volume').applyOptions({
+                            scaleMargins: { top: 0.1, bottom: 0.1 },
+                            visible: false
+                        });
 
-            // Draw horizontal exit markers
-            recalculateSwingSizer();
+                        // Map volumes to bar indexes horizontally
+                        const barCount = chartData.length;
+                        const sliceCount = data.volume_profile.length;
+
+                        const volData = [];
+                        for (let i = 0; i < sliceCount; i++) {
+                            const bin = data.volume_profile[i];
+                            const targetIdx = Math.max(0, barCount - sliceCount + i);
+                            if (chartData[targetIdx]) {
+                                volData.push({
+                                    time: chartData[targetIdx].time,
+                                    value: bin.volume,
+                                    color: isDarkTheme ? 'rgba(0, 229, 255, 0.15)' : 'rgba(3, 105, 161, 0.12)'
+                                });
+                            }
+                        }
+                        volSeries.setData(volData);
+                    }
+
+                    // Draw horizontal exit markers
+                    recalculateSwingSizer();
+                }, 50);
+            });
         }
     } catch (err) {
         titleEl.innerText = "Error Loading Candidate";

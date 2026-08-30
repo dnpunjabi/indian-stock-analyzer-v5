@@ -448,6 +448,10 @@
     }
 
     function playTabGSAPTransition(tabKey, realSwitch) {
+        if (window.innerWidth <= 768 || (typeof isMobile === 'function' && isMobile())) {
+            realSwitch(tabKey);
+            return;
+        }
         const activeTabEl = document.querySelector('.active-tab-content');
         if (activeTabEl && typeof gsap !== 'undefined') {
             gsap.to(activeTabEl, {

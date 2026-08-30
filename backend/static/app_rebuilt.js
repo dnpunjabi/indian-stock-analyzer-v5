@@ -1985,17 +1985,12 @@ function switchTab(tabKey) {
             if (overlay) overlay.classList.add('hidden');
         }
     } else {
-        if (shieldEnabled) {
-            window.portfolioUnlocked = false;
-            const overlay = document.getElementById('portfolio-lock-overlay');
-            if (overlay) {
-                overlay.classList.remove('hidden');
-                const dots = overlay.querySelectorAll('.dot');
-                dots.forEach(dot => dot.classList.remove('filled'));
-            }
-        } else {
-            const overlay = document.getElementById('portfolio-lock-overlay');
-            if (overlay) overlay.classList.add('hidden');
+        window.portfolioUnlocked = false;
+        const overlay = document.getElementById('portfolio-lock-overlay');
+        if (overlay) {
+            overlay.classList.add('hidden');
+            const dots = overlay.querySelectorAll('.dot');
+            dots.forEach(dot => dot.classList.remove('filled'));
         }
     }
 
