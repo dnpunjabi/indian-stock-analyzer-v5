@@ -675,16 +675,15 @@ async def fetch_yfinance_ticks(symbols: List[str]) -> Dict[str, Dict]:
                     
                     if len(close_series) >= 1:
                         price = float(close_series.iloc[-1])
-                        prev_close = float(close_series.iloc[-2]) if len(close_series) >= 2 else None
-                        if prev_close is None or abs(price - prev_close) < 1e-6:
-                            try:
-                                fi_prev = yf.Ticker(sym).fast_info.get('previousClose')
-                                if fi_prev and not pd.isna(fi_prev) and float(fi_prev) > 0:
-                                    prev_close = float(fi_prev)
-                            except Exception:
-                                pass
+                        prev_close = None
+                        try:
+                            fi_prev = yf.Ticker(sym).fast_info.get('previousClose')
+                            if fi_prev and not pd.isna(fi_prev) and float(fi_prev) > 0:
+                                prev_close = float(fi_prev)
+                        except Exception:
+                            pass
                         if prev_close is None:
-                            prev_close = price
+                            prev_close = float(close_series.iloc[-2]) if len(close_series) >= 2 else price
                         change = price - prev_close
                         change_pct = (change / prev_close * 100.0) if prev_close > 0 else 0.0
                         high = float(high_series.iloc[-1]) if len(high_series) >= 1 else price
