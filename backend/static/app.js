@@ -54026,6 +54026,10 @@ async function loadGoogleAIOverviewCard(symbol, forceRefresh = false) {
 
     const cleanSym = symbol.replace('.NS', '').replace('.BO', '').toUpperCase();
 
+    if (forceRefresh) {
+        delete window._googleAICache[cleanSym];
+    }
+
     // 1. Instant 0ms Client-Side Cache Hit (No spinner flash if already loaded in memory)
     if (!forceRefresh && window._googleAICache[cleanSym]) {
         renderGoogleAIOverviewCard(window._googleAICache[cleanSym]);
@@ -54095,15 +54099,67 @@ function renderGoogleAIOverviewCard(data) {
 
     const sourceBadge = data.data_source || "Google AI";
     const cacheStatus = data.from_cache ? "💾 Cache" : "⚡ Live";
-    const textIntro = data.text || "";
-    const sections = data.sections || [];
+    const rawTextIntro = data.text || "";
+    const rawSections = data.sections || [];
+
+    let cleanSummaryText = rawTextIntro;
+    let gridSections = rawSections && rawSections.length > 0 ? rawSections : [];
+
+    // Helper: Robustly parse concatenated rawTextIntro if sections are missing or rawTextIntro contains inline section titles
+    const sectionMarkers = ["📰", "📊", "🚀", "📌", "Market News and Stock Movement", "Financial Performance", "Growth Catalysts", "Market News"];
+    let earliestPos = -1;
+    for (const marker of sectionMarkers) {
+        const pos = rawTextIntro.indexOf(marker);
+        if (pos !== -1 && (earliestPos === -1 || pos < earliestPos)) {
+            earliestPos = pos;
+        }
+    }
+
+    if (earliestPos !== -1) {
+        cleanSummaryText = rawTextIntro.substring(0, earliestPos).trim();
+        const bodyPart = rawTextIntro.substring(earliestPos).trim();
+
+        if (!gridSections || gridSections.length === 0) {
+            gridSections = [];
+            // Split bodyPart into section blocks by markers
+            const rawBlocks = bodyPart.split(/(?=\s*(?:[📰📊🚀📌]|Market News|Financial Performance|Growth Catalysts))/i)
+                                       .map(b => b.trim())
+                                       .filter(b => b.length > 0);
+
+            rawBlocks.forEach(block => {
+                const lines = block.split(/\n+/).map(l => l.trim()).filter(l => l.length > 0);
+                if (lines.length > 0) {
+                    const secTitle = lines[0];
+                    let secBullets = lines.slice(1);
+
+                    if (secBullets.length === 0) {
+                        const contentStr = block.substring(secTitle.length).trim();
+                        // Match key-value bullet phrases like "Recent Trading: ...", "Revenue: ...", "Strategic Roadmap: ..."
+                        const keyMatches = [...contentStr.matchAll(/([A-Z][A-Za-z0-9\s\-\/\(\)]+:\s*[^:]+?)(?=(?:[A-Z][A-Za-z0-9\s\-\/\(\)]+:|$))/g)];
+                        if (keyMatches.length > 0) {
+                            secBullets = keyMatches.map(m => m[1].trim());
+                        } else if (contentStr) {
+                            secBullets = [contentStr];
+                        }
+                    }
+
+                    if (secTitle) {
+                        gridSections.push({
+                            title: secTitle,
+                            bullet_points: secBullets
+                        });
+                    }
+                }
+            });
+        }
+    }
 
     // Recommendation A: Bull/Bear AI Sentiment Score Meter (Dynamic NLP calculation)
     let sentimentScore = data.sentiment_score;
     let sentimentLabel = data.sentiment_label;
 
     if (sentimentScore === undefined || sentimentScore === null) {
-        const fullCorpus = (textIntro + " " + sections.map(s => (s.bullet_points || []).join(" ")).join(" ")).toLowerCase();
+        const fullCorpus = (rawTextIntro + " " + gridSections.map(s => (s.bullet_points || []).join(" ")).join(" ")).toLowerCase();
         const bullKw = ["high", "record", "growth", "expanding", "acquisition", "net-debt-free", "momentum", "outperform", "buy", "positive", "strong", "surge", "gain", "profitability", "pat expanded", "beat", "uptrend", "tailwinds", "cash flow", "dividend", "order book"];
         const bearKw = ["headwind", "decline", "fell", "loss", "compression", "weakness", "down", "margin pressure", "inflation", "debt", "lawsuit", "investigation", "penalty", "selloff", "underperform", "valuation headwinds", "missed", "downgrade", "slash"];
         
@@ -54141,12 +54197,11 @@ function renderGoogleAIOverviewCard(data) {
     `;
 
     // Normalize sections to guarantee visual card grid
-    let gridSections = sections;
     if (!gridSections || gridSections.length === 0) {
         gridSections = [
             {
                 title: "📌 Financial Performance & Highlights",
-                bullet_points: [textIntro || `Live SGE overview highlights for ${cleanSym}.`]
+                bullet_points: [cleanSummaryText || `Live SGE overview highlights for ${cleanSym}.`]
             }
         ];
     }
@@ -54158,10 +54213,20 @@ function renderGoogleAIOverviewCard(data) {
     gridSections.forEach((sec, idx) => {
         const title = sec.title || "Market Update";
         const bullets = sec.bullet_points || [];
-        const cls = cardClasses[idx % 3];
-        const icon = cardIcons[idx % 3];
+        const cls = cardClasses[idx % cardClasses.length];
+        const icon = cardIcons[idx % cardIcons.length];
 
-        let bulletsHtml = bullets.map(b => `<div class="google-ai-bullet-item">${b}</div>`).join('');
+        let bulletsHtml = bullets.map(b => {
+            let formattedText = b;
+            // Format "Key Phrase: Details" with strong bold header
+            if (formattedText.includes(':') && !formattedText.startsWith('http')) {
+                const parts = formattedText.split(':');
+                const keyPrefix = parts.shift();
+                formattedText = `<strong>${keyPrefix.trim()}:</strong> ${parts.join(':').trim()}`;
+            }
+            return `<div class="google-ai-bullet-item">${formattedText}</div>`;
+        }).join('');
+
         sectionsGridHtml += `
             <div class="google-ai-card-item ${cls}">
                 <div class="google-ai-card-header">
@@ -54207,9 +54272,9 @@ function renderGoogleAIOverviewCard(data) {
             <!-- Executive SGE Overview Container -->
             <div style="display: flex; flex-direction: column; gap: 16px; width: 100%;">
                 ${sentimentGaugeHtml}
-                ${textIntro ? `
+                ${cleanSummaryText ? `
                     <div id="google-ai-summary-text-${symbol}" class="google-ai-summary-box">
-                        ${textIntro}
+                        ${cleanSummaryText}
                     </div>
                 ` : ''}
                 ${sectionsGridHtml}

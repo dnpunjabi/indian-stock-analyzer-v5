@@ -32027,6 +32027,7 @@ body.light-theme #swing-scan-table thead th:first-child,
         padding-left: 8px !important;
         padding-right: 6px !important;
     }
+}
 
 /* ==================== GLOBAL EQUITY RESEARCH TERMINAL MOBILE SCROLL & GPU BLANK SCREEN FIX ==================== */
 @media (max-width: 768px) {
@@ -32450,16 +32451,19 @@ body.light-theme #swing-scan-table thead th:first-child,
 
 .google-ai-card-item.financials {
     border: 1px solid rgba(168, 85, 247, 0.4);
+    border-top: 4px solid #a855f7;
     background: linear-gradient(180deg, rgba(168, 85, 247, 0.1), rgba(15, 23, 42, 0.7));
 }
 
 .google-ai-card-item.news {
     border: 1px solid rgba(245, 158, 11, 0.4);
+    border-top: 4px solid #f59e0b;
     background: linear-gradient(180deg, rgba(245, 158, 11, 0.1), rgba(15, 23, 42, 0.7));
 }
 
 .google-ai-card-item.catalysts {
     border: 1px solid rgba(16, 185, 129, 0.4);
+    border-top: 4px solid #10b981;
     background: linear-gradient(180deg, rgba(16, 185, 129, 0.1), rgba(15, 23, 42, 0.7));
 }
 
@@ -32741,7 +32745,9 @@ body.light-mode .google-ai-card-item.financials,
 [data-theme="light"] .google-ai-card-item.financials,
 [data-mode="light"] .google-ai-card-item.financials {
     border: 1px solid rgba(168, 85, 247, 0.3) !important;
-    background: linear-gradient(180deg, rgba(168, 85, 247, 0.06), #ffffff) !important;
+    border-top: 4px solid #9333ea !important;
+    background: linear-gradient(180deg, rgba(243, 232, 255, 0.5), #ffffff) !important;
+    box-shadow: 0 4px 14px rgba(168, 85, 247, 0.06) !important;
 }
 
 body.light-theme .google-ai-card-item.news,
@@ -32749,7 +32755,9 @@ body.light-mode .google-ai-card-item.news,
 [data-theme="light"] .google-ai-card-item.news,
 [data-mode="light"] .google-ai-card-item.news {
     border: 1px solid rgba(245, 158, 11, 0.3) !important;
-    background: linear-gradient(180deg, rgba(245, 158, 11, 0.06), #ffffff) !important;
+    border-top: 4px solid #d97706 !important;
+    background: linear-gradient(180deg, rgba(254, 243, 199, 0.5), #ffffff) !important;
+    box-shadow: 0 4px 14px rgba(245, 158, 11, 0.06) !important;
 }
 
 body.light-theme .google-ai-card-item.catalysts,
@@ -32757,7 +32765,9 @@ body.light-mode .google-ai-card-item.catalysts,
 [data-theme="light"] .google-ai-card-item.catalysts,
 [data-mode="light"] .google-ai-card-item.catalysts {
     border: 1px solid rgba(16, 185, 129, 0.3) !important;
-    background: linear-gradient(180deg, rgba(16, 185, 129, 0.06), #ffffff) !important;
+    border-top: 4px solid #059669 !important;
+    background: linear-gradient(180deg, rgba(209, 250, 229, 0.5), #ffffff) !important;
+    box-shadow: 0 4px 14px rgba(16, 185, 129, 0.06) !important;
 }
 
 body.light-theme .google-ai-card-header,
