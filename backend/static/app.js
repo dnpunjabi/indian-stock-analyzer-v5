@@ -24795,7 +24795,6 @@ async function populateTaxWatchlistStocks() {
             });
         }
     } catch (e) {
-        console.error("Error populating watchlist select for tax:", e);
     }
 }
 
@@ -24803,6 +24802,54 @@ async function loadTaxHarvestingPanel() {
     await populateTaxWatchlistStocks();
     await loadTaxHarvestingLedger();
 }
+
+window.openEditTrancheModal = function(id, symbol, qty, price, date) {
+    const modal = document.getElementById('edit-tranche-modal');
+    if (!modal) return;
+    document.getElementById('edit-tranche-id').value = id;
+    document.getElementById('edit-tranche-subtext').innerText = `Symbol: ${symbol}`;
+    document.getElementById('edit-tranche-qty').value = qty;
+    document.getElementById('edit-tranche-price').value = price;
+    document.getElementById('edit-tranche-date').value = date;
+    modal.style.display = 'flex';
+};
+
+window.closeEditTrancheModal = function() {
+    const modal = document.getElementById('edit-tranche-modal');
+    if (modal) modal.style.display = 'none';
+};
+
+window.saveTrancheEdit = async function() {
+    const id = document.getElementById('edit-tranche-id').value;
+    const qty = parseFloat(document.getElementById('edit-tranche-qty').value) || 0;
+    const price = parseFloat(document.getElementById('edit-tranche-price').value) || 0;
+    const date = document.getElementById('edit-tranche-date').value;
+
+    const todayStr = new Date().toISOString().split('T')[0];
+    if (date > todayStr) {
+        showToast("Purchase date cannot be in the future.", "warning");
+        return;
+    }
+
+    try {
+        const response = await fetch(`/api/portfolio/${id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ quantity: qty, purchase_price: price, purchase_date: date })
+        });
+        if (!response.ok) {
+            const err = await response.json();
+            throw new Error(err.detail || "Failed to update tranche.");
+        }
+        showToast("Updated tranche successfully.", "success");
+        window.closeEditTrancheModal();
+        if (typeof loadTaxHarvestingPanel === 'function') await loadTaxHarvestingPanel();
+        if (typeof loadPortfolioDoctorLedger === 'function') await loadPortfolioDoctorLedger();
+    } catch (err) {
+        console.error("Error updating tranche:", err);
+        showToast("Error updating tranche: " + err.message, "error");
+    }
+};
 
 async function loadTaxHarvestingLedger() {
     const ledgerBody = document.getElementById('tax-ledger-body');
@@ -24855,53 +24902,22 @@ async function loadTaxHarvestingLedger() {
                     <strong>${item.symbol}</strong><br>
                     <span style="font-size: 9.5px; color: var(--text-muted);">${item.name || ''}</span>
                 </td>
-                <td style="padding: 8px;"><input type="number" class="tax-qty-input" data-id="${item.id}" value="${item.quantity}" style="width: 70px; padding: 4px; border-radius:4px; background:rgba(0,0,0,0.3); border:1px solid var(--border-glass); color:#fff; font-size:11px;"></td>
-                <td style="padding: 8px;"><input type="number" class="tax-price-input" data-id="${item.id}" value="${item.purchase_price}" style="width: 80px; padding: 4px; border-radius:4px; background:rgba(0,0,0,0.3); border:1px solid var(--border-glass); color:#fff; font-size:11px;"></td>
-                <td style="padding: 8px;"><input type="date" class="tax-date-input" data-id="${item.id}" value="${item.purchase_date}" max="${todayStr}" style="width: 110px; padding: 4px; border-radius:4px; background:rgba(0,0,0,0.3); border:1px solid var(--border-glass); color:#fff; font-size:11px;"></td>
+                <td style="padding: 8px; font-weight: 600; font-size: 11.5px; color: var(--text-primary);">${item.quantity}</td>
+                <td style="padding: 8px; font-weight: 600; font-size: 11.5px; color: var(--color-primary, #38bdf8);">₹${parseFloat(item.purchase_price).toFixed(2)}</td>
+                <td style="padding: 8px; font-weight: 500; font-size: 11.5px; font-family: monospace; color: var(--text-secondary);">${item.purchase_date}</td>
                 <td style="padding: 8px; color: var(--text-secondary); font-size: 11.5px;">${days} days</td>
                 <td style="padding: 8px;">${statusHTML}</td>
-                <td style="padding: 8px;"><button class="btn-secondary tax-remove-btn" data-id="${item.id}" style="font-size: 10px; padding: 4px 8px; border-color: rgba(239,68,68,0.25); color: var(--color-crimson); background: rgba(239,68,68,0.03); cursor:pointer; font-weight: 600; border-radius: 4px;">Remove 🗑️</button></td>
+                <td style="padding: 8px; white-space: nowrap;">
+                    <button class="btn-secondary tax-edit-btn" data-id="${item.id}" style="font-size: 10px; padding: 4px 8px; border-color: rgba(56,189,248,0.3); color: var(--color-primary, #38bdf8); background: rgba(56,189,248,0.06); cursor:pointer; font-weight: 600; border-radius: 4px; margin-right: 6px;">Edit ✏️</button>
+                    <button class="btn-secondary tax-remove-btn" data-id="${item.id}" style="font-size: 10px; padding: 4px 8px; border-color: rgba(239,68,68,0.25); color: var(--color-crimson); background: rgba(239,68,68,0.03); cursor:pointer; font-weight: 600; border-radius: 4px;">Remove 🗑️</button>
+                </td>
             `;
 
-            const qtyInput = tr.querySelector('.tax-qty-input');
-            const priceInput = tr.querySelector('.tax-price-input');
-            const dateInput = tr.querySelector('.tax-date-input');
+            const editBtn = tr.querySelector('.tax-edit-btn');
             const removeBtn = tr.querySelector('.tax-remove-btn');
 
-            const updateTranche = async () => {
-                const qVal = parseFloat(qtyInput.value) || 0;
-                const pVal = parseFloat(priceInput.value) || 0;
-                const dVal = dateInput.value;
-
-                if (dVal > todayStr) {
-                    showToast("Purchase date cannot be in the future.", "warning");
-                    dateInput.value = item.purchase_date;
-                    return;
-                }
-
-                try {
-                    const response = await fetch(`/api/portfolio/${item.id}`, {
-                        method: 'PUT',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ quantity: qVal, purchase_price: pVal, purchase_date: dVal })
-                    });
-                    if (!response.ok) {
-                        const err = await response.json();
-                        throw new Error(err.detail || "Failed to update tranche.");
-                    }
-                    await loadTaxHarvestingReport();
-                    await loadPortfolioDoctorLedger();
-                } catch (err) {
-                    console.error("Error updating tranche:", err);
-                    showToast("Error updating tranche: " + err.message, "error");
-                }
-            };
-
-            qtyInput.addEventListener('change', updateTranche);
-            priceInput.addEventListener('change', updateTranche);
-            dateInput.addEventListener('change', async () => {
-                await updateTranche();
-                await loadTaxHarvestingLedger();
+            editBtn.addEventListener('click', () => {
+                window.openEditTrancheModal(item.id, item.symbol, item.quantity, item.purchase_price, item.purchase_date);
             });
 
             removeBtn.addEventListener('click', async () => {

@@ -10642,15 +10642,15 @@
                                         </div>
                                         <div class="profile-field" style="margin: 0; display: flex; justify-content: space-between; align-items: center; gap: 10px;">
                                             <label style="font-size: 13px; width: 50%; font-weight: 600;">Entry Price (Rs.)</label>
-                                            <input type="number" id="swing-entry-price" value="0.0" step="0.05" style="width: 50%; height: 26px; border-radius: 4px; background: var(--bg-glass-input); border: 1px solid var(--border-glass); color: var(--text-primary); padding: 0 6px; font-size: 13.5px;">
+                                            <input type="number" id="swing-entry-price" value="0.0" step="any" style="width: 50%; height: 26px; border-radius: 4px; background: var(--bg-glass-input); border: 1px solid var(--border-glass); color: var(--text-primary); padding: 0 6px; font-size: 13.5px;">
                                         </div>
                                         <div class="profile-field" style="margin: 0; display: flex; justify-content: space-between; align-items: center; gap: 10px;">
                                             <label style="font-size: 13px; width: 50%; font-weight: 600;">Stop Loss (Rs.)</label>
-                                            <input type="number" id="swing-stop-loss" value="0.0" step="0.05" style="width: 50%; height: 26px; border-radius: 4px; background: var(--bg-glass-input); border: 1px solid var(--border-glass); color: var(--text-primary); padding: 0 6px; font-size: 13.5px;">
+                                            <input type="number" id="swing-stop-loss" value="0.0" step="any" style="width: 50%; height: 26px; border-radius: 4px; background: var(--bg-glass-input); border: 1px solid var(--border-glass); color: var(--text-primary); padding: 0 6px; font-size: 13.5px;">
                                         </div>
                                         <div class="profile-field" style="margin: 0; display: flex; justify-content: space-between; align-items: center; gap: 10px;">
                                             <label style="font-size: 13px; width: 50%; font-weight: 600;">Take Profit (Rs.)</label>
-                                            <input type="number" id="swing-take-profit" value="0.0" step="0.05" style="width: 50%; height: 26px; border-radius: 4px; background: var(--bg-glass-input); border: 1px solid var(--border-glass); color: var(--text-primary); padding: 0 6px; font-size: 13.5px;">
+                                            <input type="number" id="swing-take-profit" value="0.0" step="any" style="width: 50%; height: 26px; border-radius: 4px; background: var(--bg-glass-input); border: 1px solid var(--border-glass); color: var(--text-primary); padding: 0 6px; font-size: 13.5px;">
                                         </div>
                                     </div>
 
@@ -11856,6 +11856,43 @@
         </div>
     </footer>
 
+    <!-- Edit Holding Tranche Modal -->
+    <div id="edit-tranche-modal" class="modal-overlay" style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0, 0, 0, 0.75); backdrop-filter: blur(8px); z-index: 100000; align-items: center; justify-content: center; padding: 16px;">
+        <div class="modal-content card" style="width: 90%; max-width: 440px; background: var(--card-bg, #0f172a); border: 1px solid var(--border-glass, rgba(255, 255, 255, 0.15)); border-radius: 12px; padding: 24px; box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6); color: var(--text-primary, #fff);">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; border-bottom: 1px solid rgba(255,255,255,0.08); padding-bottom: 12px;">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <span style="font-size: 20px;">✏️</span>
+                    <div>
+                        <h3 id="edit-tranche-title" style="margin: 0; font-size: 16px; font-weight: 700; color: var(--color-primary, #38bdf8);">Edit Holding Tranche</h3>
+                        <span id="edit-tranche-subtext" style="font-size: 12px; color: var(--text-muted, #94a3b8);">Symbol: --</span>
+                    </div>
+                </div>
+                <button type="button" class="btn-secondary" onclick="closeEditTrancheModal()" style="padding: 2px 8px; font-size: 14px; cursor: pointer;">✕</button>
+            </div>
+            <form id="edit-tranche-form" onsubmit="event.preventDefault(); saveTrancheEdit();">
+                <input type="hidden" id="edit-tranche-id">
+                <div style="display: flex; flex-direction: column; gap: 14px;">
+                    <div>
+                        <label style="font-size: 12px; font-weight: 700; color: var(--text-secondary); display: block; margin-bottom: 4px;">Tranche Size (Quantity)</label>
+                        <input type="number" id="edit-tranche-qty" min="1" step="1" required style="width: 100%; padding: 8px 12px; background: rgba(0,0,0,0.3); border: 1px solid var(--border-glass); border-radius: 6px; color: #fff; font-size: 13px; font-family: inherit;">
+                    </div>
+                    <div>
+                        <label style="font-size: 12px; font-weight: 700; color: var(--text-secondary); display: block; margin-bottom: 4px;">Avg Buy Price (₹)</label>
+                        <input type="number" id="edit-tranche-price" min="0.01" step="any" required style="width: 100%; padding: 8px 12px; background: rgba(0,0,0,0.3); border: 1px solid var(--border-glass); border-radius: 6px; color: #fff; font-size: 13px; font-family: inherit;">
+                    </div>
+                    <div>
+                        <label style="font-size: 12px; font-weight: 700; color: var(--text-secondary); display: block; margin-bottom: 4px;">Purchase Date</label>
+                        <input type="date" id="edit-tranche-date" required style="width: 100%; padding: 8px 12px; background: rgba(0,0,0,0.3); border: 1px solid var(--border-glass); border-radius: 6px; color: #fff; font-size: 13px; font-family: inherit;">
+                    </div>
+                </div>
+                <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px; padding-top: 14px; border-top: 1px solid rgba(255,255,255,0.08);">
+                    <button type="button" class="btn-secondary" onclick="closeEditTrancheModal()" style="padding: 6px 14px; font-size: 13px; cursor: pointer;">Cancel</button>
+                    <button type="submit" class="btn-primary" style="padding: 6px 16px; font-size: 13px; cursor: pointer; background: var(--color-primary, #38bdf8); color: #000; font-weight: 700; border-radius: 6px; border: none;">💾 Save Changes</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <!-- Watchlist Stock Multi-Condition Alert Modal -->
     <div id="watchlist-stock-alert-modal" class="modal-overlay" style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0, 0, 0, 0.75); backdrop-filter: blur(8px); z-index: 100000; align-items: center; justify-content: center;">
         <div class="modal-content card" style="width: 90%; max-width: 580px; background: var(--card-bg, #0f172a); border: 1px solid var(--border-glass, rgba(255, 255, 255, 0.15)); border-radius: 12px; padding: 24px; box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6); color: var(--text-primary, #fff);">
@@ -11883,11 +11920,11 @@
                 <div style="display: flex; flex-direction: column; gap: 12px;">
                     <div>
                         <label style="font-size: 12px; font-weight: 700; color: #10b981; display: block; margin-bottom: 4px;">Target Buy Floor (₹ Buy Below)</label>
-                        <input type="number" step="0.05" id="wl-alert-price-low" placeholder="e.g. 1750.00" style="width: 100%; padding: 8px 12px; background: rgba(0,0,0,0.3); border: 1px solid var(--border-glass); border-radius: 6px; color: #fff; font-family: monospace;">
+                        <input type="number" step="any" id="wl-alert-price-low" placeholder="e.g. 1750.00" style="width: 100%; padding: 8px 12px; background: rgba(0,0,0,0.3); border: 1px solid var(--border-glass); border-radius: 6px; color: #fff; font-family: monospace;">
                     </div>
                     <div>
                         <label style="font-size: 12px; font-weight: 700; color: #f59e0b; display: block; margin-bottom: 4px;">Target Profit Ceiling (₹ Sell Above)</label>
-                        <input type="number" step="0.05" id="wl-alert-price-high" placeholder="e.g. 2100.00" style="width: 100%; padding: 8px 12px; background: rgba(0,0,0,0.3); border: 1px solid var(--border-glass); border-radius: 6px; color: #fff; font-family: monospace;">
+                        <input type="number" step="any" id="wl-alert-price-high" placeholder="e.g. 2100.00" style="width: 100%; padding: 8px 12px; background: rgba(0,0,0,0.3); border: 1px solid var(--border-glass); border-radius: 6px; color: #fff; font-family: monospace;">
                     </div>
                     <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; margin-top: 4px;">
                         <input type="checkbox" id="wl-alert-breakout-52w">
