@@ -16522,8 +16522,11 @@ details[open] .academy-hud-arrow {
         grid-template-columns: 1fr;
     }
 
-    .events-table { display: none !important; }
-    #events-market-cards { display: flex !important; }
+    .events-table { 
+        display: table !important; 
+        min-width: 680px !important;
+    }
+    #events-market-cards { display: none !important; }
 
     #events-search-input {
         width: 100% !important;
@@ -16551,7 +16554,10 @@ details[open] .academy-hud-arrow {
     }
 
     #events-market-container {
-        max-height: 400px !important;
+        max-height: 550px !important;
+        overflow-x: auto !important;
+        -webkit-overflow-scrolling: touch;
+        width: 100% !important;
     }
 
     .events-summary-bar {
@@ -16559,6 +16565,77 @@ details[open] .academy-hud-arrow {
         gap: 8px;
         padding: 8px 10px;
     }
+}
+
+/* ─── Sticky 1st Column (Date) & Theme Support for Events Table ────────────── */
+#events-market-container {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+.events-table {
+    border-collapse: separate !important;
+    border-spacing: 0 !important;
+}
+
+.events-table thead th {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    background: var(--bg-card, #0f172a) !important;
+}
+
+/* Sticky First Column (Date) */
+.events-table th:first-child,
+.events-table td:first-child {
+    position: sticky !important;
+    left: 0 !important;
+    z-index: 8 !important;
+    background: #0f172a !important; /* Non-transparent dark theme background */
+    box-shadow: 3px 0 8px rgba(0, 0, 0, 0.4);
+}
+
+.events-table thead th:first-child {
+    z-index: 15 !important; /* Highest z-index for top-left header cell */
+}
+
+/* Light Theme Sticky Cell & Table Overrides */
+[data-theme="light"] .events-table th:first-child,
+[data-theme="light"] .events-table td:first-child {
+    background: #ffffff !important; /* Non-transparent light theme background */
+    box-shadow: 3px 0 8px rgba(0, 0, 0, 0.08);
+}
+
+[data-theme="light"] .events-table thead th {
+    background: #f8fafc !important;
+    color: #374151 !important;
+    border-bottom: 2px solid rgba(0, 0, 0, 0.12) !important;
+}
+
+[data-theme="light"] .events-table tbody tr {
+    background: #ffffff !important;
+}
+
+[data-theme="light"] .events-table tbody tr:hover {
+    background: #f1f5f9 !important;
+}
+
+[data-theme="light"] .events-table td {
+    border-bottom: 1px solid rgba(0, 0, 0, 0.08) !important;
+    color: #0f172a !important;
+}
+
+[data-theme="light"] #events-search-input,
+[data-theme="light"] #events-range-select,
+[data-theme="light"] .events-pill {
+    background: #f1f5f9 !important;
+    color: #0f172a !important;
+    border-color: #cbd5e1 !important;
+}
+
+[data-theme="light"] .events-pill.active {
+    background: var(--color-primary, #3b82f6) !important;
+    color: #ffffff !important;
 }
 
 @media (max-width: 480px) {
