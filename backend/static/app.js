@@ -54951,82 +54951,119 @@ window.renderVcpCards = function(stocks) {
         // Contractions HTML & Dynamic Header
         const contractions = stock.contractions || [];
         const lastStageName = contractions.length > 0 ? (contractions[contractions.length - 1].stage || 'T3') : 'T3';
-        const contractionsHTML = contractions.map((c, idx) => `
-            <div style="flex: 1; background: rgba(30, 41, 59, 0.6); border: 1px solid rgba(255,255,255,0.08); border-radius: 6px; padding: 6px 8px; text-align: center;">
-                <div style="font-size: 10px; color: #94a3b8; font-weight: 700; text-transform: uppercase;">Stage ${c.stage}</div>
-                <div style="font-size: 12px; font-weight: 800; color: #f87171;">${c.depth_percent}%</div>
-                <div style="font-size: 9.5px; color: #64748b;">${c.days} days</div>
+        const contractionsHTML = contractions.map((c) => `
+            <div style="flex: 1; min-width: 75px; background: rgba(30, 41, 59, 0.6); border: 1px solid rgba(255,255,255,0.08); border-radius: 6px; padding: 5px 6px; text-align: center;">
+                <div style="font-size: 9.5px; color: #fbbf24; font-weight: 700; text-transform: uppercase;">Wave T${c.stage}</div>
+                <div style="font-size: 11.5px; font-weight: 800; color: #f87171;">-${Math.abs(c.depth_percent)}%</div>
+                ${c.high_price ? `<div style="font-size: 8.5px; color: #cbd5e1;">₹${c.high_price} → ₹${c.low_price}</div>` : ''}
+                <div style="font-size: 8.5px; color: #94a3b8;">${c.days} days</div>
             </div>
         `).join('');
 
-        // CANSLIM breakdown badges
+        // CANSLIM breakdown badges & Tightness
         const score = stock.canslim_score || 0;
+        const tightness = stock.tightness_score || 0;
         const grade = stock.canslim_grade || (score >= 80 ? 'Grade A+' : (score >= 65 ? 'Grade B' : 'Grade C'));
         const gradeBg = score >= 80 ? 'rgba(168, 85, 247, 0.2)' : (score >= 65 ? 'rgba(56, 189, 248, 0.2)' : 'rgba(245, 158, 11, 0.2)');
         const gradeColor = score >= 80 ? '#c084fc' : (score >= 65 ? '#38bdf8' : '#fbbf24');
 
+        const factorsObj = stock.canslim_factors || stock.factors || {
+            "C": { score: score >= 80 ? 10 : 5, max: 15, detail: "+20% YoY" },
+            "A": { score: score >= 80 ? 15 : 10, max: 15, detail: "ROE 25%" },
+            "N": { score: score >= 80 ? 10 : 5, max: 15, detail: "Near 52W" },
+            "S": { score: score >= 80 ? 10 : 5, max: 15, detail: "Deliv 45%" },
+            "L": { score: score >= 80 ? 12 : 8, max: 15, detail: "3M Leader" },
+            "I": { score: score >= 80 ? 15 : 10, max: 15, detail: "FII+DII 45%" },
+            "M": { score: 10, max: 10, detail: "Uptrend" }
+        };
+
+        const factorDefs = {
+            "C": "C = Current Qtr PAT Growth",
+            "A": "A = Annual EPS Growth & ROE",
+            "N": "N = Near 52-Week High",
+            "S": "S = Supply & High Delivery %",
+            "L": "L = Leader 3M Outperformance",
+            "I": "I = Institutional Sponsorship (FII+DII)",
+            "M": "M = Market Direction (Uptrend)"
+        };
+
+        const miniBadgesHtml = `<div style="display: grid; grid-template-columns: repeat(7, 1fr); gap: 3px; margin-top: 6px;">` +
+            Object.entries(factorsObj).map(([letter, f]) => `
+                <div title="${factorDefs[letter] || letter}: ${f.detail || ''}" style="background: rgba(30, 41, 59, 0.6); border: 1px solid rgba(168, 85, 247, 0.25); padding: 3px 2px; border-radius: 5px; text-align: center; cursor: help;">
+                    <div style="color: #c084fc; font-weight: 800; font-size: 10px;">${letter}</div>
+                    <div style="color: #10b981; font-weight: 700; font-size: 8.5px;">${f.score}/${f.max}</div>
+                    <div style="color: #cbd5e1; font-size: 7.5px; text-overflow: ellipsis; overflow: hidden; white-space: nowrap;">${f.detail || ''}</div>
+                </div>
+            `).join('') + `</div>`;
+
         return `
-            <div class="vcp-card" style="background: rgba(15, 23, 42, 0.75); border: 1px solid rgba(255,255,255,0.1); border-radius: 14px; padding: 18px; backdrop-filter: blur(12px); display: flex; flex-direction: column; justify-content: space-between; transition: all 0.25s ease; box-shadow: 0 4px 20px rgba(0,0,0,0.25);">
+            <div class="vcp-card" style="background: rgba(15, 23, 42, 0.75); border: 1px solid rgba(255,255,255,0.1); border-radius: 14px; padding: 16px; backdrop-filter: blur(12px); display: flex; flex-direction: column; justify-content: space-between; transition: all 0.25s ease; box-shadow: 0 4px 20px rgba(0,0,0,0.25);">
                 <div>
                     <!-- Header -->
-                    <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px;">
+                    <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px;">
                         <div>
                             <div style="display: flex; align-items: center; gap: 8px;">
-                                <span style="font-size: 17px; font-weight: 800; color: #ffffff; letter-spacing: -0.3px;">${sym}</span>
+                                <span style="font-size: 16.5px; font-weight: 800; color: #ffffff; letter-spacing: -0.3px;">${sym}</span>
                                 ${statusBadgeHTML}
                             </div>
-                            <div style="font-size: 12px; color: #94a3b8; font-weight: 500; margin-top: 2px;">${name}</div>
+                            <div style="font-size: 11.5px; color: #94a3b8; font-weight: 500; margin-top: 2px;">${name}</div>
                         </div>
                         <div style="text-align: right;">
-                            <div style="font-size: 16px; font-weight: 800; color: #f8fafc;">${price}</div>
+                            <div style="font-size: 15.5px; font-weight: 800; color: #f8fafc;">${price}</div>
                             <div style="font-size: 11px; font-weight: 700; color: ${chgColor};">${chgPct >= 0 ? '+' : ''}${chgPct.toFixed(2)}%</div>
                         </div>
                     </div>
 
                     <!-- Contraction Pipeline -->
-                    <div style="margin-bottom: 14px;">
-                        <div style="font-size: 10.5px; font-weight: 700; color: #94a3b8; text-transform: uppercase; margin-bottom: 6px; display: flex; justify-content: space-between;">
-                            <span>Contraction Tightening (T<sub>1</sub> &rarr; ${lastStageName})</span>
-                            <span style="color: ${stock.volume_dryup_ratio <= 0.70 ? '#10b981' : '#fbbf24'};">VDU Ratio: ${stock.volume_dryup_ratio}x</span>
+                    <div style="margin-bottom: 12px;">
+                        <div style="font-size: 10px; font-weight: 700; color: #94a3b8; text-transform: uppercase; margin-bottom: 5px; display: flex; justify-content: space-between;">
+                            <span>Contraction Waves (${contractions.length} Detected)</span>
+                            <span style="color: ${stock.volume_dryup_ratio <= 1.0 ? '#10b981' : '#fbbf24'};">VDU Ratio: ${stock.volume_dryup_ratio}x</span>
                         </div>
-                        <div style="display: flex; gap: 6px;">
+                        <div style="display: flex; gap: 5px; overflow-x: auto; padding-bottom: 2px;">
                             ${contractionsHTML || '<div style="color:#64748b; font-size:11px;">Tightening base detected</div>'}
                         </div>
                     </div>
 
                     <!-- Execution Levels Grid -->
-                    <div class="vcp-execution-grid" style="background: rgba(30, 41, 59, 0.4); border: 1px solid rgba(255,255,255,0.06); border-radius: 8px; padding: 10px 12px; margin-bottom: 14px; display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                    <div class="vcp-execution-grid" style="background: rgba(30, 41, 59, 0.4); border: 1px solid rgba(255,255,255,0.06); border-radius: 8px; padding: 8px 10px; margin-bottom: 12px; display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
                         <div>
-                            <div style="font-size: 10px; color: #94a3b8; text-transform: uppercase; font-weight: 600;">Pivot Buy Price</div>
-                            <div style="font-size: 13.5px; font-weight: 800; color: #38bdf8;">₹${stock.pivot_price || '--'}</div>
+                            <div style="font-size: 9.5px; color: #94a3b8; text-transform: uppercase; font-weight: 600;">Pivot Buy Price</div>
+                            <div style="font-size: 13px; font-weight: 800; color: #38bdf8;">₹${stock.pivot_price || '--'}</div>
                         </div>
                         <div>
-                            <div style="font-size: 10px; color: #94a3b8; text-transform: uppercase; font-weight: 600;">Stop Loss (Risk %)</div>
-                            <div style="font-size: 13.5px; font-weight: 800; color: #f87171;">₹${stock.stop_loss || '--'} <span style="font-size: 10.5px; font-weight:600;">(-${stock.risk_percent}%)</span></div>
+                            <div style="font-size: 9.5px; color: #94a3b8; text-transform: uppercase; font-weight: 600;">Stop Loss (Risk %)</div>
+                            <div style="font-size: 13px; font-weight: 800; color: #f87171;">₹${stock.stop_loss || '--'} <span style="font-size: 9.5px; font-weight:600;">(-${stock.risk_percent}%)</span></div>
                         </div>
                         <div>
-                            <div style="font-size: 10px; color: #94a3b8; text-transform: uppercase; font-weight: 600;">Target 1 (1:2 R:R)</div>
-                            <div style="font-size: 13px; font-weight: 700; color: #10b981;">₹${stock.target_1 || '--'}</div>
+                            <div style="font-size: 9.5px; color: #94a3b8; text-transform: uppercase; font-weight: 600;">Target 1 (1:2 R:R)</div>
+                            <div style="font-size: 12.5px; font-weight: 700; color: #10b981;">₹${stock.target_1 || '--'}</div>
                         </div>
                         <div>
-                            <div style="font-size: 10px; color: #94a3b8; text-transform: uppercase; font-weight: 600;">Target 2 (1:4 R:R)</div>
-                            <div style="font-size: 13px; font-weight: 700; color: #a855f7;">₹${stock.target_2 || '--'}</div>
+                            <div style="font-size: 9.5px; color: #94a3b8; text-transform: uppercase; font-weight: 600;">Target 2 (1:4 R:R)</div>
+                            <div style="font-size: 12.5px; font-weight: 700; color: #a855f7;">₹${stock.target_2 || '--'}</div>
                         </div>
                     </div>
 
-                    <!-- CANSLIM Rating Bar -->
-                    <div class="vcp-canslim-bar" style="display: flex; align-items: center; justify-content: space-between; background: rgba(30, 41, 59, 0.7); padding: 8px 12px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.08);">
-                        <span class="vcp-canslim-label" style="font-size: 11.5px; font-weight: 700; color: #cbd5e1;">7-Factor CANSLIM Rating</span>
-                        <span style="background: ${gradeBg}; color: ${gradeColor}; border: 1px solid ${gradeColor}44; font-size: 12px; font-weight: 800; padding: 2px 10px; border-radius: 12px;">${score} / 100 (${grade})</span>
+                    <!-- CANSLIM & Tightness Score Section -->
+                    <div class="vcp-canslim-bar" style="background: rgba(30, 41, 59, 0.6); padding: 8px 10px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.08);">
+                        <div style="display: flex; align-items: center; justify-content: space-between;">
+                            <span style="font-size: 10.5px; font-weight: 700; color: #cbd5e1; display: flex; align-items: center; gap: 4px;">
+                                Tightness: <strong style="color: #fbbf24; font-family: monospace;">${tightness}/100</strong>
+                                <span onclick="window.showTightnessScoreHelp && window.showTightnessScoreHelp(${tightness})" style="cursor: pointer; color: #fbbf24; font-size: 9px; border: 1px solid rgba(251,191,36,0.4); border-radius: 50%; width: 13px; height: 13px; display: inline-flex; align-items: center; justify-content: center;" title="Click for Tightness Score Breakdown">ℹ</span>
+                            </span>
+                            <span style="background: ${gradeBg}; color: ${gradeColor}; border: 1px solid ${gradeColor}44; font-size: 11px; font-weight: 800; padding: 2px 8px; border-radius: 10px;">${score}/100 (${grade})</span>
+                        </div>
+                        ${miniBadgesHtml}
                     </div>
                 </div>
 
                 <!-- Footer Action Buttons -->
-                <div style="display: flex; gap: 8px; margin-top: 14px;">
-                    <button onclick="window.openVcpAiDeepResearch && window.openVcpAiDeepResearch('${sym}')" class="btn-secondary vcp-research-btn" style="flex: 1; padding: 8px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; color: #f1f5f9; font-weight: 600; font-size: 12px; cursor: pointer; transition: all 0.2s;">
+                <div style="display: flex; gap: 8px; margin-top: 12px;">
+                    <button onclick="window.openVcpAiDeepResearch && window.openVcpAiDeepResearch('${sym}')" class="btn-secondary vcp-research-btn" style="flex: 1; padding: 7px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; color: #f1f5f9; font-weight: 600; font-size: 11.5px; cursor: pointer; transition: all 0.2s;">
                         📊 Deep Research
                     </button>
-                    <button onclick="window.openVcpChartModal && window.openVcpChartModal('${sym}')" class="btn-primary vcp-chart-btn" style="flex: 1; padding: 8px; background: linear-gradient(135deg, #f59e0b, #d97706); border: none; border-radius: 8px; color: #ffffff; font-weight: 700; font-size: 12px; cursor: pointer; transition: all 0.2s; box-shadow: 0 2px 8px rgba(245, 158, 11, 0.3);">
+                    <button onclick="window.openVcpChartModal && window.openVcpChartModal('${sym}')" class="btn-primary vcp-chart-btn" style="flex: 1; padding: 7px; background: linear-gradient(135deg, #f59e0b, #d97706); border: none; border-radius: 8px; color: #ffffff; font-weight: 700; font-size: 11.5px; cursor: pointer; transition: all 0.2s; box-shadow: 0 2px 8px rgba(245, 158, 11, 0.3);">
                         📈 Chart & Pivots
                     </button>
                 </div>
