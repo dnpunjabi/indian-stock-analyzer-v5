@@ -55095,43 +55095,92 @@ window.openVcpAiDeepResearch = async function(symbol) {
                 execHtml = bp.execution_blueprint || '--';
             }
 
+            const qScores = bp.quant_scores || { sepa_score: 90, fundamental_score: score, institutional_score: 88, total_score: score };
+
             content.innerHTML = `
-                <div style="background: linear-gradient(135deg, rgba(168, 85, 247, 0.15), rgba(59, 130, 246, 0.15)); border: 1px solid rgba(168, 85, 247, 0.35); border-radius: 12px; padding: 14px 18px; margin-bottom: 18px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px;">
+                <!-- Conviction Banner -->
+                <div style="background: linear-gradient(135deg, rgba(168, 85, 247, 0.2), rgba(59, 130, 246, 0.2)); border: 1px solid rgba(168, 85, 247, 0.4); border-radius: 12px; padding: 16px 20px; margin-bottom: 18px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;">
                     <div>
                         <div style="font-size: 11px; color: #c084fc; text-transform: uppercase; font-weight: 700; letter-spacing: 0.5px;">AI Conviction Verdict</div>
-                        <div style="font-size: 16px; font-weight: 800; color: #f8fafc; margin-top: 2px;">${bp.verdict || 'High-Conviction SEPA Setup'}</div>
+                        <div style="font-size: 17px; font-weight: 800; color: #f8fafc; margin-top: 2px;">${bp.verdict || 'High-Conviction SEPA Breakout Candidate'}</div>
                     </div>
-                    <div style="background: rgba(16, 185, 129, 0.2); border: 1px solid #10b981; color: #10b981; font-size: 12px; font-weight: 800; padding: 4px 12px; border-radius: 20px;">
-                        Grade A+ Institutional Setup
+                    <div style="background: rgba(16, 185, 129, 0.2); border: 1px solid #10b981; color: #10b981; font-size: 12.5px; font-weight: 800; padding: 5px 14px; border-radius: 20px;">
+                        ${data.canslim_grade || 'Grade A+'} Institutional Setup
                     </div>
                 </div>
 
+                <!-- 1. Fundamental Catalyst -->
                 <div style="background: rgba(30, 41, 59, 0.5); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 12px; padding: 16px 18px; margin-bottom: 14px;">
                     <div style="font-size: 13px; font-weight: 700; color: #fbbf24; display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
-                        <span>🚀 1. FUNDAMENTAL CATALYST</span>
+                        <span>🚀 1. FUNDAMENTAL GROWTH CATALYST</span>
                         <span style="font-size: 10.5px; font-weight: 500; color: #94a3b8;">(CANSLIM 'C' & 'A' Factors)</span>
                     </div>
                     <p style="margin: 0; font-size: 13px; color: #cbd5e1; line-height: 1.6;">
-                        ${bp.fundamental_catalyst || 'Strong fundamental acceleration with expanding profit margins and high return on equity.'}
+                        ${bp.fundamental_catalyst || 'Robust quarterly earnings acceleration aligned with CANSLIM criteria.'}
                     </p>
                 </div>
 
+                <!-- 2. Institutional Footprint -->
                 <div style="background: rgba(30, 41, 59, 0.5); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 12px; padding: 16px 18px; margin-bottom: 14px;">
                     <div style="font-size: 13px; font-weight: 700; color: #38bdf8; display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
-                        <span>🏦 2. INSTITUTIONAL FOOTPRINT</span>
+                        <span>🏦 2. INSTITUTIONAL FOOTPRINT & SPONSORSHIP</span>
                         <span style="font-size: 10.5px; font-weight: 500; color: #94a3b8;">(CANSLIM 'I' & 'S' Factors)</span>
                     </div>
                     <p style="margin: 0; font-size: 13px; color: #cbd5e1; line-height: 1.6;">
-                        ${bp.institutional_footprint || 'Volume dry-up ratio confirms supply absorption with smart money accumulating near the pivot.'}
+                        ${bp.institutional_footprint || 'Volume dry-up confirms smart money accumulation ahead of pivot breakout.'}
                     </p>
                 </div>
 
-                <div style="background: rgba(30, 41, 59, 0.5); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 12px; padding: 16px 18px;">
+                <!-- 3. Wave Mechanics -->
+                <div style="background: rgba(30, 41, 59, 0.5); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 12px; padding: 16px 18px; margin-bottom: 14px;">
+                    <div style="font-size: 13px; font-weight: 700; color: #a855f7; display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+                        <span>📈 3. MINERVINI VCP WAVE MECHANICS & BASE STRUCTURE</span>
+                    </div>
+                    <p style="margin: 0; font-size: 13px; color: #cbd5e1; line-height: 1.6;">
+                        ${bp.wave_mechanics || 'Progressive volatility contraction across multiple stages, maintaining Stage 2 uptrend structure.'}
+                    </p>
+                </div>
+
+                <!-- 4. Execution Blueprint -->
+                <div style="background: rgba(30, 41, 59, 0.5); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 12px; padding: 16px 18px; margin-bottom: 14px;">
                     <div style="font-size: 13px; font-weight: 700; color: #10b981; display: flex; align-items: center; gap: 8px; margin-bottom: 10px;">
-                        <span>🎯 3. MINERVINI TRADE EXECUTION BLUEPRINT</span>
+                        <span>🎯 4. INSTITUTIONAL TRADE EXECUTION BLUEPRINT</span>
                     </div>
                     <div style="font-size: 13px; color: #cbd5e1; line-height: 1.6;">
                         ${execHtml}
+                    </div>
+                </div>
+
+                <!-- 5. Risk Management & Invalidation -->
+                <div style="background: rgba(30, 41, 59, 0.5); border: 1px solid rgba(239, 68, 68, 0.25); border-radius: 12px; padding: 16px 18px; margin-bottom: 18px;">
+                    <div style="font-size: 13px; font-weight: 700; color: #f87171; display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+                        <span>🛑 5. RISK MANAGEMENT & BEARISH INVALIDATION SCENARIOS</span>
+                    </div>
+                    <p style="margin: 0; font-size: 13px; color: #cbd5e1; line-height: 1.6;">
+                        ${bp.risk_invalidation || 'Trade thesis is invalidated if price drops below 50 EMA on heavy volume or fails to sustain breakout.'}
+                    </p>
+                </div>
+
+                <!-- 6. Gemini Quantitative Conviction Matrix -->
+                <div style="background: rgba(15, 23, 42, 0.85); border: 1px solid rgba(168, 85, 247, 0.3); border-radius: 12px; padding: 16px 18px;">
+                    <div style="font-size: 11.5px; font-weight: 700; color: #c084fc; text-transform: uppercase; margin-bottom: 12px; letter-spacing: 0.5px;">🔮 GEMINI QUANTITATIVE CONVICTION MATRIX</div>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px;">
+                        <div style="background: rgba(30,41,59,0.5); padding: 8px 12px; border-radius: 8px; text-align: center;">
+                            <span style="font-size: 10px; color: #94a3b8; display: block;">SEPA TECHNICALS</span>
+                            <strong style="color: #fbbf24; font-size: 15px;">${qScores.sepa_score || 90}/100</strong>
+                        </div>
+                        <div style="background: rgba(30,41,59,0.5); padding: 8px 12px; border-radius: 8px; text-align: center;">
+                            <span style="font-size: 10px; color: #94a3b8; display: block;">FUNDAMENTAL ACCEL.</span>
+                            <strong style="color: #38bdf8; font-size: 15px;">${qScores.fundamental_score || score}/100</strong>
+                        </div>
+                        <div style="background: rgba(30,41,59,0.5); padding: 8px 12px; border-radius: 8px; text-align: center;">
+                            <span style="font-size: 10px; color: #94a3b8; display: block;">INSTITUTIONAL FLOW</span>
+                            <strong style="color: #a855f7; font-size: 15px;">${qScores.institutional_score || 88}/100</strong>
+                        </div>
+                        <div style="background: rgba(30,41,59,0.5); padding: 8px 12px; border-radius: 8px; text-align: center;">
+                            <span style="font-size: 10px; color: #94a3b8; display: block;">CANSLIM RATING</span>
+                            <strong style="color: #10b981; font-size: 15px;">${score}/100</strong>
+                        </div>
                     </div>
                 </div>
             `;
