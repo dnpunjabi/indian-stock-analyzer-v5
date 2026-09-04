@@ -54457,16 +54457,29 @@ function renderVcpCanslimCardContent(cardContent, data, symbol) {
             contractionsHtml = `<div style="padding: 14px; color: #94a3b8; font-size: 12px; text-align: center; background: rgba(30,41,59,0.3); border-radius: 8px;">No active contraction waves detected in current 6-month base.</div>`;
         }
 
-        let factorsHtml = `<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); gap: 6px; margin-top: 10px;">` +
-            Object.entries(factors).map(([letter, f]) => `
-                <div style="background: rgba(30, 41, 59, 0.6); border: 1px solid rgba(168, 85, 247, 0.2); padding: 5px 8px; border-radius: 6px; font-size: 11px;">
-                    <div style="display: flex; justify-content: space-between; align-items: center;">
-                        <strong style="color: #c084fc; font-size: 12px;">${letter}</strong>
-                        <span style="color: #10b981; font-weight: 700; font-size: 10.5px;">${f.score}/${f.max}</span>
+        const factorDefs = {
+            "C": { name: "Current Qtr PAT", desc: "C = Current Quarterly Earnings & Sales Acceleration (>20% YoY target)" },
+            "A": { name: "Annual ROE", desc: "A = Annual EPS Growth & ROE (>17% ROE & 3-Yr Compounding)" },
+            "N": { name: "Near 52W High", desc: "N = New Products, Management, or 52W High (Within 15% of 52W High)" },
+            "S": { name: "Supply & Delivery", desc: "S = Supply & Demand / High Delivery Volume (>40% Delivery)" },
+            "L": { name: "Relative Strength", desc: "L = Leader vs Laggard / 3-Month Outperformance" },
+            "I": { name: "Institutional Flow", desc: "I = Institutional Sponsorship (Quality FII + DII Holdings)" },
+            "M": { name: "Market Direction", desc: "M = Market Direction (Confirmed Stage 2 Uptrend)" }
+        };
+
+        let factorsHtml = `<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(95px, 1fr)); gap: 6px; margin-top: 10px;">` +
+            Object.entries(factors).map(([letter, f]) => {
+                const def = factorDefs[letter] || { name: f.label || letter, desc: f.detail };
+                return `
+                    <div title="${def.desc}" style="background: rgba(30, 41, 59, 0.7); border: 1px solid rgba(168, 85, 247, 0.25); padding: 5px 7px; border-radius: 6px; font-size: 11px; cursor: help;" onmouseover="this.style.borderColor='rgba(168, 85, 247, 0.6)'; this.style.background='rgba(45, 55, 72, 0.9)';" onmouseout="this.style.borderColor='rgba(168, 85, 247, 0.25)'; this.style.background='rgba(30, 41, 59, 0.7)';">
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <strong style="color: #c084fc; font-size: 11.5px;">${letter}</strong>
+                            <span style="color: #10b981; font-weight: 700; font-size: 10px;">${f.score}/${f.max}</span>
+                        </div>
+                        <div style="color: #cbd5e1; font-size: 9px; text-overflow: ellipsis; overflow: hidden; white-space: nowrap; margin-top: 2px;">${f.detail}</div>
                     </div>
-                    <div style="color: #cbd5e1; font-size: 9.5px; text-overflow: ellipsis; overflow: hidden; white-space: nowrap; margin-top: 2px;">${f.detail}</div>
-                </div>
-            `).join('') + `</div>`;
+                `;
+            }).join('') + `</div>`;
 
         cardContent.innerHTML = `
             <!-- Top Metric Cards Grid -->
@@ -54508,8 +54521,11 @@ function renderVcpCanslimCardContent(cardContent, data, symbol) {
                             <span style="color: #cbd5e1;">Volume Dry-Up (VDU) Ratio:</span>
                             <strong style="color: ${vcp.volume_dryup_ratio <= 1.0 ? '#10b981' : '#f59e0b'}; font-family: monospace;">${vcp.volume_dryup_ratio}x ${vcp.volume_dryup_ratio <= 1.0 ? '✓' : ''}</strong>
                         </div>
-                        <div style="display: flex; justify-content: space-between; font-size: 12px;">
-                            <span style="color: #cbd5e1;">Tightness Score:</span>
+                        <div style="display: flex; justify-content: space-between; align-items: center; font-size: 12px;">
+                            <span style="color: #cbd5e1; display: flex; align-items: center; gap: 4px;">
+                                Tightness Score:
+                                <span onclick="window.showTightnessScoreHelp && window.showTightnessScoreHelp(${vcp.tightness_score || 0})" style="cursor: pointer; color: #fbbf24; font-size: 10px; font-weight: bold; background: rgba(251,191,36,0.15); border: 1px solid rgba(251,191,36,0.35); border-radius: 50%; width: 15px; height: 15px; display: inline-flex; align-items: center; justify-content: center;" title="Click for Tightness Score Matrix & Interpretation">ℹ</span>
+                            </span>
                             <strong style="color: #fbbf24; font-family: monospace;">${vcp.tightness_score || 0} / 100</strong>
                         </div>
                         ${factorsHtml}
@@ -55040,6 +55056,43 @@ window.analyzeStock = function(symbol) {
 window.closeVcpAiModal = function() {
     const modal = document.getElementById('vcp-ai-modal');
     if (modal) modal.style.display = 'none';
+};
+
+window.showTightnessScoreHelp = function(score) {
+    const val = score || 0;
+    const msg = `
+        <div style="text-align: left; font-size: 13px; color: #e2e8f0; line-height: 1.6;">
+            <div style="font-weight: 800; font-size: 15.5px; color: #fbbf24; margin-bottom: 10px;">🎯 Minervini VCP Tightness Score Matrix</div>
+            <p style="margin-bottom: 12px; color: #94a3b8; font-size: 12px;">Measures volatility contraction compression & overhead supply absorption prior to pivot breakout.</p>
+            
+            <div style="background: rgba(30,41,59,0.7); border-radius: 8px; padding: 10px 14px; margin-bottom: 8px; border: 1px solid rgba(239,68,68,0.3);">
+                <strong style="color: #ef4444;">🔴 Score &lt; 40: Wide &amp; Loose Base</strong>
+                <div style="color: #cbd5e1; font-size: 12px; margin-top: 2px;">High volatility swings; high risk of whipsaw or false breakout failure.</div>
+            </div>
+
+            <div style="background: rgba(30,41,59,0.7); border-radius: 8px; padding: 10px 14px; margin-bottom: 8px; border: 1px solid rgba(251,191,36,0.4);">
+                <strong style="color: #fbbf24;">🟡 Score 50 – 75 ${val > 0 ? `(Current Score: ${val})` : ''}: ⏳ FORMING T3</strong>
+                <div style="color: #cbd5e1; font-size: 12px; margin-top: 2px;">Healthy structural base building; watch for volume to dry up as price approaches ₹2,281.00 pivot!</div>
+            </div>
+
+            <div style="background: rgba(30,41,59,0.7); border-radius: 8px; padding: 10px 14px; border: 1px solid rgba(16,185,129,0.4);">
+                <strong style="color: #10b981;">🟢 Score 80 – 100: 🎯 READY AT PIVOT</strong>
+                <div style="color: #cbd5e1; font-size: 12px; margin-top: 2px;">Ultra-tight price compression with non-existent volume; prime institutional buy trigger! 🚀</div>
+            </div>
+        </div>
+    `;
+
+    if (window.Swal) {
+        Swal.fire({
+            html: msg,
+            background: '#0f172a',
+            confirmButtonColor: '#a855f7',
+            confirmButtonText: 'Got it!',
+            customClass: { popup: 'swal-dark-popup' }
+        });
+    } else {
+        alert(`🎯 Minervini Tightness Score: ${val}/100\n\n• Score < 40: Wide & Loose Base (High Failure Risk)\n• Score 50 - 75: ⏳ FORMING T3 (Healthy Base Building)\n• Score 80 - 100: 🎯 READY AT PIVOT (Prime Buy Trigger)`);
+    }
 };
 
 document.addEventListener('keydown', function(e) {
