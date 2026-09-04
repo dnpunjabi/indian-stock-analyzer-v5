@@ -55042,6 +55042,12 @@ window.closeVcpAiModal = function() {
     if (modal) modal.style.display = 'none';
 };
 
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+        window.closeVcpAiModal();
+    }
+});
+
 window.openVcpAiDeepResearch = async function(symbol) {
     if (!symbol) return;
     const modal = document.getElementById('vcp-ai-modal');
