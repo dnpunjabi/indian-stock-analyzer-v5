@@ -9695,9 +9695,9 @@
                         </div>
 
                         <!-- Trendlyne-Style View Switcher & Quick Filter Chips Bar -->
-                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; flex-wrap: wrap; gap: 10px; padding: 10px 14px; background: rgba(255,255,255,0.02); border: 1px solid var(--border-glass); border-radius: 10px;">
+                        <div class="wl-controls-bar" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; flex-wrap: wrap; gap: 10px; padding: 10px 14px; background: rgba(255,255,255,0.02); border: 1px solid var(--border-glass); border-radius: 10px;">
                             <!-- View Switcher Tabs -->
-                            <div style="display: flex; gap: 6px; background: rgba(0,0,0,0.25); padding: 3px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.06); flex-wrap: wrap;">
+                            <div class="wl-view-tabs-container" style="display: flex; gap: 6px; background: rgba(0,0,0,0.25); padding: 3px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.06); flex-wrap: wrap; max-width: 100%;">
                                 <button id="wl-view-overview-btn" class="wl-view-btn active">📊 Overview</button>
                                 <button id="wl-view-valuation-btn" class="wl-view-btn">💎 Valuation View</button>
                                 <button id="wl-view-returns-btn" class="wl-view-btn">📈 Returns Matrix</button>
@@ -9705,19 +9705,21 @@
                             </div>
                             
                             <!-- Quick Filter Chips & Minervini Action Cluster (Guide & AI Evaluation) -->
-                            <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
-                                <div id="watchlist-filter-chips-container" style="display: flex; gap: 6px; overflow-x: auto; padding-bottom: 2px; scrollbar-width: none;">
+                            <div class="wl-actions-chips-wrap" style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap; max-width: 100%;">
+                                <div id="watchlist-filter-chips-container" style="display: flex; gap: 6px; overflow-x: auto; padding-bottom: 2px; scrollbar-width: none; flex-wrap: nowrap; max-width: 100%;">
                                     <button class="watchlist-filter-chip active" data-filter="all">All Stocks</button>
                                     <button class="watchlist-filter-chip" data-filter="gainers">🔥 Top Gainers</button>
                                     <button class="watchlist-filter-chip" data-filter="green">🟢 3-Dots Green</button>
                                     <button class="watchlist-filter-chip" data-filter="dip">⚠️ Dip Alerts</button>
                                 </div>
 
-                                <button id="toggle-vcp-guide-btn" onclick="const b=document.getElementById('vcp-classification-legend-banner'); b.style.display = b.style.display === 'none' ? 'block' : 'none';" class="btn-secondary" style="font-size: 11.5px; padding: 5px 10px; display: inline-flex; align-items: center; gap: 4px; color: #fbbf24; border-color: rgba(251,191,36,0.35); background: rgba(251,191,36,0.12); font-weight: 700; border-radius: 6px; white-space: nowrap; flex-shrink: 0;" title="Toggle Minervini VCP Definitions Guide">💡 Guide</button>
+                                <div class="wl-vcp-actions-row" style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+                                    <button id="toggle-vcp-guide-btn" onclick="const b=document.getElementById('vcp-classification-legend-banner'); b.style.display = b.style.display === 'none' ? 'block' : 'none';" class="btn-secondary" style="font-size: 11.5px; padding: 5px 10px; display: inline-flex; align-items: center; gap: 4px; color: #fbbf24; border-color: rgba(251,191,36,0.35); background: rgba(251,191,36,0.12); font-weight: 700; border-radius: 6px; white-space: nowrap; flex-shrink: 0;" title="Toggle Minervini VCP Definitions Guide">💡 Guide</button>
 
-                                <button class="btn-secondary" id="wl-ai-evaluate-btn" onclick="window.evaluateWatchlistWithAi && window.evaluateWatchlistWithAi()" style="font-size: 11.5px; padding: 5px 10px; display: inline-flex; align-items: center; gap: 5px; border-color: rgba(168,85,247,0.4); color: #c084fc; background: rgba(168,85,247,0.12); font-weight: 700; border-radius: 6px; white-space: nowrap; flex-shrink: 0;" title="Evaluate current watchlist using Gemini AI for Minervini Leaders & Rotation">
-                                    🔮 Evaluate Watchlist with AI
-                                </button>
+                                    <button class="btn-secondary" id="wl-ai-evaluate-btn" onclick="window.evaluateWatchlistWithAi && window.evaluateWatchlistWithAi()" style="font-size: 11.5px; padding: 5px 10px; display: inline-flex; align-items: center; gap: 5px; border-color: rgba(168,85,247,0.4); color: #c084fc; background: rgba(168,85,247,0.12); font-weight: 700; border-radius: 6px; white-space: nowrap; flex-shrink: 0;" title="Evaluate current watchlist using Gemini AI for Minervini Leaders & Rotation">
+                                        🔮 Evaluate Watchlist with AI
+                                    </button>
+                                </div>
                             </div>
                         </div>
 
