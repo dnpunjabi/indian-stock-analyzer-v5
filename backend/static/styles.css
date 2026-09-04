@@ -31528,6 +31528,16 @@ body.light-theme .tech-scans-table-container table thead th:nth-child(2),
         padding: 3px 8px !important;
         white-space: nowrap !important;
     }
+
+    #toggle-vcp-guide-btn,
+    #wl-ai-evaluate-btn {
+        flex: 0 0 auto !important;
+        white-space: nowrap !important;
+        font-size: 11px !important;
+        padding: 5px 10px !important;
+        height: 30px !important;
+        box-sizing: border-box !important;
+    }
 }
 
 

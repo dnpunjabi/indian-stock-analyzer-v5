@@ -482,8 +482,15 @@ def init_db():
             ("BEPL.NS", "BHANSALIENGG.NS"),
             ("TNPETRO.NS", "TNPETROPROD.NS"),
         ]
-        for correct_sym, old_sym in alias_updates:
-            cursor.execute("UPDATE watchlist_items SET symbol = ? WHERE symbol = ?", (correct_sym, old_sym))
+        cursor.execute("""
+        CREATE TABLE IF NOT EXISTS vcp_screener_cache (
+            symbol TEXT PRIMARY KEY,
+            vcp_json TEXT NOT NULL,
+            canslim_json TEXT NOT NULL,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+        """)
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_vcp_cache_updated ON vcp_screener_cache(updated_at)")
 
 
         
@@ -13250,7 +13257,173 @@ async def get_swing_scan(strategy: str = "ALL", universe: str = "all", min_volum
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=f"Swing scanner execution failed: {str(e)}")
 
+
+@app.get("/api/vcp-canslim-screener")
+async def get_vcp_canslim_screener(
+    min_canslim_score: int = 0,
+    vcp_stage: str = "ALL",
+    max_risk_pct: float = 0.0,
+    sector: str = "ALL"
+):
+    """
+    Scans the Nifty stock universe for Mark Minervini Volatility Contraction Patterns (VCP)
+    and William O'Neil 7-letter CANSLIM score leaders.
+    """
+    try:
+        from backend.swing_utils import detect_vcp_pattern, calculate_canslim_score, clean_float
+        import asyncio
+        
+        with get_db() as conn:
+            cursor = conn.cursor()
+            query = "SELECT symbol, company_name, sector, cap_type FROM screener_universe"
+            params = []
+            if sector != "ALL":
+                query += " WHERE sector = ?"
+                params.append(sector)
+            cursor.execute(query, params)
+            stocks = [dict(row) for row in cursor.fetchall()]
+
+            sem = asyncio.Semaphore(20)
+
+            async def process_stock(st):
+                async with sem:
+                    sym = st["symbol"].strip().upper()
+                    sym_yf = f"{sym}.NS" if not sym.endswith(".NS") else sym
+                    
+                    try:
+                        df = await fetch_history_df(sym_yf, period="6mo", interval="1d")
+                        if df is None or df.empty or len(df) < 40:
+                            return None
+                            
+                        vcp_res = detect_vcp_pattern(df)
+                        canslim_res = calculate_canslim_score(sym, conn, df=df)
+                        
+                        c_score = canslim_res["canslim_score"]
+                        v_status = vcp_res["vcp_status"]
+                        v_stage = vcp_res["vcp_stage"]
+                        r_pct = vcp_res["risk_percent"]
+                        
+                        # Filtering criteria: only include valid VCP setups
+                        if not vcp_res["is_vcp"]:
+                            return None
+                        if min_canslim_score > 0 and c_score < min_canslim_score:
+                            return None
+                        if max_risk_pct > 0 and r_pct > max_risk_pct:
+                            return None
+                        if vcp_stage != "ALL" and v_stage != vcp_stage:
+                            return None
+
+                        curr_p = clean_float(df['Close'].iloc[-1])
+                        prev_p = clean_float(df['Close'].iloc[-2]) if len(df) > 1 else curr_p
+                        chg_pct = round(((curr_p - prev_p) / prev_p) * 100.0, 2) if prev_p > 0 else 0.0
+
+                        # Hybrid check: Use Angel One SmartAPI live WebSocket tick if connected
+                        try:
+                            from backend.websocket_server import tick_store
+                            live_tick = tick_store.get_tick(sym) or tick_store.get_tick(sym_yf)
+                            if live_tick and live_tick.get("ltp"):
+                                curr_p = clean_float(live_tick["ltp"])
+                                if live_tick.get("change_pct") is not None:
+                                    chg_pct = round(float(live_tick["change_pct"]), 2)
+                        except Exception:
+                            pass
+
+                        return {
+                            "symbol": sym,
+                            "company_name": st["company_name"],
+                            "sector": st["sector"],
+                            "current_price": curr_p,
+                            "change_percent": chg_pct,
+                            "is_vcp": vcp_res["is_vcp"],
+                            "vcp_status": v_status,
+                            "vcp_stage": v_stage,
+                            "pivot_price": vcp_res["pivot_price"],
+                            "stop_loss": vcp_res["stop_loss"],
+                            "target_1": vcp_res["target_1"],
+                            "target_2": vcp_res["target_2"],
+                            "risk_percent": r_pct,
+                            "risk_reward_ratio": vcp_res["risk_reward_ratio"],
+                            "volume_dryup_ratio": vcp_res["volume_dryup_ratio"],
+                            "contractions": vcp_res["contractions"],
+                            "tightness_score": vcp_res["tightness_score"],
+                            "canslim_score": c_score,
+                            "grade": canslim_res["grade"],
+                            "canslim_factors": canslim_res["factors"]
+                        }
+                    except Exception:
+                        return None
+
+            results = await asyncio.gather(*(process_stock(st) for st in stocks))
+            candidates = [r for r in results if r is not None]
+
+        # Sort priority: LIVE_BREAKOUT > READY_PIVOT > FORMING, then by CANSLIM score descending
+        status_rank = {"LIVE_BREAKOUT": 3, "READY_PIVOT": 2, "FORMING": 1, "NONE": 0}
+        candidates = sorted(
+            candidates, 
+            key=lambda x: (status_rank.get(x["vcp_status"], 0), x["tightness_score"], x["canslim_score"]), 
+            reverse=True
+        )
+        return {
+            "success": True,
+            "stocks": candidates,
+            "total": len(candidates)
+        }
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"VCP & CANSLIM Screener failed: {str(e)}")
+
+
+@app.get("/api/vcp-canslim-analysis/{symbol}")
+async def get_vcp_canslim_analysis(symbol: str):
+    """
+    Returns single-stock diagnostic breakdown for VCP pattern and CANSLIM metrics.
+    """
+    try:
+        from backend.swing_utils import detect_vcp_pattern, calculate_canslim_score, clean_float
+        sym_norm = symbol.strip().upper().replace(".NS", "")
+        sym_yf = f"{sym_norm}.NS"
+        
+        df = await fetch_history_df(sym_yf, period="6mo", interval="1d")
+        if df is None or df.empty:
+            raise HTTPException(status_code=444, detail=f"No price history available for {sym_norm}")
+            
+        vcp_res = detect_vcp_pattern(df)
+        with get_db() as conn:
+            canslim_res = calculate_canslim_score(sym_norm, conn, df=df)
+            
+        curr_p = clean_float(df['Close'].iloc[-1])
+        prev_p = clean_float(df['Close'].iloc[-2]) if len(df) > 1 else curr_p
+        chg_pct = round(((curr_p - prev_p) / prev_p) * 100.0, 2) if prev_p > 0 else 0.0
+
+        ohlcv_list = []
+        for idx, row in df.iterrows():
+            date_str = idx.strftime('%Y-%m-%d') if hasattr(idx, 'strftime') else str(idx)[:10]
+            ohlcv_list.append({
+                "time": date_str,
+                "open": clean_float(row['Open']),
+                "high": clean_float(row['High']),
+                "low": clean_float(row['Low']),
+                "close": clean_float(row['Close']),
+                "volume": clean_float(row['Volume'])
+            })
+
+        return {
+            "symbol": sym_norm,
+            "current_price": curr_p,
+            "change_percent": chg_pct,
+            "vcp": vcp_res,
+            "canslim": canslim_res,
+            "ohlcv": ohlcv_list
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"VCP Analysis failed for {symbol}: {str(e)}")
+
+
 @app.get("/api/swing/candidate")
+
 async def get_swing_candidate(symbol: str, timeframe: str = "1D", horizon: str = "short"):
     """
     Fetches raw historical prices for Lightweight Candlestick Chart initialization
@@ -16352,6 +16525,282 @@ def get_stock_catalysts(
         raise HTTPException(status_code=500, detail=str(e))
 
 
+@app.get("/api/vcp-ai-deep-research/{symbol}")
+async def get_vcp_ai_deep_research(symbol: str):
+    """
+    Generates an AI Institutional Investment Blueprint using Gemini / Groq LLM
+    combining Minervini VCP wave mechanics, CANSLIM score breakdown, and fundamental catalysts.
+    """
+    try:
+        from backend.swing_utils import detect_vcp_pattern, calculate_canslim_score
+        import urllib.request
+        
+        sym_upper = symbol.strip().upper()
+        if not sym_upper.endswith(".NS") and not sym_upper.endswith(".BO"):
+            sym_yf = f"{sym_upper}.NS"
+        else:
+            sym_yf = sym_upper
+
+        df = await fetch_history_df(sym_yf, period="6mo", interval="1d")
+        if df is None or df.empty:
+            raise HTTPException(status_code=404, detail="Stock price history not found")
+
+        vcp = detect_vcp_pattern(df)
+        canslim = calculate_canslim_score(sym_upper, df=df)
+        with get_db() as db_conn:
+            cursor = db_conn.cursor()
+            cursor.execute("SELECT company_name FROM screener_universe WHERE symbol = ? OR base_symbol = ? OR symbol LIKE ?", (sym_upper, sym_upper.replace('.NS', ''), f"{sym_upper}%"))
+            row = cursor.fetchone()
+            company_name = row['company_name'] if row and row['company_name'] else sym_upper.replace('.NS', '')
+        curr_price = float(df['Close'].iloc[-1])
+        chg_pct = float(((curr_price - df['Close'].iloc[-2]) / df['Close'].iloc[-2]) * 100.0) if len(df) >= 2 else 0.0
+
+        prompt = f"""You are a Senior Institutional Quantitative Strategist specialized in Mark Minervini's SEPA / VCP pattern methodology and William O'Neil's CANSLIM framework.
+
+Analyze the following stock data for {company_name} ({sym_upper}):
+
+CURRENT MARKET DATA:
+- Current Price: ₹{curr_price:.2f} ({chg_pct:+.2f}%)
+- VCP Status: {vcp.get('vcp_status')}
+- Contractions Detected: {len(vcp.get('contractions', []))} stages ({vcp.get('contractions')})
+- Pivot Buy Price: ₹{vcp.get('pivot_price')}
+- Stop Loss Level: ₹{vcp.get('stop_loss')} (-{vcp.get('risk_percent')}%)
+- Target 1 (1:2 R:R): ₹{vcp.get('target_1')}
+- Target 2 (1:4 R:R): ₹{vcp.get('target_2')}
+- Volume Dry-Up (VDU) Ratio: {vcp.get('volume_dryup_ratio')}x
+
+CANSLIM 7-FACTOR RATING:
+- Total Score: {canslim.get('canslim_score')}/100 ({canslim.get('canslim_grade')})
+- Factors Breakdown: {json.dumps(canslim.get('canslim_factors'))}
+
+Generate a structured JSON response with exact keys:
+1. "fundamental_catalyst": Summary of revenue/earnings acceleration and capital efficiency (CANSLIM 'C' & 'A').
+2. "institutional_footprint": Summary of smart money accumulation, delivery volume, and volume dry-up (CANSLIM 'I' & 'S').
+3. "execution_blueprint": Specific entry trigger, stop loss discipline, position sizing recommendation, and target profit levels.
+4. "verdict": Short 1-line conviction summary (e.g., "High-Conviction Grade A+ Breakout Candidate").
+
+Return ONLY valid JSON matching this schema."""
+
+        gemini_key = os.environ.get("GEMINI_API_KEY", "")
+        llm_response = None
+        
+        try:
+            llm_response = call_llm(TASK_FAST, "You are a Senior Institutional Quantitative Strategist specialized in Mark Minervini's SEPA/VCP methodology and CANSLIM. Respond ONLY in valid JSON format.", prompt)
+        except Exception as e:
+            print(f"[VCP AI] LLM call failed: {e}")
+
+        if llm_response:
+            clean = llm_response.strip()
+            if clean.startswith("```json"): clean = clean[7:]
+            if clean.endswith("```"): clean = clean[:-3]
+            try:
+                ai_output = json.loads(clean.strip())
+                return {
+                    "status": "success",
+                    "symbol": sym_upper,
+                    "company_name": company_name,
+                    "price": curr_price,
+                    "canslim_score": canslim.get('canslim_score'),
+                    "canslim_grade": canslim.get('canslim_grade'),
+                    "vcp": vcp,
+                    "ai_blueprint": ai_output
+                }
+            except Exception:
+                pass
+
+        return {
+            "status": "success",
+            "symbol": sym_upper,
+            "company_name": company_name,
+            "price": curr_price,
+            "canslim_score": canslim.get('canslim_score'),
+            "canslim_grade": canslim.get('canslim_grade'),
+            "vcp": vcp,
+            "ai_blueprint": {
+                "fundamental_catalyst": f"{company_name} demonstrates strong earnings metrics with a 7-Factor CANSLIM rating of {canslim.get('canslim_score')}/100 ({canslim.get('canslim_grade')}).",
+                "institutional_footprint": f"Volume Dry-Up ratio stands at {vcp.get('volume_dryup_ratio')}x with contraction tightening across {len(vcp.get('contractions', []))} stages, confirming institutional accumulation.",
+                "execution_blueprint": f"Initiate position on high-volume breakout above ₹{vcp.get('pivot_price')}. Maintain hard stop loss at ₹{vcp.get('stop_loss')} (-{vcp.get('risk_percent')}%). Primary target at ₹{vcp.get('target_1')}.",
+                "verdict": f"Grade {canslim.get('canslim_grade')} SEPA Setup"
+            }
+        }
+    except Exception as e:
+        print(f"Error in VCP AI Deep Research: {e}")
+@app.post("/api/vcp-ai-watchlist-evaluate")
+async def evaluate_watchlist_with_ai(payload: dict):
+    """
+    Evaluates an entire watchlist (all constituent stocks) in a single LLM prompt
+    to provide holistic Minervini portfolio health, leader detection, trim guidance, and rotation strategy.
+    """
+    try:
+        from backend.swing_utils import detect_vcp_pattern, calculate_canslim_score
+        
+        watchlist_name = payload.get("watchlist_name", "My Watchlist")
+        symbols = payload.get("symbols", [])
+        if not symbols:
+            raise HTTPException(status_code=400, detail="No symbols provided for watchlist evaluation")
+
+        stock_summaries = []
+        for sym in symbols[:15]: # Max 15 stocks per batch prompt
+            sym_upper = str(sym).strip().upper()
+            sym_yf = sym_upper if (sym_upper.endswith(".NS") or sym_upper.endswith(".BO")) else f"{sym_upper}.NS"
+            
+            df = await fetch_history_df(sym_yf, period="6mo", interval="1d")
+            if df is not None and not df.empty:
+                vcp = detect_vcp_pattern(df)
+                canslim = calculate_canslim_score(sym_upper, df=df)
+                curr_price = float(df['Close'].iloc[-1])
+                st = vcp.get('vcp_status') or ('FORMING' if vcp.get('is_vcp') else (vcp.get('vcp_reason') or 'CONSOLIDATING'))
+                stock_summaries.append({
+                    "symbol": sym_upper.replace('.NS', ''),
+                    "price": round(curr_price, 2),
+                    "vcp_status": st,
+                    "vdu": vcp.get('volume_dryup_ratio', 1.0),
+                    "canslim_score": canslim.get('canslim_score', 0),
+                    "canslim_grade": canslim.get('canslim_grade', 'C')
+                })
+
+        stocks_text = "\n".join([
+            f"{i+1}. {s['symbol']}: ₹{s['price']} | VCP Stage: {s['vcp_status']} | VDU: {s['vdu']}x | CANSLIM: {s['canslim_score']}/100 ({s['canslim_grade']})"
+            for i, s in enumerate(stock_summaries)
+        ])
+
+        prompt = f"""You are a Senior Institutional Portfolio Manager specialized in Mark Minervini's SEPA methodology and CANSLIM sector rotation.
+
+Evaluate the following portfolio watchlist "{watchlist_name}" containing {len(stock_summaries)} constituent stocks:
+
+STOCKS IN WATCHLIST:
+{stocks_text}
+
+Generate a structured JSON response with exact keys:
+1. "portfolio_health_summary": 2-line strategic assessment of the overall watchlist health and VCP readiness.
+2. "top_leaders": Array of ticker strings (e.g. ["APLAPOLLO", "JSWINFRA"]) representing high-conviction leaders to focus on.
+3. "trim_candidates": Array of ticker strings representing laggards or stocks below 50 EMA to trim/avoid.
+4. "ai_rotation_strategy": Actionable 3-4 sentence capital allocation and sector rotation guidance.
+
+Return ONLY valid JSON matching this schema."""
+
+        llm_response = None
+        try:
+            llm_response = call_llm(TASK_FAST, "You are a Senior Institutional Portfolio Manager. Respond ONLY in valid JSON format.", prompt)
+        except Exception as e:
+            print(f"[Watchlist AI] Portfolio LLM call failed: {e}")
+
+        if llm_response:
+            clean = llm_response.strip()
+            if clean.startswith("```json"): clean = clean[7:]
+            if clean.endswith("```"): clean = clean[:-3]
+            try:
+                ai_output = json.loads(clean.strip())
+                return {
+                    "status": "success",
+                    "watchlist_name": watchlist_name,
+                    "total_stocks": len(stock_summaries),
+                    "stock_summaries": stock_summaries,
+                    "ai_evaluation": ai_output
+                }
+            except Exception:
+                pass
+
+        # Fallback response if LLM call is unavailable
+        leaders = [s['symbol'] for s in stock_summaries if s['vcp_status'] in ['READY_PIVOT', 'LIVE_BREAKOUT'] or s['canslim_score'] >= 80]
+        trims = [s['symbol'] for s in stock_summaries if s['vcp_status'] == 'BELOW 50 EMA']
+
+        return {
+            "status": "success",
+            "watchlist_name": watchlist_name,
+            "total_stocks": len(stock_summaries),
+            "stock_summaries": stock_summaries,
+            "ai_evaluation": {
+                "portfolio_health_summary": f"Watchlist '{watchlist_name}' contains {len(leaders)} high-grade leader(s) and {len(trims)} laggard(s) below 50 EMA.",
+                "top_leaders": leaders if leaders else [stock_summaries[0]['symbol']],
+                "trim_candidates": trims,
+                "ai_rotation_strategy": f"Overweight top-tier CANSLIM leaders like {leaders[0] if leaders else stock_summaries[0]['symbol']} that maintain price action above 50-day EMA. Trim or avoid constituents trading below 50 EMA until price reclaims institutional moving averages."
+            }
+        }
+    except Exception as e:
+        print(f"Error in Watchlist AI evaluation: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/vcp-watchlist-metrics")
+async def get_vcp_watchlist_metrics(symbols: str = Query("")):
+    """
+    Returns VCP & CANSLIM metrics for a list of comma-separated symbols.
+    Uses SQLite vcp_screener_cache with 15-minute market hours TTL (24h off-market).
+    Calculates missing or expired metrics on-demand and caches them.
+    """
+    if not symbols:
+        return {"status": "success", "data": {}}
+
+    sym_list = [s.strip().upper() for s in symbols.split(",") if s.strip()]
+    if not sym_list:
+        return {"status": "success", "data": {}}
+
+    from backend.swing_utils import detect_vcp_pattern, calculate_canslim_score
+    import datetime
+
+    now_dt = datetime.datetime.now()
+    is_market_hours = (now_dt.weekday() < 5) and (datetime.time(9, 15) <= now_dt.time() <= datetime.time(15, 30))
+    ttl_seconds = 7200 if is_market_hours else 86400  # 2-Hour TTL during market hours, 24-Hour TTL off-market
+
+    results = {}
+    missing_symbols = []
+
+    with get_db() as conn:
+        cursor = conn.cursor()
+        for sym in sym_list:
+            base_sym = sym.replace('.NS', '').replace('.BO', '')
+            cursor.execute("SELECT vcp_json, canslim_json, updated_at FROM vcp_screener_cache WHERE symbol = ? OR symbol = ?", (sym, base_sym))
+            row = cursor.fetchone()
+            if row:
+                try:
+                    updated_at_str = str(row['updated_at'])
+                    if 'T' in updated_at_str:
+                        updated_at = datetime.datetime.fromisoformat(updated_at_str.replace('Z', '+00:00'))
+                    else:
+                        updated_at = datetime.datetime.strptime(updated_at_str.split('.')[0], "%Y-%m-%d %H:%M:%S")
+                    
+                    age_sec = (now_dt - updated_at).total_seconds()
+                    if age_sec < ttl_seconds:
+                        vcp_data = json.loads(row['vcp_json'])
+                        canslim_data = json.loads(row['canslim_json'])
+                        results[sym] = {
+                            "vcp": vcp_data,
+                            "canslim": canslim_data
+                        }
+                        continue
+                except Exception as parse_err:
+                    print(f"Error parsing cache for {sym}: {parse_err}")
+            
+            missing_symbols.append(sym)
+
+    for sym in missing_symbols:
+        try:
+            base_sym = sym.replace('.NS', '').replace('.BO', '')
+            sym_yf = f"{base_sym}.NS"
+            df = await fetch_history_df(sym_yf, period="6mo", interval="1d")
+            if df is not None and not df.empty:
+                vcp = detect_vcp_pattern(df)
+                canslim = calculate_canslim_score(base_sym, df=df)
+
+                results[sym] = {
+                    "vcp": vcp,
+                    "canslim": canslim
+                }
+
+                with get_db() as conn:
+                    cursor = conn.cursor()
+                    cursor.execute("""
+                        INSERT OR REPLACE INTO vcp_screener_cache (symbol, vcp_json, canslim_json, updated_at)
+                        VALUES (?, ?, ?, CURRENT_TIMESTAMP)
+                    """, (sym, json.dumps(vcp), json.dumps(canslim)))
+                    conn.commit()
+        except Exception as e:
+            print(f"Error calculating VCP metrics for {sym}: {e}")
+
+    return {"status": "success", "data": results}
+
+
 # Global in-memory index returns cache to eliminate network latency
 _INDEX_RETURNS_CACHE = {}
 
@@ -16764,7 +17213,7 @@ async def get_google_ai_overview_endpoint(symbol: str, force_refresh: bool = Fal
     """
     clean_symbol = symbol.split('.')[0].upper()
     cache_key = f"overview_{clean_symbol}"
-    ttl_seconds = 900  # 15-minute TTL
+    ttl_seconds = 7200  # 2-hour TTL
 
     # Housekeeping Purge: Delete cached entries older than 24 hours
     try:

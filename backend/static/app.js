@@ -877,6 +877,25 @@ function handleLiveTickMessage(ticksData) {
 
     // Update Mobile Market Pulse Strip
     if (window.updateMobileMarketPulse) window.updateMobileMarketPulse(ticksData);
+
+    // Update live stock prices in VCP Screener grid dynamically from WebSocket ticks
+    if (window.allVcpStocks && window.allVcpStocks.length > 0) {
+        let vcpUpdated = false;
+        for (const [symKey, q] of Object.entries(ticksData)) {
+            if (!q || !q.price) continue;
+            const symUpper = symKey.toUpperCase();
+            const baseSym = symUpper.replace('.NS', '').replace('.BO', '');
+            const match = window.allVcpStocks.find(s => s && s.symbol && (s.symbol.toUpperCase() === symUpper || s.symbol.toUpperCase().replace('.NS', '') === baseSym));
+            if (match) {
+                match.current_price = q.price;
+                if (q.change_pct !== undefined) match.change_percent = q.change_pct;
+                vcpUpdated = true;
+            }
+        }
+        if (vcpUpdated && typeof window.filterVcpCards === 'function') {
+            window.filterVcpCards();
+        }
+    }
 }
 
 function handleWsAlertTriggered(alertData) {
@@ -1504,6 +1523,7 @@ let ruleScanFilterMaxDE = 500;
 const tabs = {
     home: document.getElementById('tab-home') || document.getElementById('tab-analyzer'),
     screener: document.getElementById('tab-screener'),
+    vcp: document.getElementById('tab-vcp'),
     fuzzy: document.getElementById('tab-fuzzy'),
     universe: document.getElementById('tab-universe'),
     analyzer: document.getElementById('tab-analyzer'),
@@ -1526,6 +1546,7 @@ const tabs = {
 const tabBtns = {
     home: document.getElementById('tab-home-btn') || document.getElementById('tab-home-btn-desktop'),
     screener: document.getElementById('tab-screener-btn') || document.getElementById('tab-screener-btn-desktop'),
+    vcp: document.getElementById('tab-vcp-btn') || document.getElementById('tab-vcp-btn-desktop'),
     fuzzy: document.getElementById('tab-fuzzy-btn') || document.getElementById('tab-fuzzy-btn-desktop'),
     universe: document.getElementById('tab-universe-btn') || document.getElementById('tab-universe-btn-desktop'),
     analyzer: document.getElementById('tab-analyzer-btn') || document.getElementById('tab-analyzer-btn-desktop'),
@@ -17937,11 +17958,13 @@ function renderWatchlistItems() {
     const overviewBtn = document.getElementById('wl-view-overview-btn');
     const valuationBtn = document.getElementById('wl-view-valuation-btn');
     const returnsBtn = document.getElementById('wl-view-returns-btn');
+    const vcpBtn = document.getElementById('wl-view-vcp-btn');
 
     if (overviewBtn && valuationBtn && returnsBtn) {
         overviewBtn.className = `wl-view-btn ${window.activeWatchlistView === 'overview' ? 'active' : ''}`;
         valuationBtn.className = `wl-view-btn ${window.activeWatchlistView === 'valuation' ? 'active' : ''}`;
         returnsBtn.className = `wl-view-btn ${window.activeWatchlistView === 'returns' ? 'active' : ''}`;
+        if (vcpBtn) vcpBtn.className = `wl-view-btn ${window.activeWatchlistView === 'vcp' ? 'active' : ''}`;
 
         overviewBtn.onclick = () => {
             window.activeWatchlistView = 'overview';
@@ -17953,6 +17976,10 @@ function renderWatchlistItems() {
         };
         returnsBtn.onclick = () => {
             window.activeWatchlistView = 'returns';
+            renderWatchlistItems();
+        };
+        if (vcpBtn) vcpBtn.onclick = () => {
+            window.activeWatchlistView = 'vcp';
             renderWatchlistItems();
         };
     }
@@ -18012,6 +18039,19 @@ function renderWatchlistItems() {
                 ${getSortHeader('mos_pct', 'MOS %', 'right')}
                 <th style="color: var(--text-secondary); text-align: center;">Actions</th>
             `;
+        } else if (window.activeWatchlistView === 'vcp') {
+            headerRow.innerHTML = `
+                ${getSortHeader('symbol', 'Stock', 'left', true)}
+                ${getSortHeader('live_price', 'LTP', 'right')}
+                ${getSortHeader('change_pct', 'Day Chg %', 'right')}
+                <th style="color: var(--text-secondary); text-align: center;">🎯 VCP Contraction Stage</th>
+                <th style="color: var(--text-secondary); text-align: center;">💧 VDU Ratio</th>
+                <th style="color: var(--text-secondary); text-align: right;">Pivot Buy (Stop Loss)</th>
+                <th style="color: var(--text-secondary); text-align: center;">🚀 Targets (T1 / T2)</th>
+                <th style="color: var(--text-secondary); text-align: center;">7-Factor CANSLIM</th>
+                <th style="color: var(--text-secondary); text-align: center;">🔮 AI Research</th>
+                <th style="color: var(--text-secondary); text-align: center;">Actions</th>
+            `;
         } else {
             headerRow.innerHTML = `
                 ${getSortHeader('symbol', 'Stock', 'left', true)}
@@ -18024,6 +18064,97 @@ function renderWatchlistItems() {
                 <th style="color: var(--text-secondary); text-align: center;">Actions</th>
             `;
         }
+    }
+
+    // Auto-fetch VCP & CANSLIM metrics if active view is VCP and cache is missing/stale
+    if (window.activeWatchlistView === 'vcp' && activeWatch && activeWatch.items && activeWatch.items.length > 0) {
+        if (!window.vcpWatchlistCache) window.vcpWatchlistCache = {};
+        const missingSyms = activeWatch.items.map(x => x.symbol).filter(sym => !window.vcpWatchlistCache[sym]);
+        
+        if (missingSyms.length > 0 && !window._isFetchingVcpMetrics) {
+            window._isFetchingVcpMetrics = true;
+            fetch(`/api/vcp-watchlist-metrics?symbols=${encodeURIComponent(missingSyms.join(','))}`)
+                .then(res => res.json())
+                .then(resData => {
+                    window._isFetchingVcpMetrics = false;
+                    if (resData && resData.status === 'success' && resData.data) {
+                        Object.assign(window.vcpWatchlistCache, resData.data);
+                        renderWatchlistItems();
+                    }
+                })
+                .catch(err => {
+                    window._isFetchingVcpMetrics = false;
+                    console.error("VCP metrics fetch error:", err);
+                });
+        }
+    }
+
+    // Toggle visibility of Guide & AI Evaluate buttons based on active view mode
+    const vcpGuideBtn = document.getElementById('toggle-vcp-guide-btn');
+    const vcpAiEvalBtn = document.getElementById('wl-ai-evaluate-btn');
+    const vcpLegendBanner = document.getElementById('vcp-classification-legend-banner');
+
+    if (window.activeWatchlistView === 'vcp') {
+        if (vcpGuideBtn) vcpGuideBtn.style.display = 'inline-flex';
+        if (vcpAiEvalBtn) vcpAiEvalBtn.style.display = 'inline-flex';
+    } else {
+        if (vcpGuideBtn) vcpGuideBtn.style.display = 'none';
+        if (vcpAiEvalBtn) vcpAiEvalBtn.style.display = 'none';
+        if (vcpLegendBanner) vcpLegendBanner.style.display = 'none';
+    }
+
+    // Dynamic VCP Filter chips rendering
+    const chipsContainer = document.getElementById('watchlist-filter-chips-container');
+    if (chipsContainer && window.activeWatchlistView === 'vcp') {
+        let readyCount = 0, breakoutCount = 0, formingCount = 0, belowEmaCount = 0, wideSwingsCount = 0;
+        
+        activeWatch.items.forEach(item => {
+            const symUpper = item.symbol.toUpperCase();
+            const baseSym = symUpper.replace('.NS', '').replace('.BO', '');
+            let vData = window.vcpWatchlistCache ? (window.vcpWatchlistCache[item.symbol] || window.vcpWatchlistCache[baseSym]) : null;
+            if (vData && vData.vcp) vData = vData.vcp;
+            
+            if (vData) {
+                const st = vData.vcp_status || (vData.is_vcp ? 'FORMING' : 'NONE');
+                const reason = vData.vcp_reason || '';
+                if (st === 'READY_PIVOT') readyCount++;
+                else if (st === 'LIVE_BREAKOUT') breakoutCount++;
+                else if (vData.is_vcp || st === 'FORMING') formingCount++;
+                else if (reason === 'BELOW 50 EMA') belowEmaCount++;
+                else if (reason === 'WIDE SWINGS') wideSwingsCount++;
+            }
+        });
+
+        const activeF = window.activeWatchlistFilter || 'all';
+        chipsContainer.innerHTML = `
+            <button class="watchlist-filter-chip ${activeF === 'all' ? 'active' : ''}" data-filter="all" style="font-size: 11.5px; font-weight: 700;">All (${activeWatch.items.length})</button>
+            <button class="watchlist-filter-chip ${activeF === 'vcp_ready' ? 'active' : ''}" data-filter="vcp_ready" style="font-size: 11.5px; font-weight: 700; border-color: rgba(16,185,129,0.4); color: #10b981;">🎯 Ready (${readyCount})</button>
+            <button class="watchlist-filter-chip ${activeF === 'vcp_breakout' ? 'active' : ''}" data-filter="vcp_breakout" style="font-size: 11.5px; font-weight: 700; border-color: rgba(56,189,248,0.4); color: #38bdf8;">🚀 Breakout (${breakoutCount})</button>
+            <button class="watchlist-filter-chip ${activeF === 'vcp_forming' ? 'active' : ''}" data-filter="vcp_forming" style="font-size: 11.5px; font-weight: 700; border-color: rgba(245,158,11,0.4); color: #fbbf24;">⏳ Forming VCP (${formingCount})</button>
+            <button class="watchlist-filter-chip ${activeF === 'vcp_below_ema' ? 'active' : ''}" data-filter="vcp_below_ema" style="font-size: 11.5px; font-weight: 700; border-color: rgba(239,68,68,0.4); color: #f87171;">📉 Below 50 EMA (${belowEmaCount})</button>
+            <button class="watchlist-filter-chip ${activeF === 'vcp_wide' ? 'active' : ''}" data-filter="vcp_wide" style="font-size: 11.5px; font-weight: 700; border-color: rgba(245,158,11,0.4); color: #f59e0b;">⏳ Wide Swings (${wideSwingsCount})</button>
+        `;
+        
+        chipsContainer.querySelectorAll('.watchlist-filter-chip').forEach(chip => {
+            chip.onclick = () => {
+                window.activeWatchlistFilter = chip.getAttribute('data-filter');
+                renderWatchlistItems();
+            };
+        });
+    } else if (chipsContainer) {
+        const activeF = window.activeWatchlistFilter || 'all';
+        chipsContainer.innerHTML = `
+            <button class="watchlist-filter-chip ${activeF === 'all' ? 'active' : ''}" data-filter="all">All Stocks</button>
+            <button class="watchlist-filter-chip ${activeF === 'gainers' ? 'active' : ''}" data-filter="gainers">🔥 Top Gainers</button>
+            <button class="watchlist-filter-chip ${activeF === 'green' ? 'active' : ''}" data-filter="green">🟢 3-Dots Green</button>
+            <button class="watchlist-filter-chip ${activeF === 'dip' ? 'active' : ''}" data-filter="dip">⚠️ Dip Alerts</button>
+        `;
+        chipsContainer.querySelectorAll('.watchlist-filter-chip').forEach(chip => {
+            chip.onclick = () => {
+                window.activeWatchlistFilter = chip.getAttribute('data-filter');
+                renderWatchlistItems();
+            };
+        });
     }
 
     // Filter constituents based on activeWatchlistFilter
@@ -18041,6 +18172,31 @@ function renderWatchlistItems() {
             (x.chg_since_added || 0) <= -2.5 || 
             (x.range_52w && typeof x.range_52w.pos_pct === 'number' && x.range_52w.pos_pct <= 25)
         );
+    } else if (window.activeWatchlistFilter === 'vcp_ready') {
+        filteredItems = filteredItems.filter(x => {
+            const v = window.vcpWatchlistCache ? (window.vcpWatchlistCache[x.symbol] || window.vcpWatchlistCache[x.symbol.replace('.NS','')]) : null;
+            return v && v.vcp && v.vcp.vcp_status === 'READY_PIVOT';
+        });
+    } else if (window.activeWatchlistFilter === 'vcp_breakout') {
+        filteredItems = filteredItems.filter(x => {
+            const v = window.vcpWatchlistCache ? (window.vcpWatchlistCache[x.symbol] || window.vcpWatchlistCache[x.symbol.replace('.NS','')]) : null;
+            return v && v.vcp && v.vcp.vcp_status === 'LIVE_BREAKOUT';
+        });
+    } else if (window.activeWatchlistFilter === 'vcp_forming') {
+        filteredItems = filteredItems.filter(x => {
+            const v = window.vcpWatchlistCache ? (window.vcpWatchlistCache[x.symbol] || window.vcpWatchlistCache[x.symbol.replace('.NS','')]) : null;
+            return v && v.vcp && (v.vcp.is_vcp || v.vcp.vcp_status === 'FORMING');
+        });
+    } else if (window.activeWatchlistFilter === 'vcp_below_ema') {
+        filteredItems = filteredItems.filter(x => {
+            const v = window.vcpWatchlistCache ? (window.vcpWatchlistCache[x.symbol] || window.vcpWatchlistCache[x.symbol.replace('.NS','')]) : null;
+            return v && v.vcp && v.vcp.vcp_reason === 'BELOW 50 EMA';
+        });
+    } else if (window.activeWatchlistFilter === 'vcp_wide') {
+        filteredItems = filteredItems.filter(x => {
+            const v = window.vcpWatchlistCache ? (window.vcpWatchlistCache[x.symbol] || window.vcpWatchlistCache[x.symbol.replace('.NS','')]) : null;
+            return v && v.vcp && v.vcp.vcp_reason === 'WIDE SWINGS';
+        });
     }
 
     // --- SORT CONSTITUENTS ---
@@ -18315,6 +18471,126 @@ function renderWatchlistItems() {
                 <td style="text-align: right;">${roceHTML}</td>
                 <td style="text-align: right;">${fvHTML}</td>
                 <td style="text-align: right;">${mosHTML}</td>
+                <td style="white-space: nowrap; text-align: center;">
+                    ${alertBadgeHTML}
+                    <button class="btn-secondary remove-watchlist-item-btn" data-ticker="${item.symbol}" style="font-size: 10px; padding: 3px 8px; cursor:pointer;" title="Remove ${item.symbol}">🗑️</button>
+                </td>
+            `;
+        } else if (window.activeWatchlistView === 'vcp') {
+            const symUpper = item.symbol.toUpperCase();
+            const baseSym = symUpper.replace('.NS', '').replace('.BO', '');
+            
+            let vcpData = null;
+            let canslimData = null;
+
+            if (window.vcpWatchlistCache && window.vcpWatchlistCache[item.symbol]) {
+                vcpData = window.vcpWatchlistCache[item.symbol].vcp;
+                canslimData = window.vcpWatchlistCache[item.symbol].canslim;
+            } else if (window.vcpWatchlistCache && window.vcpWatchlistCache[baseSym]) {
+                vcpData = window.vcpWatchlistCache[baseSym].vcp;
+                canslimData = window.vcpWatchlistCache[baseSym].canslim;
+            } else if (window.allVcpStocks && window.allVcpStocks.length > 0) {
+                const vcpMatch = window.allVcpStocks.find(s => s && s.symbol && (s.symbol.toUpperCase() === symUpper || s.symbol.toUpperCase().replace('.NS','') === baseSym));
+                if (vcpMatch) {
+                    vcpData = vcpMatch;
+                    canslimData = { canslim_score: vcpMatch.canslim_score, grade: vcpMatch.canslim_grade };
+                }
+            }
+
+            let vcpStageBadge = `<span style="background: rgba(148, 163, 184, 0.12); color: #94a3b8; border: 1px solid rgba(148, 163, 184, 0.25); font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 12px;">BEARISH / NO VCP</span>`;
+            let vduHTML = `<span style="color: var(--text-muted); font-size: 11.5px;">--</span>`;
+            let pivotHTML = `<span style="color: var(--text-muted); font-size: 11.5px;">--</span>`;
+            let targetsHTML = `<span style="color: var(--text-muted); font-size: 11.5px;">--</span>`;
+            let canslimHTML = `<span style="color: var(--text-muted); font-size: 11.5px;">--</span>`;
+
+            if (vcpData) {
+                const st = vcpData.vcp_status || (vcpData.is_vcp ? 'FORMING' : 'NONE');
+                const reason = vcpData.vcp_reason || 'CONSOLIDATING';
+                let badgeHTML = '';
+                let badgeDesc = '';
+
+                if (st === 'READY_PIVOT') {
+                    badgeHTML = `<span style="background: rgba(16, 185, 129, 0.15); color: #10b981; border: 1px solid rgba(16, 185, 129, 0.4); font-size: 11px; font-weight: 800; padding: 2px 10px; border-radius: 12px;">🎯 READY AT PIVOT</span>`;
+                    badgeDesc = 'Stock has completed all contraction stages with volume dry-up (VDU <= 1.0x) and is positioned within 4% of the pivot buy point.';
+                } else if (st === 'LIVE_BREAKOUT') {
+                    badgeHTML = `<span style="background: rgba(56, 189, 248, 0.15); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.4); font-size: 11px; font-weight: 800; padding: 2px 10px; border-radius: 12px;">🚀 LIVE BREAKOUT</span>`;
+                    badgeDesc = 'Stock has crossed the pivot buy price on strong institutional volume (>125% of 20-day average).';
+                } else if (vcpData.is_vcp || st === 'FORMING') {
+                    const stage = vcpData.vcp_stage || 'T3';
+                    badgeHTML = `<span style="background: rgba(245, 158, 11, 0.15); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.4); font-size: 11px; font-weight: 700; padding: 2px 10px; border-radius: 12px;">⏳ FORMING ${stage}</span>`;
+                    badgeDesc = `Active Volatility Contraction Pattern meeting Mark Minervini SEPA criteria in wave stage ${stage}.`;
+                } else if (reason === 'BELOW 50 EMA') {
+                    badgeHTML = `<span style="background: rgba(239, 68, 68, 0.12); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.25); font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 12px;">📉 BELOW 50 EMA</span>`;
+                    badgeDesc = 'Stock is consolidating below its 50-day Exponential Moving Average. Minervini SEPA Trend Template requires price > 50 EMA.';
+                } else if (reason === 'WIDE SWINGS') {
+                    badgeHTML = `<span style="background: rgba(245, 158, 11, 0.12); color: #f59e0b; border: 1px solid rgba(245, 158, 11, 0.25); font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 12px;">⏳ WIDE SWINGS</span>`;
+                    badgeDesc = 'Stock is forming a base, but price volatility swings are wider than strict Minervini contraction thresholds.';
+                } else if (reason === 'BASE BUILDING') {
+                    badgeHTML = `<span style="background: rgba(168, 85, 247, 0.12); color: #c084fc; border: 1px solid rgba(168, 85, 247, 0.25); font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 12px;">🧱 BASE BUILDING</span>`;
+                    badgeDesc = 'Stock is in early Stage 1 accumulation or constructing a cup/flat base prior to formal VCP contractions.';
+                } else {
+                    badgeHTML = `<span style="background: rgba(148, 163, 184, 0.12); color: #94a3b8; border: 1px solid rgba(148, 163, 184, 0.25); font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 12px;">⏳ CONSOLIDATING</span>`;
+                    badgeDesc = 'Stock is consolidating sideways without active VCP contraction wave mechanics.';
+                }
+
+                vcpStageBadge = `
+                    <div style="display: flex; flex-direction: column; align-items: center; gap: 2px;">
+                        <div style="display: inline-flex; align-items: center; gap: 4px; cursor: help;" title="${badgeDesc}">
+                            ${badgeHTML}
+                            <span style="font-size: 11px; color: rgba(255,255,255,0.45); cursor: help;" title="${badgeDesc}">ⓘ</span>
+                        </div>
+                        <span style="font-size: 9.5px; color: var(--text-muted); text-align: center; max-width: 145px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="${badgeDesc}">${badgeDesc}</span>
+                    </div>
+                `;
+
+                const vdu = vcpData.volume_dryup_ratio || 0.8;
+                const isVdu = vdu <= 1.0;
+                vduHTML = `<span style="color: ${isVdu ? '#10b981' : '#f59e0b'}; font-weight: 700; font-family: 'Inter', monospace; font-size: 11.5px;">${vdu}x ${isVdu ? '✓' : ''}</span>`;
+
+                pivotHTML = `
+                    <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 1px;">
+                        <span style="color: #38bdf8; font-weight: 800; font-family: 'Inter', monospace; font-size: 12px;">₹${vcpData.pivot_price ? vcpData.pivot_price.toFixed(1) : '--'}</span>
+                        <span style="font-size: 9.5px; color: #ef4444; font-weight: 600;">Stop: ₹${vcpData.stop_loss ? vcpData.stop_loss.toFixed(1) : '--'} (-${vcpData.risk_percent || 0}%)</span>
+                    </div>
+                `;
+
+                const t1Val = vcpData.target_1 || (vcpData.pivot_price ? (vcpData.pivot_price * 1.15) : null);
+                const t2Val = vcpData.target_2 || (vcpData.pivot_price ? (vcpData.pivot_price * 1.30) : null);
+
+                targetsHTML = `
+                    <div style="display: flex; flex-direction: column; align-items: center; gap: 1px;" title="Minervini Profit Targets (1:2 and 1:4 Risk-to-Reward)">
+                        <span style="color: #10b981; font-weight: 700; font-family: 'Inter', monospace; font-size: 11.5px;">T1: ₹${t1Val ? t1Val.toFixed(1) : '--'}</span>
+                        <span style="color: #c084fc; font-weight: 700; font-family: 'Inter', monospace; font-size: 11.5px;">T2: ₹${t2Val ? t2Val.toFixed(1) : '--'}</span>
+                    </div>
+                `;
+
+                const canScore = (canslimData && (canslimData.canslim_score || canslimData.score)) || 70;
+                const canGrade = (canslimData && (canslimData.grade || canslimData.canslim_grade)) || 'Grade B';
+                const gradeCol = canScore >= 80 ? '#c084fc' : (canScore >= 65 ? '#10b981' : '#f59e0b');
+                canslimHTML = `<span style="background: ${gradeCol}22; color: ${gradeCol}; border: 1px solid ${gradeCol}44; font-weight: 800; font-size: 11px; padding: 2px 8px; border-radius: 10px;">${canScore}/100 (${canGrade})</span>`;
+            }
+
+            const aiBtnHTML = `<button onclick="window.openVcpAiDeepResearch && window.openVcpAiDeepResearch('${item.symbol}')" class="btn-secondary" style="padding: 3px 10px; font-size: 11px; font-weight: 700; background: rgba(168,85,247,0.15); border: 1px solid rgba(168,85,247,0.4); color: #c084fc; border-radius: 6px; cursor: pointer; display: inline-flex; align-items: center; gap: 4px;" title="View AI Thesis for ${item.symbol}">🔮 AI Thesis</button>`;
+
+            tr.innerHTML = `
+                <td class="sticky-stock-col">
+                    <div style="display: flex; flex-direction: column; gap: 2px;">
+                        <div style="display: flex; align-items: center; gap: 6px;">
+                            <div class="watchlist-symbol-link" style="cursor: pointer; white-space: nowrap;" title="Click to load research workspace">
+                                <strong class="wl-stock-symbol" style="color: inherit; text-decoration: none; font-weight: 800; font-family: 'Inter', monospace; white-space: nowrap;">${item.symbol.replace('.NS','')}</strong>
+                            </div>
+                        </div>
+                        ${dotsHTML}
+                    </div>
+                </td>
+                <td class="wl-live-price" style="text-align: right;">${priceHTML}</td>
+                <td class="wl-change-pct" style="text-align: right;">${changePctHTML}</td>
+                <td style="text-align: center;">${vcpStageBadge}</td>
+                <td style="text-align: center;">${vduHTML}</td>
+                <td style="text-align: right;">${pivotHTML}</td>
+                <td style="text-align: center;">${targetsHTML}</td>
+                <td style="text-align: center;">${canslimHTML}</td>
+                <td style="text-align: center;">${aiBtnHTML}</td>
                 <td style="white-space: nowrap; text-align: center;">
                     ${alertBadgeHTML}
                     <button class="btn-secondary remove-watchlist-item-btn" data-ticker="${item.symbol}" style="font-size: 10px; padding: 3px 8px; cursor:pointer;" title="Remove ${item.symbol}">🗑️</button>
@@ -54328,4 +54604,716 @@ function copySGEMarkdownSummary(symbol) {
     });
 }
 window.copySGEMarkdownSummary = copySGEMarkdownSummary;
+
+// ============================================================================
+// MINERVINI VCP & 7-FACTOR CANSLIM SCREENER CONTROLLER
+// ============================================================================
+
+window.allVcpStocks = [];
+
+window.runVcpScan = async function() {
+    const loadingEl = document.getElementById('vcp-loading-container');
+    const gridEl = document.getElementById('vcp-cards-grid');
+    const btnScan = document.getElementById('vcp-scan-btn');
+    
+    if (loadingEl) loadingEl.style.display = 'block';
+    if (gridEl) gridEl.style.display = 'none';
+    if (btnScan) btnScan.disabled = true;
+
+    try {
+        const response = await fetch('/api/vcp-canslim-screener');
+        const data = await response.json();
+
+        const stocksList = Array.isArray(data) ? data : (data && Array.isArray(data.stocks) ? data.stocks : null);
+        if (stocksList) {
+            window.allVcpStocks = stocksList;
+            
+            // Update KPI Stats
+            const kpiTotal = document.getElementById('vcp-kpi-total');
+            const kpiReady = document.getElementById('vcp-kpi-ready');
+            const kpiBreakout = document.getElementById('vcp-kpi-breakout');
+            const kpiAvgCanslim = document.getElementById('vcp-kpi-avg-canslim');
+
+            const total = window.allVcpStocks.length;
+            const readyCount = window.allVcpStocks.filter(s => s.vcp_status === 'READY_PIVOT').length;
+            const breakoutCount = window.allVcpStocks.filter(s => s.vcp_status === 'LIVE_BREAKOUT').length;
+            
+            const totalScores = window.allVcpStocks.reduce((acc, s) => acc + (s.canslim_score || 0), 0);
+            const avgScore = total > 0 ? (totalScores / total).toFixed(1) : '0';
+
+            if (kpiTotal) kpiTotal.innerText = total;
+            if (kpiReady) kpiReady.innerText = readyCount;
+            if (kpiBreakout) kpiBreakout.innerText = breakoutCount;
+            if (kpiAvgCanslim) kpiAvgCanslim.innerText = `${avgScore} / 100`;
+
+            // Auto-subscribe screened VCP symbols to live WebSocket tick updates
+            if (typeof wsSubscribeSymbols === 'function') {
+                const vcpSymbols = window.allVcpStocks.map(s => s.symbol).filter(Boolean);
+                wsSubscribeSymbols(vcpSymbols);
+            }
+
+            window.filterVcpCards();
+        } else {
+            console.error("Failed to fetch VCP scan results:", data);
+            if (gridEl) {
+                gridEl.innerHTML = `<div style="grid-column: 1/-1; text-align: center; padding: 40px; color: #94a3b8;">Unable to fetch VCP scan data. Please try again.</div>`;
+            }
+        }
+    } catch (err) {
+        console.error("VCP Scan API error:", err);
+        if (gridEl) {
+            gridEl.innerHTML = `<div style="grid-column: 1/-1; text-align: center; padding: 40px; color: #f87171;">Error loading VCP scan results. Please check server logs.</div>`;
+        }
+    } finally {
+        if (loadingEl) loadingEl.style.display = 'none';
+        if (gridEl) gridEl.style.display = 'grid';
+        if (btnScan) btnScan.disabled = false;
+    }
+};
+
+window.filterVcpCards = function() {
+    const searchVal = (document.getElementById('vcp-search-input')?.value || '').trim().toLowerCase();
+    const scoreVal = document.getElementById('vcp-score-filter')?.value || 'ALL';
+    const stageVal = document.getElementById('vcp-stage-filter')?.value || 'ALL';
+    const sortVal = document.getElementById('vcp-sort-filter')?.value || 'CANSLIM_DESC';
+
+    let filtered = window.allVcpStocks.filter(stock => {
+        // Search filter
+        if (searchVal) {
+            const sym = (stock.symbol || '').toLowerCase();
+            const name = (stock.company_name || '').toLowerCase();
+            if (!sym.includes(searchVal) && !name.includes(searchVal)) return false;
+        }
+
+        // CANSLIM score filter
+        const score = stock.canslim_score || 0;
+        if (scoreVal === 'A_PLUS' && score < 80) return false;
+        if (scoreVal === 'GRADE_B' && (score < 65 || score >= 80)) return false;
+        if (scoreVal === 'GRADE_C' && score >= 65) return false;
+        if ((scoreVal === '65_PLUS' || scoreVal === '5') && score < 65) return false;
+        if (scoreVal === '7' && score < 80) return false;
+        if (scoreVal === '3' && (score < 50 || score >= 65)) return false;
+
+        // Stage filter
+        if (stageVal !== 'ALL' && stock.vcp_status !== stageVal) return false;
+
+        return true;
+    });
+
+    // Sorting
+    if (sortVal === 'CANSLIM_DESC') {
+        filtered.sort((a, b) => (b.canslim_score || 0) - (a.canslim_score || 0));
+    } else if (sortVal === 'T3_ASC') {
+        filtered.sort((a, b) => (a.risk_percent || 0) - (b.risk_percent || 0));
+    } else if (sortVal === 'PIVOT_DIST') {
+        filtered.sort((a, b) => {
+            const pA = a.pivot_price || 1;
+            const pB = b.pivot_price || 1;
+            const distPctA = Math.abs((a.current_price || 0) - pA) / pA;
+            const distPctB = Math.abs((b.current_price || 0) - pB) / pB;
+            return distPctA - distPctB;
+        });
+    }
+
+    window.renderVcpCards(filtered);
+};
+
+window.renderVcpCards = function(stocks) {
+    const gridEl = document.getElementById('vcp-cards-grid');
+    if (!gridEl) return;
+
+    if (!stocks || stocks.length === 0) {
+        gridEl.innerHTML = `
+            <div style="grid-column: 1/-1; text-align: center; padding: 50px 20px; background: rgba(15, 23, 42, 0.4); border: 1px dashed rgba(255,255,255,0.1); border-radius: 12px;">
+                <div style="font-size: 32px; margin-bottom: 10px;">🔍</div>
+                <div style="font-weight: 700; color: #f1f5f9; font-size: 15px;">No Minervini VCP Patterns Found</div>
+                <div style="color: #94a3b8; font-size: 13px; margin-top: 4px;">Try adjusting your score or stage filters to view more candidates.</div>
+            </div>
+        `;
+        return;
+    }
+
+    gridEl.innerHTML = stocks.map(stock => {
+        const sym = stock.symbol;
+        const name = stock.company_name || sym;
+        const price = stock.current_price ? `₹${stock.current_price.toLocaleString('en-IN')}` : 'N/A';
+        const chgPct = (typeof stock.change_percent === 'number') ? stock.change_percent : (stock.price_change_pct || 0);
+        const chgColor = chgPct >= 0 ? '#10b981' : '#f87171';
+
+        // Status badge
+        let statusBadgeHTML = '';
+        if (stock.vcp_status === 'READY_PIVOT') {
+            statusBadgeHTML = `<span style="background: rgba(16, 185, 129, 0.15); border: 1px solid rgba(16, 185, 129, 0.4); color: #10b981; font-weight: 700; font-size: 11px; padding: 3px 8px; border-radius: 6px; display: inline-flex; align-items: center; gap: 4px;">🎯 READY AT PIVOT</span>`;
+        } else if (stock.vcp_status === 'LIVE_BREAKOUT') {
+            statusBadgeHTML = `<span style="background: rgba(56, 189, 248, 0.15); border: 1px solid rgba(56, 189, 248, 0.4); color: #38bdf8; font-weight: 700; font-size: 11px; padding: 3px 8px; border-radius: 6px; display: inline-flex; align-items: center; gap: 4px;">🚀 LIVE BREAKOUT</span>`;
+        } else {
+            statusBadgeHTML = `<span style="background: rgba(245, 158, 11, 0.15); border: 1px solid rgba(245, 158, 11, 0.4); color: #fbbf24; font-weight: 700; font-size: 11px; padding: 3px 8px; border-radius: 6px; display: inline-flex; align-items: center; gap: 4px;">⏳ FORMING</span>`;
+        }
+
+        // Contractions HTML & Dynamic Header
+        const contractions = stock.contractions || [];
+        const lastStageName = contractions.length > 0 ? (contractions[contractions.length - 1].stage || 'T3') : 'T3';
+        const contractionsHTML = contractions.map((c, idx) => `
+            <div style="flex: 1; background: rgba(30, 41, 59, 0.6); border: 1px solid rgba(255,255,255,0.08); border-radius: 6px; padding: 6px 8px; text-align: center;">
+                <div style="font-size: 10px; color: #94a3b8; font-weight: 700; text-transform: uppercase;">Stage ${c.stage}</div>
+                <div style="font-size: 12px; font-weight: 800; color: #f87171;">${c.depth_percent}%</div>
+                <div style="font-size: 9.5px; color: #64748b;">${c.days} days</div>
+            </div>
+        `).join('');
+
+        // CANSLIM breakdown badges
+        const score = stock.canslim_score || 0;
+        const grade = stock.canslim_grade || (score >= 80 ? 'Grade A+' : (score >= 65 ? 'Grade B' : 'Grade C'));
+        const gradeBg = score >= 80 ? 'rgba(168, 85, 247, 0.2)' : (score >= 65 ? 'rgba(56, 189, 248, 0.2)' : 'rgba(245, 158, 11, 0.2)');
+        const gradeColor = score >= 80 ? '#c084fc' : (score >= 65 ? '#38bdf8' : '#fbbf24');
+
+        return `
+            <div class="vcp-card" style="background: rgba(15, 23, 42, 0.75); border: 1px solid rgba(255,255,255,0.1); border-radius: 14px; padding: 18px; backdrop-filter: blur(12px); display: flex; flex-direction: column; justify-content: space-between; transition: all 0.25s ease; box-shadow: 0 4px 20px rgba(0,0,0,0.25);">
+                <div>
+                    <!-- Header -->
+                    <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px;">
+                        <div>
+                            <div style="display: flex; align-items: center; gap: 8px;">
+                                <span style="font-size: 17px; font-weight: 800; color: #ffffff; letter-spacing: -0.3px;">${sym}</span>
+                                ${statusBadgeHTML}
+                            </div>
+                            <div style="font-size: 12px; color: #94a3b8; font-weight: 500; margin-top: 2px;">${name}</div>
+                        </div>
+                        <div style="text-align: right;">
+                            <div style="font-size: 16px; font-weight: 800; color: #f8fafc;">${price}</div>
+                            <div style="font-size: 11px; font-weight: 700; color: ${chgColor};">${chgPct >= 0 ? '+' : ''}${chgPct.toFixed(2)}%</div>
+                        </div>
+                    </div>
+
+                    <!-- Contraction Pipeline -->
+                    <div style="margin-bottom: 14px;">
+                        <div style="font-size: 10.5px; font-weight: 700; color: #94a3b8; text-transform: uppercase; margin-bottom: 6px; display: flex; justify-content: space-between;">
+                            <span>Contraction Tightening (T<sub>1</sub> &rarr; ${lastStageName})</span>
+                            <span style="color: ${stock.volume_dryup_ratio <= 0.70 ? '#10b981' : '#fbbf24'};">VDU Ratio: ${stock.volume_dryup_ratio}x</span>
+                        </div>
+                        <div style="display: flex; gap: 6px;">
+                            ${contractionsHTML || '<div style="color:#64748b; font-size:11px;">Tightening base detected</div>'}
+                        </div>
+                    </div>
+
+                    <!-- Execution Levels Grid -->
+                    <div class="vcp-execution-grid" style="background: rgba(30, 41, 59, 0.4); border: 1px solid rgba(255,255,255,0.06); border-radius: 8px; padding: 10px 12px; margin-bottom: 14px; display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                        <div>
+                            <div style="font-size: 10px; color: #94a3b8; text-transform: uppercase; font-weight: 600;">Pivot Buy Price</div>
+                            <div style="font-size: 13.5px; font-weight: 800; color: #38bdf8;">₹${stock.pivot_price || '--'}</div>
+                        </div>
+                        <div>
+                            <div style="font-size: 10px; color: #94a3b8; text-transform: uppercase; font-weight: 600;">Stop Loss (Risk %)</div>
+                            <div style="font-size: 13.5px; font-weight: 800; color: #f87171;">₹${stock.stop_loss || '--'} <span style="font-size: 10.5px; font-weight:600;">(-${stock.risk_percent}%)</span></div>
+                        </div>
+                        <div>
+                            <div style="font-size: 10px; color: #94a3b8; text-transform: uppercase; font-weight: 600;">Target 1 (1:2 R:R)</div>
+                            <div style="font-size: 13px; font-weight: 700; color: #10b981;">₹${stock.target_1 || '--'}</div>
+                        </div>
+                        <div>
+                            <div style="font-size: 10px; color: #94a3b8; text-transform: uppercase; font-weight: 600;">Target 2 (1:4 R:R)</div>
+                            <div style="font-size: 13px; font-weight: 700; color: #a855f7;">₹${stock.target_2 || '--'}</div>
+                        </div>
+                    </div>
+
+                    <!-- CANSLIM Rating Bar -->
+                    <div class="vcp-canslim-bar" style="display: flex; align-items: center; justify-content: space-between; background: rgba(30, 41, 59, 0.7); padding: 8px 12px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.08);">
+                        <span class="vcp-canslim-label" style="font-size: 11.5px; font-weight: 700; color: #cbd5e1;">7-Factor CANSLIM Rating</span>
+                        <span style="background: ${gradeBg}; color: ${gradeColor}; border: 1px solid ${gradeColor}44; font-size: 12px; font-weight: 800; padding: 2px 10px; border-radius: 12px;">${score} / 100 (${grade})</span>
+                    </div>
+                </div>
+
+                <!-- Footer Action Buttons -->
+                <div style="display: flex; gap: 8px; margin-top: 14px;">
+                    <button onclick="window.openVcpAiDeepResearch && window.openVcpAiDeepResearch('${sym}')" class="btn-secondary vcp-research-btn" style="flex: 1; padding: 8px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; color: #f1f5f9; font-weight: 600; font-size: 12px; cursor: pointer; transition: all 0.2s;">
+                        📊 Deep Research
+                    </button>
+                    <button onclick="window.openVcpChartModal && window.openVcpChartModal('${sym}')" class="btn-primary vcp-chart-btn" style="flex: 1; padding: 8px; background: linear-gradient(135deg, #f59e0b, #d97706); border: none; border-radius: 8px; color: #ffffff; font-weight: 700; font-size: 12px; cursor: pointer; transition: all 0.2s; box-shadow: 0 2px 8px rgba(245, 158, 11, 0.3);">
+                        📈 Chart & Pivots
+                    </button>
+                </div>
+            </div>
+        `;
+    }).join('');
+};
+
+window.openTradingViewChart = function(symbol) {
+    if (!symbol) return;
+    const cleanSym = symbol.replace('.NS', '').replace('.BO', '').trim().toUpperCase();
+    const tvUrl = `https://in.tradingview.com/chart/?symbol=NSE:${cleanSym}`;
+    window.open(tvUrl, '_blank');
+};
+
+window.analyzeStock = function(symbol) {
+    if (!symbol) return;
+    const cleanSym = symbol.replace('.NS', '').replace('.BO', '').trim().toUpperCase();
+    if (typeof window.switchTab === 'function') {
+        window.switchTab('analyzer');
+    }
+    if (typeof loadStockAnalyzer === 'function') {
+        loadStockAnalyzer(cleanSym);
+    }
+};
+
+window.closeVcpAiModal = function() {
+    const modal = document.getElementById('vcp-ai-modal');
+    if (modal) modal.style.display = 'none';
+};
+
+window.openVcpAiDeepResearch = async function(symbol) {
+    if (!symbol) return;
+    const modal = document.getElementById('vcp-ai-modal');
+    const loading = document.getElementById('vcp-ai-modal-loading');
+    const content = document.getElementById('vcp-ai-modal-content');
+    const titleEl = document.getElementById('vcp-ai-modal-title');
+    const gradeEl = document.getElementById('vcp-ai-modal-grade');
+    const subtitleEl = document.getElementById('vcp-ai-modal-subtitle');
+
+    if (!modal || !loading || !content) return;
+
+    modal.style.display = 'flex';
+    loading.style.display = 'block';
+    content.style.display = 'none';
+    if (titleEl) titleEl.innerText = `${symbol} AI Institutional Blueprint`;
+    if (gradeEl) gradeEl.innerText = `Analyzing...`;
+
+    try {
+        const response = await fetch(`/api/vcp-ai-deep-research/${encodeURIComponent(symbol)}`);
+        const data = await response.json();
+
+        if (data && data.status === 'success' && data.ai_blueprint) {
+            const bp = data.ai_blueprint;
+            const company = data.company_name || symbol;
+            const score = data.canslim_score || '--';
+
+            let vcpBadge = '';
+            const st = data.vcp_status || (data.is_vcp ? 'FORMING' : 'NONE');
+            const reason = data.vcp_reason || '';
+            if (st === 'READY_PIVOT') vcpBadge = '🎯 READY AT PIVOT';
+            else if (st === 'LIVE_BREAKOUT') vcpBadge = '🚀 LIVE BREAKOUT';
+            else if (data.is_vcp || st === 'FORMING') vcpBadge = `⏳ FORMING ${data.vcp_stage || 'T3'}`;
+            else if (reason === 'BELOW 50 EMA') vcpBadge = '📉 BELOW 50 EMA';
+            else if (reason === 'WIDE SWINGS') vcpBadge = '⏳ WIDE SWINGS';
+            else vcpBadge = '⏳ CONSOLIDATING';
+
+            if (titleEl) titleEl.innerHTML = `${company} (${data.symbol}) <span style="font-size: 11px; padding: 2px 8px; border-radius: 10px; background: rgba(255,255,255,0.1); color: #fbbf24; font-weight: 700; margin-left: 8px; border: 1px solid rgba(251,191,36,0.3);">${vcpBadge}</span>`;
+            if (gradeEl) gradeEl.innerText = `CANSLIM: ${score}/100`;
+            if (subtitleEl) subtitleEl.innerText = `Current Price: ₹${data.price ? data.price.toFixed(2) : '--'} | ${bp.verdict || 'SEPA VCP Candidate'}`;
+
+            let execHtml = '';
+            if (typeof bp.execution_blueprint === 'object') {
+                const eb = bp.execution_blueprint;
+                execHtml = `
+                    <div style="margin-bottom: 8px;"><b>🎯 Entry Trigger:</b> ${eb.entry_trigger || '--'}</div>
+                    <div style="margin-bottom: 8px;"><b>🛑 Stop Loss:</b> ${eb.stop_loss || '--'}</div>
+                    <div style="margin-bottom: 8px;"><b>⚖️ Position Sizing:</b> ${eb.position_sizing || '--'}</div>
+                    <div><b>🚀 Targets:</b> ${typeof eb.target_profit_levels === 'object' ? `Target 1: ${eb.target_profit_levels.target_1 || '--'} | Target 2: ${eb.target_profit_levels.target_2 || '--'}` : (eb.target_profit_levels || '--')}</div>
+                `;
+            } else {
+                execHtml = bp.execution_blueprint || '--';
+            }
+
+            content.innerHTML = `
+                <div style="background: linear-gradient(135deg, rgba(168, 85, 247, 0.15), rgba(59, 130, 246, 0.15)); border: 1px solid rgba(168, 85, 247, 0.35); border-radius: 12px; padding: 14px 18px; margin-bottom: 18px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px;">
+                    <div>
+                        <div style="font-size: 11px; color: #c084fc; text-transform: uppercase; font-weight: 700; letter-spacing: 0.5px;">AI Conviction Verdict</div>
+                        <div style="font-size: 16px; font-weight: 800; color: #f8fafc; margin-top: 2px;">${bp.verdict || 'High-Conviction SEPA Setup'}</div>
+                    </div>
+                    <div style="background: rgba(16, 185, 129, 0.2); border: 1px solid #10b981; color: #10b981; font-size: 12px; font-weight: 800; padding: 4px 12px; border-radius: 20px;">
+                        Grade A+ Institutional Setup
+                    </div>
+                </div>
+
+                <div style="background: rgba(30, 41, 59, 0.5); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 12px; padding: 16px 18px; margin-bottom: 14px;">
+                    <div style="font-size: 13px; font-weight: 700; color: #fbbf24; display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+                        <span>🚀 1. FUNDAMENTAL CATALYST</span>
+                        <span style="font-size: 10.5px; font-weight: 500; color: #94a3b8;">(CANSLIM 'C' & 'A' Factors)</span>
+                    </div>
+                    <p style="margin: 0; font-size: 13px; color: #cbd5e1; line-height: 1.6;">
+                        ${bp.fundamental_catalyst || 'Strong fundamental acceleration with expanding profit margins and high return on equity.'}
+                    </p>
+                </div>
+
+                <div style="background: rgba(30, 41, 59, 0.5); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 12px; padding: 16px 18px; margin-bottom: 14px;">
+                    <div style="font-size: 13px; font-weight: 700; color: #38bdf8; display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+                        <span>🏦 2. INSTITUTIONAL FOOTPRINT</span>
+                        <span style="font-size: 10.5px; font-weight: 500; color: #94a3b8;">(CANSLIM 'I' & 'S' Factors)</span>
+                    </div>
+                    <p style="margin: 0; font-size: 13px; color: #cbd5e1; line-height: 1.6;">
+                        ${bp.institutional_footprint || 'Volume dry-up ratio confirms supply absorption with smart money accumulating near the pivot.'}
+                    </p>
+                </div>
+
+                <div style="background: rgba(30, 41, 59, 0.5); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 12px; padding: 16px 18px;">
+                    <div style="font-size: 13px; font-weight: 700; color: #10b981; display: flex; align-items: center; gap: 8px; margin-bottom: 10px;">
+                        <span>🎯 3. MINERVINI TRADE EXECUTION BLUEPRINT</span>
+                    </div>
+                    <div style="font-size: 13px; color: #cbd5e1; line-height: 1.6;">
+                        ${execHtml}
+                    </div>
+                </div>
+            `;
+
+            loading.style.display = 'none';
+            content.style.display = 'block';
+        } else {
+            throw new Error("Unable to synthesize AI blueprint");
+        }
+    } catch (e) {
+        console.error("AI Deep Research error:", e);
+        loading.style.display = 'none';
+        content.style.display = 'block';
+        content.innerHTML = `<div style="text-align: center; color: #f87171; padding: 20px;">Failed to generate AI thesis. Please try again.</div>`;
+    }
+};
+
+window.evaluateWatchlistWithAi = async function() {
+    const listArr = (typeof watchlistsList !== 'undefined' && Array.isArray(watchlistsList)) ? watchlistsList : (window.watchlists || []);
+    const activeId = (typeof activeWatchlistId !== 'undefined' && activeWatchlistId !== null) ? activeWatchlistId : window.activeWatchlistId;
+    const activeList = listArr.find(w => w && (w.id == activeId || w.id === activeId));
+
+    if (!activeList || !activeList.items || activeList.items.length === 0) {
+        alert("Please select a watchlist with stock constituents first!");
+        return;
+    }
+
+    const modal = document.getElementById('vcp-ai-modal');
+    const loading = document.getElementById('vcp-ai-modal-loading');
+    const content = document.getElementById('vcp-ai-modal-content');
+    const titleEl = document.getElementById('vcp-ai-modal-title');
+    const gradeEl = document.getElementById('vcp-ai-modal-grade');
+    const subtitleEl = document.getElementById('vcp-ai-modal-subtitle');
+
+    if (!modal || !loading || !content) return;
+
+    modal.style.display = 'flex';
+    loading.style.display = 'block';
+    content.style.display = 'none';
+
+    if (titleEl) titleEl.innerText = `Watchlist AI Evaluation: ${activeList.name || 'My Watchlist'}`;
+    if (gradeEl) gradeEl.innerText = `${activeList.items.length} Stocks`;
+    if (subtitleEl) subtitleEl.innerText = `Gemini AI Portfolio Health & Minervini Rotation Analysis`;
+
+    try {
+        const symbolsList = activeList.items.map(x => x.symbol);
+        const response = await fetch('/api/vcp-ai-watchlist-evaluate', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                watchlist_name: activeList.name || 'My Watchlist',
+                symbols: symbolsList
+            })
+        });
+        const resData = await response.json();
+        const aiEval = (resData && resData.ai_evaluation) ? resData.ai_evaluation : {};
+
+        let leadersCount = 0;
+        let readyCount = 0;
+        let breakoutCount = 0;
+        let formingCount = 0;
+        let listItemsHtml = '';
+
+        activeList.items.forEach(item => {
+            const symUpper = item.symbol.toUpperCase();
+            const baseSym = symUpper.replace('.NS', '').replace('.BO', '');
+            
+            let vData = null;
+            let cData = null;
+
+            if (window.vcpWatchlistCache && (window.vcpWatchlistCache[item.symbol] || window.vcpWatchlistCache[baseSym])) {
+                const entry = window.vcpWatchlistCache[item.symbol] || window.vcpWatchlistCache[baseSym];
+                vData = entry.vcp || entry;
+                cData = entry.canslim || entry;
+            } else if (window.allVcpStocks && window.allVcpStocks.length > 0) {
+                const m = window.allVcpStocks.find(s => s && s.symbol && (s.symbol.toUpperCase() === symUpper || s.symbol.toUpperCase().replace('.NS','') === baseSym));
+                if (m) {
+                    vData = m;
+                    cData = m;
+                }
+            }
+
+            const st = vData ? (vData.vcp_status || (vData.is_vcp ? 'FORMING' : 'NONE')) : 'NONE';
+            const reason = vData ? (vData.vcp_reason || '') : '';
+            const canslimScore = cData ? (cData.canslim_score || 0) : 0;
+            const stage = vData ? (vData.vcp_stage || 'T3') : '';
+
+            let badge = '';
+            let isLeader = false;
+
+            if (st === 'READY_PIVOT') {
+                badge = `<span style="color: #10b981; font-weight: 800; font-size: 11px; background: rgba(16,185,129,0.15); border: 1px solid rgba(16,185,129,0.4); padding: 2px 8px; border-radius: 10px;">🎯 READY AT PIVOT</span>`;
+                isLeader = true;
+                readyCount++;
+            } else if (st === 'LIVE_BREAKOUT') {
+                badge = `<span style="color: #38bdf8; font-weight: 800; font-size: 11px; background: rgba(56,189,248,0.15); border: 1px solid rgba(56,189,248,0.4); padding: 2px 8px; border-radius: 10px;">🚀 LIVE BREAKOUT</span>`;
+                isLeader = true;
+                breakoutCount++;
+            } else if (vData && (vData.is_vcp || st === 'FORMING')) {
+                badge = `<span style="color: #fbbf24; font-weight: 700; font-size: 11px; background: rgba(245,158,11,0.15); border: 1px solid rgba(245,158,11,0.4); padding: 2px 8px; border-radius: 10px;">⏳ FORMING ${stage}</span>`;
+                formingCount++;
+                if (canslimScore >= 75) isLeader = true;
+            } else if (reason === 'BELOW 50 EMA') {
+                badge = `<span style="color: #f87171; font-weight: 700; font-size: 11px; background: rgba(239,68,68,0.12); border: 1px solid rgba(239,68,68,0.25); padding: 2px 8px; border-radius: 10px;">📉 BELOW 50 EMA</span>`;
+            } else if (reason === 'WIDE SWINGS') {
+                badge = `<span style="color: #f59e0b; font-weight: 700; font-size: 11px; background: rgba(245,158,11,0.12); border: 1px solid rgba(245,158,11,0.25); padding: 2px 8px; border-radius: 10px;">⏳ WIDE SWINGS</span>`;
+            } else {
+                badge = `<span style="color: #94a3b8; font-weight: 700; font-size: 11px; background: rgba(148,163,184,0.12); border: 1px solid rgba(148,163,184,0.25); padding: 2px 8px; border-radius: 10px;">⏳ CONSOLIDATING</span>`;
+            }
+
+            if (canslimScore >= 80) isLeader = true;
+            if (isLeader) leadersCount++;
+
+            listItemsHtml += `
+                <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px 14px; background: rgba(30, 41, 59, 0.4); border-radius: 8px; margin-bottom: 6px; border: 1px solid rgba(255,255,255,0.05);">
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <strong style="color: #f8fafc; font-family: 'Inter', monospace; font-size: 13px;">${item.symbol.replace('.NS','')}</strong>
+                        ${badge}
+                        ${canslimScore > 0 ? `<span style="font-size: 10.5px; color: #fbbf24; font-weight: 700; background: rgba(251,191,36,0.1); padding: 1px 6px; border-radius: 6px;">CANSLIM: ${canslimScore}/100</span>` : ''}
+                    </div>
+                    <button onclick="window.openVcpAiDeepResearch('${item.symbol}')" class="btn-secondary" style="font-size: 10.5px; padding: 2px 8px; border-color: rgba(168,85,247,0.4); color: #c084fc; background: rgba(168,85,247,0.1); cursor: pointer;">🔮 AI Thesis</button>
+                </div>
+            `;
+        });
+
+        const healthSummaryText = aiEval.portfolio_health_summary || `${leadersCount} High-Conviction Leader(s) & ${formingCount} Active VCP Setup(s) in "${activeList.name}"`;
+        const rotationStrategyText = aiEval.ai_rotation_strategy || `Focus capital on Grade A+ CANSLIM leaders with tight volume dry-up. Trim laggards below 50-day EMA.`;
+
+        content.innerHTML = `
+            <div style="background: linear-gradient(135deg, rgba(168, 85, 247, 0.15), rgba(16, 185, 129, 0.15)); border: 1px solid rgba(168, 85, 247, 0.35); border-radius: 12px; padding: 16px 20px; margin-bottom: 18px;">
+                <div style="font-size: 11px; color: #c084fc; text-transform: uppercase; font-weight: 700;">Watchlist AI Health Summary</div>
+                <div style="font-size: 15px; font-weight: 800; color: #f8fafc; margin-top: 4px;">
+                    ${healthSummaryText}
+                </div>
+                <p style="margin: 6px 0 0 0; font-size: 12px; color: #cbd5e1; line-height: 1.5;">
+                    Gemini AI evaluated all ${activeList.items.length} constituents against 6-month Minervini Trend Templates and 7-Factor CANSLIM institutional ratings.
+                </p>
+            </div>
+
+            <div style="margin-bottom: 16px;">
+                <div style="font-size: 13px; font-weight: 700; color: #fbbf24; margin-bottom: 10px;">📋 CONSTITUENT EVALUATION BREAKDOWN</div>
+                ${listItemsHtml}
+            </div>
+
+            <div style="background: rgba(30, 41, 59, 0.5); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 12px; padding: 16px 18px;">
+                <div style="font-size: 13px; font-weight: 700; color: #38bdf8; margin-bottom: 6px;">💡 AI ROTATION STRATEGY</div>
+                <p style="margin: 0; font-size: 12.5px; color: #cbd5e1; line-height: 1.6;">
+                    ${rotationStrategyText}
+                </p>
+            </div>
+        `;
+
+        loading.style.display = 'none';
+        content.style.display = 'block';
+    } catch(e) {
+        console.error("Watchlist AI evaluation error:", e);
+        loading.style.display = 'none';
+        content.style.display = 'block';
+        content.innerHTML = `<div style="color: #f87171; text-align: center; padding: 20px;">Failed to evaluate watchlist. Please try again.</div>`;
+    }
+};
+
+window.activeVcpModalChart = null;
+window.currentVcpModalSym = '';
+
+window.closeVcpChartModal = function() {
+    const modal = document.getElementById('vcp-chart-modal');
+    if (modal) modal.style.display = 'none';
+    if (window.activeVcpModalChart) {
+        try { window.activeVcpModalChart.remove(); } catch(e) {}
+        window.activeVcpModalChart = null;
+    }
+};
+
+window.openVcpChartModal = async function(symbol) {
+    if (!symbol) return;
+    const cleanSym = symbol.replace('.NS', '').replace('.BO', '').trim().toUpperCase();
+    window.currentVcpModalSym = cleanSym;
+    
+    const modal = document.getElementById('vcp-chart-modal');
+    const loadingEl = document.getElementById('vcp-modal-chart-loading');
+    const container = document.getElementById('vcp-modal-chart-container');
+    
+    if (modal) modal.style.display = 'flex';
+    if (loadingEl) loadingEl.style.display = 'flex';
+
+    document.getElementById('vcp-modal-sym').innerText = cleanSym;
+    
+    if (window.activeVcpModalChart) {
+        try { window.activeVcpModalChart.remove(); } catch(e) {}
+        window.activeVcpModalChart = null;
+    }
+
+    try {
+        const response = await fetch(`/api/vcp-canslim-analysis/${cleanSym}`);
+        if (!response.ok) throw new Error("Failed to load VCP price history");
+        const data = await response.json();
+
+        const vcp = data.vcp || {};
+        const ohlcv = data.ohlcv || [];
+
+        // Header info
+        const formattedPrice = typeof data.current_price === 'number' ? data.current_price.toFixed(2) : (data.current_price || '--');
+        document.getElementById('vcp-modal-price').innerText = `₹${formattedPrice} (${data.change_percent >= 0 ? '+' : ''}${data.change_percent}%)`;
+        const badge = document.getElementById('vcp-modal-badge');
+        if (badge) {
+            badge.innerText = vcp.vcp_status || 'FORMING';
+            if (vcp.vcp_status === 'READY_PIVOT') {
+                badge.style.background = 'rgba(16, 185, 129, 0.2)';
+                badge.style.color = '#10b981';
+                badge.style.borderColor = 'rgba(16, 185, 129, 0.4)';
+            } else if (vcp.vcp_status === 'LIVE_BREAKOUT') {
+                badge.style.background = 'rgba(56, 189, 248, 0.2)';
+                badge.style.color = '#38bdf8';
+                badge.style.borderColor = 'rgba(56, 189, 248, 0.4)';
+            } else {
+                badge.style.background = 'rgba(245, 158, 11, 0.2)';
+                badge.style.color = '#f59e0b';
+                badge.style.borderColor = 'rgba(245, 158, 11, 0.4)';
+            }
+        }
+
+        // Levels bar
+        const levelsBar = document.getElementById('vcp-modal-levels-bar');
+        if (levelsBar) {
+            levelsBar.innerHTML = `
+                <div style="color: #38bdf8; font-weight: 700;">🎯 Pivot Buy: ₹${vcp.pivot_price || '--'}</div>
+                <div style="color: #f87171; font-weight: 700;">🛑 Stop Loss: ₹${vcp.stop_loss || '--'} (-${vcp.risk_percent || 0}%)</div>
+                <div style="color: #10b981; font-weight: 700;">🚀 Target 1 (1:2): ₹${vcp.target_1 || '--'}</div>
+                <div style="color: #a855f7; font-weight: 700;">🏆 Target 2 (1:4): ₹${vcp.target_2 || '--'}</div>
+                <div style="color: #f59e0b; font-weight: 700;">📊 VDU Ratio: ${vcp.volume_dryup_ratio ? vcp.volume_dryup_ratio + 'x' : '--'}</div>
+            `;
+        }
+
+        if (container && window.LightweightCharts && ohlcv.length > 0) {
+            container.innerHTML = '';
+            
+            const isLightMode = document.body.getAttribute('data-mode') === 'light' || 
+                                document.body.getAttribute('data-theme') === 'light' || 
+                                document.body.classList.contains('theme-light') ||
+                                document.body.classList.contains('theme-alabaster') ||
+                                document.body.classList.contains('theme-geist-light');
+
+            const chartBg = isLightMode ? '#ffffff' : '#0f172a';
+            const txtColor = isLightMode ? '#334155' : '#94a3b8';
+            const gridColor = isLightMode ? 'rgba(0, 0, 0, 0.05)' : 'rgba(255, 255, 255, 0.04)';
+            const borderCol = isLightMode ? 'rgba(0, 0, 0, 0.1)' : 'rgba(255, 255, 255, 0.1)';
+
+            const chart = LightweightCharts.createChart(container, {
+                width: container.clientWidth || 950,
+                height: 420,
+                layout: {
+                    background: { type: 'solid', color: chartBg },
+                    textColor: txtColor,
+                },
+                grid: {
+                    vertLines: { color: gridColor },
+                    horzLines: { color: gridColor },
+                },
+                crosshair: {
+                    mode: LightweightCharts.CrosshairMode.Normal,
+                },
+                rightPriceScale: {
+                    borderColor: borderCol,
+                },
+                timeScale: {
+                    borderColor: borderCol,
+                    timeVisible: true,
+                },
+            });
+
+            window.activeVcpModalChart = chart;
+
+            // Candlestick series
+            const candleSeries = chart.addCandlestickSeries({
+                upColor: '#10b981',
+                downColor: '#ef4444',
+                borderUpColor: '#10b981',
+                borderDownColor: '#ef4444',
+                wickUpColor: '#10b981',
+                wickDownColor: '#ef4444',
+            });
+
+            const candleData = ohlcv.map(d => ({
+                time: d.time,
+                open: d.open,
+                high: d.high,
+                low: d.low,
+                close: d.close,
+            }));
+            candleSeries.setData(candleData);
+
+            // Volume series
+            const volumeSeries = chart.addHistogramSeries({
+                color: '#38bdf8',
+                priceFormat: { type: 'volume' },
+                priceScaleId: '',
+                scaleMargins: {
+                    top: 0.8,
+                    bottom: 0,
+                },
+            });
+
+            const volumeData = ohlcv.map(d => ({
+                time: d.time,
+                value: d.volume,
+                color: d.close >= d.open ? 'rgba(16, 185, 129, 0.4)' : 'rgba(239, 68, 68, 0.4)',
+            }));
+            volumeSeries.setData(volumeData);
+
+            // Price Line Overlays
+            const LineStyle = LightweightCharts.LineStyle || { Dashed: 1, Solid: 0 };
+
+            if (vcp.pivot_price > 0) {
+                candleSeries.createPriceLine({
+                    price: vcp.pivot_price,
+                    color: '#38bdf8',
+                    lineWidth: 2,
+                    lineStyle: LineStyle.Dashed,
+                    axisLabelVisible: true,
+                    title: 'PIVOT BUY',
+                });
+            }
+
+            if (vcp.stop_loss > 0) {
+                candleSeries.createPriceLine({
+                    price: vcp.stop_loss,
+                    color: '#f87171',
+                    lineWidth: 2,
+                    lineStyle: LineStyle.Dashed,
+                    axisLabelVisible: true,
+                    title: 'STOP LOSS',
+                });
+            }
+
+            if (vcp.target_1 > 0) {
+                candleSeries.createPriceLine({
+                    price: vcp.target_1,
+                    color: '#10b981',
+                    lineWidth: 2,
+                    lineStyle: LineStyle.Dashed,
+                    axisLabelVisible: true,
+                    title: 'TARGET 1 (1:2)',
+                });
+            }
+
+            if (vcp.target_2 > 0) {
+                candleSeries.createPriceLine({
+                    price: vcp.target_2,
+                    color: '#a855f7',
+                    lineWidth: 2,
+                    lineStyle: LineStyle.Dashed,
+                    axisLabelVisible: true,
+                    title: 'TARGET 2 (1:4)',
+                });
+            }
+
+            chart.timeScale().fitContent();
+        }
+    } catch(err) {
+        console.error("VCP Chart Modal error:", err);
+    } finally {
+        if (loadingEl) loadingEl.style.display = 'none';
+    }
+};
+
 
