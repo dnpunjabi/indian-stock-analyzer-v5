@@ -16546,8 +16546,8 @@ async def get_vcp_ai_deep_research(symbol: str):
             raise HTTPException(status_code=404, detail="Stock price history not found")
 
         vcp = detect_vcp_pattern(df)
-        canslim = calculate_canslim_score(sym_upper, df=df)
         with get_db() as db_conn:
+            canslim = calculate_canslim_score(sym_upper, db_conn=db_conn, df=df)
             cursor = db_conn.cursor()
             cursor.execute("SELECT company_name FROM screener_universe WHERE symbol = ? OR base_symbol = ? OR symbol LIKE ?", (sym_upper, sym_upper.replace('.NS', ''), f"{sym_upper}%"))
             row = cursor.fetchone()
