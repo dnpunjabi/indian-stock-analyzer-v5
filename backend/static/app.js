@@ -2466,6 +2466,11 @@ function switchTab(tabKey) {
             if (dashboard) dashboard.style.display = 'none';
             if (emptyState) emptyState.style.display = 'block';
         }
+    } else if (tabKey === 'vcp') {
+        document.body.classList.remove('homepage-active');
+        if (typeof window.runVcpScan === 'function' && (!window.allVcpStocks || window.allVcpStocks.length === 0)) {
+            window.runVcpScan();
+        }
     } else {
         document.body.classList.remove('homepage-active');
     }
