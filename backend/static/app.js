@@ -54368,19 +54368,29 @@ async function loadGoogleAIOverviewCard(symbol, forceRefresh = false) {
 }
 window.loadGoogleAIOverviewCard = loadGoogleAIOverviewCard;
 
-window.loadStockVcpCanslimCard = async function(symbol) {
+window._vcpTabCache = window._vcpTabCache || {};
+
+window.loadStockVcpCanslimCard = async function(symbol, forceRefresh = false) {
     const cardContent = document.getElementById('vcp-canslim-research-content');
     if (!cardContent) return;
+
+    const cleanSym = symbol.replace('.NS','').replace('.BO','').toUpperCase();
+
+    if (!forceRefresh && window._vcpTabCache[cleanSym]) {
+        renderVcpCanslimCardContent(cardContent, window._vcpTabCache[cleanSym], symbol);
+        return;
+    }
 
     cardContent.innerHTML = `
         <div style="text-align: center; padding: 40px;">
             <div class="spinner" style="margin: 0 auto 16px auto;"></div>
-            <p style="color: #94a3b8; font-size: 13px;">Analyzing Minervini VCP Wave Mechanics & CANSLIM Ratings for <strong>${symbol.replace('.NS','')}</strong>...</p>
+            <p style="color: #94a3b8; font-size: 13px;">Analyzing Minervini VCP Wave Mechanics & CANSLIM Ratings for <strong>${cleanSym}</strong>...</p>
         </div>
     `;
 
     try {
-        const response = await fetch(`/api/vcp-ai-deep-research/${encodeURIComponent(symbol)}?t=${Date.now()}`);
+        const url = `/api/vcp-ai-deep-research/${encodeURIComponent(symbol)}${forceRefresh ? '?force_refresh=true' : ''}`;
+        const response = await fetch(url);
         const data = await response.json();
 
         if (!data || data.status !== 'success') {
@@ -54388,11 +54398,20 @@ window.loadStockVcpCanslimCard = async function(symbol) {
             return;
         }
 
-        const vcp = data.vcp || {};
-        const canslim = data.canslim_score || 0;
-        const calcGrade = canslim >= 80 ? 'Grade A+' : (canslim >= 65 ? 'Grade B' : 'Grade C');
-        const grade = (data.canslim_grade && data.canslim_grade !== 'C') ? data.canslim_grade : calcGrade;
-        let factors = data.canslim_factors || {};
+        window._vcpTabCache[cleanSym] = data;
+        renderVcpCanslimCardContent(cardContent, data, symbol);
+    } catch(e) {
+        console.error("Error loading VCP CANSLIM card:", e);
+        cardContent.innerHTML = `<div style="text-align: center; padding: 30px; color: #ef4444;">Failed to load VCP data for ${symbol}.</div>`;
+    }
+};
+
+function renderVcpCanslimCardContent(cardContent, data, symbol) {
+    const vcp = data.vcp || {};
+    const canslim = data.canslim_score || 0;
+    const calcGrade = canslim >= 80 ? 'Grade A+' : (canslim >= 65 ? 'Grade B' : 'Grade C');
+    const grade = (data.canslim_grade && data.canslim_grade !== 'C') ? data.canslim_grade : calcGrade;
+    let factors = data.canslim_factors || {};
 
         if (!factors || Object.keys(factors).length === 0) {
             factors = {
@@ -54515,11 +54534,7 @@ window.loadStockVcpCanslimCard = async function(symbol) {
                 <p style="margin: 0; font-size: 12.5px; color: #94a3b8; line-height: 1.5;"><strong>Execution Trigger:</strong> ${aiBlueprint.execution_blueprint || 'Buy on high-volume breakout above pivot price.'}</p>
             </div>
         `;
-    } catch(e) {
-        console.error("Error loading VCP CANSLIM card:", e);
-        cardContent.innerHTML = `<div style="text-align: center; padding: 30px; color: #ef4444;">Failed to load VCP data for ${symbol}.</div>`;
-    }
-};
+}
 
 function renderGoogleAIOverviewCard(data) {
     const container = document.getElementById('google-ai-overview-card-container');

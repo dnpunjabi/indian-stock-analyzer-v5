@@ -16525,12 +16525,23 @@ def get_stock_catalysts(
         raise HTTPException(status_code=500, detail=str(e))
 
 
+_vcp_deep_research_cache = {}
+
 @app.get("/api/vcp-ai-deep-research/{symbol}")
-async def get_vcp_ai_deep_research(symbol: str):
+async def get_vcp_ai_deep_research(symbol: str, force_refresh: bool = False):
     """
     Generates an AI Institutional Investment Blueprint using Gemini / Groq LLM
     combining Minervini VCP wave mechanics, CANSLIM score breakdown, and fundamental catalysts.
+    Caches computed results for 2 hours for sub-50ms instant performance.
     """
+    sym_clean = symbol.strip().upper().replace('.NS', '').replace('.BO', '')
+    now = time.time()
+    
+    if not force_refresh and sym_clean in _vcp_deep_research_cache:
+        cached_entry, timestamp = _vcp_deep_research_cache[sym_clean]
+        if now - timestamp < 7200:  # 2 Hours cache
+            return cached_entry
+
     try:
         from backend.swing_utils import detect_vcp_pattern, calculate_canslim_score
         import urllib.request
@@ -16595,20 +16606,23 @@ Return ONLY valid JSON matching this schema."""
             if clean.endswith("```"): clean = clean[:-3]
             try:
                 ai_output = json.loads(clean.strip())
-                return {
+                result = {
                     "status": "success",
                     "symbol": sym_upper,
                     "company_name": company_name,
                     "price": curr_price,
-                    "canslim_score": canslim.get('canslim_score'),
-                    "canslim_grade": canslim.get('canslim_grade'),
+                    "canslim_score": canslim.get('canslim_score', 0),
+                    "canslim_grade": canslim.get('grade', 'Grade C'),
+                    "canslim_factors": canslim.get('factors', {}),
                     "vcp": vcp,
                     "ai_blueprint": ai_output
                 }
+                _vcp_deep_research_cache[sym_clean] = (result, time.time())
+                return result
             except Exception:
                 pass
 
-        return {
+        result = {
             "status": "success",
             "symbol": sym_upper,
             "company_name": company_name,
@@ -16624,6 +16638,8 @@ Return ONLY valid JSON matching this schema."""
                 "verdict": f"{canslim.get('grade', 'Grade A+')} SEPA Setup"
             }
         }
+        _vcp_deep_research_cache[sym_clean] = (result, time.time())
+        return result
     except Exception as e:
         print(f"Error in VCP AI Deep Research: {e}")
 @app.post("/api/vcp-ai-watchlist-evaluate")
