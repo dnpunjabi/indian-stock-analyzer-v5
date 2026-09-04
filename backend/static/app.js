@@ -18050,11 +18050,12 @@ function renderWatchlistItems() {
                 ${getSortHeader('symbol', 'Stock', 'left', true)}
                 ${getSortHeader('live_price', 'LTP', 'right')}
                 ${getSortHeader('change_pct', 'Day Chg %', 'right')}
-                <th style="color: var(--text-secondary); text-align: center;">🎯 VCP Contraction Stage</th>
+                <th style="color: var(--text-secondary); text-align: center;">🎯 VCP Stage & Tightness</th>
+                <th style="color: var(--text-secondary); text-align: center;">📈 Wave Mechanics (T1 ➔ T6)</th>
                 <th style="color: var(--text-secondary); text-align: center;">💧 VDU Ratio</th>
                 <th style="color: var(--text-secondary); text-align: right;">Pivot Buy (Stop Loss)</th>
                 <th style="color: var(--text-secondary); text-align: center;">🚀 Targets (T1 / T2)</th>
-                <th style="color: var(--text-secondary); text-align: center;">7-Factor CANSLIM</th>
+                <th style="color: var(--text-secondary); text-align: center;">🔮 7-Factor CANSLIM</th>
                 <th style="color: var(--text-secondary); text-align: center;">🔮 AI Research</th>
                 <th style="color: var(--text-secondary); text-align: center;">Actions</th>
             `;
@@ -18559,9 +18560,10 @@ function renderWatchlistItems() {
                             ${badgeHTML}
                         </div>
                         ${tightnessBadge}
-                        ${wavePillsHTML}
                     </div>
                 `;
+
+                let wavesColHTML = wavePillsHTML || `<span style="color: var(--text-muted); font-size: 11px;">--</span>`;
 
                 const vdu = vcpData.volume_dryup_ratio || 0.8;
                 const isVdu = vdu <= 1.0;
@@ -18641,6 +18643,7 @@ function renderWatchlistItems() {
                 <td class="wl-live-price" style="text-align: right;">${priceHTML}</td>
                 <td class="wl-change-pct" style="text-align: right;">${changePctHTML}</td>
                 <td style="text-align: center;">${vcpStageBadge}</td>
+                <td style="text-align: center;">${wavesColHTML}</td>
                 <td style="text-align: center;">${vduHTML}</td>
                 <td style="text-align: right;">${pivotHTML}</td>
                 <td style="text-align: center;">${targetsHTML}</td>
