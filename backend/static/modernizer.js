@@ -486,6 +486,7 @@
         const navIconMap = {
             'tab-analyzer-btn': 'line-chart',
             'tab-screener-btn': 'search',
+            'tab-vcp-btn': 'flame',
             'tab-compare-btn': 'git-compare',
             'tab-universe-btn': 'database',
             'tab-movers-btn': 'trending-up',
