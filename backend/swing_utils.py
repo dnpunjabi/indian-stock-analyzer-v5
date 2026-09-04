@@ -1850,6 +1850,15 @@ def calculate_canslim_score(symbol: str, db_conn=None, df=None) -> dict:
                     try: pat_g = float(pat_m.group(1))
                     except: pass
 
+                fii_m = re.search(r'FIIs?["\s:]+([\d\.]+)', pstr, re.IGNORECASE)
+                dii_m = re.search(r'DIIs?["\s:]+([\d\.]+)', pstr, re.IGNORECASE)
+                if fii_m or dii_m:
+                    try:
+                        fii_val = float(fii_m.group(1)) if fii_m else 0.0
+                        dii_val = float(dii_m.group(1)) if dii_m else 0.0
+                        fii_dii = fii_val + dii_val
+                    except: pass
+
             cursor.execute("SELECT delivery_pct FROM daily_delivery_stats WHERE symbol LIKE ?", (f"%{symbol_norm}%",))
             del_row = cursor.fetchone()
             if del_row and del_row[0]:
