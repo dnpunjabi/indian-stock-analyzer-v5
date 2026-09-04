@@ -1818,22 +1818,37 @@ def calculate_canslim_score(symbol: str, db_conn=None, df=None) -> dict:
             cursor.execute("SELECT profile_json FROM cached_profiles WHERE symbol LIKE ?", (f"%{symbol_norm}%",))
             prof_row = cursor.fetchone()
             if prof_row and prof_row[0]:
-                import json
-                pdata = json.loads(prof_row[0])
-                fund = pdata.get("fundamentals", {})
-                if fund.get("profit_growth_3y_pct") is not None:
-                    pat_g = float(fund["profit_growth_3y_pct"])
-                elif fund.get("ebitda_growth_3y_pct") is not None:
-                    pat_g = float(fund["ebitda_growth_3y_pct"])
+                pstr = prof_row[0]
+                import json, re
+                try:
+                    pdata = json.loads(pstr)
+                    fund = pdata.get("fundamentals", {})
+                    if fund.get("profit_growth_3y_pct") is not None:
+                        pat_g = float(fund["profit_growth_3y_pct"])
+                    elif fund.get("ebitda_growth_3y_pct") is not None:
+                        pat_g = float(fund["ebitda_growth_3y_pct"])
+                        
+                    if fund.get("roe_pct") is not None:
+                        roe = float(fund["roe_pct"])
+                    elif fund.get("roce_pct") is not None:
+                        roe = float(fund["roce_pct"])
                     
-                if fund.get("roe_pct") is not None:
-                    roe = float(fund["roe_pct"])
-                elif fund.get("roce_pct") is not None:
-                    roe = float(fund["roce_pct"])
-                
-                sh = pdata.get("shareholding", {})
-                if sh.get("fii_pct") is not None or sh.get("dii_pct") is not None:
-                    fii_dii = float(sh.get("fii_pct") or 0.0) + float(sh.get("dii_pct") or 0.0)
+                    sh = pdata.get("shareholding", {})
+                    if sh.get("fii_pct") is not None or sh.get("dii_pct") is not None:
+                        fii_dii = float(sh.get("fii_pct") or 0.0) + float(sh.get("dii_pct") or 0.0)
+                except Exception:
+                    pass
+
+                # Regex fallback directly from Screener profile string if dict lookup missing
+                roe_m = re.search(r'ROE[:\s]+([\d\.]+)%', pstr, re.IGNORECASE)
+                if roe_m:
+                    try: roe = float(roe_m.group(1))
+                    except: pass
+
+                pat_m = re.search(r'(?:profit_growth|Profit Qtr YoY %|Profit Var 3Yrs|EPS growth 3Years)["\s:]+([\d\.]+)', pstr, re.IGNORECASE)
+                if pat_m:
+                    try: pat_g = float(pat_m.group(1))
+                    except: pass
 
             cursor.execute("SELECT delivery_pct FROM daily_delivery_stats WHERE symbol LIKE ?", (f"%{symbol_norm}%",))
             del_row = cursor.fetchone()
