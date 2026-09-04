@@ -55019,11 +55019,11 @@ window.renderVcpCards = function(stocks) {
         const contractions = stock.contractions || [];
         const lastStageName = contractions.length > 0 ? (contractions[contractions.length - 1].stage || 'T3') : 'T3';
         const contractionsHTML = contractions.map((c) => `
-            <div style="flex: 1; min-width: 75px; background: rgba(30, 41, 59, 0.6); border: 1px solid rgba(255,255,255,0.08); border-radius: 6px; padding: 5px 6px; text-align: center;">
-                <div style="font-size: 9.5px; color: #fbbf24; font-weight: 700; text-transform: uppercase;">Wave T${c.stage}</div>
-                <div style="font-size: 11.5px; font-weight: 800; color: #f87171;">-${Math.abs(c.depth_percent)}%</div>
-                ${c.high_price ? `<div style="font-size: 8.5px; color: #cbd5e1;">₹${c.high_price} → ₹${c.low_price}</div>` : ''}
-                <div style="font-size: 8.5px; color: #94a3b8;">${c.days} days</div>
+            <div style="flex: 1; min-width: 75px; background: var(--bg-glass-input, rgba(30, 41, 59, 0.6)); border: 1px solid var(--border-glass, rgba(255,255,255,0.08)); border-radius: 6px; padding: 5px 6px; text-align: center;">
+                <div style="font-size: 9.5px; color: #d97706; font-weight: 800; text-transform: uppercase;">Wave T${c.stage}</div>
+                <div style="font-size: 11.5px; font-weight: 800; color: #ef4444;">-${Math.abs(c.depth_percent)}%</div>
+                ${c.high_price ? `<div style="font-size: 8.5px; color: var(--text-secondary, #64748b); font-weight: 600;">₹${c.high_price} → ₹${c.low_price}</div>` : ''}
+                <div style="font-size: 8.5px; color: var(--text-muted, #94a3b8); font-weight: 600;">${c.days} days</div>
             </div>
         `).join('');
 
@@ -55056,68 +55056,68 @@ window.renderVcpCards = function(stocks) {
 
         const miniBadgesHtml = `<div style="display: grid; grid-template-columns: repeat(7, 1fr); gap: 3px; margin-top: 6px;">` +
             Object.entries(factorsObj).map(([letter, f]) => `
-                <div title="${factorDefs[letter] || letter}: ${f.detail || ''}" style="background: rgba(30, 41, 59, 0.6); border: 1px solid rgba(168, 85, 247, 0.25); padding: 3px 2px; border-radius: 5px; text-align: center; cursor: help;">
-                    <div style="color: #c084fc; font-weight: 800; font-size: 10px;">${letter}</div>
-                    <div style="color: #10b981; font-weight: 700; font-size: 8.5px;">${f.score}/${f.max}</div>
-                    <div style="color: #cbd5e1; font-size: 7.5px; text-overflow: ellipsis; overflow: hidden; white-space: nowrap;">${f.detail || ''}</div>
+                <div title="${factorDefs[letter] || letter}: ${f.detail || ''}" style="background: var(--bg-glass-input, rgba(30, 41, 59, 0.6)); border: 1px solid rgba(168, 85, 247, 0.3); padding: 3px 2px; border-radius: 5px; text-align: center; cursor: help;">
+                    <div style="color: #9333ea; font-weight: 800; font-size: 10px;">${letter}</div>
+                    <div style="color: #16a34a; font-weight: 800; font-size: 8.5px;">${f.score}/${f.max}</div>
+                    <div style="color: var(--text-primary, #1e293b); font-weight: 700; font-size: 7.5px; text-overflow: ellipsis; overflow: hidden; white-space: nowrap;">${f.detail || ''}</div>
                 </div>
             `).join('') + `</div>`;
 
         return `
-            <div class="vcp-card" style="background: rgba(15, 23, 42, 0.75); border: 1px solid rgba(255,255,255,0.1); border-radius: 14px; padding: 16px; backdrop-filter: blur(12px); display: flex; flex-direction: column; justify-content: space-between; transition: all 0.25s ease; box-shadow: 0 4px 20px rgba(0,0,0,0.25);">
+            <div class="vcp-card card" style="background: var(--bg-glass-card, rgba(15, 23, 42, 0.75)); border: 1px solid var(--border-glass, rgba(255,255,255,0.1)); border-radius: 14px; padding: 16px; backdrop-filter: blur(12px); display: flex; flex-direction: column; justify-content: space-between; transition: all 0.25s ease;">
                 <div>
                     <!-- Header -->
                     <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px;">
                         <div>
                             <div style="display: flex; align-items: center; gap: 8px;">
-                                <span style="font-size: 16.5px; font-weight: 800; color: #ffffff; letter-spacing: -0.3px;">${sym}</span>
+                                <span style="font-size: 16.5px; font-weight: 800; color: var(--text-primary, #ffffff); letter-spacing: -0.3px;">${sym}</span>
                                 ${statusBadgeHTML}
                             </div>
-                            <div style="font-size: 11.5px; color: #94a3b8; font-weight: 500; margin-top: 2px;">${name}</div>
+                            <div style="font-size: 11.5px; color: var(--text-secondary, #94a3b8); font-weight: 500; margin-top: 2px;">${name}</div>
                         </div>
                         <div style="text-align: right;">
-                            <div style="font-size: 15.5px; font-weight: 800; color: #f8fafc;">${price}</div>
+                            <div style="font-size: 15.5px; font-weight: 800; color: var(--text-primary, #f8fafc);">${price}</div>
                             <div style="font-size: 11px; font-weight: 700; color: ${chgColor};">${chgPct >= 0 ? '+' : ''}${chgPct.toFixed(2)}%</div>
                         </div>
                     </div>
 
                     <!-- Contraction Pipeline -->
                     <div style="margin-bottom: 12px;">
-                        <div style="font-size: 10px; font-weight: 700; color: #94a3b8; text-transform: uppercase; margin-bottom: 5px; display: flex; justify-content: space-between;">
+                        <div style="font-size: 10px; font-weight: 700; color: var(--text-secondary, #94a3b8); text-transform: uppercase; margin-bottom: 5px; display: flex; justify-content: space-between;">
                             <span>Contraction Waves (${contractions.length} Detected)</span>
-                            <span style="color: ${stock.volume_dryup_ratio <= 1.0 ? '#10b981' : '#fbbf24'};">VDU Ratio: ${stock.volume_dryup_ratio}x</span>
+                            <span style="color: ${stock.volume_dryup_ratio <= 1.0 ? '#10b981' : '#d97706'}; font-weight: 800;">VDU Ratio: ${stock.volume_dryup_ratio}x</span>
                         </div>
                         <div style="display: flex; gap: 5px; overflow-x: auto; padding-bottom: 2px;">
-                            ${contractionsHTML || '<div style="color:#64748b; font-size:11px;">Tightening base detected</div>'}
+                            ${contractionsHTML || '<div style="color:var(--text-muted); font-size:11px;">Tightening base detected</div>'}
                         </div>
                     </div>
 
                     <!-- Execution Levels Grid -->
-                    <div class="vcp-execution-grid" style="background: rgba(30, 41, 59, 0.4); border: 1px solid rgba(255,255,255,0.06); border-radius: 8px; padding: 8px 10px; margin-bottom: 12px; display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+                    <div class="vcp-execution-grid" style="background: var(--bg-glass-input, rgba(30, 41, 59, 0.4)); border: 1px solid var(--border-glass, rgba(255,255,255,0.06)); border-radius: 8px; padding: 8px 10px; margin-bottom: 12px; display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
                         <div>
-                            <div style="font-size: 9.5px; color: #94a3b8; text-transform: uppercase; font-weight: 600;">Pivot Buy Price</div>
-                            <div style="font-size: 13px; font-weight: 800; color: #38bdf8;">₹${stock.pivot_price || '--'}</div>
+                            <div style="font-size: 9.5px; color: var(--text-secondary, #94a3b8); text-transform: uppercase; font-weight: 700;">Pivot Buy Price</div>
+                            <div style="font-size: 13px; font-weight: 800; color: #0284c7;">₹${stock.pivot_price || '--'}</div>
                         </div>
                         <div>
-                            <div style="font-size: 9.5px; color: #94a3b8; text-transform: uppercase; font-weight: 600;">Stop Loss (Risk %)</div>
-                            <div style="font-size: 13px; font-weight: 800; color: #f87171;">₹${stock.stop_loss || '--'} <span style="font-size: 9.5px; font-weight:600;">(-${stock.risk_percent}%)</span></div>
+                            <div style="font-size: 9.5px; color: var(--text-secondary, #94a3b8); text-transform: uppercase; font-weight: 700;">Stop Loss (Risk %)</div>
+                            <div style="font-size: 13px; font-weight: 800; color: #dc2626;">₹${stock.stop_loss || '--'} <span style="font-size: 9.5px; font-weight:600;">(-${stock.risk_percent}%)</span></div>
                         </div>
                         <div>
-                            <div style="font-size: 9.5px; color: #94a3b8; text-transform: uppercase; font-weight: 600;">Target 1 (1:2 R:R)</div>
-                            <div style="font-size: 12.5px; font-weight: 700; color: #10b981;">₹${stock.target_1 || '--'}</div>
+                            <div style="font-size: 9.5px; color: var(--text-secondary, #94a3b8); text-transform: uppercase; font-weight: 700;">Target 1 (1:2 R:R)</div>
+                            <div style="font-size: 12.5px; font-weight: 700; color: #16a34a;">₹${stock.target_1 || '--'}</div>
                         </div>
                         <div>
-                            <div style="font-size: 9.5px; color: #94a3b8; text-transform: uppercase; font-weight: 600;">Target 2 (1:4 R:R)</div>
-                            <div style="font-size: 12.5px; font-weight: 700; color: #a855f7;">₹${stock.target_2 || '--'}</div>
+                            <div style="font-size: 9.5px; color: var(--text-secondary, #94a3b8); text-transform: uppercase; font-weight: 700;">Target 2 (1:4 R:R)</div>
+                            <div style="font-size: 12.5px; font-weight: 700; color: #9333ea;">₹${stock.target_2 || '--'}</div>
                         </div>
                     </div>
 
                     <!-- CANSLIM & Tightness Score Section -->
-                    <div class="vcp-canslim-bar" style="background: rgba(30, 41, 59, 0.6); padding: 8px 10px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.08);">
+                    <div class="vcp-canslim-bar" style="background: var(--bg-glass-input, rgba(30, 41, 59, 0.6)); padding: 8px 10px; border-radius: 8px; border: 1px solid var(--border-glass, rgba(255,255,255,0.08));">
                         <div style="display: flex; align-items: center; justify-content: space-between;">
-                            <span style="font-size: 10.5px; font-weight: 700; color: #cbd5e1; display: flex; align-items: center; gap: 4px;">
-                                Tightness: <strong style="color: #fbbf24; font-family: monospace;">${tightness}/100</strong>
-                                <span onclick="window.showTightnessScoreHelp && window.showTightnessScoreHelp(${tightness})" style="cursor: pointer; color: #fbbf24; font-size: 9px; border: 1px solid rgba(251,191,36,0.4); border-radius: 50%; width: 13px; height: 13px; display: inline-flex; align-items: center; justify-content: center;" title="Click for Tightness Score Breakdown">ℹ</span>
+                            <span style="font-size: 10.5px; font-weight: 700; color: var(--text-primary, #cbd5e1); display: flex; align-items: center; gap: 4px;">
+                                Tightness: <strong style="color: #d97706; font-family: monospace; font-weight: 800;">${tightness}/100</strong>
+                                <span onclick="window.showTightnessScoreHelp && window.showTightnessScoreHelp(${tightness})" style="cursor: pointer; color: #d97706; font-size: 9px; border: 1px solid rgba(217,119,6,0.5); border-radius: 50%; width: 13px; height: 13px; display: inline-flex; align-items: center; justify-content: center;" title="Click for Tightness Score Breakdown">ℹ</span>
                             </span>
                             <span style="background: ${gradeBg}; color: ${gradeColor}; border: 1px solid ${gradeColor}44; font-size: 11px; font-weight: 800; padding: 2px 8px; border-radius: 10px;">${score}/100 (${grade})</span>
                         </div>
