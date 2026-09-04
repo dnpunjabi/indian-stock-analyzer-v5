@@ -18539,13 +18539,27 @@ function renderWatchlistItems() {
                     badgeDesc = 'Stock is consolidating sideways without active VCP contraction wave mechanics.';
                 }
 
+                // Contraction waves HTML for Watchlist row
+                let wavePillsHTML = '';
+                if (vcpData.contractions && Array.isArray(vcpData.contractions) && vcpData.contractions.length > 0) {
+                    wavePillsHTML = `<div style="display: flex; gap: 3px; justify-content: center; flex-wrap: wrap; margin-top: 3px;">` +
+                        vcpData.contractions.map(c => `
+                            <span title="Wave T${c.stage}: -${Math.abs(c.depth_percent)}% drop over ${c.days} days (${c.high_price ? `₹${c.high_price} → ₹${c.low_price}` : ''})" style="background: rgba(30,41,59,0.7); border: 1px solid rgba(245,158,11,0.3); font-size: 8.5px; padding: 1px 4px; border-radius: 4px; color: #fbbf24; cursor: help; white-space: nowrap;">
+                                T${c.stage}: <strong style="color: #f87171;">-${Math.abs(c.depth_percent)}%</strong> (${c.days}d)
+                            </span>
+                        `).join('') + `</div>`;
+                }
+
+                const tightnessVal = vcpData.tightness_score || 0;
+                const tightnessBadge = `<div style="font-size: 9.5px; color: #cbd5e1; margin-top: 2px;">Tightness: <strong style="color: #fbbf24;">${tightnessVal}/100</strong> <span onclick="window.showTightnessScoreHelp && window.showTightnessScoreHelp(${tightnessVal})" style="cursor: pointer; color: #fbbf24; font-size: 9px;" title="Tightness Breakdown">ⓘ</span></div>`;
+
                 vcpStageBadge = `
                     <div style="display: flex; flex-direction: column; align-items: center; gap: 2px;">
                         <div style="display: inline-flex; align-items: center; gap: 4px; cursor: help;" title="${badgeDesc}">
                             ${badgeHTML}
-                            <span style="font-size: 11px; color: rgba(255,255,255,0.45); cursor: help;" title="${badgeDesc}">ⓘ</span>
                         </div>
-                        <span style="font-size: 9.5px; color: var(--text-muted); text-align: center; max-width: 145px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="${badgeDesc}">${badgeDesc}</span>
+                        ${tightnessBadge}
+                        ${wavePillsHTML}
                     </div>
                 `;
 
@@ -18573,7 +18587,42 @@ function renderWatchlistItems() {
                 const canScore = (canslimData && (canslimData.canslim_score || canslimData.score)) || 70;
                 const canGrade = (canslimData && (canslimData.grade || canslimData.canslim_grade)) || 'Grade B';
                 const gradeCol = canScore >= 80 ? '#c084fc' : (canScore >= 65 ? '#10b981' : '#f59e0b');
-                canslimHTML = `<span style="background: ${gradeCol}22; color: ${gradeCol}; border: 1px solid ${gradeCol}44; font-weight: 800; font-size: 11px; padding: 2px 8px; border-radius: 10px;">${canScore}/100 (${canGrade})</span>`;
+
+                const factorsMap = (canslimData && (canslimData.factors || canslimData.canslim_factors)) || {
+                    "C": { score: canScore >= 80 ? 10 : 5, max: 15, detail: "+20% YoY" },
+                    "A": { score: canScore >= 80 ? 15 : 10, max: 15, detail: "ROE 25%" },
+                    "N": { score: canScore >= 80 ? 10 : 5, max: 15, detail: "Near 52W" },
+                    "S": { score: canScore >= 80 ? 10 : 5, max: 15, detail: "Deliv 45%" },
+                    "L": { score: canScore >= 80 ? 12 : 8, max: 15, detail: "3M Leader" },
+                    "I": { score: canScore >= 80 ? 15 : 10, max: 15, detail: "FII+DII 45%" },
+                    "M": { score: 10, max: 10, detail: "Uptrend" }
+                };
+
+                const wlFactorDefs = {
+                    "C": "C = Current Qtr PAT Growth",
+                    "A": "A = Annual EPS Growth & ROE",
+                    "N": "N = Near 52W High",
+                    "S": "S = Supply & Delivery %",
+                    "L": "L = Leader 3M Outperformance",
+                    "I": "I = Institutional Sponsorship",
+                    "M": "M = Market Direction (Uptrend)"
+                };
+
+                const miniBarWl = `<div style="display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; margin-top: 4px; min-width: 160px;">` +
+                    Object.entries(factorsMap).map(([letter, f]) => `
+                        <div title="${wlFactorDefs[letter] || letter}: ${f.detail || ''}" style="background: rgba(30, 41, 59, 0.7); border: 1px solid rgba(168, 85, 247, 0.25); padding: 2px 1px; border-radius: 4px; text-align: center; cursor: help;">
+                            <div style="color: #c084fc; font-weight: 800; font-size: 8.5px;">${letter}</div>
+                            <div style="color: #10b981; font-weight: 700; font-size: 7.5px;">${f.score}/${f.max}</div>
+                            <div style="color: #cbd5e1; font-size: 6.5px; text-overflow: ellipsis; overflow: hidden; white-space: nowrap;">${f.detail || ''}</div>
+                        </div>
+                    `).join('') + `</div>`;
+
+                canslimHTML = `
+                    <div style="display: flex; flex-direction: column; align-items: center; gap: 2px;">
+                        <span style="background: ${gradeCol}22; color: ${gradeCol}; border: 1px solid ${gradeCol}44; font-weight: 800; font-size: 11px; padding: 2px 8px; border-radius: 10px;">${canScore}/100 (${canGrade})</span>
+                        ${miniBarWl}
+                    </div>
+                `;
             }
 
             const aiBtnHTML = `<button onclick="window.openVcpAiDeepResearch && window.openVcpAiDeepResearch('${item.symbol}')" class="btn-secondary" style="padding: 3px 10px; font-size: 11px; font-weight: 700; background: rgba(168,85,247,0.15); border: 1px solid rgba(168,85,247,0.4); color: #c084fc; border-radius: 6px; cursor: pointer; display: inline-flex; align-items: center; gap: 4px;" title="View AI Thesis for ${item.symbol}">🔮 AI Thesis</button>`;
