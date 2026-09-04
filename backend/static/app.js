@@ -18505,6 +18505,7 @@ function renderWatchlistItems() {
             }
 
             let vcpStageBadge = `<span style="background: rgba(148, 163, 184, 0.12); color: #94a3b8; border: 1px solid rgba(148, 163, 184, 0.25); font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 12px;">BEARISH / NO VCP</span>`;
+            let wavesColHTML = `<span style="color: var(--text-muted); font-size: 11.5px;">--</span>`;
             let vduHTML = `<span style="color: var(--text-muted); font-size: 11.5px;">--</span>`;
             let pivotHTML = `<span style="color: var(--text-muted); font-size: 11.5px;">--</span>`;
             let targetsHTML = `<span style="color: var(--text-muted); font-size: 11.5px;">--</span>`;
@@ -18563,7 +18564,7 @@ function renderWatchlistItems() {
                     </div>
                 `;
 
-                let wavesColHTML = wavePillsHTML || `<span style="color: var(--text-muted); font-size: 11px;">--</span>`;
+                wavesColHTML = wavePillsHTML || `<span style="color: var(--text-muted); font-size: 11px;">--</span>`;
 
                 const vdu = vcpData.volume_dryup_ratio || 0.8;
                 const isVdu = vdu <= 1.0;
