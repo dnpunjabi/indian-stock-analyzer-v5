@@ -7338,9 +7338,12 @@ function renderStockDashboard(p) {
         }, 2000);
     }
 
-    // Auto-load Google SGE AI Overview Card
+    // Auto-load Google SGE AI Overview & VCP CANSLIM Cards
     if (typeof loadGoogleAIOverviewCard === 'function' && p && p.ticker) {
         loadGoogleAIOverviewCard(p.ticker);
+    }
+    if (typeof window.loadStockVcpCanslimCard === 'function' && p && p.ticker) {
+        window.loadStockVcpCanslimCard(p.ticker);
     }
 
     // Populate Corporate Business Summary Collapsible Card (Two-Column Layout)
@@ -8672,6 +8675,9 @@ function renderStockDashboard(p) {
     loadPortfolioNewsImpact(p.ticker, false, false);
     if (window.loadGoogleAIOverviewCard) {
         window.loadGoogleAIOverviewCard(p.ticker, false);
+    }
+    if (window.loadStockVcpCanslimCard) {
+        window.loadStockVcpCanslimCard(p.ticker);
     }
     // Initial fetch of the default chart duration (1 year daily)
     fetchAndRenderChart();
@@ -22804,6 +22810,14 @@ function setupAnalyzerSubtabs() {
             }
 
             const activeSubtab = btn.getAttribute('data-subtab');
+
+            if (activeSubtab === 'vcp-canslim') {
+                if (activeStockProfile && activeStockProfile.ticker) {
+                    window.loadStockVcpCanslimCard(activeStockProfile.ticker);
+                } else {
+                    showToast("Please load a stock analyzer profile first.", "warning");
+                }
+            }
 
             if (activeSubtab === 'ai-overview') {
                 if (activeStockProfile && activeStockProfile.ticker) {
@@ -54353,6 +54367,132 @@ async function loadGoogleAIOverviewCard(symbol, forceRefresh = false) {
     }
 }
 window.loadGoogleAIOverviewCard = loadGoogleAIOverviewCard;
+
+window.loadStockVcpCanslimCard = async function(symbol) {
+    const cardContent = document.getElementById('vcp-canslim-research-content');
+    if (!cardContent) return;
+
+    cardContent.innerHTML = `
+        <div style="text-align: center; padding: 40px;">
+            <div class="spinner" style="margin: 0 auto 16px auto;"></div>
+            <p style="color: #94a3b8; font-size: 13px;">Analyzing Minervini VCP Wave Mechanics & CANSLIM Ratings for <strong>${symbol.replace('.NS','')}</strong>...</p>
+        </div>
+    `;
+
+    try {
+        const response = await fetch(`/api/vcp-ai-deep-research/${encodeURIComponent(symbol)}`);
+        const data = await response.json();
+
+        if (!data || data.status !== 'success') {
+            cardContent.innerHTML = `<div style="text-align: center; padding: 30px; color: #ef4444;">Unable to compute VCP metrics for ${symbol}.</div>`;
+            return;
+        }
+
+        const vcp = data.vcp || {};
+        const canslim = data.canslim_score || 0;
+        const grade = data.canslim_grade || 'C';
+        const aiBlueprint = data.ai_blueprint || {};
+        const contractions = vcp.contractions || [];
+        const st = vcp.vcp_status || (vcp.is_vcp ? 'FORMING' : 'CONSOLIDATING');
+        const stage = vcp.vcp_stage || 'T3';
+
+        let statusBadge = '';
+        if (st === 'READY_PIVOT') {
+            statusBadge = `<span style="background: rgba(16, 185, 129, 0.15); color: #10b981; border: 1px solid rgba(16, 185, 129, 0.4); font-size: 12px; font-weight: 800; padding: 4px 12px; border-radius: 14px;">🎯 READY AT PIVOT</span>`;
+        } else if (st === 'LIVE_BREAKOUT') {
+            statusBadge = `<span style="background: rgba(56, 189, 248, 0.15); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.4); font-size: 12px; font-weight: 800; padding: 4px 12px; border-radius: 14px;">🚀 LIVE BREAKOUT</span>`;
+        } else if (vcp.is_vcp || st === 'FORMING') {
+            statusBadge = `<span style="background: rgba(245, 158, 11, 0.15); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.4); font-size: 12px; font-weight: 700; padding: 4px 12px; border-radius: 14px;">⏳ FORMING ${stage}</span>`;
+        } else if (vcp.vcp_reason === 'BELOW 50 EMA') {
+            statusBadge = `<span style="background: rgba(239, 68, 68, 0.12); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.25); font-size: 12px; font-weight: 700; padding: 4px 12px; border-radius: 14px;">📉 BELOW 50 EMA</span>`;
+        } else {
+            statusBadge = `<span style="background: rgba(148, 163, 184, 0.12); color: #94a3b8; border: 1px solid rgba(148, 163, 184, 0.25); font-size: 12px; font-weight: 700; padding: 4px 12px; border-radius: 14px;">⏳ ${vcp.vcp_reason || 'CONSOLIDATING'}</span>`;
+        }
+
+        let contractionsHtml = '';
+        if (contractions.length > 0) {
+            contractionsHtml = contractions.map(c => `
+                <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px 14px; background: rgba(30, 41, 59, 0.5); border-radius: 8px; margin-bottom: 6px; border: 1px solid rgba(255,255,255,0.05); font-size: 12.5px;">
+                    <span style="color: #fbbf24; font-weight: 700; font-family: monospace;">Wave ${c.stage}</span>
+                    <span style="color: #f8fafc;">Depth Drop: <strong style="color: #ef4444;">${c.depth_percent}%</strong></span>
+                    <span style="color: #cbd5e1;">High: ₹${c.high_price} &rarr; Low: ₹${c.low_price}</span>
+                    <span style="color: #94a3b8; font-size: 11.5px;">${c.days} Days</span>
+                </div>
+            `).join('');
+        } else {
+            contractionsHtml = `<div style="padding: 14px; color: #94a3b8; font-size: 12px; text-align: center; background: rgba(30,41,59,0.3); border-radius: 8px;">No active contraction waves detected in current 6-month base.</div>`;
+        }
+
+        cardContent.innerHTML = `
+            <!-- Top Metric Cards Grid -->
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; margin-bottom: 20px;">
+                <!-- VCP Setup Card -->
+                <div style="background: rgba(15, 23, 42, 0.85); border: 1px solid rgba(245, 158, 11, 0.35); border-radius: 12px; padding: 18px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
+                        <span style="font-size: 11.5px; color: #94a3b8; text-transform: uppercase; font-weight: 700; letter-spacing: 0.5px;">Minervini VCP Pattern</span>
+                        ${statusBadge}
+                    </div>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; font-size: 12px;">
+                        <div style="background: rgba(30, 41, 59, 0.5); padding: 10px 12px; border-radius: 8px;">
+                            <span style="color: #94a3b8; display: block; font-size: 10.5px;">PIVOT BUY PRICE</span>
+                            <strong style="color: #38bdf8; font-size: 16px; font-family: 'Inter', monospace;">₹${vcp.pivot_price || '--'}</strong>
+                        </div>
+                        <div style="background: rgba(30, 41, 59, 0.5); padding: 10px 12px; border-radius: 8px;">
+                            <span style="color: #94a3b8; display: block; font-size: 10.5px;">STOP LOSS LEVEL</span>
+                            <strong style="color: #ef4444; font-size: 16px; font-family: 'Inter', monospace;">₹${vcp.stop_loss || '--'} <small style="font-size: 10px;">(-${vcp.risk_percent}%)</small></strong>
+                        </div>
+                        <div style="background: rgba(30, 41, 59, 0.5); padding: 10px 12px; border-radius: 8px;">
+                            <span style="color: #94a3b8; display: block; font-size: 10.5px;">TARGET 1 (1:2 R:R)</span>
+                            <strong style="color: #10b981; font-size: 14.5px; font-family: 'Inter', monospace;">₹${vcp.target_1 || '--'}</strong>
+                        </div>
+                        <div style="background: rgba(30, 41, 59, 0.5); padding: 10px 12px; border-radius: 8px;">
+                            <span style="color: #94a3b8; display: block; font-size: 10.5px;">TARGET 2 (1:4 R:R)</span>
+                            <strong style="color: #10b981; font-size: 14.5px; font-family: 'Inter', monospace;">₹${vcp.target_2 || '--'}</strong>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 7-Factor CANSLIM Card -->
+                <div style="background: rgba(15, 23, 42, 0.85); border: 1px solid rgba(168, 85, 247, 0.35); border-radius: 12px; padding: 18px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
+                        <span style="font-size: 11.5px; color: #94a3b8; text-transform: uppercase; font-weight: 700; letter-spacing: 0.5px;">William O'Neil 7-Factor CANSLIM</span>
+                        <span style="background: rgba(168, 85, 247, 0.15); color: #c084fc; border: 1px solid rgba(168, 85, 247, 0.4); font-size: 12px; font-weight: 800; padding: 3px 10px; border-radius: 12px;">${canslim}/100 (${grade})</span>
+                    </div>
+                    <div style="display: flex; flex-direction: column; gap: 10px;">
+                        <div style="display: flex; justify-content: space-between; font-size: 12.5px;">
+                            <span style="color: #cbd5e1;">Volume Dry-Up (VDU) Ratio:</span>
+                            <strong style="color: ${vcp.volume_dryup_ratio <= 1.0 ? '#10b981' : '#f59e0b'}; font-family: monospace;">${vcp.volume_dryup_ratio}x ${vcp.volume_dryup_ratio <= 1.0 ? '✓' : ''}</strong>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; font-size: 12.5px;">
+                            <span style="color: #cbd5e1;">Tightness Score:</span>
+                            <strong style="color: #fbbf24; font-family: monospace;">${vcp.tightness_score || 0} / 100</strong>
+                        </div>
+                        <div style="margin-top: 6px; text-align: right;">
+                            <button onclick="window.openVcpAiDeepResearch('${symbol}')" class="btn-secondary" style="font-size: 11.5px; padding: 5px 14px; color: #c084fc; border-color: rgba(168,85,247,0.4); background: rgba(168,85,247,0.12); font-weight: 700; cursor: pointer; border-radius: 8px;">🔮 Deep Gemini AI Thesis</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Contraction Waves Section -->
+            <div style="margin-bottom: 22px;">
+                <div style="font-size: 13px; font-weight: 700; color: #fbbf24; margin-bottom: 10px;">📈 CONTRACTION STAGES BREAKDOWN (${contractions.length} Waves Detected)</div>
+                ${contractionsHtml}
+            </div>
+
+            <!-- Gemini AI Institutional Blueprint -->
+            <div style="background: linear-gradient(135deg, rgba(30, 41, 59, 0.85), rgba(15, 23, 42, 0.95)); border: 1px solid rgba(56, 189, 248, 0.35); border-radius: 12px; padding: 18px 20px;">
+                <div style="font-size: 11px; font-weight: 700; color: #38bdf8; text-transform: uppercase; margin-bottom: 6px; letter-spacing: 0.5px;">🧠 INSTITUTIONAL VERDICT & BLUEPRINT</div>
+                <div style="font-size: 15px; font-weight: 800; color: #f8fafc; margin-bottom: 8px;">${aiBlueprint.verdict || 'Minervini VCP Setup'}</div>
+                <p style="margin: 0 0 10px 0; font-size: 12.5px; color: #cbd5e1; line-height: 1.5;">${aiBlueprint.fundamental_catalyst || 'Analysis of fundamental growth drivers and CANSLIM metrics.'}</p>
+                <p style="margin: 0; font-size: 12.5px; color: #94a3b8; line-height: 1.5;"><strong>Execution Trigger:</strong> ${aiBlueprint.execution_blueprint || 'Buy on high-volume breakout above pivot price.'}</p>
+            </div>
+        `;
+    } catch(e) {
+        console.error("Error loading VCP CANSLIM card:", e);
+        cardContent.innerHTML = `<div style="text-align: center; padding: 30px; color: #ef4444;">Failed to load VCP data for ${symbol}.</div>`;
+    }
+};
 
 function renderGoogleAIOverviewCard(data) {
     const container = document.getElementById('google-ai-overview-card-container');

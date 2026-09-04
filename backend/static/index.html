@@ -4358,6 +4358,7 @@
                         <button class="subtabs-nav-btn prev-btn hidden" aria-label="Scroll left">◀</button>
                         <div class="analyzer-subtabs">
                             <button class="subtab-btn active" data-subtab="summary">📋 Executive Summary</button>
+                            <button class="subtab-btn" data-subtab="vcp-canslim" style="border-color: rgba(245,158,11,0.4); color: #fbbf24; background: rgba(245,158,11,0.1);">🔥 VCP & CANSLIM</button>
                             <button class="subtab-btn" data-subtab="ai-overview">✨ Google AI Overview</button>
                             <button class="subtab-btn" data-subtab="valuation">📊 Valuation & DCF</button>
                             <button class="subtab-btn" data-subtab="technical">📉 Technical Timing</button>
@@ -4378,6 +4379,25 @@
                     <!-- Enterprise Workspace Layout -->
                     <div class="dashboard-grid">
                         
+                        <!-- Minervini VCP & CANSLIM Research Card for Searched Stock -->
+                        <div class="card col-span-4 no-print card-hidden" id="vcp-canslim-research-card" data-subtab="vcp-canslim" style="margin-bottom: 0px;">
+                            <div class="card-header" style="display:flex; justify-content:space-between; align-items:center;">
+                                <div>
+                                    <h3 style="margin: 0; display: inline-flex; align-items: center; gap: 8px; color: #fbbf24;">
+                                        <span>🔥</span> MINERVINI VCP & CANSLIM INSTITUTIONAL RADAR
+                                    </h3>
+                                    <span style="font-size: 12.5px; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.05em; display: block; margin-top: 2px;">
+                                        Real-time Volatility Contraction Pattern (T<sub>1</sub> &rarr; T<sub>6</sub>) wave mechanics, 7-Factor CANSLIM institutional rating, and Gemini AI Blueprint.
+                                    </span>
+                                </div>
+                            </div>
+                            <div class="card-body" id="vcp-canslim-research-content" style="padding: 18px 22px;">
+                                <div style="text-align: center; padding: 30px; color: #94a3b8;">
+                                    Select or search a stock ticker to view Minervini VCP analysis.
+                                </div>
+                            </div>
+                        </div>
+
                         <!-- AI Corporate Profile & Business Summary Card -->
                         <div class="card col-span-4 no-print" id="business-summary-card" data-subtab="summary" style="margin-bottom: 0px;">
                             <div class="card-header" style="display:flex; justify-content:space-between; align-items:center; cursor:pointer;" id="business-summary-toggle">
