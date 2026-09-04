@@ -16678,24 +16678,25 @@ async def evaluate_watchlist_with_ai(payload: dict):
             raise HTTPException(status_code=400, detail="No symbols provided for watchlist evaluation")
 
         stock_summaries = []
-        for sym in symbols[:15]: # Max 15 stocks per batch prompt
-            sym_upper = str(sym).strip().upper()
-            sym_yf = sym_upper if (sym_upper.endswith(".NS") or sym_upper.endswith(".BO")) else f"{sym_upper}.NS"
-            
-            df = await fetch_history_df(sym_yf, period="6mo", interval="1d")
-            if df is not None and not df.empty:
-                vcp = detect_vcp_pattern(df)
-                canslim = calculate_canslim_score(sym_upper, df=df)
-                curr_price = float(df['Close'].iloc[-1])
-                st = vcp.get('vcp_status') or ('FORMING' if vcp.get('is_vcp') else (vcp.get('vcp_reason') or 'CONSOLIDATING'))
-                stock_summaries.append({
-                    "symbol": sym_upper.replace('.NS', ''),
-                    "price": round(curr_price, 2),
-                    "vcp_status": st,
-                    "vdu": vcp.get('volume_dryup_ratio', 1.0),
-                    "canslim_score": canslim.get('canslim_score', 0),
-                    "canslim_grade": canslim.get('canslim_grade', 'C')
-                })
+        with get_db() as db_conn:
+            for sym in symbols[:15]: # Max 15 stocks per batch prompt
+                sym_upper = str(sym).strip().upper()
+                sym_yf = sym_upper if (sym_upper.endswith(".NS") or sym_upper.endswith(".BO")) else f"{sym_upper}.NS"
+                
+                df = await fetch_history_df(sym_yf, period="6mo", interval="1d")
+                if df is not None and not df.empty:
+                    vcp = detect_vcp_pattern(df)
+                    canslim = calculate_canslim_score(sym_upper, db_conn=db_conn, df=df)
+                    curr_price = float(df['Close'].iloc[-1])
+                    st = vcp.get('vcp_status') or ('FORMING' if vcp.get('is_vcp') else (vcp.get('vcp_reason') or 'CONSOLIDATING'))
+                    stock_summaries.append({
+                        "symbol": sym_upper.replace('.NS', ''),
+                        "price": round(curr_price, 2),
+                        "vcp_status": st,
+                        "vdu": vcp.get('volume_dryup_ratio', 1.0),
+                        "canslim_score": canslim.get('canslim_score', 0),
+                        "canslim_grade": canslim.get('grade', 'Grade C')
+                    })
 
         stocks_text = "\n".join([
             f"{i+1}. {s['symbol']}: ₹{s['price']} | VCP Stage: {s['vcp_status']} | VDU: {s['vdu']}x | CANSLIM: {s['canslim_score']}/100 ({s['canslim_grade']})"
@@ -16816,17 +16817,16 @@ async def get_vcp_watchlist_metrics(symbols: str = Query("")):
         try:
             base_sym = sym.replace('.NS', '').replace('.BO', '')
             sym_yf = f"{base_sym}.NS"
-            df = await fetch_history_df(sym_yf, period="6mo", interval="1d")
             if df is not None and not df.empty:
                 vcp = detect_vcp_pattern(df)
-                canslim = calculate_canslim_score(base_sym, df=df)
-
-                results[sym] = {
-                    "vcp": vcp,
-                    "canslim": canslim
-                }
-
                 with get_db() as conn:
+                    canslim = calculate_canslim_score(base_sym, db_conn=conn, df=df)
+
+                    results[sym] = {
+                        "vcp": vcp,
+                        "canslim": canslim
+                    }
+
                     cursor = conn.cursor()
                     cursor.execute("""
                         INSERT OR REPLACE INTO vcp_screener_cache (symbol, vcp_json, canslim_json, updated_at)
