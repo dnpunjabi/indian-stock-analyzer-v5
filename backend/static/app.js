@@ -54390,7 +54390,9 @@ window.loadStockVcpCanslimCard = async function(symbol) {
 
         const vcp = data.vcp || {};
         const canslim = data.canslim_score || 0;
-        const grade = data.canslim_grade || 'C';
+        const calcGrade = canslim >= 80 ? 'Grade A+' : (canslim >= 65 ? 'Grade B' : 'Grade C');
+        const grade = (data.canslim_grade && data.canslim_grade !== 'C') ? data.canslim_grade : calcGrade;
+        const factors = data.canslim_factors || {};
         const aiBlueprint = data.ai_blueprint || {};
         const contractions = vcp.contractions || [];
         const st = vcp.vcp_status || (vcp.is_vcp ? 'FORMING' : 'CONSOLIDATING');
@@ -54421,6 +54423,20 @@ window.loadStockVcpCanslimCard = async function(symbol) {
             `).join('');
         } else {
             contractionsHtml = `<div style="padding: 14px; color: #94a3b8; font-size: 12px; text-align: center; background: rgba(30,41,59,0.3); border-radius: 8px;">No active contraction waves detected in current 6-month base.</div>`;
+        }
+
+        let factorsHtml = '';
+        if (Object.keys(factors).length > 0) {
+            factorsHtml = `<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: 6px; margin-top: 8px;">` +
+                Object.entries(factors).map(([letter, f]) => `
+                    <div style="background: rgba(30, 41, 59, 0.6); border: 1px solid rgba(255,255,255,0.06); padding: 5px 8px; border-radius: 6px; font-size: 11px;">
+                        <div style="display: flex; justify-content: space-between;">
+                            <strong style="color: #c084fc;">${letter}</strong>
+                            <span style="color: #10b981; font-weight: 700;">${f.score}/${f.max}</span>
+                        </div>
+                        <div style="color: #cbd5e1; font-size: 9.5px; text-overflow: ellipsis; overflow: hidden; white-space: nowrap;">${f.detail}</div>
+                    </div>
+                `).join('') + `</div>`;
         }
 
         cardContent.innerHTML = `
@@ -54454,21 +54470,22 @@ window.loadStockVcpCanslimCard = async function(symbol) {
 
                 <!-- 7-Factor CANSLIM Card -->
                 <div style="background: rgba(15, 23, 42, 0.85); border: 1px solid rgba(168, 85, 247, 0.35); border-radius: 12px; padding: 18px;">
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
                         <span style="font-size: 11.5px; color: #94a3b8; text-transform: uppercase; font-weight: 700; letter-spacing: 0.5px;">William O'Neil 7-Factor CANSLIM</span>
                         <span style="background: rgba(168, 85, 247, 0.15); color: #c084fc; border: 1px solid rgba(168, 85, 247, 0.4); font-size: 12px; font-weight: 800; padding: 3px 10px; border-radius: 12px;">${canslim}/100 (${grade})</span>
                     </div>
-                    <div style="display: flex; flex-direction: column; gap: 10px;">
-                        <div style="display: flex; justify-content: space-between; font-size: 12.5px;">
+                    <div style="display: flex; flex-direction: column; gap: 6px;">
+                        <div style="display: flex; justify-content: space-between; font-size: 12px;">
                             <span style="color: #cbd5e1;">Volume Dry-Up (VDU) Ratio:</span>
                             <strong style="color: ${vcp.volume_dryup_ratio <= 1.0 ? '#10b981' : '#f59e0b'}; font-family: monospace;">${vcp.volume_dryup_ratio}x ${vcp.volume_dryup_ratio <= 1.0 ? '✓' : ''}</strong>
                         </div>
-                        <div style="display: flex; justify-content: space-between; font-size: 12.5px;">
+                        <div style="display: flex; justify-content: space-between; font-size: 12px;">
                             <span style="color: #cbd5e1;">Tightness Score:</span>
                             <strong style="color: #fbbf24; font-family: monospace;">${vcp.tightness_score || 0} / 100</strong>
                         </div>
+                        ${factorsHtml}
                         <div style="margin-top: 6px; text-align: right;">
-                            <button onclick="window.openVcpAiDeepResearch('${symbol}')" class="btn-secondary" style="font-size: 11.5px; padding: 5px 14px; color: #c084fc; border-color: rgba(168,85,247,0.4); background: rgba(168,85,247,0.12); font-weight: 700; cursor: pointer; border-radius: 8px;">🔮 Deep Gemini AI Thesis</button>
+                            <button onclick="window.openVcpAiDeepResearch('${symbol}')" class="btn-secondary" style="font-size: 11px; padding: 4px 12px; color: #c084fc; border-color: rgba(168,85,247,0.4); background: rgba(168,85,247,0.12); font-weight: 700; cursor: pointer; border-radius: 6px;">🔮 Deep Gemini AI Thesis</button>
                         </div>
                     </div>
                 </div>

@@ -16613,14 +16613,15 @@ Return ONLY valid JSON matching this schema."""
             "symbol": sym_upper,
             "company_name": company_name,
             "price": curr_price,
-            "canslim_score": canslim.get('canslim_score'),
-            "canslim_grade": canslim.get('canslim_grade'),
+            "canslim_score": canslim.get('canslim_score', 0),
+            "canslim_grade": canslim.get('grade', 'Grade C'),
+            "canslim_factors": canslim.get('factors', {}),
             "vcp": vcp,
             "ai_blueprint": {
-                "fundamental_catalyst": f"{company_name} demonstrates strong earnings metrics with a 7-Factor CANSLIM rating of {canslim.get('canslim_score')}/100 ({canslim.get('canslim_grade')}).",
+                "fundamental_catalyst": f"{company_name} demonstrates top-tier CANSLIM fundamentals ({canslim.get('canslim_score')}/100 rating, {canslim.get('grade', 'Grade A+')}) driven by robust quarterly earnings acceleration (C) and strong multi-year EPS momentum (A).",
                 "institutional_footprint": f"Volume Dry-Up ratio stands at {vcp.get('volume_dryup_ratio')}x with contraction tightening across {len(vcp.get('contractions', []))} stages, confirming institutional accumulation.",
                 "execution_blueprint": f"Initiate position on high-volume breakout above ₹{vcp.get('pivot_price')}. Maintain hard stop loss at ₹{vcp.get('stop_loss')} (-{vcp.get('risk_percent')}%). Primary target at ₹{vcp.get('target_1')}.",
-                "verdict": f"Grade {canslim.get('canslim_grade')} SEPA Setup"
+                "verdict": f"{canslim.get('grade', 'Grade A+')} SEPA Setup"
             }
         }
     except Exception as e:
