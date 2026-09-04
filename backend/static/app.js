@@ -2468,8 +2468,14 @@ function switchTab(tabKey) {
         }
     } else if (tabKey === 'vcp') {
         document.body.classList.remove('homepage-active');
-        if (typeof window.runVcpScan === 'function' && (!window.allVcpStocks || window.allVcpStocks.length === 0)) {
-            window.runVcpScan();
+        const now = Date.now();
+        const isStale = (now - (window.vcpLastScanTimestamp || 0)) > 300000; // 5 mins
+        if (typeof window.runVcpScan === 'function') {
+            if (!window.allVcpStocks || window.allVcpStocks.length === 0) {
+                window.runVcpScan();
+            } else if (isStale) {
+                window.runVcpScan(true); // Silent background refresh
+            }
         }
     } else {
         document.body.classList.remove('homepage-active');
@@ -54867,13 +54873,15 @@ window.copySGEMarkdownSummary = copySGEMarkdownSummary;
 
 window.allVcpStocks = [];
 
-window.runVcpScan = async function() {
+window.runVcpScan = async function(isSilent = false) {
     const loadingEl = document.getElementById('vcp-loading-container');
     const gridEl = document.getElementById('vcp-cards-grid');
     const btnScan = document.getElementById('vcp-scan-btn');
     
-    if (loadingEl) loadingEl.style.display = 'block';
-    if (gridEl) gridEl.style.display = 'none';
+    if (!isSilent) {
+        if (loadingEl) loadingEl.style.display = 'block';
+        if (gridEl) gridEl.style.display = 'none';
+    }
     if (btnScan) btnScan.disabled = true;
 
     try {
@@ -54883,6 +54891,7 @@ window.runVcpScan = async function() {
         const stocksList = Array.isArray(data) ? data : (data && Array.isArray(data.stocks) ? data.stocks : null);
         if (stocksList) {
             window.allVcpStocks = stocksList;
+            window.vcpLastScanTimestamp = Date.now();
             
             // Update KPI Stats
             const kpiTotal = document.getElementById('vcp-kpi-total');
