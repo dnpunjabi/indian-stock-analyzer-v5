@@ -2550,12 +2550,17 @@
                         </div>
                     </div>
 
-                    <!-- Full 4-Stage Interactive Life Cycle Curve (SVG Diagram) -->
-                    <div style="background: rgba(15, 23, 42, 0.85); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 16px; padding: 24px; margin-bottom: 28px; box-shadow: 0 10px 30px rgba(0,0,0,0.4);">
+                    <!-- Full 4-Stage Interactive Life Cycle Curve with 4-Screener Alignment Overlay -->
+                    <div style="background: rgba(15, 23, 42, 0.85); border: 1px solid rgba(255, 255, 255, 0.12); border-radius: 16px; padding: 24px; margin-bottom: 28px; box-shadow: 0 10px 30px rgba(0,0,0,0.4);">
                         <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; flex-wrap: wrap; gap: 12px;">
-                            <h3 style="margin: 0; font-size: 18px; font-weight: 800; color: #f8fafc; display: flex; align-items: center; gap: 8px;">
-                                <span>📊</span> The Complete 4-Stage Life Cycle Map
-                            </h3>
+                            <div>
+                                <h3 style="margin: 0; font-size: 19px; font-weight: 800; color: #f8fafc; display: flex; align-items: center; gap: 8px;">
+                                    <span>📊</span> 4-Screener Quantitative Life Cycle Alignment Map
+                                </h3>
+                                <p style="margin: 4px 0 0 0; font-size: 12px; color: #94a3b8;">
+                                    Shows exact entry placement & volume trigger timing for VCP, Stage 2 Breakout, HTF, and 3WT on the 4-Stage curve.
+                                </p>
+                            </div>
                             <div style="display: flex; gap: 8px; flex-wrap: wrap; font-size: 11px; font-weight: 700;">
                                 <span style="background: rgba(245, 158, 11, 0.2); color: #fbbf24; padding: 4px 10px; border-radius: 20px; border: 1px solid rgba(245,158,11,0.4);">Stage 1: Basing</span>
                                 <span style="background: rgba(16, 185, 129, 0.2); color: #34d399; padding: 4px 10px; border-radius: 20px; border: 1px solid rgba(16,185,129,0.4);">Stage 2: Mark-Up 🚀</span>
@@ -2564,65 +2569,79 @@
                             </div>
                         </div>
 
-                        <!-- SVG Curve Visual -->
-                        <div style="width: 100%; overflow-x: auto; background: rgba(30, 41, 59, 0.5); border-radius: 12px; padding: 16px; border: 1px solid rgba(255,255,255,0.06);">
-                            <svg viewBox="0 0 1000 320" style="width: 100%; min-width: 650px; height: auto; display: block;">
+                        <!-- SVG Curve Visual with 4 Screeners Overlay -->
+                        <div style="width: 100%; overflow-x: auto; background: rgba(30, 41, 59, 0.5); border-radius: 12px; padding: 18px; border: 1px solid rgba(255,255,255,0.06);">
+                            <svg viewBox="0 0 1000 350" style="width: 100%; min-width: 700px; height: auto; display: block;">
                                 <!-- Grid Lines & Background -->
                                 <defs>
                                     <linearGradient id="gradStage2" x1="0%" y1="0%" x2="100%" y2="0%">
-                                        <stop offset="0%" stop-color="#10b981" stop-opacity="0.2"/>
-                                        <stop offset="100%" stop-color="#059669" stop-opacity="0.5"/>
+                                        <stop offset="0%" stop-color="#10b981" stop-opacity="0.18"/>
+                                        <stop offset="100%" stop-color="#059669" stop-opacity="0.45"/>
                                     </linearGradient>
                                     <linearGradient id="gradStage4" x1="0%" y1="0%" x2="100%" y2="0%">
-                                        <stop offset="0%" stop-color="#f43f5e" stop-opacity="0.4"/>
-                                        <stop offset="100%" stop-color="#e11d48" stop-opacity="0.1"/>
+                                        <stop offset="0%" stop-color="#f43f5e" stop-opacity="0.35"/>
+                                        <stop offset="100%" stop-color="#e11d48" stop-opacity="0.08"/>
                                     </linearGradient>
                                 </defs>
 
                                 <!-- Stage Background Shading -->
-                                <rect x="30" y="200" width="220" height="90" fill="rgba(245, 158, 11, 0.06)" rx="8" />
-                                <rect x="250" y="60" width="250" height="230" fill="url(#gradStage2)" rx="8" />
+                                <rect x="30" y="210" width="220" height="90" fill="rgba(245, 158, 11, 0.06)" rx="8" />
+                                <rect x="250" y="60" width="250" height="240" fill="url(#gradStage2)" rx="8" />
                                 <rect x="500" y="30" width="220" height="150" fill="rgba(249, 115, 22, 0.08)" rx="8" />
-                                <rect x="720" y="60" width="250" height="230" fill="url(#gradStage4)" rx="8" />
+                                <rect x="720" y="60" width="250" height="240" fill="url(#gradStage4)" rx="8" />
 
                                 <!-- Baseline Grid -->
-                                <line x1="30" y1="260" x2="970" y2="260" stroke="rgba(255,255,255,0.1)" stroke-dasharray="4,4"/>
+                                <line x1="30" y1="270" x2="970" y2="270" stroke="rgba(255,255,255,0.1)" stroke-dasharray="4,4"/>
 
                                 <!-- Moving Average Line (30-Week MA) -->
-                                <path d="M 30 240 Q 150 240 250 230 T 450 120 T 600 70 T 730 110 T 970 260" stroke="#fbbf24" stroke-width="3" fill="none" stroke-dasharray="6,4"/>
-                                <text x="70" y="225" fill="#fbbf24" font-size="11" font-weight="700">30-Week Moving Average (Flat)</text>
+                                <path d="M 30 250 Q 150 250 250 240 T 450 130 T 600 80 T 730 120 T 970 270" stroke="#fbbf24" stroke-width="3" fill="none" stroke-dasharray="6,4"/>
+                                <text x="70" y="235" fill="#fbbf24" font-size="11" font-weight="700">30-Week Moving Average (Flat in S1, Rising in S2)</text>
 
                                 <!-- Stock Price Curve Path -->
-                                <path d="M 30 250 C 70 230, 110 260, 150 235 C 180 255, 210 240, 250 220 
-                                         C 290 170, 330 190, 370 130 C 410 150, 450 90, 500 60 
-                                         C 530 40, 570 80, 610 50 C 650 85, 690 45, 730 100 
-                                         C 770 170, 810 140, 850 210 C 890 250, 930 240, 970 265" 
+                                <path d="M 30 260 C 70 240, 110 270, 150 245 C 180 265, 210 250, 250 230 
+                                         C 290 180, 330 200, 370 140 C 410 160, 450 100, 500 70 
+                                         C 530 50, 570 90, 610 60 C 650 95, 690 55, 730 110 
+                                         C 770 180, 810 150, 850 220 C 890 260, 930 250, 970 275" 
                                       stroke="#38bdf8" stroke-width="4" fill="none" stroke-linejoin="round"/>
 
-                                <!-- Breakout Spark Point -->
-                                <circle cx="250" cy="220" r="7" fill="#10b981" stroke="#fff" stroke-width="2"/>
-                                <text x="250" y="195" fill="#34d399" font-size="12" font-weight="800" text-anchor="middle">⚡ BREAKOUT POINT!</text>
-                                <text x="250" y="210" fill="#a7f3d0" font-size="10" font-weight="600" text-anchor="middle">Vol > 2.0x | Rs 12</text>
+                                <!-- SCREENER 1: WEINSTEIN STAGE 2 BREAKOUT (Right at Breakout Point) -->
+                                <circle cx="250" cy="230" r="8" fill="#38bdf8" stroke="#fff" stroke-width="2"/>
+                                <rect x="180" y="170" width="140" height="26" fill="rgba(15, 23, 42, 0.95)" stroke="#38bdf8" stroke-width="1.5" rx="6"/>
+                                <text x="250" y="187" fill="#38bdf8" font-size="10.5" font-weight="800" text-anchor="middle">📈 Weinstein Stage 2</text>
+                                <text x="250" y="210" fill="#7dd3fc" font-size="9" font-weight="600" text-anchor="middle">⚡ Breakout Vol > 2.0x</text>
 
-                                <!-- 3WT Shelf Points in Stage 2 -->
-                                <rect x="345" y="142" width="50" height="16" fill="rgba(45, 212, 191, 0.3)" stroke="#2dd4bf" stroke-width="1.5" rx="4"/>
-                                <text x="370" y="154" fill="#2dd4bf" font-size="9" font-weight="800" text-anchor="middle">3WT Shelf</text>
+                                <!-- SCREENER 2: MINERVINI VCP & CANSLIM (Early Stage 2 Confirmation) -->
+                                <circle cx="310" cy="205" r="7" fill="#fbbf24" stroke="#fff" stroke-width="1.5"/>
+                                <rect x="255" y="125" width="135" height="24" fill="rgba(15, 23, 42, 0.95)" stroke="#fbbf24" stroke-width="1.5" rx="6"/>
+                                <text x="322" y="141" fill="#fbbf24" font-size="10" font-weight="800" text-anchor="middle">🔥 VCP & CANSLIM</text>
 
-                                <rect x="425" y="105" width="50" height="16" fill="rgba(45, 212, 191, 0.3)" stroke="#2dd4bf" stroke-width="1.5" rx="4"/>
-                                <text x="450" y="117" fill="#2dd4bf" font-size="9" font-weight="800" text-anchor="middle">3WT Shelf</text>
+                                <!-- SCREENER 3: DAVID RYAN HIGH-TIGHT FLAG (HTF) (Mid Stage 2 Momentum Surge) -->
+                                <circle cx="410" cy="160" r="7" fill="#c084fc" stroke="#fff" stroke-width="1.5"/>
+                                <rect x="365" y="95" width="130" height="24" fill="rgba(15, 23, 42, 0.95)" stroke="#c084fc" stroke-width="1.5" rx="6"/>
+                                <text x="430" y="111" fill="#c084fc" font-size="10" font-weight="800" text-anchor="middle">🚀 High-Tight Flag</text>
 
-                                <!-- Stage Labels -->
-                                <text x="140" y="285" fill="#fbbf24" font-size="14" font-weight="800" text-anchor="middle">STAGE 1: BASING</text>
-                                <text x="140" y="302" fill="#94a3b8" font-size="10" text-anchor="middle">(Accumulation Phase)</text>
+                                <!-- SCREENER 4: DAVID RYAN 3-WEEKS TIGHT (3WT) (Stage 2 Continuation Shelf) -->
+                                <circle cx="465" cy="115" r="7" fill="#2dd4bf" stroke="#fff" stroke-width="1.5"/>
+                                <rect x="425" y="45" width="125" height="24" fill="rgba(15, 23, 42, 0.95)" stroke="#2dd4bf" stroke-width="1.5" rx="6"/>
+                                <text x="487" y="61" fill="#2dd4bf" font-size="10" font-weight="800" text-anchor="middle">🎯 3-Weeks Tight</text>
 
-                                <text x="375" y="45" fill="#34d399" font-size="15" font-weight="800" text-anchor="middle">STAGE 2: MARK-UP 🚀</text>
-                                <text x="375" y="285" fill="#6ee7b7" font-size="10" text-anchor="middle">(Explosive Advancing Phase)</text>
+                                <!-- CAPITAL PROTECTION SHIELD IN STAGE 3 & STAGE 4 -->
+                                <rect x="580" y="140" width="370" height="42" fill="rgba(244, 63, 94, 0.2)" stroke="#f87171" stroke-width="1.5" rx="8" stroke-dasharray="4,2"/>
+                                <text x="765" y="157" fill="#f87171" font-size="11" font-weight="800" text-anchor="middle">🛡️ STAGE 3 & STAGE 4 CAPITAL PROTECTION SHIELD</text>
+                                <text x="765" y="173" fill="#fca5a5" font-size="9.5" font-weight="600" text-anchor="middle">All 4 Quant Screeners AUTO-REJECT Stage 3 & 4 Stocks!</text>
 
-                                <text x="610" y="25" fill="#fb923c" font-size="14" font-weight="800" text-anchor="middle">STAGE 3: DISTRIBUTION ⚠️</text>
-                                <text x="610" y="160" fill="#fdba74" font-size="10" text-anchor="middle">(Topping / Smart Money Exit)</text>
+                                <!-- Stage Footers -->
+                                <text x="140" y="295" fill="#fbbf24" font-size="14" font-weight="800" text-anchor="middle">STAGE 1: BASING</text>
+                                <text x="140" y="312" fill="#94a3b8" font-size="10" text-anchor="middle">(Accumulation Box)</text>
+
+                                <text x="375" y="30" fill="#34d399" font-size="15" font-weight="800" text-anchor="middle">STAGE 2: MARK-UP 🚀</text>
+                                <text x="375" y="295" fill="#6ee7b7" font-size="10" text-anchor="middle">(All 4 Screeners Active Here)</text>
+
+                                <text x="610" y="25" fill="#fb923c" font-size="14" font-weight="800" text-anchor="middle">STAGE 3: TOP ⚠️</text>
+                                <text x="610" y="205" fill="#fdba74" font-size="10" text-anchor="middle">(Distribution / Lock Profits)</text>
 
                                 <text x="845" y="45" fill="#f87171" font-size="14" font-weight="800" text-anchor="middle">STAGE 4: CAPITULATION 📉</text>
-                                <text x="845" y="285" fill="#fca5a5" font-size="10" text-anchor="middle">(Declining / Wealth Destruction)</text>
+                                <text x="845" y="295" fill="#fca5a5" font-size="10" text-anchor="middle">(Declining / Avoid At All Costs)</text>
                             </svg>
                         </div>
                     </div>
@@ -2974,56 +2993,100 @@
                         </div>
                     </div>
 
-                    <!-- STRATEGY MATRIX TABLE -->
-                    <div style="background: rgba(15, 23, 42, 0.85); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 16px; padding: 24px;">
-                        <h3 style="margin: 0 0 16px 0; font-size: 18px; font-weight: 800; color: #f8fafc; display: flex; align-items: center; gap: 8px;">
-                            <span>🧠</span> Stage-by-Stage Quantitative Action Cheat Sheet
-                        </h3>
+                    <!-- 4-SCREENER 4-STAGE ALIGNMENT MASTER MATRIX TABLE -->
+                    <div style="background: rgba(15, 23, 42, 0.85); border: 1px solid rgba(255, 255, 255, 0.12); border-radius: 16px; padding: 24px; box-shadow: 0 10px 30px rgba(0,0,0,0.4);">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 12px;">
+                            <div>
+                                <h3 style="margin: 0; font-size: 19px; font-weight: 800; color: #f8fafc; display: flex; align-items: center; gap: 8px;">
+                                    <span>🧠</span> 4-Screener Quantitative Master Alignment Matrix
+                                </h3>
+                                <p style="margin: 4px 0 0 0; font-size: 12px; color: #94a3b8;">
+                                    Compare entry pivots, volume triggers, risk-reward ratios, and capital-protection rules across all 4 momentum engines.
+                                </p>
+                            </div>
+                        </div>
 
                         <div class="quant-table-wrapper">
                             <table class="quant-table">
                                 <thead>
                                     <tr>
-                                        <th>Stage Phase</th>
-                                        <th>30-Wk MA Slope</th>
-                                        <th>Price Action</th>
-                                        <th>Volume Profile</th>
-                                        <th>3WT / VCP Validity</th>
-                                        <th>Action Plan</th>
+                                        <th>Screener Engine</th>
+                                        <th>Target Stage Placement</th>
+                                        <th>Technical Entry Trigger</th>
+                                        <th>Volume Expansion Rule</th>
+                                        <th>Risk-Reward Ratio</th>
+                                        <th>Stage 3/4 Protection Shield</th>
+                                        <th>Quick Jump</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     <tr>
-                                        <td><span class="badge-quant badge-quant-gold">Stage 1: Basing</span></td>
-                                        <td>Flat / Neutral (0%)</td>
-                                        <td>Sideways choppy box</td>
-                                        <td>Dry & low volume</td>
-                                        <td>❌ Invalid (Basing Trap)</td>
-                                        <td><strong style="color: #fbbf24;">Watchlist only</strong> (Wait for breakout)</td>
+                                        <td>
+                                            <strong style="color: #fbbf24; display: flex; align-items: center; gap: 6px;">
+                                                <span>🔥</span> Minervini VCP & CANSLIM
+                                            </strong>
+                                        </td>
+                                        <td><span class="badge-quant badge-quant-green">Early Stage 2 Confirmation</span></td>
+                                        <td>Contraction pivot breakout (2-4 contractions)</td>
+                                        <td>&ge; 1.5x 50-day SMA volume surge</td>
+                                        <td><strong style="color: #34d399;">1:3 to 1:5+</strong></td>
+                                        <td><span style="color: #f87171; font-weight: 700;">🛡️ Auto-Rejects RS &lt; 70 &amp; Flat 200 EMA</span></td>
+                                        <td>
+                                            <button onclick="window.switchQuantScannerSubtab('vcp')" class="btn-secondary" style="padding: 4px 10px; font-size: 11px; background: rgba(245, 158, 11, 0.15); border: 1px solid #fbbf24; color: #fbbf24; border-radius: 6px; cursor: pointer; font-weight: 700;">
+                                                Go to VCP ↗
+                                            </button>
+                                        </td>
                                     </tr>
                                     <tr>
-                                        <td><span class="badge-quant badge-quant-green">Stage 2: Mark-Up 🚀</span></td>
-                                        <td>Sharply Upward (> +0.5%)</td>
-                                        <td>Price > 50 EMA > 200 EMA</td>
-                                        <td>Massive breakout volume</td>
-                                        <td>✅ 100% High Conviction</td>
-                                        <td><strong style="color: #34d399;">BUY Breakouts & 3WT Shelves</strong></td>
+                                        <td>
+                                            <strong style="color: #38bdf8; display: flex; align-items: center; gap: 6px;">
+                                                <span>📈</span> Stan Weinstein Stage 2
+                                            </strong>
+                                        </td>
+                                        <td><span class="badge-quant badge-quant-green">Stage 1 ➔ Stage 2 Transition</span></td>
+                                        <td>Price clears upper resistance of Stage 1 box</td>
+                                        <td>&ge; 2.0x 30-week MA volume expansion</td>
+                                        <td><strong style="color: #34d399;">1:4 to 1:8+</strong></td>
+                                        <td><span style="color: #f87171; font-weight: 700;">🛡️ Auto-Rejects Declining 30-Week MA Slope</span></td>
+                                        <td>
+                                            <button onclick="window.switchQuantScannerSubtab('weinstein')" class="btn-secondary" style="padding: 4px 10px; font-size: 11px; background: rgba(56, 189, 248, 0.15); border: 1px solid #38bdf8; color: #38bdf8; border-radius: 6px; cursor: pointer; font-weight: 700;">
+                                                Go to Stage 2 ↗
+                                            </button>
+                                        </td>
                                     </tr>
                                     <tr>
-                                        <td><span class="badge-quant badge-quant-purple">Stage 3: Topping ⚠️</span></td>
-                                        <td>Flattening / Losing Slope</td>
-                                        <td>Violent wide swings</td>
-                                        <td>High volume sell-offs</td>
-                                        <td>❌ High Failure Rate</td>
-                                        <td><strong style="color: #fb923c;">Sell / Lock Profits</strong></td>
+                                        <td>
+                                            <strong style="color: #c084fc; display: flex; align-items: center; gap: 6px;">
+                                                <span>🚀</span> David Ryan High-Tight Flag
+                                            </strong>
+                                        </td>
+                                        <td><span class="badge-quant badge-quant-green">Mid Stage 2 Momentum Surge</span></td>
+                                        <td>&ge;100% gain in &lt;8 wks, tight 20-25% flag breakout</td>
+                                        <td>&ge; 2.5x volume explosion on breakout</td>
+                                        <td><strong style="color: #34d399;">1:5 to 1:10+</strong></td>
+                                        <td><span style="color: #f87171; font-weight: 700;">🛡️ Auto-Rejects Pullbacks &gt; 25% Depth</span></td>
+                                        <td>
+                                            <button onclick="window.switchQuantScannerSubtab('htf')" class="btn-secondary" style="padding: 4px 10px; font-size: 11px; background: rgba(192, 132, 252, 0.15); border: 1px solid #c084fc; color: #c084fc; border-radius: 6px; cursor: pointer; font-weight: 700;">
+                                                Go to HTF ↗
+                                            </button>
+                                        </td>
                                     </tr>
                                     <tr>
-                                        <td><span class="badge-quant badge-quant-blue" style="background: rgba(244, 63, 94, 0.2); color: #f87171; border-color: rgba(244, 63, 94, 0.4);">Stage 4: Capitulation 📉</span></td>
-                                        <td>Sharply Downward (< -0.5%)</td>
-                                        <td>Price < 50 EMA & 200 EMA</td>
-                                        <td>Heavy breakdown volume</td>
-                                        <td>❌ Complete Failure</td>
-                                        <td><strong style="color: #f87171;">AVOID / Do Not Average Down</strong></td>
+                                        <td>
+                                            <strong style="color: #2dd4bf; display: flex; align-items: center; gap: 6px;">
+                                                <span>🎯</span> David Ryan 3-Weeks Tight
+                                            </strong>
+                                        </td>
+                                        <td><span class="badge-quant badge-quant-green">Mid-to-Late Stage 2 Continuation</span></td>
+                                        <td>3 consecutive weekly closes within &le; 2.0% range</td>
+                                        <td>Dry volume during shelf, expansion on breakout</td>
+                                        <td><strong style="color: #34d399;">1:4 to 1:6+</strong></td>
+                                        <td><span style="color: #f87171; font-weight: 700;">🛡️ Auto-Rejects Stage 3 Distribution Tops</span></td>
+                                        <td>
+                                            <button onclick="window.switchQuantScannerSubtab('3wt')" class="btn-secondary" style="padding: 4px 10px; font-size: 11px; background: rgba(45, 212, 191, 0.15); border: 1px solid #2dd4bf; color: #2dd4bf; border-radius: 6px; cursor: pointer; font-weight: 700;">
+                                                Go to 3WT ↗
+                                            </button>
+                                        </td>
                                     </tr>
                                 </tbody>
                             </table>
