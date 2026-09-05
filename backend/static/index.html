@@ -11210,6 +11210,131 @@
 
                         <!-- Watchlist Stage 1-4 Quant Diagnostic Matrix Container -->
                         <div id="watchlist-quant-matrix-container" style="display: none; margin-top: 15px;">
+                            <!-- Collapsible 4-Screener Quantitative Alignment Map & Strategy Guide Banner -->
+                            <div id="quant-alignment-map-guide" class="quant-guide-banner" style="background: rgba(15, 23, 42, 0.75); border: 1px solid rgba(56, 189, 248, 0.3); border-radius: 12px; margin-bottom: 18px; overflow: hidden; backdrop-filter: blur(10px);">
+                                <div style="display: flex; justify-content: space-between; align-items: center; padding: 14px 18px; cursor: pointer; background: rgba(30, 41, 59, 0.5); border-bottom: 1px solid rgba(255, 255, 255, 0.08);" onclick="window.toggleQuantGuideMap && window.toggleQuantGuideMap()">
+                                    <div style="display: flex; align-items: center; gap: 10px;">
+                                        <span style="font-size: 20px;">🧭</span>
+                                        <div>
+                                            <h3 style="font-size: 14.5px; font-weight: 800; color: #38bdf8; margin: 0; letter-spacing: 0.02em;">4-Screener Quantitative Life Cycle Alignment Map</h3>
+                                            <p style="font-size: 12px; color: #94a3b8; margin: 2px 0 0 0;">How Weinstein Stage 2, Minervini VCP, HTF, and 3WT differentiate Stage 2 Continuations from Stage 3 Tops</p>
+                                        </div>
+                                    </div>
+                                    <button id="toggle-quant-guide-btn" class="btn-secondary" style="font-size: 12px; padding: 4px 10px; border-radius: 6px; color: #38bdf8; border-color: rgba(56, 189, 248, 0.4); background: rgba(56, 189, 248, 0.1);">
+                                        📖 Show Strategy Guide ▼
+                                    </button>
+                                </div>
+
+                                <!-- Collapsible Content Body -->
+                                <div id="quant-guide-content-body" style="display: none; padding: 18px; border-top: 1px solid var(--border-glass);">
+                                    <!-- 4 Quantitative Engines Alignment Grid -->
+                                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px; margin-bottom: 20px;">
+                                        <!-- Card 1: Stan Weinstein Stage 2 -->
+                                        <div class="quant-strategy-card" style="background: rgba(30, 41, 59, 0.6); border-left: 4px solid #38bdf8; border-radius: 8px; padding: 14px;">
+                                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                                                <strong style="font-size: 13px; color: #38bdf8;">📈 Stan Weinstein Stage 2</strong>
+                                                <span style="font-size: 10.5px; font-weight: 700; background: rgba(56,189,248,0.15); color: #38bdf8; padding: 2px 6px; border-radius: 4px;">Initial Trend Change</span>
+                                            </div>
+                                            <p style="font-size: 12px; color: var(--text-secondary); margin: 0 0 8px 0; line-height: 1.45;">
+                                                Triggers when price breaks out above the 150-day SMA (30-week MA) on 200%+ volume as the MA slope turns positive (>0.3%/day).
+                                            </p>
+                                            <div style="font-size: 11.5px; color: #34d399; font-weight: 700;">🎯 Primary Edge: Catches new multi-month institutional markups at origin.</div>
+                                        </div>
+
+                                        <!-- Card 2: Mark Minervini VCP -->
+                                        <div class="quant-strategy-card" style="background: rgba(30, 41, 59, 0.6); border-left: 4px solid #f59e0b; border-radius: 8px; padding: 14px;">
+                                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                                                <strong style="font-size: 13px; color: #f59e0b;">🔥 Minervini VCP Pattern</strong>
+                                                <span style="font-size: 10.5px; font-weight: 700; background: rgba(245,158,11,0.15); color: #f59e0b; padding: 2px 6px; border-radius: 4px;">Mid-Stage Consolidation</span>
+                                            </div>
+                                            <p style="font-size: 12px; color: var(--text-secondary); margin: 0 0 8px 0; line-height: 1.45;">
+                                                Progressive Volatility Contraction (T1 to T4) with volume dry-up (<50% 20d avg) near 52-week highs in a confirmed Stage 2 uptrend.
+                                            </p>
+                                            <div style="font-size: 11.5px; color: #fbbf24; font-weight: 700;">🎯 Primary Edge: Precise risk-defined entry inside established markup.</div>
+                                        </div>
+
+                                        <!-- Card 3: High-Tight Flag -->
+                                        <div class="quant-strategy-card" style="background: rgba(30, 41, 59, 0.6); border-left: 4px solid #a855f7; border-radius: 8px; padding: 14px;">
+                                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                                                <strong style="font-size: 13px; color: #c084fc;">🚀 High-Tight Flag (HTF)</strong>
+                                                <span style="font-size: 10.5px; font-weight: 700; background: rgba(168,85,247,0.15); color: #c084fc; padding: 2px 6px; border-radius: 4px;">Late Stage 2 Momentum</span>
+                                            </div>
+                                            <p style="font-size: 12px; color: var(--text-secondary); margin: 0 0 8px 0; line-height: 1.45;">
+                                                Stock doubles (+100% to +120% in 4–8 weeks), then consolidates in a tight flag (<25% depth) with <strong>volume drying up to record lows</strong>.
+                                            </p>
+                                            <div style="font-size: 11.5px; color: #c084fc; font-weight: 700;">🎯 Primary Edge: Catches 100%+ explosive continuations in market leaders.</div>
+                                        </div>
+
+                                        <!-- Card 4: 3-Weeks Tight -->
+                                        <div class="quant-strategy-card" style="background: rgba(30, 41, 59, 0.6); border-left: 4px solid #2dd4bf; border-radius: 8px; padding: 14px;">
+                                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                                                <strong style="font-size: 13px; color: #2dd4bf;">🎯 3-Weeks Tight (3WT)</strong>
+                                                <span style="font-size: 10.5px; font-weight: 700; background: rgba(45,212,191,0.15); color: #2dd4bf; padding: 2px 6px; border-radius: 4px;">Uptrend Extension</span>
+                                            </div>
+                                            <p style="font-size: 12px; color: var(--text-secondary); margin: 0 0 8px 0; line-height: 1.45;">
+                                                3 consecutive weekly closes within an ultra-narrow <1.5% variance band above rising 50-day and 200-day EMAs.
+                                            </p>
+                                            <div style="font-size: 11.5px; color: #2dd4bf; font-weight: 700;">🎯 Primary Edge: Low-risk (3–5% stop) re-entry & position pyramiding.</div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Stage 2 Continuation vs. Stage 3 Distribution Comparison Table -->
+                                    <div style="margin-bottom: 18px; background: rgba(15, 23, 42, 0.7); padding: 14px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.06);" class="quant-guide-table-box">
+                                        <h4 style="font-size: 13px; font-weight: 800; color: #f8fafc; margin: 0 0 10px 0; text-transform: uppercase; letter-spacing: 0.04em;">
+                                            ⚖️ Stage 2 Continuation (HTF / 3WT) vs. Stage 3 Distribution Top:
+                                        </h4>
+                                        <div style="overflow-x: auto;">
+                                            <table style="width: 100%; border-collapse: collapse; font-size: 12px; text-align: left;" class="quant-guide-matrix-table">
+                                                <thead>
+                                                    <tr style="border-bottom: 1px solid rgba(255,255,255,0.1); color: #94a3b8;">
+                                                        <th style="padding: 8px;">Quantitative Metric</th>
+                                                        <th style="padding: 8px; color: #f43f5e;">Stage 3: Distribution Top ⚠️</th>
+                                                        <th style="padding: 8px; color: #c084fc;">High-Tight Flag (HTF) 🚀</th>
+                                                        <th style="padding: 8px; color: #2dd4bf;">3-Weeks Tight (3WT) 🎯</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody style="color: var(--text-primary);">
+                                                    <tr style="border-bottom: 1px solid rgba(255,255,255,0.04);">
+                                                        <td style="padding: 8px; font-weight: 700;">Price Volatility</td>
+                                                        <td style="padding: 8px; color: #f43f5e;">Wide & loose swings (>25–40% drops)</td>
+                                                        <td style="padding: 8px; color: #c084fc;">Tight flag consolidation (<20–25%)</td>
+                                                        <td style="padding: 8px; color: #2dd4bf;">Ultra-narrow closes (<1.5% variance)</td>
+                                                    </tr>
+                                                    <tr style="border-bottom: 1px solid rgba(255,255,255,0.04);">
+                                                        <td style="padding: 8px; font-weight: 700;">Volume Action</td>
+                                                        <td style="padding: 8px; color: #f43f5e;">Heavy distribution on down days</td>
+                                                        <td style="padding: 8px; color: #c084fc;">Volume dries up to record lows</td>
+                                                        <td style="padding: 8px; color: #2dd4bf;">Volume contracts dramatically</td>
+                                                    </tr>
+                                                    <tr style="border-bottom: 1px solid rgba(255,255,255,0.04);">
+                                                        <td style="padding: 8px; font-weight: 700;">30-Week MA Slope</td>
+                                                        <td style="padding: 8px; color: #f43f5e;">Flattens out (0%) or turns negative</td>
+                                                        <td style="padding: 8px; color: #c084fc;">Sloping steeply upward (>45°)</td>
+                                                        <td style="padding: 8px; color: #2dd4bf;">Rising smoothly above 50/200 EMAs</td>
+                                                    </tr>
+                                                    <tr>
+                                                        <td style="padding: 8px; font-weight: 700;">Institutional Intent</td>
+                                                        <td style="padding: 8px; color: #f43f5e;">Smart money unloading shares to retail</td>
+                                                        <td style="padding: 8px; color: #c084fc;">Institutions refuse to sell profits</td>
+                                                        <td style="padding: 8px; color: #2dd4bf;">Orderly absorption before next breakout</td>
+                                                    </tr>
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+
+                                    <!-- Table Attribute Reference -->
+                                    <div style="background: rgba(30, 41, 59, 0.5); padding: 12px 14px; border-radius: 8px;" class="quant-guide-ref-box">
+                                        <h5 style="font-size: 12px; font-weight: 800; color: #38bdf8; margin: 0 0 6px 0;">📌 Table Attribute Reference:</h5>
+                                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 8px; font-size: 11.5px; color: #94a3b8;" class="quant-guide-ref-grid">
+                                            <div><strong style="color: #f8fafc;">30W MA Slope:</strong> Daily % angle of 150d SMA (Uptrend >0.3%/day).</div>
+                                            <div><strong style="color: #f8fafc;">Qualification Score:</strong> Total quant criteria passed (0/4 to 4/4 Quad).</div>
+                                            <div><strong style="color: #38bdf8;">Execution Plan:</strong> Pattern Pivot, Stop Loss (capped at 7%), T1 (+2:1 R:R), T2 (+4:1 R:R).</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
                             <!-- Matrix KPI Summary Cards Row -->
                             <div class="screener-kpi-row" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin-bottom: 16px;">
                                 <div class="screener-kpi-card" style="background: rgba(15, 23, 42, 0.6); border: 1px solid var(--border-glass); border-radius: 10px; padding: 12px 16px;">

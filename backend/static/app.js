@@ -56863,6 +56863,19 @@ window.launchStageSimulator = function(symbol) {
     }, 150);
 };
 
+window.toggleQuantGuideMap = function() {
+    const body = document.getElementById('quant-guide-content-body');
+    const btn = document.getElementById('toggle-quant-guide-btn');
+    if (!body) return;
+    if (body.style.display === 'none' || !body.style.display) {
+        body.style.display = 'block';
+        if (btn) btn.innerText = '📖 Hide Strategy Guide ▲';
+    } else {
+        body.style.display = 'none';
+        if (btn) btn.innerText = '📖 Show Strategy Guide ▼';
+    }
+};
+
 
 
 

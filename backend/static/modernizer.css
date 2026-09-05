@@ -2652,4 +2652,70 @@ body.light-theme #watchlist-quant-matrix-container table.quant-table td a,
     }
 }
 
+/* Light Theme Styling for 4-Screener Quantitative Alignment Map Guide */
+body.light-theme .quant-guide-banner,
+[data-theme="light"] .quant-guide-banner,
+[data-mode="light"] .quant-guide-banner {
+    background: #ffffff !important;
+    border: 1px solid #cbd5e1 !important;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05) !important;
+}
+
+body.light-theme .quant-guide-banner h3,
+[data-theme="light"] .quant-guide-banner h3,
+[data-mode="light"] .quant-guide-banner h3 {
+    color: #0284c7 !important;
+}
+
+body.light-theme .quant-guide-banner p,
+[data-theme="light"] .quant-guide-banner p,
+[data-mode="light"] .quant-guide-banner p {
+    color: #475569 !important;
+}
+
+body.light-theme .quant-strategy-card,
+[data-theme="light"] .quant-strategy-card,
+[data-mode="light"] .quant-strategy-card {
+    background: #f8fafc !important;
+    border-radius: 8px !important;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05) !important;
+}
+
+body.light-theme .quant-guide-table-box,
+[data-theme="light"] .quant-guide-table-box,
+[data-mode="light"] .quant-guide-table-box,
+body.light-theme .quant-guide-ref-box,
+[data-theme="light"] .quant-guide-ref-box,
+[data-mode="light"] .quant-guide-ref-box {
+    background: #f1f5f9 !important;
+    border: 1px solid #e2e8f0 !important;
+}
+
+body.light-theme .quant-guide-table-box h4,
+[data-theme="light"] .quant-guide-table-box h4,
+[data-mode="light"] .quant-guide-table-box h4 {
+    color: #0f172a !important;
+}
+
+body.light-theme .quant-guide-matrix-table td,
+[data-theme="light"] .quant-guide-matrix-table td,
+[data-mode="light"] .quant-guide-matrix-table td {
+    color: #1e293b !important;
+    border-bottom: 1px solid #e2e8f0 !important;
+}
+
+body.light-theme .quant-guide-matrix-table th,
+[data-theme="light"] .quant-guide-matrix-table th,
+[data-mode="light"] .quant-guide-matrix-table th {
+    color: #475569 !important;
+    border-bottom: 2px solid #cbd5e1 !important;
+}
+
+body.light-theme .quant-guide-ref-grid div strong,
+[data-theme="light"] .quant-guide-ref-grid div strong,
+[data-mode="light"] .quant-guide-ref-grid div strong {
+    color: #0f172a !important;
+}
+
+
 
