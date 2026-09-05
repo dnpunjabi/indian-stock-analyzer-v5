@@ -51,6 +51,9 @@ class TickStore:
         with self._lock:
             return self._data.get(symbol)
 
+    def get_tick(self, symbol: str) -> Optional[Dict[str, Any]]:
+        return self.get(symbol)
+
     def get_batch(self, symbols: List[str]) -> Dict[str, Dict[str, Any]]:
         with self._lock:
             return {s: self._data[s] for s in symbols if s in self._data}

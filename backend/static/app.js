@@ -2520,6 +2520,10 @@ function switchTab(tabKey) {
         if (typeof loadPortfolioFuzzySwaps === 'function') loadPortfolioFuzzySwaps();
     }
 
+    if (tabKey === 'watchlist') {
+        if (typeof renderWatchlistItems === 'function') renderWatchlistItems();
+    }
+
     // Auto-resize TradingView Lightweight Charts on tab activation to prevent collapsed canvas sizing
     if (tabKey === 'swing') {
         setTimeout(() => {
@@ -18087,7 +18091,10 @@ function renderWatchlistItems() {
     // Auto-fetch VCP & CANSLIM metrics if active view is VCP and cache is missing/stale
     if (window.activeWatchlistView === 'vcp' && activeWatch && activeWatch.items && activeWatch.items.length > 0) {
         if (!window.vcpWatchlistCache) window.vcpWatchlistCache = {};
-        const missingSyms = activeWatch.items.map(x => x.symbol).filter(sym => !window.vcpWatchlistCache[sym]);
+        const missingSyms = activeWatch.items.map(x => x.symbol).filter(sym => {
+            const baseSym = sym.replace('.NS', '').replace('.BO', '');
+            return !window.vcpWatchlistCache[sym] && !window.vcpWatchlistCache[baseSym];
+        });
         
         if (missingSyms.length > 0 && !window._isFetchingVcpMetrics) {
             window._isFetchingVcpMetrics = true;
@@ -18523,6 +18530,28 @@ function renderWatchlistItems() {
             let canslimHTML = `<span style="color: var(--text-muted); font-size: 11.5px;">--</span>`;
 
             if (vcpData) {
+                const isLight = document.body.getAttribute('data-mode') === 'light' || 
+                                document.documentElement.getAttribute('data-mode') === 'light' || 
+                                document.body.getAttribute('data-theme') === 'light' || 
+                                document.documentElement.getAttribute('data-theme') === 'light';
+
+                const wavePillBg = isLight ? '#f8fafc' : 'rgba(30,41,59,0.7)';
+                const wavePillBorder = isLight ? '#cbd5e1' : 'rgba(245,158,11,0.3)';
+                const wavePillText = isLight ? '#334155' : '#fbbf24';
+                const waveDepthText = isLight ? '#dc2626' : '#f87171';
+                const waveDaysText = isLight ? '#64748b' : '#94a3b8';
+                const tightnessTextColor = isLight ? '#475569' : '#cbd5e1';
+
+                const canFactorBg = isLight ? '#ffffff' : 'rgba(30, 41, 59, 0.7)';
+                const canFactorBorder = isLight ? '#cbd5e1' : 'rgba(168, 85, 247, 0.25)';
+                const canLetterColor = isLight ? '#6b21a8' : '#c084fc';
+                const canScoreColor = isLight ? '#047857' : '#10b981';
+                const canDetailColor = isLight ? '#334155' : '#cbd5e1';
+
+                const pivotColor = isLight ? '#0284c7' : '#38bdf8';
+                const t1Color = isLight ? '#047857' : '#10b981';
+                const t2Color = isLight ? '#7e22ce' : '#c084fc';
+
                 const st = vcpData.vcp_status || (vcpData.is_vcp ? 'FORMING' : 'NONE');
                 const reason = vcpData.vcp_reason || 'CONSOLIDATING';
                 let badgeHTML = '';
@@ -18536,35 +18565,35 @@ function renderWatchlistItems() {
                     badgeDesc = 'Stock has crossed the pivot buy price on strong institutional volume (>125% of 20-day average).';
                 } else if (vcpData.is_vcp || st === 'FORMING') {
                     const stage = vcpData.vcp_stage || 'T3';
-                    badgeHTML = `<span style="background: rgba(245, 158, 11, 0.15); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.4); font-size: 11px; font-weight: 700; padding: 2px 10px; border-radius: 12px;">⏳ FORMING ${stage}</span>`;
+                    badgeHTML = `<span style="background: rgba(245, 158, 11, 0.15); color: ${isLight ? '#d97706' : '#fbbf24'}; border: 1px solid rgba(245, 158, 11, 0.4); font-size: 11px; font-weight: 700; padding: 2px 10px; border-radius: 12px;">⏳ FORMING ${stage}</span>`;
                     badgeDesc = `Active Volatility Contraction Pattern meeting Mark Minervini SEPA criteria in wave stage ${stage}.`;
                 } else if (reason === 'BELOW 50 EMA') {
-                    badgeHTML = `<span style="background: rgba(239, 68, 68, 0.12); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.25); font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 12px;">📉 BELOW 50 EMA</span>`;
+                    badgeHTML = `<span style="background: rgba(239, 68, 68, 0.12); color: #dc2626; border: 1px solid rgba(239, 68, 68, 0.25); font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 12px;">📉 BELOW 50 EMA</span>`;
                     badgeDesc = 'Stock is consolidating below its 50-day Exponential Moving Average. Minervini SEPA Trend Template requires price > 50 EMA.';
                 } else if (reason === 'WIDE SWINGS') {
-                    badgeHTML = `<span style="background: rgba(245, 158, 11, 0.12); color: #f59e0b; border: 1px solid rgba(245, 158, 11, 0.25); font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 12px;">⏳ WIDE SWINGS</span>`;
+                    badgeHTML = `<span style="background: rgba(245, 158, 11, 0.12); color: ${isLight ? '#d97706' : '#f59e0b'}; border: 1px solid rgba(245, 158, 11, 0.25); font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 12px;">⏳ WIDE SWINGS</span>`;
                     badgeDesc = 'Stock is forming a base, but price volatility swings are wider than strict Minervini contraction thresholds.';
                 } else if (reason === 'BASE BUILDING') {
-                    badgeHTML = `<span style="background: rgba(168, 85, 247, 0.12); color: #c084fc; border: 1px solid rgba(168, 85, 247, 0.25); font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 12px;">🧱 BASE BUILDING</span>`;
+                    badgeHTML = `<span style="background: rgba(168, 85, 247, 0.12); color: ${isLight ? '#7e22ce' : '#c084fc'}; border: 1px solid rgba(168, 85, 247, 0.25); font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 12px;">🧱 BASE BUILDING</span>`;
                     badgeDesc = 'Stock is in early Stage 1 accumulation or constructing a cup/flat base prior to formal VCP contractions.';
                 } else {
-                    badgeHTML = `<span style="background: rgba(148, 163, 184, 0.12); color: #94a3b8; border: 1px solid rgba(148, 163, 184, 0.25); font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 12px;">⏳ CONSOLIDATING</span>`;
+                    badgeHTML = `<span style="background: rgba(148, 163, 184, 0.12); color: ${isLight ? '#475569' : '#94a3b8'}; border: 1px solid rgba(148, 163, 184, 0.25); font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 12px;">⏳ CONSOLIDATING</span>`;
                     badgeDesc = 'Stock is consolidating sideways without active VCP contraction wave mechanics.';
                 }
 
                 // Contraction waves HTML for Watchlist row
                 let wavePillsHTML = '';
                 if (vcpData.contractions && Array.isArray(vcpData.contractions) && vcpData.contractions.length > 0) {
-                    wavePillsHTML = `<div style="display: flex; gap: 3px; justify-content: center; flex-wrap: wrap; margin-top: 3px;">` +
+                    wavePillsHTML = `<div style="display: flex; gap: 4px; justify-content: center; flex-wrap: wrap; margin-top: 3px;">` +
                         vcpData.contractions.map(c => `
-                            <span title="Wave T${c.stage}: -${Math.abs(c.depth_percent)}% drop over ${c.days} days (${c.high_price ? `₹${c.high_price} → ₹${c.low_price}` : ''})" style="background: rgba(30,41,59,0.7); border: 1px solid rgba(245,158,11,0.3); font-size: 8.5px; padding: 1px 4px; border-radius: 4px; color: #fbbf24; cursor: help; white-space: nowrap;">
-                                T${c.stage}: <strong style="color: #f87171;">-${Math.abs(c.depth_percent)}%</strong> (${c.days}d)
+                            <span title="Wave T${c.stage}: -${Math.abs(c.depth_percent)}% drop over ${c.days} days (${c.high_price ? `₹${c.high_price} → ₹${c.low_price}` : ''})" style="background: ${wavePillBg}; border: 1px solid ${wavePillBorder}; font-size: 9px; padding: 2px 6px; border-radius: 6px; color: ${wavePillText}; font-weight: 700; cursor: help; white-space: nowrap; box-shadow: ${isLight ? '0 1px 2px rgba(0,0,0,0.03)' : 'none'};">
+                                TT${c.stage}: <strong style="color: ${waveDepthText}; font-weight: 800;">-${Math.abs(c.depth_percent)}%</strong> <span style="color: ${waveDaysText}; font-weight: 600;">(${c.days}d)</span>
                             </span>
                         `).join('') + `</div>`;
                 }
 
                 const tightnessVal = vcpData.tightness_score || 0;
-                const tightnessBadge = `<div style="font-size: 9.5px; color: #cbd5e1; margin-top: 2px;">Tightness: <strong style="color: #fbbf24;">${tightnessVal}/100</strong> <span onclick="window.showTightnessScoreHelp && window.showTightnessScoreHelp(${tightnessVal})" style="cursor: pointer; color: #fbbf24; font-size: 9px;" title="Tightness Breakdown">ⓘ</span></div>`;
+                const tightnessBadge = `<div style="font-size: 9.5px; color: ${tightnessTextColor}; margin-top: 2px;">Tightness: <strong style="color: ${isLight ? '#d97706' : '#fbbf24'};">${tightnessVal}/100</strong> <span onclick="window.showTightnessScoreHelp && window.showTightnessScoreHelp(${tightnessVal})" style="cursor: pointer; color: ${isLight ? '#d97706' : '#fbbf24'}; font-size: 9px;" title="Tightness Breakdown">ⓘ</span></div>`;
 
                 vcpStageBadge = `
                     <div style="display: flex; flex-direction: column; align-items: center; gap: 2px;">
@@ -18579,12 +18608,12 @@ function renderWatchlistItems() {
 
                 const vdu = vcpData.volume_dryup_ratio || 0.8;
                 const isVdu = vdu <= 1.0;
-                vduHTML = `<span style="color: ${isVdu ? '#10b981' : '#f59e0b'}; font-weight: 700; font-family: 'Inter', monospace; font-size: 11.5px;">${vdu}x ${isVdu ? '✓' : ''}</span>`;
+                vduHTML = `<span style="color: ${isVdu ? (isLight ? '#047857' : '#10b981') : (isLight ? '#d97706' : '#f59e0b')}; font-weight: 700; font-family: 'Inter', monospace; font-size: 11.5px;">${vdu}x ${isVdu ? '✓' : ''}</span>`;
 
                 pivotHTML = `
                     <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 1px;">
-                        <span style="color: #38bdf8; font-weight: 800; font-family: 'Inter', monospace; font-size: 12px;">₹${vcpData.pivot_price ? vcpData.pivot_price.toFixed(1) : '--'}</span>
-                        <span style="font-size: 9.5px; color: #ef4444; font-weight: 600;">Stop: ₹${vcpData.stop_loss ? vcpData.stop_loss.toFixed(1) : '--'} (-${vcpData.risk_percent || 0}%)</span>
+                        <span style="color: ${pivotColor}; font-weight: 800; font-family: 'Inter', monospace; font-size: 12px;">₹${vcpData.pivot_price ? vcpData.pivot_price.toFixed(1) : '--'}</span>
+                        <span style="font-size: 9.5px; color: #dc2626; font-weight: 600;">Stop: ₹${vcpData.stop_loss ? vcpData.stop_loss.toFixed(1) : '--'} (-${vcpData.risk_percent || 0}%)</span>
                     </div>
                 `;
 
@@ -18593,14 +18622,14 @@ function renderWatchlistItems() {
 
                 targetsHTML = `
                     <div style="display: flex; flex-direction: column; align-items: center; gap: 1px;" title="Minervini Profit Targets (1:2 and 1:4 Risk-to-Reward)">
-                        <span style="color: #10b981; font-weight: 700; font-family: 'Inter', monospace; font-size: 11.5px;">T1: ₹${t1Val ? t1Val.toFixed(1) : '--'}</span>
-                        <span style="color: #c084fc; font-weight: 700; font-family: 'Inter', monospace; font-size: 11.5px;">T2: ₹${t2Val ? t2Val.toFixed(1) : '--'}</span>
+                        <span style="color: ${t1Color}; font-weight: 700; font-family: 'Inter', monospace; font-size: 11.5px;">T1: ₹${t1Val ? t1Val.toFixed(1) : '--'}</span>
+                        <span style="color: ${t2Color}; font-weight: 700; font-family: 'Inter', monospace; font-size: 11.5px;">T2: ₹${t2Val ? t2Val.toFixed(1) : '--'}</span>
                     </div>
                 `;
 
                 const canScore = (canslimData && (canslimData.canslim_score || canslimData.score)) || 70;
                 const canGrade = (canslimData && (canslimData.grade || canslimData.canslim_grade)) || 'Grade B';
-                const gradeCol = canScore >= 80 ? '#c084fc' : (canScore >= 65 ? '#10b981' : '#f59e0b');
+                const gradeCol = canScore >= 80 ? (isLight ? '#7e22ce' : '#c084fc') : (canScore >= 65 ? (isLight ? '#047857' : '#10b981') : (isLight ? '#d97706' : '#f59e0b'));
 
                 const factorsMap = (canslimData && (canslimData.factors || canslimData.canslim_factors)) || {
                     "C": { score: canScore >= 80 ? 10 : 5, max: 15, detail: "+20% YoY" },
@@ -18622,18 +18651,18 @@ function renderWatchlistItems() {
                     "M": "M = Market Direction (Uptrend)"
                 };
 
-                const miniBarWl = `<div style="display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; margin-top: 4px; min-width: 160px;">` +
+                const miniBarWl = `<div class="vcp-canslim-mini-grid" style="display: grid; grid-template-columns: repeat(7, 1fr); gap: 3px; margin-top: 4px; width: 100%; max-width: 100%; box-sizing: border-box;">` +
                     Object.entries(factorsMap).map(([letter, f]) => `
-                        <div title="${wlFactorDefs[letter] || letter}: ${f.detail || ''}" style="background: rgba(30, 41, 59, 0.7); border: 1px solid rgba(168, 85, 247, 0.25); padding: 2px 1px; border-radius: 4px; text-align: center; cursor: help;">
-                            <div style="color: #c084fc; font-weight: 800; font-size: 8.5px;">${letter}</div>
-                            <div style="color: #10b981; font-weight: 700; font-size: 7.5px;">${f.score}/${f.max}</div>
-                            <div style="color: #cbd5e1; font-size: 6.5px; text-overflow: ellipsis; overflow: hidden; white-space: nowrap;">${f.detail || ''}</div>
+                        <div title="${wlFactorDefs[letter] || letter}: ${f.detail || ''}" style="background: ${canFactorBg}; border: 1px solid ${canFactorBorder}; padding: 3px 1px; border-radius: 5px; text-align: center; cursor: help; min-width: 0; width: 100%; box-sizing: border-box; overflow: hidden;">
+                            <div class="canslim-letter" style="color: ${canLetterColor}; font-weight: 800; font-size: 9px; line-height: 1.1;">${letter}</div>
+                            <div class="canslim-score" style="color: ${canScoreColor}; font-weight: 700; font-size: 8px; line-height: 1.1; margin-top: 1px;">${f.score}/${f.max}</div>
+                            <div class="canslim-detail-text" style="color: ${canDetailColor}; font-size: 6.5px; line-height: 1.1; margin-top: 1px; text-overflow: ellipsis; overflow: hidden; white-space: nowrap; max-width: 100%;">${f.detail || ''}</div>
                         </div>
                     `).join('') + `</div>`;
 
                 canslimHTML = `
                     <div style="display: flex; flex-direction: column; align-items: center; gap: 2px;">
-                        <span style="background: ${gradeCol}22; color: ${gradeCol}; border: 1px solid ${gradeCol}44; font-weight: 800; font-size: 11px; padding: 2px 8px; border-radius: 10px;">${canScore}/100 (${canGrade})</span>
+                        <span style="background: ${gradeCol}18; color: ${gradeCol}; border: 1px solid ${gradeCol}44; font-weight: 800; font-size: 11px; padding: 2px 8px; border-radius: 10px;">${canScore}/100 (${canGrade})</span>
                         ${miniBarWl}
                     </div>
                 `;
@@ -52671,7 +52700,10 @@ window.initFuzzyScreenerControls = function() {
     window.fetchFuzzyScreenerResults();
 };
 
-window.fetchFuzzyScreenerResults = async function() {
+window.fuzzyLastScanTimestamp = window.fuzzyLastScanTimestamp || 0;
+window.fuzzyLastCacheKey = window.fuzzyLastCacheKey || '';
+
+window.fetchFuzzyScreenerResults = async function(isSilent = false) {
     const slider = document.getElementById('fuzzy-score-slider');
     const ratingSelect = document.getElementById('fuzzy-rating-class-select');
     const limitSelect = document.getElementById('fuzzy-screener-limit-select');
@@ -52687,7 +52719,14 @@ window.fetchFuzzyScreenerResults = async function() {
     const limitVal = limitSelect ? parseInt(limitSelect.value) : 50;
     const searchQuery = searchInput ? searchInput.value.trim().toUpperCase() : '';
 
-    if (matchCountEl) matchCountEl.innerText = "Scanning Market...";
+    const currentKey = `${minScore}_${ratingClass}_${limitVal}_${searchQuery}`;
+    const now = Date.now();
+
+    if (!isSilent && window.fuzzyLastCacheKey === currentKey && (now - window.fuzzyLastScanTimestamp < 300000) && scanResultsGrid && scanResultsGrid.children.length > 0) {
+        return;
+    }
+
+    if (!isSilent && matchCountEl) matchCountEl.innerText = "Scanning Market...";
 
     try {
         let url = `/api/scans/fuzzy?min_score=${minScore}&limit=${limitVal}`;
@@ -52696,6 +52735,9 @@ window.fetchFuzzyScreenerResults = async function() {
         const response = await fetch(url);
         if (!response.ok) throw new Error(await response.text());
         const data = await response.json();
+
+        window.fuzzyLastScanTimestamp = Date.now();
+        window.fuzzyLastCacheKey = currentKey;
 
         let stocks = data.stocks || [];
         if (searchQuery) {
@@ -54510,15 +54552,15 @@ function renderVcpCanslimCardContent(cardContent, data, symbol) {
         let contractionsHtml = '';
         if (contractions.length > 0) {
             contractionsHtml = contractions.map(c => `
-                <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px 14px; background: rgba(30, 41, 59, 0.5); border-radius: 8px; margin-bottom: 6px; border: 1px solid rgba(255,255,255,0.05); font-size: 12.5px;">
-                    <span style="color: #fbbf24; font-weight: 700; font-family: monospace;">Wave ${c.stage}</span>
-                    <span style="color: #f8fafc;">Depth Drop: <strong style="color: #ef4444;">${c.depth_percent}%</strong></span>
-                    <span style="color: #cbd5e1;">High: ₹${c.high_price} &rarr; Low: ₹${c.low_price}</span>
-                    <span style="color: #94a3b8; font-size: 11.5px;">${c.days} Days</span>
+                <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px 14px; background: var(--bg-glass-input, rgba(30, 41, 59, 0.5)); border-radius: 8px; margin-bottom: 6px; border: 1px solid var(--border-glass, rgba(255,255,255,0.05)); font-size: 12.5px;">
+                    <span style="color: #d97706; font-weight: 800; font-family: monospace;">Wave ${c.stage}</span>
+                    <span style="color: var(--text-primary);">Depth Drop: <strong style="color: #ef4444; font-weight: 800;">${c.depth_percent}%</strong></span>
+                    <span style="color: var(--text-secondary); font-weight: 600;">High: ₹${c.high_price} &rarr; Low: ₹${c.low_price}</span>
+                    <span style="color: var(--text-muted); font-size: 11.5px; font-weight: 700;">${c.days} Days</span>
                 </div>
             `).join('');
         } else {
-            contractionsHtml = `<div style="padding: 14px; color: #94a3b8; font-size: 12px; text-align: center; background: rgba(30,41,59,0.3); border-radius: 8px;">No active contraction waves detected in current 6-month base.</div>`;
+            contractionsHtml = `<div style="padding: 14px; color: var(--text-muted); font-size: 12px; text-align: center; background: var(--bg-glass-input); border-radius: 8px;">No active contraction waves detected in current 6-month base.</div>`;
         }
 
         const factorDefs = {
@@ -54535,12 +54577,12 @@ function renderVcpCanslimCardContent(cardContent, data, symbol) {
             Object.entries(factors).map(([letter, f]) => {
                 const def = factorDefs[letter] || { name: f.label || letter, desc: f.detail };
                 return `
-                    <div title="${def.desc}" style="background: rgba(30, 41, 59, 0.7); border: 1px solid rgba(168, 85, 247, 0.25); padding: 5px 7px; border-radius: 6px; font-size: 11px; cursor: help;" onmouseover="this.style.borderColor='rgba(168, 85, 247, 0.6)'; this.style.background='rgba(45, 55, 72, 0.9)';" onmouseout="this.style.borderColor='rgba(168, 85, 247, 0.25)'; this.style.background='rgba(30, 41, 59, 0.7)';">
+                    <div title="${def.desc}" style="background: var(--bg-glass-input, rgba(30, 41, 59, 0.7)); border: 1px solid rgba(168, 85, 247, 0.3); padding: 5px 7px; border-radius: 6px; font-size: 11px; cursor: help;">
                         <div style="display: flex; justify-content: space-between; align-items: center;">
-                            <strong style="color: #c084fc; font-size: 11.5px;">${letter}</strong>
-                            <span style="color: #10b981; font-weight: 700; font-size: 10px;">${f.score}/${f.max}</span>
+                            <strong style="color: #9333ea; font-size: 11.5px; font-weight: 800;">${letter}</strong>
+                            <span style="color: #16a34a; font-weight: 800; font-size: 10px;">${f.score}/${f.max}</span>
                         </div>
-                        <div style="color: #cbd5e1; font-size: 9px; text-overflow: ellipsis; overflow: hidden; white-space: nowrap; margin-top: 2px;">${f.detail}</div>
+                        <div style="color: var(--text-primary); font-weight: 700; font-size: 9px; text-overflow: ellipsis; overflow: hidden; white-space: nowrap; margin-top: 2px;">${f.detail}</div>
                     </div>
                 `;
             }).join('') + `</div>`;
@@ -54549,52 +54591,52 @@ function renderVcpCanslimCardContent(cardContent, data, symbol) {
             <!-- Top Metric Cards Grid -->
             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; margin-bottom: 20px;">
                 <!-- VCP Setup Card -->
-                <div style="background: rgba(15, 23, 42, 0.85); border: 1px solid rgba(245, 158, 11, 0.35); border-radius: 12px; padding: 18px;">
+                <div style="background: var(--bg-glass-card, rgba(15, 23, 42, 0.85)); border: 1px solid var(--border-glass, rgba(245, 158, 11, 0.35)); border-radius: 12px; padding: 18px;">
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
-                        <span style="font-size: 11.5px; color: #94a3b8; text-transform: uppercase; font-weight: 700; letter-spacing: 0.5px;">Minervini VCP Pattern</span>
+                        <span style="font-size: 11.5px; color: var(--text-secondary); text-transform: uppercase; font-weight: 700; letter-spacing: 0.5px;">Minervini VCP Pattern</span>
                         ${statusBadge}
                     </div>
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; font-size: 12px;">
-                        <div style="background: rgba(30, 41, 59, 0.5); padding: 10px 12px; border-radius: 8px;">
-                            <span style="color: #94a3b8; display: block; font-size: 10.5px;">PIVOT BUY PRICE</span>
-                            <strong style="color: #38bdf8; font-size: 16px; font-family: 'Inter', monospace;">₹${vcp.pivot_price || '--'}</strong>
+                        <div style="background: var(--bg-glass-input, rgba(30, 41, 59, 0.5)); border: 1px solid var(--border-glass); padding: 10px 12px; border-radius: 8px;">
+                            <span style="color: var(--text-secondary); display: block; font-size: 10.5px; font-weight: 700;">PIVOT BUY PRICE</span>
+                            <strong style="color: #0284c7; font-size: 16px; font-family: 'Inter', monospace; font-weight: 800;">₹${vcp.pivot_price || '--'}</strong>
                         </div>
-                        <div style="background: rgba(30, 41, 59, 0.5); padding: 10px 12px; border-radius: 8px;">
-                            <span style="color: #94a3b8; display: block; font-size: 10.5px;">STOP LOSS LEVEL</span>
-                            <strong style="color: #ef4444; font-size: 16px; font-family: 'Inter', monospace;">₹${vcp.stop_loss || '--'} <small style="font-size: 10px;">(-${vcp.risk_percent}%)</small></strong>
+                        <div style="background: var(--bg-glass-input, rgba(30, 41, 59, 0.5)); border: 1px solid var(--border-glass); padding: 10px 12px; border-radius: 8px;">
+                            <span style="color: var(--text-secondary); display: block; font-size: 10.5px; font-weight: 700;">STOP LOSS LEVEL</span>
+                            <strong style="color: #dc2626; font-size: 16px; font-family: 'Inter', monospace; font-weight: 800;">₹${vcp.stop_loss || '--'} <small style="font-size: 10px;">(-${vcp.risk_percent}%)</small></strong>
                         </div>
-                        <div style="background: rgba(30, 41, 59, 0.5); padding: 10px 12px; border-radius: 8px;">
-                            <span style="color: #94a3b8; display: block; font-size: 10.5px;">TARGET 1 (1:2 R:R)</span>
-                            <strong style="color: #10b981; font-size: 14.5px; font-family: 'Inter', monospace;">₹${vcp.target_1 || '--'}</strong>
+                        <div style="background: var(--bg-glass-input, rgba(30, 41, 59, 0.5)); border: 1px solid var(--border-glass); padding: 10px 12px; border-radius: 8px;">
+                            <span style="color: var(--text-secondary); display: block; font-size: 10.5px; font-weight: 700;">TARGET 1 (1:2 R:R)</span>
+                            <strong style="color: #16a34a; font-size: 14.5px; font-family: 'Inter', monospace; font-weight: 800;">₹${vcp.target_1 || '--'}</strong>
                         </div>
-                        <div style="background: rgba(30, 41, 59, 0.5); padding: 10px 12px; border-radius: 8px;">
-                            <span style="color: #94a3b8; display: block; font-size: 10.5px;">TARGET 2 (1:4 R:R)</span>
-                            <strong style="color: #10b981; font-size: 14.5px; font-family: 'Inter', monospace;">₹${vcp.target_2 || '--'}</strong>
+                        <div style="background: var(--bg-glass-input, rgba(30, 41, 59, 0.5)); border: 1px solid var(--border-glass); padding: 10px 12px; border-radius: 8px;">
+                            <span style="color: var(--text-secondary); display: block; font-size: 10.5px; font-weight: 700;">TARGET 2 (1:4 R:R)</span>
+                            <strong style="color: #9333ea; font-size: 14.5px; font-family: 'Inter', monospace; font-weight: 800;">₹${vcp.target_2 || '--'}</strong>
                         </div>
                     </div>
                 </div>
 
                 <!-- 7-Factor CANSLIM Card -->
-                <div style="background: rgba(15, 23, 42, 0.85); border: 1px solid rgba(168, 85, 247, 0.35); border-radius: 12px; padding: 18px;">
+                <div style="background: var(--bg-glass-card, rgba(15, 23, 42, 0.85)); border: 1px solid var(--border-glass, rgba(168, 85, 247, 0.35)); border-radius: 12px; padding: 18px;">
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-                        <span style="font-size: 11.5px; color: #94a3b8; text-transform: uppercase; font-weight: 700; letter-spacing: 0.5px;">William O'Neil 7-Factor CANSLIM</span>
-                        <span style="background: rgba(168, 85, 247, 0.15); color: #c084fc; border: 1px solid rgba(168, 85, 247, 0.4); font-size: 12px; font-weight: 800; padding: 3px 10px; border-radius: 12px;">${canslim}/100 (${grade})</span>
+                        <span style="font-size: 11.5px; color: var(--text-secondary); text-transform: uppercase; font-weight: 700; letter-spacing: 0.5px;">William O'Neil 7-Factor CANSLIM</span>
+                        <span style="background: rgba(168, 85, 247, 0.15); color: #9333ea; border: 1px solid rgba(168, 85, 247, 0.4); font-size: 12px; font-weight: 800; padding: 3px 10px; border-radius: 12px;">${canslim}/100 (${grade})</span>
                     </div>
                     <div style="display: flex; flex-direction: column; gap: 6px;">
                         <div style="display: flex; justify-content: space-between; font-size: 12px;">
-                            <span style="color: #cbd5e1;">Volume Dry-Up (VDU) Ratio:</span>
-                            <strong style="color: ${vcp.volume_dryup_ratio <= 1.0 ? '#10b981' : '#f59e0b'}; font-family: monospace;">${vcp.volume_dryup_ratio}x ${vcp.volume_dryup_ratio <= 1.0 ? '✓' : ''}</strong>
+                            <span style="color: var(--text-primary); font-weight: 700;">Volume Dry-Up (VDU) Ratio:</span>
+                            <strong style="color: ${vcp.volume_dryup_ratio <= 1.0 ? '#16a34a' : '#d97706'}; font-family: monospace; font-weight: 800;">${vcp.volume_dryup_ratio}x ${vcp.volume_dryup_ratio <= 1.0 ? '✓' : ''}</strong>
                         </div>
                         <div style="display: flex; justify-content: space-between; align-items: center; font-size: 12px;">
-                            <span style="color: #cbd5e1; display: flex; align-items: center; gap: 4px;">
+                            <span style="color: var(--text-primary); display: flex; align-items: center; gap: 4px; font-weight: 700;">
                                 Tightness Score:
-                                <span onclick="window.showTightnessScoreHelp && window.showTightnessScoreHelp(${vcp.tightness_score || 0})" style="cursor: pointer; color: #fbbf24; font-size: 10px; font-weight: bold; background: rgba(251,191,36,0.15); border: 1px solid rgba(251,191,36,0.35); border-radius: 50%; width: 15px; height: 15px; display: inline-flex; align-items: center; justify-content: center;" title="Click for Tightness Score Matrix & Interpretation">ℹ</span>
+                                <span onclick="window.showTightnessScoreHelp && window.showTightnessScoreHelp(${vcp.tightness_score || 0})" style="cursor: pointer; color: #d97706; font-size: 10px; font-weight: bold; background: rgba(245,158,11,0.15); border: 1px solid #d97706; border-radius: 50%; width: 15px; height: 15px; display: inline-flex; align-items: center; justify-content: center;" title="Click for Tightness Score Matrix & Interpretation">ℹ</span>
                             </span>
-                            <strong style="color: #fbbf24; font-family: monospace;">${vcp.tightness_score || 0} / 100</strong>
+                            <strong style="color: #d97706; font-family: monospace; font-weight: 800;">${vcp.tightness_score || 0} / 100</strong>
                         </div>
                         ${factorsHtml}
                         <div style="margin-top: 6px; text-align: right;">
-                            <button onclick="window.openVcpAiDeepResearch('${symbol}')" class="btn-secondary" style="font-size: 11px; padding: 4px 12px; color: #c084fc; border-color: rgba(168,85,247,0.4); background: rgba(168,85,247,0.12); font-weight: 700; cursor: pointer; border-radius: 6px;">🔮 Deep Gemini AI Thesis</button>
+                            <button onclick="window.openVcpAiDeepResearch('${symbol}')" class="btn-secondary" style="font-size: 11px; padding: 5px 12px; color: #9333ea; border-color: #9333ea; background: rgba(168,85,247,0.15); font-weight: 800; cursor: pointer; border-radius: 6px;">🔮 Deep Gemini AI Thesis</button>
                         </div>
                     </div>
                 </div>
@@ -54602,16 +54644,16 @@ function renderVcpCanslimCardContent(cardContent, data, symbol) {
 
             <!-- Contraction Waves Section -->
             <div style="margin-bottom: 22px;">
-                <div style="font-size: 13px; font-weight: 700; color: #fbbf24; margin-bottom: 10px;">📈 CONTRACTION STAGES BREAKDOWN (${contractions.length} Waves Detected)</div>
+                <div style="font-size: 13px; font-weight: 800; color: #d97706; margin-bottom: 10px;">📈 CONTRACTION STAGES BREAKDOWN (${contractions.length} Waves Detected)</div>
                 ${contractionsHtml}
             </div>
 
             <!-- Gemini AI Institutional Blueprint -->
-            <div style="background: linear-gradient(135deg, rgba(30, 41, 59, 0.85), rgba(15, 23, 42, 0.95)); border: 1px solid rgba(56, 189, 248, 0.35); border-radius: 12px; padding: 18px 20px;">
-                <div style="font-size: 11px; font-weight: 700; color: #38bdf8; text-transform: uppercase; margin-bottom: 6px; letter-spacing: 0.5px;">🧠 INSTITUTIONAL VERDICT & BLUEPRINT</div>
-                <div style="font-size: 15px; font-weight: 800; color: #f8fafc; margin-bottom: 8px;">${aiBlueprint.verdict || 'Minervini VCP Setup'}</div>
-                <p style="margin: 0 0 10px 0; font-size: 12.5px; color: #cbd5e1; line-height: 1.5;">${aiBlueprint.fundamental_catalyst || 'Analysis of fundamental growth drivers and CANSLIM metrics.'}</p>
-                <p style="margin: 0; font-size: 12.5px; color: #94a3b8; line-height: 1.5;"><strong>Execution Trigger:</strong> ${aiBlueprint.execution_blueprint || 'Buy on high-volume breakout above pivot price.'}</p>
+            <div style="background: var(--bg-glass-card, rgba(15, 23, 42, 0.95)); border: 1px solid var(--border-glass, rgba(56, 189, 248, 0.35)); border-radius: 12px; padding: 18px 20px;">
+                <div style="font-size: 11px; font-weight: 800; color: #0284c7; text-transform: uppercase; margin-bottom: 6px; letter-spacing: 0.5px;">🧠 INSTITUTIONAL VERDICT & BLUEPRINT</div>
+                <div style="font-size: 15px; font-weight: 800; color: var(--text-primary); margin-bottom: 8px;">${aiBlueprint.verdict || 'Minervini VCP Setup'}</div>
+                <p style="margin: 0 0 10px 0; font-size: 12.5px; color: var(--text-secondary); line-height: 1.5;">${aiBlueprint.fundamental_catalyst || 'Analysis of fundamental growth drivers and CANSLIM metrics.'}</p>
+                <p style="margin: 0; font-size: 12.5px; color: var(--text-muted); line-height: 1.5;"><strong style="color: var(--text-primary);">Execution Trigger:</strong> ${aiBlueprint.execution_blueprint || 'Buy on high-volume breakout above pivot price.'}</p>
             </div>
         `;
 }
@@ -54873,61 +54915,88 @@ window.copySGEMarkdownSummary = copySGEMarkdownSummary;
 
 window.allVcpStocks = [];
 
-window.runVcpScan = async function(isSilent = false) {
+window.runVcpScan = async function(isSilent = false, forceRefresh = false) {
     const loadingEl = document.getElementById('vcp-loading-container');
     const gridEl = document.getElementById('vcp-cards-grid');
     const btnScan = document.getElementById('vcp-scan-btn');
+
+    // Helper to render stock cards & update KPI stats
+    const updateVcpUI = (stocksList) => {
+        if (!stocksList || !Array.isArray(stocksList)) return;
+        window.allVcpStocks = stocksList;
+        window.vcpLastScanTimestamp = Date.now();
+        
+        // Update KPI Stats
+        const kpiTotal = document.getElementById('vcp-kpi-total');
+        const kpiReady = document.getElementById('vcp-kpi-ready');
+        const kpiBreakout = document.getElementById('vcp-kpi-breakout');
+        const kpiAvgCanslim = document.getElementById('vcp-kpi-avg-canslim');
+
+        const total = window.allVcpStocks.length;
+        const readyCount = window.allVcpStocks.filter(s => s.vcp_status === 'READY_PIVOT').length;
+        const breakoutCount = window.allVcpStocks.filter(s => s.vcp_status === 'LIVE_BREAKOUT').length;
+        
+        const totalScores = window.allVcpStocks.reduce((acc, s) => acc + (s.canslim_score || 0), 0);
+        const avgScore = total > 0 ? (totalScores / total).toFixed(1) : '0';
+
+        if (kpiTotal) kpiTotal.innerText = total;
+        if (kpiReady) kpiReady.innerText = readyCount;
+        if (kpiBreakout) kpiBreakout.innerText = breakoutCount;
+        if (kpiAvgCanslim) kpiAvgCanslim.innerText = `${avgScore} / 100`;
+
+        // Auto-subscribe screened VCP symbols to live WebSocket tick updates
+        if (typeof wsSubscribeSymbols === 'function') {
+            const vcpSymbols = window.allVcpStocks.map(s => s.symbol).filter(Boolean);
+            wsSubscribeSymbols(vcpSymbols);
+        }
+
+        window.filterVcpCards();
+    };
+
+    // Phase 1: Instant Local Disk Hydration (0ms Load for Mobile App)
+    let hasHydrated = false;
+    try {
+        const cachedRaw = localStorage.getItem('cached_vcp_screener_stocks');
+        if (cachedRaw) {
+            const cachedStocks = JSON.parse(cachedRaw);
+            if (Array.isArray(cachedStocks) && cachedStocks.length > 0) {
+                updateVcpUI(cachedStocks);
+                hasHydrated = true;
+                if (loadingEl) loadingEl.style.display = 'none';
+                if (gridEl) gridEl.style.display = 'grid';
+            }
+        }
+    } catch (e) {
+        console.warn("Failed to load local VCP cache:", e);
+    }
     
-    if (!isSilent) {
+    if (!isSilent && !hasHydrated) {
         if (loadingEl) loadingEl.style.display = 'block';
         if (gridEl) gridEl.style.display = 'none';
     }
     if (btnScan) btnScan.disabled = true;
 
+    // Phase 2: Background Network Sync & Offline Resilience
     try {
-        const response = await fetch('/api/vcp-canslim-screener');
+        const url = forceRefresh ? '/api/vcp-canslim-screener?force_refresh=true' : '/api/vcp-canslim-screener';
+        const response = await fetch(url);
         const data = await response.json();
 
         const stocksList = Array.isArray(data) ? data : (data && Array.isArray(data.stocks) ? data.stocks : null);
-        if (stocksList) {
-            window.allVcpStocks = stocksList;
-            window.vcpLastScanTimestamp = Date.now();
-            
-            // Update KPI Stats
-            const kpiTotal = document.getElementById('vcp-kpi-total');
-            const kpiReady = document.getElementById('vcp-kpi-ready');
-            const kpiBreakout = document.getElementById('vcp-kpi-breakout');
-            const kpiAvgCanslim = document.getElementById('vcp-kpi-avg-canslim');
-
-            const total = window.allVcpStocks.length;
-            const readyCount = window.allVcpStocks.filter(s => s.vcp_status === 'READY_PIVOT').length;
-            const breakoutCount = window.allVcpStocks.filter(s => s.vcp_status === 'LIVE_BREAKOUT').length;
-            
-            const totalScores = window.allVcpStocks.reduce((acc, s) => acc + (s.canslim_score || 0), 0);
-            const avgScore = total > 0 ? (totalScores / total).toFixed(1) : '0';
-
-            if (kpiTotal) kpiTotal.innerText = total;
-            if (kpiReady) kpiReady.innerText = readyCount;
-            if (kpiBreakout) kpiBreakout.innerText = breakoutCount;
-            if (kpiAvgCanslim) kpiAvgCanslim.innerText = `${avgScore} / 100`;
-
-            // Auto-subscribe screened VCP symbols to live WebSocket tick updates
-            if (typeof wsSubscribeSymbols === 'function') {
-                const vcpSymbols = window.allVcpStocks.map(s => s.symbol).filter(Boolean);
-                wsSubscribeSymbols(vcpSymbols);
-            }
-
-            window.filterVcpCards();
-        } else {
-            console.error("Failed to fetch VCP scan results:", data);
+        if (stocksList && stocksList.length > 0) {
+            updateVcpUI(stocksList);
+            try {
+                localStorage.setItem('cached_vcp_screener_stocks', JSON.stringify(stocksList));
+            } catch (e) {}
+        } else if (!hasHydrated) {
             if (gridEl) {
                 gridEl.innerHTML = `<div style="grid-column: 1/-1; text-align: center; padding: 40px; color: #94a3b8;">Unable to fetch VCP scan data. Please try again.</div>`;
             }
         }
     } catch (err) {
         console.error("VCP Scan API error:", err);
-        if (gridEl) {
-            gridEl.innerHTML = `<div style="grid-column: 1/-1; text-align: center; padding: 40px; color: #f87171;">Error loading VCP scan results. Please check server logs.</div>`;
+        if (!hasHydrated && gridEl) {
+            gridEl.innerHTML = `<div style="grid-column: 1/-1; text-align: center; padding: 40px; color: #f87171;">Error loading VCP scan results. Please check network connection.</div>`;
         }
     } finally {
         if (loadingEl) loadingEl.style.display = 'none';
@@ -55054,12 +55123,12 @@ window.renderVcpCards = function(stocks) {
             "M": "M = Market Direction (Uptrend)"
         };
 
-        const miniBadgesHtml = `<div style="display: grid; grid-template-columns: repeat(7, 1fr); gap: 3px; margin-top: 6px;">` +
+        const miniBadgesHtml = `<div class="vcp-canslim-mini-grid" style="display: grid; grid-template-columns: repeat(7, 1fr); gap: 3px; margin-top: 6px; width: 100%; max-width: 100%; box-sizing: border-box;">` +
             Object.entries(factorsObj).map(([letter, f]) => `
-                <div title="${factorDefs[letter] || letter}: ${f.detail || ''}" style="background: var(--bg-glass-input, rgba(30, 41, 59, 0.6)); border: 1px solid rgba(168, 85, 247, 0.3); padding: 3px 2px; border-radius: 5px; text-align: center; cursor: help;">
-                    <div style="color: #9333ea; font-weight: 800; font-size: 10px;">${letter}</div>
-                    <div style="color: #16a34a; font-weight: 800; font-size: 8.5px;">${f.score}/${f.max}</div>
-                    <div style="color: var(--text-primary, #1e293b); font-weight: 700; font-size: 7.5px; text-overflow: ellipsis; overflow: hidden; white-space: nowrap;">${f.detail || ''}</div>
+                <div title="${factorDefs[letter] || letter}: ${f.detail || ''}" style="background: var(--bg-glass-input, rgba(30, 41, 59, 0.6)); border: 1px solid rgba(168, 85, 247, 0.3); padding: 4px 1px; border-radius: 6px; text-align: center; cursor: help; min-width: 0; width: 100%; box-sizing: border-box; overflow: hidden;">
+                    <div class="canslim-letter" style="color: #c084fc; font-weight: 800; font-size: 9.5px; line-height: 1.1;">${letter}</div>
+                    <div class="canslim-score" style="color: #10b981; font-weight: 800; font-size: 8px; line-height: 1.1; margin-top: 1px;">${f.score}/${f.max}</div>
+                    <div class="canslim-detail-text" style="color: var(--text-primary, #cbd5e1); font-weight: 700; font-size: 6.5px; line-height: 1.1; margin-top: 1px; text-overflow: ellipsis; overflow: hidden; white-space: nowrap; max-width: 100%;">${f.detail || ''}</div>
                 </div>
             `).join('') + `</div>`;
 
@@ -55113,7 +55182,7 @@ window.renderVcpCards = function(stocks) {
                     </div>
 
                     <!-- CANSLIM & Tightness Score Section -->
-                    <div class="vcp-canslim-bar" style="background: var(--bg-glass-input, rgba(30, 41, 59, 0.6)); padding: 8px 10px; border-radius: 8px; border: 1px solid var(--border-glass, rgba(255,255,255,0.08));">
+                    <div class="vcp-canslim-bar" style="background: var(--bg-glass-input, rgba(30, 41, 59, 0.6)); padding: 8px 8px; border-radius: 8px; border: 1px solid var(--border-glass, rgba(255,255,255,0.08)); width: 100%; max-width: 100%; box-sizing: border-box; overflow: hidden;">
                         <div style="display: flex; align-items: center; justify-content: space-between;">
                             <span style="font-size: 10.5px; font-weight: 700; color: var(--text-primary, #cbd5e1); display: flex; align-items: center; gap: 4px;">
                                 Tightness: <strong style="color: #d97706; font-family: monospace; font-weight: 800;">${tightness}/100</strong>
@@ -55512,6 +55581,10 @@ window.currentVcpModalSym = '';
 window.closeVcpChartModal = function() {
     const modal = document.getElementById('vcp-chart-modal');
     if (modal) modal.style.display = 'none';
+    if (window._vcpChartResizeObserver) {
+        try { window._vcpChartResizeObserver.disconnect(); } catch(e) {}
+        window._vcpChartResizeObserver = null;
+    }
     if (window.activeVcpModalChart) {
         try { window.activeVcpModalChart.remove(); } catch(e) {}
         window.activeVcpModalChart = null;
@@ -55532,6 +55605,10 @@ window.openVcpChartModal = async function(symbol) {
 
     document.getElementById('vcp-modal-sym').innerText = cleanSym;
     
+    if (window._vcpChartResizeObserver) {
+        try { window._vcpChartResizeObserver.disconnect(); } catch(e) {}
+        window._vcpChartResizeObserver = null;
+    }
     if (window.activeVcpModalChart) {
         try { window.activeVcpModalChart.remove(); } catch(e) {}
         window.activeVcpModalChart = null;
@@ -55592,9 +55669,13 @@ window.openVcpChartModal = async function(symbol) {
             const gridColor = isLightMode ? 'rgba(0, 0, 0, 0.05)' : 'rgba(255, 255, 255, 0.04)';
             const borderCol = isLightMode ? 'rgba(0, 0, 0, 0.1)' : 'rgba(255, 255, 255, 0.1)';
 
+            const isMobile = window.innerWidth <= 640;
+            const initialWidth = container.clientWidth || (isMobile ? (window.innerWidth - 32) : 900);
+            const chartHeight = isMobile ? 320 : 400;
+
             const chart = LightweightCharts.createChart(container, {
-                width: container.clientWidth || 950,
-                height: 420,
+                width: initialWidth,
+                height: chartHeight,
                 layout: {
                     background: { type: 'solid', color: chartBg },
                     textColor: txtColor,
@@ -55614,6 +55695,22 @@ window.openVcpChartModal = async function(symbol) {
                     timeVisible: true,
                 },
             });
+
+            window.activeVcpModalChart = chart;
+
+            if (window.ResizeObserver) {
+                window._vcpChartResizeObserver = new ResizeObserver(entries => {
+                    for (let entry of entries) {
+                        if (entry.contentRect && chart) {
+                            const newW = Math.floor(entry.contentRect.width);
+                            if (newW > 0) {
+                                chart.applyOptions({ width: newW });
+                            }
+                        }
+                    }
+                });
+                window._vcpChartResizeObserver.observe(container);
+            }
 
             window.activeVcpModalChart = chart;
 

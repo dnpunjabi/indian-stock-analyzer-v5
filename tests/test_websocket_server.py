@@ -50,6 +50,7 @@ def test_tick_store():
     store.update("TCS", {"price": 3200.0, "change": 12.0})
 
     assert store.get("INFY")["price"] == 1400.0
+    assert store.get_tick("INFY")["price"] == 1400.0
     assert store.count == 2
     batch = store.get_batch(["INFY", "NONEXISTENT"])
     assert "INFY" in batch

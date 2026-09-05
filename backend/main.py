@@ -13258,29 +13258,65 @@ async def get_swing_scan(strategy: str = "ALL", universe: str = "all", min_volum
         raise HTTPException(status_code=500, detail=f"Swing scanner execution failed: {str(e)}")
 
 
-@app.get("/api/vcp-canslim-screener")
-async def get_vcp_canslim_screener(
-    min_canslim_score: int = 0,
-    vcp_stage: str = "ALL",
-    max_risk_pct: float = 0.0,
-    sector: str = "ALL"
-):
-    """
-    Scans the Nifty stock universe for Mark Minervini Volatility Contraction Patterns (VCP)
-    and William O'Neil 7-letter CANSLIM score leaders.
-    """
+_VCP_CANSLIM_GLOBAL_CACHE = {"timestamp": 0, "stocks": []}
+
+def get_vcp_canslim_universe_from_db(conn):
+    """Reads pre-computed VCP setups & CANSLIM ratings from SQLite table vcp_screener_cache."""
+    try:
+        cursor = conn.cursor()
+        cursor.execute("SELECT symbol, vcp_json, canslim_json FROM vcp_screener_cache")
+        rows = cursor.fetchall()
+        if not rows:
+            return []
+        
+        candidates = []
+        for r in rows:
+            try:
+                vcp_d = json.loads(r["vcp_json"])
+                canslim_d = json.loads(r["canslim_json"])
+                c_score = canslim_d.get("canslim_score", 0)
+                
+                stock_entry = {
+                    "symbol": r["symbol"],
+                    "company_name": vcp_d.get("company_name", r["symbol"]),
+                    "sector": vcp_d.get("sector", "N/A"),
+                    "current_price": vcp_d.get("current_price", 0.0),
+                    "change_percent": vcp_d.get("change_percent", 0.0),
+                    "is_vcp": vcp_d.get("is_vcp", True),
+                    "vcp_status": vcp_d.get("vcp_status", "FORMING"),
+                    "vcp_stage": vcp_d.get("vcp_stage", "T3"),
+                    "pivot_price": vcp_d.get("pivot_price"),
+                    "stop_loss": vcp_d.get("stop_loss"),
+                    "target_1": vcp_d.get("target_1"),
+                    "target_2": vcp_d.get("target_2"),
+                    "risk_percent": vcp_d.get("risk_percent", 0.0),
+                    "risk_reward_ratio": vcp_d.get("risk_reward_ratio", 2.0),
+                    "volume_dryup_ratio": vcp_d.get("volume_dryup_ratio", 1.0),
+                    "contractions": vcp_d.get("contractions", []),
+                    "tightness_score": vcp_d.get("tightness_score", 50),
+                    "canslim_score": c_score,
+                    "grade": canslim_d.get("grade", "Grade B"),
+                    "canslim_factors": canslim_d.get("factors", {})
+                }
+                candidates.append(stock_entry)
+            except Exception:
+                continue
+        return candidates
+    except Exception as e:
+        print(f"Error loading vcp_screener_cache from DB: {e}")
+        return []
+
+async def _recalculate_vcp_universe():
+    """Runs full historical VCP & CANSLIM evaluation for the universe and saves to SQLite + RAM cache."""
     try:
         from backend.swing_utils import detect_vcp_pattern, calculate_canslim_score, clean_float
         import asyncio
+        now = time.time()
+        print("[VCP CRON] Starting VCP & CANSLIM Universe Recalculation...")
         
         with get_db() as conn:
             cursor = conn.cursor()
-            query = "SELECT symbol, company_name, sector, cap_type FROM screener_universe"
-            params = []
-            if sector != "ALL":
-                query += " WHERE sector = ?"
-                params.append(sector)
-            cursor.execute(query, params)
+            cursor.execute("SELECT symbol, company_name, sector, cap_type FROM screener_universe")
             stocks = [dict(row) for row in cursor.fetchall()]
 
             sem = asyncio.Semaphore(20)
@@ -13289,7 +13325,6 @@ async def get_vcp_canslim_screener(
                 async with sem:
                     sym = st["symbol"].strip().upper()
                     sym_yf = f"{sym}.NS" if not sym.endswith(".NS") else sym
-                    
                     try:
                         df = await fetch_history_df(sym_yf, period="6mo", interval="1d")
                         if df is None or df.empty or len(df) < 40:
@@ -13303,32 +13338,14 @@ async def get_vcp_canslim_screener(
                         v_stage = vcp_res["vcp_stage"]
                         r_pct = vcp_res["risk_percent"]
                         
-                        # Filtering criteria: only include valid VCP setups
                         if not vcp_res["is_vcp"]:
-                            return None
-                        if min_canslim_score > 0 and c_score < min_canslim_score:
-                            return None
-                        if max_risk_pct > 0 and r_pct > max_risk_pct:
-                            return None
-                        if vcp_stage != "ALL" and v_stage != vcp_stage:
                             return None
 
                         curr_p = clean_float(df['Close'].iloc[-1])
                         prev_p = clean_float(df['Close'].iloc[-2]) if len(df) > 1 else curr_p
                         chg_pct = round(((curr_p - prev_p) / prev_p) * 100.0, 2) if prev_p > 0 else 0.0
 
-                        # Hybrid check: Use Angel One SmartAPI live WebSocket tick if connected
-                        try:
-                            from backend.websocket_server import tick_store
-                            live_tick = tick_store.get_tick(sym) or tick_store.get_tick(sym_yf)
-                            if live_tick and live_tick.get("ltp"):
-                                curr_p = clean_float(live_tick["ltp"])
-                                if live_tick.get("change_pct") is not None:
-                                    chg_pct = round(float(live_tick["change_pct"]), 2)
-                        except Exception:
-                            pass
-
-                        return {
+                        res_dict = {
                             "symbol": sym,
                             "company_name": st["company_name"],
                             "sector": st["sector"],
@@ -13350,17 +13367,148 @@ async def get_vcp_canslim_screener(
                             "grade": canslim_res["grade"],
                             "canslim_factors": canslim_res["factors"]
                         }
+
+                        # Save into SQLite vcp_screener_cache table
+                        try:
+                            vcp_json_str = json.dumps(res_dict)
+                            canslim_json_str = json.dumps({"canslim_score": c_score, "grade": canslim_res["grade"], "factors": canslim_res["factors"]})
+                            cursor.execute(
+                                "INSERT OR REPLACE INTO vcp_screener_cache (symbol, vcp_json, canslim_json, updated_at) VALUES (?, ?, ?, CURRENT_TIMESTAMP)",
+                                (sym, vcp_json_str, canslim_json_str)
+                            )
+                        except Exception:
+                            pass
+
+                        return res_dict
                     except Exception:
                         return None
 
             results = await asyncio.gather(*(process_stock(st) for st in stocks))
-            candidates = [r for r in results if r is not None]
+            all_candidates = [r for r in results if r is not None]
+            conn.commit()
 
-        # Sort priority: LIVE_BREAKOUT > READY_PIVOT > FORMING, then by CANSLIM score descending
+            global _VCP_CANSLIM_GLOBAL_CACHE
+            _VCP_CANSLIM_GLOBAL_CACHE = {"timestamp": now, "stocks": all_candidates}
+            print(f"[VCP CRON] Midnight VCP Recalculation complete. {len(all_candidates)} candidates cached in SQLite & RAM.")
+            return all_candidates
+    except Exception as e:
+        print(f"[VCP CRON] Universe Recalculation Error: {e}")
+        return []
+
+def _start_daily_vcp_cron():
+    """Background daemon thread that triggers full VCP recalculation every day at 01:30 AM IST."""
+    import threading
+    import datetime
+    import time
+    import asyncio
+
+    def cron_worker():
+        while True:
+            try:
+                now = datetime.datetime.now()
+                target_time = datetime.datetime.combine(now.date(), datetime.time(1, 30, 0))
+                if now >= target_time:
+                    target_time += datetime.timedelta(days=1)
+                seconds_until_target = (target_time - now).total_seconds()
+
+                print(f"[VCP CRON] Next daily 1:30 AM recalculation scheduled in {seconds_until_target / 3600:.2f} hours (at {target_time.strftime('%Y-%m-%d %H:%M:%S')}).")
+                time.sleep(max(seconds_until_target, 10.0))
+
+                print("[VCP CRON] 1:30 AM reached! Triggering full VCP & CANSLIM universe recalculation...")
+                loop = asyncio.new_event_loop()
+                asyncio.set_event_loop(loop)
+                try:
+                    loop.run_until_complete(_recalculate_vcp_universe())
+                finally:
+                    loop.close()
+
+                print("[VCP CRON] 1:30 AM recalculation task complete.")
+                time.sleep(60)
+            except Exception as e:
+                print(f"[VCP CRON ERROR] {e}")
+                time.sleep(60)
+
+    t = threading.Thread(target=cron_worker, daemon=True, name="DailyVcpCronThread")
+    t.start()
+
+try:
+    _start_daily_vcp_cron()
+except Exception as cron_start_err:
+    print(f"Failed to start Daily VCP Cron: {cron_start_err}")
+
+
+@app.get("/api/vcp-canslim-screener")
+async def get_vcp_canslim_screener(
+    min_canslim_score: int = 0,
+    vcp_stage: str = "ALL",
+    max_risk_pct: float = 0.0,
+    sector: str = "ALL",
+    force_refresh: bool = False
+):
+    """
+    Scans the Nifty stock universe for Mark Minervini Volatility Contraction Patterns (VCP)
+    and William O'Neil 7-letter CANSLIM score leaders.
+    Uses SQLite Table + RAM Cache with automatic 12:00 AM Midnight IST Recalculation Cron.
+    """
+    global _VCP_CANSLIM_GLOBAL_CACHE
+    now = time.time()
+    
+    try:
+        from backend.swing_utils import clean_float
+
+        all_candidates = []
+
+        # Step 1: Memory Cache (RAM)
+        if not force_refresh and _VCP_CANSLIM_GLOBAL_CACHE["stocks"]:
+            all_candidates = _VCP_CANSLIM_GLOBAL_CACHE["stocks"]
+
+        # Step 2: Database Table Cache (SQLite)
+        if not all_candidates and not force_refresh:
+            with get_db() as conn:
+                db_stocks = get_vcp_canslim_universe_from_db(conn)
+                if db_stocks:
+                    all_candidates = db_stocks
+                    _VCP_CANSLIM_GLOBAL_CACHE = {"timestamp": now, "stocks": all_candidates}
+
+        # Step 3: Run Full Recalculation if Cache Empty or Force Refresh requested
+        if not all_candidates or force_refresh:
+            all_candidates = await _recalculate_vcp_universe()
+
+        # Step 4: Apply Filters & Live WebSocket Tick Overlay
+        candidates = []
+        try:
+            from backend.websocket_server import tick_store
+        except Exception:
+            tick_store = None
+
+        for item in all_candidates:
+            st = dict(item)
+            sym = st["symbol"]
+            sym_yf = f"{sym}.NS" if not sym.endswith(".NS") else sym
+
+            if sector != "ALL" and st.get("sector") != sector:
+                continue
+            if min_canslim_score > 0 and st.get("canslim_score", 0) < min_canslim_score:
+                continue
+            if max_risk_pct > 0 and st.get("risk_percent", 0) > max_risk_pct:
+                continue
+            if vcp_stage != "ALL" and st.get("vcp_stage") != vcp_stage:
+                continue
+
+            if tick_store:
+                live_tick = tick_store.get(sym) or tick_store.get(sym_yf)
+                if live_tick and live_tick.get("ltp"):
+                    st["current_price"] = clean_float(live_tick["ltp"])
+                    if live_tick.get("change_pct") is not None:
+                        st["change_percent"] = round(float(live_tick["change_pct"]), 2)
+
+            candidates.append(st)
+
+        # Sort priority: LIVE_BREAKOUT > READY_PIVOT > FORMING, then by Tightness & CANSLIM score
         status_rank = {"LIVE_BREAKOUT": 3, "READY_PIVOT": 2, "FORMING": 1, "NONE": 0}
         candidates = sorted(
             candidates, 
-            key=lambda x: (status_rank.get(x["vcp_status"], 0), x["tightness_score"], x["canslim_score"]), 
+            key=lambda x: (status_rank.get(x["vcp_status"], 0), x.get("tightness_score", 0), x.get("canslim_score", 0)), 
             reverse=True
         )
         return {
@@ -16803,10 +16951,13 @@ async def get_vcp_watchlist_metrics(symbols: str = Query("")):
                     if age_sec < ttl_seconds:
                         vcp_data = json.loads(row['vcp_json'])
                         canslim_data = json.loads(row['canslim_json'])
-                        results[sym] = {
+                        res_cached = {
                             "vcp": vcp_data,
                             "canslim": canslim_data
                         }
+                        results[sym] = res_cached
+                        if base_sym != sym:
+                            results[base_sym] = res_cached
                         continue
                 except Exception as parse_err:
                     print(f"Error parsing cache for {sym}: {parse_err}")
@@ -16816,22 +16967,26 @@ async def get_vcp_watchlist_metrics(symbols: str = Query("")):
     for sym in missing_symbols:
         try:
             base_sym = sym.replace('.NS', '').replace('.BO', '')
-            sym_yf = f"{base_sym}.NS"
+            sym_yf = sym if (sym.endswith('.NS') or sym.endswith('.BO')) else f"{base_sym}.NS"
+            df = await fetch_history_df(sym_yf, period="6mo", interval="1d")
             if df is not None and not df.empty:
                 vcp = detect_vcp_pattern(df)
                 with get_db() as conn:
                     canslim = calculate_canslim_score(base_sym, db_conn=conn, df=df)
 
-                    results[sym] = {
+                    res_item = {
                         "vcp": vcp,
                         "canslim": canslim
                     }
+                    results[sym] = res_item
+                    if base_sym != sym:
+                        results[base_sym] = res_item
 
                     cursor = conn.cursor()
                     cursor.execute("""
                         INSERT OR REPLACE INTO vcp_screener_cache (symbol, vcp_json, canslim_json, updated_at)
                         VALUES (?, ?, ?, CURRENT_TIMESTAMP)
-                    """, (sym, json.dumps(vcp), json.dumps(canslim)))
+                    """, (base_sym, json.dumps(vcp), json.dumps(canslim)))
                     conn.commit()
         except Exception as e:
             print(f"Error calculating VCP metrics for {sym}: {e}")

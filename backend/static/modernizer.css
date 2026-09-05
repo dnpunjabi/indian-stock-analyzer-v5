@@ -1628,3 +1628,81 @@ body.light-theme .inst-hero-card {
     border: 1px solid var(--border-glass) !important;
     color: var(--text-primary) !important;
 }
+
+/* ==========================================================================
+   CANSLIM 7-FACTOR SINGLE HORIZONTAL ROW (STRICT 7-COLUMN CSS GRID)
+   ========================================================================== */
+.vcp-canslim-bar {
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+    overflow: hidden !important;
+}
+
+.vcp-canslim-mini-grid {
+    display: grid !important;
+    grid-template-columns: repeat(7, 1fr) !important;
+    gap: 3px !important;
+    margin-top: 6px !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+    padding: 2px 0 4px 0 !important;
+}
+
+.vcp-canslim-mini-grid > div {
+    min-width: 0 !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+    padding: 4px 1px !important;
+    border-radius: 5px !important;
+    text-align: center !important;
+    display: block !important;
+    overflow: hidden !important;
+}
+
+.vcp-canslim-mini-grid .canslim-letter {
+    font-size: 9.5px !important;
+    font-weight: 800 !important;
+    line-height: 1.1 !important;
+}
+
+.vcp-canslim-mini-grid .canslim-score {
+    font-size: 8px !important;
+    font-weight: 800 !important;
+    line-height: 1.1 !important;
+    margin-top: 1px !important;
+}
+
+.vcp-canslim-mini-grid .canslim-detail-text {
+    font-size: 6.5px !important;
+    font-weight: 700 !important;
+    line-height: 1.1 !important;
+    margin-top: 1px !important;
+    text-overflow: ellipsis !important;
+    overflow: hidden !important;
+    white-space: nowrap !important;
+    max-width: 100% !important;
+}
+
+@media (max-width: 640px) {
+    .vcp-canslim-bar {
+        padding: 8px 4px !important;
+    }
+    .vcp-canslim-mini-grid {
+        gap: 2px !important;
+    }
+    .vcp-canslim-mini-grid > div {
+        padding: 3px 1px !important;
+        border-radius: 4px !important;
+    }
+    .vcp-canslim-mini-grid .canslim-letter {
+        font-size: 9px !important;
+    }
+    .vcp-canslim-mini-grid .canslim-score {
+        font-size: 7.5px !important;
+    }
+    .vcp-canslim-mini-grid .canslim-detail-text {
+        font-size: 6px !important;
+    }
+}
