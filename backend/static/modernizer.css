@@ -2197,6 +2197,10 @@ body.light-theme .quant-table-wrapper,
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05) !important;
 }
 
+.quant-table td.quant-close-cell {
+    color: #cbd5e1;
+}
+
 body.light-theme .quant-table,
 [data-theme="light"] .quant-table,
 [data-mode="light"] .quant-table {
@@ -2215,12 +2219,40 @@ body.light-theme .quant-table td,
 [data-theme="light"] .quant-table td,
 [data-mode="light"] .quant-table td {
     border-bottom: 1px solid #f1f5f9 !important;
+    color: #1e293b !important;
+}
+
+body.light-theme .quant-table td.quant-close-cell,
+[data-theme="light"] .quant-table td.quant-close-cell,
+[data-mode="light"] .quant-table td.quant-close-cell {
+    color: #334155 !important;
 }
 
 body.light-theme .quant-table tbody tr:hover,
 [data-theme="light"] .quant-table tbody tr:hover,
 [data-mode="light"] .quant-table tbody tr:hover {
     background: #f8fafc !important;
+}
+
+/* Action Column & Chart Buttons Alignment (Mobile & Desktop) */
+.quant-table th:last-child,
+.quant-table td:last-child {
+    white-space: nowrap !important;
+    text-align: center !important;
+    min-width: 80px !important;
+    padding-left: 10px !important;
+    padding-right: 10px !important;
+}
+
+.quant-table button.quant-chart-btn,
+.quant-table .btn-secondary {
+    white-space: nowrap !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 4px !important;
+    min-width: 68px !important;
+    text-align: center !important;
 }
 
 /* ==========================================================================
@@ -2274,42 +2306,196 @@ body.light-theme .quant-table tbody tr:hover,
 /* ==========================================================================
    MASTERCLASS & STAGE SIMULATOR LIGHT THEME HIGH-CONTRAST OVERRIDES
    ========================================================================== */
+/* Hero Header Banner Cyber Theme (Preserved Dark Glass Card in both Light & Dark Theme) */
+body.light-theme #quant-view-guide .screener-hero-header,
+[data-theme="light"] #quant-view-guide .screener-hero-header,
+[data-mode="light"] #quant-view-guide .screener-hero-header {
+    background: linear-gradient(135deg, rgba(15, 23, 42, 0.95), rgba(30, 41, 59, 0.92), rgba(15, 23, 42, 0.95)) !important;
+    border: 1px solid rgba(168, 85, 247, 0.4) !important;
+    box-shadow: 0 12px 32px -4px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.1) !important;
+}
+
+body.light-theme #quant-view-guide .screener-hero-header h2,
+[data-theme="light"] #quant-view-guide .screener-hero-header h2,
+[data-mode="light"] #quant-view-guide .screener-hero-header h2 {
+    color: #ffffff !important;
+}
+
+body.light-theme #quant-view-guide .screener-hero-header p,
+[data-theme="light"] #quant-view-guide .screener-hero-header p,
+[data-mode="light"] #quant-view-guide .screener-hero-header p {
+    color: #94a3b8 !important;
+    font-weight: 500 !important;
+}
+
+body.light-theme #quant-view-guide div[style*="color: #c084fc"],
+[data-theme="light"] #quant-view-guide div[style*="color: #c084fc"],
+[data-mode="light"] #quant-view-guide div[style*="color: #c084fc"] {
+    color: #c084fc !important;
+    background: rgba(168, 85, 247, 0.18) !important;
+    border-color: rgba(168, 85, 247, 0.45) !important;
+}
+
+/* Screener Hero Header Guide Buttons - Vivid High-Contrast Override for Light & Dark Theme */
+.screener-hero-header .btn-secondary,
+body.light-theme .screener-hero-header .btn-secondary,
+[data-theme="light"] .screener-hero-header .btn-secondary,
+[data-mode="light"] .screener-hero-header .btn-secondary {
+    background: rgba(255, 255, 255, 0.15) !important;
+    border: 1px solid rgba(255, 255, 255, 0.3) !important;
+    color: #ffffff !important;
+    font-weight: 800 !important;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25) !important;
+    backdrop-filter: blur(10px) !important;
+    transition: all 0.2s ease !important;
+}
+
+/* VCP Guide Button Color Theme Override */
+#quant-view-vcp .screener-hero-header .btn-secondary,
+body.light-theme #quant-view-vcp .screener-hero-header .btn-secondary,
+[data-theme="light"] #quant-view-vcp .screener-hero-header .btn-secondary,
+[data-mode="light"] #quant-view-vcp .screener-hero-header .btn-secondary {
+    background: rgba(245, 158, 11, 0.22) !important;
+    border: 1px solid rgba(245, 158, 11, 0.6) !important;
+    color: #fbbf24 !important;
+}
+
+/* Weinstein Guide Button Color Theme Override */
+#quant-view-weinstein .screener-hero-header .btn-secondary,
+body.light-theme #quant-view-weinstein .screener-hero-header .btn-secondary,
+[data-theme="light"] #quant-view-weinstein .screener-hero-header .btn-secondary,
+[data-mode="light"] #quant-view-weinstein .screener-hero-header .btn-secondary {
+    background: rgba(56, 189, 248, 0.22) !important;
+    border: 1px solid rgba(56, 189, 248, 0.6) !important;
+    color: #38bdf8 !important;
+}
+
+/* HTF Guide Button Color Theme Override */
+#quant-view-htf .screener-hero-header .btn-secondary,
+body.light-theme #quant-view-htf .screener-hero-header .btn-secondary,
+[data-theme="light"] #quant-view-htf .screener-hero-header .btn-secondary,
+[data-mode="light"] #quant-view-htf .screener-hero-header .btn-secondary {
+    background: rgba(192, 132, 252, 0.22) !important;
+    border: 1px solid rgba(192, 132, 252, 0.6) !important;
+    color: #c084fc !important;
+}
+
+/* 3WT Guide Button Color Theme Override */
+#quant-view-3wt .screener-hero-header .btn-secondary,
+body.light-theme #quant-view-3wt .screener-hero-header .btn-secondary,
+[data-theme="light"] #quant-view-3wt .screener-hero-header .btn-secondary,
+[data-mode="light"] #quant-view-3wt .screener-hero-header .btn-secondary {
+    background: rgba(45, 212, 191, 0.22) !important;
+    border: 1px solid rgba(45, 212, 191, 0.6) !important;
+    color: #2dd4bf !important;
+}
+
+.screener-hero-header .btn-secondary:hover,
+body.light-theme .screener-hero-header .btn-secondary:hover,
+[data-theme="light"] .screener-hero-header .btn-secondary:hover,
+[data-mode="light"] .screener-hero-header .btn-secondary:hover {
+    background: rgba(255, 255, 255, 0.3) !important;
+    border-color: rgba(255, 255, 255, 0.6) !important;
+    color: #ffffff !important;
+    transform: translateY(-1px) !important;
+}
+
+/* Stage Simulator Parent Card Light Mode */
+body.light-theme #stage-simulator-card,
+[data-theme="light"] #stage-simulator-card,
+[data-mode="light"] #stage-simulator-card {
+    background: #ffffff !important;
+    border: 1px solid #cbd5e1 !important;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.05) !important;
+}
+
+body.light-theme #stage-simulator-card h3,
+body.light-theme #stage-simulator-card h4,
+body.light-theme #stage-simulator-card h5,
+[data-theme="light"] #stage-simulator-card h3,
+[data-theme="light"] #stage-simulator-card h4,
+[data-theme="light"] #stage-simulator-card h5,
+[data-mode="light"] #stage-simulator-card h3,
+[data-mode="light"] #stage-simulator-card h4,
+[data-mode="light"] #stage-simulator-card h5 {
+    color: #0f172a !important;
+}
+
+body.light-theme #stage-simulator-card p,
+[data-theme="light"] #stage-simulator-card p,
+[data-mode="light"] #stage-simulator-card p {
+    color: #334155 !important;
+}
+
+/* Stage Simulator Symbol Input Light Mode */
+body.light-theme #stage-sim-input,
+[data-theme="light"] #stage-sim-input,
+[data-mode="light"] #stage-sim-input {
+    background: #ffffff !important;
+    border: 1px solid #94a3b8 !important;
+    color: #0f172a !important;
+}
+
+body.light-theme #stage-sim-input::placeholder,
+[data-theme="light"] #stage-sim-input::placeholder,
+[data-mode="light"] #stage-sim-input::placeholder {
+    color: #64748b !important;
+}
+
+/* Masterclass Cards & Callout Containers Light Mode */
 body.light-theme #quant-view-guide div[style*="background: rgba(15, 23, 42"],
+body.light-theme #quant-view-guide div[style*="background: rgba(30, 41, 59"],
 [data-theme="light"] #quant-view-guide div[style*="background: rgba(15, 23, 42"],
-[data-mode="light"] #quant-view-guide div[style*="background: rgba(15, 23, 42"] {
+[data-theme="light"] #quant-view-guide div[style*="background: rgba(30, 41, 59"],
+[data-mode="light"] #quant-view-guide div[style*="background: rgba(15, 23, 42"],
+[data-mode="light"] #quant-view-guide div[style*="background: rgba(30, 41, 59"] {
     background: #ffffff !important;
     border-color: #cbd5e1 !important;
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06) !important;
+    color: #0f172a !important;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.04) !important;
 }
 
 body.light-theme #quant-view-guide h2,
 body.light-theme #quant-view-guide h3,
 body.light-theme #quant-view-guide h4,
+body.light-theme #quant-view-guide h5,
 [data-theme="light"] #quant-view-guide h2,
 [data-theme="light"] #quant-view-guide h3,
 [data-theme="light"] #quant-view-guide h4,
+[data-theme="light"] #quant-view-guide h5,
 [data-mode="light"] #quant-view-guide h2,
 [data-mode="light"] #quant-view-guide h3,
-[data-mode="light"] #quant-view-guide h4 {
+[data-mode="light"] #quant-view-guide h4,
+[data-mode="light"] #quant-view-guide h5 {
     color: #0f172a !important;
 }
 
 body.light-theme #quant-view-guide p,
 body.light-theme #quant-view-guide span,
+body.light-theme #quant-view-guide li,
+body.light-theme #quant-view-guide div,
 [data-theme="light"] #quant-view-guide p,
 [data-theme="light"] #quant-view-guide span,
+[data-theme="light"] #quant-view-guide li,
+[data-theme="light"] #quant-view-guide div,
 [data-mode="light"] #quant-view-guide p,
-[data-mode="light"] #quant-view-guide span {
-    color: #334155 !important;
+[data-mode="light"] #quant-view-guide span,
+[data-mode="light"] #quant-view-guide li,
+[data-mode="light"] #quant-view-guide div {
+    color: #1e293b !important;
+}
+
+/* Make strong headers pop with vivid dark colors in Light Theme */
+body.light-theme #quant-view-guide strong,
+[data-theme="light"] #quant-view-guide strong,
+[data-mode="light"] #quant-view-guide strong {
+    color: #0f172a !important;
 }
 
 /* SVG Chart Inner Container Light Theme */
 body.light-theme #quant-view-guide div[style*="background: #020617"],
-body.light-theme #quant-view-guide div[style*="background: rgba(30, 41, 59"],
 [data-theme="light"] #quant-view-guide div[style*="background: #020617"],
-[data-theme="light"] #quant-view-guide div[style*="background: rgba(30, 41, 59"],
-[data-mode="light"] #quant-view-guide div[style*="background: #020617"],
-[data-mode="light"] #quant-view-guide div[style*="background: rgba(30, 41, 59"] {
+[data-mode="light"] #quant-view-guide div[style*="background: #020617"] {
     background: #f8fafc !important;
     border-color: #cbd5e1 !important;
 }
@@ -2328,5 +2514,142 @@ body.light-theme #quant-view-guide svg rect[fill*="rgba(15, 23, 42"],
     stroke: #94a3b8 !important;
 }
 
+/* Stage Simulator Results Box - Dark & Light Theme Styling */
+.stage-simulator-results-box {
+    background: #090d16;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+    transition: background 0.2s ease, border-color 0.2s ease;
+}
+
+body.light-theme .stage-simulator-results-box,
+[data-theme="light"] .stage-simulator-results-box,
+[data-mode="light"] .stage-simulator-results-box {
+    background: #ffffff !important;
+    border: 1px solid #cbd5e1 !important;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06) !important;
+}
+
+body.light-theme .stage-simulator-results-box h4,
+body.light-theme .stage-simulator-results-box h5,
+[data-theme="light"] .stage-simulator-results-box h4,
+[data-theme="light"] .stage-simulator-results-box h5,
+[data-mode="light"] .stage-simulator-results-box h4,
+[data-mode="light"] .stage-simulator-results-box h5 {
+    color: #0f172a !important;
+}
+
+body.light-theme .stage-simulator-results-box div[style*="background: rgba(15, 23, 42"],
+[data-theme="light"] .stage-simulator-results-box div[style*="background: rgba(15, 23, 42"],
+[data-mode="light"] .stage-simulator-results-box div[style*="background: rgba(15, 23, 42"] {
+    background: #f8fafc !important;
+    border-color: #cbd5e1 !important;
+}
+
+body.light-theme .stage-simulator-results-box p,
+[data-theme="light"] .stage-simulator-results-box p,
+[data-mode="light"] .stage-simulator-results-box p {
+    color: #1e293b !important;
+}
+
+/* Watchlist Stage 1-4 Quant Diagnostic Matrix Styling & Light/Dark Theme Support */
+#watchlist-quant-matrix-container table.quant-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+#watchlist-quant-matrix-container table.quant-table th {
+    background: rgba(15, 23, 42, 0.9);
+    color: #94a3b8;
+    font-weight: 800;
+    font-size: 11.5px;
+    letter-spacing: 0.05em;
+}
+
+/* Light Theme Styling for Watchlist Quant Matrix */
+body.light-theme #watchlist-quant-matrix-container .screener-kpi-card,
+[data-theme="light"] #watchlist-quant-matrix-container .screener-kpi-card,
+[data-mode="light"] #watchlist-quant-matrix-container .screener-kpi-card {
+    background: #ffffff !important;
+    border-color: #cbd5e1 !important;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03) !important;
+}
+
+body.light-theme #watchlist-quant-matrix-container #wl-matrix-kpi-total,
+[data-theme="light"] #watchlist-quant-matrix-container #wl-matrix-kpi-total,
+[data-mode="light"] #watchlist-quant-matrix-container #wl-matrix-kpi-total {
+    color: #0f172a !important;
+}
+
+body.light-theme #watchlist-quant-matrix-container div[style*="background: rgba(0, 0, 0, 0.3)"],
+[data-theme="light"] #watchlist-quant-matrix-container div[style*="background: rgba(0, 0, 0, 0.3)"],
+[data-mode="light"] #watchlist-quant-matrix-container div[style*="background: rgba(0, 0, 0, 0.3)"] {
+    background: #f8fafc !important;
+    border-color: #cbd5e1 !important;
+}
+
+body.light-theme #watchlist-quant-matrix-container #wl-matrix-search-input,
+body.light-theme #watchlist-quant-matrix-container #wl-matrix-filter-select,
+[data-theme="light"] #watchlist-quant-matrix-container #wl-matrix-search-input,
+[data-theme="light"] #watchlist-quant-matrix-container #wl-matrix-filter-select,
+[data-mode="light"] #watchlist-quant-matrix-container #wl-matrix-search-input,
+[data-mode="light"] #watchlist-quant-matrix-container #wl-matrix-filter-select {
+    background: #ffffff !important;
+    border-color: #cbd5e1 !important;
+    color: #0f172a !important;
+}
+
+body.light-theme #watchlist-quant-matrix-container table.quant-table th,
+[data-theme="light"] #watchlist-quant-matrix-container table.quant-table th,
+[data-mode="light"] #watchlist-quant-matrix-container table.quant-table th {
+    background: #f1f5f9 !important;
+    color: #475569 !important;
+    border-bottom: 2px solid #cbd5e1 !important;
+}
+
+body.light-theme #watchlist-quant-matrix-container table.quant-table td,
+[data-theme="light"] #watchlist-quant-matrix-container table.quant-table td,
+[data-mode="light"] #watchlist-quant-matrix-container table.quant-table td {
+    border-bottom: 1px solid #e2e8f0 !important;
+    color: #1e293b !important;
+}
+
+body.light-theme #watchlist-quant-matrix-container table.quant-table td strong,
+[data-theme="light"] #watchlist-quant-matrix-container table.quant-table td strong,
+[data-mode="light"] #watchlist-quant-matrix-container table.quant-table td strong {
+    color: #0f172a !important;
+}
+
+body.light-theme #watchlist-quant-matrix-container table.quant-table td a,
+[data-theme="light"] #watchlist-quant-matrix-container table.quant-table td a,
+[data-mode="light"] #watchlist-quant-matrix-container table.quant-table td a {
+    color: #0284c7 !important;
+}
+
+/* Mobile Sticky Symbol Column & Layout Adjustments */
+@media (max-width: 640px) {
+    #watchlist-quant-matrix-container table.quant-table th:first-child,
+    #watchlist-quant-matrix-container table.quant-table td:first-child {
+        position: sticky;
+        left: 0;
+        z-index: 2;
+        background: #0f172a;
+    }
+
+    body.light-theme #watchlist-quant-matrix-container table.quant-table th:first-child,
+    body.light-theme #watchlist-quant-matrix-container table.quant-table td:first-child,
+    [data-theme="light"] #watchlist-quant-matrix-container table.quant-table th:first-child,
+    [data-theme="light"] #watchlist-quant-matrix-container table.quant-table td:first-child,
+    [data-mode="light"] #watchlist-quant-matrix-container table.quant-table th:first-child,
+    [data-mode="light"] #watchlist-quant-matrix-container table.quant-table td:first-child {
+        background: #ffffff !important;
+    }
+
+    #watchlist-quant-matrix-container .quant-chart-btn {
+        white-space: nowrap;
+        font-size: 11px !important;
+        padding: 3px 6px !important;
+    }
+}
 
 

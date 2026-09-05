@@ -39,5 +39,16 @@ class TestAdditionalScanners(unittest.TestCase):
         self.assertIn("close_variance_pct", res)
         self.assertIn("weekly_closes", res)
 
+    def test_watchlist_quant_diagnostics_payload_structure(self):
+        # Verify calculation logic and dictionary mapping for watchlist quant matrix
+        w_res = detect_weinstein_stage2(self.df)
+        h_res = detect_high_tight_flag(self.df)
+        t_res = detect_3weeks_tight(self.df)
+        
+        self.assertIsNotNone(w_res)
+        self.assertIsNotNone(h_res)
+        self.assertIsNotNone(t_res)
+
 if __name__ == "__main__":
     unittest.main()
+

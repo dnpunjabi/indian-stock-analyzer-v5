@@ -17969,6 +17969,129 @@ async def get_stage_diagnostic(symbol: str, force_refresh: bool = False):
         print(f"Error executing stage diagnostic for {clean_sym}: {e}")
         return {"status": "error", "message": str(e)}
 
+_WATCHLIST_QUANT_CACHE = {}
+
+class WatchlistQuantRequest(BaseModel):
+    symbols: Optional[List[str]] = []
+    watchlist_name: Optional[str] = "Default"
+
+@app.post("/api/watchlist/quant-diagnostics")
+@app.get("/api/watchlist/quant-diagnostics")
+async def get_watchlist_quant_diagnostics(
+    symbols_param: Optional[str] = None,
+    req_body: Optional[WatchlistQuantRequest] = None
+):
+    """
+    Evaluates an array of Watchlist stock tickers against all 4 Quantitative
+    Scanner Engines (Stage 1-4 Life Cycle, Minervini VCP, Weinstein Stage 2,
+    High-Tight Flag, 3-Weeks Tight) with fast cached execution.
+    """
+    sym_list = []
+    if req_body and req_body.symbols:
+        sym_list = req_body.symbols
+    elif symbols_param:
+        sym_list = [s.strip() for s in symbols_param.split(",") if s.strip()]
+
+    if not sym_list:
+        return {
+            "status": "success",
+            "count": 0,
+            "last_updated": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            "data": []
+        }
+
+    cache_hash = ",".join(sorted(sym_list))
+    if cache_hash in _WATCHLIST_QUANT_CACHE:
+        entry = _WATCHLIST_QUANT_CACHE[cache_hash]
+        if (datetime.now() - entry["timestamp"]).total_seconds() < 900: # 15 mins TTL
+            return entry["payload"]
+
+    tasks = [get_stage_diagnostic(sym) for sym in sym_list]
+    diagnostics_raw = await asyncio.gather(*tasks, return_exceptions=True)
+
+    results = []
+    for diag in diagnostics_raw:
+        if isinstance(diag, Exception) or not isinstance(diag, dict) or diag.get("status") == "error":
+            continue
+
+        stage_info = diag.get("stage_classification", {})
+        screeners = diag.get("screeners", {})
+        price = diag.get("current_price", 0.0)
+        day_chg = diag.get("day_change_pct", 0.0)
+        sym = diag.get("symbol", "")
+        company = diag.get("company_name", sym)
+
+        vcp_qual = screeners.get("vcp", {}).get("qualified", False)
+        wein_qual = screeners.get("weinstein", {}).get("qualified", False)
+        htf_qual = screeners.get("htf", {}).get("qualified", False)
+        twt_qual = screeners.get("three_wt", {}).get("qualified", False)
+
+        qual_count = sum([1 for q in [vcp_qual, wein_qual, htf_qual, twt_qual] if q])
+
+        stage_num = stage_info.get("stage", 1)
+        stage_title = stage_info.get("title", f"Stage {stage_num}")
+
+        if qual_count == 4:
+            qual_label = "4/4 QUAD QUALIFIED 🌟"
+            badge_cls = "badge-quant-green"
+        elif qual_count == 3:
+            qual_label = "3/4 TRIPLE QUALIFIED 🚀"
+            badge_cls = "badge-quant-teal"
+        elif qual_count == 2:
+            qual_label = "2/4 QUALIFIED 📈"
+            badge_cls = "badge-quant-blue"
+        elif qual_count == 1:
+            qual_label = "1/4 QUALIFIED 🎯"
+            badge_cls = "badge-quant-purple"
+        else:
+            if stage_num == 2:
+                qual_label = "STAGE 2 ADVANCING 📈"
+                badge_cls = "badge-quant-blue"
+            elif stage_num == 1:
+                qual_label = "STAGE 1 BASE 🔋"
+                badge_cls = "badge-quant-purple"
+            elif stage_num == 3:
+                qual_label = "STAGE 3 DISTRIBUTION ⚠️"
+                badge_cls = "badge-quant-yellow"
+            else:
+                qual_label = "STAGE 4 MARKDOWN 🩸"
+                badge_cls = "badge-quant-red"
+
+        results.append({
+            "symbol": sym,
+            "company_name": company,
+            "current_price": price,
+            "day_change_pct": day_chg,
+            "stage_num": stage_num,
+            "stage_title": stage_title,
+            "ma_30wk_slope_pct": diag.get("ma_30wk_slope_pct", 0.0),
+            "vcp_qualified": vcp_qual,
+            "vcp_status": screeners.get("vcp", {}).get("reason", "N/A"),
+            "weinstein_qualified": wein_qual,
+            "weinstein_status": screeners.get("weinstein", {}).get("reason", "N/A"),
+            "htf_qualified": htf_qual,
+            "htf_status": screeners.get("htf", {}).get("reason", "N/A"),
+            "three_wt_qualified": twt_qual,
+            "three_wt_status": screeners.get("three_wt", {}).get("reason", "N/A"),
+            "qual_count": qual_count,
+            "qualification_label": qual_label,
+            "badge_class": badge_cls
+        })
+
+    payload = {
+        "status": "success",
+        "count": len(results),
+        "last_updated": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        "data": results
+    }
+
+    _WATCHLIST_QUANT_CACHE[cache_hash] = {
+        "timestamp": datetime.now(),
+        "payload": payload
+    }
+
+    return payload
+
 async def run_background_midnight_quant_scanner():
     """
     Background worker running at 2:30 AM IST midnight to pre-calculate

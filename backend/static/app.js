@@ -17746,6 +17746,23 @@ function renderWatchlistItems() {
     const watchlistRefreshBtn = document.getElementById('watchlist-refresh-btn');
     const tbody = document.getElementById('watchlist-table-body');
 
+    if (window.activeWatchlistView === 'quant-matrix') {
+        const tableWrapper = document.querySelector('.watchlist-table-wrapper');
+        const paginationEl = document.getElementById('watchlist-table-pagination');
+        const matrixContainer = document.getElementById('watchlist-quant-matrix-container');
+        const quantBtn = document.getElementById('wl-view-quant-matrix-btn');
+        
+        document.querySelectorAll('.wl-view-btn').forEach(btn => btn.classList.remove('active'));
+        if (quantBtn) quantBtn.classList.add('active');
+        
+        if (tableWrapper) tableWrapper.style.display = 'none';
+        if (paginationEl) paginationEl.style.display = 'none';
+        if (matrixContainer) matrixContainer.style.display = 'block';
+        
+        window.runWatchlistQuantScan(false, false);
+        return;
+    }
+
     if (!tbody) return;
     tbody.innerHTML = '';
 
@@ -18026,29 +18043,20 @@ function renderWatchlistItems() {
     const valuationBtn = document.getElementById('wl-view-valuation-btn');
     const returnsBtn = document.getElementById('wl-view-returns-btn');
     const vcpBtn = document.getElementById('wl-view-vcp-btn');
+    const quantBtn = document.getElementById('wl-view-quant-matrix-btn');
 
     if (overviewBtn && valuationBtn && returnsBtn) {
         overviewBtn.className = `wl-view-btn ${window.activeWatchlistView === 'overview' ? 'active' : ''}`;
         valuationBtn.className = `wl-view-btn ${window.activeWatchlistView === 'valuation' ? 'active' : ''}`;
         returnsBtn.className = `wl-view-btn ${window.activeWatchlistView === 'returns' ? 'active' : ''}`;
         if (vcpBtn) vcpBtn.className = `wl-view-btn ${window.activeWatchlistView === 'vcp' ? 'active' : ''}`;
+        if (quantBtn) quantBtn.className = `wl-view-btn ${window.activeWatchlistView === 'quant-matrix' ? 'active' : ''}`;
 
-        overviewBtn.onclick = () => {
-            window.activeWatchlistView = 'overview';
-            renderWatchlistItems();
-        };
-        valuationBtn.onclick = () => {
-            window.activeWatchlistView = 'valuation';
-            renderWatchlistItems();
-        };
-        returnsBtn.onclick = () => {
-            window.activeWatchlistView = 'returns';
-            renderWatchlistItems();
-        };
-        if (vcpBtn) vcpBtn.onclick = () => {
-            window.activeWatchlistView = 'vcp';
-            renderWatchlistItems();
-        };
+        overviewBtn.onclick = () => { window.switchWatchlistSubtab('overview'); };
+        valuationBtn.onclick = () => { window.switchWatchlistSubtab('valuation'); };
+        returnsBtn.onclick = () => { window.switchWatchlistSubtab('returns'); };
+        if (vcpBtn) vcpBtn.onclick = () => { window.switchWatchlistSubtab('vcp'); };
+        if (quantBtn) quantBtn.onclick = () => { window.switchWatchlistSubtab('quant-matrix'); };
     }
 
     document.querySelectorAll('.watchlist-filter-chip').forEach(chip => {
@@ -55863,6 +55871,15 @@ window.all3wtStocks = [];
 
 window.switchQuantScannerSubtab = function(tabName) {
     const subtabs = ['vcp', 'weinstein', 'htf', '3wt', 'guide'];
+    const navBtnMap = {
+        'vcp': 'tab-vcp-btn',
+        'weinstein': 'tab-weinstein-btn',
+        'htf': 'tab-htf-btn',
+        '3wt': 'tab-3wt-btn',
+        'guide': 'tab-quant-guide-btn'
+    };
+
+    // 1. Update Subtab Header Buttons & View Visibility
     subtabs.forEach(t => {
         const btn = document.getElementById(`quant-subtab-${t}`);
         const view = document.getElementById(`quant-view-${t}`);
@@ -55876,10 +55893,24 @@ window.switchQuantScannerSubtab = function(tabName) {
         }
     });
 
+    // 2. Synchronize Sidebar Navigation Highlighted Button
+    const allQuantNavBtns = ['tab-vcp-btn', 'tab-weinstein-btn', 'tab-htf-btn', 'tab-3wt-btn', 'tab-quant-guide-btn'];
+    const targetNavId = navBtnMap[tabName] || 'tab-vcp-btn';
+    allQuantNavBtns.forEach(id => {
+        const navBtn = document.getElementById(id);
+        if (navBtn) {
+            if (id === targetNavId) navBtn.classList.add('active');
+            else navBtn.classList.remove('active');
+        }
+    });
+
     // Auto-close mobile sidebar drawer if open
     const sb = document.getElementById('sidebar');
     if (sb) sb.classList.remove('open');
+    const overlay = document.getElementById('sidebar-overlay');
+    if (overlay) overlay.classList.remove('active');
 
+    // 3. Lazy Data Fetching for Scanners
     if (tabName === 'weinstein' && window.allWeinsteinStocks.length === 0) {
         window.runWeinsteinScan(false, false);
     } else if (tabName === 'htf' && window.allHtfStocks.length === 0) {
@@ -55977,8 +56008,8 @@ window.renderWeinsteinTable = function(stocks) {
                 <td style="color: ${slope > 0 ? '#34d399' : '#f87171'}; font-weight: 700;">+${slope.toFixed(2)}%</td>
                 <td style="font-weight: 800; color: #c084fc;">${rsVal}</td>
                 <td><span class="badge-quant ${badgeClass}">${badgeLabel}</span></td>
-                <td>
-                    <button onclick="window.openTradingViewChart && window.openTradingViewChart('${s.symbol}')" class="btn-secondary" style="padding: 4px 10px; font-size: 11px; border-radius: 6px; cursor: pointer;">
+                <td style="text-align: center; white-space: nowrap;">
+                    <button onclick="window.openTradingViewChart && window.openTradingViewChart('${s.symbol}')" class="btn-secondary quant-chart-btn" style="padding: 5px 12px; font-size: 11.5px; border-radius: 8px; cursor: pointer; white-space: nowrap; display: inline-flex; align-items: center; gap: 3px; font-weight: 700;">
                         Chart ↗
                     </button>
                 </td>
@@ -56083,8 +56114,8 @@ window.renderHtfTable = function(stocks) {
                 <td style="font-weight: 700; color: #38bdf8;">${(s.vdu_ratio || 0).toFixed(2)}x</td>
                 <td style="font-weight: 800; color: #34d399;">₹${pivot.toFixed(2)}</td>
                 <td><span class="badge-quant ${badgeClass}">${badgeLabel}</span></td>
-                <td>
-                    <button onclick="window.openTradingViewChart && window.openTradingViewChart('${s.symbol}')" class="btn-secondary" style="padding: 4px 10px; font-size: 11px; border-radius: 6px; cursor: pointer;">
+                <td style="text-align: center; white-space: nowrap;">
+                    <button onclick="window.openTradingViewChart && window.openTradingViewChart('${s.symbol}')" class="btn-secondary quant-chart-btn" style="padding: 5px 12px; font-size: 11.5px; border-radius: 8px; cursor: pointer; white-space: nowrap; display: inline-flex; align-items: center; gap: 3px; font-weight: 700;">
                         Chart ↗
                     </button>
                 </td>
@@ -56177,20 +56208,20 @@ window.render3wtTable = function(stocks) {
 
         return `
             <tr>
-                <td style="font-weight: 800; color: #f8fafc;">
+                <td style="font-weight: 800;">
                     <div style="font-size: 14px;">${s.symbol}</div>
                     <div style="font-size: 11px; color: #94a3b8; font-weight: 500;">${s.company_name || s.name || ''}</div>
                 </td>
                 <td style="font-weight: 700;">₹${price.toLocaleString('en-IN', {minimumFractionDigits: 2})}</td>
                 <td class="${chgClass}" style="font-weight: 700;">${chgSign}${dayChg.toFixed(2)}%</td>
                 <td style="font-weight: 800; color: #2dd4bf;">${variance.toFixed(2)}%</td>
-                <td style="color: #cbd5e1;">₹${(closes[0] || 0).toFixed(2)}</td>
-                <td style="color: #cbd5e1;">₹${(closes[1] || 0).toFixed(2)}</td>
-                <td style="color: #cbd5e1;">₹${(closes[2] || 0).toFixed(2)}</td>
+                <td class="quant-close-cell" style="font-weight: 600;">₹${(closes[0] || 0).toFixed(2)}</td>
+                <td class="quant-close-cell" style="font-weight: 600;">₹${(closes[1] || 0).toFixed(2)}</td>
+                <td class="quant-close-cell" style="font-weight: 600;">₹${(closes[2] || 0).toFixed(2)}</td>
                 <td style="font-weight: 800; color: #c084fc;">${emaDist}</td>
                 <td style="font-weight: 800; color: #34d399;">₹${pivot.toFixed(2)}</td>
-                <td>
-                    <button onclick="window.openTradingViewChart && window.openTradingViewChart('${s.symbol}')" class="btn-secondary" style="padding: 4px 10px; font-size: 11px; border-radius: 6px; cursor: pointer;">
+                <td style="text-align: center; white-space: nowrap;">
+                    <button onclick="window.openTradingViewChart && window.openTradingViewChart('${s.symbol}')" class="btn-secondary quant-chart-btn" style="padding: 5px 12px; font-size: 11.5px; border-radius: 8px; cursor: pointer; white-space: nowrap; display: inline-flex; align-items: center; gap: 3px; font-weight: 700;">
                         Chart ↗
                     </button>
                 </td>
@@ -56461,6 +56492,225 @@ window.selectStageSimStock = function(sym) {
     if (input) input.value = sym;
     if (autoBox) autoBox.style.display = 'none';
     window.runStockStageSimulator(sym);
+};
+
+/* ==========================================================================
+   WATCHLIST STAGE 1-4 QUANT DIAGNOSTIC MATRIX ENGINE
+   ========================================================================== */
+window.activeWlQuantMatrixData = null;
+
+window.switchWatchlistSubtab = function(subtabKey) {
+    window.activeWatchlistView = subtabKey;
+    
+    const tableWrapper = document.querySelector('.watchlist-table-wrapper');
+    const paginationEl = document.getElementById('watchlist-table-pagination');
+    const matrixContainer = document.getElementById('watchlist-quant-matrix-container');
+    const quantBtn = document.getElementById('wl-view-quant-matrix-btn');
+    
+    document.querySelectorAll('.wl-view-btn').forEach(btn => btn.classList.remove('active'));
+    
+    if (subtabKey === 'quant-matrix') {
+        if (tableWrapper) tableWrapper.style.display = 'none';
+        if (paginationEl) paginationEl.style.display = 'none';
+        if (matrixContainer) matrixContainer.style.display = 'block';
+        if (quantBtn) quantBtn.classList.add('active');
+        
+        window.runWatchlistQuantScan(false, false);
+    } else {
+        if (tableWrapper) tableWrapper.style.display = 'block';
+        if (paginationEl) paginationEl.style.display = 'flex';
+        if (matrixContainer) matrixContainer.style.display = 'none';
+        
+        const activeBtn = document.getElementById(`wl-view-${subtabKey}-btn`);
+        if (activeBtn) activeBtn.classList.add('active');
+        
+        if (typeof renderWatchlistItems === 'function') renderWatchlistItems();
+    }
+};
+
+window.runWatchlistQuantScan = async function(isSilent = false, forceRefresh = false) {
+    if ((!activeWatchlistId || activeWatchlistId === null) && typeof watchlistsList !== 'undefined' && watchlistsList && watchlistsList.length > 0) {
+        activeWatchlistId = watchlistsList[0].id;
+    }
+    if (!activeWatchlistId) return;
+
+    const activeWatch = (typeof watchlistsList !== 'undefined' && Array.isArray(watchlistsList)) ? watchlistsList.find(w => w && w.id == activeWatchlistId) : null;
+    let symbols = [];
+    if (activeWatch && activeWatch.items && Array.isArray(activeWatch.items)) {
+        symbols = activeWatch.items.map(i => {
+            let sym = typeof i === 'string' ? i : (i.symbol || i.ticker || i.code);
+            if (!sym) return null;
+            sym = sym.trim().toUpperCase();
+            if (!sym.endsWith('.NS') && !sym.endsWith('.BO') && !sym.startsWith('^')) {
+                sym = sym + '.NS';
+            }
+            return sym;
+        }).filter(Boolean);
+    }
+
+    if (symbols.length === 0) {
+        const tbody = document.getElementById('watchlist-matrix-table-body');
+        if (tbody) {
+            tbody.innerHTML = `<tr><td colspan="10" style="text-align: center; padding: 30px; color: #94a3b8;">Active watchlist "${activeWatch ? activeWatch.name : ''}" has no stocks. Add stocks to view Stage 1-4 Quant Matrix diagnostics.</td></tr>`;
+        }
+        const kTotal = document.getElementById('wl-matrix-kpi-total'); if (kTotal) kTotal.innerText = '0';
+        const kS2 = document.getElementById('wl-matrix-kpi-stage2'); if (kS2) kS2.innerText = '0';
+        const kQual = document.getElementById('wl-matrix-kpi-qualified'); if (kQual) kQual.innerText = '0';
+        const kSlope = document.getElementById('wl-matrix-kpi-slope'); if (kSlope) kSlope.innerText = '+0.0%';
+        return;
+    }
+
+    const cacheKey = `wl_quant_matrix_${activeWatchlistId}_${symbols.slice().sort().join('_')}`;
+    const cachedStr = localStorage.getItem(cacheKey);
+
+    if (!forceRefresh && cachedStr) {
+        try {
+            const cachedObj = JSON.parse(cachedStr);
+            if (Date.now() - cachedObj.timestamp < 900000) { // 15 mins
+                window.activeWlQuantMatrixData = cachedObj.data;
+                window.renderWatchlistQuantMatrix(cachedObj.data);
+                return;
+            }
+        } catch(e){}
+    }
+
+    const loader = document.getElementById('wl-matrix-loading-container');
+    if (loader && !isSilent) loader.style.display = 'block';
+
+    try {
+        const res = await fetch('/api/watchlist/quant-diagnostics', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ symbols: symbols, watchlist_name: activeWatch ? activeWatch.name : 'Default' })
+        });
+        const result = await res.json();
+        if (result && result.status === 'success' && Array.isArray(result.data)) {
+            window.activeWlQuantMatrixData = result.data;
+            try {
+                localStorage.setItem(cacheKey, JSON.stringify({ timestamp: Date.now(), data: result.data }));
+            } catch(e){}
+            window.renderWatchlistQuantMatrix(result.data);
+        }
+    } catch(e) {
+        console.error("Error fetching watchlist quant diagnostics:", e);
+    } finally {
+        if (loader) loader.style.display = 'none';
+    }
+};
+
+window.renderWatchlistQuantMatrix = function(stocks) {
+    if (!stocks || !Array.isArray(stocks)) return;
+
+    // Filter controls
+    const searchInput = document.getElementById('wl-matrix-search-input');
+    const searchVal = (searchInput && searchInput.value) ? searchInput.value.toLowerCase() : '';
+    const filterSelect = document.getElementById('wl-matrix-filter-select');
+    const filterVal = (filterSelect && filterSelect.value) ? filterSelect.value : 'ALL';
+
+    const filtered = stocks.filter(s => {
+        const matchesSearch = !searchVal || s.symbol.toLowerCase().includes(searchVal) || (s.company_name && s.company_name.toLowerCase().includes(searchVal));
+        if (!matchesSearch) return false;
+
+        if (filterVal === 'STAGE_2') return s.stage_num === 2;
+        if (filterVal === 'QUALIFIED') return s.qual_count >= 1;
+        if (filterVal === 'VCP') return s.vcp_qualified;
+        if (filterVal === 'HTF') return s.htf_qualified;
+        if (filterVal === '3WT') return s.three_wt_qualified;
+
+        return true;
+    });
+
+    // KPI Card Updates
+    const kTotal = document.getElementById('wl-matrix-kpi-total'); if (kTotal) kTotal.innerText = stocks.length;
+    const stage2Count = stocks.filter(s => s.stage_num === 2).length;
+    const kS2 = document.getElementById('wl-matrix-kpi-stage2'); if (kS2) kS2.innerText = stage2Count;
+    const qualCount = stocks.filter(s => s.qual_count >= 1).length;
+    const kQual = document.getElementById('wl-matrix-kpi-qualified'); if (kQual) kQual.innerText = qualCount;
+
+    const avgSlope = stocks.length > 0 ? (stocks.reduce((acc, curr) => acc + (curr.ma_30wk_slope_pct || 0), 0) / stocks.length) : 0;
+    const slopeEl = document.getElementById('wl-matrix-kpi-slope');
+    if (slopeEl) {
+        slopeEl.innerText = (avgSlope >= 0 ? '+' : '') + avgSlope.toFixed(1) + '%';
+        slopeEl.style.color = avgSlope >= 0 ? '#34d399' : '#f43f5e';
+    }
+
+    const tbody = document.getElementById('watchlist-matrix-table-body');
+    if (!tbody) return;
+
+    if (filtered.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="10" style="text-align: center; padding: 30px; color: #94a3b8;">No watchlist stocks match the active filter criteria.</td></tr>`;
+        return;
+    }
+
+    let html = '';
+    filtered.forEach(s => {
+        const baseSym = s.symbol.replace('.NS', '').replace('.BO', '');
+        const chgClass = s.day_change_pct >= 0 ? 'color: #34d399;' : 'color: #f43f5e;';
+        const chgSign = s.day_change_pct >= 0 ? '+' : '';
+
+        let stageBadgeClass = 'badge-quant-purple';
+        if (s.stage_num === 2) stageBadgeClass = 'badge-quant-green';
+        else if (s.stage_num === 3) stageBadgeClass = 'badge-quant-yellow';
+        else if (s.stage_num === 4) stageBadgeClass = 'badge-quant-red';
+
+        const slopeColor = s.ma_30wk_slope_pct >= 0 ? '#34d399' : '#f43f5e';
+        const slopeSign = s.ma_30wk_slope_pct >= 0 ? '+' : '';
+
+        const vcpHtml = s.vcp_qualified ? `<span class="badge-quant badge-quant-teal">QUALIFIED 🟢</span>` : `<span style="color: #94a3b8;">${s.vcp_status}</span>`;
+        const weinHtml = s.weinstein_qualified ? `<span class="badge-quant badge-quant-green">STAGE 2 🚀</span>` : `<span style="color: #94a3b8;">${s.weinstein_status}</span>`;
+        const htfHtml = s.htf_qualified ? `<span class="badge-quant badge-quant-teal">HTF READY 🎯</span>` : `<span style="color: #94a3b8;">${s.htf_status}</span>`;
+        const twtHtml = s.three_wt_qualified ? `<span class="badge-quant badge-quant-teal">3WT TIGHT 🎯</span>` : `<span style="color: #94a3b8;">${s.three_wt_status}</span>`;
+
+        html += `
+            <tr style="border-bottom: 1px solid var(--border-glass);">
+                <td style="padding: 10px 14px; font-weight: 800; white-space: nowrap;">
+                    <a href="javascript:void(0)" onclick="window.loadStockAnalysis && window.loadStockAnalysis('${s.symbol}')" style="color: var(--color-primary-light); text-decoration: none;">${baseSym}</a>
+                    <span style="font-size: 11px; color: var(--text-muted); display: block; font-weight: 500;">${s.company_name || baseSym}</span>
+                </td>
+                <td style="padding: 10px 14px; white-space: nowrap;">
+                    <strong style="color: var(--text-primary);">₹${(s.current_price || 0).toLocaleString('en-IN', {minimumFractionDigits: 2})}</strong>
+                    <span style="font-size: 11px; font-weight: 700; ${chgClass} display: block;">${chgSign}${(s.day_change_pct || 0).toFixed(2)}%</span>
+                </td>
+                <td style="padding: 10px 14px; white-space: nowrap;">
+                    <span class="badge-quant ${stageBadgeClass}">${s.stage_title}</span>
+                </td>
+                <td style="padding: 10px 14px; font-weight: 700; color: ${slopeColor}; white-space: nowrap;">
+                    ${slopeSign}${(s.ma_30wk_slope_pct || 0).toFixed(1)}%
+                </td>
+                <td style="padding: 10px 14px; white-space: nowrap;">${vcpHtml}</td>
+                <td style="padding: 10px 14px; white-space: nowrap;">${weinHtml}</td>
+                <td style="padding: 10px 14px; white-space: nowrap;">${htfHtml}</td>
+                <td style="padding: 10px 14px; white-space: nowrap;">${twtHtml}</td>
+                <td style="padding: 10px 14px; white-space: nowrap;">
+                    <span class="badge-quant ${s.badge_class}">${s.qualification_label}</span>
+                </td>
+                <td style="padding: 10px 14px; text-align: center; white-space: nowrap;">
+                    <button class="btn-secondary quant-chart-btn" style="font-size: 11.5px; padding: 4px 8px; margin-right: 4px;" onclick="window.launchStageSimulator('${s.symbol}')" title="Launch Interactive Stage Simulator">Simulate ⚙️</button>
+                    <button class="btn-secondary quant-chart-btn" style="font-size: 11.5px; padding: 4px 8px;" onclick="window.loadStockAnalysis && window.loadStockAnalysis('${s.symbol}')">Chart ↗</button>
+                </td>
+            </tr>
+        `;
+    });
+
+    tbody.innerHTML = html;
+};
+
+window.filterWatchlistMatrixTable = function() {
+    if (window.activeWlQuantMatrixData) {
+        window.renderWatchlistQuantMatrix(window.activeWlQuantMatrixData);
+    }
+};
+
+window.launchStageSimulator = function(symbol) {
+    if (typeof window.switchTab === 'function') window.switchTab('vcp');
+    if (typeof window.switchQuantScannerSubtab === 'function') window.switchQuantScannerSubtab('guide');
+    setTimeout(() => {
+        const input = document.getElementById('stage-sim-input');
+        if (input) {
+            input.value = symbol;
+            if (typeof window.runStockStageSimulator === 'function') window.runStockStageSimulator(symbol);
+        }
+    }, 150);
 };
 
 
