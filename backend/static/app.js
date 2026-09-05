@@ -55807,4 +55807,336 @@ window.openVcpChartModal = async function(symbol) {
     }
 };
 
+/* ==========================================================================
+   QUANTITATIVE SCANNER ENGINE - SUBTABS CONTROLLER & RENDERERS
+   ========================================================================== */
+
+window.allWeinsteinStocks = [];
+window.allHtfStocks = [];
+window.all3wtStocks = [];
+
+window.switchQuantScannerSubtab = function(tabName) {
+    const subtabs = ['vcp', 'weinstein', 'htf', '3wt'];
+    subtabs.forEach(t => {
+        const btn = document.getElementById(`quant-subtab-${t}`);
+        const view = document.getElementById(`quant-view-${t}`);
+        if (btn) {
+            if (t === tabName) btn.classList.add('active');
+            else btn.classList.remove('active');
+        }
+        if (view) {
+            if (t === tabName) view.style.display = 'block';
+            else view.style.display = 'none';
+        }
+    });
+
+    if (tabName === 'weinstein' && window.allWeinsteinStocks.length === 0) {
+        window.runWeinsteinScan(false, false);
+    } else if (tabName === 'htf' && window.allHtfStocks.length === 0) {
+        window.runHtfScan(false, false);
+    } else if (tabName === '3wt' && window.all3wtStocks.length === 0) {
+        window.run3wtScan(false, false);
+    }
+};
+
+// 1. STAN WEINSTEIN STAGE 2 SCREENER
+window.runWeinsteinScan = async function(isSilent = false, forceRefresh = false) {
+    const loadingEl = document.getElementById('weinstein-loading-container');
+    const tbody = document.getElementById('weinstein-table-body');
+    
+    // Local cache hydration
+    try {
+        const cached = localStorage.getItem('cached_weinstein_stocks');
+        if (cached && !forceRefresh) {
+            const parsed = JSON.parse(cached);
+            if (Array.isArray(parsed) && parsed.length > 0) {
+                window.allWeinsteinStocks = parsed;
+                window.renderWeinsteinTable(parsed);
+                if (isSilent) return;
+            }
+        }
+    } catch(e) {}
+
+    if (!isSilent && loadingEl) loadingEl.style.display = 'block';
+
+    try {
+        const res = await fetch(`/api/screener/weinstein-stage2${forceRefresh ? '?force_refresh=true' : ''}`);
+        const data = await res.json();
+        if (data.status === 'success' && Array.isArray(data.stocks)) {
+            window.allWeinsteinStocks = data.stocks;
+            try { localStorage.setItem('cached_weinstein_stocks', JSON.stringify(data.stocks)); } catch(e){}
+            window.renderWeinsteinTable(data.stocks);
+        }
+    } catch(err) {
+        console.error("Weinstein scan error:", err);
+    } finally {
+        if (loadingEl) loadingEl.style.display = 'none';
+    }
+};
+
+window.renderWeinsteinTable = function(stocks) {
+    const tbody = document.getElementById('weinstein-table-body');
+    if (!tbody) return;
+
+    // Update KPIs
+    const totalEl = document.getElementById('weinstein-kpi-total');
+    const breakoutEl = document.getElementById('weinstein-kpi-breakout');
+    const advancingEl = document.getElementById('weinstein-kpi-advancing');
+    const rsEl = document.getElementById('weinstein-kpi-avg-rs');
+
+    if (totalEl) totalEl.innerText = stocks.length;
+    if (breakoutEl) breakoutEl.innerText = stocks.filter(s => s.stage_status === 'STAGE_2_BREAKOUT').length;
+    if (advancingEl) advancingEl.innerText = stocks.filter(s => s.stage_status === 'STAGE_2_ADVANCING').length;
+    
+    const avgRs = stocks.length > 0 ? (stocks.reduce((a, b) => a + (b.rs_rating || 0), 0) / stocks.length).toFixed(1) : '0';
+    if (rsEl) rsEl.innerText = avgRs;
+
+    if (stocks.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="9" style="text-align:center; padding: 30px; color: #94a3b8;">No Stage 2 breakout setups detected currently.</td></tr>`;
+        return;
+    }
+
+    tbody.innerHTML = stocks.map(s => {
+        const dayChg = s.day_change_pct || 0;
+        const chgClass = dayChg >= 0 ? 'text-emerald-400' : 'text-rose-400';
+        const chgSign = dayChg >= 0 ? '+' : '';
+        const badgeClass = s.stage_status === 'STAGE_2_BREAKOUT' ? 'badge-quant-green' : 'badge-quant-blue';
+        const badgeLabel = s.stage_status === 'STAGE_2_BREAKOUT' ? '🚀 BREAKOUT' : '📈 ADVANCING';
+
+        return `
+            <tr>
+                <td style="font-weight: 800; color: #f8fafc;">
+                    <div style="font-size: 14px;">${s.symbol}</div>
+                    <div style="font-size: 11px; color: #94a3b8; font-weight: 500;">${s.name || ''}</div>
+                </td>
+                <td style="font-weight: 700;">₹${(s.price || 0).toLocaleString('en-IN', {minimumFractionDigits: 2})}</td>
+                <td class="${chgClass}" style="font-weight: 700;">${chgSign}${dayChg.toFixed(2)}%</td>
+                <td>₹${(s.sma_150 || 0).toFixed(2)}</td>
+                <td style="font-weight: 700; color: #38bdf8;">+${(s.dist_from_sma150_pct || 0).toFixed(1)}%</td>
+                <td style="color: ${s.sma_150_slope > 0 ? '#34d399' : '#f87171'}; font-weight: 700;">${(s.sma_150_slope || 0).toFixed(3)}</td>
+                <td style="font-weight: 800; color: #c084fc;">${s.rs_rating || '--'}</td>
+                <td><span class="badge-quant ${badgeClass}">${badgeLabel}</span></td>
+                <td>
+                    <button onclick="window.openTradingViewChart && window.openTradingViewChart('${s.symbol}')" class="btn-secondary" style="padding: 4px 10px; font-size: 11px; border-radius: 6px; cursor: pointer;">
+                        Chart ↗
+                    </button>
+                </td>
+            </tr>
+        `;
+    }).join('');
+};
+
+window.filterWeinsteinTable = function() {
+    const q = (document.getElementById('weinstein-search-input')?.value || '').toLowerCase();
+    const status = document.getElementById('weinstein-status-filter')?.value || 'ALL';
+    
+    let filtered = window.allWeinsteinStocks.filter(s => {
+        const matchesQ = s.symbol.toLowerCase().includes(q) || (s.name || '').toLowerCase().includes(q);
+        const matchesStatus = status === 'ALL' || s.stage_status === status;
+        return matchesQ && matchesStatus;
+    });
+
+    window.renderWeinsteinTable(filtered);
+};
+
+
+// 2. DAVID RYAN HIGH-TIGHT FLAG SCREENER
+window.runHtfScan = async function(isSilent = false, forceRefresh = false) {
+    const loadingEl = document.getElementById('htf-loading-container');
+    
+    try {
+        const cached = localStorage.getItem('cached_htf_stocks');
+        if (cached && !forceRefresh) {
+            const parsed = JSON.parse(cached);
+            if (Array.isArray(parsed) && parsed.length > 0) {
+                window.allHtfStocks = parsed;
+                window.renderHtfTable(parsed);
+                if (isSilent) return;
+            }
+        }
+    } catch(e) {}
+
+    if (!isSilent && loadingEl) loadingEl.style.display = 'block';
+
+    try {
+        const res = await fetch(`/api/screener/high-tight-flag${forceRefresh ? '?force_refresh=true' : ''}`);
+        const data = await res.json();
+        if (data.status === 'success' && Array.isArray(data.stocks)) {
+            window.allHtfStocks = data.stocks;
+            try { localStorage.setItem('cached_htf_stocks', JSON.stringify(data.stocks)); } catch(e){}
+            window.renderHtfTable(data.stocks);
+        }
+    } catch(err) {
+        console.error("HTF scan error:", err);
+    } finally {
+        if (loadingEl) loadingEl.style.display = 'none';
+    }
+};
+
+window.renderHtfTable = function(stocks) {
+    const tbody = document.getElementById('htf-table-body');
+    if (!tbody) return;
+
+    // Update KPIs
+    const totalEl = document.getElementById('htf-kpi-total');
+    const readyEl = document.getElementById('htf-kpi-ready');
+    const breakoutEl = document.getElementById('htf-kpi-breakout');
+    const avgPoleEl = document.getElementById('htf-kpi-avg-pole');
+
+    if (totalEl) totalEl.innerText = stocks.length;
+    if (readyEl) readyEl.innerText = stocks.filter(s => s.htf_status === 'HTF_READY').length;
+    if (breakoutEl) breakoutEl.innerText = stocks.filter(s => s.htf_status === 'HTF_BREAKOUT').length;
+
+    const avgPole = stocks.length > 0 ? (stocks.reduce((a, b) => a + (b.pole_gain_pct || 0), 0) / stocks.length).toFixed(1) : '0';
+    if (avgPoleEl) avgPoleEl.innerText = `+${avgPole}%`;
+
+    if (stocks.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="10" style="text-align:center; padding: 30px; color: #94a3b8;">No High-Tight Flag setups detected currently.</td></tr>`;
+        return;
+    }
+
+    tbody.innerHTML = stocks.map(s => {
+        const dayChg = s.day_change_pct || 0;
+        const chgClass = dayChg >= 0 ? 'text-emerald-400' : 'text-rose-400';
+        const chgSign = dayChg >= 0 ? '+' : '';
+        const badgeClass = s.htf_status === 'HTF_BREAKOUT' ? 'badge-quant-green' : (s.htf_status === 'HTF_READY' ? 'badge-quant-teal' : 'badge-quant-purple');
+        const badgeLabel = s.htf_status === 'HTF_BREAKOUT' ? '🚀 BREAKOUT' : (s.htf_status === 'HTF_READY' ? '🎯 READY' : '⏳ FORMING');
+
+        return `
+            <tr>
+                <td style="font-weight: 800; color: #f8fafc;">
+                    <div style="font-size: 14px;">${s.symbol}</div>
+                    <div style="font-size: 11px; color: #94a3b8; font-weight: 500;">${s.name || ''}</div>
+                </td>
+                <td style="font-weight: 700;">₹${(s.price || 0).toLocaleString('en-IN', {minimumFractionDigits: 2})}</td>
+                <td class="${chgClass}" style="font-weight: 700;">${chgSign}${dayChg.toFixed(2)}%</td>
+                <td style="font-weight: 800; color: #fbbf24;">+${(s.pole_gain_pct || 0).toFixed(1)}%</td>
+                <td style="font-weight: 700; color: #f87171;">-${(s.flag_depth_pct || 0).toFixed(1)}%</td>
+                <td style="font-weight: 700;">${s.flag_duration_weeks || '--'} wks</td>
+                <td style="font-weight: 700; color: #38bdf8;">${(s.vdu_ratio || 0).toFixed(2)}x</td>
+                <td style="font-weight: 800; color: #34d399;">₹${(s.flag_pivot || 0).toFixed(2)}</td>
+                <td><span class="badge-quant ${badgeClass}">${badgeLabel}</span></td>
+                <td>
+                    <button onclick="window.openTradingViewChart && window.openTradingViewChart('${s.symbol}')" class="btn-secondary" style="padding: 4px 10px; font-size: 11px; border-radius: 6px; cursor: pointer;">
+                        Chart ↗
+                    </button>
+                </td>
+            </tr>
+        `;
+    }).join('');
+};
+
+window.filterHtfTable = function() {
+    const q = (document.getElementById('htf-search-input')?.value || '').toLowerCase();
+    const status = document.getElementById('htf-status-filter')?.value || 'ALL';
+
+    let filtered = window.allHtfStocks.filter(s => {
+        const matchesQ = s.symbol.toLowerCase().includes(q) || (s.name || '').toLowerCase().includes(q);
+        const matchesStatus = status === 'ALL' || s.htf_status === status;
+        return matchesQ && matchesStatus;
+    });
+
+    window.renderHtfTable(filtered);
+};
+
+
+// 3. DAVID RYAN 3-WEEKS TIGHT SCREENER
+window.run3wtScan = async function(isSilent = false, forceRefresh = false) {
+    const loadingEl = document.getElementById('three-wt-loading-container');
+
+    try {
+        const cached = localStorage.getItem('cached_3wt_stocks');
+        if (cached && !forceRefresh) {
+            const parsed = JSON.parse(cached);
+            if (Array.isArray(parsed) && parsed.length > 0) {
+                window.all3wtStocks = parsed;
+                window.render3wtTable(parsed);
+                if (isSilent) return;
+            }
+        }
+    } catch(e) {}
+
+    if (!isSilent && loadingEl) loadingEl.style.display = 'block';
+
+    try {
+        const res = await fetch(`/api/screener/3weeks-tight${forceRefresh ? '?force_refresh=true' : ''}`);
+        const data = await res.json();
+        if (data.status === 'success' && Array.isArray(data.stocks)) {
+            window.all3wtStocks = data.stocks;
+            try { localStorage.setItem('cached_3wt_stocks', JSON.stringify(data.stocks)); } catch(e){}
+            window.render3wtTable(data.stocks);
+        }
+    } catch(err) {
+        console.error("3WT scan error:", err);
+    } finally {
+        if (loadingEl) loadingEl.style.display = 'none';
+    }
+};
+
+window.render3wtTable = function(stocks) {
+    const tbody = document.getElementById('three-wt-table-body');
+    if (!tbody) return;
+
+    // Update KPIs
+    const totalEl = document.getElementById('three-wt-kpi-total');
+    const readyEl = document.getElementById('three-wt-kpi-ready');
+    const avgTightEl = document.getElementById('three-wt-kpi-avg-tightness');
+    const highRsEl = document.getElementById('three-wt-kpi-high-rs');
+
+    if (totalEl) totalEl.innerText = stocks.length;
+    if (readyEl) readyEl.innerText = stocks.filter(s => s.three_wt_status === '3WT_READY').length;
+    
+    const avgTight = stocks.length > 0 ? (stocks.reduce((a, b) => a + (b.tightness_range_pct || 0), 0) / stocks.length).toFixed(2) : '0';
+    if (avgTightEl) avgTightEl.innerText = `${avgTight}%`;
+
+    if (highRsEl) highRsEl.innerText = stocks.filter(s => (s.rs_rating || 0) >= 80).length;
+
+    if (stocks.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="10" style="text-align:center; padding: 30px; color: #94a3b8;">No 3-Weeks Tight setups detected currently.</td></tr>`;
+        return;
+    }
+
+    tbody.innerHTML = stocks.map(s => {
+        const dayChg = s.day_change_pct || 0;
+        const chgClass = dayChg >= 0 ? 'text-emerald-400' : 'text-rose-400';
+        const chgSign = dayChg >= 0 ? '+' : '';
+
+        return `
+            <tr>
+                <td style="font-weight: 800; color: #f8fafc;">
+                    <div style="font-size: 14px;">${s.symbol}</div>
+                    <div style="font-size: 11px; color: #94a3b8; font-weight: 500;">${s.name || ''}</div>
+                </td>
+                <td style="font-weight: 700;">₹${(s.price || 0).toLocaleString('en-IN', {minimumFractionDigits: 2})}</td>
+                <td class="${chgClass}" style="font-weight: 700;">${chgSign}${dayChg.toFixed(2)}%</td>
+                <td style="font-weight: 800; color: #2dd4bf;">${(s.tightness_range_pct || 0).toFixed(2)}%</td>
+                <td style="color: #cbd5e1;">₹${(s.w1_close || 0).toFixed(2)}</td>
+                <td style="color: #cbd5e1;">₹${(s.w2_close || 0).toFixed(2)}</td>
+                <td style="color: #cbd5e1;">₹${(s.w3_close || 0).toFixed(2)}</td>
+                <td style="font-weight: 800; color: #c084fc;">${s.rs_rating || '--'}</td>
+                <td style="font-weight: 800; color: #34d399;">₹${(s.buy_pivot || 0).toFixed(2)}</td>
+                <td>
+                    <button onclick="window.openTradingViewChart && window.openTradingViewChart('${s.symbol}')" class="btn-secondary" style="padding: 4px 10px; font-size: 11px; border-radius: 6px; cursor: pointer;">
+                        Chart ↗
+                    </button>
+                </td>
+            </tr>
+        `;
+    }).join('');
+};
+
+window.filter3wtTable = function() {
+    const q = (document.getElementById('three-wt-search-input')?.value || '').toLowerCase();
+    const status = document.getElementById('three-wt-status-filter')?.value || 'ALL';
+
+    let filtered = window.all3wtStocks.filter(s => {
+        const matchesQ = s.symbol.toLowerCase().includes(q) || (s.name || '').toLowerCase().includes(q);
+        const matchesStatus = status === 'ALL' || s.three_wt_status === status;
+        return matchesQ && matchesStatus;
+    });
+
+    window.render3wtTable(filtered);
+};
+
+
 

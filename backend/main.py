@@ -788,6 +788,10 @@ app = FastAPI(
     default_response_class=SafeJSONResponse
 )
 
+@app.on_event("startup")
+async def startup_event():
+    asyncio.create_task(run_background_midnight_quant_scanner())
+
 # --- Universe Seeding, Index Rebalancing, & Warm Caching ---
 
 DEFAULT_SEED_STOCKS = [
@@ -17619,9 +17623,227 @@ Respond strictly in valid JSON matching this exact structure:
     return payload
 
 
+# --- Dedicated Quantitative Scanners Engine (Weinstein Stage 2, HTF, 3WT) ---
+
+_WEINSTEIN_STAGE2_CACHE = {"data": [], "last_updated": None}
+_HTF_SCANNER_CACHE = {"data": [], "last_updated": None}
+_3WT_SCANNER_CACHE = {"data": [], "last_updated": None}
+
+@app.get("/api/screener/weinstein-stage2")
+async def get_weinstein_stage2_screener(force_refresh: bool = False):
+    """
+    Returns Stan Weinstein Stage 2 Breakout candidates across universe equities.
+    """
+    global _WEINSTEIN_STAGE2_CACHE
+    from backend.swing_utils import detect_weinstein_stage2
+    
+    if not force_refresh and _WEINSTEIN_STAGE2_CACHE["data"]:
+        return {
+            "status": "success",
+            "count": len(_WEINSTEIN_STAGE2_CACHE["data"]),
+            "last_updated": _WEINSTEIN_STAGE2_CACHE["last_updated"],
+            "data": _WEINSTEIN_STAGE2_CACHE["data"]
+        }
+        
+    results = []
+    try:
+        with get_db() as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT symbol, company_name, sector, cap_type FROM screener_universe WHERE symbol NOT LIKE '%DUMMY%'")
+            stocks = [dict(r) for r in cursor.fetchall()]
+
+        # Fetch benchmark index for Mansfield RS calculation
+        try:
+            b_df = await fetch_history_df("^NSEI", period="1y", interval="1d")
+        except Exception:
+            b_df = None
+
+        for item in stocks:
+            sym = item["symbol"]
+            df = await fetch_history_df(sym, period="1y", interval="1d")
+            if df is not None and not df.empty:
+                w_res = detect_weinstein_stage2(df, benchmark_df=b_df)
+                if w_res.get("is_stage2") or w_res.get("stage_status") in ["STAGE_2_LAUNCH", "STAGE_2_ADVANCING", "STAGE_1_BASE"]:
+                    results.append({
+                        "symbol": sym,
+                        "base_symbol": sym.replace(".NS", "").replace(".BO", ""),
+                        "company_name": item["company_name"],
+                        "sector": item["sector"],
+                        "cap_type": item["cap_type"],
+                        "stage_status": w_res["stage_status"],
+                        "ma30_slope_pct": w_res["ma30_slope_pct"],
+                        "base_length_weeks": w_res["base_length_weeks"],
+                        "breakout_vol_ratio": w_res["breakout_vol_ratio"],
+                        "mansfield_rs": w_res["mansfield_rs"],
+                        "pivot_price": w_res["pivot_price"],
+                        "current_price": w_res["current_price"]
+                    })
+        
+        # Sort by Breakout Vol Ratio & Mansfield RS
+        results.sort(key=lambda x: (x["stage_status"] == "STAGE_2_LAUNCH", x["breakout_vol_ratio"]), reverse=True)
+        
+        _WEINSTEIN_STAGE2_CACHE = {
+            "data": results,
+            "last_updated": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        }
+    except Exception as e:
+        print(f"Error executing Weinstein Stage 2 screener: {e}")
+        
+    return {
+        "status": "success",
+        "count": len(results),
+        "last_updated": _WEINSTEIN_STAGE2_CACHE["last_updated"],
+        "data": results
+    }
+
+@app.get("/api/screener/high-tight-flag")
+async def get_high_tight_flag_screener(force_refresh: bool = False):
+    """
+    Returns David Ryan High-Tight Flag (HTF) candidates.
+    """
+    global _HTF_SCANNER_CACHE
+    from backend.swing_utils import detect_high_tight_flag
+    
+    if not force_refresh and _HTF_SCANNER_CACHE["data"]:
+        return {
+            "status": "success",
+            "count": len(_HTF_SCANNER_CACHE["data"]),
+            "last_updated": _HTF_SCANNER_CACHE["last_updated"],
+            "data": _HTF_SCANNER_CACHE["data"]
+        }
+
+    results = []
+    try:
+        with get_db() as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT symbol, company_name, sector, cap_type FROM screener_universe WHERE symbol NOT LIKE '%DUMMY%'")
+            stocks = [dict(r) for r in cursor.fetchall()]
+
+        for item in stocks:
+            sym = item["symbol"]
+            df = await fetch_history_df(sym, period="6mo", interval="1d")
+            if df is not None and not df.empty:
+                h_res = detect_high_tight_flag(df)
+                if h_res.get("is_htf") or h_res.get("htf_status") in ["HTF_BREAKOUT_READY", "HTF_FLAG_FORMING", "HTF_QUALIFIED"]:
+                    results.append({
+                        "symbol": sym,
+                        "base_symbol": sym.replace(".NS", "").replace(".BO", ""),
+                        "company_name": item["company_name"],
+                        "sector": item["sector"],
+                        "cap_type": item["cap_type"],
+                        "htf_status": h_res["htf_status"],
+                        "pole_gain_pct": h_res["pole_gain_pct"],
+                        "flag_depth_pct": h_res["flag_depth_pct"],
+                        "flag_days": h_res["flag_days"],
+                        "vdu_ratio": h_res["vdu_ratio"],
+                        "pivot_price": h_res["pivot_price"],
+                        "current_price": h_res["current_price"]
+                    })
+
+        results.sort(key=lambda x: (x["htf_status"] == "HTF_BREAKOUT_READY", x["pole_gain_pct"]), reverse=True)
+        
+        _HTF_SCANNER_CACHE = {
+            "data": results,
+            "last_updated": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        }
+    except Exception as e:
+        print(f"Error executing High-Tight Flag screener: {e}")
+
+    return {
+        "status": "success",
+        "count": len(results),
+        "last_updated": _HTF_SCANNER_CACHE["last_updated"],
+        "data": results
+    }
+
+@app.get("/api/screener/3weeks-tight")
+async def get_3weeks_tight_screener(force_refresh: bool = False):
+    """
+    Returns David Ryan 3-Weeks Tight (3WT) candidates.
+    """
+    global _3WT_SCANNER_CACHE
+    from backend.swing_utils import detect_3weeks_tight
+    
+    if not force_refresh and _3WT_SCANNER_CACHE["data"]:
+        return {
+            "status": "success",
+            "count": len(_3WT_SCANNER_CACHE["data"]),
+            "last_updated": _3WT_SCANNER_CACHE["last_updated"],
+            "data": _3WT_SCANNER_CACHE["data"]
+        }
+
+    results = []
+    try:
+        with get_db() as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT symbol, company_name, sector, cap_type FROM screener_universe WHERE symbol NOT LIKE '%DUMMY%'")
+            stocks = [dict(r) for r in cursor.fetchall()]
+
+        for item in stocks:
+            sym = item["symbol"]
+            df = await fetch_history_df(sym, period="6mo", interval="1d")
+            if df is not None and not df.empty:
+                t_res = detect_3weeks_tight(df)
+                if t_res.get("is_3wt") or t_res.get("tight_status") in ["3WT_PIVOT_READY", "3WT_FORMING", "3WT_QUALIFIED"]:
+                    results.append({
+                        "symbol": sym,
+                        "base_symbol": sym.replace(".NS", "").replace(".BO", ""),
+                        "company_name": item["company_name"],
+                        "sector": item["sector"],
+                        "cap_type": item["cap_type"],
+                        "tight_status": t_res["tight_status"],
+                        "close_variance_pct": t_res["close_variance_pct"],
+                        "weekly_closes": t_res["weekly_closes"],
+                        "distance_to_50ema_pct": t_res["distance_to_50ema_pct"],
+                        "pivot_price": t_res["pivot_price"],
+                        "stop_loss_price": t_res["stop_loss_price"],
+                        "current_price": t_res["current_price"]
+                    })
+
+        results.sort(key=lambda x: (x["tight_status"] == "3WT_PIVOT_READY", -x["close_variance_pct"]), reverse=True)
+
+        _3WT_SCANNER_CACHE = {
+            "data": results,
+            "last_updated": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        }
+    except Exception as e:
+        print(f"Error executing 3-Weeks Tight screener: {e}")
+
+    return {
+        "status": "success",
+        "count": len(results),
+        "last_updated": _3WT_SCANNER_CACHE["last_updated"],
+        "data": results
+    }
+
+async def run_background_midnight_quant_scanner():
+    """
+    Background worker running at 2:30 AM IST midnight to pre-calculate
+    Weinstein Stage 2, High-Tight Flag, and 3-Weeks Tight scanners.
+    """
+    await asyncio.sleep(30)
+    print("Background Midnight Quantitative Scanner task initialized (Scheduled for 2:30 AM IST).")
+    while True:
+        try:
+            now_utc = datetime.utcnow()
+            now_ist = now_utc + timedelta(hours=5, minutes=30)
+            
+            # Check if 2:30 AM IST (window between 2:25 and 2:35 AM IST)
+            if now_ist.hour == 2 and 25 <= now_ist.minute <= 35:
+                print("Midnight Quant Scanner (2:30 AM IST): Running full quantitative scan sweep...")
+                await get_weinstein_stage2_screener(force_refresh=True)
+                await get_high_tight_flag_screener(force_refresh=True)
+                await get_3weeks_tight_screener(force_refresh=True)
+                print("Midnight Quant Scanner: Pre-calculation complete.")
+                await asyncio.sleep(3600) # Sleep 1 hour to prevent re-triggering within 2:30 AM hour
+        except Exception as e:
+            print(f"Error in midnight quant scanner worker: {e}")
+        await asyncio.sleep(300)
+
 
 static_dir = os.path.join(os.path.dirname(__file__), "static")
 os.makedirs(static_dir, exist_ok=True)
 
 app.mount("/", StaticFiles(directory=static_dir, html=True), name="static")
+
 

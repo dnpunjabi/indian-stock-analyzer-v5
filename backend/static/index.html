@@ -1984,7 +1984,7 @@
 
                     <!-- Smart Pagination Controls for Technical Scans & Breakouts -->
                     <div id="fullscreen-tech-scans-pagination" class="no-print" style="display: flex; justify-content: space-between; align-items: center; padding: 10px 15px; background: rgba(255,255,255,0.02); border: 1px solid var(--border-glass); border-radius: 8px;">
-                        <button class="btn-secondary" id="fullscreen-tech-scans-prev-btn" style="font-size: 13px; padding: 4px 12px; height: auto;" disabled>◀ Prev</button>
+<button class="btn-secondary" id="fullscreen-tech-scans-prev-btn" style="font-size: 13px; padding: 4px 12px; height: auto;" disabled>◀ Prev</button>
                         
                         <div style="display: flex; align-items: center; gap: 15px;">
                             <span id="fullscreen-tech-scans-page-info" style="font-size: 13.5px; font-weight: 600; color: var(--text-secondary);">Page 1 of 1</span>
@@ -2005,168 +2005,172 @@
                 </div>
             </section>
 
-            <!-- SECTION: MINERVINI VCP & CANSLIM SCREENER -->
+            <!-- SECTION: MINERVINI VCP & CANSLIM SCREENER ENGINE -->
             <section class="workspace-tab" id="tab-vcp" style="display: none; font-family: 'Inter', sans-serif;">
-                <!-- Hero Header Banner -->
-                <div class="screener-hero-header no-print" style="margin-bottom: 24px; border-radius: 16px; background: linear-gradient(135deg, rgba(15, 23, 42, 0.95), rgba(30, 41, 59, 0.92), rgba(15, 23, 42, 0.95)); border: 1px solid rgba(245, 158, 11, 0.35); backdrop-filter: blur(20px); padding: 24px 28px; box-shadow: 0 12px 32px -4px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.1); position: relative; overflow: hidden; font-family: 'Outfit', 'Inter', sans-serif;">
-                    
-                    <div style="position: absolute; top: -50px; right: -50px; width: 250px; height: 250px; background: radial-gradient(circle, rgba(245, 158, 11, 0.2), transparent 70%); pointer-events: none; border-radius: 50%;"></div>
-                    <div style="position: absolute; bottom: -60px; left: -60px; width: 220px; height: 220px; background: radial-gradient(circle, rgba(16, 185, 129, 0.18), transparent 70%); pointer-events: none; border-radius: 50%;"></div>
-
-                    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px; position: relative; z-index: 2;">
-                        <div>
-                            <div style="display: inline-flex; align-items: center; gap: 8px; padding: 4px 12px; background: rgba(245, 158, 11, 0.15); border: 1px solid rgba(245, 158, 11, 0.4); border-radius: 20px; font-size: 11px; font-weight: 700; color: #fbbf24; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px;">
-                                <span>🔥 SEPA & CANSLIM ENGINE</span>
-                            </div>
-                            <h2 style="margin: 0; font-size: 26px; font-weight: 800; color: var(--text-primary); letter-spacing: -0.5px;">
-                                Mark Minervini VCP & CANSLIM Screener
-                            </h2>
-                            <p style="margin: 6px 0 0 0; color: var(--text-secondary); font-size: 13px; max-width: 680px; line-height: 1.5;">
-                                Real-time volatility contraction pattern detection (T<sub>1</sub> &rarr; T<sub>2</sub> &rarr; T<sub>3</sub>), Volume Dry-Up (VDU) gauges, strict Mark Minervini Trend Template validation, and William O'Neil's 7-Factor CANSLIM institutional rating.
-                            </p>
-                        </div>
-                        <div style="display: flex; gap: 10px; align-items: center;">
-                            <button id="vcp-page-guide-btn" onclick="const b=document.getElementById('vcp-page-classification-legend-banner'); b.style.display = b.style.display === 'none' ? 'block' : 'none';" class="btn-secondary" style="display: inline-flex; align-items: center; gap: 6px; padding: 10px 16px; background: rgba(245, 158, 11, 0.15); border: 1px solid #d97706; border-radius: 10px; color: #d97706; font-weight: 800; font-size: 13px; cursor: pointer; transition: all 0.2s;" title="Toggle Minervini VCP Definitions Guide">
-                                <span>💡</span> Guide
-                            </button>
-                            <button id="vcp-scan-btn" onclick="window.runVcpScan && window.runVcpScan(false, true)" class="btn-primary" style="display: inline-flex; align-items: center; gap: 8px; padding: 10px 20px; background: linear-gradient(135deg, #f59e0b, #d97706); border: none; border-radius: 10px; color: #ffffff; font-weight: 700; font-size: 13px; cursor: pointer; box-shadow: 0 4px 14px rgba(245, 158, 11, 0.35); transition: all 0.2s;">
-                                <span>🔄</span> Run VCP Scanner
-                            </button>
-                        </div>
-                    </div>
-
-                    <!-- Summary Metrics Row -->
-                    <div class="screener-kpi-row" style="display: flex; gap: 16px; margin-top: 20px; flex-wrap: wrap; border-top: 1px solid rgba(255,255,255,0.08); padding-top: 16px;">
-                        <div class="screener-kpi-card" style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(255,255,255,0.08); border-radius: 10px; padding: 10px 16px; min-width: 140px; flex: 1;">
-                            <div style="font-size: 11px; color: #94a3b8; text-transform: uppercase; font-weight: 600;">Total VCP Setups</div>
-                            <div id="vcp-kpi-total" style="font-size: 20px; font-weight: 800; color: #fbbf24; margin-top: 2px;">--</div>
-                        </div>
-                        <div class="screener-kpi-card" style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(255,255,255,0.08); border-radius: 10px; padding: 10px 16px; min-width: 140px; flex: 1;">
-                            <div style="font-size: 11px; color: #94a3b8; text-transform: uppercase; font-weight: 600;">Ready at Pivot</div>
-                            <div id="vcp-kpi-ready" style="font-size: 20px; font-weight: 800; color: #10b981; margin-top: 2px;">--</div>
-                        </div>
-                        <div class="screener-kpi-card" style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(255,255,255,0.08); border-radius: 10px; padding: 10px 16px; min-width: 140px; flex: 1;">
-                            <div style="font-size: 11px; color: #94a3b8; text-transform: uppercase; font-weight: 600;">Live Breakouts</div>
-                            <div id="vcp-kpi-breakout" style="font-size: 20px; font-weight: 800; color: #38bdf8; margin-top: 2px;">--</div>
-                        </div>
-                        <div class="screener-kpi-card" style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(255,255,255,0.08); border-radius: 10px; padding: 10px 16px; min-width: 140px; flex: 1;">
-                            <div style="font-size: 11px; color: #94a3b8; text-transform: uppercase; font-weight: 600;">Avg CANSLIM Score</div>
-                            <div id="vcp-kpi-avg-canslim" style="font-size: 20px; font-weight: 800; color: #a855f7; margin-top: 2px;">-- / 7</div>
-                        </div>
-                    </div>
+                <!-- Screener Subtabs Navigation Bar -->
+                <div class="quant-subtabs-bar no-print">
+                    <button class="quant-subtab-btn active" id="quant-subtab-vcp" onclick="window.switchQuantScannerSubtab && window.switchQuantScannerSubtab('vcp')">
+                        <span>🔥</span> Minervini VCP & CANSLIM
+                    </button>
+                    <button class="quant-subtab-btn" id="quant-subtab-weinstein" onclick="window.switchQuantScannerSubtab && window.switchQuantScannerSubtab('weinstein')">
+                        <span>📈</span> Stan Weinstein Stage 2
+                    </button>
+                    <button class="quant-subtab-btn" id="quant-subtab-htf" onclick="window.switchQuantScannerSubtab && window.switchQuantScannerSubtab('htf')">
+                        <span>🚀</span> High-Tight Flag (HTF)
+                    </button>
+                    <button class="quant-subtab-btn" id="quant-subtab-3wt" onclick="window.switchQuantScannerSubtab && window.switchQuantScannerSubtab('3wt')">
+                        <span>🎯</span> 3-Weeks Tight (3WT)
+                    </button>
                 </div>
 
-                <!-- Collapsible VCP Screener Classification Legend Banner -->
-                <div id="vcp-page-classification-legend-banner" class="vcp-guide-banner" style="display: none; margin-bottom: 20px; border-radius: 12px; padding: 16px 20px; font-family: 'Inter', sans-serif;">
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
-                        <div style="display: flex; align-items: center; gap: 8px;">
-                            <span style="font-size: 16px;">💡</span>
-                            <strong class="vcp-guide-main-title" style="font-size: 14px; font-weight: 800;">Minervini VCP & SEPA Classification Definitions Guide</strong>
-                        </div>
-                        <button onclick="document.getElementById('vcp-page-classification-legend-banner').style.display='none'" class="vcp-guide-close-btn" style="background: none; border: none; cursor: pointer; font-size: 15px; padding: 2px 6px;">✕</button>
-                    </div>
+                <!-- SUBTAB VIEW 1: MINERVINI VCP & CANSLIM -->
+                <div id="quant-view-vcp">
+                    <!-- Hero Header Banner -->
+                    <div class="screener-hero-header no-print" style="margin-bottom: 24px; border-radius: 16px; background: linear-gradient(135deg, rgba(15, 23, 42, 0.95), rgba(30, 41, 59, 0.92), rgba(15, 23, 42, 0.95)); border: 1px solid rgba(245, 158, 11, 0.35); backdrop-filter: blur(20px); padding: 24px 28px; box-shadow: 0 12px 32px -4px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.1); position: relative; overflow: hidden; font-family: 'Outfit', 'Inter', sans-serif;">
+                        
+                        <div style="position: absolute; top: -50px; right: -50px; width: 250px; height: 250px; background: radial-gradient(circle, rgba(245, 158, 11, 0.2), transparent 70%); pointer-events: none; border-radius: 50%;"></div>
+                        <div style="position: absolute; bottom: -60px; left: -60px; width: 220px; height: 220px; background: radial-gradient(circle, rgba(16, 185, 129, 0.18), transparent 70%); pointer-events: none; border-radius: 50%;"></div>
 
-                    <!-- Primary Status Definitions -->
-                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 10px; font-size: 11.5px; line-height: 1.45; margin-bottom: 14px;">
-                        <div class="vcp-status-card status-ready">
-                            <strong class="status-title-ready">🎯 READY AT PIVOT</strong>: Stock completed all contraction stages (T3/T4) with volume dry-up (VDU &le; 1.0x) and is within 4% of pivot buy price.
+                        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px; position: relative; z-index: 2;">
+                            <div>
+                                <div style="display: inline-flex; align-items: center; gap: 8px; padding: 4px 12px; background: rgba(245, 158, 11, 0.15); border: 1px solid rgba(245, 158, 11, 0.4); border-radius: 20px; font-size: 11px; font-weight: 700; color: #fbbf24; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px;">
+                                    <span>🔥 SEPA & CANSLIM ENGINE</span>
+                                </div>
+                                <h2 style="margin: 0; font-size: 26px; font-weight: 800; color: var(--text-primary); letter-spacing: -0.5px;">
+                                    Mark Minervini VCP & CANSLIM Screener
+                                </h2>
+                                <p style="margin: 6px 0 0 0; color: var(--text-secondary); font-size: 13px; max-width: 680px; line-height: 1.5;">
+                                    Real-time volatility contraction pattern detection (T<sub>1</sub> &rarr; T<sub>2</sub> &rarr; T<sub>3</sub>), Volume Dry-Up (VDU) gauges, strict Mark Minervini Trend Template validation, and William O'Neil's 7-Factor CANSLIM institutional rating.
+                                </p>
+                            </div>
+                            <div style="display: flex; gap: 10px; align-items: center;">
+                                <button id="vcp-page-guide-btn" onclick="const b=document.getElementById('vcp-page-classification-legend-banner'); b.style.display = b.style.display === 'none' ? 'block' : 'none';" class="btn-secondary" style="display: inline-flex; align-items: center; gap: 6px; padding: 10px 16px; background: rgba(245, 158, 11, 0.15); border: 1px solid #d97706; border-radius: 10px; color: #d97706; font-weight: 800; font-size: 13px; cursor: pointer; transition: all 0.2s;" title="Toggle Minervini VCP Definitions Guide">
+                                    <span>💡</span> Guide
+                                </button>
+                                <button id="vcp-scan-btn" onclick="window.runVcpScan && window.runVcpScan(false, true)" class="btn-primary" style="display: inline-flex; align-items: center; gap: 8px; padding: 10px 20px; background: linear-gradient(135deg, #f59e0b, #d97706); border: none; border-radius: 10px; color: #ffffff; font-weight: 700; font-size: 13px; cursor: pointer; box-shadow: 0 4px 14px rgba(245, 158, 11, 0.35); transition: all 0.2s;">
+                                    <span>🔄</span> Run VCP Scanner
+                                </button>
+                            </div>
                         </div>
-                        <div class="vcp-status-card status-breakout">
-                            <strong class="status-title-breakout">🚀 LIVE BREAKOUT</strong>: Stock crossed pivot buy price on heavy institutional volume (&gt;125% of 20-day average).
-                        </div>
-                        <div class="vcp-status-card status-below-ema">
-                            <strong class="status-title-below-ema">📉 BELOW 50 EMA</strong>: Stock is consolidating below its 50 EMA. Minervini SEPA Trend Template requires price above 50 & 200 EMA.
-                        </div>
-                        <div class="vcp-status-card status-wide-swings">
-                            <strong class="status-title-wide-swings">⏳ WIDE SWINGS</strong>: Stock is base-building, but price volatility swings exceed strict Minervini contraction thresholds.
-                        </div>
-                        <div class="vcp-status-card status-base-building">
-                            <strong class="status-title-base-building">🧱 BASE BUILDING</strong>: Stock is in early Stage 1 accumulation or constructing a cup/flat base prior to VCP contractions.
-                        </div>
-                    </div>
 
-                    <!-- Contraction Stages Breakdown (T1 to T6) -->
-                    <div class="vcp-guide-sub-divider" style="border-top: 1px solid var(--border-glass, rgba(255, 255, 255, 0.08)); padding-top: 12px; margin-bottom: 14px;">
-                        <div class="vcp-stage-header" style="font-size: 11.5px; font-weight: 800; text-transform: uppercase; margin-bottom: 10px; letter-spacing: 0.5px;">📈 VCP CONTRACTION STAGES BREAKDOWN (T1 &rarr; T6)</div>
-                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px; font-size: 11px; line-height: 1.4;">
-                            <div class="vcp-stage-card">
-                                <strong class="stage-title">⏳ FORMING T1</strong> (1 Wave)<br/>
-                                <span class="stage-desc">Initial wide contraction off peak (e.g. -25% pullback). VCP is just starting.</span>
+                        <!-- Summary Metrics Row -->
+                        <div class="screener-kpi-row" style="display: flex; gap: 16px; margin-top: 20px; flex-wrap: wrap; border-top: 1px solid rgba(255,255,255,0.08); padding-top: 16px;">
+                            <div class="screener-kpi-card" style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(255,255,255,0.08); border-radius: 10px; padding: 10px 16px; min-width: 140px; flex: 1;">
+                                <div style="font-size: 11px; color: #94a3b8; text-transform: uppercase; font-weight: 600;">Total VCP Setups</div>
+                                <div id="vcp-kpi-total" style="font-size: 20px; font-weight: 800; color: #fbbf24; margin-top: 2px;">--</div>
                             </div>
-                            <div class="vcp-stage-card">
-                                <strong class="stage-title">⏳ FORMING T2</strong> (2 Waves)<br/>
-                                <span class="stage-desc">Secondary contraction tightening (e.g. -25% &rarr; -12%). Volatility shrinking.</span>
+                            <div class="screener-kpi-card" style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(255,255,255,0.08); border-radius: 10px; padding: 10px 16px; min-width: 140px; flex: 1;">
+                                <div style="font-size: 11px; color: #94a3b8; text-transform: uppercase; font-weight: 600;">Ready at Pivot</div>
+                                <div id="vcp-kpi-ready" style="font-size: 20px; font-weight: 800; color: #10b981; margin-top: 2px;">--</div>
                             </div>
-                            <div class="vcp-stage-card stage-highlight">
-                                <strong class="stage-title">⏳ FORMING T3</strong> (3 Waves)<br/>
-                                <span class="stage-desc">Classic Minervini 3-wave contraction (e.g. -25% &rarr; -12% &rarr; -4%). High institutional tightening.</span>
+                            <div class="screener-kpi-card" style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(255,255,255,0.08); border-radius: 10px; padding: 10px 16px; min-width: 140px; flex: 1;">
+                                <div style="font-size: 11px; color: #94a3b8; text-transform: uppercase; font-weight: 600;">Live Breakouts</div>
+                                <div id="vcp-kpi-breakout" style="font-size: 20px; font-weight: 800; color: #38bdf8; margin-top: 2px;">--</div>
                             </div>
-                            <div class="vcp-stage-card">
-                                <strong class="stage-title-green">⏳ FORMING T4</strong> (4 Waves)<br/>
-                                <span class="stage-desc">Micro-contraction tightening (e.g. -25% &rarr; -12% &rarr; -5% &rarr; -2%). Extremely tight handle.</span>
-                            </div>
-                            <div class="vcp-stage-card">
-                                <strong class="stage-title-blue">⏳ FORMING T5 / T6</strong> (5-6 Waves)<br/>
-                                <span class="stage-desc">Ultra-tight prolonged base consolidation before major breakout.</span>
+                            <div class="screener-kpi-card" style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(255,255,255,0.08); border-radius: 10px; padding: 10px 16px; min-width: 140px; flex: 1;">
+                                <div style="font-size: 11px; color: #94a3b8; text-transform: uppercase; font-weight: 600;">Avg CANSLIM Score</div>
+                                <div id="vcp-kpi-avg-canslim" style="font-size: 20px; font-weight: 800; color: #a855f7; margin-top: 2px;">-- / 7</div>
                             </div>
                         </div>
                     </div>
 
-                    <!-- CANSLIM 7-FACTOR CHARACTERISTICS BREAKDOWN -->
-                    <div class="vcp-guide-sub-divider" style="border-top: 1px solid var(--border-glass, rgba(255, 255, 255, 0.08)); padding-top: 12px;">
-                        <div class="canslim-header" style="font-size: 11.5px; font-weight: 800; text-transform: uppercase; margin-bottom: 10px; letter-spacing: 0.5px; display: flex; align-items: center; gap: 6px;">
-                            <span>🎯 CANSLIM 7-FACTOR SYSTEM CHARACTERISTICS BREAKDOWN (C · A · N · S · L · I · M)</span>
+                    <!-- Collapsible VCP Screener Classification Legend Banner -->
+                    <div id="vcp-page-classification-legend-banner" class="vcp-guide-banner" style="display: none; margin-bottom: 20px; border-radius: 12px; padding: 16px 20px; font-family: 'Inter', sans-serif;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
+                            <div style="display: flex; align-items: center; gap: 8px;">
+                                <span style="font-size: 16px;">💡</span>
+                                <strong class="vcp-guide-main-title" style="font-size: 14px; font-weight: 800;">Minervini VCP & SEPA Classification Definitions Guide</strong>
+                            </div>
+                            <button onclick="document.getElementById('vcp-page-classification-legend-banner').style.display='none'" class="vcp-guide-close-btn" style="background: none; border: none; cursor: pointer; font-size: 15px; padding: 2px 6px;">✕</button>
                         </div>
-                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 10px; font-size: 11px; line-height: 1.45;">
-                            <div class="canslim-guide-card">
-                                <strong class="canslim-char-title">C &ndash; Current Quarterly Earnings</strong><br/>
-                                <span class="canslim-char-desc">Quarterly EPS growth &ge; 25% to 50%+ YoY. Strong current quarterly earnings acceleration drives momentum.</span>
-                            </div>
-                            <div class="canslim-guide-card">
-                                <strong class="canslim-char-title">A &ndash; Annual Earnings Increases</strong><br/>
-                                <span class="canslim-char-desc">3 to 5-year annual EPS growth &ge; 25%+ with high ROE &ge; 17%. Sustained track record of profitability.</span>
-                            </div>
-                            <div class="canslim-guide-card">
-                                <strong class="canslim-char-title">N &ndash; New Products / Management / Highs</strong><br/>
-                                <span class="canslim-char-desc">Innovative product lines, key new management, or stock breaking out to new 52-week/all-time price highs.</span>
-                            </div>
-                            <div class="canslim-guide-card">
-                                <strong class="canslim-char-title">S &ndash; Supply and Demand</strong><br/>
-                                <span class="canslim-char-desc">Shares float vs demand. Institutional volume accumulation on breakout (VDU dry-up + heavy volume breakout).</span>
-                            </div>
-                            <div class="canslim-guide-card">
-                                <strong class="canslim-char-title">L &ndash; Leader or Laggard</strong><br/>
-                                <span class="canslim-char-desc">Focus on market leaders with high Relative Strength (RS Rating &ge; 80+). Avoid industry laggards.</span>
-                            </div>
-                            <div class="canslim-guide-card">
-                                <strong class="canslim-char-title">I &ndash; Institutional Sponsorship</strong><br/>
-                                <span class="canslim-char-desc">Increasing sponsorship by top mutual funds, hedge funds & institutions. Institutional backing validates quality.</span>
-                            </div>
-                            <div class="canslim-guide-card">
-                                <strong class="canslim-char-title">M &ndash; Market Direction</strong><br/>
-                                <span class="canslim-char-desc">Trade in harmony with general market direction (Confirmed Uptrend). 75% of leading stocks follow market trend.</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
 
-                <!-- Filter Controls Toolbar -->
-                <div class="screener-filter-bar" style="display: flex; gap: 12px; margin-bottom: 20px; flex-wrap: wrap; background: rgba(15, 23, 42, 0.7); border: 1px solid rgba(255,255,255,0.08); padding: 14px 18px; border-radius: 12px; backdrop-filter: blur(12px); align-items: center;">
-                    <div style="flex: 1; min-width: 200px;" class="screener-search-wrap">
-                        <input type="text" id="vcp-search-input" placeholder="🔍 Search Ticker or Company..." oninput="window.filterVcpCards && window.filterVcpCards()" style="width: 100%; background: rgba(30, 41, 59, 0.8); border: 1px solid rgba(255,255,255,0.12); color: #fff; padding: 8px 14px; border-radius: 8px; font-size: 13px; outline: none;">
+                        <!-- Primary Status Definitions -->
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 10px; font-size: 11.5px; line-height: 1.45; margin-bottom: 14px;">
+                            <div class="vcp-status-card status-ready">
+                                <strong class="status-title-ready">🎯 READY AT PIVOT</strong>: Stock completed all contraction stages (T3/T4) with volume dry-up (VDU &le; 1.0x) and is within 4% of pivot buy price.
+                            </div>
+                            <div class="vcp-status-card status-breakout">
+                                <strong class="status-title-breakout">🚀 LIVE BREAKOUT</strong>: Stock crossed pivot buy price on heavy institutional volume (&gt;125% of 20-day average).
+                            </div>
+                            <div class="vcp-status-card status-below-ema">
+                                <strong class="status-title-below-ema">📉 BELOW 50 EMA</strong>: Stock is consolidating below its 50 EMA. Minervini SEPA Trend Template requires price above 50 & 200 EMA.
+                            </div>
+                            <div class="vcp-status-card status-wide-swings">
+                                <strong class="status-title-wide-swings">⏳ WIDE SWINGS</strong>: Stock is base-building, but price volatility swings exceed strict Minervini contraction thresholds.
+                            </div>
+                            <div class="vcp-status-card status-base-building">
+                                <strong class="status-title-base-building">🧱 BASE BUILDING</strong>: Stock is in early Stage 1 accumulation or constructing a cup/flat base prior to VCP contractions.
+                            </div>
+                        </div>
+
+                        <!-- Contraction Stages Breakdown (T1 to T6) -->
+                        <div class="vcp-guide-sub-divider" style="border-top: 1px solid var(--border-glass, rgba(255, 255, 255, 0.08)); padding-top: 12px; margin-bottom: 14px;">
+                            <div class="vcp-stage-header" style="font-size: 11.5px; font-weight: 800; text-transform: uppercase; margin-bottom: 10px; letter-spacing: 0.5px;">📈 VCP CONTRACTION STAGES BREAKDOWN (T1 &rarr; T6)</div>
+                            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px; font-size: 11px; line-height: 1.4;">
+                                <div class="vcp-stage-card">
+                                    <strong class="stage-title">⏳ FORMING T1</strong> (1 Wave)<br/>
+                                    <span class="stage-desc">Initial wide contraction off peak (e.g. -25% pullback). VCP is just starting.</span>
+                                </div>
+                                <div class="vcp-stage-card">
+                                    <strong class="stage-title">⏳ FORMING T2</strong> (2 Waves)<br/>
+                                    <span class="stage-desc">Secondary contraction tightening (e.g. -25% &rarr; -12%). Volatility shrinking.</span>
+                                </div>
+                                <div class="vcp-stage-card stage-highlight">
+                                    <strong class="stage-title">🎯 T3 CONTRACTION</strong> (3 Waves)<br/>
+                                    <span class="stage-desc">Optimal Minervini setup (-25% &rarr; -12% &rarr; -5%). Supply absorbed, ready for breakout.</span>
+                                </div>
+                                <div class="vcp-stage-card stage-highlight">
+                                    <strong class="stage-title-green">🚀 T4 / T5 / T6 ULTRA TIGHT</strong><br/>
+                                    <span class="stage-desc">Extreme supply lockup. Multi-stage contractions producing explosive breakout velocity.</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- William O'Neil 7-Factor CANSLIM Breakdown -->
+                        <div class="vcp-guide-sub-divider" style="border-top: 1px solid var(--border-glass, rgba(255, 255, 255, 0.08)); padding-top: 12px;">
+                            <div class="canslim-header" style="font-size: 11.5px; font-weight: 800; text-transform: uppercase; margin-bottom: 10px; letter-spacing: 0.5px;">⭐ WILLIAM O'NEIL 7-FACTOR CANSLIM SYSTEM BREAKDOWN</div>
+                            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 10px; font-size: 11px; line-height: 1.45;">
+                                <div class="canslim-guide-card">
+                                    <strong class="canslim-char-title">C &mdash; Current Quarterly Earnings</strong><br/>
+                                    <span class="canslim-char-desc">Requires EPS growth of &ge; 25% in the most recent quarter vs the same quarter prior year. Acceleration is key.</span>
+                                </div>
+                                <div class="canslim-guide-card">
+                                    <strong class="canslim-char-title">A &mdash; Annual Earnings Growth</strong><br/>
+                                    <span class="canslim-char-desc">Requires compound annual earnings growth of &ge; 25% over the past 3 to 5 years, with ROE &ge; 17%.</span>
+                                </div>
+                                <div class="canslim-guide-card">
+                                    <strong class="canslim-char-title">N &mdash; New Products, Management, Highs</strong><br/>
+                                    <span class="canslim-char-desc">Demands a catalyst: new innovative products/services, new leadership, or stock breaking out to new 52-week high price levels.</span>
+                                </div>
+                                <div class="canslim-guide-card">
+                                    <strong class="canslim-char-title">S &mdash; Supply & Demand (Volume)</strong><br/>
+                                    <span class="canslim-char-desc">High volume demand on breakout days (&gt;125% to 200%+ of 50-day average volume) paired with low floating supply.</span>
+                                </div>
+                                <div class="canslim-guide-card">
+                                    <strong class="canslim-char-title">L &mdash; Leader vs Laggard (Relative Strength)</strong><br/>
+                                    <span class="canslim-char-desc">Stock must be a market leader with Relative Strength (RS) rating &ge; 80 (outperforming 80% of all stocks).</span>
+                                </div>
+                                <div class="canslim-guide-card">
+                                    <strong class="canslim-char-title">I &mdash; Institutional Sponsorship</strong><br/>
+                                    <span class="canslim-char-desc">Increasing ownership by top-performing mutual funds, FIIs, and DIIs over recent consecutive quarters.</span>
+                                </div>
+                                <div class="canslim-guide-card" style="grid-column: 1 / -1;">
+                                    <strong class="canslim-char-title">M &mdash; Market Direction</strong><br/>
+                                    <span class="canslim-char-desc">Investing in direction of confirmed market trend (Nifty 500 in confirmed rally / Stage 2 uptrend). 3 out of 4 stocks follow market direction.</span>
+                                </div>
+                            </div>
+                        </div>
                     </div>
-                    <div class="screener-filter-selects" style="display: flex; gap: 10px; flex-wrap: wrap;">
-                        <select id="vcp-score-filter" onchange="window.filterVcpCards && window.filterVcpCards()" style="background: rgba(30, 41, 59, 0.8); border: 1px solid rgba(255,255,255,0.12); color: #fff; padding: 8px 14px; border-radius: 8px; font-size: 13px; outline: none; cursor: pointer;">
-                            <option value="ALL">All CANSLIM Scores</option>
-                            <option value="A_PLUS">Grade A+ (Score 80-100)</option>
-                            <option value="GRADE_B">Grade B (Score 65-79)</option>
-                            <option value="GRADE_C">Grade C (Score Below 65)</option>
-                            <option value="65_PLUS">Strong Leaders (Score 65+)</option>
-                        </select>
-                        <select id="vcp-stage-filter" onchange="window.filterVcpCards && window.filterVcpCards()" style="background: rgba(30, 41, 59, 0.8); border: 1px solid rgba(255,255,255,0.12); color: #fff; padding: 8px 14px; border-radius: 8px; font-size: 13px; outline: none; cursor: pointer;">
-                            <option value="ALL">All VCP Stages</option>
+
+                    <!-- Search Controls Bar -->
+                    <div style="display: flex; gap: 14px; margin-bottom: 20px; align-items: center; flex-wrap: wrap;">
+                        <input type="text" id="vcp-search-input" onkeyup="window.filterVcpCards && window.filterVcpCards()" placeholder="Search symbol or name..." style="background: rgba(30, 41, 59, 0.8); border: 1px solid rgba(255,255,255,0.12); color: #fff; padding: 8px 14px; border-radius: 8px; font-size: 13px; flex: 1; min-width: 200px; outline: none; transition: border-color 0.2s;"/>
+                        <select id="vcp-status-filter" onchange="window.filterVcpCards && window.filterVcpCards()" style="background: rgba(30, 41, 59, 0.8); border: 1px solid rgba(255,255,255,0.12); color: #fff; padding: 8px 14px; border-radius: 8px; font-size: 13px; outline: none; cursor: pointer;">
+                            <option value="ALL">All Statuses</option>
                             <option value="READY_PIVOT">🎯 Ready at Pivot</option>
                             <option value="LIVE_BREAKOUT">🚀 Live Breakout</option>
+                            <option value="T3_CONTRACTION">🎯 T3 Contraction</option>
+                            <option value="BELOW_50EMA">📉 Below 50 EMA</option>
                             <option value="FORMING">⏳ Forming Contraction</option>
                         </select>
                         <select id="vcp-sort-filter" onchange="window.filterVcpCards && window.filterVcpCards()" style="background: rgba(30, 41, 59, 0.8); border: 1px solid rgba(255,255,255,0.12); color: #fff; padding: 8px 14px; border-radius: 8px; font-size: 13px; outline: none; cursor: pointer;">
@@ -2175,17 +2179,343 @@
                             <option value="PIVOT_DIST">Sort: Closest to Pivot</option>
                         </select>
                     </div>
+                    <!-- Loading State Container -->
+                    <div id="vcp-loading-container" style="display: none; text-align: center; padding: 60px 20px;">
+                        <div class="spinner" style="border: 4px solid rgba(245, 158, 11, 0.1); border-left-color: #f59e0b; border-radius: 50%; width: 44px; height: 44px; animation: spin 1s linear infinite; margin: 0 auto 16px auto;"></div>
+                        <p style="color: #94a3b8; font-size: 14px; font-weight: 500;">Scanning Nifty Universe for Minervini VCP Patterns & CANSLIM Metrics...</p>
+                    </div>
+
+                    <!-- Cards Grid Container -->
+                    <div id="vcp-cards-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(350px, 1fr)); gap: 20px;">
+                        <!-- VCP Cards dynamically populated by JavaScript -->
+                    </div>
                 </div>
 
-                <!-- Loading State Container -->
-                <div id="vcp-loading-container" style="display: none; text-align: center; padding: 60px 20px;">
-                    <div class="spinner" style="border: 4px solid rgba(245, 158, 11, 0.1); border-left-color: #f59e0b; border-radius: 50%; width: 44px; height: 44px; animation: spin 1s linear infinite; margin: 0 auto 16px auto;"></div>
-                    <p style="color: #94a3b8; font-size: 14px; font-weight: 500;">Scanning Nifty Universe for Minervini VCP Patterns & CANSLIM Metrics...</p>
+                <!-- SUBTAB VIEW 2: STAN WEINSTEIN STAGE 2 BREAKOUT -->
+                <div id="quant-view-weinstein" style="display: none;">
+                    <!-- Hero Header Banner -->
+                    <div class="screener-hero-header no-print" style="margin-bottom: 24px; border-radius: 16px; background: linear-gradient(135deg, rgba(15, 23, 42, 0.95), rgba(30, 41, 59, 0.92), rgba(15, 23, 42, 0.95)); border: 1px solid rgba(56, 189, 248, 0.35); backdrop-filter: blur(20px); padding: 24px 28px; box-shadow: 0 12px 32px -4px rgba(0, 0, 0, 0.5); position: relative; overflow: hidden;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px; position: relative; z-index: 2;">
+                            <div>
+                                <div style="display: inline-flex; align-items: center; gap: 8px; padding: 4px 12px; background: rgba(56, 189, 248, 0.15); border: 1px solid rgba(56, 189, 248, 0.4); border-radius: 20px; font-size: 11px; font-weight: 700; color: #38bdf8; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px;">
+                                    <span>📈 WEINSTEIN 4-STAGE ENGINE</span>
+                                </div>
+                                <h2 style="margin: 0; font-size: 26px; font-weight: 800; color: var(--text-primary);">
+                                    Stan Weinstein Stage 2 Breakout Screener
+                                </h2>
+                                <p style="margin: 6px 0 0 0; color: var(--text-secondary); font-size: 13px; max-width: 680px; line-height: 1.5;">
+                                    Detects stocks breaking out of Stage 1 base-building into explosive Stage 2 advancing trends. Mandates Price &gt; 150-day SMA, 30-week SMA slope &gt; 0, RS &ge; 70 vs Nifty 500, and institutional volume expansion.
+                                </p>
+                            </div>
+                            <div style="display: flex; gap: 10px; align-items: center;">
+                                <button onclick="const b=document.getElementById('weinstein-guide-banner'); b.style.display = b.style.display === 'none' ? 'block' : 'none';" class="btn-secondary" style="padding: 10px 16px; background: rgba(56, 189, 248, 0.15); border: 1px solid #0284c7; border-radius: 10px; color: #38bdf8; font-weight: 800; font-size: 13px; cursor: pointer;">
+                                    💡 Guide
+                                </button>
+                                <button onclick="window.runWeinsteinScan && window.runWeinsteinScan(false, true)" class="btn-primary" style="padding: 10px 20px; background: linear-gradient(135deg, #38bdf8, #0284c7); border: none; border-radius: 10px; color: #fff; font-weight: 700; font-size: 13px; cursor: pointer; box-shadow: 0 4px 14px rgba(56, 189, 248, 0.35);">
+                                    🔄 Run Stage 2 Scan
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- KPI Summary Row -->
+                        <div class="screener-kpi-row" style="display: flex; gap: 16px; margin-top: 20px; flex-wrap: wrap; border-top: 1px solid rgba(255,255,255,0.08); padding-top: 16px;">
+                            <div class="screener-kpi-card" style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(255,255,255,0.08); border-radius: 10px; padding: 10px 16px; flex: 1; min-width: 140px;">
+                                <div style="font-size: 11px; color: #94a3b8; text-transform: uppercase; font-weight: 600;">Total Stage 2 Setups</div>
+                                <div id="weinstein-kpi-total" style="font-size: 20px; font-weight: 800; color: #38bdf8; margin-top: 2px;">--</div>
+                            </div>
+                            <div class="screener-kpi-card" style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(255,255,255,0.08); border-radius: 10px; padding: 10px 16px; flex: 1; min-width: 140px;">
+                                <div style="font-size: 11px; color: #94a3b8; text-transform: uppercase; font-weight: 600;">Stage 2 Breakouts</div>
+                                <div id="weinstein-kpi-breakout" style="font-size: 20px; font-weight: 800; color: #10b981; margin-top: 2px;">--</div>
+                            </div>
+                            <div class="screener-kpi-card" style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(255,255,255,0.08); border-radius: 10px; padding: 10px 16px; flex: 1; min-width: 140px;">
+                                <div style="font-size: 11px; color: #94a3b8; text-transform: uppercase; font-weight: 600;">Stage 2 Advancing</div>
+                                <div id="weinstein-kpi-advancing" style="font-size: 20px; font-weight: 800; color: #fbbf24; margin-top: 2px;">--</div>
+                            </div>
+                            <div class="screener-kpi-card" style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(255,255,255,0.08); border-radius: 10px; padding: 10px 16px; flex: 1; min-width: 140px;">
+                                <div style="font-size: 11px; color: #94a3b8; text-transform: uppercase; font-weight: 600;">Avg Relative Strength</div>
+                                <div id="weinstein-kpi-avg-rs" style="font-size: 20px; font-weight: 800; color: #c084fc; margin-top: 2px;">--</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Collapsible Weinstein Strategy & Attributes Guide Banner -->
+                    <div id="weinstein-guide-banner" class="vcp-guide-banner" style="display: none; margin-bottom: 20px; border-radius: 12px; padding: 16px 20px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                            <strong style="font-size: 14px; font-weight: 800; color: #38bdf8;">📈 Stan Weinstein Stage 2 Strategy & Attribute Definitions</strong>
+                            <button onclick="document.getElementById('weinstein-guide-banner').style.display='none'" style="background: none; border: none; cursor: pointer; font-size: 15px; color: #94a3b8;">✕</button>
+                        </div>
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 10px; font-size: 11.5px; line-height: 1.45;">
+                            <div style="background: rgba(30,41,59,0.5); padding: 10px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.06);">
+                                <strong style="color: #38bdf8;">Price &gt; 150-Day SMA</strong>: Price must trade strictly above its 30-week (150-day) moving average.
+                            </div>
+                            <div style="background: rgba(30,41,59,0.5); padding: 10px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.06);">
+                                <strong style="color: #38bdf8;">30-Week SMA Slope &gt; 0</strong>: Moving average slope must be positive over the past 20 sessions (upward angle).
+                            </div>
+                            <div style="background: rgba(30,41,59,0.5); padding: 10px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.06);">
+                                <strong style="color: #38bdf8;">Relative Strength (RS) &ge; 70</strong>: Stock's 12-month performance relative to Nifty 500 benchmark must be in top 30 percentile.
+                            </div>
+                            <div style="background: rgba(30,41,59,0.5); padding: 10px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.06);">
+                                <strong style="color: #38bdf8;">Volume Surge</strong>: Breakouts require &gt;1.5x average volume expansion on breakout bar.
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Search Controls Bar -->
+                    <div style="display: flex; gap: 14px; margin-bottom: 20px; align-items: center; flex-wrap: wrap;">
+                        <input type="text" id="weinstein-search-input" onkeyup="window.filterWeinsteinTable && window.filterWeinsteinTable()" placeholder="Search symbol or name..." style="background: rgba(30, 41, 59, 0.8); border: 1px solid rgba(255,255,255,0.12); color: #fff; padding: 8px 14px; border-radius: 8px; font-size: 13px; flex: 1; min-width: 200px; outline: none;"/>
+                        <select id="weinstein-status-filter" onchange="window.filterWeinsteinTable && window.filterWeinsteinTable()" style="background: rgba(30, 41, 59, 0.8); border: 1px solid rgba(255,255,255,0.12); color: #fff; padding: 8px 14px; border-radius: 8px; font-size: 13px; outline: none; cursor: pointer;">
+                            <option value="ALL">All Stage 2 Setups</option>
+                            <option value="STAGE_2_BREAKOUT">🚀 Stage 2 Breakouts</option>
+                            <option value="STAGE_2_ADVANCING">📈 Stage 2 Advancing</option>
+                        </select>
+                    </div>
+
+                    <!-- Loading Container -->
+                    <div id="weinstein-loading-container" style="display: none; text-align: center; padding: 60px 20px;">
+                        <div class="spinner" style="border: 4px solid rgba(56, 189, 248, 0.1); border-left-color: #38bdf8; border-radius: 50%; width: 44px; height: 44px; animation: spin 1s linear infinite; margin: 0 auto 16px auto;"></div>
+                        <p style="color: #94a3b8; font-size: 14px; font-weight: 500;">Scanning Nifty Universe for Stan Weinstein Stage 2 Breakouts...</p>
+                    </div>
+
+                    <!-- Quant Table Container -->
+                    <div class="quant-table-wrapper">
+                        <table class="quant-table" id="weinstein-table">
+                            <thead>
+                                <tr>
+                                    <th>Symbol</th>
+                                    <th>Price (₹)</th>
+                                    <th>Day %</th>
+                                    <th>150-Day SMA</th>
+                                    <th>Dist from SMA</th>
+                                    <th>SMA Slope</th>
+                                    <th>RS Rating</th>
+                                    <th>Stage Status</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="weinstein-table-body">
+                                <tr><td colspan="9" style="text-align:center; padding: 30px; color: #94a3b8;">Click 'Run Stage 2 Scan' to load results.</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
 
-                <!-- Cards Grid Container -->
-                <div id="vcp-cards-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(350px, 1fr)); gap: 20px;">
-                    <!-- VCP Cards dynamically populated by JavaScript -->
+                <!-- SUBTAB VIEW 3: DAVID RYAN HIGH-TIGHT FLAG -->
+                <div id="quant-view-htf" style="display: none;">
+                    <!-- Hero Header Banner -->
+                    <div class="screener-hero-header no-print" style="margin-bottom: 24px; border-radius: 16px; background: linear-gradient(135deg, rgba(15, 23, 42, 0.95), rgba(30, 41, 59, 0.92), rgba(15, 23, 42, 0.95)); border: 1px solid rgba(192, 132, 252, 0.35); backdrop-filter: blur(20px); padding: 24px 28px; box-shadow: 0 12px 32px -4px rgba(0, 0, 0, 0.5); position: relative; overflow: hidden;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px; position: relative; z-index: 2;">
+                            <div>
+                                <div style="display: inline-flex; align-items: center; gap: 8px; padding: 4px 12px; background: rgba(192, 132, 252, 0.15); border: 1px solid rgba(192, 132, 252, 0.4); border-radius: 20px; font-size: 11px; font-weight: 700; color: #c084fc; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px;">
+                                    <span>🚀 DAVID RYAN MOMENTUM ENGINE</span>
+                                </div>
+                                <h2 style="margin: 0; font-size: 26px; font-weight: 800; color: var(--text-primary);">
+                                    David Ryan High-Tight Flag (HTF) Screener
+                                </h2>
+                                <p style="margin: 6px 0 0 0; color: var(--text-secondary); font-size: 13px; max-width: 680px; line-height: 1.5;">
+                                    Detects rare high-velocity stocks that double in price (+100%+ gain) within 4 to 8 weeks, followed by a tight flag pullback (&le;25% depth) over 3 to 5 weeks with Volume Dry-Up (VDU).
+                                </p>
+                            </div>
+                            <div style="display: flex; gap: 10px; align-items: center;">
+                                <button onclick="const b=document.getElementById('htf-guide-banner'); b.style.display = b.style.display === 'none' ? 'block' : 'none';" class="btn-secondary" style="padding: 10px 16px; background: rgba(192, 132, 252, 0.15); border: 1px solid #9333ea; border-radius: 10px; color: #c084fc; font-weight: 800; font-size: 13px; cursor: pointer;">
+                                    💡 Guide
+                                </button>
+                                <button onclick="window.runHtfScan && window.runHtfScan(false, true)" class="btn-primary" style="padding: 10px 20px; background: linear-gradient(135deg, #c084fc, #9333ea); border: none; border-radius: 10px; color: #fff; font-weight: 700; font-size: 13px; cursor: pointer; box-shadow: 0 4px 14px rgba(192, 132, 252, 0.35);">
+                                    🔄 Run HTF Scan
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- KPI Summary Row -->
+                        <div class="screener-kpi-row" style="display: flex; gap: 16px; margin-top: 20px; flex-wrap: wrap; border-top: 1px solid rgba(255,255,255,0.08); padding-top: 16px;">
+                            <div class="screener-kpi-card" style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(255,255,255,0.08); border-radius: 10px; padding: 10px 16px; flex: 1; min-width: 140px;">
+                                <div style="font-size: 11px; color: #94a3b8; text-transform: uppercase; font-weight: 600;">Total HTF Setups</div>
+                                <div id="htf-kpi-total" style="font-size: 20px; font-weight: 800; color: #c084fc; margin-top: 2px;">--</div>
+                            </div>
+                            <div class="screener-kpi-card" style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(255,255,255,0.08); border-radius: 10px; padding: 10px 16px; flex: 1; min-width: 140px;">
+                                <div style="font-size: 11px; color: #94a3b8; text-transform: uppercase; font-weight: 600;">Ready at Flag Top</div>
+                                <div id="htf-kpi-ready" style="font-size: 20px; font-weight: 800; color: #10b981; margin-top: 2px;">--</div>
+                            </div>
+                            <div class="screener-kpi-card" style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(255,255,255,0.08); border-radius: 10px; padding: 10px 16px; flex: 1; min-width: 140px;">
+                                <div style="font-size: 11px; color: #94a3b8; text-transform: uppercase; font-weight: 600;">Live Flag Breakouts</div>
+                                <div id="htf-kpi-breakout" style="font-size: 20px; font-weight: 800; color: #38bdf8; margin-top: 2px;">--</div>
+                            </div>
+                            <div class="screener-kpi-card" style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(255,255,255,0.08); border-radius: 10px; padding: 10px 16px; flex: 1; min-width: 140px;">
+                                <div style="font-size: 11px; color: #94a3b8; text-transform: uppercase; font-weight: 600;">Avg Pole Gain</div>
+                                <div id="htf-kpi-avg-pole" style="font-size: 20px; font-weight: 800; color: #fbbf24; margin-top: 2px;">--</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Collapsible HTF Strategy & Attributes Guide Banner -->
+                    <div id="htf-guide-banner" class="vcp-guide-banner" style="display: none; margin-bottom: 20px; border-radius: 12px; padding: 16px 20px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                            <strong style="font-size: 14px; font-weight: 800; color: #c084fc;">🚀 High-Tight Flag Strategy & Attribute Definitions</strong>
+                            <button onclick="document.getElementById('htf-guide-banner').style.display='none'" style="background: none; border: none; cursor: pointer; font-size: 15px; color: #94a3b8;">✕</button>
+                        </div>
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 10px; font-size: 11.5px; line-height: 1.45;">
+                            <div style="background: rgba(30,41,59,0.5); padding: 10px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.06);">
+                                <strong style="color: #c084fc;">Power Pole Gain (+100%+)</strong>: Explosive price advance doubling in price within 4 to 8 weeks.
+                            </div>
+                            <div style="background: rgba(30,41,59,0.5); padding: 10px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.06);">
+                                <strong style="color: #c084fc;">Flag Pullback Depth (&le; 25%)</strong>: Tight consolidation depth from peak level without giving up major gains.
+                            </div>
+                            <div style="background: rgba(30,41,59,0.5); padding: 10px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.06);">
+                                <strong style="color: #c084fc;">Flag Duration (3 - 5 Weeks)</strong>: Consolidation period lasting 15 to 25 trading sessions.
+                            </div>
+                            <div style="background: rgba(30,41,59,0.5); padding: 10px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.06);">
+                                <strong style="color: #c084fc;">Volume Dry-Up (VDU &le; 0.8x)</strong>: Trading volume shrinks dramatically during flag base creation.
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Search Controls Bar -->
+                    <div style="display: flex; gap: 14px; margin-bottom: 20px; align-items: center; flex-wrap: wrap;">
+                        <input type="text" id="htf-search-input" onkeyup="window.filterHtfTable && window.filterHtfTable()" placeholder="Search symbol or name..." style="background: rgba(30, 41, 59, 0.8); border: 1px solid rgba(255,255,255,0.12); color: #fff; padding: 8px 14px; border-radius: 8px; font-size: 13px; flex: 1; min-width: 200px; outline: none;"/>
+                        <select id="htf-status-filter" onchange="window.filterHtfTable && window.filterHtfTable()" style="background: rgba(30, 41, 59, 0.8); border: 1px solid rgba(255,255,255,0.12); color: #fff; padding: 8px 14px; border-radius: 8px; font-size: 13px; outline: none; cursor: pointer;">
+                            <option value="ALL">All HTF Setups</option>
+                            <option value="HTF_READY">🎯 Ready at Flag Top</option>
+                            <option value="HTF_BREAKOUT">🚀 Live Flag Breakouts</option>
+                            <option value="HTF_FORMING">⏳ Flag Forming</option>
+                        </select>
+                    </div>
+
+                    <!-- Loading Container -->
+                    <div id="htf-loading-container" style="display: none; text-align: center; padding: 60px 20px;">
+                        <div class="spinner" style="border: 4px solid rgba(192, 132, 252, 0.1); border-left-color: #c084fc; border-radius: 50%; width: 44px; height: 44px; animation: spin 1s linear infinite; margin: 0 auto 16px auto;"></div>
+                        <p style="color: #94a3b8; font-size: 14px; font-weight: 500;">Scanning Nifty Universe for David Ryan High-Tight Flags...</p>
+                    </div>
+
+                    <!-- Quant Table Container -->
+                    <div class="quant-table-wrapper">
+                        <table class="quant-table" id="htf-table">
+                            <thead>
+                                <tr>
+                                    <th>Symbol</th>
+                                    <th>Price (₹)</th>
+                                    <th>Day %</th>
+                                    <th>Pole Gain %</th>
+                                    <th>Flag Depth %</th>
+                                    <th>Flag Weeks</th>
+                                    <th>VDU Ratio</th>
+                                    <th>Flag Buy Pivot</th>
+                                    <th>Status</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="htf-table-body">
+                                <tr><td colspan="10" style="text-align:center; padding: 30px; color: #94a3b8;">Click 'Run HTF Scan' to load results.</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- SUBTAB VIEW 4: DAVID RYAN 3-WEEKS TIGHT -->
+                <div id="quant-view-3wt" style="display: none;">
+                    <!-- Hero Header Banner -->
+                    <div class="screener-hero-header no-print" style="margin-bottom: 24px; border-radius: 16px; background: linear-gradient(135deg, rgba(15, 23, 42, 0.95), rgba(30, 41, 59, 0.92), rgba(15, 23, 42, 0.95)); border: 1px solid rgba(45, 212, 191, 0.35); backdrop-filter: blur(20px); padding: 24px 28px; box-shadow: 0 12px 32px -4px rgba(0, 0, 0, 0.5); position: relative; overflow: hidden;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px; position: relative; z-index: 2;">
+                            <div>
+                                <div style="display: inline-flex; align-items: center; gap: 8px; padding: 4px 12px; background: rgba(45, 212, 191, 0.15); border: 1px solid rgba(45, 212, 191, 0.4); border-radius: 20px; font-size: 11px; font-weight: 700; color: #2dd4bf; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px;">
+                                    <span>🎯 DAVID RYAN CONSOLIDATION ENGINE</span>
+                                </div>
+                                <h2 style="margin: 0; font-size: 26px; font-weight: 800; color: var(--text-primary);">
+                                    David Ryan 3-Weeks Tight (3WT) Screener
+                                </h2>
+                                <p style="margin: 6px 0 0 0; color: var(--text-secondary); font-size: 13px; max-width: 680px; line-height: 1.5;">
+                                    Detects high-conviction continuation entries where 3 consecutive weekly closing prices remain within an ultra-tight &le;2.0% range during a strong Stage 2 uptrend.
+                                </p>
+                            </div>
+                            <div style="display: flex; gap: 10px; align-items: center;">
+                                <button onclick="const b=document.getElementById('three-wt-guide-banner'); b.style.display = b.style.display === 'none' ? 'block' : 'none';" class="btn-secondary" style="padding: 10px 16px; background: rgba(45, 212, 191, 0.15); border: 1px solid #0d9488; border-radius: 10px; color: #2dd4bf; font-weight: 800; font-size: 13px; cursor: pointer;">
+                                    💡 Guide
+                                </button>
+                                <button onclick="window.run3wtScan && window.run3wtScan(false, true)" class="btn-primary" style="padding: 10px 20px; background: linear-gradient(135deg, #2dd4bf, #0d9488); border: none; border-radius: 10px; color: #fff; font-weight: 700; font-size: 13px; cursor: pointer; box-shadow: 0 4px 14px rgba(45, 212, 191, 0.35);">
+                                    🔄 Run 3WT Scan
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- KPI Summary Row -->
+                        <div class="screener-kpi-row" style="display: flex; gap: 16px; margin-top: 20px; flex-wrap: wrap; border-top: 1px solid rgba(255,255,255,0.08); padding-top: 16px;">
+                            <div class="screener-kpi-card" style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(255,255,255,0.08); border-radius: 10px; padding: 10px 16px; flex: 1; min-width: 140px;">
+                                <div style="font-size: 11px; color: #94a3b8; text-transform: uppercase; font-weight: 600;">Total 3WT Setups</div>
+                                <div id="three-wt-kpi-total" style="font-size: 20px; font-weight: 800; color: #2dd4bf; margin-top: 2px;">--</div>
+                            </div>
+                            <div class="screener-kpi-card" style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(255,255,255,0.08); border-radius: 10px; padding: 10px 16px; flex: 1; min-width: 140px;">
+                                <div style="font-size: 11px; color: #94a3b8; text-transform: uppercase; font-weight: 600;">Ready for Breakout</div>
+                                <div id="three-wt-kpi-ready" style="font-size: 20px; font-weight: 800; color: #10b981; margin-top: 2px;">--</div>
+                            </div>
+                            <div class="screener-kpi-card" style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(255,255,255,0.08); border-radius: 10px; padding: 10px 16px; flex: 1; min-width: 140px;">
+                                <div style="font-size: 11px; color: #94a3b8; text-transform: uppercase; font-weight: 600;">Avg Tightness Range</div>
+                                <div id="three-wt-kpi-avg-tightness" style="font-size: 20px; font-weight: 800; color: #fbbf24; margin-top: 2px;">--</div>
+                            </div>
+                            <div class="screener-kpi-card" style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(255,255,255,0.08); border-radius: 10px; padding: 10px 16px; flex: 1; min-width: 140px;">
+                                <div style="font-size: 11px; color: #94a3b8; text-transform: uppercase; font-weight: 600;">RS Rating &ge; 80</div>
+                                <div id="three-wt-kpi-high-rs" style="font-size: 20px; font-weight: 800; color: #c084fc; margin-top: 2px;">--</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Collapsible 3WT Strategy & Attributes Guide Banner -->
+                    <div id="three-wt-guide-banner" class="vcp-guide-banner" style="display: none; margin-bottom: 20px; border-radius: 12px; padding: 16px 20px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                            <strong style="font-size: 14px; font-weight: 800; color: #2dd4bf;">🎯 3-Weeks Tight Strategy & Attribute Definitions</strong>
+                            <button onclick="document.getElementById('three-wt-guide-banner').style.display='none'" style="background: none; border: none; cursor: pointer; font-size: 15px; color: #94a3b8;">✕</button>
+                        </div>
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 10px; font-size: 11.5px; line-height: 1.45;">
+                            <div style="background: rgba(30,41,59,0.5); padding: 10px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.06);">
+                                <strong style="color: #2dd4bf;">3 Consecutive Weekly Closes</strong>: Close price variation over 3 consecutive weeks is &le; 2.0%.
+                            </div>
+                            <div style="background: rgba(30,41,59,0.5); padding: 10px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.06);">
+                                <strong style="color: #2dd4bf;">Stage 2 Trend Context</strong>: Price must sit cleanly above 50 EMA and 200 EMA.
+                            </div>
+                            <div style="background: rgba(30,41,59,0.5); padding: 10px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.06);">
+                                <strong style="color: #2dd4bf;">Institutional Hold</strong>: Institutional buyers refuse to sell below the tight range.
+                            </div>
+                            <div style="background: rgba(30,41,59,0.5); padding: 10px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.06);">
+                                <strong style="color: #2dd4bf;">Breakout Buy Pivot</strong>: Buy trigger level set above the highest price of the 3-week tight range.
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Search Controls Bar -->
+                    <div style="display: flex; gap: 14px; margin-bottom: 20px; align-items: center; flex-wrap: wrap;">
+                        <input type="text" id="three-wt-search-input" onkeyup="window.filter3wtTable && window.filter3wtTable()" placeholder="Search symbol or name..." style="background: rgba(30, 41, 59, 0.8); border: 1px solid rgba(255,255,255,0.12); color: #fff; padding: 8px 14px; border-radius: 8px; font-size: 13px; flex: 1; min-width: 200px; outline: none;"/>
+                        <select id="three-wt-status-filter" onchange="window.filter3wtTable && window.filter3wtTable()" style="background: rgba(30, 41, 59, 0.8); border: 1px solid rgba(255,255,255,0.12); color: #fff; padding: 8px 14px; border-radius: 8px; font-size: 13px; outline: none; cursor: pointer;">
+                            <option value="ALL">All 3WT Setups</option>
+                            <option value="3WT_READY">🎯 Ready at Pivot</option>
+                            <option value="3WT_BREAKOUT">🚀 Live 3WT Breakout</option>
+                        </select>
+                    </div>
+
+                    <!-- Loading Container -->
+                    <div id="three-wt-loading-container" style="display: none; text-align: center; padding: 60px 20px;">
+                        <div class="spinner" style="border: 4px solid rgba(45, 212, 191, 0.1); border-left-color: #2dd4bf; border-radius: 50%; width: 44px; height: 44px; animation: spin 1s linear infinite; margin: 0 auto 16px auto;"></div>
+                        <p style="color: #94a3b8; font-size: 14px; font-weight: 500;">Scanning Nifty Universe for David Ryan 3-Weeks Tight Setups...</p>
+                    </div>
+
+                    <!-- Quant Table Container -->
+                    <div class="quant-table-wrapper">
+                        <table class="quant-table" id="three-wt-table">
+                            <thead>
+                                <tr>
+                                    <th>Symbol</th>
+                                    <th>Price (₹)</th>
+                                    <th>Day %</th>
+                                    <th>Tightness Range %</th>
+                                    <th>W1 Close</th>
+                                    <th>W2 Close</th>
+                                    <th>W3 Close</th>
+                                    <th>RS Rating</th>
+                                    <th>Buy Pivot</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="three-wt-table-body">
+                                <tr><td colspan="10" style="text-align:center; padding: 30px; color: #94a3b8;">Click 'Run 3WT Scan' to load results.</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             </section>
 

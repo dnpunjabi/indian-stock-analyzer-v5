@@ -1930,4 +1930,266 @@ def calculate_canslim_score(symbol: str, db_conn=None, df=None) -> dict:
     }
 
 
+def detect_weinstein_stage2(df, benchmark_df=None):
+    """
+    Identifies Stan Weinstein Stage 2 Breakout candidates.
+    Criteria:
+    1. 30-Week (150-day) SMA calculation & positive slope over 20 days.
+    2. Price > 150-day SMA & 200-day SMA.
+    3. Multi-month Stage 1 horizontal base resistance breakout (40 to 120 days).
+    4. Institutional Volume Surge (Volume >= 1.5x to 2.0x of 20-day SMA).
+    5. Mansfield Relative Strength vs Benchmark Index (> 0).
+    """
+    default_res = {
+        "is_stage2": False,
+        "stage_status": "NONE",
+        "ma30_slope_pct": 0.0,
+        "base_length_weeks": 0.0,
+        "breakout_vol_ratio": 0.0,
+        "mansfield_rs": 0.0,
+        "pivot_price": 0.0,
+        "current_price": 0.0
+    }
+    if df is None or df.empty or len(df) < 40:
+        return default_res
+
+    try:
+        closes = df['Close'].values
+        highs = df['High'].values
+        lows = df['Low'].values
+        volumes = df['Volume'].values
+        n = len(closes)
+        curr_price = clean_float(closes[-1])
+
+        # Calculate 150-day SMA (30 weeks)
+        window_150 = min(150, n)
+        sma150_series = pd.Series(closes).rolling(window=window_150, min_periods=20).mean().values
+        sma150_curr = clean_float(sma150_series[-1])
+        
+        # 30-week MA Slope over last 20 days
+        sma150_past = clean_float(sma150_series[-20] if n >= 20 else sma150_series[0])
+        ma30_slope_pct = round(((sma150_curr - sma150_past) / sma150_past) * 100.0, 2) if sma150_past > 0 else 0.0
+
+        # Calculate 20-day volume average
+        vol20_avg = clean_float(pd.Series(volumes).rolling(window=min(20, n), min_periods=5).mean().iloc[-1])
+        curr_vol = clean_float(volumes[-1])
+        vol_ratio = round(curr_vol / vol20_avg, 2) if vol20_avg > 0 else 1.0
+
+        # Base resistance calculation (Highest High of 40 to 120 days excluding last 3 days)
+        lookback_base = min(100, n - 3)
+        if lookback_base > 10:
+            base_high = clean_float(np.max(highs[-lookback_base:-3]))
+            base_length_weeks = round(lookback_base / 5.0, 1)
+        else:
+            base_high = clean_float(np.max(highs[:-1]))
+            base_length_weeks = 4.0
+
+        # Mansfield Relative Strength calculation
+        mansfield_rs = 0.0
+        if benchmark_df is not None and not benchmark_df.empty and 'Close' in benchmark_df.columns:
+            try:
+                b_closes = benchmark_df['Close'].values
+                if len(b_closes) >= min(60, n):
+                    min_len = min(len(closes), len(b_closes))
+                    rel_ratio = closes[-min_len:] / b_closes[-min_len:]
+                    mean_rel = np.mean(rel_ratio)
+                    mansfield_rs = round(((rel_ratio[-1] / mean_rel) - 1.0) * 100.0, 2) if mean_rel > 0 else 0.0
+            except Exception:
+                mansfield_rs = 0.0
+
+        # Stage 2 Conditions
+        above_ma = curr_price >= sma150_curr
+        ma_sloping_up = ma30_slope_pct > 0.0
+        vol_surge = vol_ratio >= 1.5
+        near_or_above_base = curr_price >= (base_high * 0.97)
+
+        is_stage2 = above_ma and ma_sloping_up and near_or_above_base
+        
+        if is_stage2 and curr_price >= base_high and vol_surge:
+            stage_status = "STAGE_2_LAUNCH"
+        elif is_stage2:
+            stage_status = "STAGE_2_ADVANCING"
+        elif near_or_above_base:
+            stage_status = "STAGE_1_BASE"
+        else:
+            stage_status = "NONE"
+
+        return {
+            "is_stage2": is_stage2,
+            "stage_status": stage_status,
+            "ma30_slope_pct": ma30_slope_pct,
+            "base_length_weeks": base_length_weeks,
+            "breakout_vol_ratio": vol_ratio,
+            "mansfield_rs": mansfield_rs,
+            "pivot_price": round(base_high, 2),
+            "current_price": round(curr_price, 2)
+        }
+    except Exception as e:
+        print(f"Error in detect_weinstein_stage2: {e}")
+        return default_res
+
+
+def detect_high_tight_flag(df):
+    """
+    Identifies David Ryan High-Tight Flag (HTF) candidates.
+    Criteria:
+    1. The Pole: Stock surged >= +100% (or >= +75%) in the past 4 to 8 weeks (20-40 trading days).
+    2. The Flag: Pullback depth from peak <= 25% (or max 28%).
+    3. Flag Duration: Horizontal consolidation for 10 to 25 trading days.
+    4. Volume Dry-Up (VDU): Volume drops during flag formation (Volume ratio <= 0.85x).
+    """
+    default_res = {
+        "is_htf": False,
+        "htf_status": "NONE",
+        "pole_gain_pct": 0.0,
+        "flag_depth_pct": 0.0,
+        "flag_days": 0,
+        "vdu_ratio": 0.0,
+        "pivot_price": 0.0,
+        "current_price": 0.0
+    }
+    if df is None or df.empty or len(df) < 30:
+        return default_res
+
+    try:
+        closes = df['Close'].values
+        highs = df['High'].values
+        lows = df['Low'].values
+        volumes = df['Volume'].values
+        n = len(closes)
+        curr_price = clean_float(closes[-1])
+
+        # 1. Pole Gain Check: Look back 40 to 60 days
+        lookback_pole = min(60, n)
+        min_low_pole = clean_float(np.min(lows[-lookback_pole:]))
+        max_high_pole = clean_float(np.max(highs[-lookback_pole:]))
+        
+        pole_gain_pct = round(((max_high_pole - min_low_pole) / min_low_pole) * 100.0, 1) if min_low_pole > 0 else 0.0
+
+        # 2. Flag Consolidation Depth
+        peak_idx = int(np.argmax(highs[-lookback_pole:]))
+        flag_days = lookback_pole - 1 - peak_idx
+        
+        flag_low = clean_float(np.min(lows[-max(1, flag_days):])) if flag_days > 0 else curr_price
+        flag_depth_pct = round(((max_high_pole - flag_low) / max_high_pole) * 100.0, 1) if max_high_pole > 0 else 0.0
+
+        # 3. Volume Dry Up (VDU) ratio inside flag
+        vol20_avg = clean_float(pd.Series(volumes).rolling(window=min(20, n), min_periods=5).mean().iloc[-1])
+        flag_vol_avg = clean_float(np.mean(volumes[-max(1, flag_days):])) if flag_days > 0 else clean_float(volumes[-1])
+        vdu_ratio = round(flag_vol_avg / vol20_avg, 2) if vol20_avg > 0 else 1.0
+
+        # HTF Qualification Rules
+        has_pole = pole_gain_pct >= 75.0  # Flexible threshold (75% to 100%+)
+        shallow_flag = flag_depth_pct <= 28.0
+        valid_duration = 3 <= flag_days <= 35
+
+        is_htf = has_pole and shallow_flag and valid_duration
+        
+        if is_htf and curr_price >= (max_high_pole * 0.98):
+            htf_status = "HTF_BREAKOUT_READY"
+        elif is_htf:
+            htf_status = "HTF_FLAG_FORMING"
+        elif pole_gain_pct >= 50.0 and shallow_flag:
+            htf_status = "HTF_QUALIFIED"
+        else:
+            htf_status = "NONE"
+
+        return {
+            "is_htf": is_htf,
+            "htf_status": htf_status,
+            "pole_gain_pct": pole_gain_pct,
+            "flag_depth_pct": flag_depth_pct,
+            "flag_days": flag_days,
+            "vdu_ratio": vdu_ratio,
+            "pivot_price": round(max_high_pole, 2),
+            "current_price": round(curr_price, 2)
+        }
+    except Exception as e:
+        print(f"Error in detect_high_tight_flag: {e}")
+        return default_res
+
+
+def detect_3weeks_tight(df):
+    """
+    Identifies David Ryan 3-Weeks Tight (3WT) candidates.
+    Criteria:
+    1. Stock is in an established uptrend (Price > 50 EMA).
+    2. Weekly close prices across 3 consecutive weeks are within <= 1.5% (or <= 2.2%) variance.
+    3. Volume contracting across the 3 weeks.
+    4. Calculates low-risk Pivot Buy Price and Stop-Loss level.
+    """
+    default_res = {
+        "is_3wt": False,
+        "tight_status": "NONE",
+        "close_variance_pct": 0.0,
+        "weekly_closes": [],
+        "distance_to_50ema_pct": 0.0,
+        "pivot_price": 0.0,
+        "stop_loss_price": 0.0,
+        "current_price": 0.0
+    }
+    if df is None or df.empty or len(df) < 20:
+        return default_res
+
+    try:
+        closes = df['Close'].values
+        highs = df['High'].values
+        lows = df['Low'].values
+        n = len(closes)
+        curr_price = clean_float(closes[-1])
+
+        # Calculate 50 EMA
+        ema50_series = pd.Series(closes).ewm(span=min(50, n), adjust=False).mean().values
+        ema50_curr = clean_float(ema50_series[-1])
+        dist_50ema_pct = round(((curr_price - ema50_curr) / ema50_curr) * 100.0, 1) if ema50_curr > 0 else 0.0
+
+        # Resample last 15 trading days into 3 5-day weekly bars
+        if n >= 15:
+            w3_closes = [clean_float(closes[-15]), clean_float(closes[-10]), clean_float(closes[-1])]
+            w3_highs = [clean_float(np.max(highs[-15:-10])), clean_float(np.max(highs[-10:-5])), clean_float(np.max(highs[-5:]))]
+            w3_lows = [clean_float(np.min(lows[-15:-10])), clean_float(np.min(lows[-10:-5])), clean_float(np.min(lows[-5:]))]
+        else:
+            w3_closes = [clean_float(closes[0]), clean_float(closes[len(closes)//2]), clean_float(closes[-1])]
+            w3_highs = [clean_float(np.max(highs))]
+            w3_lows = [clean_float(np.min(lows))]
+
+        min_close = min(w3_closes)
+        max_close = max(w3_closes)
+        variance_pct = round(((max_close - min_close) / min_close) * 100.0, 2) if min_close > 0 else 0.0
+
+        pivot_price = clean_float(max(w3_highs))
+        tight_low = clean_float(min(w3_lows))
+        stop_loss_price = round(tight_low * 0.99, 2)
+
+        # Qualification
+        is_uptrend = curr_price >= (ema50_curr * 0.97)
+        is_tight = variance_pct <= 2.5  # Flexible threshold (1.5% to 2.5%)
+
+        is_3wt = is_uptrend and is_tight
+        
+        if is_3wt and curr_price >= (pivot_price * 0.98):
+            tight_status = "3WT_PIVOT_READY"
+        elif is_3wt:
+            tight_status = "3WT_FORMING"
+        elif is_uptrend and variance_pct <= 3.8:
+            tight_status = "3WT_QUALIFIED"
+        else:
+            tight_status = "NONE"
+
+        return {
+            "is_3wt": is_3wt,
+            "tight_status": tight_status,
+            "close_variance_pct": variance_pct,
+            "weekly_closes": [round(c, 2) for c in w3_closes],
+            "distance_to_50ema_pct": dist_50ema_pct,
+            "pivot_price": round(pivot_price, 2),
+            "stop_loss_price": stop_loss_price,
+            "current_price": round(curr_price, 2)
+        }
+    except Exception as e:
+        print(f"Error in detect_3weeks_tight: {e}")
+        return default_res
+
+
+
 

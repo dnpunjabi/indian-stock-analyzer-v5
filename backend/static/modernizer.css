@@ -1974,3 +1974,238 @@ body.light-theme .vcp-guide-sub-divider,
     border-top: 1px solid #e2e8f0 !important;
 }
 
+/* ==========================================================================
+   QUANTITATIVE SCANNER SUBTABS & TABLES DESIGN SYSTEM
+   ========================================================================== */
+.quant-subtabs-bar {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 20px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    padding-bottom: 10px;
+    overflow-x: auto;
+    scrollbar-width: thin;
+}
+
+.quant-subtab-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 18px;
+    border-radius: 12px;
+    font-family: 'Outfit', 'Inter', sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+    color: #94a3b8;
+    background: rgba(15, 23, 42, 0.6);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    cursor: pointer;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    white-space: nowrap;
+}
+
+.quant-subtab-btn:hover {
+    color: #f8fafc;
+    background: rgba(30, 41, 59, 0.8);
+    border-color: rgba(255, 255, 255, 0.2);
+    transform: translateY(-1px);
+}
+
+.quant-subtab-btn.active#quant-subtab-vcp {
+    color: #fbbf24;
+    background: rgba(245, 158, 11, 0.15);
+    border-color: rgba(245, 158, 11, 0.5);
+    box-shadow: 0 4px 14px rgba(245, 158, 11, 0.2);
+}
+
+.quant-subtab-btn.active#quant-subtab-weinstein {
+    color: #38bdf8;
+    background: rgba(56, 189, 248, 0.15);
+    border-color: rgba(56, 189, 248, 0.5);
+    box-shadow: 0 4px 14px rgba(56, 189, 248, 0.2);
+}
+
+.quant-subtab-btn.active#quant-subtab-htf {
+    color: #c084fc;
+    background: rgba(192, 132, 252, 0.15);
+    border-color: rgba(192, 132, 252, 0.5);
+    box-shadow: 0 4px 14px rgba(192, 132, 252, 0.2);
+}
+
+.quant-subtab-btn.active#quant-subtab-3wt {
+    color: #2dd4bf;
+    background: rgba(45, 212, 191, 0.15);
+    border-color: rgba(45, 212, 191, 0.5);
+    box-shadow: 0 4px 14px rgba(45, 212, 191, 0.2);
+}
+
+/* Custom Table Controls & Styles */
+.quant-table-wrapper {
+    width: 100%;
+    overflow-x: auto;
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    background: rgba(15, 23, 42, 0.7);
+    box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.5);
+}
+
+.quant-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+    text-align: left;
+    color: #e2e8f0;
+}
+
+.quant-table th {
+    padding: 12px 16px;
+    background: rgba(30, 41, 59, 0.9);
+    color: #94a3b8;
+    font-size: 11px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    white-space: nowrap;
+}
+
+.quant-table td {
+    padding: 12px 16px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    white-space: nowrap;
+}
+
+.quant-table tbody tr {
+    transition: background 0.15s ease;
+}
+
+.quant-table tbody tr:hover {
+    background: rgba(30, 41, 59, 0.6);
+}
+
+/* Badge Styles */
+.badge-quant {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 3px 8px;
+    border-radius: 6px;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+}
+
+.badge-quant-green {
+    background: rgba(16, 185, 129, 0.15);
+    color: #34d399;
+    border: 1px solid rgba(16, 185, 129, 0.3);
+}
+
+.badge-quant-blue {
+    background: rgba(56, 189, 248, 0.15);
+    color: #38bdf8;
+    border: 1px solid rgba(56, 189, 248, 0.3);
+}
+
+.badge-quant-purple {
+    background: rgba(192, 132, 252, 0.15);
+    color: #c084fc;
+    border: 1px solid rgba(192, 132, 252, 0.3);
+}
+
+.badge-quant-teal {
+    background: rgba(45, 212, 191, 0.15);
+    color: #2dd4bf;
+    border: 1px solid rgba(45, 212, 191, 0.3);
+}
+
+/* Light Theme Support for Quantitative Scanner Components */
+body.light-theme .quant-subtabs-bar,
+[data-theme="light"] .quant-subtabs-bar,
+[data-mode="light"] .quant-subtabs-bar {
+    border-bottom-color: #cbd5e1 !important;
+}
+
+body.light-theme .quant-subtab-btn,
+[data-theme="light"] .quant-subtab-btn,
+[data-mode="light"] .quant-subtab-btn {
+    background: #ffffff !important;
+    border: 1px solid #cbd5e1 !important;
+    color: #475569 !important;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+body.light-theme .quant-subtab-btn:hover,
+[data-theme="light"] .quant-subtab-btn:hover,
+[data-mode="light"] .quant-subtab-btn:hover {
+    background: #f1f5f9 !important;
+    color: #0f172a !important;
+}
+
+body.light-theme .quant-subtab-btn.active#quant-subtab-vcp,
+[data-theme="light"] .quant-subtab-btn.active#quant-subtab-vcp,
+[data-mode="light"] .quant-subtab-btn.active#quant-subtab-vcp {
+    background: #fef3c7 !important;
+    border-color: #d97706 !important;
+    color: #b45309 !important;
+}
+
+body.light-theme .quant-subtab-btn.active#quant-subtab-weinstein,
+[data-theme="light"] .quant-subtab-btn.active#quant-subtab-weinstein,
+[data-mode="light"] .quant-subtab-btn.active#quant-subtab-weinstein {
+    background: #e0f2fe !important;
+    border-color: #0284c7 !important;
+    color: #0369a1 !important;
+}
+
+body.light-theme .quant-subtab-btn.active#quant-subtab-htf,
+[data-theme="light"] .quant-subtab-btn.active#quant-subtab-htf,
+[data-mode="light"] .quant-subtab-btn.active#quant-subtab-htf {
+    background: #f3e8ff !important;
+    border-color: #9333ea !important;
+    color: #7e22ce !important;
+}
+
+body.light-theme .quant-subtab-btn.active#quant-subtab-3wt,
+[data-theme="light"] .quant-subtab-btn.active#quant-subtab-3wt,
+[data-mode="light"] .quant-subtab-btn.active#quant-subtab-3wt {
+    background: #ccfbf1 !important;
+    border-color: #0d9488 !important;
+    color: #0f766e !important;
+}
+
+body.light-theme .quant-table-wrapper,
+[data-theme="light"] .quant-table-wrapper,
+[data-mode="light"] .quant-table-wrapper {
+    background: #ffffff !important;
+    border-color: #cbd5e1 !important;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05) !important;
+}
+
+body.light-theme .quant-table,
+[data-theme="light"] .quant-table,
+[data-mode="light"] .quant-table {
+    color: #1e293b !important;
+}
+
+body.light-theme .quant-table th,
+[data-theme="light"] .quant-table th,
+[data-mode="light"] .quant-table th {
+    background: #f8fafc !important;
+    color: #475569 !important;
+    border-bottom: 1px solid #e2e8f0 !important;
+}
+
+body.light-theme .quant-table td,
+[data-theme="light"] .quant-table td,
+[data-mode="light"] .quant-table td {
+    border-bottom: 1px solid #f1f5f9 !important;
+}
+
+body.light-theme .quant-table tbody tr:hover,
+[data-theme="light"] .quant-table tbody tr:hover,
+[data-mode="light"] .quant-table tbody tr:hover {
+    background: #f8fafc !important;
+}
+
+
