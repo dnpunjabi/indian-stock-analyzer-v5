@@ -17846,7 +17846,7 @@ async def get_stage_diagnostic(symbol: str, force_refresh: bool = False):
     cache_key = clean_sym
     if not force_refresh and cache_key in _STAGE_DIAGNOSTIC_CACHE:
         entry = _STAGE_DIAGNOSTIC_CACHE[cache_key]
-        if (datetime.now() - entry["timestamp"]).total_seconds() < 43200: # 12 hours
+        if (datetime.now() - entry["timestamp"]).total_seconds() < 900: # 15 mins TTL
             return entry["payload"]
 
     raw_base = symbol.strip().upper().replace(".NS", "").replace(".BO", "")
@@ -17923,7 +17923,7 @@ async def get_stage_diagnostic(symbol: str, force_refresh: bool = False):
         stg2_res = detect_weinstein_stage2(df)
         htf_res = detect_high_tight_flag(df)
         twt_res = detect_3weeks_tight(df)
-        vcp_res = detect_vcp_pattern(df) if len(df) >= 150 else {"is_vcp": False, "score": 0}
+        vcp_res = detect_vcp_pattern(df) if (df is not None and len(df) >= 40) else {"is_vcp": False, "score": 0}
         
         vcp_qualified = bool(vcp_res.get("is_vcp") or (curr_price > ema_50 > ema_200 and dist_52wk_high_pct >= -25.0))
         stg2_qualified = bool(stg2_res.get("is_stage2_breakout") or (stage_num == 2 and ma_30wk_slope_pct > 0.3))
@@ -18048,6 +18048,10 @@ async def get_watchlist_quant_diagnostics(
             "last_updated": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
             "data": []
         }
+
+    if force_refresh:
+        _WATCHLIST_QUANT_CACHE.clear()
+        _STAGE_DIAGNOSTIC_CACHE.clear()
 
     cache_hash = ",".join(sorted(sym_list))
     if not force_refresh and cache_hash in _WATCHLIST_QUANT_CACHE:
