@@ -18050,12 +18050,12 @@ async def get_watchlist_quant_diagnostics(
         }
 
     cache_hash = ",".join(sorted(sym_list))
-    if cache_hash in _WATCHLIST_QUANT_CACHE:
+    if not force_refresh and cache_hash in _WATCHLIST_QUANT_CACHE:
         entry = _WATCHLIST_QUANT_CACHE[cache_hash]
         if (datetime.now() - entry["timestamp"]).total_seconds() < 900: # 15 mins TTL
             return entry["payload"]
 
-    tasks = [get_stage_diagnostic(sym) for sym in sym_list]
+    tasks = [get_stage_diagnostic(sym, force_refresh=force_refresh) for sym in sym_list]
     diagnostics_raw = await asyncio.gather(*tasks, return_exceptions=True)
 
     results = []

@@ -56766,12 +56766,16 @@ window.renderWatchlistQuantMatrix = function(stocks) {
         const target1 = s.target_1 || (pivotP ? Number((pivotP * 1.10).toFixed(2)) : 0);
         const target2 = s.target_2 || (pivotP ? Number((pivotP * 1.20).toFixed(2)) : 0);
 
+        const slPct = pivotP > 0 ? (((stopL - pivotP) / pivotP) * 100).toFixed(1) : '-5.0';
+        const t1Pct = pivotP > 0 ? (((target1 - pivotP) / pivotP) * 100).toFixed(1) : '10.0';
+        const t2Pct = pivotP > 0 ? (((target2 - pivotP) / pivotP) * 100).toFixed(1) : '20.0';
+
         const levelsHtml = `
             <div style="font-size: 11.5px; line-height: 1.45; display: flex; flex-direction: column; gap: 2px;">
                 <span style="color: #38bdf8; font-weight: 700;">Pivot: ₹${pivotP.toLocaleString('en-IN', {minimumFractionDigits: 2})}</span>
-                <span style="color: #f87171; font-weight: 600;">SL (-5%): ₹${stopL.toLocaleString('en-IN', {minimumFractionDigits: 2})}</span>
-                <span style="color: #4ade80; font-weight: 600;">T1 (+10%): ₹${target1.toLocaleString('en-IN', {minimumFractionDigits: 2})}</span>
-                <span style="color: #22c55e; font-weight: 700;">T2 (+20%): ₹${target2.toLocaleString('en-IN', {minimumFractionDigits: 2})}</span>
+                <span style="color: #f87171; font-weight: 600;">SL (${slPct}%): ₹${stopL.toLocaleString('en-IN', {minimumFractionDigits: 2})}</span>
+                <span style="color: #4ade80; font-weight: 600;">T1 (+${t1Pct}%): ₹${target1.toLocaleString('en-IN', {minimumFractionDigits: 2})}</span>
+                <span style="color: #22c55e; font-weight: 700;">T2 (+${t2Pct}%): ₹${target2.toLocaleString('en-IN', {minimumFractionDigits: 2})}</span>
             </div>
         `;
 
