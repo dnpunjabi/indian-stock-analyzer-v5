@@ -55830,6 +55830,10 @@ window.switchQuantScannerSubtab = function(tabName) {
         }
     });
 
+    // Auto-close mobile sidebar drawer if open
+    const sb = document.getElementById('sidebar');
+    if (sb) sb.classList.remove('open');
+
     if (tabName === 'weinstein' && window.allWeinsteinStocks.length === 0) {
         window.runWeinsteinScan(false, false);
     } else if (tabName === 'htf' && window.allHtfStocks.length === 0) {
@@ -55842,7 +55846,6 @@ window.switchQuantScannerSubtab = function(tabName) {
 // 1. STAN WEINSTEIN STAGE 2 SCREENER
 window.runWeinsteinScan = async function(isSilent = false, forceRefresh = false) {
     const loadingEl = document.getElementById('weinstein-loading-container');
-    const tbody = document.getElementById('weinstein-table-body');
     
     // Local cache hydration
     try {
@@ -55862,10 +55865,11 @@ window.runWeinsteinScan = async function(isSilent = false, forceRefresh = false)
     try {
         const res = await fetch(`/api/screener/weinstein-stage2${forceRefresh ? '?force_refresh=true' : ''}`);
         const data = await res.json();
-        if (data.status === 'success' && Array.isArray(data.stocks)) {
-            window.allWeinsteinStocks = data.stocks;
-            try { localStorage.setItem('cached_weinstein_stocks', JSON.stringify(data.stocks)); } catch(e){}
-            window.renderWeinsteinTable(data.stocks);
+        const stocksList = data.data || data.stocks || [];
+        if (data.status === 'success' && Array.isArray(stocksList)) {
+            window.allWeinsteinStocks = stocksList;
+            try { localStorage.setItem('cached_weinstein_stocks', JSON.stringify(stocksList)); } catch(e){}
+            window.renderWeinsteinTable(stocksList);
         }
     } catch(err) {
         console.error("Weinstein scan error:", err);
@@ -55885,10 +55889,10 @@ window.renderWeinsteinTable = function(stocks) {
     const rsEl = document.getElementById('weinstein-kpi-avg-rs');
 
     if (totalEl) totalEl.innerText = stocks.length;
-    if (breakoutEl) breakoutEl.innerText = stocks.filter(s => s.stage_status === 'STAGE_2_BREAKOUT').length;
+    if (breakoutEl) breakoutEl.innerText = stocks.filter(s => ['STAGE_2_LAUNCH', 'STAGE_2_BREAKOUT'].includes(s.stage_status)).length;
     if (advancingEl) advancingEl.innerText = stocks.filter(s => s.stage_status === 'STAGE_2_ADVANCING').length;
     
-    const avgRs = stocks.length > 0 ? (stocks.reduce((a, b) => a + (b.rs_rating || 0), 0) / stocks.length).toFixed(1) : '0';
+    const avgRs = stocks.length > 0 ? (stocks.reduce((a, b) => a + (b.mansfield_rs || b.rs_rating || 0), 0) / stocks.length).toFixed(1) : '0';
     if (rsEl) rsEl.innerText = avgRs;
 
     if (stocks.length === 0) {
@@ -55897,24 +55901,30 @@ window.renderWeinsteinTable = function(stocks) {
     }
 
     tbody.innerHTML = stocks.map(s => {
+        const price = s.current_price || s.price || 0;
         const dayChg = s.day_change_pct || 0;
         const chgClass = dayChg >= 0 ? 'text-emerald-400' : 'text-rose-400';
         const chgSign = dayChg >= 0 ? '+' : '';
-        const badgeClass = s.stage_status === 'STAGE_2_BREAKOUT' ? 'badge-quant-green' : 'badge-quant-blue';
-        const badgeLabel = s.stage_status === 'STAGE_2_BREAKOUT' ? '🚀 BREAKOUT' : '📈 ADVANCING';
+        const isLaunch = ['STAGE_2_LAUNCH', 'STAGE_2_BREAKOUT'].includes(s.stage_status);
+        const badgeClass = isLaunch ? 'badge-quant-green' : 'badge-quant-blue';
+        const badgeLabel = isLaunch ? '🚀 BREAKOUT' : '📈 ADVANCING';
+        const pivot = s.pivot_price || 0;
+        const distPct = pivot > 0 && price > 0 ? (((price - pivot) / pivot) * 100).toFixed(1) : '0.0';
+        const slope = s.ma30_slope_pct || s.sma_150_slope || 0;
+        const rsVal = s.mansfield_rs ? s.mansfield_rs.toFixed(1) : (s.rs_rating || '--');
 
         return `
             <tr>
                 <td style="font-weight: 800; color: #f8fafc;">
                     <div style="font-size: 14px;">${s.symbol}</div>
-                    <div style="font-size: 11px; color: #94a3b8; font-weight: 500;">${s.name || ''}</div>
+                    <div style="font-size: 11px; color: #94a3b8; font-weight: 500;">${s.company_name || s.name || ''}</div>
                 </td>
-                <td style="font-weight: 700;">₹${(s.price || 0).toLocaleString('en-IN', {minimumFractionDigits: 2})}</td>
+                <td style="font-weight: 700;">₹${price.toLocaleString('en-IN', {minimumFractionDigits: 2})}</td>
                 <td class="${chgClass}" style="font-weight: 700;">${chgSign}${dayChg.toFixed(2)}%</td>
-                <td>₹${(s.sma_150 || 0).toFixed(2)}</td>
-                <td style="font-weight: 700; color: #38bdf8;">+${(s.dist_from_sma150_pct || 0).toFixed(1)}%</td>
-                <td style="color: ${s.sma_150_slope > 0 ? '#34d399' : '#f87171'}; font-weight: 700;">${(s.sma_150_slope || 0).toFixed(3)}</td>
-                <td style="font-weight: 800; color: #c084fc;">${s.rs_rating || '--'}</td>
+                <td>₹${pivot.toFixed(2)}</td>
+                <td style="font-weight: 700; color: #38bdf8;">+${distPct}%</td>
+                <td style="color: ${slope > 0 ? '#34d399' : '#f87171'}; font-weight: 700;">+${slope.toFixed(2)}%</td>
+                <td style="font-weight: 800; color: #c084fc;">${rsVal}</td>
                 <td><span class="badge-quant ${badgeClass}">${badgeLabel}</span></td>
                 <td>
                     <button onclick="window.openTradingViewChart && window.openTradingViewChart('${s.symbol}')" class="btn-secondary" style="padding: 4px 10px; font-size: 11px; border-radius: 6px; cursor: pointer;">
@@ -55931,8 +55941,8 @@ window.filterWeinsteinTable = function() {
     const status = document.getElementById('weinstein-status-filter')?.value || 'ALL';
     
     let filtered = window.allWeinsteinStocks.filter(s => {
-        const matchesQ = s.symbol.toLowerCase().includes(q) || (s.name || '').toLowerCase().includes(q);
-        const matchesStatus = status === 'ALL' || s.stage_status === status;
+        const matchesQ = s.symbol.toLowerCase().includes(q) || (s.company_name || s.name || '').toLowerCase().includes(q);
+        const matchesStatus = status === 'ALL' || s.stage_status === status || (status === 'STAGE_2_BREAKOUT' && s.stage_status === 'STAGE_2_LAUNCH');
         return matchesQ && matchesStatus;
     });
 
@@ -55961,10 +55971,11 @@ window.runHtfScan = async function(isSilent = false, forceRefresh = false) {
     try {
         const res = await fetch(`/api/screener/high-tight-flag${forceRefresh ? '?force_refresh=true' : ''}`);
         const data = await res.json();
-        if (data.status === 'success' && Array.isArray(data.stocks)) {
-            window.allHtfStocks = data.stocks;
-            try { localStorage.setItem('cached_htf_stocks', JSON.stringify(data.stocks)); } catch(e){}
-            window.renderHtfTable(data.stocks);
+        const stocksList = data.data || data.stocks || [];
+        if (data.status === 'success' && Array.isArray(stocksList)) {
+            window.allHtfStocks = stocksList;
+            try { localStorage.setItem('cached_htf_stocks', JSON.stringify(stocksList)); } catch(e){}
+            window.renderHtfTable(stocksList);
         }
     } catch(err) {
         console.error("HTF scan error:", err);
@@ -55984,7 +55995,7 @@ window.renderHtfTable = function(stocks) {
     const avgPoleEl = document.getElementById('htf-kpi-avg-pole');
 
     if (totalEl) totalEl.innerText = stocks.length;
-    if (readyEl) readyEl.innerText = stocks.filter(s => s.htf_status === 'HTF_READY').length;
+    if (readyEl) readyEl.innerText = stocks.filter(s => ['HTF_BREAKOUT_READY', 'HTF_READY'].includes(s.htf_status)).length;
     if (breakoutEl) breakoutEl.innerText = stocks.filter(s => s.htf_status === 'HTF_BREAKOUT').length;
 
     const avgPole = stocks.length > 0 ? (stocks.reduce((a, b) => a + (b.pole_gain_pct || 0), 0) / stocks.length).toFixed(1) : '0';
@@ -55996,25 +56007,29 @@ window.renderHtfTable = function(stocks) {
     }
 
     tbody.innerHTML = stocks.map(s => {
+        const price = s.current_price || s.price || 0;
         const dayChg = s.day_change_pct || 0;
         const chgClass = dayChg >= 0 ? 'text-emerald-400' : 'text-rose-400';
         const chgSign = dayChg >= 0 ? '+' : '';
-        const badgeClass = s.htf_status === 'HTF_BREAKOUT' ? 'badge-quant-green' : (s.htf_status === 'HTF_READY' ? 'badge-quant-teal' : 'badge-quant-purple');
-        const badgeLabel = s.htf_status === 'HTF_BREAKOUT' ? '🚀 BREAKOUT' : (s.htf_status === 'HTF_READY' ? '🎯 READY' : '⏳ FORMING');
+        const isReady = ['HTF_BREAKOUT_READY', 'HTF_READY'].includes(s.htf_status);
+        const badgeClass = s.htf_status === 'HTF_BREAKOUT' ? 'badge-quant-green' : (isReady ? 'badge-quant-teal' : 'badge-quant-purple');
+        const badgeLabel = s.htf_status === 'HTF_BREAKOUT' ? '🚀 BREAKOUT' : (isReady ? '🎯 READY' : '⏳ FORMING');
+        const flagWks = s.flag_days ? (s.flag_days / 5).toFixed(1) : (s.flag_duration_weeks || '--');
+        const pivot = s.pivot_price || s.flag_pivot || 0;
 
         return `
             <tr>
                 <td style="font-weight: 800; color: #f8fafc;">
                     <div style="font-size: 14px;">${s.symbol}</div>
-                    <div style="font-size: 11px; color: #94a3b8; font-weight: 500;">${s.name || ''}</div>
+                    <div style="font-size: 11px; color: #94a3b8; font-weight: 500;">${s.company_name || s.name || ''}</div>
                 </td>
-                <td style="font-weight: 700;">₹${(s.price || 0).toLocaleString('en-IN', {minimumFractionDigits: 2})}</td>
+                <td style="font-weight: 700;">₹${price.toLocaleString('en-IN', {minimumFractionDigits: 2})}</td>
                 <td class="${chgClass}" style="font-weight: 700;">${chgSign}${dayChg.toFixed(2)}%</td>
                 <td style="font-weight: 800; color: #fbbf24;">+${(s.pole_gain_pct || 0).toFixed(1)}%</td>
                 <td style="font-weight: 700; color: #f87171;">-${(s.flag_depth_pct || 0).toFixed(1)}%</td>
-                <td style="font-weight: 700;">${s.flag_duration_weeks || '--'} wks</td>
+                <td style="font-weight: 700;">${flagWks} wks</td>
                 <td style="font-weight: 700; color: #38bdf8;">${(s.vdu_ratio || 0).toFixed(2)}x</td>
-                <td style="font-weight: 800; color: #34d399;">₹${(s.flag_pivot || 0).toFixed(2)}</td>
+                <td style="font-weight: 800; color: #34d399;">₹${pivot.toFixed(2)}</td>
                 <td><span class="badge-quant ${badgeClass}">${badgeLabel}</span></td>
                 <td>
                     <button onclick="window.openTradingViewChart && window.openTradingViewChart('${s.symbol}')" class="btn-secondary" style="padding: 4px 10px; font-size: 11px; border-radius: 6px; cursor: pointer;">
@@ -56031,8 +56046,8 @@ window.filterHtfTable = function() {
     const status = document.getElementById('htf-status-filter')?.value || 'ALL';
 
     let filtered = window.allHtfStocks.filter(s => {
-        const matchesQ = s.symbol.toLowerCase().includes(q) || (s.name || '').toLowerCase().includes(q);
-        const matchesStatus = status === 'ALL' || s.htf_status === status;
+        const matchesQ = s.symbol.toLowerCase().includes(q) || (s.company_name || s.name || '').toLowerCase().includes(q);
+        const matchesStatus = status === 'ALL' || s.htf_status === status || (status === 'HTF_READY' && s.htf_status === 'HTF_BREAKOUT_READY');
         return matchesQ && matchesStatus;
     });
 
@@ -56061,10 +56076,11 @@ window.run3wtScan = async function(isSilent = false, forceRefresh = false) {
     try {
         const res = await fetch(`/api/screener/3weeks-tight${forceRefresh ? '?force_refresh=true' : ''}`);
         const data = await res.json();
-        if (data.status === 'success' && Array.isArray(data.stocks)) {
-            window.all3wtStocks = data.stocks;
-            try { localStorage.setItem('cached_3wt_stocks', JSON.stringify(data.stocks)); } catch(e){}
-            window.render3wtTable(data.stocks);
+        const stocksList = data.data || data.stocks || [];
+        if (data.status === 'success' && Array.isArray(stocksList)) {
+            window.all3wtStocks = stocksList;
+            try { localStorage.setItem('cached_3wt_stocks', JSON.stringify(stocksList)); } catch(e){}
+            window.render3wtTable(stocksList);
         }
     } catch(err) {
         console.error("3WT scan error:", err);
@@ -56084,12 +56100,12 @@ window.render3wtTable = function(stocks) {
     const highRsEl = document.getElementById('three-wt-kpi-high-rs');
 
     if (totalEl) totalEl.innerText = stocks.length;
-    if (readyEl) readyEl.innerText = stocks.filter(s => s.three_wt_status === '3WT_READY').length;
+    if (readyEl) readyEl.innerText = stocks.filter(s => ['3WT_PIVOT_READY', '3WT_READY'].includes(s.tight_status || s.three_wt_status)).length;
     
-    const avgTight = stocks.length > 0 ? (stocks.reduce((a, b) => a + (b.tightness_range_pct || 0), 0) / stocks.length).toFixed(2) : '0';
+    const avgTight = stocks.length > 0 ? (stocks.reduce((a, b) => a + (b.close_variance_pct || b.tightness_range_pct || 0), 0) / stocks.length).toFixed(2) : '0';
     if (avgTightEl) avgTightEl.innerText = `${avgTight}%`;
 
-    if (highRsEl) highRsEl.innerText = stocks.filter(s => (s.rs_rating || 0) >= 80).length;
+    if (highRsEl) highRsEl.innerText = stocks.filter(s => (s.distance_to_50ema_pct || s.rs_rating || 0) >= 0).length;
 
     if (stocks.length === 0) {
         tbody.innerHTML = `<tr><td colspan="10" style="text-align:center; padding: 30px; color: #94a3b8;">No 3-Weeks Tight setups detected currently.</td></tr>`;
@@ -56097,24 +56113,29 @@ window.render3wtTable = function(stocks) {
     }
 
     tbody.innerHTML = stocks.map(s => {
+        const price = s.current_price || s.price || 0;
         const dayChg = s.day_change_pct || 0;
         const chgClass = dayChg >= 0 ? 'text-emerald-400' : 'text-rose-400';
         const chgSign = dayChg >= 0 ? '+' : '';
+        const variance = s.close_variance_pct || s.tightness_range_pct || 0;
+        const closes = Array.isArray(s.weekly_closes) ? s.weekly_closes : [s.w1_close || 0, s.w2_close || 0, s.w3_close || 0];
+        const pivot = s.pivot_price || s.buy_pivot || 0;
+        const emaDist = s.distance_to_50ema_pct ? `+${s.distance_to_50ema_pct.toFixed(1)}%` : '--';
 
         return `
             <tr>
                 <td style="font-weight: 800; color: #f8fafc;">
                     <div style="font-size: 14px;">${s.symbol}</div>
-                    <div style="font-size: 11px; color: #94a3b8; font-weight: 500;">${s.name || ''}</div>
+                    <div style="font-size: 11px; color: #94a3b8; font-weight: 500;">${s.company_name || s.name || ''}</div>
                 </td>
-                <td style="font-weight: 700;">₹${(s.price || 0).toLocaleString('en-IN', {minimumFractionDigits: 2})}</td>
+                <td style="font-weight: 700;">₹${price.toLocaleString('en-IN', {minimumFractionDigits: 2})}</td>
                 <td class="${chgClass}" style="font-weight: 700;">${chgSign}${dayChg.toFixed(2)}%</td>
-                <td style="font-weight: 800; color: #2dd4bf;">${(s.tightness_range_pct || 0).toFixed(2)}%</td>
-                <td style="color: #cbd5e1;">₹${(s.w1_close || 0).toFixed(2)}</td>
-                <td style="color: #cbd5e1;">₹${(s.w2_close || 0).toFixed(2)}</td>
-                <td style="color: #cbd5e1;">₹${(s.w3_close || 0).toFixed(2)}</td>
-                <td style="font-weight: 800; color: #c084fc;">${s.rs_rating || '--'}</td>
-                <td style="font-weight: 800; color: #34d399;">₹${(s.buy_pivot || 0).toFixed(2)}</td>
+                <td style="font-weight: 800; color: #2dd4bf;">${variance.toFixed(2)}%</td>
+                <td style="color: #cbd5e1;">₹${(closes[0] || 0).toFixed(2)}</td>
+                <td style="color: #cbd5e1;">₹${(closes[1] || 0).toFixed(2)}</td>
+                <td style="color: #cbd5e1;">₹${(closes[2] || 0).toFixed(2)}</td>
+                <td style="font-weight: 800; color: #c084fc;">${emaDist}</td>
+                <td style="font-weight: 800; color: #34d399;">₹${pivot.toFixed(2)}</td>
                 <td>
                     <button onclick="window.openTradingViewChart && window.openTradingViewChart('${s.symbol}')" class="btn-secondary" style="padding: 4px 10px; font-size: 11px; border-radius: 6px; cursor: pointer;">
                         Chart ↗
@@ -56130,13 +56151,15 @@ window.filter3wtTable = function() {
     const status = document.getElementById('three-wt-status-filter')?.value || 'ALL';
 
     let filtered = window.all3wtStocks.filter(s => {
-        const matchesQ = s.symbol.toLowerCase().includes(q) || (s.name || '').toLowerCase().includes(q);
-        const matchesStatus = status === 'ALL' || s.three_wt_status === status;
+        const matchesQ = s.symbol.toLowerCase().includes(q) || (s.company_name || s.name || '').toLowerCase().includes(q);
+        const st = s.tight_status || s.three_wt_status;
+        const matchesStatus = status === 'ALL' || st === status || (status === '3WT_READY' && st === '3WT_PIVOT_READY');
         return matchesQ && matchesStatus;
     });
 
     window.render3wtTable(filtered);
 };
+
 
 
 
