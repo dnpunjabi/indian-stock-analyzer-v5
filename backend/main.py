@@ -17930,14 +17930,39 @@ async def get_stage_diagnostic(symbol: str, force_refresh: bool = False):
         htf_qualified = bool(htf_res.get("is_htf") or htf_res.get("htf_status") in ["HTF_QUALIFIED", "HTF_FORMING"])
         twt_qualified = bool(twt_res.get("is_3wt") or twt_res.get("tight_status") in ["3WT_PIVOT_READY", "3WT_FORMING", "3WT_QUALIFIED"])
         
-        # Calculate 4 Trade Execution Levels (Pivot Buy, -5% Stop Loss, +10% Target 1, +20% Target 2)
-        calc_pivot = float(stg2_res.get("pivot_price") or htf_res.get("pivot_price") or twt_res.get("pivot_price") or vcp_res.get("pivot_price") or (high.tail(20).max()))
-        if calc_pivot <= 0:
-            calc_pivot = curr_price
-        pivot_price = round(calc_pivot, 2)
-        stop_loss = round(pivot_price * 0.95, 2)
-        target_1 = round(pivot_price * 1.10, 2)
-        target_2 = round(pivot_price * 1.20, 2)
+        # Synchronized 4 Trade Execution Levels (Pattern-Aware & Unified across VCP, Quant Matrix, and WhatsApp)
+        if vcp_res and vcp_res.get("pivot_price", 0) > 0 and vcp_res.get("stop_loss", 0) > 0:
+            pivot_price = round(float(vcp_res["pivot_price"]), 2)
+            stop_loss = round(float(vcp_res["stop_loss"]), 2)
+            target_1 = round(float(vcp_res.get("target_1") or (pivot_price * 1.10)), 2)
+            target_2 = round(float(vcp_res.get("target_2") or (pivot_price * 1.20)), 2)
+        elif twt_res and twt_res.get("pivot_price", 0) > 0:
+            pivot_price = round(float(twt_res["pivot_price"]), 2)
+            stop_loss = round(float(twt_res.get("stop_loss_price") or (pivot_price * 0.95)), 2)
+            risk = pivot_price - stop_loss
+            if risk <= 0: risk = pivot_price * 0.05
+            target_1 = round(pivot_price + (2.0 * risk), 2)
+            target_2 = round(pivot_price + (4.0 * risk), 2)
+        elif htf_res and htf_res.get("pivot_price", 0) > 0:
+            pivot_price = round(float(htf_res["pivot_price"]), 2)
+            stop_loss = round(float(htf_res.get("stop_loss_price") or (pivot_price * 0.95)), 2)
+            risk = pivot_price - stop_loss
+            if risk <= 0: risk = pivot_price * 0.05
+            target_1 = round(pivot_price + (2.0 * risk), 2)
+            target_2 = round(pivot_price + (4.0 * risk), 2)
+        else:
+            calc_pivot = float(stg2_res.get("pivot_price") or (high.tail(20).max()) or curr_price)
+            pivot_price = round(calc_pivot, 2)
+            stop_loss = round(pivot_price * 0.95, 2)
+            target_1 = round(pivot_price * 1.10, 2)
+            target_2 = round(pivot_price * 1.20, 2)
+
+        # Cap stop loss at max 7.0% risk per Minervini risk management rules
+        if stop_loss < round(pivot_price * 0.93, 2):
+            stop_loss = round(pivot_price * 0.93, 2)
+            risk = pivot_price - stop_loss
+            target_1 = round(pivot_price + (2.0 * risk), 2)
+            target_2 = round(pivot_price + (4.0 * risk), 2)
 
         payload = {
             "status": "success",

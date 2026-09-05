@@ -1740,6 +1740,11 @@ def detect_vcp_pattern(df):
             stop_loss = round(pivot_price - risk_per_share, 2)
 
         risk_pct = round((risk_per_share / pivot_price) * 100.0, 2)
+        if risk_pct > 8.0:
+            risk_per_share = pivot_price * 0.07
+            stop_loss = round(pivot_price - risk_per_share, 2)
+            risk_pct = 7.0
+
         target_1 = round(pivot_price + (2.0 * risk_per_share), 2)
         target_2 = round(pivot_price + (4.0 * risk_per_share), 2)
 
