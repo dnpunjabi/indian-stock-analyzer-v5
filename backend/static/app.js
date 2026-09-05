@@ -56561,12 +56561,24 @@ window.switchWatchlistSubtab = function(subtabKey) {
 };
 
 window.runWatchlistQuantScan = async function(isSilent = false, forceRefresh = false) {
-    if ((!activeWatchlistId || activeWatchlistId === null) && typeof watchlistsList !== 'undefined' && watchlistsList && watchlistsList.length > 0) {
+    const selectEl = document.getElementById('watchlist-select') || document.getElementById('watchlist-dropdown');
+    const selVal = selectEl ? selectEl.value : null;
+
+    if (!activeWatchlistId && selVal) {
+        activeWatchlistId = selVal;
+    }
+
+    if ((!activeWatchlistId || activeWatchlistId === null) && typeof watchlistsList !== 'undefined' && Array.isArray(watchlistsList) && watchlistsList.length > 0) {
         activeWatchlistId = watchlistsList[0].id;
     }
-    if (!activeWatchlistId) return;
 
-    const activeWatch = (typeof watchlistsList !== 'undefined' && Array.isArray(watchlistsList)) ? watchlistsList.find(w => w && w.id == activeWatchlistId) : null;
+    let activeWatch = (typeof watchlistsList !== 'undefined' && Array.isArray(watchlistsList)) ? 
+        watchlistsList.find(w => w && (w.id == activeWatchlistId || w.id == selVal || (typeof activeWatchlistId === 'string' && w.id && w.id.toString() == activeWatchlistId))) : null;
+
+    if (!activeWatch && typeof watchlistsList !== 'undefined' && Array.isArray(watchlistsList) && watchlistsList.length > 0) {
+        activeWatch = watchlistsList[0];
+    }
+
     let symbols = [];
     if (activeWatch && activeWatch.items && Array.isArray(activeWatch.items)) {
         symbols = activeWatch.items.map(i => {
@@ -56580,10 +56592,27 @@ window.runWatchlistQuantScan = async function(isSilent = false, forceRefresh = f
         }).filter(Boolean);
     }
 
+    // DOM Scrape Fallback: If watchlistsList memory has 0 items, scrape symbols from visible Watchlist table rows
+    if (symbols.length === 0) {
+        const domRows = document.querySelectorAll('#watchlist-table-body tr');
+        domRows.forEach(row => {
+            const symAnchor = row.querySelector('a') || row.querySelector('td');
+            if (symAnchor) {
+                let text = (symAnchor.innerText || symAnchor.textContent || '').trim().split('\n')[0].trim().toUpperCase();
+                if (text && text.length > 1 && !text.includes(' ') && text !== 'SYMBOL' && text !== 'STOCK' && text !== 'LTP') {
+                    if (!text.endsWith('.NS') && !text.endsWith('.BO') && !text.startsWith('^')) {
+                        text = text + '.NS';
+                    }
+                    if (!symbols.includes(text)) symbols.push(text);
+                }
+            }
+        });
+    }
+
     if (symbols.length === 0) {
         const tbody = document.getElementById('watchlist-matrix-table-body');
         if (tbody) {
-            tbody.innerHTML = `<tr><td colspan="10" style="text-align: center; padding: 30px; color: #94a3b8;">Active watchlist "${activeWatch ? activeWatch.name : ''}" has no stocks. Add stocks to view Stage 1-4 Quant Matrix diagnostics.</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="11" style="text-align: center; padding: 30px; color: #94a3b8;">Active watchlist "${activeWatch ? activeWatch.name : ''}" has no stocks. Add stocks to view Stage 1-4 Quant Matrix diagnostics.</td></tr>`;
         }
         const kTotal = document.getElementById('wl-matrix-kpi-total'); if (kTotal) kTotal.innerText = '0';
         const kS2 = document.getElementById('wl-matrix-kpi-stage2'); if (kS2) kS2.innerText = '0';
