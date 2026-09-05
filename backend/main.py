@@ -17930,6 +17930,15 @@ async def get_stage_diagnostic(symbol: str, force_refresh: bool = False):
         htf_qualified = bool(htf_res.get("is_htf") or htf_res.get("htf_status") in ["HTF_QUALIFIED", "HTF_FORMING"])
         twt_qualified = bool(twt_res.get("is_3wt") or twt_res.get("tight_status") in ["3WT_PIVOT_READY", "3WT_FORMING", "3WT_QUALIFIED"])
         
+        # Calculate 4 Trade Execution Levels (Pivot Buy, -5% Stop Loss, +10% Target 1, +20% Target 2)
+        calc_pivot = float(stg2_res.get("pivot_price") or htf_res.get("pivot_price") or twt_res.get("pivot_price") or vcp_res.get("pivot_price") or (high.tail(20).max()))
+        if calc_pivot <= 0:
+            calc_pivot = curr_price
+        pivot_price = round(calc_pivot, 2)
+        stop_loss = round(pivot_price * 0.95, 2)
+        target_1 = round(pivot_price * 1.10, 2)
+        target_2 = round(pivot_price * 1.20, 2)
+
         payload = {
             "status": "success",
             "symbol": clean_sym,
@@ -17947,7 +17956,11 @@ async def get_stage_diagnostic(symbol: str, force_refresh: bool = False):
                 "vol_ratio": round(vol_ratio, 2),
                 "rs_rating": rs_rating,
                 "high_52w": round(high_52w, 2),
-                "low_52w": round(low_52w, 2)
+                "low_52w": round(low_52w, 2),
+                "pivot_price": pivot_price,
+                "stop_loss": stop_loss,
+                "target_1": target_1,
+                "target_2": target_2
             },
             "screener_status": {
                 "vcp": {
@@ -18071,6 +18084,11 @@ async def get_watchlist_quant_diagnostics(
                 qual_label = "STAGE 4 MARKDOWN 🩸"
                 badge_cls = "badge-quant-red"
 
+        pivot = metrics.get("pivot_price", round(price * 1.01, 2))
+        sl = metrics.get("stop_loss", round(pivot * 0.95, 2))
+        t1 = metrics.get("target_1", round(pivot * 1.10, 2))
+        t2 = metrics.get("target_2", round(pivot * 1.20, 2))
+
         results.append({
             "symbol": sym,
             "company_name": company,
@@ -18089,7 +18107,11 @@ async def get_watchlist_quant_diagnostics(
             "three_wt_status": screeners.get("three_wt", {}).get("reason", "N/A"),
             "qual_count": qual_count,
             "qualification_label": qual_label,
-            "badge_class": badge_cls
+            "badge_class": badge_cls,
+            "pivot_price": pivot,
+            "stop_loss": sl,
+            "target_1": t1,
+            "target_2": t2
         })
 
     payload = {
@@ -18183,7 +18205,11 @@ async def dispatch_quant_whatsapp_alert(
 
         setups_str = ", ".join(setups_list) if setups_list else "Stan Weinstein Stage 2"
         chg_sign = "+" if day_chg_pct >= 0 else ""
-        stop_loss = round(pivot_price * 0.95, 2) if pivot_price > 0 else round(current_price * 0.95, 2)
+        
+        calc_pivot = pivot_price if pivot_price > 0 else current_price
+        stop_loss = round(calc_pivot * 0.95, 2)
+        target_1 = round(calc_pivot * 1.10, 2)
+        target_2 = round(calc_pivot * 1.20, 2)
 
         wa_msg = (
             f"🚀 *QUANTITATIVE SETUP BREAKOUT* 🚀\n\n"
@@ -18192,8 +18218,12 @@ async def dispatch_quant_whatsapp_alert(
             f"• *Stage:* {stage_diagnosis} 🟢\n"
             f"• *30W MA Slope:* +{slope_pct}% (Ascending)\n"
             f"• *Score:* {qualification_score}\n"
-            f"• *Qualified Setups:* {setups_str}\n"
-            f"• *Pivot Buy:* ₹{pivot_price:,.2f} (Est. Stop Loss: ₹{stop_loss:,.2f})\n\n"
+            f"• *Qualified Setups:* {setups_str}\n\n"
+            f"🎯 *Trade Execution Levels:*\n"
+            f"  • *Pivot Buy:* ₹{calc_pivot:,.2f}\n"
+            f"  • *Est. Stop Loss:* ₹{stop_loss:,.2f} (-5.0% Risk)\n"
+            f"  • *Target 1 (1:2 R:R):* ₹{target_1:,.2f} (+10.0% Gain)\n"
+            f"  • *Target 2 (1:4 R:R):* ₹{target_2:,.2f} (+20.0% Trend)\n\n"
             f"🤖 *AI Copilot Analysis:*\n_{ai_summary}_\n\n"
             f"📊 *Chart:* {tv_link}\n\n"
             f"_APEX Agentic Equities AI Workstation_"

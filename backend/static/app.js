@@ -56738,7 +56738,7 @@ window.renderWatchlistQuantMatrix = function(stocks) {
     if (!tbody) return;
 
     if (filtered.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="10" style="text-align: center; padding: 30px; color: #94a3b8;">No watchlist stocks match the active filter criteria.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="11" style="text-align: center; padding: 30px; color: #94a3b8;">No watchlist stocks match the active filter criteria.</td></tr>`;
         return;
     }
 
@@ -56760,6 +56760,20 @@ window.renderWatchlistQuantMatrix = function(stocks) {
         const weinHtml = s.weinstein_qualified ? `<span class="badge-quant badge-quant-green">STAGE 2 🚀</span>` : `<span style="color: #94a3b8;">${s.weinstein_status}</span>`;
         const htfHtml = s.htf_qualified ? `<span class="badge-quant badge-quant-teal">HTF READY 🎯</span>` : `<span style="color: #94a3b8;">${s.htf_status}</span>`;
         const twtHtml = s.three_wt_qualified ? `<span class="badge-quant badge-quant-teal">3WT TIGHT 🎯</span>` : `<span style="color: #94a3b8;">${s.three_wt_status}</span>`;
+
+        const pivotP = s.pivot_price || (s.current_price ? Number((s.current_price * 1.01).toFixed(2)) : 0);
+        const stopL = s.stop_loss || (pivotP ? Number((pivotP * 0.95).toFixed(2)) : 0);
+        const target1 = s.target_1 || (pivotP ? Number((pivotP * 1.10).toFixed(2)) : 0);
+        const target2 = s.target_2 || (pivotP ? Number((pivotP * 1.20).toFixed(2)) : 0);
+
+        const levelsHtml = `
+            <div style="font-size: 11.5px; line-height: 1.45; display: flex; flex-direction: column; gap: 2px;">
+                <span style="color: #38bdf8; font-weight: 700;">Pivot: ₹${pivotP.toLocaleString('en-IN', {minimumFractionDigits: 2})}</span>
+                <span style="color: #f87171; font-weight: 600;">SL (-5%): ₹${stopL.toLocaleString('en-IN', {minimumFractionDigits: 2})}</span>
+                <span style="color: #4ade80; font-weight: 600;">T1 (+10%): ₹${target1.toLocaleString('en-IN', {minimumFractionDigits: 2})}</span>
+                <span style="color: #22c55e; font-weight: 700;">T2 (+20%): ₹${target2.toLocaleString('en-IN', {minimumFractionDigits: 2})}</span>
+            </div>
+        `;
 
         html += `
             <tr style="border-bottom: 1px solid var(--border-glass);">
@@ -56783,6 +56797,9 @@ window.renderWatchlistQuantMatrix = function(stocks) {
                 <td style="padding: 10px 14px; white-space: nowrap;">${twtHtml}</td>
                 <td style="padding: 10px 14px; white-space: nowrap;">
                     <span class="badge-quant ${s.badge_class}">${s.qualification_label}</span>
+                </td>
+                <td style="padding: 10px 14px; white-space: nowrap;">
+                    ${levelsHtml}
                 </td>
                 <td style="padding: 10px 14px; text-align: center; white-space: nowrap;">
                     <button class="btn-secondary quant-chart-btn" style="font-size: 11.5px; padding: 4px 8px; margin-right: 4px;" onclick="window.launchStageSimulator('${s.symbol}')" title="Launch Interactive Stage Simulator">Simulate ⚙️</button>
