@@ -55886,6 +55886,10 @@ window.switchQuantScannerSubtab = function(tabName) {
         window.runHtfScan(false, false);
     } else if (tabName === '3wt' && window.all3wtStocks.length === 0) {
         window.run3wtScan(false, false);
+    } else if (tabName === 'guide') {
+        if (typeof window.initStageSimAutocomplete === 'function') {
+            window.initStageSimAutocomplete();
+        }
     }
 };
 
@@ -56378,14 +56382,17 @@ window.runStockStageSimulator = async function(symbolInput) {
 };
 
 // Wire Live Auto Search / Autocomplete for Stage Simulator
-document.addEventListener('DOMContentLoaded', () => {
+window.initStageSimAutocomplete = function() {
     const stageInput = document.getElementById('stage-sim-input');
     const autoBox = document.getElementById('stage-sim-autocomplete');
     if (!stageInput || !autoBox) return;
 
+    if (stageInput._autocompleteInitialized) return;
+    stageInput._autocompleteInitialized = true;
+
     let debounceTimer = null;
 
-    stageInput.addEventListener('input', (e) => {
+    const handleInput = (e) => {
         const query = e.target.value.trim().toUpperCase();
         clearTimeout(debounceTimer);
 
@@ -56396,7 +56403,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         debounceTimer = setTimeout(async () => {
             try {
-                const res = await fetch(`/api/search?q=${encodeURIComponent(query)}`);
+                const res = await fetch(`/api/search/suggestions?q=${encodeURIComponent(query)}`);
                 const suggestions = await res.json();
 
                 if (!Array.isArray(suggestions) || suggestions.length === 0) {
@@ -56406,11 +56413,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 autoBox.innerHTML = suggestions.slice(0, 8).map(s => {
                     const sym = typeof s === 'string' ? s : (s.symbol || s.ticker || '');
+                    const baseSym = typeof s === 'object' ? (s.base_symbol || sym) : sym;
                     const name = typeof s === 'object' ? (s.name || s.company_name || '') : '';
                     return `
                         <div class="watchlist-autocomplete-item" onclick="window.selectStageSimStock('${sym}')" style="padding: 10px 14px; cursor: pointer; border-bottom: 1px solid rgba(255,255,255,0.05); display: flex; justify-content: space-between; align-items: center; transition: background 0.15s;">
-                            <strong style="color: #c084fc; font-size: 13px;">${sym}</strong>
-                            <span style="font-size: 11.5px; color: #94a3b8;">${name}</span>
+                            <div>
+                                <strong style="color: #c084fc; font-size: 13px; font-weight: 800;">${baseSym}</strong>
+                                <span style="font-size: 11px; color: #94a3b8; margin-left: 6px;">${sym}</span>
+                            </div>
+                            <span style="font-size: 11.5px; color: #cbd5e1; font-weight: 600;">${name}</span>
                         </div>
                     `;
                 }).join('');
@@ -56418,8 +56429,11 @@ document.addEventListener('DOMContentLoaded', () => {
             } catch (err) {
                 console.error("Stage autocomplete search error:", err);
             }
-        }, 200);
-    });
+        }, 150);
+    };
+
+    stageInput.addEventListener('input', handleInput);
+    stageInput.addEventListener('focus', handleInput);
 
     stageInput.addEventListener('keydown', (e) => {
         if (e.key === 'Enter') {
@@ -56433,7 +56447,13 @@ document.addEventListener('DOMContentLoaded', () => {
             autoBox.style.display = 'none';
         }
     });
-});
+};
+
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', window.initStageSimAutocomplete);
+} else {
+    window.initStageSimAutocomplete();
+}
 
 window.selectStageSimStock = function(sym) {
     const input = document.getElementById('stage-sim-input');

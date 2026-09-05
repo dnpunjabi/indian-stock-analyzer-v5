@@ -17838,8 +17838,20 @@ async def get_stage_diagnostic(symbol: str, force_refresh: bool = False):
         if (datetime.now() - entry["timestamp"]).total_seconds() < 43200: # 12 hours
             return entry["payload"]
 
+    raw_base = symbol.strip().upper().replace(".NS", "").replace(".BO", "")
     try:
         df = await fetch_history_df(clean_sym, period="1y", interval="1d")
+        if df is None or df.empty or len(df) < 50:
+            # Smart symbol resolution fallback (e.g., BOSCH -> BOSCHLTD.NS)
+            resolved_suggestions = await search_suggestions(raw_base)
+            if resolved_suggestions and len(resolved_suggestions) > 0:
+                alt_sym = resolved_suggestions[0]["symbol"]
+                if alt_sym != clean_sym:
+                    alt_df = await fetch_history_df(alt_sym, period="1y", interval="1d")
+                    if alt_df is not None and not alt_df.empty and len(alt_df) >= 50:
+                        clean_sym = alt_sym
+                        df = alt_df
+
         if df is None or df.empty or len(df) < 50:
             return {"status": "error", "message": f"Insufficient historical data for symbol {clean_sym}"}
             
