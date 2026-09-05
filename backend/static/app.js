@@ -56628,6 +56628,51 @@ window.runWatchlistQuantScan = async function(isSilent = false, forceRefresh = f
         console.error("Error fetching watchlist quant diagnostics:", e);
     } finally {
         if (loader) loader.style.display = 'none';
+        if (typeof window.syncQuantWhatsAppAlertsState === 'function') window.syncQuantWhatsAppAlertsState();
+    }
+};
+
+window.syncQuantWhatsAppAlertsState = function(overrideState) {
+    const wlId = (typeof activeWatchlistId !== 'undefined' && activeWatchlistId) ? activeWatchlistId : 'default';
+    const key = `quant_whatsapp_alerts_wl_${wlId}`;
+    let isEnabled = true;
+    if (typeof overrideState !== 'undefined') {
+        isEnabled = overrideState;
+        try { localStorage.setItem(key, isEnabled ? 'true' : 'false'); } catch(e){}
+    } else {
+        try {
+            const stored = localStorage.getItem(key);
+            isEnabled = stored === null ? true : (stored === 'true');
+        } catch(e) { isEnabled = true; }
+    }
+    
+    window.quantWhatsAppAlertsEnabled = isEnabled;
+    const btn = document.getElementById('quant-whatsapp-toggle-btn');
+    if (btn) {
+        if (isEnabled) {
+            btn.style.background = 'rgba(37, 211, 102, 0.2)';
+            btn.style.borderColor = '#25D366';
+            btn.style.color = '#25D366';
+            btn.style.fontWeight = '800';
+            btn.innerText = '📱 Quant Alerts: ON';
+        } else {
+            btn.style.background = 'rgba(148, 163, 184, 0.1)';
+            btn.style.borderColor = 'rgba(148, 163, 184, 0.3)';
+            btn.style.color = '#94a3b8';
+            btn.style.fontWeight = '600';
+            btn.innerText = '📱 Quant Alerts: OFF';
+        }
+    }
+};
+
+window.toggleQuantWhatsAppAlerts = function() {
+    const currentState = typeof window.quantWhatsAppAlertsEnabled !== 'undefined' ? window.quantWhatsAppAlertsEnabled : true;
+    const newState = !currentState;
+    window.syncQuantWhatsAppAlertsState(newState);
+    if (newState) {
+        if (typeof showToast === 'function') showToast('📱 Quant Matrix WhatsApp Alerts ENABLED for this Watchlist.', 'success');
+    } else {
+        if (typeof showToast === 'function') showToast('📱 Quant Matrix WhatsApp Alerts DISABLED for this Watchlist.', 'info');
     }
 };
 
