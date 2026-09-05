@@ -18032,23 +18032,7 @@ class WatchlistQuantRequest(BaseModel):
     symbols: Optional[List[str]] = []
     watchlist_name: Optional[str] = "Default"
 
-@app.post("/api/watchlist/quant-diagnostics")
-@app.get("/api/watchlist/quant-diagnostics")
-async def get_watchlist_quant_diagnostics(
-    symbols_param: Optional[str] = None,
-    req_body: Optional[WatchlistQuantRequest] = None
-):
-    """
-    Evaluates an array of Watchlist stock tickers against all 4 Quantitative
-    Scanner Engines (Stage 1-4 Life Cycle, Minervini VCP, Weinstein Stage 2,
-    High-Tight Flag, 3-Weeks Tight) with fast cached execution.
-    """
-    sym_list = []
-    if req_body and req_body.symbols:
-        sym_list = req_body.symbols
-    elif symbols_param:
-        sym_list = [s.strip() for s in symbols_param.split(",") if s.strip()]
-
+async def _eval_watchlist_quant_diagnostics(sym_list: List[str], force_refresh: bool = False):
     if not sym_list:
         return {
             "status": "success",
@@ -18164,6 +18148,16 @@ async def get_watchlist_quant_diagnostics(
     }
 
     return payload
+
+@app.post("/api/watchlist/quant-diagnostics")
+async def post_watchlist_quant_diagnostics(req: WatchlistQuantRequest, force_refresh: bool = False):
+    sym_list = req.symbols if req and req.symbols else []
+    return await _eval_watchlist_quant_diagnostics(sym_list, force_refresh=force_refresh)
+
+@app.get("/api/watchlist/quant-diagnostics")
+async def get_watchlist_quant_diagnostics(symbols_param: Optional[str] = None, force_refresh: bool = False):
+    sym_list = [s.strip() for s in symbols_param.split(",") if s.strip()] if symbols_param else []
+    return await _eval_watchlist_quant_diagnostics(sym_list, force_refresh=force_refresh)
 
 
 def check_quant_alert_history(symbol: str, setup_type: str, stage_diagnosis: str) -> bool:
