@@ -1706,3 +1706,271 @@ body.light-theme .inst-hero-card {
         font-size: 6px !important;
     }
 }
+
+/* ==========================================================================
+   MINERVINI VCP & CANSLIM SECTION GUIDE BANNER - DARK & LIGHT THEME STYLING
+   ========================================================================== */
+.vcp-guide-banner {
+    background: rgba(15, 23, 42, 0.88) !important;
+    border: 1px solid rgba(245, 158, 11, 0.35) !important;
+    backdrop-filter: blur(12px) !important;
+    color: #e2e8f0 !important;
+    transition: background 0.3s ease, border-color 0.3s ease, color 0.3s ease !important;
+}
+
+.vcp-guide-main-title {
+    color: #fbbf24 !important;
+}
+
+.vcp-guide-close-btn {
+    color: #94a3b8 !important;
+}
+.vcp-guide-close-btn:hover {
+    color: #f1f5f9 !important;
+}
+
+/* Status Cards (Dark Default) */
+.vcp-status-card {
+    padding: 8px 12px;
+    border-radius: 8px;
+}
+.vcp-status-card.status-ready {
+    background: rgba(16, 185, 129, 0.08);
+    border: 1px solid rgba(16, 185, 129, 0.25);
+    color: #cbd5e1;
+}
+.vcp-status-card .status-title-ready { color: #10b981; }
+
+.vcp-status-card.status-breakout {
+    background: rgba(56, 189, 248, 0.08);
+    border: 1px solid rgba(56, 189, 248, 0.25);
+    color: #cbd5e1;
+}
+.vcp-status-card .status-title-breakout { color: #38bdf8; }
+
+.vcp-status-card.status-below-ema {
+    background: rgba(239, 68, 68, 0.08);
+    border: 1px solid rgba(239, 68, 68, 0.25);
+    color: #cbd5e1;
+}
+.vcp-status-card .status-title-below-ema { color: #f87171; }
+
+.vcp-status-card.status-wide-swings {
+    background: rgba(245, 158, 11, 0.06);
+    border: 1px solid rgba(245, 158, 11, 0.2);
+    color: #cbd5e1;
+}
+.vcp-status-card .status-title-wide-swings { color: #f59e0b; }
+
+.vcp-status-card.status-base-building {
+    background: rgba(168, 85, 247, 0.08);
+    border: 1px solid rgba(168, 85, 247, 0.25);
+    color: #cbd5e1;
+}
+.vcp-status-card .status-title-base-building { color: #c084fc; }
+
+/* Stage Cards (Dark Default) */
+.vcp-stage-header { color: #38bdf8 !important; }
+.vcp-stage-card {
+    background: rgba(30, 41, 59, 0.6);
+    border: 1px solid rgba(245, 158, 11, 0.2);
+    padding: 8px 12px;
+    border-radius: 8px;
+}
+.vcp-stage-card.stage-highlight {
+    border-color: rgba(245, 158, 11, 0.45);
+    box-shadow: 0 0 10px rgba(245, 158, 11, 0.15);
+}
+.vcp-stage-card .stage-title { color: #fbbf24; }
+.vcp-stage-card .stage-title-green { color: #10b981; }
+.vcp-stage-card .stage-title-blue { color: #38bdf8; }
+.vcp-stage-card .stage-desc { color: #cbd5e1; }
+
+/* CANSLIM Guide Cards (Dark Default) */
+.canslim-header { color: #c084fc !important; }
+.canslim-guide-card {
+    background: rgba(168, 85, 247, 0.08);
+    border: 1px solid rgba(168, 85, 247, 0.25);
+    padding: 9px 12px;
+    border-radius: 8px;
+}
+.canslim-char-title {
+    color: #c084fc;
+    font-size: 11.5px;
+    font-weight: 800;
+}
+.canslim-char-desc {
+    color: #cbd5e1;
+}
+
+/* ==========================================================================
+   LIGHT THEME OVERRIDES FOR VCP & CANSLIM SECTION GUIDE BANNER
+   ========================================================================== */
+body.light-theme .vcp-guide-banner,
+[data-theme="light"] .vcp-guide-banner,
+[data-mode="light"] .vcp-guide-banner {
+    background: #ffffff !important;
+    border: 1px solid rgba(217, 119, 6, 0.35) !important;
+    box-shadow: 0 6px 24px rgba(15, 23, 42, 0.08), 0 0 0 1px rgba(245, 158, 11, 0.2) !important;
+    color: #1e293b !important;
+}
+
+body.light-theme .vcp-guide-main-title,
+[data-theme="light"] .vcp-guide-main-title,
+[data-mode="light"] .vcp-guide-main-title {
+    color: #b45309 !important; /* High contrast amber-700 */
+}
+
+body.light-theme .vcp-guide-close-btn,
+[data-theme="light"] .vcp-guide-close-btn,
+[data-mode="light"] .vcp-guide-close-btn {
+    color: #64748b !important;
+}
+
+body.light-theme .vcp-guide-close-btn:hover,
+[data-theme="light"] .vcp-guide-close-btn:hover,
+[data-mode="light"] .vcp-guide-close-btn:hover {
+    color: #0f172a !important;
+}
+
+/* Light Theme Status Cards */
+body.light-theme .vcp-status-card.status-ready,
+[data-theme="light"] .vcp-status-card.status-ready,
+[data-mode="light"] .vcp-status-card.status-ready {
+    background: #f0fdf4 !important;
+    border: 1px solid #a7f3d0 !important;
+    color: #1e293b !important;
+}
+body.light-theme .vcp-status-card .status-title-ready,
+[data-theme="light"] .vcp-status-card .status-title-ready,
+[data-mode="light"] .vcp-status-card .status-title-ready {
+    color: #047857 !important; /* High contrast dark green */
+}
+
+body.light-theme .vcp-status-card.status-breakout,
+[data-theme="light"] .vcp-status-card.status-breakout,
+[data-mode="light"] .vcp-status-card.status-breakout {
+    background: #f0f9ff !important;
+    border: 1px solid #bae6fd !important;
+    color: #1e293b !important;
+}
+body.light-theme .vcp-status-card .status-title-breakout,
+[data-theme="light"] .vcp-status-card .status-title-breakout,
+[data-mode="light"] .vcp-status-card .status-title-breakout {
+    color: #0284c7 !important; /* High contrast dark sky blue */
+}
+
+body.light-theme .vcp-status-card.status-below-ema,
+[data-theme="light"] .vcp-status-card.status-below-ema,
+[data-mode="light"] .vcp-status-card.status-below-ema {
+    background: #fef2f2 !important;
+    border: 1px solid #fecaca !important;
+    color: #1e293b !important;
+}
+body.light-theme .vcp-status-card .status-title-below-ema,
+[data-theme="light"] .vcp-status-card .status-title-below-ema,
+[data-mode="light"] .vcp-status-card .status-title-below-ema {
+    color: #dc2626 !important; /* High contrast dark red */
+}
+
+body.light-theme .vcp-status-card.status-wide-swings,
+[data-theme="light"] .vcp-status-card.status-wide-swings,
+[data-mode="light"] .vcp-status-card.status-wide-swings {
+    background: #fffbeb !important;
+    border: 1px solid #fde68a !important;
+    color: #1e293b !important;
+}
+body.light-theme .vcp-status-card .status-title-wide-swings,
+[data-theme="light"] .vcp-status-card .status-title-wide-swings,
+[data-mode="light"] .vcp-status-card .status-title-wide-swings {
+    color: #d97706 !important; /* High contrast dark amber */
+}
+
+body.light-theme .vcp-status-card.status-base-building,
+[data-theme="light"] .vcp-status-card.status-base-building,
+[data-mode="light"] .vcp-status-card.status-base-building {
+    background: #faf5ff !important;
+    border: 1px solid #e9d5ff !important;
+    color: #1e293b !important;
+}
+body.light-theme .vcp-status-card .status-title-base-building,
+[data-theme="light"] .vcp-status-card .status-title-base-building,
+[data-mode="light"] .vcp-status-card .status-title-base-building {
+    color: #7e22ce !important; /* High contrast dark purple */
+}
+
+/* Light Theme Stage Cards */
+body.light-theme .vcp-stage-header,
+[data-theme="light"] .vcp-stage-header,
+[data-mode="light"] .vcp-stage-header {
+    color: #0284c7 !important;
+}
+
+body.light-theme .vcp-stage-card,
+[data-theme="light"] .vcp-stage-card,
+[data-mode="light"] .vcp-stage-card {
+    background: #f8fafc !important;
+    border: 1px solid #e2e8f0 !important;
+}
+
+body.light-theme .vcp-stage-card.stage-highlight,
+[data-theme="light"] .vcp-stage-card.stage-highlight,
+[data-mode="light"] .vcp-stage-card.stage-highlight {
+    border-color: #f59e0b !important;
+    box-shadow: 0 0 8px rgba(245, 158, 11, 0.2) !important;
+}
+
+body.light-theme .vcp-stage-card .stage-title,
+[data-theme="light"] .vcp-stage-card .stage-title,
+[data-mode="light"] .vcp-stage-card .stage-title {
+    color: #b45309 !important;
+}
+body.light-theme .vcp-stage-card .stage-title-green,
+[data-theme="light"] .vcp-stage-card .stage-title-green,
+[data-mode="light"] .vcp-stage-card .stage-title-green {
+    color: #047857 !important;
+}
+body.light-theme .vcp-stage-card .stage-title-blue,
+[data-theme="light"] .vcp-stage-card .stage-title-blue,
+[data-mode="light"] .vcp-stage-card .stage-title-blue {
+    color: #0284c7 !important;
+}
+
+body.light-theme .vcp-stage-card .stage-desc,
+[data-theme="light"] .vcp-stage-card .stage-desc,
+[data-mode="light"] .vcp-stage-card .stage-desc {
+    color: #334155 !important;
+}
+
+/* Light Theme CANSLIM Cards */
+body.light-theme .canslim-header,
+[data-theme="light"] .canslim-header,
+[data-mode="light"] .canslim-header {
+    color: #7e22ce !important;
+}
+
+body.light-theme .canslim-guide-card,
+[data-theme="light"] .canslim-guide-card,
+[data-mode="light"] .canslim-guide-card {
+    background: #fcf7ff !important;
+    border: 1px solid #e9d5ff !important;
+}
+
+body.light-theme .canslim-char-title,
+[data-theme="light"] .canslim-char-title,
+[data-mode="light"] .canslim-char-title {
+    color: #7e22ce !important; /* Deep vibrant purple */
+}
+
+body.light-theme .canslim-char-desc,
+[data-theme="light"] .canslim-char-desc,
+[data-mode="light"] .canslim-char-desc {
+    color: #334155 !important; /* Dark slate legible body text */
+}
+
+body.light-theme .vcp-guide-sub-divider,
+[data-theme="light"] .vcp-guide-sub-divider,
+[data-mode="light"] .vcp-guide-sub-divider {
+    border-top: 1px solid #e2e8f0 !important;
+}
+

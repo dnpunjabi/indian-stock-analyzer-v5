@@ -2057,57 +2057,94 @@
                 </div>
 
                 <!-- Collapsible VCP Screener Classification Legend Banner -->
-                <div id="vcp-page-classification-legend-banner" style="display: none; margin-bottom: 20px; background: rgba(15, 23, 42, 0.85); border: 1px solid rgba(245, 158, 11, 0.35); border-radius: 12px; padding: 16px 20px; backdrop-filter: blur(10px); font-family: 'Inter', sans-serif;">
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                <div id="vcp-page-classification-legend-banner" class="vcp-guide-banner" style="display: none; margin-bottom: 20px; border-radius: 12px; padding: 16px 20px; font-family: 'Inter', sans-serif;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
                         <div style="display: flex; align-items: center; gap: 8px;">
                             <span style="font-size: 16px;">💡</span>
-                            <strong style="font-size: 13.5px; color: #fbbf24; font-weight: 800;">Minervini VCP & SEPA Classification Definitions Guide</strong>
+                            <strong class="vcp-guide-main-title" style="font-size: 14px; font-weight: 800;">Minervini VCP & SEPA Classification Definitions Guide</strong>
                         </div>
-                        <button onclick="document.getElementById('vcp-page-classification-legend-banner').style.display='none'" style="background: none; border: none; color: #94a3b8; cursor: pointer; font-size: 14px;">✕</button>
+                        <button onclick="document.getElementById('vcp-page-classification-legend-banner').style.display='none'" class="vcp-guide-close-btn" style="background: none; border: none; cursor: pointer; font-size: 15px; padding: 2px 6px;">✕</button>
                     </div>
 
                     <!-- Primary Status Definitions -->
-                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 10px; font-size: 11.5px; line-height: 1.4; margin-bottom: 14px;">
-                        <div style="background: rgba(16, 185, 129, 0.08); border: 1px solid rgba(16, 185, 129, 0.2); padding: 8px 12px; border-radius: 8px;">
-                            <strong style="color: #10b981;">🎯 READY AT PIVOT</strong>: Stock completed all contraction stages (T3/T4) with volume dry-up (VDU &le; 1.0x) and is within 4% of pivot buy price.
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 10px; font-size: 11.5px; line-height: 1.45; margin-bottom: 14px;">
+                        <div class="vcp-status-card status-ready">
+                            <strong class="status-title-ready">🎯 READY AT PIVOT</strong>: Stock completed all contraction stages (T3/T4) with volume dry-up (VDU &le; 1.0x) and is within 4% of pivot buy price.
                         </div>
-                        <div style="background: rgba(56, 189, 248, 0.08); border: 1px solid rgba(56, 189, 248, 0.2); padding: 8px 12px; border-radius: 8px;">
-                            <strong style="color: #38bdf8;">🚀 LIVE BREAKOUT</strong>: Stock crossed pivot buy price on heavy institutional volume (&gt;125% of 20-day average).
+                        <div class="vcp-status-card status-breakout">
+                            <strong class="status-title-breakout">🚀 LIVE BREAKOUT</strong>: Stock crossed pivot buy price on heavy institutional volume (&gt;125% of 20-day average).
                         </div>
-                        <div style="background: rgba(239, 68, 68, 0.08); border: 1px solid rgba(239, 68, 68, 0.2); padding: 8px 12px; border-radius: 8px;">
-                            <strong style="color: #f87171;">📉 BELOW 50 EMA</strong>: Stock is consolidating below its 50 EMA. Minervini SEPA Trend Template requires price above 50 & 200 EMA.
+                        <div class="vcp-status-card status-below-ema">
+                            <strong class="status-title-below-ema">📉 BELOW 50 EMA</strong>: Stock is consolidating below its 50 EMA. Minervini SEPA Trend Template requires price above 50 & 200 EMA.
                         </div>
-                        <div style="background: rgba(245, 158, 11, 0.06); border: 1px solid rgba(245, 158, 11, 0.15); padding: 8px 12px; border-radius: 8px;">
-                            <strong style="color: #f59e0b;">⏳ WIDE SWINGS</strong>: Stock is base-building, but price volatility swings exceed strict Minervini contraction thresholds.
+                        <div class="vcp-status-card status-wide-swings">
+                            <strong class="status-title-wide-swings">⏳ WIDE SWINGS</strong>: Stock is base-building, but price volatility swings exceed strict Minervini contraction thresholds.
                         </div>
-                        <div style="background: rgba(168, 85, 247, 0.08); border: 1px solid rgba(168, 85, 247, 0.2); padding: 8px 12px; border-radius: 8px;">
-                            <strong style="color: #c084fc;">🧱 BASE BUILDING</strong>: Stock is in early Stage 1 accumulation or constructing a cup/flat base prior to VCP contractions.
+                        <div class="vcp-status-card status-base-building">
+                            <strong class="status-title-base-building">🧱 BASE BUILDING</strong>: Stock is in early Stage 1 accumulation or constructing a cup/flat base prior to VCP contractions.
                         </div>
                     </div>
 
                     <!-- Contraction Stages Breakdown (T1 to T6) -->
-                    <div style="border-top: 1px solid rgba(255, 255, 255, 0.08); padding-top: 12px;">
-                        <div style="font-size: 11.5px; font-weight: 700; color: #38bdf8; text-transform: uppercase; margin-bottom: 10px; letter-spacing: 0.5px;">📈 VCP CONTRACTION STAGES BREAKDOWN (T1 &rarr; T6)</div>
+                    <div class="vcp-guide-sub-divider" style="border-top: 1px solid var(--border-glass, rgba(255, 255, 255, 0.08)); padding-top: 12px; margin-bottom: 14px;">
+                        <div class="vcp-stage-header" style="font-size: 11.5px; font-weight: 800; text-transform: uppercase; margin-bottom: 10px; letter-spacing: 0.5px;">📈 VCP CONTRACTION STAGES BREAKDOWN (T1 &rarr; T6)</div>
                         <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px; font-size: 11px; line-height: 1.4;">
-                            <div style="background: rgba(30, 41, 59, 0.6); border: 1px solid rgba(245, 158, 11, 0.2); padding: 8px 12px; border-radius: 8px;">
-                                <strong style="color: #fbbf24;">⏳ FORMING T1</strong> (1 Wave)<br/>
-                                <span style="color: #cbd5e1;">Initial wide contraction off peak (e.g. -25% pullback). VCP is just starting.</span>
+                            <div class="vcp-stage-card">
+                                <strong class="stage-title">⏳ FORMING T1</strong> (1 Wave)<br/>
+                                <span class="stage-desc">Initial wide contraction off peak (e.g. -25% pullback). VCP is just starting.</span>
                             </div>
-                            <div style="background: rgba(30, 41, 59, 0.6); border: 1px solid rgba(245, 158, 11, 0.2); padding: 8px 12px; border-radius: 8px;">
-                                <strong style="color: #fbbf24;">⏳ FORMING T2</strong> (2 Waves)<br/>
-                                <span style="color: #cbd5e1;">Secondary contraction tightening (e.g. -25% &rarr; -12%). Volatility shrinking.</span>
+                            <div class="vcp-stage-card">
+                                <strong class="stage-title">⏳ FORMING T2</strong> (2 Waves)<br/>
+                                <span class="stage-desc">Secondary contraction tightening (e.g. -25% &rarr; -12%). Volatility shrinking.</span>
                             </div>
-                            <div style="background: rgba(30, 41, 59, 0.6); border: 1px solid rgba(245, 158, 11, 0.35); padding: 8px 12px; border-radius: 8px; box-shadow: 0 0 8px rgba(245, 158, 11, 0.15);">
-                                <strong style="color: #fbbf24;">⏳ FORMING T3</strong> (3 Waves)<br/>
-                                <span style="color: #cbd5e1;">Classic Minervini 3-wave contraction (e.g. -25% &rarr; -12% &rarr; -4%). High institutional tightening.</span>
+                            <div class="vcp-stage-card stage-highlight">
+                                <strong class="stage-title">⏳ FORMING T3</strong> (3 Waves)<br/>
+                                <span class="stage-desc">Classic Minervini 3-wave contraction (e.g. -25% &rarr; -12% &rarr; -4%). High institutional tightening.</span>
                             </div>
-                            <div style="background: rgba(30, 41, 59, 0.6); border: 1px solid rgba(16, 185, 129, 0.3); padding: 8px 12px; border-radius: 8px;">
-                                <strong style="color: #10b981;">⏳ FORMING T4</strong> (4 Waves)<br/>
-                                <span style="color: #cbd5e1;">Micro-contraction tightening (e.g. -25% &rarr; -12% &rarr; -5% &rarr; -2%). Extremely tight handle.</span>
+                            <div class="vcp-stage-card">
+                                <strong class="stage-title-green">⏳ FORMING T4</strong> (4 Waves)<br/>
+                                <span class="stage-desc">Micro-contraction tightening (e.g. -25% &rarr; -12% &rarr; -5% &rarr; -2%). Extremely tight handle.</span>
                             </div>
-                            <div style="background: rgba(30, 41, 59, 0.6); border: 1px solid rgba(56, 189, 248, 0.3); padding: 8px 12px; border-radius: 8px;">
-                                <strong style="color: #38bdf8;">⏳ FORMING T5 / T6</strong> (5-6 Waves)<br/>
-                                <span style="color: #cbd5e1;">Ultra-tight prolonged base consolidation before major breakout.</span>
+                            <div class="vcp-stage-card">
+                                <strong class="stage-title-blue">⏳ FORMING T5 / T6</strong> (5-6 Waves)<br/>
+                                <span class="stage-desc">Ultra-tight prolonged base consolidation before major breakout.</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- CANSLIM 7-FACTOR CHARACTERISTICS BREAKDOWN -->
+                    <div class="vcp-guide-sub-divider" style="border-top: 1px solid var(--border-glass, rgba(255, 255, 255, 0.08)); padding-top: 12px;">
+                        <div class="canslim-header" style="font-size: 11.5px; font-weight: 800; text-transform: uppercase; margin-bottom: 10px; letter-spacing: 0.5px; display: flex; align-items: center; gap: 6px;">
+                            <span>🎯 CANSLIM 7-FACTOR SYSTEM CHARACTERISTICS BREAKDOWN (C · A · N · S · L · I · M)</span>
+                        </div>
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 10px; font-size: 11px; line-height: 1.45;">
+                            <div class="canslim-guide-card">
+                                <strong class="canslim-char-title">C &ndash; Current Quarterly Earnings</strong><br/>
+                                <span class="canslim-char-desc">Quarterly EPS growth &ge; 25% to 50%+ YoY. Strong current quarterly earnings acceleration drives momentum.</span>
+                            </div>
+                            <div class="canslim-guide-card">
+                                <strong class="canslim-char-title">A &ndash; Annual Earnings Increases</strong><br/>
+                                <span class="canslim-char-desc">3 to 5-year annual EPS growth &ge; 25%+ with high ROE &ge; 17%. Sustained track record of profitability.</span>
+                            </div>
+                            <div class="canslim-guide-card">
+                                <strong class="canslim-char-title">N &ndash; New Products / Management / Highs</strong><br/>
+                                <span class="canslim-char-desc">Innovative product lines, key new management, or stock breaking out to new 52-week/all-time price highs.</span>
+                            </div>
+                            <div class="canslim-guide-card">
+                                <strong class="canslim-char-title">S &ndash; Supply and Demand</strong><br/>
+                                <span class="canslim-char-desc">Shares float vs demand. Institutional volume accumulation on breakout (VDU dry-up + heavy volume breakout).</span>
+                            </div>
+                            <div class="canslim-guide-card">
+                                <strong class="canslim-char-title">L &ndash; Leader or Laggard</strong><br/>
+                                <span class="canslim-char-desc">Focus on market leaders with high Relative Strength (RS Rating &ge; 80+). Avoid industry laggards.</span>
+                            </div>
+                            <div class="canslim-guide-card">
+                                <strong class="canslim-char-title">I &ndash; Institutional Sponsorship</strong><br/>
+                                <span class="canslim-char-desc">Increasing sponsorship by top mutual funds, hedge funds & institutions. Institutional backing validates quality.</span>
+                            </div>
+                            <div class="canslim-guide-card">
+                                <strong class="canslim-char-title">M &ndash; Market Direction</strong><br/>
+                                <span class="canslim-char-desc">Trade in harmony with general market direction (Confirmed Uptrend). 75% of leading stocks follow market trend.</span>
                             </div>
                         </div>
                     </div>
@@ -9922,60 +9959,97 @@
                         </div>
 
                         <!-- Collapsible VCP Classification Legend Banner -->
-                        <div id="vcp-classification-legend-banner" style="display: none; margin-bottom: 12px; background: rgba(15, 23, 42, 0.85); border: 1px solid rgba(245, 158, 11, 0.35); border-radius: 10px; padding: 14px 18px; backdrop-filter: blur(10px);">
+                        <div id="vcp-classification-legend-banner" class="vcp-guide-banner" style="display: none; margin-bottom: 12px; border-radius: 10px; padding: 14px 18px;">
                             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
                                 <div style="display: flex; align-items: center; gap: 8px;">
                                     <span style="font-size: 15px;">💡</span>
-                                    <strong style="font-size: 13px; color: #fbbf24; font-weight: 800;">Minervini VCP & SEPA Classification Definitions Guide</strong>
+                                    <strong class="vcp-guide-main-title" style="font-size: 13px; font-weight: 800;">Minervini VCP & SEPA Classification Definitions Guide</strong>
                                 </div>
-                                <button onclick="document.getElementById('vcp-classification-legend-banner').style.display='none'" style="background: none; border: none; color: #94a3b8; cursor: pointer; font-size: 14px;">✕</button>
+                                <button onclick="document.getElementById('vcp-classification-legend-banner').style.display='none'" class="vcp-guide-close-btn" style="background: none; border: none; cursor: pointer; font-size: 14px;">✕</button>
                             </div>
 
                             <!-- Primary Status Definitions -->
                             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 10px; font-size: 11.5px; line-height: 1.4; margin-bottom: 12px;">
-                                <div style="background: rgba(16, 185, 129, 0.08); border: 1px solid rgba(16, 185, 129, 0.2); padding: 8px 10px; border-radius: 8px;">
-                                    <strong style="color: #10b981;">🎯 READY AT PIVOT</strong>: Stock completed all contraction stages (T3/T4) with volume dry-up (VDU &le; 1.0x) and is within 4% of pivot buy price.
+                                <div class="vcp-status-card status-ready">
+                                    <strong class="status-title-ready">🎯 READY AT PIVOT</strong>: Stock completed all contraction stages (T3/T4) with volume dry-up (VDU &le; 1.0x) and is within 4% of pivot buy price.
                                 </div>
-                                <div style="background: rgba(56, 189, 248, 0.08); border: 1px solid rgba(56, 189, 248, 0.2); padding: 8px 10px; border-radius: 8px;">
-                                    <strong style="color: #38bdf8;">🚀 LIVE BREAKOUT</strong>: Stock crossed pivot buy price on heavy institutional volume (&gt;125% of 20-day average).
+                                <div class="vcp-status-card status-breakout">
+                                    <strong class="status-title-breakout">🚀 LIVE BREAKOUT</strong>: Stock crossed pivot buy price on heavy institutional volume (&gt;125% of 20-day average).
                                 </div>
-                                <div style="background: rgba(245, 158, 11, 0.08); border: 1px solid rgba(245, 158, 11, 0.2); padding: 8px 10px; border-radius: 8px;">
-                                    <strong style="color: #fbbf24;">⏳ FORMING T1-T6</strong>: Active Volatility Contraction Pattern meeting Mark Minervini SEPA criteria (progressive depth contraction).
+                                <div class="vcp-status-card status-wide-swings">
+                                    <strong class="status-title-wide-swings">⏳ FORMING T1-T6</strong>: Active Volatility Contraction Pattern meeting Mark Minervini SEPA criteria (progressive depth contraction).
                                 </div>
-                                <div style="background: rgba(239, 68, 68, 0.08); border: 1px solid rgba(239, 68, 68, 0.2); padding: 8px 10px; border-radius: 8px;">
-                                    <strong style="color: #f87171;">📉 BELOW 50 EMA</strong>: Stock is consolidating below its 50 EMA. Minervini SEPA Trend Template requires price above 50 & 200 EMA.
+                                <div class="vcp-status-card status-below-ema">
+                                    <strong class="status-title-below-ema">📉 BELOW 50 EMA</strong>: Stock is consolidating below its 50 EMA. Minervini SEPA Trend Template requires price above 50 & 200 EMA.
                                 </div>
-                                <div style="background: rgba(245, 158, 11, 0.06); border: 1px solid rgba(245, 158, 11, 0.15); padding: 8px 10px; border-radius: 8px;">
-                                    <strong style="color: #f59e0b;">⏳ WIDE SWINGS</strong>: Stock is base-building, but price volatility swings exceed strict Minervini contraction thresholds.
+                                <div class="vcp-status-card status-wide-swings">
+                                    <strong class="status-title-wide-swings">⏳ WIDE SWINGS</strong>: Stock is base-building, but price volatility swings exceed strict Minervini contraction thresholds.
                                 </div>
-                                <div style="background: rgba(168, 85, 247, 0.08); border: 1px solid rgba(168, 85, 247, 0.2); padding: 8px 10px; border-radius: 8px;">
-                                    <strong style="color: #c084fc;">🧱 BASE BUILDING</strong>: Stock is in early Stage 1 accumulation or constructing a cup/flat base prior to VCP contractions.
+                                <div class="vcp-status-card status-base-building">
+                                    <strong class="status-title-base-building">🧱 BASE BUILDING</strong>: Stock is in early Stage 1 accumulation or constructing a cup/flat base prior to VCP contractions.
                                 </div>
                             </div>
 
                             <!-- Contraction Stages Breakdown (T1 to T6) -->
-                            <div style="border-top: 1px solid rgba(255, 255, 255, 0.08); padding-top: 10px;">
-                                <div style="font-size: 11px; font-weight: 700; color: #38bdf8; text-transform: uppercase; margin-bottom: 8px; letter-spacing: 0.5px;">📈 VCP CONTRACTION STAGES BREAKDOWN (T1 &rarr; T6)</div>
+                            <div class="vcp-guide-sub-divider" style="border-top: 1px solid var(--border-glass, rgba(255, 255, 255, 0.08)); padding-top: 10px; margin-bottom: 12px;">
+                                <div class="vcp-stage-header" style="font-size: 11px; font-weight: 700; text-transform: uppercase; margin-bottom: 8px; letter-spacing: 0.5px;">📈 VCP CONTRACTION STAGES BREAKDOWN (T1 &rarr; T6)</div>
                                 <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 8px; font-size: 11px; line-height: 1.4;">
-                                    <div style="background: rgba(30, 41, 59, 0.6); border: 1px solid rgba(245, 158, 11, 0.2); padding: 6px 10px; border-radius: 6px;">
-                                        <strong style="color: #fbbf24;">⏳ FORMING T1</strong> (1 Wave)<br/>
-                                        <span style="color: #cbd5e1;">Initial wide contraction off peak (e.g. -25% pullback). VCP is just starting.</span>
+                                    <div class="vcp-stage-card">
+                                        <strong class="stage-title">⏳ FORMING T1</strong> (1 Wave)<br/>
+                                        <span class="stage-desc">Initial wide contraction off peak (e.g. -25% pullback). VCP is just starting.</span>
                                     </div>
-                                    <div style="background: rgba(30, 41, 59, 0.6); border: 1px solid rgba(245, 158, 11, 0.2); padding: 6px 10px; border-radius: 6px;">
-                                        <strong style="color: #fbbf24;">⏳ FORMING T2</strong> (2 Waves)<br/>
-                                        <span style="color: #cbd5e1;">Secondary contraction tightening (e.g. -25% &rarr; -12%). Volatility shrinking.</span>
+                                    <div class="vcp-stage-card">
+                                        <strong class="stage-title">⏳ FORMING T2</strong> (2 Waves)<br/>
+                                        <span class="stage-desc">Secondary contraction tightening (e.g. -25% &rarr; -12%). Volatility shrinking.</span>
                                     </div>
-                                    <div style="background: rgba(30, 41, 59, 0.6); border: 1px solid rgba(245, 158, 11, 0.35); padding: 6px 10px; border-radius: 6px; box-shadow: 0 0 6px rgba(245, 158, 11, 0.1);">
-                                        <strong style="color: #fbbf24;">⏳ FORMING T3</strong> (3 Waves)<br/>
-                                        <span style="color: #cbd5e1;">Classic Minervini 3-wave contraction (e.g. -25% &rarr; -12% &rarr; -4%). High institutional tightening.</span>
+                                    <div class="vcp-stage-card stage-highlight">
+                                        <strong class="stage-title">⏳ FORMING T3</strong> (3 Waves)<br/>
+                                        <span class="stage-desc">Classic Minervini 3-wave contraction (e.g. -25% &rarr; -12% &rarr; -4%). High institutional tightening.</span>
                                     </div>
-                                    <div style="background: rgba(30, 41, 59, 0.6); border: 1px solid rgba(16, 185, 129, 0.3); padding: 6px 10px; border-radius: 6px;">
-                                        <strong style="color: #10b981;">⏳ FORMING T4</strong> (4 Waves)<br/>
-                                        <span style="color: #cbd5e1;">Micro-contraction tightening (e.g. -25% &rarr; -12% &rarr; -5% &rarr; -2%). Extremely tight handle.</span>
+                                    <div class="vcp-stage-card">
+                                        <strong class="stage-title-green">⏳ FORMING T4</strong> (4 Waves)<br/>
+                                        <span class="stage-desc">Micro-contraction tightening (e.g. -25% &rarr; -12% &rarr; -5% &rarr; -2%). Extremely tight handle.</span>
                                     </div>
-                                    <div style="background: rgba(30, 41, 59, 0.6); border: 1px solid rgba(56, 189, 248, 0.3); padding: 6px 10px; border-radius: 6px;">
-                                        <strong style="color: #38bdf8;">⏳ FORMING T5 / T6</strong> (5-6 Waves)<br/>
-                                        <span style="color: #cbd5e1;">Ultra-tight prolonged base consolidation before major breakout.</span>
+                                    <div class="vcp-stage-card">
+                                        <strong class="stage-title-blue">⏳ FORMING T5 / T6</strong> (5-6 Waves)<br/>
+                                        <span class="stage-desc">Ultra-tight prolonged base consolidation before major breakout.</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- CANSLIM 7-FACTOR CHARACTERISTICS BREAKDOWN -->
+                            <div class="vcp-guide-sub-divider" style="border-top: 1px solid var(--border-glass, rgba(255, 255, 255, 0.08)); padding-top: 10px;">
+                                <div class="canslim-header" style="font-size: 11px; font-weight: 800; text-transform: uppercase; margin-bottom: 8px; letter-spacing: 0.5px; display: flex; align-items: center; gap: 6px;">
+                                    <span>🎯 CANSLIM 7-FACTOR SYSTEM CHARACTERISTICS BREAKDOWN (C · A · N · S · L · I · M)</span>
+                                </div>
+                                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 8px; font-size: 11px; line-height: 1.45;">
+                                    <div class="canslim-guide-card">
+                                        <strong class="canslim-char-title">C &ndash; Current Quarterly Earnings</strong><br/>
+                                        <span class="canslim-char-desc">Quarterly EPS growth &ge; 25% to 50%+ YoY. Strong current quarterly earnings acceleration drives momentum.</span>
+                                    </div>
+                                    <div class="canslim-guide-card">
+                                        <strong class="canslim-char-title">A &ndash; Annual Earnings Increases</strong><br/>
+                                        <span class="canslim-char-desc">3 to 5-year annual EPS growth &ge; 25%+ with high ROE &ge; 17%. Sustained track record of profitability.</span>
+                                    </div>
+                                    <div class="canslim-guide-card">
+                                        <strong class="canslim-char-title">N &ndash; New Products / Management / Highs</strong><br/>
+                                        <span class="canslim-char-desc">Innovative product lines, key new management, or stock breaking out to new 52-week/all-time price highs.</span>
+                                    </div>
+                                    <div class="canslim-guide-card">
+                                        <strong class="canslim-char-title">S &ndash; Supply and Demand</strong><br/>
+                                        <span class="canslim-char-desc">Shares float vs demand. Institutional volume accumulation on breakout (VDU dry-up + heavy volume breakout).</span>
+                                    </div>
+                                    <div class="canslim-guide-card">
+                                        <strong class="canslim-char-title">L &ndash; Leader or Laggard</strong><br/>
+                                        <span class="canslim-char-desc">Focus on market leaders with high Relative Strength (RS Rating &ge; 80+). Avoid industry laggards.</span>
+                                    </div>
+                                    <div class="canslim-guide-card">
+                                        <strong class="canslim-char-title">I &ndash; Institutional Sponsorship</strong><br/>
+                                        <span class="canslim-char-desc">Increasing sponsorship by top mutual funds, hedge funds & institutions. Institutional backing validates quality.</span>
+                                    </div>
+                                    <div class="canslim-guide-card">
+                                        <strong class="canslim-char-title">M &ndash; Market Direction</strong><br/>
+                                        <span class="canslim-char-desc">Trade in harmony with general market direction (Confirmed Uptrend). 75% of leading stocks follow market trend.</span>
                                     </div>
                                 </div>
                             </div>
