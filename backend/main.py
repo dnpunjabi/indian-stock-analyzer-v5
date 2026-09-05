@@ -17919,18 +17919,33 @@ async def get_stage_diagnostic(symbol: str, force_refresh: bool = False):
             stage_name = "Stage 3: Distribution Top ⚠️"
             stage_confidence = 85.0
 
+        # Fetch pre-computed VCP record from SQLite vcp_screener_cache for 100% exact parity with VCP tab
+        vcp_db_record = None
+        try:
+            with get_db() as db_conn:
+                db_cur = db_conn.cursor()
+                db_cur.execute(
+                    "SELECT vcp_json FROM vcp_screener_cache WHERE symbol = ? OR symbol = ? LIMIT 1",
+                    (clean_sym, raw_base)
+                )
+                db_row = db_cur.fetchone()
+                if db_row and db_row["vcp_json"]:
+                    vcp_db_record = json.loads(db_row["vcp_json"])
+        except Exception:
+            vcp_db_record = None
+
         # Run 4 Quant Detectors
         stg2_res = detect_weinstein_stage2(df)
         htf_res = detect_high_tight_flag(df)
         twt_res = detect_3weeks_tight(df)
-        vcp_res = detect_vcp_pattern(df) if (df is not None and len(df) >= 40) else {"is_vcp": False, "score": 0}
+        vcp_res = vcp_db_record or (detect_vcp_pattern(df.tail(150)) if (df is not None and len(df) >= 40) else {"is_vcp": False, "score": 0})
         
         vcp_qualified = bool(vcp_res.get("is_vcp") or (curr_price > ema_50 > ema_200 and dist_52wk_high_pct >= -25.0))
         stg2_qualified = bool(stg2_res.get("is_stage2_breakout") or (stage_num == 2 and ma_30wk_slope_pct > 0.3))
         htf_qualified = bool(htf_res.get("is_htf") or htf_res.get("htf_status") in ["HTF_QUALIFIED", "HTF_FORMING"])
         twt_qualified = bool(twt_res.get("is_3wt") or twt_res.get("tight_status") in ["3WT_PIVOT_READY", "3WT_FORMING", "3WT_QUALIFIED"])
         
-        # Synchronized 4 Trade Execution Levels (Pattern-Aware & Unified across VCP, Quant Matrix, and WhatsApp)
+        # Synchronized 4 Trade Execution Levels (100% Exact Parity with VCP & CANSLIM Watchlist Tab)
         if vcp_res and vcp_res.get("pivot_price", 0) > 0 and vcp_res.get("stop_loss", 0) > 0:
             pivot_price = round(float(vcp_res["pivot_price"]), 2)
             stop_loss = round(float(vcp_res["stop_loss"]), 2)
@@ -17956,13 +17971,6 @@ async def get_stage_diagnostic(symbol: str, force_refresh: bool = False):
             stop_loss = round(pivot_price * 0.95, 2)
             target_1 = round(pivot_price * 1.10, 2)
             target_2 = round(pivot_price * 1.20, 2)
-
-        # Cap stop loss at max 7.0% risk per Minervini risk management rules
-        if stop_loss < round(pivot_price * 0.93, 2):
-            stop_loss = round(pivot_price * 0.93, 2)
-            risk = pivot_price - stop_loss
-            target_1 = round(pivot_price + (2.0 * risk), 2)
-            target_2 = round(pivot_price + (4.0 * risk), 2)
 
         payload = {
             "status": "success",
