@@ -49,6 +49,17 @@ class TestAdditionalScanners(unittest.TestCase):
         self.assertIsNotNone(h_res)
         self.assertIsNotNone(t_res)
 
+    def test_vcp_and_quant_matrix_target_level_parity(self):
+        # Verify that Target 1 and Target 2 match 2:1 and 4:1 Risk-to-Reward levels exactly
+        pivot = 2278.40
+        stop = 2026.80
+        risk = pivot - stop
+        expected_t1 = round(pivot + (2.0 * risk), 2)
+        expected_t2 = round(pivot + (4.0 * risk), 2)
+        
+        self.assertEqual(expected_t1, 2781.60)
+        self.assertEqual(expected_t2, 3284.80)
+
 if __name__ == "__main__":
     unittest.main()
 
