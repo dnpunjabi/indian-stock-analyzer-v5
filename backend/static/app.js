@@ -896,6 +896,52 @@ function handleLiveTickMessage(ticksData) {
             window.filterVcpCards();
         }
     }
+
+    // Update live stock prices in Quantitative Scanner tables dynamically from WebSocket ticks
+    for (const [symKey, q] of Object.entries(ticksData)) {
+        if (!q || (!q.price && q.change_pct === undefined)) continue;
+        const symUpper = symKey.toUpperCase();
+        const baseSym = symUpper.replace('.NS', '').replace('.BO', '');
+
+        // 1. Weinstein Stage 2
+        if (window.allWeinsteinStocks && window.allWeinsteinStocks.length > 0) {
+            let updated = false;
+            window.allWeinsteinStocks.forEach(s => {
+                if (s && s.symbol && (s.symbol.toUpperCase() === symUpper || s.symbol.toUpperCase().replace('.NS', '') === baseSym)) {
+                    if (q.price) s.current_price = q.price;
+                    if (q.change_pct !== undefined) s.day_change_pct = q.change_pct;
+                    updated = true;
+                }
+            });
+            if (updated && typeof window.filterWeinsteinTable === 'function') window.filterWeinsteinTable();
+        }
+
+        // 2. High-Tight Flag
+        if (window.allHtfStocks && window.allHtfStocks.length > 0) {
+            let updated = false;
+            window.allHtfStocks.forEach(s => {
+                if (s && s.symbol && (s.symbol.toUpperCase() === symUpper || s.symbol.toUpperCase().replace('.NS', '') === baseSym)) {
+                    if (q.price) s.current_price = q.price;
+                    if (q.change_pct !== undefined) s.day_change_pct = q.change_pct;
+                    updated = true;
+                }
+            });
+            if (updated && typeof window.filterHtfTable === 'function') window.filterHtfTable();
+        }
+
+        // 3. 3-Weeks Tight
+        if (window.all3wtStocks && window.all3wtStocks.length > 0) {
+            let updated = false;
+            window.all3wtStocks.forEach(s => {
+                if (s && s.symbol && (s.symbol.toUpperCase() === symUpper || s.symbol.toUpperCase().replace('.NS', '') === baseSym)) {
+                    if (q.price) s.current_price = q.price;
+                    if (q.change_pct !== undefined) s.day_change_pct = q.change_pct;
+                    updated = true;
+                }
+            });
+            if (updated && typeof window.filter3wtTable === 'function') window.filter3wtTable();
+        }
+    }
 }
 
 function handleWsAlertTriggered(alertData) {
@@ -55870,6 +55916,7 @@ window.runWeinsteinScan = async function(isSilent = false, forceRefresh = false)
             window.allWeinsteinStocks = stocksList;
             try { localStorage.setItem('cached_weinstein_stocks', JSON.stringify(stocksList)); } catch(e){}
             window.renderWeinsteinTable(stocksList);
+            if (typeof wsSubscribeSymbols === 'function') wsSubscribeSymbols(stocksList.map(s => s.symbol));
         }
     } catch(err) {
         console.error("Weinstein scan error:", err);
@@ -55976,6 +56023,7 @@ window.runHtfScan = async function(isSilent = false, forceRefresh = false) {
             window.allHtfStocks = stocksList;
             try { localStorage.setItem('cached_htf_stocks', JSON.stringify(stocksList)); } catch(e){}
             window.renderHtfTable(stocksList);
+            if (typeof wsSubscribeSymbols === 'function') wsSubscribeSymbols(stocksList.map(s => s.symbol));
         }
     } catch(err) {
         console.error("HTF scan error:", err);
@@ -56081,6 +56129,7 @@ window.run3wtScan = async function(isSilent = false, forceRefresh = false) {
             window.all3wtStocks = stocksList;
             try { localStorage.setItem('cached_3wt_stocks', JSON.stringify(stocksList)); } catch(e){}
             window.render3wtTable(stocksList);
+            if (typeof wsSubscribeSymbols === 'function') wsSubscribeSymbols(stocksList.map(s => s.symbol));
         }
     } catch(err) {
         console.error("3WT scan error:", err);

@@ -2014,6 +2014,10 @@ def detect_weinstein_stage2(df, benchmark_df=None):
         else:
             stage_status = "NONE"
 
+        # Calculate day_change_pct
+        prev_close = clean_float(closes[-2]) if n >= 2 else curr_price
+        day_change_pct = round(((curr_price - prev_close) / prev_close) * 100.0, 2) if prev_close > 0 else 0.0
+
         return {
             "is_stage2": is_stage2,
             "stage_status": stage_status,
@@ -2022,7 +2026,8 @@ def detect_weinstein_stage2(df, benchmark_df=None):
             "breakout_vol_ratio": vol_ratio,
             "mansfield_rs": mansfield_rs,
             "pivot_price": round(base_high, 2),
-            "current_price": round(curr_price, 2)
+            "current_price": round(curr_price, 2),
+            "day_change_pct": day_change_pct
         }
     except Exception as e:
         print(f"Error in detect_weinstein_stage2: {e}")
@@ -2046,7 +2051,8 @@ def detect_high_tight_flag(df):
         "flag_days": 0,
         "vdu_ratio": 0.0,
         "pivot_price": 0.0,
-        "current_price": 0.0
+        "current_price": 0.0,
+        "day_change_pct": 0.0
     }
     if df is None or df.empty or len(df) < 30:
         return default_res
@@ -2094,6 +2100,10 @@ def detect_high_tight_flag(df):
         else:
             htf_status = "NONE"
 
+        # Calculate day_change_pct
+        prev_close = clean_float(closes[-2]) if n >= 2 else curr_price
+        day_change_pct = round(((curr_price - prev_close) / prev_close) * 100.0, 2) if prev_close > 0 else 0.0
+
         return {
             "is_htf": is_htf,
             "htf_status": htf_status,
@@ -2102,7 +2112,8 @@ def detect_high_tight_flag(df):
             "flag_days": flag_days,
             "vdu_ratio": vdu_ratio,
             "pivot_price": round(max_high_pole, 2),
-            "current_price": round(curr_price, 2)
+            "current_price": round(curr_price, 2),
+            "day_change_pct": day_change_pct
         }
     except Exception as e:
         print(f"Error in detect_high_tight_flag: {e}")
@@ -2176,6 +2187,10 @@ def detect_3weeks_tight(df):
         else:
             tight_status = "NONE"
 
+        # Calculate day_change_pct
+        prev_close = clean_float(closes[-2]) if n >= 2 else curr_price
+        day_change_pct = round(((curr_price - prev_close) / prev_close) * 100.0, 2) if prev_close > 0 else 0.0
+
         return {
             "is_3wt": is_3wt,
             "tight_status": tight_status,
@@ -2184,7 +2199,8 @@ def detect_3weeks_tight(df):
             "distance_to_50ema_pct": dist_50ema_pct,
             "pivot_price": round(pivot_price, 2),
             "stop_loss_price": stop_loss_price,
-            "current_price": round(curr_price, 2)
+            "current_price": round(curr_price, 2),
+            "day_change_pct": day_change_pct
         }
     except Exception as e:
         print(f"Error in detect_3weeks_tight: {e}")

@@ -17676,7 +17676,8 @@ async def get_weinstein_stage2_screener(force_refresh: bool = False):
                         "breakout_vol_ratio": w_res["breakout_vol_ratio"],
                         "mansfield_rs": w_res["mansfield_rs"],
                         "pivot_price": w_res["pivot_price"],
-                        "current_price": w_res["current_price"]
+                        "current_price": w_res["current_price"],
+                        "day_change_pct": w_res.get("day_change_pct", 0.0)
                     })
         
         # Sort by Breakout Vol Ratio & Mansfield RS
@@ -17737,7 +17738,8 @@ async def get_high_tight_flag_screener(force_refresh: bool = False):
                         "flag_days": h_res["flag_days"],
                         "vdu_ratio": h_res["vdu_ratio"],
                         "pivot_price": h_res["pivot_price"],
-                        "current_price": h_res["current_price"]
+                        "current_price": h_res["current_price"],
+                        "day_change_pct": h_res.get("day_change_pct", 0.0)
                     })
 
         results.sort(key=lambda x: (x["htf_status"] == "HTF_BREAKOUT_READY", x["pole_gain_pct"]), reverse=True)
@@ -17797,7 +17799,8 @@ async def get_3weeks_tight_screener(force_refresh: bool = False):
                         "distance_to_50ema_pct": t_res["distance_to_50ema_pct"],
                         "pivot_price": t_res["pivot_price"],
                         "stop_loss_price": t_res["stop_loss_price"],
-                        "current_price": t_res["current_price"]
+                        "current_price": t_res["current_price"],
+                        "day_change_pct": t_res.get("day_change_pct", 0.0)
                     })
 
         results.sort(key=lambda x: (x["tight_status"] == "3WT_PIVOT_READY", -x["close_variance_pct"]), reverse=True)
