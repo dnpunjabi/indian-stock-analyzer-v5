@@ -56631,6 +56631,28 @@ window.runWatchlistQuantScan = async function(isSilent = false, forceRefresh = f
     }
 };
 
+window.testQuantWhatsAppAlert = async function() {
+    try {
+        let sampleSym = 'BOSCHLTD.NS';
+        if (window.activeWlQuantMatrixData && Array.isArray(window.activeWlQuantMatrixData) && window.activeWlQuantMatrixData.length > 0) {
+            sampleSym = window.activeWlQuantMatrixData[0].symbol;
+        }
+        if (typeof showToast === 'function') showToast(`📱 Triggering Quant WhatsApp Alert for ${sampleSym}...`, 'info');
+        const res = await fetch(`/api/screener/test-quant-whatsapp?symbol=${encodeURIComponent(sampleSym)}`, { method: 'POST' });
+        const data = await res.json();
+        if (data && data.status === 'success') {
+            if (typeof showToast === 'function') showToast(`✅ Quant WhatsApp alert dispatched for ${sampleSym}! Check phone.`, 'success');
+            else alert(`✅ Quant WhatsApp alert dispatched for ${sampleSym}! Check phone.`);
+        } else {
+            if (typeof showToast === 'function') showToast(`⚠️ WhatsApp status: ${data.message || 'Check API credentials'}`, 'warning');
+            else alert(`⚠️ WhatsApp status: ${data.message || 'Check API credentials'}`);
+        }
+    } catch(err) {
+        console.error("Test WhatsApp Error:", err);
+        if (typeof showToast === 'function') showToast("❌ WhatsApp test failed.", 'error');
+    }
+};
+
 window.renderWatchlistQuantMatrix = function(stocks) {
     if (!stocks || !Array.isArray(stocks)) return;
 

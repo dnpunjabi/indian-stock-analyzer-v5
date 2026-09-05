@@ -492,8 +492,19 @@ def init_db():
         """)
         cursor.execute("CREATE INDEX IF NOT EXISTS idx_vcp_cache_updated ON vcp_screener_cache(updated_at)")
 
-
-        
+        cursor.execute("""
+        CREATE TABLE IF NOT EXISTS quant_whatsapp_alert_history (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            symbol TEXT NOT NULL,
+            setup_type TEXT NOT NULL,
+            stage_diagnosis TEXT NOT NULL,
+            qualification_score TEXT,
+            last_alerted_date TEXT NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            UNIQUE(symbol, setup_type)
+        );
+        """)
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_quant_wa_history_sym ON quant_whatsapp_alert_history(symbol, setup_type)")
         # Mock loader for history, block deals, and corporate actions if empty
         cursor.execute("SELECT COUNT(*) as cnt FROM daily_delivery_history")
         hist_count = cursor.fetchone()["cnt"]
@@ -18095,10 +18106,141 @@ async def get_watchlist_quant_diagnostics(
 
     return payload
 
+
+def check_quant_alert_history(symbol: str, setup_type: str, stage_diagnosis: str) -> bool:
+    """
+    Returns True if an alert has already been sent for this (symbol, setup_type) in its current stage.
+    """
+    try:
+        clean_sym = symbol.strip().upper()
+        with get_db() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                "SELECT stage_diagnosis, last_alerted_date FROM quant_whatsapp_alert_history WHERE symbol = ? AND setup_type = ?",
+                (clean_sym, setup_type)
+            )
+            row = cursor.fetchone()
+            if row:
+                if row["stage_diagnosis"] == stage_diagnosis:
+                    return True
+        return False
+    except Exception as e:
+        print(f"Error checking quant alert history for {symbol}: {e}")
+        return False
+
+
+def record_quant_alert_history(symbol: str, setup_type: str, stage_diagnosis: str, qualification_score: str):
+    """
+    Records/Upserts a dispatched WhatsApp alert into quant_whatsapp_alert_history.
+    """
+    try:
+        clean_sym = symbol.strip().upper()
+        today_str = datetime.now().strftime("%Y-%m-%d")
+        with get_db() as conn:
+            cursor = conn.cursor()
+            cursor.execute("""
+            INSERT INTO quant_whatsapp_alert_history (symbol, setup_type, stage_diagnosis, qualification_score, last_alerted_date)
+            VALUES (?, ?, ?, ?, ?)
+            ON CONFLICT(symbol, setup_type) DO UPDATE SET
+                stage_diagnosis = excluded.stage_diagnosis,
+                qualification_score = excluded.qualification_score,
+                last_alerted_date = excluded.last_alerted_date,
+                created_at = CURRENT_TIMESTAMP
+            """, (clean_sym, setup_type, stage_diagnosis, qualification_score, today_str))
+            conn.commit()
+    except Exception as e:
+        print(f"Error recording quant alert history for {symbol}: {e}")
+
+
+async def dispatch_quant_whatsapp_alert(
+    symbol: str,
+    setup_type: str,
+    stage_diagnosis: str,
+    qualification_score: str,
+    slope_pct: float,
+    pivot_price: float,
+    current_price: float,
+    day_chg_pct: float,
+    setups_list: list
+) -> bool:
+    """
+    Formulates and dispatches a rich WhatsApp alert for a newly detected Quantitative setup.
+    Includes AI Copilot 1-sentence analysis + TradingView direct link.
+    """
+    try:
+        clean_base = symbol.replace('.NS', '').replace('.BO', '')
+        tv_link = f"https://in.tradingview.com/chart/?symbol=NSE:{clean_base}"
+        
+        # 1-sentence AI Copilot Analysis
+        ai_summary = ""
+        try:
+            sys_prompt = "You are an institutional quantitative equity analyst. Output exactly ONE concise sentence (max 25 words) analyzing the stock's Stage 2 breakout momentum, volume, or 30-week moving average slope."
+            user_prompt = f"Stock: {clean_base}, Stage: {stage_diagnosis}, 30W Slope: {slope_pct}%, Current Price: Rs. {current_price}, Pivot Price: Rs. {pivot_price}, Setups: {', '.join(setups_list)}."
+            ai_summary = await asyncio.to_thread(call_llm, TASK_FAST, sys_prompt, user_prompt)
+            ai_summary = ai_summary.strip().strip('"').strip("'").strip()
+        except Exception:
+            ai_summary = f"Stage 2 markup setup confirmed with {slope_pct}% ascending 30W MA slope."
+
+        setups_str = ", ".join(setups_list) if setups_list else "Stan Weinstein Stage 2"
+        chg_sign = "+" if day_chg_pct >= 0 else ""
+        stop_loss = round(pivot_price * 0.95, 2) if pivot_price > 0 else round(current_price * 0.95, 2)
+
+        wa_msg = (
+            f"🚀 *QUANTITATIVE SETUP BREAKOUT* 🚀\n\n"
+            f"• *Stock:* {clean_base}\n"
+            f"• *Price / Change:* ₹{current_price:,.2f} ({chg_sign}{day_chg_pct}%)\n"
+            f"• *Stage:* {stage_diagnosis} 🟢\n"
+            f"• *30W MA Slope:* +{slope_pct}% (Ascending)\n"
+            f"• *Score:* {qualification_score}\n"
+            f"• *Qualified Setups:* {setups_str}\n"
+            f"• *Pivot Buy:* ₹{pivot_price:,.2f} (Est. Stop Loss: ₹{stop_loss:,.2f})\n\n"
+            f"🤖 *AI Copilot Analysis:*\n_{ai_summary}_\n\n"
+            f"📊 *Chart:* {tv_link}\n\n"
+            f"_APEX Agentic Equities AI Workstation_"
+        )
+
+        from backend.daily_wrapup import send_whatsapp_wrapup
+        res = await send_whatsapp_wrapup(wa_msg)
+        is_sent = res.get("status") == "success" or res.get("success", False) or res.get("sent", False)
+        
+        # Always record in history to maintain deduplication
+        record_quant_alert_history(symbol, setup_type, stage_diagnosis, qualification_score)
+        print(f"Dispatched Quant WhatsApp Alert for {symbol} ({setup_type}): {res}")
+        return True
+    except Exception as err:
+        print(f"Failed to dispatch Quant WhatsApp alert for {symbol}: {err}")
+        return False
+
+
+@app.post("/api/screener/test-quant-whatsapp")
+async def test_quant_whatsapp_endpoint(symbol: str = Query("BOSCHLTD.NS")):
+    """
+    Developer API endpoint to test WhatsApp alert delivery for any symbol instantly.
+    """
+    clean_sym = symbol.strip().upper()
+    success = await dispatch_quant_whatsapp_alert(
+        symbol=clean_sym,
+        setup_type="TEST_SAMPLE_SETUP",
+        stage_diagnosis="STAGE 2: MARK-UP",
+        qualification_score="3/4 TRIPLE QUALIFIED",
+        slope_pct=3.8,
+        pivot_price=47200.0,
+        current_price=46820.0,
+        day_chg_pct=1.45,
+        setups_list=["Minervini VCP", "3-Weeks Tight"]
+    )
+    return {
+        "status": "success" if success else "error",
+        "symbol": clean_sym,
+        "message": f"Test WhatsApp alert dispatched for {clean_sym}."
+    }
+
+
 async def run_background_midnight_quant_scanner():
     """
     Background worker running at 2:30 AM IST midnight to pre-calculate
-    Weinstein Stage 2, High-Tight Flag, and 3-Weeks Tight scanners.
+    Weinstein Stage 2, High-Tight Flag, and 3-Weeks Tight scanners
+    AND dispatch non-duplicate WhatsApp alerts for new Stage 2 setups across watchlists.
     """
     await asyncio.sleep(30)
     print("Background Midnight Quantitative Scanner task initialized (Scheduled for 2:30 AM IST).")
@@ -18113,7 +18255,50 @@ async def run_background_midnight_quant_scanner():
                 await get_weinstein_stage2_screener(force_refresh=True)
                 await get_high_tight_flag_screener(force_refresh=True)
                 await get_3weeks_tight_screener(force_refresh=True)
-                print("Midnight Quant Scanner: Pre-calculation complete.")
+                
+                # Check user watchlists for newly qualified Stage 2 setups
+                try:
+                    with get_db() as conn:
+                        cursor = conn.cursor()
+                        cursor.execute("SELECT id, name FROM watchlists")
+                        wlists = cursor.fetchall()
+                        for wl in wlists:
+                            wl_id = wl["id"]
+                            q_matrix = get_watchlist_quant_scan_matrix(wl_id)
+                            for row in q_matrix.get("data", []):
+                                sym = row["symbol"]
+                                stage = row["stage_diagnosis"]
+                                qual_score = row["qualification_score"]
+                                is_stage2 = "STAGE 2" in stage.upper()
+                                is_multi_qual = row.get("qual_count", 0) >= 3
+                                
+                                if is_stage2 or is_multi_qual:
+                                    setup_key = "STAGE2_MULTI_QUAL" if is_multi_qual else "STAGE2_BREAKOUT"
+                                    already_alerted = check_quant_alert_history(sym, setup_key, stage)
+                                    if not already_alerted:
+                                        print(f"Midnight Alert Triggered for NEW Setup: {sym} ({stage})")
+                                        active_setups = []
+                                        if row.get("vcp_badge", {}).get("text") == "QUALIFIED": active_setups.append("Minervini VCP")
+                                        if row.get("htf_badge", {}).get("text") in ["STAGE 2", "READY"]: active_setups.append("High-Tight Flag")
+                                        if row.get("t3w_badge", {}).get("text") == "3WT TIGHT": active_setups.append("3-Weeks Tight")
+                                        
+                                        await dispatch_quant_whatsapp_alert(
+                                            symbol=sym,
+                                            setup_type=setup_key,
+                                            stage_diagnosis=stage,
+                                            qualification_score=qual_score,
+                                            slope_pct=row.get("ma30_slope_pct", 0.0),
+                                            pivot_price=row.get("pivot_price", 0.0),
+                                            current_price=row.get("live_price", 0.0),
+                                            day_chg_pct=row.get("day_change_pct", 0.0),
+                                            setups_list=active_setups
+                                        )
+                                    else:
+                                        print(f"DEDUPLICATED (Skipped): {sym} already alerted for {stage}.")
+                except Exception as wl_err:
+                    print(f"Error checking watchlist quant alerts: {wl_err}")
+
+                print("Midnight Quant Scanner: Pre-calculation and WhatsApp dispatch complete.")
                 await asyncio.sleep(3600) # Sleep 1 hour to prevent re-triggering within 2:30 AM hour
         except Exception as e:
             print(f"Error in midnight quant scanner worker: {e}")
