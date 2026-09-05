@@ -56209,6 +56209,240 @@ window.filter3wtTable = function() {
     window.render3wtTable(filtered);
 };
 
+// 4. INTERACTIVE STAGE 1-4 STOCK DIAGNOSTIC SIMULATOR
+window.runStockStageSimulator = async function(symbolInput) {
+    let sym = symbolInput || document.getElementById('stage-sim-input')?.value || 'SUZLON.NS';
+    sym = sym.trim().toUpperCase();
+    if (!sym) return;
+
+    if (document.getElementById('stage-sim-input')) {
+        document.getElementById('stage-sim-input').value = sym;
+    }
+
+    const resContainer = document.getElementById('stage-simulator-results');
+    if (!resContainer) return;
+
+    resContainer.style.display = 'block';
+    resContainer.innerHTML = `
+        <div style="text-align: center; padding: 24px; color: #94a3b8;">
+            <div class="spinner" style="border: 3px solid rgba(255,255,255,0.1); border-top-color: #a855f7; border-radius: 50%; width: 28px; height: 28px; animation: spin 0.8s linear infinite; margin: 0 auto 12px auto;"></div>
+            <p style="margin: 0; font-size: 13.5px; font-weight: 700; color: #cbd5e1;">Running Stage 1-4 Quantitative Diagnostic for <strong>${sym}</strong>...</p>
+        </div>
+    `;
+
+    try {
+        const response = await fetch(`/api/screener/stage-diagnostic/${encodeURIComponent(sym)}`);
+        const data = await response.json();
+
+        if (data.status !== 'success') {
+            resContainer.innerHTML = `
+                <div style="padding: 16px; background: rgba(244, 63, 94, 0.15); border: 1px solid #f87171; border-radius: 10px; color: #f87171; font-weight: 700;">
+                    ❌ Diagnostic Failed: ${data.message || 'Unable to fetch historical data for this symbol'}
+                </div>
+            `;
+            return;
+        }
+
+        const m = data.metrics || {};
+        const st = data.screener_status || {};
+        
+        let badgeBg = 'rgba(16, 185, 129, 0.2)';
+        let badgeBorder = '#34d399';
+        let badgeColor = '#34d399';
+        if (data.stage_number === 4) {
+            badgeBg = 'rgba(244, 63, 94, 0.2)';
+            badgeBorder = '#f87171';
+            badgeColor = '#f87171';
+        } else if (data.stage_number === 3) {
+            badgeBg = 'rgba(249, 115, 22, 0.2)';
+            badgeBorder = '#fb923c';
+            badgeColor = '#fb923c';
+        } else if (data.stage_number === 1) {
+            badgeBg = 'rgba(245, 158, 11, 0.2)';
+            badgeBorder = '#fbbf24';
+            badgeColor = '#fbbf24';
+        }
+
+        resContainer.innerHTML = `
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; margin-bottom: 18px; padding-bottom: 14px; border-bottom: 1px solid rgba(255,255,255,0.1);">
+                <div>
+                    <h4 style="margin: 0; font-size: 20px; font-weight: 800; color: #f8fafc; display: flex; align-items: center; gap: 8px;">
+                        <span>📊</span> ${data.symbol} (${data.base_symbol})
+                        <span style="font-size: 14px; color: #cbd5e1; font-weight: 700;">₹${(m.current_price || 0).toFixed(2)}</span>
+                        <span style="font-size: 13px; font-weight: 800; color: ${(m.day_change_pct || 0) >= 0 ? '#34d399' : '#f87171'};">
+                            ${(m.day_change_pct || 0) >= 0 ? '+' : ''}${(m.day_change_pct || 0).toFixed(2)}%
+                        </span>
+                    </h4>
+                </div>
+                <div style="background: ${badgeBg}; border: 1px solid ${badgeBorder}; color: ${badgeColor}; padding: 6px 14px; border-radius: 20px; font-weight: 800; font-size: 13px; display: flex; align-items: center; gap: 6px;">
+                    <span>${data.stage_name}</span>
+                    <span style="opacity: 0.8; font-size: 11px;">(${data.stage_confidence}% Confidence)</span>
+                </div>
+            </div>
+
+            <!-- Key Indicators Metrics Grid -->
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; margin-bottom: 20px;">
+                <div style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(255, 255, 255, 0.08); padding: 10px; border-radius: 8px; text-align: center;">
+                    <div style="font-size: 10.5px; color: #94a3b8; font-weight: 700;">30-WK MA SLOPE</div>
+                    <div style="font-size: 15px; font-weight: 800; color: ${(m.ma_30wk_slope_pct || 0) > 0 ? '#34d399' : '#f87171'}; font-family: monospace;">
+                        ${(m.ma_30wk_slope_pct || 0) >= 0 ? '+' : ''}${(m.ma_30wk_slope_pct || 0).toFixed(2)}%
+                    </div>
+                </div>
+                <div style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(255, 255, 255, 0.08); padding: 10px; border-radius: 8px; text-align: center;">
+                    <div style="font-size: 10.5px; color: #94a3b8; font-weight: 700;">50-DAY EMA</div>
+                    <div style="font-size: 15px; font-weight: 800; color: #38bdf8; font-family: monospace;">
+                        ₹${(m.ema_50 || 0).toFixed(2)}
+                    </div>
+                </div>
+                <div style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(255, 255, 255, 0.08); padding: 10px; border-radius: 8px; text-align: center;">
+                    <div style="font-size: 10.5px; color: #94a3b8; font-weight: 700;">200-DAY EMA</div>
+                    <div style="font-size: 15px; font-weight: 800; color: #fbbf24; font-family: monospace;">
+                        ₹${(m.ema_200 || 0).toFixed(2)}
+                    </div>
+                </div>
+                <div style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(255, 255, 255, 0.08); padding: 10px; border-radius: 8px; text-align: center;">
+                    <div style="font-size: 10.5px; color: #94a3b8; font-weight: 700;">DIST TO 52W HIGH</div>
+                    <div style="font-size: 15px; font-weight: 800; color: ${(m.dist_52wk_high_pct || 0) >= -15 ? '#34d399' : '#f87171'}; font-family: monospace;">
+                        ${(m.dist_52wk_high_pct || 0).toFixed(2)}%
+                    </div>
+                </div>
+                <div style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(255, 255, 255, 0.08); padding: 10px; border-radius: 8px; text-align: center;">
+                    <div style="font-size: 10.5px; color: #94a3b8; font-weight: 700;">RS RATING</div>
+                    <div style="font-size: 15px; font-weight: 800; color: #c084fc; font-family: monospace;">
+                        ${m.rs_rating || 50} / 99
+                    </div>
+                </div>
+                <div style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(255, 255, 255, 0.08); padding: 10px; border-radius: 8px; text-align: center;">
+                    <div style="font-size: 10.5px; color: #94a3b8; font-weight: 700;">VOL SURGE</div>
+                    <div style="font-size: 15px; font-weight: 800; color: #2dd4bf; font-family: monospace;">
+                        ${(m.vol_ratio || 1.0).toFixed(1)}x SMA
+                    </div>
+                </div>
+            </div>
+
+            <!-- 4 Screener Qualification Status Cards -->
+            <h5 style="margin: 0 0 10px 0; font-size: 13px; font-weight: 800; color: #f8fafc;">
+                🎯 4-Screener Algorithmic Qualification Checks:
+            </h5>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px; margin-bottom: 18px;">
+                <div style="background: rgba(15, 23, 42, 0.5); border: 1px solid ${(st.vcp || {}).qualified ? '#34d399' : 'rgba(255,255,255,0.1)'}; padding: 10px 12px; border-radius: 8px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+                        <strong style="color: #fbbf24; font-size: 12px;">🔥 VCP & CANSLIM</strong>
+                        <span style="font-size: 11px; font-weight: 800; color: ${(st.vcp || {}).qualified ? '#34d399' : '#f87171'};">
+                            ${(st.vcp || {}).qualified ? '✅ QUALIFIED' : '❌ REJECTED'}
+                        </span>
+                    </div>
+                    <p style="margin: 0; font-size: 11px; color: #cbd5e1;">${(st.vcp || {}).reason || ''}</p>
+                </div>
+                <div style="background: rgba(15, 23, 42, 0.5); border: 1px solid ${(st.weinstein_stage2 || {}).qualified ? '#34d399' : 'rgba(255,255,255,0.1)'}; padding: 10px 12px; border-radius: 8px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+                        <strong style="color: #38bdf8; font-size: 12px;">📈 Stage 2 Breakout</strong>
+                        <span style="font-size: 11px; font-weight: 800; color: ${(st.weinstein_stage2 || {}).qualified ? '#34d399' : '#f87171'};">
+                            ${(st.weinstein_stage2 || {}).qualified ? '✅ QUALIFIED' : '❌ REJECTED'}
+                        </span>
+                    </div>
+                    <p style="margin: 0; font-size: 11px; color: #cbd5e1;">${(st.weinstein_stage2 || {}).reason || ''}</p>
+                </div>
+                <div style="background: rgba(15, 23, 42, 0.5); border: 1px solid ${(st.htf || {}).qualified ? '#34d399' : 'rgba(255,255,255,0.1)'}; padding: 10px 12px; border-radius: 8px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+                        <strong style="color: #c084fc; font-size: 12px;">🚀 High-Tight Flag</strong>
+                        <span style="font-size: 11px; font-weight: 800; color: ${(st.htf || {}).qualified ? '#34d399' : '#f87171'};">
+                            ${(st.htf || {}).qualified ? '✅ QUALIFIED' : '❌ REJECTED'}
+                        </span>
+                    </div>
+                    <p style="margin: 0; font-size: 11px; color: #cbd5e1;">${(st.htf || {}).reason || ''}</p>
+                </div>
+                <div style="background: rgba(15, 23, 42, 0.5); border: 1px solid ${(st.three_wt || {}).qualified ? '#34d399' : 'rgba(255,255,255,0.1)'}; padding: 10px 12px; border-radius: 8px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+                        <strong style="color: #2dd4bf; font-size: 12px;">🎯 3-Weeks Tight</strong>
+                        <span style="font-size: 11px; font-weight: 800; color: ${(st.three_wt || {}).qualified ? '#34d399' : '#f87171'};">
+                            ${(st.three_wt || {}).qualified ? '✅ QUALIFIED' : '❌ REJECTED'}
+                        </span>
+                    </div>
+                    <p style="margin: 0; font-size: 11px; color: #cbd5e1;">${(st.three_wt || {}).reason || ''}</p>
+                </div>
+            </div>
+
+            <!-- Tactical Guidance Banner -->
+            <div style="background: rgba(30, 41, 59, 0.6); border-left: 4px solid ${badgeBorder}; padding: 10px 14px; border-radius: 6px; font-size: 12.5px; font-weight: 700; color: #f8fafc;">
+                💡 Tactical Action Plan: <span style="font-weight: 500; color: #cbd5e1;">${data.action_guidance || ''}</span>
+            </div>
+        `;
+    } catch (e) {
+        resContainer.innerHTML = `
+            <div style="padding: 16px; background: rgba(244, 63, 94, 0.15); border: 1px solid #f87171; border-radius: 10px; color: #f87171; font-weight: 700;">
+                ❌ Diagnostic Error: ${e.message || e}
+            </div>
+        `;
+    }
+};
+
+// Wire Live Auto Search / Autocomplete for Stage Simulator
+document.addEventListener('DOMContentLoaded', () => {
+    const stageInput = document.getElementById('stage-sim-input');
+    const autoBox = document.getElementById('stage-sim-autocomplete');
+    if (!stageInput || !autoBox) return;
+
+    let debounceTimer = null;
+
+    stageInput.addEventListener('input', (e) => {
+        const query = e.target.value.trim().toUpperCase();
+        clearTimeout(debounceTimer);
+
+        if (!query || query.length < 1) {
+            autoBox.style.display = 'none';
+            return;
+        }
+
+        debounceTimer = setTimeout(async () => {
+            try {
+                const res = await fetch(`/api/search?q=${encodeURIComponent(query)}`);
+                const suggestions = await res.json();
+
+                if (!Array.isArray(suggestions) || suggestions.length === 0) {
+                    autoBox.style.display = 'none';
+                    return;
+                }
+
+                autoBox.innerHTML = suggestions.slice(0, 8).map(s => {
+                    const sym = typeof s === 'string' ? s : (s.symbol || s.ticker || '');
+                    const name = typeof s === 'object' ? (s.name || s.company_name || '') : '';
+                    return `
+                        <div class="watchlist-autocomplete-item" onclick="window.selectStageSimStock('${sym}')" style="padding: 10px 14px; cursor: pointer; border-bottom: 1px solid rgba(255,255,255,0.05); display: flex; justify-content: space-between; align-items: center; transition: background 0.15s;">
+                            <strong style="color: #c084fc; font-size: 13px;">${sym}</strong>
+                            <span style="font-size: 11.5px; color: #94a3b8;">${name}</span>
+                        </div>
+                    `;
+                }).join('');
+                autoBox.style.display = 'block';
+            } catch (err) {
+                console.error("Stage autocomplete search error:", err);
+            }
+        }, 200);
+    });
+
+    stageInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+            autoBox.style.display = 'none';
+            window.runStockStageSimulator();
+        }
+    });
+
+    document.addEventListener('click', (e) => {
+        if (!stageInput.contains(e.target) && !autoBox.contains(e.target)) {
+            autoBox.style.display = 'none';
+        }
+    });
+});
+
+window.selectStageSimStock = function(sym) {
+    const input = document.getElementById('stage-sim-input');
+    const autoBox = document.getElementById('stage-sim-autocomplete');
+    if (input) input.value = sym;
+    if (autoBox) autoBox.style.display = 'none';
+    window.runStockStageSimulator(sym);
+};
+
 
 
 

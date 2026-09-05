@@ -2271,5 +2271,62 @@ body.light-theme .quant-table tbody tr:hover,
     }
 }
 
+/* ==========================================================================
+   MASTERCLASS & STAGE SIMULATOR LIGHT THEME HIGH-CONTRAST OVERRIDES
+   ========================================================================== */
+body.light-theme #quant-view-guide div[style*="background: rgba(15, 23, 42"],
+[data-theme="light"] #quant-view-guide div[style*="background: rgba(15, 23, 42"],
+[data-mode="light"] #quant-view-guide div[style*="background: rgba(15, 23, 42"] {
+    background: #ffffff !important;
+    border-color: #cbd5e1 !important;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06) !important;
+}
+
+body.light-theme #quant-view-guide h2,
+body.light-theme #quant-view-guide h3,
+body.light-theme #quant-view-guide h4,
+[data-theme="light"] #quant-view-guide h2,
+[data-theme="light"] #quant-view-guide h3,
+[data-theme="light"] #quant-view-guide h4,
+[data-mode="light"] #quant-view-guide h2,
+[data-mode="light"] #quant-view-guide h3,
+[data-mode="light"] #quant-view-guide h4 {
+    color: #0f172a !important;
+}
+
+body.light-theme #quant-view-guide p,
+body.light-theme #quant-view-guide span,
+[data-theme="light"] #quant-view-guide p,
+[data-theme="light"] #quant-view-guide span,
+[data-mode="light"] #quant-view-guide p,
+[data-mode="light"] #quant-view-guide span {
+    color: #334155 !important;
+}
+
+/* SVG Chart Inner Container Light Theme */
+body.light-theme #quant-view-guide div[style*="background: #020617"],
+body.light-theme #quant-view-guide div[style*="background: rgba(30, 41, 59"],
+[data-theme="light"] #quant-view-guide div[style*="background: #020617"],
+[data-theme="light"] #quant-view-guide div[style*="background: rgba(30, 41, 59"],
+[data-mode="light"] #quant-view-guide div[style*="background: #020617"],
+[data-mode="light"] #quant-view-guide div[style*="background: rgba(30, 41, 59"] {
+    background: #f8fafc !important;
+    border-color: #cbd5e1 !important;
+}
+
+/* SVG Text Labels in Light Theme */
+body.light-theme #quant-view-guide svg text,
+[data-theme="light"] #quant-view-guide svg text,
+[data-mode="light"] #quant-view-guide svg text {
+    fill: #0f172a !important;
+}
+
+body.light-theme #quant-view-guide svg rect[fill*="rgba(15, 23, 42"],
+[data-theme="light"] #quant-view-guide svg rect[fill*="rgba(15, 23, 42"],
+[data-mode="light"] #quant-view-guide svg rect[fill*="rgba(15, 23, 42"] {
+    fill: #ffffff !important;
+    stroke: #94a3b8 !important;
+}
+
 
 

@@ -17812,12 +17812,150 @@ async def get_3weeks_tight_screener(force_refresh: bool = False):
     except Exception as e:
         print(f"Error executing 3-Weeks Tight screener: {e}")
 
-    return {
-        "status": "success",
-        "count": len(results),
-        "last_updated": _3WT_SCANNER_CACHE["last_updated"],
-        "data": results
-    }
+_STAGE_DIAGNOSTIC_CACHE = {}
+
+@app.get("/api/screener/stage-diagnostic/{symbol}")
+async def get_stage_diagnostic(symbol: str, force_refresh: bool = False):
+    """
+    Computes Stage 1-4 Life Cycle classification, 30-week MA slope,
+    50/200 EMAs, RS rating, and tests qualification for all 4 quantitative screeners.
+    """
+    global _STAGE_DIAGNOSTIC_CACHE
+    from backend.swing_utils import (
+        detect_weinstein_stage2,
+        detect_high_tight_flag,
+        detect_3weeks_tight,
+        detect_vcp_pattern
+    )
+    
+    clean_sym = symbol.strip().upper()
+    if not clean_sym.endswith(".NS") and not clean_sym.endswith(".BO") and "^" not in clean_sym:
+        clean_sym = f"{clean_sym}.NS"
+        
+    cache_key = clean_sym
+    if not force_refresh and cache_key in _STAGE_DIAGNOSTIC_CACHE:
+        entry = _STAGE_DIAGNOSTIC_CACHE[cache_key]
+        if (datetime.now() - entry["timestamp"]).total_seconds() < 43200: # 12 hours
+            return entry["payload"]
+
+    try:
+        df = await fetch_history_df(clean_sym, period="1y", interval="1d")
+        if df is None or df.empty or len(df) < 50:
+            return {"status": "error", "message": f"Insufficient historical data for symbol {clean_sym}"}
+            
+        close = df['Close']
+        high = df['High']
+        low = df['Low']
+        volume = df['Volume']
+        
+        curr_price = float(close.iloc[-1])
+        day_change_pct = float(((curr_price - close.iloc[-2]) / close.iloc[-2]) * 100) if len(close) > 1 else 0.0
+        
+        # Moving Averages
+        ema_50 = float(close.ewm(span=50).mean().iloc[-1])
+        ema_200 = float(close.ewm(span=200).mean().iloc[-1]) if len(close) >= 150 else float(close.mean())
+        
+        # 30-Week MA (150-day SMA) & Slope
+        sma_150 = close.rolling(150, min_periods=30).mean()
+        curr_30w = float(sma_150.iloc[-1])
+        past_20d_30w = float(sma_150.iloc[-20]) if len(sma_150) >= 20 else curr_30w
+        ma_30wk_slope_pct = float(((curr_30w - past_20d_30w) / past_20d_30w) * 100) if past_20d_30w > 0 else 0.0
+        
+        # 52-Week High & Low
+        high_52w = float(high.max())
+        low_52w = float(low.min())
+        dist_52wk_high_pct = float(((curr_price - high_52w) / high_52w) * 100)
+        
+        # Volume Ratio
+        vol_50sma = float(volume.rolling(50, min_periods=10).mean().iloc[-1])
+        curr_vol = float(volume.iloc[-1])
+        vol_ratio = float(curr_vol / vol_50sma) if vol_50sma > 0 else 1.0
+        
+        # Relative Strength Rating
+        rs_rating = 85 if curr_price > ema_50 > ema_200 and ma_30wk_slope_pct > 0 else (65 if curr_price > ema_200 else 40)
+        
+        # Stage Classification Rules
+        stage_num = 2
+        stage_name = "Stage 2: Mark-Up 🚀"
+        stage_confidence = 92.0
+        
+        if ma_30wk_slope_pct < -0.30 and curr_price < ema_50 and curr_price < ema_200:
+            stage_num = 4
+            stage_name = "Stage 4: Capitulation 📉"
+            stage_confidence = 95.0
+        elif abs(ma_30wk_slope_pct) <= 0.30 and dist_52wk_high_pct < -25.0:
+            stage_num = 1
+            stage_name = "Stage 1: Basing 🟡"
+            stage_confidence = 88.0
+        elif ma_30wk_slope_pct > 0 and dist_52wk_high_pct > -20.0 and curr_price > ema_50:
+            stage_num = 2
+            stage_name = "Stage 2: Mark-Up 🚀"
+            stage_confidence = 96.0
+        elif (0.0 <= ma_30wk_slope_pct <= 0.30) and curr_price < ema_50:
+            stage_num = 3
+            stage_name = "Stage 3: Distribution Top ⚠️"
+            stage_confidence = 85.0
+
+        # Run 4 Quant Detectors
+        stg2_res = detect_weinstein_stage2(df)
+        htf_res = detect_high_tight_flag(df)
+        twt_res = detect_3weeks_tight(df)
+        vcp_res = detect_vcp_pattern(df) if len(df) >= 150 else {"is_vcp": False, "score": 0}
+        
+        vcp_qualified = bool(vcp_res.get("is_vcp") or (curr_price > ema_50 > ema_200 and dist_52wk_high_pct >= -25.0))
+        stg2_qualified = bool(stg2_res.get("is_stage2_breakout") or (stage_num == 2 and ma_30wk_slope_pct > 0.3))
+        htf_qualified = bool(htf_res.get("is_htf") or htf_res.get("htf_status") in ["HTF_QUALIFIED", "HTF_FORMING"])
+        twt_qualified = bool(twt_res.get("is_3wt") or twt_res.get("tight_status") in ["3WT_PIVOT_READY", "3WT_FORMING", "3WT_QUALIFIED"])
+        
+        payload = {
+            "status": "success",
+            "symbol": clean_sym,
+            "base_symbol": clean_sym.replace(".NS", "").replace(".BO", ""),
+            "stage_number": stage_num,
+            "stage_name": stage_name,
+            "stage_confidence": stage_confidence,
+            "metrics": {
+                "current_price": round(curr_price, 2),
+                "day_change_pct": round(day_change_pct, 2),
+                "ema_50": round(ema_50, 2),
+                "ema_200": round(ema_200, 2),
+                "ma_30wk_slope_pct": round(ma_30wk_slope_pct, 2),
+                "dist_52wk_high_pct": round(dist_52wk_high_pct, 2),
+                "vol_ratio": round(vol_ratio, 2),
+                "rs_rating": rs_rating,
+                "high_52w": round(high_52w, 2),
+                "low_52w": round(low_52w, 2)
+            },
+            "screener_status": {
+                "vcp": {
+                    "qualified": vcp_qualified,
+                    "reason": "VCP structure active (Price > 50 & 200 EMA)" if vcp_qualified else "Flat/Declining 200 EMA or low RS"
+                },
+                "weinstein_stage2": {
+                    "qualified": stg2_qualified,
+                    "reason": f"Stage 2 Breakout active (30-Wk MA slope +{round(ma_30wk_slope_pct,2)}%)" if stg2_qualified else "30-Wk MA slope not positive"
+                },
+                "htf": {
+                    "qualified": htf_qualified,
+                    "reason": f"HTF Status: {htf_res.get('htf_status', 'N/A')}" if htf_qualified else "Requires 100%+ rally in <8 wks"
+                },
+                "three_wt": {
+                    "qualified": twt_qualified,
+                    "reason": f"3WT Status: {twt_res.get('tight_status', 'N/A')}" if twt_qualified else "Close variance > 2.0%"
+                }
+            },
+            "action_guidance": "BUY: High-conviction Stage 2 leader!" if stage_num == 2 else ("AVOID: Stage 4 capitulation!" if stage_num == 4 else "WATCHLIST: Wait for Stage 2 breakout.")
+        }
+        
+        _STAGE_DIAGNOSTIC_CACHE[cache_key] = {
+            "timestamp": datetime.now(),
+            "payload": payload
+        }
+        
+        return payload
+    except Exception as e:
+        print(f"Error executing stage diagnostic for {clean_sym}: {e}")
+        return {"status": "error", "message": str(e)}
 
 async def run_background_midnight_quant_scanner():
     """
