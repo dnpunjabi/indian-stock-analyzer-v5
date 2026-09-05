@@ -55862,7 +55862,7 @@ window.allHtfStocks = [];
 window.all3wtStocks = [];
 
 window.switchQuantScannerSubtab = function(tabName) {
-    const subtabs = ['vcp', 'weinstein', 'htf', '3wt'];
+    const subtabs = ['vcp', 'weinstein', 'htf', '3wt', 'guide'];
     subtabs.forEach(t => {
         const btn = document.getElementById(`quant-subtab-${t}`);
         const view = document.getElementById(`quant-view-${t}`);
