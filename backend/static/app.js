@@ -17747,17 +17747,30 @@ function renderWatchlistItems() {
     const tbody = document.getElementById('watchlist-table-body');
 
     if (window.activeWatchlistView === 'quant-matrix') {
-        const tableWrapper = document.querySelector('.watchlist-table-wrapper');
+        const wlTable = document.getElementById('trendlyne-watchlist-table');
+        if (wlTable) {
+            wlTable.style.setProperty('display', 'none', 'important');
+            const parentScroll = wlTable.closest('.table-scroll') || wlTable.parentElement;
+            if (parentScroll) parentScroll.style.setProperty('display', 'none', 'important');
+        }
+        
         const paginationEl = document.getElementById('watchlist-table-pagination');
         const matrixContainer = document.getElementById('watchlist-quant-matrix-container');
         const quantBtn = document.getElementById('wl-view-quant-matrix-btn');
+        const filterChips = document.getElementById('watchlist-filter-chips-container');
+        const vcpActions = document.querySelector('.wl-vcp-actions-row');
+        const vcpLegend = document.getElementById('vcp-classification-legend-banner');
+        const emptyState = document.getElementById('watchlist-empty-state');
         
         document.querySelectorAll('.wl-view-btn').forEach(btn => btn.classList.remove('active'));
         if (quantBtn) quantBtn.classList.add('active');
         
-        if (tableWrapper) tableWrapper.style.display = 'none';
-        if (paginationEl) paginationEl.style.display = 'none';
-        if (matrixContainer) matrixContainer.style.display = 'block';
+        if (paginationEl) paginationEl.style.setProperty('display', 'none', 'important');
+        if (filterChips) filterChips.style.setProperty('display', 'none', 'important');
+        if (vcpActions) vcpActions.style.setProperty('display', 'none', 'important');
+        if (vcpLegend) vcpLegend.style.setProperty('display', 'none', 'important');
+        if (emptyState) emptyState.style.setProperty('display', 'none', 'important');
+        if (matrixContainer) matrixContainer.style.setProperty('display', 'block', 'important');
         
         window.runWatchlistQuantScan(false, false);
         return;
@@ -56502,24 +56515,43 @@ window.activeWlQuantMatrixData = null;
 window.switchWatchlistSubtab = function(subtabKey) {
     window.activeWatchlistView = subtabKey;
     
-    const tableWrapper = document.querySelector('.watchlist-table-wrapper');
+    const wlTable = document.getElementById('trendlyne-watchlist-table');
     const paginationEl = document.getElementById('watchlist-table-pagination');
     const matrixContainer = document.getElementById('watchlist-quant-matrix-container');
     const quantBtn = document.getElementById('wl-view-quant-matrix-btn');
+    const filterChips = document.getElementById('watchlist-filter-chips-container');
+    const vcpActions = document.querySelector('.wl-vcp-actions-row');
+    const vcpLegend = document.getElementById('vcp-classification-legend-banner');
+    const emptyState = document.getElementById('watchlist-empty-state');
     
     document.querySelectorAll('.wl-view-btn').forEach(btn => btn.classList.remove('active'));
     
     if (subtabKey === 'quant-matrix') {
-        if (tableWrapper) tableWrapper.style.display = 'none';
-        if (paginationEl) paginationEl.style.display = 'none';
-        if (matrixContainer) matrixContainer.style.display = 'block';
+        if (wlTable) {
+            wlTable.style.setProperty('display', 'none', 'important');
+            const parentScroll = wlTable.closest('.table-scroll') || wlTable.parentElement;
+            if (parentScroll) parentScroll.style.setProperty('display', 'none', 'important');
+        }
+        if (paginationEl) paginationEl.style.setProperty('display', 'none', 'important');
+        if (filterChips) filterChips.style.setProperty('display', 'none', 'important');
+        if (vcpActions) vcpActions.style.setProperty('display', 'none', 'important');
+        if (vcpLegend) vcpLegend.style.setProperty('display', 'none', 'important');
+        if (emptyState) emptyState.style.setProperty('display', 'none', 'important');
+        
+        if (matrixContainer) matrixContainer.style.setProperty('display', 'block', 'important');
         if (quantBtn) quantBtn.classList.add('active');
         
         window.runWatchlistQuantScan(false, false);
     } else {
-        if (tableWrapper) tableWrapper.style.display = 'block';
-        if (paginationEl) paginationEl.style.display = 'flex';
-        if (matrixContainer) matrixContainer.style.display = 'none';
+        if (wlTable) {
+            wlTable.style.removeProperty('display');
+            const parentScroll = wlTable.closest('.table-scroll') || wlTable.parentElement;
+            if (parentScroll) parentScroll.style.removeProperty('display');
+        }
+        if (paginationEl) paginationEl.style.removeProperty('display');
+        if (filterChips) filterChips.style.removeProperty('display');
+        if (vcpActions) vcpActions.style.removeProperty('display');
+        if (matrixContainer) matrixContainer.style.setProperty('display', 'none', 'important');
         
         const activeBtn = document.getElementById(`wl-view-${subtabKey}-btn`);
         if (activeBtn) activeBtn.classList.add('active');
@@ -56566,7 +56598,8 @@ window.runWatchlistQuantScan = async function(isSilent = false, forceRefresh = f
     if (!forceRefresh && cachedStr) {
         try {
             const cachedObj = JSON.parse(cachedStr);
-            if (Date.now() - cachedObj.timestamp < 900000) { // 15 mins
+            const isValidData = Array.isArray(cachedObj.data) && cachedObj.data.length > 0 && cachedObj.data.some(s => (s.current_price || 0) > 0);
+            if (isValidData && (Date.now() - cachedObj.timestamp < 900000)) { // 15 mins
                 window.activeWlQuantMatrixData = cachedObj.data;
                 window.renderWatchlistQuantMatrix(cachedObj.data);
                 return;
@@ -56578,7 +56611,7 @@ window.runWatchlistQuantScan = async function(isSilent = false, forceRefresh = f
     if (loader && !isSilent) loader.style.display = 'block';
 
     try {
-        const res = await fetch('/api/watchlist/quant-diagnostics', {
+        const res = await fetch(`/api/watchlist/quant-diagnostics${forceRefresh ? '?force_refresh=true' : ''}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ symbols: symbols, watchlist_name: activeWatch ? activeWatch.name : 'Default' })

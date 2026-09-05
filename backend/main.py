@@ -18014,22 +18014,25 @@ async def get_watchlist_quant_diagnostics(
         if isinstance(diag, Exception) or not isinstance(diag, dict) or diag.get("status") == "error":
             continue
 
-        stage_info = diag.get("stage_classification", {})
-        screeners = diag.get("screeners", {})
-        price = diag.get("current_price", 0.0)
-        day_chg = diag.get("day_change_pct", 0.0)
+        metrics = diag.get("metrics", {})
+        screeners = diag.get("screener_status", diag.get("screeners", {}))
+        
+        price = metrics.get("current_price", diag.get("current_price", 0.0))
+        day_chg = metrics.get("day_change_pct", diag.get("day_change_pct", 0.0))
+        slope = metrics.get("ma_30wk_slope_pct", diag.get("ma_30wk_slope_pct", 0.0))
+        
         sym = diag.get("symbol", "")
         company = diag.get("company_name", sym)
 
         vcp_qual = screeners.get("vcp", {}).get("qualified", False)
-        wein_qual = screeners.get("weinstein", {}).get("qualified", False)
+        wein_qual = screeners.get("weinstein_stage2", screeners.get("weinstein", {})).get("qualified", False)
         htf_qual = screeners.get("htf", {}).get("qualified", False)
         twt_qual = screeners.get("three_wt", {}).get("qualified", False)
 
         qual_count = sum([1 for q in [vcp_qual, wein_qual, htf_qual, twt_qual] if q])
 
-        stage_num = stage_info.get("stage", 1)
-        stage_title = stage_info.get("title", f"Stage {stage_num}")
+        stage_num = diag.get("stage_number", diag.get("stage_classification", {}).get("stage", 1))
+        stage_title = diag.get("stage_name", diag.get("stage_classification", {}).get("title", f"Stage {stage_num}"))
 
         if qual_count == 4:
             qual_label = "4/4 QUAD QUALIFIED 🌟"
@@ -18064,11 +18067,11 @@ async def get_watchlist_quant_diagnostics(
             "day_change_pct": day_chg,
             "stage_num": stage_num,
             "stage_title": stage_title,
-            "ma_30wk_slope_pct": diag.get("ma_30wk_slope_pct", 0.0),
+            "ma_30wk_slope_pct": slope,
             "vcp_qualified": vcp_qual,
             "vcp_status": screeners.get("vcp", {}).get("reason", "N/A"),
             "weinstein_qualified": wein_qual,
-            "weinstein_status": screeners.get("weinstein", {}).get("reason", "N/A"),
+            "weinstein_status": screeners.get("weinstein_stage2", screeners.get("weinstein", {})).get("reason", "N/A"),
             "htf_qualified": htf_qual,
             "htf_status": screeners.get("htf", {}).get("reason", "N/A"),
             "three_wt_qualified": twt_qual,

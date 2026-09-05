@@ -18,7 +18,7 @@
     <!-- TradingView Advanced Widget -->
     <script type="text/javascript" src="https://s3.tradingview.com/tv.js"></script>
     <link rel="stylesheet" href="styles.css?v=5.0.3">
-    <link rel="stylesheet" href="modernizer.css?v=5.0.2">
+    <link rel="stylesheet" href="modernizer.css?v=5.0.3">
     <style>
         /* Light mode strategy guides visibility override */
         [data-mode="light"] #rule-scanner-strategy-guide,
@@ -11043,10 +11043,10 @@
                         <div class="wl-controls-bar" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; flex-wrap: wrap; gap: 10px; padding: 10px 14px; background: rgba(255,255,255,0.02); border: 1px solid var(--border-glass); border-radius: 10px;">
                             <!-- View Switcher Tabs -->
                             <div class="wl-view-tabs-container" style="display: flex; gap: 6px; background: rgba(0,0,0,0.25); padding: 3px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.06); flex-wrap: wrap; max-width: 100%;">
-                                <button id="wl-view-overview-btn" class="wl-view-btn active">📊 Overview</button>
-                                <button id="wl-view-valuation-btn" class="wl-view-btn">💎 Valuation View</button>
-                                <button id="wl-view-returns-btn" class="wl-view-btn">📈 Returns Matrix</button>
-                                <button id="wl-view-vcp-btn" class="wl-view-btn">🔥 Minervini VCP & CANSLIM</button>
+                                <button id="wl-view-overview-btn" class="wl-view-btn active" onclick="window.switchWatchlistSubtab && window.switchWatchlistSubtab('overview')">📊 Overview</button>
+                                <button id="wl-view-valuation-btn" class="wl-view-btn" onclick="window.switchWatchlistSubtab && window.switchWatchlistSubtab('valuation')">💎 Valuation View</button>
+                                <button id="wl-view-returns-btn" class="wl-view-btn" onclick="window.switchWatchlistSubtab && window.switchWatchlistSubtab('returns')">📈 Returns Matrix</button>
+                                <button id="wl-view-vcp-btn" class="wl-view-btn" onclick="window.switchWatchlistSubtab && window.switchWatchlistSubtab('vcp')">🔥 Minervini VCP & CANSLIM</button>
                                 <button id="wl-view-quant-matrix-btn" class="wl-view-btn" onclick="window.switchWatchlistSubtab && window.switchWatchlistSubtab('quant-matrix')">🔬 Stage 1-4 Quant Matrix</button>
                             </div>
                             
@@ -13639,7 +13639,7 @@
     <script src="academy_prompts.js"></script>
     <script src="layman_details.js"></script>
     <script src="export_manager.js?v=5.0.1"></script>
-    <script src="app.js?v=5.0.3"></script>
+    <script src="app.js?v=5.0.4"></script>
 
     <!-- Modernization CDNs -->
     <script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js"></script>
@@ -13662,7 +13662,7 @@
     </div>
 
     <!-- Modernization Custom Layer -->
-    <script src="modernizer.js?v=8.50"></script>
+    <script src="modernizer.js?v=8.51"></script>
 
     <!-- Mobile Frosted Glass Slide-up Details Bottom Sheet -->
     <div id="mobile-details-bottom-sheet" class="mobile-bottom-sheet no-print" style="display: none;">
