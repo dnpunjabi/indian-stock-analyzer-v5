@@ -18155,9 +18155,15 @@ function renderWatchlistItems() {
         }
     }
 
-    // Auto-fetch VCP & CANSLIM metrics if active view is VCP and cache is missing/stale
+    // Auto-fetch VCP & CANSLIM metrics if active view is VCP and cache is missing/stale (Instant SWR Hydration)
     if (window.activeWatchlistView === 'vcp' && activeWatch && activeWatch.items && activeWatch.items.length > 0) {
-        if (!window.vcpWatchlistCache) window.vcpWatchlistCache = {};
+        if (!window.vcpWatchlistCache) {
+            try {
+                const storedVcpCache = localStorage.getItem('cached_vcp_watchlist_metrics');
+                window.vcpWatchlistCache = storedVcpCache ? JSON.parse(storedVcpCache) : {};
+            } catch(e) { window.vcpWatchlistCache = {}; }
+        }
+        
         const missingSyms = activeWatch.items.map(x => x.symbol).filter(sym => {
             const baseSym = sym.replace('.NS', '').replace('.BO', '');
             return !window.vcpWatchlistCache[sym] && !window.vcpWatchlistCache[baseSym];
@@ -18171,6 +18177,9 @@ function renderWatchlistItems() {
                     window._isFetchingVcpMetrics = false;
                     if (resData && resData.status === 'success' && resData.data) {
                         Object.assign(window.vcpWatchlistCache, resData.data);
+                        try {
+                            localStorage.setItem('cached_vcp_watchlist_metrics', JSON.stringify(window.vcpWatchlistCache));
+                        } catch(e){}
                         renderWatchlistItems();
                     }
                 })
@@ -54981,6 +54990,10 @@ window.copySGEMarkdownSummary = copySGEMarkdownSummary;
 // ============================================================================
 
 window.allVcpStocks = [];
+try {
+    const cachedVcpWl = localStorage.getItem('cached_vcp_watchlist_metrics');
+    window.vcpWatchlistCache = cachedVcpWl ? JSON.parse(cachedVcpWl) : {};
+} catch(e) { window.vcpWatchlistCache = {}; }
 
 window.runVcpScan = async function(isSilent = false, forceRefresh = false) {
     const loadingEl = document.getElementById('vcp-loading-container');
@@ -55923,13 +55936,28 @@ window.switchQuantScannerSubtab = function(tabName) {
     const overlay = document.getElementById('sidebar-overlay');
     if (overlay) overlay.classList.remove('active');
 
-    // 3. Lazy Data Fetching for Scanners
-    if (tabName === 'weinstein' && window.allWeinsteinStocks.length === 0) {
-        window.runWeinsteinScan(false, false);
-    } else if (tabName === 'htf' && window.allHtfStocks.length === 0) {
-        window.runHtfScan(false, false);
-    } else if (tabName === '3wt' && window.all3wtStocks.length === 0) {
-        window.run3wtScan(false, false);
+    // 3. Lazy Data Fetching & Instant SWR Hydration for Scanners
+    if (tabName === 'weinstein') {
+        if (window.allWeinsteinStocks && window.allWeinsteinStocks.length > 0) {
+            window.renderWeinsteinTable(window.allWeinsteinStocks);
+            window.runWeinsteinScan(true, false);
+        } else {
+            window.runWeinsteinScan(false, false);
+        }
+    } else if (tabName === 'htf') {
+        if (window.allHtfStocks && window.allHtfStocks.length > 0) {
+            window.renderHtfTable(window.allHtfStocks);
+            window.runHtfScan(true, false);
+        } else {
+            window.runHtfScan(false, false);
+        }
+    } else if (tabName === '3wt') {
+        if (window.all3wtStocks && window.all3wtStocks.length > 0) {
+            window.render3wtTable(window.all3wtStocks);
+            window.run3wtScan(true, false);
+        } else {
+            window.run3wtScan(false, false);
+        }
     } else if (tabName === 'guide') {
         if (typeof window.initStageSimAutocomplete === 'function') {
             window.initStageSimAutocomplete();
@@ -55941,7 +55969,8 @@ window.switchQuantScannerSubtab = function(tabName) {
 window.runWeinsteinScan = async function(isSilent = false, forceRefresh = false) {
     const loadingEl = document.getElementById('weinstein-loading-container');
     
-    // Local cache hydration
+    // Instant SWR Hydration from Local Storage
+    let hasHydrated = false;
     try {
         const cached = localStorage.getItem('cached_weinstein_stocks');
         if (cached && !forceRefresh) {
@@ -55949,12 +55978,13 @@ window.runWeinsteinScan = async function(isSilent = false, forceRefresh = false)
             if (Array.isArray(parsed) && parsed.length > 0) {
                 window.allWeinsteinStocks = parsed;
                 window.renderWeinsteinTable(parsed);
-                if (isSilent) return;
+                hasHydrated = true;
+                if (loadingEl) loadingEl.style.display = 'none';
             }
         }
     } catch(e) {}
 
-    if (!isSilent && loadingEl) loadingEl.style.display = 'block';
+    if (!isSilent && !hasHydrated && loadingEl) loadingEl.style.display = 'block';
 
     try {
         const res = await fetch(`/api/screener/weinstein-stage2${forceRefresh ? '?force_refresh=true' : ''}`);
@@ -56049,6 +56079,8 @@ window.filterWeinsteinTable = function() {
 window.runHtfScan = async function(isSilent = false, forceRefresh = false) {
     const loadingEl = document.getElementById('htf-loading-container');
     
+    // Instant SWR Hydration from Local Storage
+    let hasHydrated = false;
     try {
         const cached = localStorage.getItem('cached_htf_stocks');
         if (cached && !forceRefresh) {
@@ -56056,12 +56088,13 @@ window.runHtfScan = async function(isSilent = false, forceRefresh = false) {
             if (Array.isArray(parsed) && parsed.length > 0) {
                 window.allHtfStocks = parsed;
                 window.renderHtfTable(parsed);
-                if (isSilent) return;
+                hasHydrated = true;
+                if (loadingEl) loadingEl.style.display = 'none';
             }
         }
     } catch(e) {}
 
-    if (!isSilent && loadingEl) loadingEl.style.display = 'block';
+    if (!isSilent && !hasHydrated && loadingEl) loadingEl.style.display = 'block';
 
     try {
         const res = await fetch(`/api/screener/high-tight-flag${forceRefresh ? '?force_refresh=true' : ''}`);
@@ -56155,6 +56188,8 @@ window.filterHtfTable = function() {
 window.run3wtScan = async function(isSilent = false, forceRefresh = false) {
     const loadingEl = document.getElementById('three-wt-loading-container');
 
+    // Instant SWR Hydration from Local Storage
+    let hasHydrated = false;
     try {
         const cached = localStorage.getItem('cached_3wt_stocks');
         if (cached && !forceRefresh) {
@@ -56162,12 +56197,13 @@ window.run3wtScan = async function(isSilent = false, forceRefresh = false) {
             if (Array.isArray(parsed) && parsed.length > 0) {
                 window.all3wtStocks = parsed;
                 window.render3wtTable(parsed);
-                if (isSilent) return;
+                hasHydrated = true;
+                if (loadingEl) loadingEl.style.display = 'none';
             }
         }
     } catch(e) {}
 
-    if (!isSilent && loadingEl) loadingEl.style.display = 'block';
+    if (!isSilent && !hasHydrated && loadingEl) loadingEl.style.display = 'block';
 
     try {
         const res = await fetch(`/api/screener/3weeks-tight${forceRefresh ? '?force_refresh=true' : ''}`);
@@ -56541,7 +56577,12 @@ window.switchWatchlistSubtab = function(subtabKey) {
         if (matrixContainer) matrixContainer.style.setProperty('display', 'block', 'important');
         if (quantBtn) quantBtn.classList.add('active');
         
-        window.runWatchlistQuantScan(false, false);
+        if (window.activeWlQuantMatrixData && Array.isArray(window.activeWlQuantMatrixData) && window.activeWlQuantMatrixData.length > 0) {
+            window.renderWatchlistQuantMatrix(window.activeWlQuantMatrixData);
+            window.runWatchlistQuantScan(true, false);
+        } else {
+            window.runWatchlistQuantScan(false, false);
+        }
     } else {
         if (wlTable) {
             wlTable.style.removeProperty('display');
@@ -56621,6 +56662,9 @@ window.runWatchlistQuantScan = async function(isSilent = false, forceRefresh = f
         return;
     }
 
+    const loader = document.getElementById('wl-matrix-loading-container');
+    let hasHydrated = false;
+
     const cacheKey = `wl_quant_matrix_${activeWatchlistId}_${symbols.slice().sort().join('_')}`;
     const cachedStr = localStorage.getItem(cacheKey);
 
@@ -56628,16 +56672,16 @@ window.runWatchlistQuantScan = async function(isSilent = false, forceRefresh = f
         try {
             const cachedObj = JSON.parse(cachedStr);
             const isValidData = Array.isArray(cachedObj.data) && cachedObj.data.length > 0 && cachedObj.data.some(s => (s.current_price || 0) > 0);
-            if (isValidData && (Date.now() - cachedObj.timestamp < 900000)) { // 15 mins
+            if (isValidData) {
                 window.activeWlQuantMatrixData = cachedObj.data;
                 window.renderWatchlistQuantMatrix(cachedObj.data);
-                return;
+                hasHydrated = true;
+                if (loader) loader.style.display = 'none';
             }
         } catch(e){}
     }
 
-    const loader = document.getElementById('wl-matrix-loading-container');
-    if (loader && !isSilent) loader.style.display = 'block';
+    if (loader && !isSilent && !hasHydrated) loader.style.display = 'block';
 
     try {
         const res = await fetch(`/api/watchlist/quant-diagnostics${forceRefresh ? '?force_refresh=true' : ''}`, {

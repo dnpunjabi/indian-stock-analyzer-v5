@@ -493,6 +493,15 @@ def init_db():
         cursor.execute("CREATE INDEX IF NOT EXISTS idx_vcp_cache_updated ON vcp_screener_cache(updated_at)")
 
         cursor.execute("""
+        CREATE TABLE IF NOT EXISTS screener_results_cache (
+            screener_name TEXT PRIMARY KEY,
+            cache_json TEXT NOT NULL,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+        """)
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_screener_res_cache_updated ON screener_results_cache(updated_at)")
+
+        cursor.execute("""
         CREATE TABLE IF NOT EXISTS quant_whatsapp_alert_history (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             symbol TEXT NOT NULL,
@@ -2221,6 +2230,22 @@ async def startup_warm_caching():
         
     # 2. Fire index rebalancing asynchronously
     asyncio.create_task(asyncio.to_thread(rebalance_index_universe))
+
+    # Pre-warm Quant Screener RAM caches from SQLite Disk
+    try:
+        global _WEINSTEIN_STAGE2_CACHE, _HTF_SCANNER_CACHE, _3WT_SCANNER_CACHE
+        w_cache = _load_screener_db_cache("weinstein_stage2")
+        if w_cache:
+            _WEINSTEIN_STAGE2_CACHE = w_cache
+        h_cache = _load_screener_db_cache("htf")
+        if h_cache:
+            _HTF_SCANNER_CACHE = h_cache
+        t_cache = _load_screener_db_cache("3weeks_tight")
+        if t_cache:
+            _3WT_SCANNER_CACHE = t_cache
+        print("Quant Screener RAM caches pre-warmed from SQLite disk successfully.")
+    except Exception as e:
+        print(f"Quant screener pre-warming notice: {e}")
     
     # 3. Fire background cache warmer
     asyncio.create_task(run_background_cache_warmer())
@@ -13405,6 +13430,17 @@ async def _recalculate_vcp_universe():
             global _VCP_CANSLIM_GLOBAL_CACHE
             _VCP_CANSLIM_GLOBAL_CACHE = {"timestamp": now, "stocks": all_candidates}
             print(f"[VCP CRON] Midnight VCP Recalculation complete. {len(all_candidates)} candidates cached in SQLite & RAM.")
+            
+            # Pre-compute and warm up Stage 2, HTF, and 3WT screeners in RAM cache
+            try:
+                print("[CRON] Pre-computing Stan Weinstein Stage 2, HTF, and 3WT screeners...")
+                await get_weinstein_stage2_screener(force_refresh=True)
+                await get_high_tight_flag_screener(force_refresh=True)
+                await get_3weeks_tight_screener(force_refresh=True)
+                print("[CRON] All 4 Quant Suite screeners successfully pre-cached in RAM!")
+            except Exception as ex:
+                print(f"[CRON] Error pre-caching additional screeners: {ex}")
+
             return all_candidates
     except Exception as e:
         print(f"[VCP CRON] Universe Recalculation Error: {e}")
@@ -17640,42 +17676,16 @@ _WEINSTEIN_STAGE2_CACHE = {"data": [], "last_updated": None}
 _HTF_SCANNER_CACHE = {"data": [], "last_updated": None}
 _3WT_SCANNER_CACHE = {"data": [], "last_updated": None}
 
-@app.get("/api/screener/weinstein-stage2")
-async def get_weinstein_stage2_screener(force_refresh: bool = False):
-    """
-    Returns Stan Weinstein Stage 2 Breakout candidates across universe equities.
-    """
-    global _WEINSTEIN_STAGE2_CACHE
+async def _scan_single_stock_stage2(item, sem, b_df):
     from backend.swing_utils import detect_weinstein_stage2
-    
-    if not force_refresh and _WEINSTEIN_STAGE2_CACHE["data"]:
-        return {
-            "status": "success",
-            "count": len(_WEINSTEIN_STAGE2_CACHE["data"]),
-            "last_updated": _WEINSTEIN_STAGE2_CACHE["last_updated"],
-            "data": _WEINSTEIN_STAGE2_CACHE["data"]
-        }
-        
-    results = []
-    try:
-        with get_db() as conn:
-            cursor = conn.cursor()
-            cursor.execute("SELECT symbol, company_name, sector, cap_type FROM screener_universe WHERE symbol NOT LIKE '%DUMMY%'")
-            stocks = [dict(r) for r in cursor.fetchall()]
-
-        # Fetch benchmark index for Mansfield RS calculation
+    async with sem:
         try:
-            b_df = await fetch_history_df("^NSEI", period="1y", interval="1d")
-        except Exception:
-            b_df = None
-
-        for item in stocks:
             sym = item["symbol"]
             df = await fetch_history_df(sym, period="1y", interval="1d")
             if df is not None and not df.empty:
                 w_res = detect_weinstein_stage2(df, benchmark_df=b_df)
                 if w_res.get("is_stage2") or w_res.get("stage_status") in ["STAGE_2_LAUNCH", "STAGE_2_ADVANCING", "STAGE_1_BASE"]:
-                    results.append({
+                    return {
                         "symbol": sym,
                         "base_symbol": sym.replace(".NS", "").replace(".BO", ""),
                         "company_name": item["company_name"],
@@ -17689,14 +17699,153 @@ async def get_weinstein_stage2_screener(force_refresh: bool = False):
                         "pivot_price": w_res["pivot_price"],
                         "current_price": w_res["current_price"],
                         "day_change_pct": w_res.get("day_change_pct", 0.0)
-                    })
+                    }
+        except Exception:
+            pass
+        return None
+
+
+async def _scan_single_stock_htf(item, sem):
+    from backend.swing_utils import detect_high_tight_flag
+    async with sem:
+        try:
+            sym = item["symbol"]
+            df = await fetch_history_df(sym, period="6mo", interval="1d")
+            if df is not None and not df.empty:
+                h_res = detect_high_tight_flag(df)
+                if h_res.get("is_htf") or h_res.get("htf_status") in ["HTF_BREAKOUT_READY", "HTF_FLAG_FORMING", "HTF_QUALIFIED"]:
+                    return {
+                        "symbol": sym,
+                        "base_symbol": sym.replace(".NS", "").replace(".BO", ""),
+                        "company_name": item["company_name"],
+                        "sector": item["sector"],
+                        "cap_type": item["cap_type"],
+                        "htf_status": h_res["htf_status"],
+                        "pole_gain_pct": h_res["pole_gain_pct"],
+                        "flag_depth_pct": h_res["flag_depth_pct"],
+                        "flag_days": h_res["flag_days"],
+                        "vdu_ratio": h_res["vdu_ratio"],
+                        "pivot_price": h_res["pivot_price"],
+                        "current_price": h_res["current_price"],
+                        "day_change_pct": h_res.get("day_change_pct", 0.0)
+                    }
+        except Exception:
+            pass
+        return None
+
+
+async def _scan_single_stock_3wt(item, sem):
+    from backend.swing_utils import detect_3weeks_tight
+    async with sem:
+        try:
+            sym = item["symbol"]
+            df = await fetch_history_df(sym, period="6mo", interval="1d")
+            if df is not None and not df.empty:
+                t_res = detect_3weeks_tight(df)
+                if t_res.get("is_3wt") or t_res.get("tight_status") in ["3WT_PIVOT_READY", "3WT_FORMING", "3WT_QUALIFIED"]:
+                    return {
+                        "symbol": sym,
+                        "base_symbol": sym.replace(".NS", "").replace(".BO", ""),
+                        "company_name": item["company_name"],
+                        "sector": item["sector"],
+                        "cap_type": item["cap_type"],
+                        "tight_status": t_res["tight_status"],
+                        "close_variance_pct": t_res["close_variance_pct"],
+                        "weekly_closes": t_res["weekly_closes"],
+                        "distance_to_50ema_pct": t_res["distance_to_50ema_pct"],
+                        "pivot_price": t_res["pivot_price"],
+                        "stop_loss_price": t_res["stop_loss_price"],
+                        "current_price": t_res["current_price"],
+                        "day_change_pct": t_res.get("day_change_pct", 0.0)
+                    }
+        except Exception:
+            pass
+        return None
+
+
+def _load_screener_db_cache(screener_name: str):
+    try:
+        with get_db() as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT cache_json, updated_at FROM screener_results_cache WHERE screener_name = ?", (screener_name,))
+            row = cursor.fetchone()
+            if row and row["cache_json"]:
+                data = json.loads(row["cache_json"])
+                if isinstance(data, list) and len(data) > 0:
+                    return {"data": data, "last_updated": row["updated_at"]}
+    except Exception as e:
+        print(f"Error loading screener DB cache for {screener_name}: {e}")
+    return None
+
+def _save_screener_db_cache(screener_name: str, data: list):
+    try:
+        updated_at = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        cache_json = json.dumps(data)
+        with get_db() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                "INSERT OR REPLACE INTO screener_results_cache (screener_name, cache_json, updated_at) VALUES (?, ?, ?)",
+                (screener_name, cache_json, updated_at)
+            )
+            conn.commit()
+        return updated_at
+    except Exception as e:
+        print(f"Error saving screener DB cache for {screener_name}: {e}")
+        return datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+
+@app.get("/api/screener/weinstein-stage2")
+async def get_weinstein_stage2_screener(force_refresh: bool = False):
+    """
+    Returns Stan Weinstein Stage 2 Breakout candidates across universe equities.
+    Parallelized with asyncio 25x concurrency and backed by SQLite disk cache.
+    """
+    global _WEINSTEIN_STAGE2_CACHE
+    
+    if not force_refresh:
+        if _WEINSTEIN_STAGE2_CACHE["data"]:
+            return {
+                "status": "success",
+                "count": len(_WEINSTEIN_STAGE2_CACHE["data"]),
+                "last_updated": _WEINSTEIN_STAGE2_CACHE["last_updated"],
+                "data": _WEINSTEIN_STAGE2_CACHE["data"]
+            }
+        db_cache = _load_screener_db_cache("weinstein_stage2")
+        if db_cache:
+            _WEINSTEIN_STAGE2_CACHE = db_cache
+            return {
+                "status": "success",
+                "count": len(db_cache["data"]),
+                "last_updated": db_cache["last_updated"],
+                "data": db_cache["data"]
+            }
         
-        # Sort by Breakout Vol Ratio & Mansfield RS
+    results = []
+    try:
+        with get_db() as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT symbol, company_name, sector, cap_type FROM screener_universe WHERE symbol NOT LIKE '%DUMMY%'")
+            stocks = [dict(r) for r in cursor.fetchall()]
+
+        try:
+            b_df = await fetch_history_df("^NSEI", period="1y", interval="1d")
+        except Exception:
+            b_df = None
+
+        sem = asyncio.Semaphore(25)
+        tasks = [_scan_single_stock_stage2(item, sem, b_df) for item in stocks]
+        raw_results = await asyncio.gather(*tasks, return_exceptions=True)
+
+        for r in raw_results:
+            if isinstance(r, dict) and r is not None:
+                results.append(r)
+        
         results.sort(key=lambda x: (x["stage_status"] == "STAGE_2_LAUNCH", x["breakout_vol_ratio"]), reverse=True)
         
+        last_updated = _save_screener_db_cache("weinstein_stage2", results)
         _WEINSTEIN_STAGE2_CACHE = {
             "data": results,
-            "last_updated": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            "last_updated": last_updated
         }
     except Exception as e:
         print(f"Error executing Weinstein Stage 2 screener: {e}")
@@ -17712,17 +17861,27 @@ async def get_weinstein_stage2_screener(force_refresh: bool = False):
 async def get_high_tight_flag_screener(force_refresh: bool = False):
     """
     Returns David Ryan High-Tight Flag (HTF) candidates.
+    Parallelized with asyncio 25x concurrency and backed by SQLite disk cache.
     """
     global _HTF_SCANNER_CACHE
-    from backend.swing_utils import detect_high_tight_flag
     
-    if not force_refresh and _HTF_SCANNER_CACHE["data"]:
-        return {
-            "status": "success",
-            "count": len(_HTF_SCANNER_CACHE["data"]),
-            "last_updated": _HTF_SCANNER_CACHE["last_updated"],
-            "data": _HTF_SCANNER_CACHE["data"]
-        }
+    if not force_refresh:
+        if _HTF_SCANNER_CACHE["data"]:
+            return {
+                "status": "success",
+                "count": len(_HTF_SCANNER_CACHE["data"]),
+                "last_updated": _HTF_SCANNER_CACHE["last_updated"],
+                "data": _HTF_SCANNER_CACHE["data"]
+            }
+        db_cache = _load_screener_db_cache("htf")
+        if db_cache:
+            _HTF_SCANNER_CACHE = db_cache
+            return {
+                "status": "success",
+                "count": len(db_cache["data"]),
+                "last_updated": db_cache["last_updated"],
+                "data": db_cache["data"]
+            }
 
     results = []
     try:
@@ -17731,33 +17890,20 @@ async def get_high_tight_flag_screener(force_refresh: bool = False):
             cursor.execute("SELECT symbol, company_name, sector, cap_type FROM screener_universe WHERE symbol NOT LIKE '%DUMMY%'")
             stocks = [dict(r) for r in cursor.fetchall()]
 
-        for item in stocks:
-            sym = item["symbol"]
-            df = await fetch_history_df(sym, period="6mo", interval="1d")
-            if df is not None and not df.empty:
-                h_res = detect_high_tight_flag(df)
-                if h_res.get("is_htf") or h_res.get("htf_status") in ["HTF_BREAKOUT_READY", "HTF_FLAG_FORMING", "HTF_QUALIFIED"]:
-                    results.append({
-                        "symbol": sym,
-                        "base_symbol": sym.replace(".NS", "").replace(".BO", ""),
-                        "company_name": item["company_name"],
-                        "sector": item["sector"],
-                        "cap_type": item["cap_type"],
-                        "htf_status": h_res["htf_status"],
-                        "pole_gain_pct": h_res["pole_gain_pct"],
-                        "flag_depth_pct": h_res["flag_depth_pct"],
-                        "flag_days": h_res["flag_days"],
-                        "vdu_ratio": h_res["vdu_ratio"],
-                        "pivot_price": h_res["pivot_price"],
-                        "current_price": h_res["current_price"],
-                        "day_change_pct": h_res.get("day_change_pct", 0.0)
-                    })
+        sem = asyncio.Semaphore(25)
+        tasks = [_scan_single_stock_htf(item, sem) for item in stocks]
+        raw_results = await asyncio.gather(*tasks, return_exceptions=True)
+
+        for r in raw_results:
+            if isinstance(r, dict) and r is not None:
+                results.append(r)
 
         results.sort(key=lambda x: (x["htf_status"] == "HTF_BREAKOUT_READY", x["pole_gain_pct"]), reverse=True)
         
+        last_updated = _save_screener_db_cache("htf", results)
         _HTF_SCANNER_CACHE = {
             "data": results,
-            "last_updated": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            "last_updated": last_updated
         }
     except Exception as e:
         print(f"Error executing High-Tight Flag screener: {e}")
@@ -17773,17 +17919,27 @@ async def get_high_tight_flag_screener(force_refresh: bool = False):
 async def get_3weeks_tight_screener(force_refresh: bool = False):
     """
     Returns David Ryan 3-Weeks Tight (3WT) candidates.
+    Parallelized with asyncio 25x concurrency and backed by SQLite disk cache.
     """
     global _3WT_SCANNER_CACHE
-    from backend.swing_utils import detect_3weeks_tight
     
-    if not force_refresh and _3WT_SCANNER_CACHE["data"]:
-        return {
-            "status": "success",
-            "count": len(_3WT_SCANNER_CACHE["data"]),
-            "last_updated": _3WT_SCANNER_CACHE["last_updated"],
-            "data": _3WT_SCANNER_CACHE["data"]
-        }
+    if not force_refresh:
+        if _3WT_SCANNER_CACHE["data"]:
+            return {
+                "status": "success",
+                "count": len(_3WT_SCANNER_CACHE["data"]),
+                "last_updated": _3WT_SCANNER_CACHE["last_updated"],
+                "data": _3WT_SCANNER_CACHE["data"]
+            }
+        db_cache = _load_screener_db_cache("3weeks_tight")
+        if db_cache:
+            _3WT_SCANNER_CACHE = db_cache
+            return {
+                "status": "success",
+                "count": len(db_cache["data"]),
+                "last_updated": db_cache["last_updated"],
+                "data": db_cache["data"]
+            }
 
     results = []
     try:
@@ -17792,36 +17948,30 @@ async def get_3weeks_tight_screener(force_refresh: bool = False):
             cursor.execute("SELECT symbol, company_name, sector, cap_type FROM screener_universe WHERE symbol NOT LIKE '%DUMMY%'")
             stocks = [dict(r) for r in cursor.fetchall()]
 
-        for item in stocks:
-            sym = item["symbol"]
-            df = await fetch_history_df(sym, period="6mo", interval="1d")
-            if df is not None and not df.empty:
-                t_res = detect_3weeks_tight(df)
-                if t_res.get("is_3wt") or t_res.get("tight_status") in ["3WT_PIVOT_READY", "3WT_FORMING", "3WT_QUALIFIED"]:
-                    results.append({
-                        "symbol": sym,
-                        "base_symbol": sym.replace(".NS", "").replace(".BO", ""),
-                        "company_name": item["company_name"],
-                        "sector": item["sector"],
-                        "cap_type": item["cap_type"],
-                        "tight_status": t_res["tight_status"],
-                        "close_variance_pct": t_res["close_variance_pct"],
-                        "weekly_closes": t_res["weekly_closes"],
-                        "distance_to_50ema_pct": t_res["distance_to_50ema_pct"],
-                        "pivot_price": t_res["pivot_price"],
-                        "stop_loss_price": t_res["stop_loss_price"],
-                        "current_price": t_res["current_price"],
-                        "day_change_pct": t_res.get("day_change_pct", 0.0)
-                    })
+        sem = asyncio.Semaphore(25)
+        tasks = [_scan_single_stock_3wt(item, sem) for item in stocks]
+        raw_results = await asyncio.gather(*tasks, return_exceptions=True)
+
+        for r in raw_results:
+            if isinstance(r, dict) and r is not None:
+                results.append(r)
 
         results.sort(key=lambda x: (x["tight_status"] == "3WT_PIVOT_READY", -x["close_variance_pct"]), reverse=True)
 
+        last_updated = _save_screener_db_cache("3weeks_tight", results)
         _3WT_SCANNER_CACHE = {
             "data": results,
-            "last_updated": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            "last_updated": last_updated
         }
     except Exception as e:
         print(f"Error executing 3-Weeks Tight screener: {e}")
+
+    return {
+        "status": "success",
+        "count": len(results),
+        "last_updated": _3WT_SCANNER_CACHE["last_updated"],
+        "data": results
+    }
 
 _STAGE_DIAGNOSTIC_CACHE = {}
 
@@ -17834,6 +17984,7 @@ async def get_stage_diagnostic(symbol: str, force_refresh: bool = False):
     global _STAGE_DIAGNOSTIC_CACHE
     from backend.swing_utils import (
         detect_weinstein_stage2,
+        detect_weinstein_stage3,
         detect_high_tight_flag,
         detect_3weeks_tight,
         detect_vcp_pattern
@@ -17897,6 +18048,12 @@ async def get_stage_diagnostic(symbol: str, force_refresh: bool = False):
         # Relative Strength Rating
         rs_rating = 85 if curr_price > ema_50 > ema_200 and ma_30wk_slope_pct > 0 else (65 if curr_price > ema_200 else 40)
         
+        # Run Quantitative Detectors
+        stg2_res = detect_weinstein_stage2(df)
+        stg3_res = detect_weinstein_stage3(df)
+        htf_res = detect_high_tight_flag(df)
+        twt_res = detect_3weeks_tight(df)
+
         # Stage Classification Rules
         stage_num = 2
         stage_name = "Stage 2: Mark-Up 🚀"
@@ -17906,7 +18063,15 @@ async def get_stage_diagnostic(symbol: str, force_refresh: bool = False):
             stage_num = 4
             stage_name = "Stage 4: Capitulation 📉"
             stage_confidence = 95.0
-        elif abs(ma_30wk_slope_pct) <= 0.30 and dist_52wk_high_pct < -25.0:
+        elif stg3_res.get("is_stage3") or stg3_res.get("stage_status") in ["STAGE_3_DISTRIBUTION_WARNING", "STAGE_3_TOPPING"]:
+            stage_num = 3
+            stage_name = "Stage 3: Distribution Top ⚠️"
+            stage_confidence = 92.0
+        elif (0.0 <= abs(ma_30wk_slope_pct) <= 0.35) and curr_price < ema_50 and dist_52wk_high_pct >= -20.0:
+            stage_num = 3
+            stage_name = "Stage 3: Distribution Top ⚠️"
+            stage_confidence = 85.0
+        elif abs(ma_30wk_slope_pct) <= 0.50 and dist_52wk_high_pct < -18.0:
             stage_num = 1
             stage_name = "Stage 1: Basing 🟡"
             stage_confidence = 88.0
@@ -17914,10 +18079,6 @@ async def get_stage_diagnostic(symbol: str, force_refresh: bool = False):
             stage_num = 2
             stage_name = "Stage 2: Mark-Up 🚀"
             stage_confidence = 96.0
-        elif (0.0 <= ma_30wk_slope_pct <= 0.30) and curr_price < ema_50:
-            stage_num = 3
-            stage_name = "Stage 3: Distribution Top ⚠️"
-            stage_confidence = 85.0
 
         # Fetch pre-computed VCP record from SQLite vcp_screener_cache for 100% exact parity with VCP tab
         vcp_db_record = None
@@ -17934,14 +18095,11 @@ async def get_stage_diagnostic(symbol: str, force_refresh: bool = False):
         except Exception:
             vcp_db_record = None
 
-        # Run 4 Quant Detectors
-        stg2_res = detect_weinstein_stage2(df)
-        htf_res = detect_high_tight_flag(df)
-        twt_res = detect_3weeks_tight(df)
         vcp_res = vcp_db_record or (detect_vcp_pattern(df.tail(150)) if (df is not None and len(df) >= 40) else {"is_vcp": False, "score": 0})
         
         vcp_qualified = bool(vcp_res.get("is_vcp") or (curr_price > ema_50 > ema_200 and dist_52wk_high_pct >= -25.0))
-        stg2_qualified = bool(stg2_res.get("is_stage2_breakout") or (stage_num == 2 and ma_30wk_slope_pct > 0.3))
+        stg2_qualified = bool(stg2_res.get("is_stage2") or stg2_res.get("is_stage2_breakout") or stg2_res.get("stage_status") in ["STAGE_2_LAUNCH", "STAGE_2_ADVANCING"])
+        stg3_qualified = bool(stg3_res.get("is_stage3"))
         htf_qualified = bool(htf_res.get("is_htf") or htf_res.get("htf_status") in ["HTF_QUALIFIED", "HTF_FORMING"])
         twt_qualified = bool(twt_res.get("is_3wt") or twt_res.get("tight_status") in ["3WT_PIVOT_READY", "3WT_FORMING", "3WT_QUALIFIED"])
         
@@ -17972,6 +18130,12 @@ async def get_stage_diagnostic(symbol: str, force_refresh: bool = False):
             target_1 = round(pivot_price * 1.10, 2)
             target_2 = round(pivot_price * 1.20, 2)
 
+        action_text = "BUY: High-conviction Stage 2 leader!" if stage_num == 2 else (
+            "DEFENSIVE: Stage 3 Distribution Top! Tighten trailing stops or trim positions." if stage_num == 3 else (
+                "AVOID: Stage 4 capitulation!" if stage_num == 4 else "WATCHLIST: Wait for Stage 2 breakout."
+            )
+        )
+
         payload = {
             "status": "success",
             "symbol": clean_sym,
@@ -17993,7 +18157,11 @@ async def get_stage_diagnostic(symbol: str, force_refresh: bool = False):
                 "pivot_price": pivot_price,
                 "stop_loss": stop_loss,
                 "target_1": target_1,
-                "target_2": target_2
+                "target_2": target_2,
+                "down_to_up_vol_ratio": stg3_res.get("down_to_up_vol_ratio", 0.0),
+                "weekly_sma30_slope_pct": stg3_res.get("weekly_sma30_slope_pct", 0.0),
+                "pivot_support_price": stg3_res.get("pivot_support_price", 0.0),
+                "atr_buffer_val": stg3_res.get("atr_buffer_val", 0.0)
             },
             "screener_status": {
                 "vcp": {
@@ -18002,7 +18170,11 @@ async def get_stage_diagnostic(symbol: str, force_refresh: bool = False):
                 },
                 "weinstein_stage2": {
                     "qualified": stg2_qualified,
-                    "reason": f"Stage 2 Breakout active (30-Wk MA slope +{round(ma_30wk_slope_pct,2)}%)" if stg2_qualified else "30-Wk MA slope not positive"
+                    "reason": f"Stage 2 Breakout active (30-Wk MA slope +{round(ma_30wk_slope_pct,2)}%)" if stg2_qualified else ("30-Wk MA slope not positive" if ma_30wk_slope_pct <= 0 else "Base pivot > 3% above current price")
+                },
+                "weinstein_stage3": {
+                    "qualified": stg3_qualified,
+                    "reason": f"Stage 3 Distribution: Down/Up Vol {stg3_res.get('down_to_up_vol_ratio', 0.0)}x" if stg3_qualified else "No institutional distribution footprint"
                 },
                 "htf": {
                     "qualified": htf_qualified,
@@ -18013,7 +18185,7 @@ async def get_stage_diagnostic(symbol: str, force_refresh: bool = False):
                     "reason": f"3WT Status: {twt_res.get('tight_status', 'N/A')}" if twt_qualified else "Close variance > 2.0%"
                 }
             },
-            "action_guidance": "BUY: High-conviction Stage 2 leader!" if stage_num == 2 else ("AVOID: Stage 4 capitulation!" if stage_num == 4 else "WATCHLIST: Wait for Stage 2 breakout.")
+            "action_guidance": action_text
         }
         
         _STAGE_DIAGNOSTIC_CACHE[cache_key] = {
@@ -18071,6 +18243,7 @@ async def _eval_watchlist_quant_diagnostics(sym_list: List[str], force_refresh: 
 
         vcp_qual = screeners.get("vcp", {}).get("qualified", False)
         wein_qual = screeners.get("weinstein_stage2", screeners.get("weinstein", {})).get("qualified", False)
+        wein_s3_qual = screeners.get("weinstein_stage3", {}).get("qualified", False)
         htf_qual = screeners.get("htf", {}).get("qualified", False)
         twt_qual = screeners.get("three_wt", {}).get("qualified", False)
 
@@ -18122,6 +18295,8 @@ async def _eval_watchlist_quant_diagnostics(sym_list: List[str], force_refresh: 
             "vcp_status": screeners.get("vcp", {}).get("reason", "N/A"),
             "weinstein_qualified": wein_qual,
             "weinstein_status": screeners.get("weinstein_stage2", screeners.get("weinstein", {})).get("reason", "N/A"),
+            "weinstein_s3_qualified": wein_s3_qual,
+            "weinstein_s3_status": screeners.get("weinstein_stage3", {}).get("reason", "N/A"),
             "htf_qualified": htf_qual,
             "htf_status": screeners.get("htf", {}).get("reason", "N/A"),
             "three_wt_qualified": twt_qual,
@@ -18129,6 +18304,9 @@ async def _eval_watchlist_quant_diagnostics(sym_list: List[str], force_refresh: 
             "qual_count": qual_count,
             "qualification_label": qual_label,
             "badge_class": badge_cls,
+            "down_to_up_vol_ratio": metrics.get("down_to_up_vol_ratio", 0.0),
+            "pivot_support_price": metrics.get("pivot_support_price", 0.0),
+            "action_guidance": diag.get("action_guidance", ""),
             "pivot_price": pivot,
             "stop_loss": sl,
             "target_1": t1,

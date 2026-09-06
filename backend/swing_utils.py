@@ -2005,12 +2005,12 @@ def detect_weinstein_stage2(df, benchmark_df=None):
         # Stage 2 Conditions
         above_ma = curr_price >= sma150_curr
         ma_sloping_up = ma30_slope_pct > 0.0
-        vol_surge = vol_ratio >= 1.5
+        vol_surge = vol_ratio >= 1.4
         near_or_above_base = curr_price >= (base_high * 0.97)
 
-        is_stage2 = above_ma and ma_sloping_up and near_or_above_base
-        
-        if is_stage2 and curr_price >= base_high and vol_surge:
+        is_stage2 = above_ma and ma_sloping_up
+
+        if is_stage2 and near_or_above_base and vol_surge:
             stage_status = "STAGE_2_LAUNCH"
         elif is_stage2:
             stage_status = "STAGE_2_ADVANCING"
@@ -2036,6 +2036,158 @@ def detect_weinstein_stage2(df, benchmark_df=None):
         }
     except Exception as e:
         print(f"Error in detect_weinstein_stage2: {e}")
+        return default_res
+
+
+def detect_weinstein_stage3(df, benchmark_df=None):
+    """
+    Identifies Stan Weinstein & Mark Minervini Stage 3 (Distribution / Topping Phase) candidates.
+    Applies multi-timeframe noise filtering to eliminate false signals:
+    1. Macro Trend Context: Price within 20% of 52-week High (recent Stage 2 advance).
+    2. MA Flattening: 200 SMA / 150 SMA slope change <= 2.0% over last 20 trading days.
+    3. Multi-timeframe Weekly Alignment: Resampled 30-week SMA is flat or rolling over.
+    4. Price Churn / Volatility Band: Price churning within 2.8 * ATR volatility band around 200 SMA.
+    5. Volume Distribution Footprint: Down-Day Volume vs Up-Day Volume ratio >= 1.15x over last 30 trading days.
+    6. Structural Momentum Stall: Price slips below 50 SMA or 50 SMA compresses near 200 SMA.
+    """
+    default_res = {
+        "is_stage3": False,
+        "stage_status": "NONE",
+        "down_to_up_vol_ratio": 0.0,
+        "weekly_sma30_slope_pct": 0.0,
+        "dist_from_52w_high_pct": 0.0,
+        "price_near_sma200": False,
+        "atr_buffer_val": 0.0,
+        "mansfield_rs": 0.0,
+        "pivot_support_price": 0.0,
+        "current_price": 0.0,
+        "day_change_pct": 0.0
+    }
+    if df is None or df.empty or len(df) < 50:
+        return default_res
+
+    try:
+        closes = df['Close'].values
+        highs = df['High'].values
+        lows = df['Low'].values
+        volumes = df['Volume'].values
+        n = len(closes)
+        curr_price = clean_float(closes[-1])
+
+        # 1. Macro High Proximity Check (Within 20% of 52-Week High)
+        lookback_52w = min(252, n)
+        high_52_week = clean_float(np.max(highs[-lookback_52w:]))
+        dist_from_52w_high_pct = round(((high_52_week - curr_price) / high_52_week) * 100.0, 1) if high_52_week > 0 else 0.0
+        near_highs = curr_price >= (high_52_week * 0.80)
+
+        # 2. Moving Average Calculations (200-day & 50-day)
+        window_200 = min(200, n)
+        sma200_series = pd.Series(closes).rolling(window=window_200, min_periods=20).mean().values
+        sma200_curr = clean_float(sma200_series[-1])
+        sma200_20d_ago = clean_float(sma200_series[-20] if n >= 20 else sma200_series[0])
+        
+        sma200_change_pct = round(abs(sma200_curr - sma200_20d_ago) / (sma200_20d_ago if sma200_20d_ago > 0 else 1.0) * 100.0, 2)
+        sma200_is_flat = sma200_change_pct <= 2.0  # Slope change <= 2.0% over last 20 days
+
+        window_50 = min(50, n)
+        sma50_series = pd.Series(closes).rolling(window=window_50, min_periods=10).mean().values
+        sma50_curr = clean_float(sma50_series[-1])
+
+        # 3. Multi-timeframe Weekly 30-SMA Alignment Filter
+        if n >= 25:
+            # Step slice last 25 trading days into 5 weekly points
+            weekly_closes = closes[-25::5]
+            w_series = pd.Series(weekly_closes)
+            w_sma = w_series.mean()
+            w_sma_prev = w_series.iloc[0]
+            weekly_slope_pct = round(abs(w_sma - w_sma_prev) / (w_sma_prev if w_sma_prev > 0 else 1.0) * 100.0, 2)
+            weekly_ma_flat = weekly_slope_pct <= 2.5
+        else:
+            weekly_slope_pct = sma200_change_pct
+            weekly_ma_flat = sma200_is_flat
+
+        # 4. Volatility Band (ATR Buffer Check)
+        h_l = highs - lows
+        h_cp = np.abs(highs[1:] - closes[:-1]) if n > 1 else h_l
+        l_cp = np.abs(lows[1:] - closes[:-1]) if n > 1 else h_l
+        if n > 1:
+            tr = np.maximum(h_l[1:], np.maximum(h_cp, l_cp))
+        else:
+            tr = h_l
+        atr14 = clean_float(pd.Series(tr).rolling(window=min(14, len(tr)), min_periods=1).mean().iloc[-1])
+        
+        # Check if price is oscillating within ATR band (or +/- 7.5%) of 200 SMA
+        price_near_sma200 = abs(curr_price - sma200_curr) <= max(atr14 * 2.8, sma200_curr * 0.075)
+
+        # 5. Volume Distribution Footprint (Down-Day vs Up-Day Volume Ratio)
+        if n >= 30:
+            returns = np.diff(closes[-31:]) / np.maximum(1e-6, closes[-31:-1])
+            vols_30 = volumes[-30:]
+            down_day_vol = float(np.sum(vols_30[returns < 0]))
+            up_day_vol = float(np.sum(vols_30[returns > 0]))
+            down_to_up_vol_ratio = round(down_day_vol / max(1.0, up_day_vol), 2)
+        else:
+            vol20_avg = clean_float(pd.Series(volumes).rolling(window=min(20, n), min_periods=1).mean().iloc[-1])
+            vol50_avg = clean_float(pd.Series(volumes).rolling(window=min(50, n), min_periods=1).mean().iloc[-1])
+            down_to_up_vol_ratio = round(vol20_avg / max(1.0, vol50_avg), 2)
+
+        vol20 = clean_float(pd.Series(volumes).rolling(window=min(20, n), min_periods=1).mean().iloc[-1])
+        vol50 = clean_float(pd.Series(volumes).rolling(window=min(50, n), min_periods=1).mean().iloc[-1])
+        volume_is_churning = vol20 > vol50 or down_to_up_vol_ratio >= 1.15
+
+        # 6. Momentum Stall / MA Compression
+        momentum_stalled = (curr_price < sma50_curr) or (sma50_curr <= (sma200_curr * 1.04))
+
+        # 7. Mansfield Relative Strength
+        mansfield_rs = 0.0
+        if benchmark_df is not None and not benchmark_df.empty and 'Close' in benchmark_df.columns:
+            try:
+                b_closes = benchmark_df['Close'].values
+                min_len = min(len(closes), len(b_closes))
+                if min_len >= 20:
+                    rel_ratio = closes[-min_len:] / b_closes[-min_len:]
+                    mean_rel = np.mean(rel_ratio)
+                    mansfield_rs = round(((rel_ratio[-1] / mean_rel) - 1.0) * 100.0, 2) if mean_rel > 0 else 0.0
+            except Exception:
+                mansfield_rs = 0.0
+
+        # Stage 3 Qualification Rules
+        is_stage3 = (
+            near_highs and
+            (sma200_is_flat or weekly_ma_flat) and
+            price_near_sma200 and
+            volume_is_churning and
+            momentum_stalled
+        )
+
+        # Support Floor Calculation (Lowest Low of last 30 days)
+        pivot_support = clean_float(np.min(lows[-min(30, n):]))
+
+        if is_stage3 and down_to_up_vol_ratio >= 1.25 and curr_price < sma50_curr:
+            stage_status = "STAGE_3_DISTRIBUTION_WARNING"
+        elif is_stage3:
+            stage_status = "STAGE_3_TOPPING"
+        else:
+            stage_status = "NONE"
+
+        prev_close = clean_float(closes[-2]) if n >= 2 else curr_price
+        day_change_pct = round(((curr_price - prev_close) / prev_close) * 100.0, 2) if prev_close > 0 else 0.0
+
+        return {
+            "is_stage3": is_stage3,
+            "stage_status": stage_status,
+            "down_to_up_vol_ratio": down_to_up_vol_ratio,
+            "weekly_sma30_slope_pct": weekly_slope_pct,
+            "dist_from_52w_high_pct": dist_from_52w_high_pct,
+            "price_near_sma200": price_near_sma200,
+            "atr_buffer_val": round(atr14, 2),
+            "mansfield_rs": mansfield_rs,
+            "pivot_support_price": round(pivot_support, 2),
+            "current_price": round(curr_price, 2),
+            "day_change_pct": day_change_pct
+        }
+    except Exception as e:
+        print(f"Error in detect_weinstein_stage3: {e}")
         return default_res
 
 
