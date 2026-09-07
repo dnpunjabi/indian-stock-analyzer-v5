@@ -1748,16 +1748,27 @@ def detect_vcp_pattern(df):
         target_1 = round(pivot_price + (2.0 * risk_per_share), 2)
         target_2 = round(pivot_price + (4.0 * risk_per_share), 2)
 
-        # 6. Status Determination
-        # Stage 2 Trend Check: Price > 50 EMA and 200 EMA
+        # 6. Minervini SEPA Trend Template Alignment & Status Determination
         ema_50 = float(df_calc['EMA_50'].iloc[-1]) if 'EMA_50' in df_calc.columns else curr_price
-        in_stage_2 = curr_price >= (ema_50 * 0.96)
+        ema_200 = float(df_calc['EMA_200'].iloc[-1]) if 'EMA_200' in df_calc.columns else curr_price
+        
+        # 52-Week High Proximity (Within 15% of 52-Week High)
+        lookback_52w = min(252, n)
+        high_52w = float(np.max(highs[-lookback_52w:]))
+        near_52w_high = curr_price >= (high_52w * 0.85)
+
+        # Minervini Trend Template Criteria: Price >= 50 EMA >= 200 EMA & Price within 15% of 52W High
+        in_stage_2 = (curr_price >= ema_50) and (ema_50 >= (ema_200 * 0.98)) and near_52w_high
+
+        # Final contraction must be tight (Depth <= 10.0%)
+        final_depth = abs(contractions[-1]["depth_percent"]) if contractions else 99.0
+        tight_final_contraction = final_depth <= 10.0
         
         vcp_status = "NONE"
         is_vcp = False
         vcp_reason = "CONSOLIDATING"
         
-        if is_contracting and in_stage_2 and len(contractions) >= 2:
+        if is_contracting and in_stage_2 and len(contractions) >= 2 and tight_final_contraction:
             is_vcp = True
             vcp_reason = "VCP PATTERN"
             if curr_price >= pivot_price and (curr_vol / vol_20d_avg) >= 1.25:
@@ -1768,7 +1779,9 @@ def detect_vcp_pattern(df):
                 vcp_status = "FORMING"
         else:
             if not in_stage_2:
-                vcp_reason = "BELOW 50 EMA"
+                vcp_reason = "TREND NOT ALIGNED"
+            elif not tight_final_contraction:
+                vcp_reason = "WIDE FINAL CONTRACTION"
             elif not is_contracting:
                 vcp_reason = "WIDE SWINGS"
             elif len(contractions) < 2:
@@ -2002,13 +2015,31 @@ def detect_weinstein_stage2(df, benchmark_df=None):
             except Exception:
                 mansfield_rs = 0.0
 
-        # Stage 2 Conditions
+        # Calculate 50 EMA & 200 EMA for trend alignment
+        ema50_series = pd.Series(closes).ewm(span=min(50, n), adjust=False).mean().values
+        ema50_curr = clean_float(ema50_series[-1])
+        ema200_series = pd.Series(closes).ewm(span=min(200, n), adjust=False).mean().values
+        ema200_curr = clean_float(ema200_series[-1])
+
+        # 52-Week High Proximity (Must be within 12% of 52W High for top leaders)
+        lookback_52w = min(252, n)
+        high_52w = clean_float(np.max(highs[-lookback_52w:]))
+        near_52w_high = curr_price >= (high_52w * 0.88)
+
+        # Stage 2 Criteria: Price > 150 SMA & 30-W MA Sloping Up & Price > 50 EMA >= 200 EMA & Mansfield RS >= 30 & Within 12% 52W High
+        trend_aligned = (curr_price >= ema50_curr) and (ema50_curr >= ema200_curr) and near_52w_high
+        rs_leadership = (mansfield_rs >= 30.0) or (curr_price >= (base_high * 0.98))
+
         above_ma = curr_price >= sma150_curr
         ma_sloping_up = ma30_slope_pct > 0.0
         vol_surge = vol_ratio >= 1.4
         near_or_above_base = curr_price >= (base_high * 0.97)
 
-        is_stage2 = above_ma and ma_sloping_up
+        # Stage 3 Distribution Mutual Exclusion
+        s3_res = detect_weinstein_stage3(df, benchmark_df=benchmark_df)
+        is_stage3_dist = s3_res.get("is_stage3") or s3_res.get("stage_status") in ["STAGE_3_DISTRIBUTION", "STAGE_3_TOPPING"]
+
+        is_stage2 = above_ma and ma_sloping_up and trend_aligned and rs_leadership and (not is_stage3_dist)
 
         if is_stage2 and near_or_above_base and vol_surge:
             stage_status = "STAGE_2_LAUNCH"
@@ -2281,10 +2312,9 @@ def detect_3weeks_tight(df):
     """
     Identifies David Ryan 3-Weeks Tight (3WT) candidates.
     Criteria:
-    1. Stock is in an established uptrend (Price > 50 EMA).
-    2. Weekly close prices across 3 consecutive weeks are within <= 1.5% (or <= 2.2%) variance.
-    3. Volume contracting across the 3 weeks.
-    4. Calculates low-risk Pivot Buy Price and Stop-Loss level.
+    1. High-RS Momentum Uptrend (Price > 50 EMA > 200 EMA & Price within 20% of 52W High).
+    2. Weekly close prices across 3 consecutive weeks are within ultra-tight <= 2.0% (or <= 2.2%) variance.
+    3. Calculates low-risk Pivot Buy Price and Stop-Loss level.
     """
     default_res = {
         "is_3wt": False,
@@ -2296,7 +2326,7 @@ def detect_3weeks_tight(df):
         "stop_loss_price": 0.0,
         "current_price": 0.0
     }
-    if df is None or df.empty or len(df) < 20:
+    if df is None or df.empty or len(df) < 30:
         return default_res
 
     try:
@@ -2306,9 +2336,11 @@ def detect_3weeks_tight(df):
         n = len(closes)
         curr_price = clean_float(closes[-1])
 
-        # Calculate 50 EMA
+        # Calculate 50 EMA & 200 EMA
         ema50_series = pd.Series(closes).ewm(span=min(50, n), adjust=False).mean().values
         ema50_curr = clean_float(ema50_series[-1])
+        ema200_series = pd.Series(closes).ewm(span=min(200, n), adjust=False).mean().values
+        ema200_curr = clean_float(ema200_series[-1])
         dist_50ema_pct = round(((curr_price - ema50_curr) / ema50_curr) * 100.0, 1) if ema50_curr > 0 else 0.0
 
         # Resample last 15 trading days into 3 5-day weekly bars
@@ -2329,20 +2361,27 @@ def detect_3weeks_tight(df):
         tight_low = clean_float(min(w3_lows))
         stop_loss_price = round(tight_low * 0.99, 2)
 
-        # Qualification
-        is_uptrend = curr_price >= (ema50_curr * 0.97)
-        is_tight = variance_pct <= 2.5  # Flexible threshold (1.5% to 2.5%)
+        # 52-Week High Proximity (Must be within 20% of 52W High)
+        lookback_52w = min(252, n)
+        high_52w = clean_float(np.max(highs[-lookback_52w:]))
+        near_52w_high = curr_price >= (high_52w * 0.80)
+
+        # High-RS Momentum Alignment (Price > 50 EMA > 200 EMA & within 20% of 52W High)
+        is_uptrend = (curr_price >= ema50_curr) and (ema50_curr >= ema200_curr) and near_52w_high
+        is_tight = variance_pct <= 2.0
 
         is_3wt = is_uptrend and is_tight
         
-        if is_3wt and curr_price >= (pivot_price * 0.98):
+        if is_3wt and curr_price >= (pivot_price * 0.985):
             tight_status = "3WT_PIVOT_READY"
         elif is_3wt:
             tight_status = "3WT_FORMING"
-        elif is_uptrend and variance_pct <= 3.8:
+        elif is_uptrend and variance_pct <= 2.2:
             tight_status = "3WT_QUALIFIED"
+            is_3wt = True
         else:
             tight_status = "NONE"
+            is_3wt = False
 
         # Calculate day_change_pct
         prev_close = clean_float(closes[-2]) if n >= 2 else curr_price

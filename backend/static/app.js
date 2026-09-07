@@ -55039,7 +55039,7 @@ window.runVcpScan = async function(isSilent = false, forceRefresh = false) {
         const cachedRaw = localStorage.getItem('cached_vcp_screener_stocks');
         if (cachedRaw) {
             const cachedStocks = JSON.parse(cachedRaw);
-            if (Array.isArray(cachedStocks) && cachedStocks.length > 0) {
+            if (Array.isArray(cachedStocks) && cachedStocks.length > 0 && cachedStocks.length <= 100) {
                 updateVcpUI(cachedStocks);
                 hasHydrated = true;
                 if (loadingEl) loadingEl.style.display = 'none';
@@ -55975,7 +55975,7 @@ window.runWeinsteinScan = async function(isSilent = false, forceRefresh = false)
         const cached = localStorage.getItem('cached_weinstein_stocks');
         if (cached && !forceRefresh) {
             const parsed = JSON.parse(cached);
-            if (Array.isArray(parsed) && parsed.length > 0) {
+            if (Array.isArray(parsed) && parsed.length > 0 && parsed.length <= 150) {
                 window.allWeinsteinStocks = parsed;
                 window.renderWeinsteinTable(parsed);
                 hasHydrated = true;

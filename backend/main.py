@@ -13509,17 +13509,17 @@ async def get_vcp_canslim_screener(
 
         all_candidates = []
 
-        # Step 1: Memory Cache (RAM)
-        if not force_refresh and _VCP_CANSLIM_GLOBAL_CACHE["stocks"]:
-            all_candidates = _VCP_CANSLIM_GLOBAL_CACHE["stocks"]
-
-        # Step 2: Database Table Cache (SQLite)
-        if not all_candidates and not force_refresh:
+        # Step 1: Database Table Cache (SQLite) - Check disk first so fresh DB updates are served immediately
+        if not force_refresh:
             with get_db() as conn:
                 db_stocks = get_vcp_canslim_universe_from_db(conn)
                 if db_stocks:
                     all_candidates = db_stocks
                     _VCP_CANSLIM_GLOBAL_CACHE = {"timestamp": now, "stocks": all_candidates}
+
+        # Step 2: Memory Cache (RAM)
+        if not all_candidates and not force_refresh and _VCP_CANSLIM_GLOBAL_CACHE["stocks"]:
+            all_candidates = _VCP_CANSLIM_GLOBAL_CACHE["stocks"]
 
         # Step 3: Run Full Recalculation if Cache Empty or Force Refresh requested
         if not all_candidates or force_refresh:
@@ -17684,7 +17684,7 @@ async def _scan_single_stock_stage2(item, sem, b_df):
             df = await fetch_history_df(sym, period="1y", interval="1d")
             if df is not None and not df.empty:
                 w_res = detect_weinstein_stage2(df, benchmark_df=b_df)
-                if w_res.get("is_stage2") or w_res.get("stage_status") in ["STAGE_2_LAUNCH", "STAGE_2_ADVANCING", "STAGE_1_BASE"]:
+                if w_res.get("is_stage2") or w_res.get("stage_status") in ["STAGE_2_LAUNCH", "STAGE_2_ADVANCING"]:
                     return {
                         "symbol": sym,
                         "base_symbol": sym.replace(".NS", "").replace(".BO", ""),
@@ -17803,21 +17803,21 @@ async def get_weinstein_stage2_screener(force_refresh: bool = False):
     global _WEINSTEIN_STAGE2_CACHE
     
     if not force_refresh:
-        if _WEINSTEIN_STAGE2_CACHE["data"]:
-            return {
-                "status": "success",
-                "count": len(_WEINSTEIN_STAGE2_CACHE["data"]),
-                "last_updated": _WEINSTEIN_STAGE2_CACHE["last_updated"],
-                "data": _WEINSTEIN_STAGE2_CACHE["data"]
-            }
         db_cache = _load_screener_db_cache("weinstein_stage2")
-        if db_cache:
+        if db_cache and db_cache.get("data"):
             _WEINSTEIN_STAGE2_CACHE = db_cache
             return {
                 "status": "success",
                 "count": len(db_cache["data"]),
                 "last_updated": db_cache["last_updated"],
                 "data": db_cache["data"]
+            }
+        if _WEINSTEIN_STAGE2_CACHE["data"]:
+            return {
+                "status": "success",
+                "count": len(_WEINSTEIN_STAGE2_CACHE["data"]),
+                "last_updated": _WEINSTEIN_STAGE2_CACHE["last_updated"],
+                "data": _WEINSTEIN_STAGE2_CACHE["data"]
             }
         
     results = []
@@ -17866,21 +17866,21 @@ async def get_high_tight_flag_screener(force_refresh: bool = False):
     global _HTF_SCANNER_CACHE
     
     if not force_refresh:
-        if _HTF_SCANNER_CACHE["data"]:
-            return {
-                "status": "success",
-                "count": len(_HTF_SCANNER_CACHE["data"]),
-                "last_updated": _HTF_SCANNER_CACHE["last_updated"],
-                "data": _HTF_SCANNER_CACHE["data"]
-            }
         db_cache = _load_screener_db_cache("htf")
-        if db_cache:
+        if db_cache and db_cache.get("data"):
             _HTF_SCANNER_CACHE = db_cache
             return {
                 "status": "success",
                 "count": len(db_cache["data"]),
                 "last_updated": db_cache["last_updated"],
                 "data": db_cache["data"]
+            }
+        if _HTF_SCANNER_CACHE["data"]:
+            return {
+                "status": "success",
+                "count": len(_HTF_SCANNER_CACHE["data"]),
+                "last_updated": _HTF_SCANNER_CACHE["last_updated"],
+                "data": _HTF_SCANNER_CACHE["data"]
             }
 
     results = []
@@ -17924,21 +17924,21 @@ async def get_3weeks_tight_screener(force_refresh: bool = False):
     global _3WT_SCANNER_CACHE
     
     if not force_refresh:
-        if _3WT_SCANNER_CACHE["data"]:
-            return {
-                "status": "success",
-                "count": len(_3WT_SCANNER_CACHE["data"]),
-                "last_updated": _3WT_SCANNER_CACHE["last_updated"],
-                "data": _3WT_SCANNER_CACHE["data"]
-            }
         db_cache = _load_screener_db_cache("3weeks_tight")
-        if db_cache:
+        if db_cache and db_cache.get("data"):
             _3WT_SCANNER_CACHE = db_cache
             return {
                 "status": "success",
                 "count": len(db_cache["data"]),
                 "last_updated": db_cache["last_updated"],
                 "data": db_cache["data"]
+            }
+        if _3WT_SCANNER_CACHE["data"]:
+            return {
+                "status": "success",
+                "count": len(_3WT_SCANNER_CACHE["data"]),
+                "last_updated": _3WT_SCANNER_CACHE["last_updated"],
+                "data": _3WT_SCANNER_CACHE["data"]
             }
 
     results = []
