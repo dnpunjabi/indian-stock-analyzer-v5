@@ -18098,8 +18098,8 @@ async def get_stage_diagnostic(symbol: str, force_refresh: bool = False):
         vcp_res = vcp_db_record or (detect_vcp_pattern(df.tail(150)) if (df is not None and len(df) >= 40) else {"is_vcp": False, "score": 0})
         
         vcp_qualified = bool(vcp_res.get("is_vcp") or (curr_price > ema_50 > ema_200 and dist_52wk_high_pct >= -25.0))
-        stg2_qualified = bool(stg2_res.get("is_stage2") or stg2_res.get("is_stage2_breakout") or stg2_res.get("stage_status") in ["STAGE_2_LAUNCH", "STAGE_2_ADVANCING"])
         stg3_qualified = bool(stg3_res.get("is_stage3"))
+        stg2_qualified = bool((stg2_res.get("is_stage2") or stg2_res.get("is_stage2_breakout") or stg2_res.get("stage_status") in ["STAGE_2_LAUNCH", "STAGE_2_ADVANCING"]) and not stg3_qualified and stage_num == 2)
         htf_qualified = bool(htf_res.get("is_htf") or htf_res.get("htf_status") in ["HTF_QUALIFIED", "HTF_FORMING"])
         twt_qualified = bool(twt_res.get("is_3wt") or twt_res.get("tight_status") in ["3WT_PIVOT_READY", "3WT_FORMING", "3WT_QUALIFIED"])
         
@@ -18170,7 +18170,11 @@ async def get_stage_diagnostic(symbol: str, force_refresh: bool = False):
                 },
                 "weinstein_stage2": {
                     "qualified": stg2_qualified,
-                    "reason": f"Stage 2 Breakout active (30-Wk MA slope +{round(ma_30wk_slope_pct,2)}%)" if stg2_qualified else ("30-Wk MA slope not positive" if ma_30wk_slope_pct <= 0 else "Base pivot > 3% above current price")
+                    "reason": f"Stage 2 Breakout active (30-Wk MA slope +{round(ma_30wk_slope_pct,2)}%)" if stg2_qualified else (
+                        f"Stage 3 Distribution Top active (Down/Up Vol {stg3_res.get('down_to_up_vol_ratio', 0.0)}x)" if stg3_qualified else (
+                            "30-Wk MA slope not positive" if ma_30wk_slope_pct <= 0 else "Base pivot > 3% above current price"
+                        )
+                    )
                 },
                 "weinstein_stage3": {
                     "qualified": stg3_qualified,
