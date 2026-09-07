@@ -1602,6 +1602,8 @@ def detect_vcp_pattern(df):
     Identifies Mark Minervini Volatility Contraction Pattern (VCP) in historical OHLCV data.
     Measures progressive contraction depths (T1 -> T2 -> T3 -> T4), Volume Dry-Up (VDU),
     and calculates Pivot Buy Price, Stop-Loss, and 1:2 / 1:4 Risk-Reward Targets.
+    STRICT DYNAMIC RULES: Zero artificial fallback numbers (no hardcoded 35/18/7 days).
+    Enforces 2 <= wave contractions <= 4.
     """
     default_res = {
         "is_vcp": False,
@@ -1633,14 +1635,14 @@ def detect_vcp_pattern(df):
         curr_vol = float(volumes[-1])
         vol_20d_avg = float(np.mean(volumes[-20:])) if n >= 20 else float(np.mean(volumes))
         
-        # 1. Identify local swing highs and lows (rolling 4-bar window)
+        # 1. Identify local swing highs and lows (rolling 3-bar window)
         pivot_highs = []
         pivot_lows = []
         
-        for i in range(5, n - 2):
-            if highs[i] == max(highs[i-4:i+3]):
+        for i in range(4, n - 2):
+            if highs[i] == max(highs[i-3:i+3]):
                 pivot_highs.append({"index": i, "price": float(highs[i])})
-            if lows[i] == min(lows[i-4:i+3]):
+            if lows[i] == min(lows[i-3:i+3]):
                 pivot_lows.append({"index": i, "price": float(lows[i])})
 
         if len(pivot_highs) < 2 or len(pivot_lows) < 2:
@@ -1653,8 +1655,7 @@ def detect_vcp_pattern(df):
         if len(recent_highs) < 2 or len(recent_lows) < 2:
             return default_res
 
-        # 2. Extract contraction waves (High -> Low -> High -> Low)
-        contractions = []
+        # 2. Extract contraction waves (High -> Low drop sequence)
         sorted_pivots = sorted(recent_highs + recent_lows, key=lambda x: x["index"])
         
         # Find major peak H0
@@ -1664,7 +1665,7 @@ def detect_vcp_pattern(df):
         # Filter pivots after H0
         post_h0_pivots = [p for p in sorted_pivots if p["index"] >= h0_idx]
         
-        # Extract pairs of High -> Low depth drops
+        raw_contractions = []
         i = 0
         while i < len(post_h0_pivots) - 1:
             p1 = post_h0_pivots[i]
@@ -1677,38 +1678,34 @@ def detect_vcp_pattern(df):
                 depth_pct = round(((l_price - h_price) / h_price) * 100.0, 1)
                 days = p2["index"] - p1["index"]
                 
-                # Check valid contraction depth range (-35% to -1%)
-                if -35.0 <= depth_pct <= -1.0:
-                    stage_name = f"T{len(contractions) + 1}"
-                    contractions.append({
-                        "stage": stage_name,
+                # Check valid contraction depth (-35% to -1.0%) and min 2 trading days
+                if -35.0 <= depth_pct <= -1.0 and days >= 2:
+                    raw_contractions.append({
                         "high_price": round(h_price, 2),
                         "low_price": round(l_price, 2),
                         "depth_percent": depth_pct,
-                        "days": days
+                        "days": int(days)
                     })
             i += 1
 
-        # Fallback contraction heuristic if pivot pairing is sparse
-        if len(contractions) < 2:
-            h_max = float(np.max(highs[-90:]))
-            l_min = float(np.min(lows[-90:]))
-            d1 = round(((l_min - h_max) / h_max) * 100.0, 1)
-            
-            h_mid = float(np.max(highs[-40:]))
-            l_mid = float(np.min(lows[-40:]))
-            d2 = round(((l_mid - h_mid) / h_mid) * 100.0, 1)
-            
-            h_tight = float(np.max(highs[-15:]))
-            l_tight = float(np.min(lows[-15:]))
-            d3 = round(((l_tight - h_tight) / h_tight) * 100.0, 1)
-            
-            if abs(d1) > abs(d2) and abs(d2) >= abs(d3):
-                contractions = [
-                    {"stage": "T1", "high_price": round(h_max, 2), "low_price": round(l_min, 2), "depth_percent": d1, "days": 35},
-                    {"stage": "T2", "high_price": round(h_mid, 2), "low_price": round(l_mid, 2), "depth_percent": d2, "days": 18},
-                    {"stage": "T3", "high_price": round(h_tight, 2), "low_price": round(l_tight, 2), "depth_percent": d3, "days": 7}
-                ]
+        # STRICT CONTRACTION RULES: No hardcoded fallback!
+        # T1 must represent a major shakeout wave (Depth <= -9.5% and Days >= 6)
+        while raw_contractions and (raw_contractions[0]["depth_percent"] > -9.5 or raw_contractions[0]["days"] < 6):
+            raw_contractions.pop(0)
+
+        # Must have between 2 and 4 contractions (T2, T3, T4). > 4 contractions is overly choppy.
+        if len(raw_contractions) < 2 or len(raw_contractions) > 4:
+            return default_res
+
+        contractions = []
+        for idx, c in enumerate(raw_contractions):
+            contractions.append({
+                "stage": f"T{idx + 1}",
+                "high_price": c["high_price"],
+                "low_price": c["low_price"],
+                "depth_percent": c["depth_percent"],
+                "days": c["days"]
+            })
 
         if not contractions:
             return default_res
@@ -1724,7 +1721,7 @@ def detect_vcp_pattern(df):
         # 4. Volume Dry-Up (VDU) Ratio
         vol_5d_avg = float(np.mean(volumes[-5:])) if n >= 5 else curr_vol
         vdu_ratio = round(vol_5d_avg / vol_20d_avg, 2) if vol_20d_avg > 0 else 1.0
-        is_vdu = vdu_ratio <= 0.70
+        is_vdu = vdu_ratio <= 0.75
 
         # 5. Determine Pivot Buy Price & Stop Loss
         last_contraction = contractions[-1]
@@ -1748,17 +1745,54 @@ def detect_vcp_pattern(df):
         target_1 = round(pivot_price + (2.0 * risk_per_share), 2)
         target_2 = round(pivot_price + (4.0 * risk_per_share), 2)
 
-        # 6. Minervini SEPA Trend Template Alignment & Status Determination
-        ema_50 = float(df_calc['EMA_50'].iloc[-1]) if 'EMA_50' in df_calc.columns else curr_price
-        ema_200 = float(df_calc['EMA_200'].iloc[-1]) if 'EMA_200' in df_calc.columns else curr_price
+        # 6. Mark Minervini 7-Point SEPA Trend Template & Stage 2 Alignment
+        window_50 = min(50, n)
+        sma50_series = pd.Series(closes).rolling(window=window_50, min_periods=10).mean().values
+        sma50_curr = clean_float(sma50_series[-1])
+
+        window_150 = min(150, n)
+        sma150_series = pd.Series(closes).rolling(window=window_150, min_periods=20).mean().values
+        sma150_curr = clean_float(sma150_series[-1])
         
-        # 52-Week High Proximity (Within 15% of 52-Week High)
+        window_200 = min(200, n)
+        sma200_series = pd.Series(closes).rolling(window=window_200, min_periods=20).mean().values
+        sma200_curr = clean_float(sma200_series[-1])
+        sma200_30d_ago = clean_float(sma200_series[-30] if n >= 30 else sma200_series[0])
+        
+        # 1. 200-day SMA higher than 30 days ago
+        sma200_rising_30d = sma200_curr > sma200_30d_ago
+        
+        # 2. Moving Average Hierarchy: Price > 50 SMA > 150 SMA > 200 SMA
+        price_above_smas = (curr_price > sma50_curr) and (curr_price > sma150_curr) and (curr_price > sma200_curr)
+        sma50_above_all = (sma50_curr > sma150_curr) and (sma50_curr > sma200_curr)
+        sma150_above_200 = sma150_curr > sma200_curr
+
+        # 3. 52-Week High Proximity (Within 25% of 52W High) & 52-Week Low Distance (At least 30% above 52W Low)
         lookback_52w = min(252, n)
         high_52w = float(np.max(highs[-lookback_52w:]))
-        near_52w_high = curr_price >= (high_52w * 0.85)
+        low_52w = float(np.min(lows[-lookback_52w:]))
+        near_52w_high = curr_price >= (high_52w * 0.75)
+        above_52w_low = curr_price >= (low_52w * 1.30)
 
-        # Minervini Trend Template Criteria: Price >= 50 EMA >= 200 EMA & Price within 15% of 52W High
-        in_stage_2 = (curr_price >= ema_50) and (ema_50 >= (ema_200 * 0.98)) and near_52w_high
+        # 4. Stage 3 Distribution Exclusion
+        s3_res = detect_weinstein_stage3(df)
+        not_stage3 = not (s3_res.get("is_stage3") or s3_res.get("stage_status") in ["STAGE_3_DISTRIBUTION", "STAGE_3_TOPPING"])
+
+        # 5. Relative Strength Leadership (RS Rating >= 70 or Mansfield RS > 0)
+        mansfield_rs = s3_res.get("mansfield_rs", 0.0)
+        rs_leadership = mansfield_rs >= 0.0 or near_52w_high
+
+        # Full 7-Point Minervini SEPA Trend Template Criteria
+        in_stage_2 = (
+            price_above_smas and
+            sma50_above_all and
+            sma150_above_200 and
+            sma200_rising_30d and
+            near_52w_high and
+            above_52w_low and
+            not_stage3 and
+            rs_leadership
+        )
 
         # Final contraction must be tight (Depth <= 10.0%)
         final_depth = abs(contractions[-1]["depth_percent"]) if contractions else 99.0
@@ -1768,10 +1802,10 @@ def detect_vcp_pattern(df):
         is_vcp = False
         vcp_reason = "CONSOLIDATING"
         
-        if is_contracting and in_stage_2 and len(contractions) >= 2 and tight_final_contraction:
+        if is_contracting and in_stage_2 and (2 <= len(contractions) <= 4) and tight_final_contraction:
             is_vcp = True
             vcp_reason = "VCP PATTERN"
-            if curr_price >= pivot_price and (curr_vol / vol_20d_avg) >= 1.25:
+            if curr_price >= pivot_price and (curr_vol / vol_20d_avg) >= 1.20:
                 vcp_status = "LIVE_BREAKOUT"
             elif curr_price >= (pivot_price * 0.96) and is_vdu:
                 vcp_status = "READY_PIVOT"
@@ -2272,10 +2306,10 @@ def detect_high_tight_flag(df):
         flag_vol_avg = clean_float(np.mean(volumes[-max(1, flag_days):])) if flag_days > 0 else clean_float(volumes[-1])
         vdu_ratio = round(flag_vol_avg / vol20_avg, 2) if vol20_avg > 0 else 1.0
 
-        # HTF Qualification Rules
-        has_pole = pole_gain_pct >= 75.0  # Flexible threshold (75% to 100%+)
-        shallow_flag = flag_depth_pct <= 28.0
-        valid_duration = 3 <= flag_days <= 35
+        # HTF Qualification Rules (David Ryan Standard: Pole >= +80%, Flag Depth <= 25%)
+        has_pole = pole_gain_pct >= 80.0
+        shallow_flag = flag_depth_pct <= 25.0
+        valid_duration = 8 <= flag_days <= 30
 
         is_htf = has_pole and shallow_flag and valid_duration
         
@@ -2283,8 +2317,6 @@ def detect_high_tight_flag(df):
             htf_status = "HTF_BREAKOUT_READY"
         elif is_htf:
             htf_status = "HTF_FLAG_FORMING"
-        elif pole_gain_pct >= 50.0 and shallow_flag:
-            htf_status = "HTF_QUALIFIED"
         else:
             htf_status = "NONE"
 
@@ -2336,12 +2368,15 @@ def detect_3weeks_tight(df):
         n = len(closes)
         curr_price = clean_float(closes[-1])
 
-        # Calculate 50 EMA & 200 EMA
+        # Calculate 50 EMA, 200 EMA & 52W High distance
         ema50_series = pd.Series(closes).ewm(span=min(50, n), adjust=False).mean().values
         ema50_curr = clean_float(ema50_series[-1])
         ema200_series = pd.Series(closes).ewm(span=min(200, n), adjust=False).mean().values
         ema200_curr = clean_float(ema200_series[-1])
         dist_50ema_pct = round(((curr_price - ema50_curr) / ema50_curr) * 100.0, 1) if ema50_curr > 0 else 0.0
+
+        high_52w = clean_float(np.max(highs[-min(252, n):]))
+        near_52w_high = curr_price >= (high_52w * 0.80) if high_52w > 0 else False
 
         # Resample last 15 trading days into 3 5-day weekly bars
         if n >= 15:
@@ -2361,24 +2396,29 @@ def detect_3weeks_tight(df):
         tight_low = clean_float(min(w3_lows))
         stop_loss_price = round(tight_low * 0.99, 2)
 
-        # 52-Week High Proximity (Must be within 20% of 52W High)
-        lookback_52w = min(252, n)
-        high_52w = clean_float(np.max(highs[-lookback_52w:]))
-        near_52w_high = curr_price >= (high_52w * 0.80)
+        # Volume Dry-Up (VDU) in 3rd tight week (Volume <= 0.85x 20-day average)
+        volumes = df['Volume'].values if 'Volume' in df.columns else np.ones(n)
+        vol20_avg = clean_float(pd.Series(volumes).rolling(window=min(20, n), min_periods=5).mean().iloc[-1])
+        vol5_avg = clean_float(np.mean(volumes[-5:])) if n >= 5 else float(volumes[-1])
+        vdu_ratio = round(vol5_avg / vol20_avg, 2) if vol20_avg > 0 else 1.0
+        is_vdu = vdu_ratio <= 0.85
 
-        # High-RS Momentum Alignment (Price > 50 EMA > 200 EMA & within 20% of 52W High)
+        # Relative Strength Leadership & Stage 3 Exclusion
+        s3_res = detect_weinstein_stage3(df)
+        mansfield_rs = s3_res.get("mansfield_rs", 0.0)
+        not_stage3 = not (s3_res.get("is_stage3") or s3_res.get("stage_status") in ["STAGE_3_DISTRIBUTION", "STAGE_3_TOPPING"])
+        rs_leadership = (mansfield_rs >= 0.0 or near_52w_high) and not_stage3
+
+        # High-RS Momentum Alignment & Ultra-Tight Closes
         is_uptrend = (curr_price >= ema50_curr) and (ema50_curr >= ema200_curr) and near_52w_high
         is_tight = variance_pct <= 2.0
 
-        is_3wt = is_uptrend and is_tight
+        is_3wt = is_uptrend and is_tight and is_vdu and rs_leadership
         
         if is_3wt and curr_price >= (pivot_price * 0.985):
             tight_status = "3WT_PIVOT_READY"
         elif is_3wt:
             tight_status = "3WT_FORMING"
-        elif is_uptrend and variance_pct <= 2.2:
-            tight_status = "3WT_QUALIFIED"
-            is_3wt = True
         else:
             tight_status = "NONE"
             is_3wt = False

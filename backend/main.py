@@ -18097,11 +18097,11 @@ async def get_stage_diagnostic(symbol: str, force_refresh: bool = False):
 
         vcp_res = vcp_db_record or (detect_vcp_pattern(df.tail(150)) if (df is not None and len(df) >= 40) else {"is_vcp": False, "score": 0})
         
-        vcp_qualified = bool(vcp_res.get("is_vcp") or (curr_price > ema_50 > ema_200 and dist_52wk_high_pct >= -25.0))
+        vcp_qualified = bool(vcp_res.get("is_vcp"))
         stg3_qualified = bool(stg3_res.get("is_stage3"))
         stg2_qualified = bool((stg2_res.get("is_stage2") or stg2_res.get("is_stage2_breakout") or stg2_res.get("stage_status") in ["STAGE_2_LAUNCH", "STAGE_2_ADVANCING"]) and not stg3_qualified and stage_num == 2)
-        htf_qualified = bool(htf_res.get("is_htf") or htf_res.get("htf_status") in ["HTF_QUALIFIED", "HTF_FORMING"])
-        twt_qualified = bool(twt_res.get("is_3wt") or twt_res.get("tight_status") in ["3WT_PIVOT_READY", "3WT_FORMING", "3WT_QUALIFIED"])
+        htf_qualified = bool(htf_res.get("is_htf") or htf_res.get("htf_status") == "HTF_BREAKOUT_READY")
+        twt_qualified = bool(twt_res.get("is_3wt") or twt_res.get("tight_status") in ["3WT_PIVOT_READY", "3WT_FORMING"])
         
         # Synchronized 4 Trade Execution Levels (100% Exact Parity with VCP & CANSLIM Watchlist Tab)
         if vcp_res and vcp_res.get("pivot_price", 0) > 0 and vcp_res.get("stop_loss", 0) > 0:
@@ -18166,13 +18166,13 @@ async def get_stage_diagnostic(symbol: str, force_refresh: bool = False):
             "screener_status": {
                 "vcp": {
                     "qualified": vcp_qualified,
-                    "reason": "VCP structure active (Price > 50 & 200 EMA)" if vcp_qualified else "Flat/Declining 200 EMA or low RS"
+                    "reason": f"VCP structure active ({vcp_res.get('vcp_stage', 'T3')} Contraction)" if vcp_qualified else "No active VCP contraction pattern"
                 },
                 "weinstein_stage2": {
                     "qualified": stg2_qualified,
                     "reason": f"Stage 2 Breakout active (30-Wk MA slope +{round(ma_30wk_slope_pct,2)}%)" if stg2_qualified else (
                         f"Stage 3 Distribution Top active (Down/Up Vol {stg3_res.get('down_to_up_vol_ratio', 0.0)}x)" if stg3_qualified else (
-                            "30-Wk MA slope not positive" if ma_30wk_slope_pct <= 0 else "Base pivot > 3% above current price"
+                            "30-Wk MA slope not positive" if ma_30wk_slope_pct <= 0 else f"Base pivot (₹{stg2_res.get('pivot_price', pivot_price)}) is > 3% above current price"
                         )
                     )
                 },
@@ -18186,7 +18186,49 @@ async def get_stage_diagnostic(symbol: str, force_refresh: bool = False):
                 },
                 "three_wt": {
                     "qualified": twt_qualified,
-                    "reason": f"3WT Status: {twt_res.get('tight_status', 'N/A')}" if twt_qualified else "Close variance > 2.0%"
+                    "reason": f"3WT Status: {twt_res.get('tight_status', 'N/A')}" if twt_qualified else ("Close variance > 2.0%" if twt_res.get("close_variance_pct", 0) > 2.0 else "RS rating < 60 or EMA unaligned")
+                }
+            },
+            "screener_audit": {
+                "vcp": {
+                    "name": "Mark Minervini VCP & CANSLIM",
+                    "required": "2–4 Contraction Waves, T1 Shakeout ≤ -9.5%, VDU ≤ 0.75x",
+                    "actual": f"Waves: {len(vcp_res.get('contractions', []))}, VDU Ratio: {vcp_res.get('volume_dryup_ratio', 1.0)}x",
+                    "qualified": vcp_qualified,
+                    "reason": f"VCP structure active ({vcp_res.get('vcp_stage', 'T3')} Contraction)" if vcp_qualified else (
+                        "No active VCP contraction pattern" if not vcp_res.get("contractions") else "Final contraction wave > 10.0% or trend unaligned"
+                    )
+                },
+                "weinstein_stage2": {
+                    "name": "Stan Weinstein Stage 2 Breakout",
+                    "required": "Price > 150-Day SMA, 30W MA Slope > 0%, Price ≥ 97% Base Pivot, Vol ≥ 1.4x",
+                    "actual": f"30W Slope: +{round(ma_30wk_slope_pct,2)}%, Base Pivot: ₹{stg2_res.get('pivot_price', pivot_price)}, Vol Ratio: {round(stg2_res.get('breakout_vol_ratio', vol_ratio), 2)}x",
+                    "qualified": stg2_qualified,
+                    "reason": f"Stage 2 Breakout active (30-Wk MA slope +{round(ma_30wk_slope_pct,2)}%)" if stg2_qualified else (
+                        f"Stage 3 Distribution Top active (Down/Up Vol {stg3_res.get('down_to_up_vol_ratio', 0.0)}x)" if stg3_qualified else (
+                            "30-Wk MA slope not positive" if ma_30wk_slope_pct <= 0 else f"Base pivot (₹{stg2_res.get('pivot_price', pivot_price)}) is > 3% above current price"
+                        )
+                    )
+                },
+                "htf": {
+                    "name": "David Ryan High-Tight Flag (HTF)",
+                    "required": "Pole Surge ≥ +80% in <8 wks, Flag Depth ≤ 25%, Flag Days 8–30",
+                    "actual": f"Pole Gain: +{htf_res.get('pole_gain_pct', 0.0)}%, Flag Depth: {htf_res.get('flag_depth_pct', 0.0)}%, Flag Days: {htf_res.get('flag_days', 0)}",
+                    "qualified": htf_qualified,
+                    "reason": f"HTF Status: {htf_res.get('htf_status', 'N/A')}" if htf_qualified else (
+                        f"Pole gain (+{htf_res.get('pole_gain_pct', 0.0)}%) < 80.0% threshold" if htf_res.get('pole_gain_pct', 0.0) < 80.0 else (
+                            f"Flag depth ({htf_res.get('flag_depth_pct', 0.0)}%) > 25.0% cap" if htf_res.get('flag_depth_pct', 0.0) > 25.0 else "Flag duration outside 8-30 days window"
+                        )
+                    )
+                },
+                "three_wt": {
+                    "name": "David Ryan 3-Weeks Tight (3WT)",
+                    "required": "Weekly Close Variance ≤ 2.0%, Price > 50 EMA, VDU ≤ 0.85x",
+                    "actual": f"Close Variance: {twt_res.get('close_variance_pct', 0.0)}%, Weekly Closes: {twt_res.get('weekly_closes', [])}",
+                    "qualified": twt_qualified,
+                    "reason": f"3WT Status: {twt_res.get('tight_status', 'N/A')}" if twt_qualified else (
+                        f"Close variance ({twt_res.get('close_variance_pct', 0.0)}%) > 2.0% threshold" if twt_res.get("close_variance_pct", 0) > 2.0 else "RS rating < 60 or EMA unaligned"
+                    )
                 }
             },
             "action_guidance": action_text

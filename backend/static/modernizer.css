@@ -1974,6 +1974,132 @@ body.light-theme .vcp-guide-sub-divider,
     border-top: 1px solid #e2e8f0 !important;
 }
 
+/* Dark Theme VCP Superperformance Stat Cards */
+.vcp-stat-header {
+    color: #38bdf8;
+}
+.vcp-stat-ref-link {
+    color: #38bdf8;
+}
+.vcp-stat-card.vcp-stat-blue {
+    background: rgba(56, 189, 248, 0.12);
+    border: 1px solid rgba(56, 189, 248, 0.35);
+}
+.vcp-stat-title-blue {
+    color: #38bdf8;
+}
+.vcp-stat-card.vcp-stat-green {
+    background: rgba(52, 211, 153, 0.12);
+    border: 1px solid rgba(52, 211, 153, 0.35);
+}
+.vcp-stat-title-green {
+    color: #34d399;
+}
+.vcp-stat-card.vcp-stat-purple {
+    background: rgba(168, 85, 247, 0.12);
+    border: 1px solid rgba(168, 85, 247, 0.35);
+}
+.vcp-stat-title-purple {
+    color: #c084fc;
+}
+.vcp-stat-desc {
+    color: #cbd5e1;
+}
+
+/* Light Theme Overrides for VCP Superperformance Stat Cards */
+body.light-theme .vcp-stat-header,
+[data-theme="light"] .vcp-stat-header,
+[data-mode="light"] .vcp-stat-header {
+    color: #0284c7 !important;
+}
+
+body.light-theme .vcp-stat-ref-link,
+[data-theme="light"] .vcp-stat-ref-link,
+[data-mode="light"] .vcp-stat-ref-link {
+    color: #0284c7 !important;
+}
+
+body.light-theme .vcp-stat-card.vcp-stat-blue,
+[data-theme="light"] .vcp-stat-card.vcp-stat-blue,
+[data-mode="light"] .vcp-stat-card.vcp-stat-blue {
+    background: #f0f9ff !important;
+    border: 1px solid #bae6fd !important;
+}
+body.light-theme .vcp-stat-title-blue,
+[data-theme="light"] .vcp-stat-title-blue,
+[data-mode="light"] .vcp-stat-title-blue {
+    color: #0284c7 !important;
+}
+
+body.light-theme .vcp-stat-card.vcp-stat-green,
+[data-theme="light"] .vcp-stat-card.vcp-stat-green,
+[data-mode="light"] .vcp-stat-card.vcp-stat-green {
+    background: #f0fdf4 !important;
+    border: 1px solid #a7f3d0 !important;
+}
+body.light-theme .vcp-stat-title-green,
+[data-theme="light"] .vcp-stat-title-green,
+[data-mode="light"] .vcp-stat-title-green {
+    color: #047857 !important;
+}
+
+body.light-theme .vcp-stat-card.vcp-stat-purple,
+[data-theme="light"] .vcp-stat-card.vcp-stat-purple,
+[data-mode="light"] .vcp-stat-card.vcp-stat-purple {
+    background: #faf5ff !important;
+    border: 1px solid #e9d5ff !important;
+}
+body.light-theme .vcp-stat-title-purple,
+[data-theme="light"] .vcp-stat-title-purple,
+[data-mode="light"] .vcp-stat-title-purple {
+    color: #7e22ce !important;
+}
+
+body.light-theme .vcp-stat-desc,
+[data-theme="light"] .vcp-stat-desc,
+[data-mode="light"] .vcp-stat-desc {
+    color: #1e293b !important; /* Deep dark Slate for maximum legibility in Light mode */
+}
+
+/* Light Theme Overrides for Stan Weinstein Playbook Card */
+body.light-theme #weinstein-playbook-card,
+[data-theme="light"] #weinstein-playbook-card,
+[data-mode="light"] #weinstein-playbook-card {
+    background: #ffffff !important;
+    border: 1px solid #cbd5e1 !important;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.06) !important;
+}
+body.light-theme #weinstein-playbook-card h3,
+[data-theme="light"] #weinstein-playbook-card h3,
+[data-mode="light"] #weinstein-playbook-card h3 {
+    color: #0f172a !important;
+}
+body.light-theme #weinstein-playbook-card h5,
+[data-theme="light"] #weinstein-playbook-card h5,
+[data-mode="light"] #weinstein-playbook-card h5 {
+    color: #0f172a !important;
+}
+body.light-theme #weinstein-playbook-card p,
+[data-theme="light"] #weinstein-playbook-card p,
+[data-mode="light"] #weinstein-playbook-card p {
+    color: #334155 !important;
+}
+body.light-theme #weinstein-playbook-card li,
+[data-theme="light"] #weinstein-playbook-card li,
+[data-mode="light"] #weinstein-playbook-card li {
+    color: #475569 !important;
+}
+body.light-theme #weinstein-playbook-card div[style*="background: rgba(30, 41, 59"],
+[data-theme="light"] #weinstein-playbook-card div[style*="background: rgba(30, 41, 59"],
+[data-mode="light"] #weinstein-playbook-card div[style*="background: rgba(30, 41, 59"] {
+    background: #f8fafc !important;
+}
+body.light-theme #weinstein-playbook-card div[style*="background: rgba(15, 23, 42"],
+[data-theme="light"] #weinstein-playbook-card div[style*="background: rgba(15, 23, 42"],
+[data-mode="light"] #weinstein-playbook-card div[style*="background: rgba(15, 23, 42"] {
+    background: #f1f5f9 !important;
+}
+
 /* ==========================================================================
    QUANTITATIVE SCANNER SUBTABS & TABLES DESIGN SYSTEM
    ========================================================================== */

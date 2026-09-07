@@ -2137,6 +2137,32 @@
                             </div>
                         </div>
 
+                        <!-- Mark Minervini VCP Superperformance Statistics & TraderLion Reference -->
+                        <div class="vcp-guide-sub-divider" style="border-top: 1px solid var(--border-glass, rgba(255, 255, 255, 0.08)); padding-top: 12px; margin-bottom: 14px;">
+                            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; margin-bottom: 10px;">
+                                <div class="vcp-stat-header" style="font-size: 11.5px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; color: #38bdf8;">
+                                    🔥 MARK MINERVINI VCP SUPERPERFORMANCE STATISTICS & BREAKOUT RULES
+                                </div>
+                                <a href="https://traderlion.com/technical-analysis/volatility-contraction-pattern/" target="_blank" rel="noopener noreferrer" class="vcp-stat-ref-link" style="color: #38bdf8; font-size: 11.5px; font-weight: 700; text-decoration: underline; display: inline-flex; align-items: center; gap: 4px;">
+                                    📖 Reference: TraderLion VCP Masterclass Guide ↗
+                                </a>
+                            </div>
+                            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 10px; font-size: 11px; line-height: 1.45;">
+                                <div class="vcp-stat-card vcp-stat-blue" style="padding: 10px 12px; border-radius: 8px;">
+                                    <strong class="vcp-stat-title-blue" style="font-weight: 800;">🎯 60%–70% Breakout Win Rate</strong><br/>
+                                    <span class="vcp-stat-desc">60% to 70% of volume-confirmed VCP breakouts result in powerful price rallies in Stage 2 bull markets.</span>
+                                </div>
+                                <div class="vcp-stat-card vcp-stat-green" style="padding: 10px 12px; border-radius: 8px;">
+                                    <strong class="vcp-stat-title-green" style="font-weight: 800;">⚖️ 3:1+ Asymmetrical Risk-to-Reward</strong><br/>
+                                    <span class="vcp-stat-desc">Tight pivot entries limit risk to <strong>5%–8% stop-loss</strong> while targeting <strong>15% to 100%+ upside</strong>.</span>
+                                </div>
+                                <div class="vcp-stat-card vcp-stat-purple" style="padding: 10px 12px; border-radius: 8px;">
+                                    <strong class="vcp-stat-title-purple" style="font-weight: 800;">🔥 50%+ Superperformance Footprint</strong><br/>
+                                    <span class="vcp-stat-desc">Over 50% of annual 100%+ superperformance stocks form VCP bases prior to explosive moves.</span>
+                                </div>
+                            </div>
+                        </div>
+
                         <!-- Contraction Stages Breakdown (T1 to T6) -->
                         <div class="vcp-guide-sub-divider" style="border-top: 1px solid var(--border-glass, rgba(255, 255, 255, 0.08)); padding-top: 12px; margin-bottom: 14px;">
                             <div class="vcp-stage-header" style="font-size: 11.5px; font-weight: 800; text-transform: uppercase; margin-bottom: 10px; letter-spacing: 0.5px;">📈 VCP CONTRACTION STAGES BREAKDOWN (T1 &rarr; T6)</div>
@@ -2200,12 +2226,18 @@
                     <div style="display: flex; gap: 14px; margin-bottom: 20px; align-items: center; flex-wrap: wrap;">
                         <input type="text" id="vcp-search-input" onkeyup="window.filterVcpCards && window.filterVcpCards()" placeholder="Search symbol or name..." style="background: rgba(30, 41, 59, 0.8); border: 1px solid rgba(255,255,255,0.12); color: #fff; padding: 8px 14px; border-radius: 8px; font-size: 13px; flex: 1; min-width: 200px; outline: none; transition: border-color 0.2s;"/>
                         <select id="vcp-status-filter" onchange="window.filterVcpCards && window.filterVcpCards()" style="background: rgba(30, 41, 59, 0.8); border: 1px solid rgba(255,255,255,0.12); color: #fff; padding: 8px 14px; border-radius: 8px; font-size: 13px; outline: none; cursor: pointer;">
-                            <option value="ALL">All Statuses</option>
+                            <option value="ALL">All Statuses & Stages</option>
                             <option value="READY_PIVOT">🎯 Ready at Pivot</option>
                             <option value="LIVE_BREAKOUT">🚀 Live Breakout</option>
-                            <option value="T3_CONTRACTION">🎯 T3 Contraction</option>
+                            <option value="T3_CONTRACTION">🎯 T3+ Tight Contraction (3+ Waves)</option>
+                            <option value="EARLY_FORMING">⏳ Early Contraction (1-2 Waves)</option>
                             <option value="BELOW_50EMA">📉 Below 50 EMA</option>
-                            <option value="FORMING">⏳ Forming Contraction</option>
+                        </select>
+                        <select id="vcp-score-filter" onchange="window.filterVcpCards && window.filterVcpCards()" style="background: rgba(30, 41, 59, 0.8); border: 1px solid rgba(255,255,255,0.12); color: #fff; padding: 8px 14px; border-radius: 8px; font-size: 13px; outline: none; cursor: pointer;">
+                            <option value="ALL">All CANSLIM Scores</option>
+                            <option value="A_PLUS">Grade A+ (80-100)</option>
+                            <option value="GRADE_B">Grade B (65-79)</option>
+                            <option value="GRADE_C">Grade C (<65)</option>
                         </select>
                         <select id="vcp-sort-filter" onchange="window.filterVcpCards && window.filterVcpCards()" style="background: rgba(30, 41, 59, 0.8); border: 1px solid rgba(255,255,255,0.12); color: #fff; padding: 8px 14px; border-radius: 8px; font-size: 13px; outline: none; cursor: pointer;">
                             <option value="CANSLIM_DESC">Sort: Highest CANSLIM</option>
@@ -2672,6 +2704,136 @@
                                 <div style="display: flex; flex-direction: column; align-items: flex-end;">
                                     <span style="font-size: 12.5px; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.05em;">Status</span>
                                     <span style="font-size: 13.5px; font-weight: 800; color: #34d399; background: rgba(16, 185, 129, 0.2); padding: 2px 8px; border-radius: 4px; display: inline-block;">SYNCHRONIZED</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- STAN WEINSTEIN 4-STAGE LIFE CYCLE MASTERCLASS & EXECUTION PLAYBOOK CARD -->
+                    <div id="weinstein-playbook-card" style="background: rgba(15, 23, 42, 0.85); border: 1px solid rgba(56, 189, 248, 0.35); border-radius: 16px; padding: 24px; margin-bottom: 28px; box-shadow: 0 12px 32px rgba(0,0,0,0.4);">
+                        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; margin-bottom: 18px; padding-bottom: 12px; border-bottom: 1px solid rgba(255,255,255,0.1);">
+                            <div>
+                                <h3 style="margin: 0; font-size: 20px; font-weight: 800; color: #f8fafc; display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                                    <span>📚</span> Stan Weinstein 4-Stage Life Cycle Masterclass & Execution Playbook
+                                </h3>
+                                <p style="margin: 6px 0 0 0; font-size: 12.5px; color: #94a3b8; line-height: 1.5;">
+                                    Definitive quantitative framework for identifying institutional stock lifecycles. Based on Stan Weinstein's Stage Analysis System.
+                                    <a href="https://traderlion.com/trading-strategies/stage-analysis/" target="_blank" rel="noopener noreferrer" style="color: #38bdf8; text-decoration: underline; font-weight: 700; display: inline-flex; align-items: center; gap: 4px; margin-left: 6px;">
+                                        📖 Reference: TraderLion Stage Analysis Guide ↗
+                                    </a>
+                                </p>
+                            </div>
+                            <span style="font-size: 11px; background: rgba(56, 189, 248, 0.15); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.35); padding: 4px 12px; border-radius: 20px; font-weight: 700;">
+                                INSTITUTIONAL PLAYBOOK
+                            </span>
+                        </div>
+
+                        <!-- 4 Color-Coded Stage Cards Grid (Fully Responsive Mobile & Desktop) -->
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; margin-bottom: 20px;">
+                            
+                            <!-- Stage 1: Basing Card -->
+                            <div style="background: rgba(30, 41, 59, 0.6); border: 1px solid rgba(245, 158, 11, 0.4); border-radius: 12px; padding: 16px; display: flex; flex-direction: column; justify-content: space-between;">
+                                <div>
+                                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                                        <h5 style="margin: 0; font-size: 15px; font-weight: 800; color: #fbbf24;">🟡 Stage 1: Basing Area</h5>
+                                        <span style="font-size: 10px; font-weight: 800; background: rgba(245, 158, 11, 0.2); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.4); padding: 2px 6px; border-radius: 4px;">ACCUMULATION</span>
+                                    </div>
+                                    <p style="margin: 0 0 10px 0; font-size: 11.5px; color: #cbd5e1; line-height: 1.5;">
+                                        Stock stops declining and moves sideways as supply & demand reach equilibrium.
+                                    </p>
+                                    <ul style="margin: 0 0 12px 0; padding-left: 16px; font-size: 11px; color: #94a3b8; line-height: 1.6;">
+                                        <li><strong>30W MA:</strong> 30-week MA flattens; price whipsaws back & forth.</li>
+                                        <li><strong>Volume:</strong> Low volume at start; increases on up-days as base matures.</li>
+                                        <li><strong>Structure:</strong> Sideways oscillation between support & resistance.</li>
+                                    </ul>
+                                </div>
+                                <div style="background: rgba(245, 158, 11, 0.15); border: 1px solid rgba(245, 158, 11, 0.3); padding: 6px 10px; border-radius: 6px; font-size: 11px; font-weight: 800; color: #fbbf24; text-align: center;">
+                                    🚫 ACTION: DO NOT BUY YET (Recovery Phase)
+                                </div>
+                            </div>
+
+                            <!-- Stage 2: Advancing Card -->
+                            <div style="background: rgba(30, 41, 59, 0.6); border: 1px solid rgba(52, 211, 153, 0.4); border-radius: 12px; padding: 16px; display: flex; flex-direction: column; justify-content: space-between;">
+                                <div>
+                                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                                        <h5 style="margin: 0; font-size: 15px; font-weight: 800; color: #34d399;">🚀 Stage 2: Advancing Phase</h5>
+                                        <span style="font-size: 10px; font-weight: 800; background: rgba(52, 211, 153, 0.2); color: #34d399; border: 1px solid rgba(52, 211, 153, 0.4); padding: 2px 6px; border-radius: 4px;">MARK-UP</span>
+                                    </div>
+                                    <p style="margin: 0 0 10px 0; font-size: 11.5px; color: #cbd5e1; line-height: 1.5;">
+                                        Sustained institutional uptrend making higher highs and higher lows.
+                                    </p>
+                                    <ul style="margin: 0 0 12px 0; padding-left: 16px; font-size: 11px; color: #94a3b8; line-height: 1.6;">
+                                        <li><strong>30W MA:</strong> Price & 30W MA both sloping sharply upward.</li>
+                                        <li><strong>MA Stack:</strong> Price > 50-Day EMA > 150-Day SMA ≥ 200-Day SMA.</li>
+                                        <li><strong>Breakout:</strong> Breaks out above base on <strong>2x to 3x average daily volume</strong>.</li>
+                                    </ul>
+                                </div>
+                                <div style="background: rgba(52, 211, 153, 0.15); border: 1px solid rgba(52, 211, 153, 0.3); padding: 6px 10px; border-radius: 6px; font-size: 11px; font-weight: 800; color: #34d399; text-align: center;">
+                                    🟢 ACTION: PRIME BUY ZONE (Buy Breakouts & 50 EMA Pullbacks)
+                                </div>
+                            </div>
+
+                            <!-- Stage 3: Distribution Card -->
+                            <div style="background: rgba(30, 41, 59, 0.6); border: 1px solid rgba(251, 146, 60, 0.4); border-radius: 12px; padding: 16px; display: flex; flex-direction: column; justify-content: space-between;">
+                                <div>
+                                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                                        <h5 style="margin: 0; font-size: 15px; font-weight: 800; color: #fb923c;">⚠️ Stage 3: Distribution Top</h5>
+                                        <span style="font-size: 10px; font-weight: 800; background: rgba(251, 146, 60, 0.2); color: #fb923c; border: 1px solid rgba(251, 146, 60, 0.4); padding: 2px 6px; border-radius: 4px;">TOPPING</span>
+                                    </div>
+                                    <p style="margin: 0 0 10px 0; font-size: 11.5px; color: #cbd5e1; line-height: 1.5;">
+                                        Smart money sells into retail buyers; wild price swings without progress.
+                                    </p>
+                                    <ul style="margin: 0 0 12px 0; padding-left: 16px; font-size: 11px; color: #94a3b8; line-height: 1.6;">
+                                        <li><strong>Warning Signal:</strong> Slices below 10-week (50-day) EMA on heavy volume.</li>
+                                        <li><strong>30W MA:</strong> 30-week MA flattens and loses upward momentum.</li>
+                                        <li><strong>Churning:</strong> Heavy volume on up & down days with zero net gain.</li>
+                                    </ul>
+                                </div>
+                                <div style="background: rgba(251, 146, 60, 0.15); border: 1px solid rgba(251, 146, 60, 0.3); padding: 6px 10px; border-radius: 6px; font-size: 11px; font-weight: 800; color: #fb923c; text-align: center;">
+                                    ⚠️ ACTION: DEFENSIVE (Trim Positions & Tighten Stops)
+                                </div>
+                            </div>
+
+                            <!-- Stage 4: Declining Card -->
+                            <div style="background: rgba(30, 41, 59, 0.6); border: 1px solid rgba(248, 113, 113, 0.4); border-radius: 12px; padding: 16px; display: flex; flex-direction: column; justify-content: space-between;">
+                                <div>
+                                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                                        <h5 style="margin: 0; font-size: 15px; font-weight: 800; color: #f87171;">🩸 Stage 4: Declining Phase</h5>
+                                        <span style="font-size: 10px; font-weight: 800; background: rgba(248, 113, 113, 0.2); color: #f87171; border: 1px solid rgba(248, 113, 113, 0.4); padding: 2px 6px; border-radius: 4px;">MARKDOWN</span>
+                                    </div>
+                                    <p style="margin: 0 0 10px 0; font-size: 11.5px; color: #cbd5e1; line-height: 1.5;">
+                                        Prolonged downtrend making lower highs and lower lows after breaking support.
+                                    </p>
+                                    <ul style="margin: 0 0 12px 0; padding-left: 16px; font-size: 11px; color: #94a3b8; line-height: 1.6;">
+                                        <li><strong>30W MA:</strong> Price trades below downward-sloping 30-week MA.</li>
+                                        <li><strong>Rallies:</strong> Weak rallies fail quickly on light volume.</li>
+                                        <li><strong>Golden Rule:</strong> <em>"Take the oath"</em> — NEVER hold or buy a Stage 4 stock.</li>
+                                    </ul>
+                                </div>
+                                <div style="background: rgba(248, 113, 113, 0.15); border: 1px solid rgba(248, 113, 113, 0.3); padding: 6px 10px; border-radius: 6px; font-size: 11px; font-weight: 800; color: #f87171; text-align: center;">
+                                    🛑 ACTION: AVOID / EXIT ALL POSITIONS IMMEDIATELY
+                                </div>
+                            </div>
+
+                        </div>
+
+                        <!-- Stage 2 Ideal Breakout Confirmation Checklist Card -->
+                        <div style="background: rgba(30, 41, 59, 0.5); border: 1px solid rgba(45, 212, 191, 0.35); border-radius: 12px; padding: 16px;">
+                            <h5 style="margin: 0 0 10px 0; font-size: 14px; font-weight: 800; color: #2dd4bf; display: flex; align-items: center; gap: 6px;">
+                                ⚡ Stage 2 Ideal Buy Point & Breakout Confirmation Checklist
+                            </h5>
+                            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; font-size: 11.5px; color: #cbd5e1; line-height: 1.6;">
+                                <div style="background: rgba(15, 23, 42, 0.5); border: 1px solid rgba(255,255,255,0.08); padding: 10px 12px; border-radius: 8px;">
+                                    <strong style="color: #38bdf8;">1. Heavy Volume Surge (2x–3x)</strong>
+                                    <p style="margin: 4px 0 0 0; color: #94a3b8; font-size: 11px;">Breakout must carry at least <strong>twice (2x) to 3x</strong> the 30-day average volume to confirm institutional fund buying.</p>
+                                </div>
+                                <div style="background: rgba(15, 23, 42, 0.5); border: 1px solid rgba(255,255,255,0.08); padding: 10px 12px; border-radius: 8px;">
+                                    <strong style="color: #fbbf24;">2. Leading Sector Group Alignment</strong>
+                                    <p style="margin: 4px 0 0 0; color: #94a3b8; font-size: 11px;">Breakouts in top-performing, outperforming sector groups have a significantly higher win rate than lagging sectors.</p>
+                                </div>
+                                <div style="background: rgba(15, 23, 42, 0.5); border: 1px solid rgba(255,255,255,0.08); padding: 10px 12px; border-radius: 8px;">
+                                    <strong style="color: #34d399;">3. Light-Volume Retest Validation</strong>
+                                    <p style="margin: 4px 0 0 0; color: #94a3b8; font-size: 11px;">Post-breakout pullbacks to previous resistance must occur on <strong>light volume</strong> and hold cleanly above breakout point.</p>
                                 </div>
                             </div>
                         </div>

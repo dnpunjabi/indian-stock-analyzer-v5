@@ -55019,9 +55019,30 @@ window.runVcpScan = async function(isSilent = false, forceRefresh = false) {
         const totalScores = window.allVcpStocks.reduce((acc, s) => acc + (s.canslim_score || 0), 0);
         const avgScore = total > 0 ? (totalScores / total).toFixed(1) : '0';
 
-        if (kpiTotal) kpiTotal.innerText = total;
-        if (kpiReady) kpiReady.innerText = readyCount;
-        if (kpiBreakout) kpiBreakout.innerText = breakoutCount;
+        if (kpiTotal) {
+            kpiTotal.innerText = total;
+            kpiTotal.style.cursor = 'pointer';
+            kpiTotal.parentElement.onclick = () => {
+                const f = document.getElementById('vcp-status-filter');
+                if (f) { f.value = 'ALL'; window.filterVcpCards(); }
+            };
+        }
+        if (kpiReady) {
+            kpiReady.innerText = readyCount;
+            kpiReady.style.cursor = 'pointer';
+            kpiReady.parentElement.onclick = () => {
+                const f = document.getElementById('vcp-status-filter');
+                if (f) { f.value = 'READY_PIVOT'; window.filterVcpCards(); }
+            };
+        }
+        if (kpiBreakout) {
+            kpiBreakout.innerText = breakoutCount;
+            kpiBreakout.style.cursor = 'pointer';
+            kpiBreakout.parentElement.onclick = () => {
+                const f = document.getElementById('vcp-status-filter');
+                if (f) { f.value = 'LIVE_BREAKOUT'; window.filterVcpCards(); }
+            };
+        }
         if (kpiAvgCanslim) kpiAvgCanslim.innerText = `${avgScore} / 100`;
 
         // Auto-subscribe screened VCP symbols to live WebSocket tick updates
@@ -55088,10 +55109,10 @@ window.runVcpScan = async function(isSilent = false, forceRefresh = false) {
 window.filterVcpCards = function() {
     const searchVal = (document.getElementById('vcp-search-input')?.value || '').trim().toLowerCase();
     const scoreVal = document.getElementById('vcp-score-filter')?.value || 'ALL';
-    const stageVal = document.getElementById('vcp-stage-filter')?.value || 'ALL';
+    const statusVal = document.getElementById('vcp-status-filter')?.value || document.getElementById('vcp-stage-filter')?.value || 'ALL';
     const sortVal = document.getElementById('vcp-sort-filter')?.value || 'CANSLIM_DESC';
 
-    let filtered = window.allVcpStocks.filter(stock => {
+    let filtered = (window.allVcpStocks || []).filter(stock => {
         // Search filter
         if (searchVal) {
             const sym = (stock.symbol || '').toLowerCase();
@@ -55108,8 +55129,28 @@ window.filterVcpCards = function() {
         if (scoreVal === '7' && score < 80) return false;
         if (scoreVal === '3' && (score < 50 || score >= 65)) return false;
 
-        // Stage filter
-        if (stageVal !== 'ALL' && stock.vcp_status !== stageVal) return false;
+        // Status & Stage filter
+        if (statusVal !== 'ALL') {
+            const status = stock.vcp_status || 'NONE';
+            const stage = stock.vcp_stage || 'NONE';
+            const reason = stock.vcp_reason || '';
+
+            if (statusVal === 'T3_CONTRACTION') {
+                if (stage !== 'T3' && stage !== 'T4' && stage !== 'T5' && (!stock.contractions || stock.contractions.length < 3)) return false;
+            } else if (statusVal === 'EARLY_FORMING') {
+                if ((stage === 'T3' || stage === 'T4' || stage === 'T5') || (stock.contractions && stock.contractions.length >= 3)) return false;
+            } else if (statusVal === 'BELOW_50EMA') {
+                if (reason !== 'BELOW 50 EMA' && reason !== 'TREND NOT ALIGNED') return false;
+            } else if (statusVal === 'READY_PIVOT') {
+                if (status !== 'READY_PIVOT') return false;
+            } else if (statusVal === 'LIVE_BREAKOUT') {
+                if (status !== 'LIVE_BREAKOUT') return false;
+            } else if (statusVal === 'FORMING') {
+                if (status !== 'FORMING') return false;
+            } else {
+                if (status !== statusVal) return false;
+            }
+        }
 
         return true;
     });
@@ -55161,7 +55202,8 @@ window.renderVcpCards = function(stocks) {
         } else if (stock.vcp_status === 'LIVE_BREAKOUT') {
             statusBadgeHTML = `<span style="background: rgba(56, 189, 248, 0.15); border: 1px solid rgba(56, 189, 248, 0.4); color: #38bdf8; font-weight: 700; font-size: 11px; padding: 3px 8px; border-radius: 6px; display: inline-flex; align-items: center; gap: 4px;">🚀 LIVE BREAKOUT</span>`;
         } else {
-            statusBadgeHTML = `<span style="background: rgba(245, 158, 11, 0.15); border: 1px solid rgba(245, 158, 11, 0.4); color: #fbbf24; font-weight: 700; font-size: 11px; padding: 3px 8px; border-radius: 6px; display: inline-flex; align-items: center; gap: 4px;">⏳ FORMING</span>`;
+            const stageName = stock.vcp_stage || (stock.contractions && stock.contractions.length ? `T${stock.contractions.length}` : 'T3');
+            statusBadgeHTML = `<span style="background: rgba(245, 158, 11, 0.15); border: 1px solid rgba(245, 158, 11, 0.4); color: #fbbf24; font-weight: 700; font-size: 11px; padding: 3px 8px; border-radius: 6px; display: inline-flex; align-items: center; gap: 4px;">⏳ FORMING ${stageName}</span>`;
         }
 
         // Contractions HTML & Dynamic Header
@@ -55305,6 +55347,7 @@ window.analyzeStock = function(symbol) {
         loadStockAnalyzer(cleanSym);
     }
 };
+window.loadStockAnalysis = window.analyzeStock;
 
 window.closeVcpAiModal = function() {
     const modal = document.getElementById('vcp-ai-modal');
@@ -56013,7 +56056,8 @@ window.renderWeinsteinTable = function(stocks) {
     const advancingEl = document.getElementById('weinstein-kpi-advancing');
     const rsEl = document.getElementById('weinstein-kpi-avg-rs');
 
-    if (totalEl) totalEl.innerText = stocks.length;
+    const fullCount = (window.allWeinsteinStocks && window.allWeinsteinStocks.length > 0) ? window.allWeinsteinStocks.length : stocks.length;
+    if (totalEl) totalEl.innerText = stocks.length < fullCount ? `${stocks.length} of ${fullCount}` : fullCount;
     if (breakoutEl) breakoutEl.innerText = stocks.filter(s => ['STAGE_2_LAUNCH', 'STAGE_2_BREAKOUT'].includes(s.stage_status)).length;
     if (advancingEl) advancingEl.innerText = stocks.filter(s => s.stage_status === 'STAGE_2_ADVANCING').length;
     
@@ -56123,7 +56167,8 @@ window.renderHtfTable = function(stocks) {
     const breakoutEl = document.getElementById('htf-kpi-breakout');
     const avgPoleEl = document.getElementById('htf-kpi-avg-pole');
 
-    if (totalEl) totalEl.innerText = stocks.length;
+    const fullCount = (window.allHtfStocks && window.allHtfStocks.length > 0) ? window.allHtfStocks.length : stocks.length;
+    if (totalEl) totalEl.innerText = stocks.length < fullCount ? `${stocks.length} of ${fullCount}` : fullCount;
     if (readyEl) readyEl.innerText = stocks.filter(s => ['HTF_BREAKOUT_READY', 'HTF_READY'].includes(s.htf_status)).length;
     if (breakoutEl) breakoutEl.innerText = stocks.filter(s => s.htf_status === 'HTF_BREAKOUT').length;
 
@@ -56176,7 +56221,18 @@ window.filterHtfTable = function() {
 
     let filtered = window.allHtfStocks.filter(s => {
         const matchesQ = s.symbol.toLowerCase().includes(q) || (s.company_name || s.name || '').toLowerCase().includes(q);
-        const matchesStatus = status === 'ALL' || s.htf_status === status || (status === 'HTF_READY' && s.htf_status === 'HTF_BREAKOUT_READY');
+        const sStatus = s.htf_status || 'HTF_FLAG_FORMING';
+        
+        let matchesStatus = (status === 'ALL');
+        if (status === 'HTF_READY') {
+            matchesStatus = ['HTF_READY', 'HTF_BREAKOUT_READY'].includes(sStatus);
+        } else if (status === 'HTF_BREAKOUT') {
+            matchesStatus = (sStatus === 'HTF_BREAKOUT');
+        } else if (status === 'HTF_FORMING') {
+            matchesStatus = ['HTF_FORMING', 'HTF_FLAG_FORMING', 'HTF_QUALIFIED', 'FORMING'].includes(sStatus);
+        } else {
+            matchesStatus = (sStatus === status);
+        }
         return matchesQ && matchesStatus;
     });
 
@@ -56232,7 +56288,8 @@ window.render3wtTable = function(stocks) {
     const avgTightEl = document.getElementById('three-wt-kpi-avg-tightness');
     const highRsEl = document.getElementById('three-wt-kpi-high-rs');
 
-    if (totalEl) totalEl.innerText = stocks.length;
+    const fullCount = (window.all3wtStocks && window.all3wtStocks.length > 0) ? window.all3wtStocks.length : stocks.length;
+    if (totalEl) totalEl.innerText = stocks.length < fullCount ? `${stocks.length} of ${fullCount}` : fullCount;
     if (readyEl) readyEl.innerText = stocks.filter(s => ['3WT_PIVOT_READY', '3WT_READY'].includes(s.tight_status || s.three_wt_status)).length;
     
     const avgTight = stocks.length > 0 ? (stocks.reduce((a, b) => a + (b.close_variance_pct || b.tightness_range_pct || 0), 0) / stocks.length).toFixed(2) : '0';
@@ -56448,8 +56505,57 @@ window.runStockStageSimulator = async function(symbolInput) {
             </div>
 
             <!-- Tactical Guidance Banner -->
-            <div style="background: rgba(30, 41, 59, 0.6); border-left: 4px solid ${badgeBorder}; padding: 10px 14px; border-radius: 6px; font-size: 12.5px; font-weight: 700; color: #f8fafc;">
+            <div style="background: rgba(30, 41, 59, 0.6); border-left: 4px solid ${badgeBorder}; padding: 10px 14px; border-radius: 6px; font-size: 12.5px; font-weight: 700; color: #f8fafc; margin-bottom: 16px;">
                 💡 Tactical Action Plan: <span style="font-weight: 500; color: #cbd5e1;">${data.action_guidance || ''}</span>
+            </div>
+
+            <!-- NEW: Expanded 4-Screener Diagnostic Audit Table -->
+            <div style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 10px; padding: 14px; margin-bottom: 16px;">
+                <h5 style="margin: 0 0 12px 0; font-size: 13px; font-weight: 800; color: #38bdf8; display: flex; align-items: center; gap: 6px;">
+                    📊 4-Screener Algorithmic Diagnostic Audit & Criteria Breakdown
+                </h5>
+                <div style="overflow-x: auto;">
+                    <table style="width: 100%; font-size: 11.5px; border-collapse: collapse; text-align: left;">
+                        <thead>
+                            <tr style="border-bottom: 1px solid rgba(255, 255, 255, 0.12); color: #94a3b8; font-size: 11px;">
+                                <th style="padding: 8px 10px;">Screener</th>
+                                <th style="padding: 8px 10px;">Textbook Requirement</th>
+                                <th style="padding: 8px 10px;">Actual Stock Metric</th>
+                                <th style="padding: 8px 10px;">Status</th>
+                                <th style="padding: 8px 10px;">Diagnostic Reason</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${Object.entries(data.screener_audit || {}).map(([key, item]) => {
+                                const isQual = item.qualified;
+                                const statusBadge = isQual 
+                                    ? `<span style="background: rgba(52, 211, 153, 0.15); color: #34d399; border: 1px solid #34d399; padding: 2px 6px; border-radius: 4px; font-weight: 800; font-size: 10.5px;">QUALIFIED 🟢</span>`
+                                    : `<span style="background: rgba(248, 113, 113, 0.15); color: #f87171; border: 1px solid #f87171; padding: 2px 6px; border-radius: 4px; font-weight: 800; font-size: 10.5px;">REJECTED ❌</span>`;
+                                return `
+                                    <tr style="border-bottom: 1px solid rgba(255, 255, 255, 0.05);">
+                                        <td style="padding: 10px; font-weight: 700; color: #f8fafc;">${item.name || key}</td>
+                                        <td style="padding: 10px; color: #94a3b8; font-family: monospace; font-size: 11px;">${item.required || ''}</td>
+                                        <td style="padding: 10px; color: #fbbf24; font-family: monospace; font-weight: 700; font-size: 11px;">${item.actual || ''}</td>
+                                        <td style="padding: 10px;">${statusBadge}</td>
+                                        <td style="padding: 10px; color: #cbd5e1; font-size: 11px;">${item.reason || ''}</td>
+                                    </tr>
+                                `;
+                            }).join('')}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- NEW: Key Technical Takeaways & Strategic Action Levels Card -->
+            <div style="background: rgba(30, 41, 59, 0.5); border: 1px solid rgba(56, 189, 248, 0.3); border-radius: 10px; padding: 14px;">
+                <h5 style="margin: 0 0 10px 0; font-size: 13px; font-weight: 800; color: #fbbf24; display: flex; align-items: center; gap: 6px;">
+                    📌 Key Takeaways & Strategic Actionable Insights
+                </h5>
+                <ul style="margin: 0; padding-left: 18px; font-size: 11.5px; color: #cbd5e1; line-height: 1.6;">
+                    <li><strong style="color: #f8fafc;">Stage Cycle Structure:</strong> Stock is currently in <span style="color: #38bdf8; font-weight: 700;">${data.stage_name || ''}</span> with a 30-week MA slope of <span style="font-family: monospace; color: ${(m.ma_30wk_slope_pct||0) > 0 ? '#34d399' : '#f87171'}; font-weight: 800;">${(m.ma_30wk_slope_pct||0) > 0 ? '+' : ''}${(m.ma_30wk_slope_pct||0).toFixed(2)}%</span>.</li>
+                    <li><strong style="color: #f8fafc;">Key Technical Levels:</strong> Pivot Resistance: <span style="color: #fbbf24; font-family: monospace; font-weight: 700;">₹${(m.pivot_price||0).toFixed(2)}</span> | Protective Risk Stop: <span style="color: #f87171; font-family: monospace; font-weight: 700;">₹${(m.stop_loss||0).toFixed(2)}</span> | Target 1: <span style="color: #34d399; font-family: monospace; font-weight: 700;">₹${(m.target_1||0).toFixed(2)}</span>.</li>
+                    <li><strong style="color: #f8fafc;">Breakout Catalysts Required:</strong> Needs volume expansion <span style="color: #2dd4bf; font-weight: 700;">≥ 1.40x - 2.0x 20-day average volume</span> on a move above ₹${(m.pivot_price||0).toFixed(2)} to confirm high-conviction Stage 2 institutional mark-up.</li>
+                </ul>
             </div>
         `;
     } catch (e) {
@@ -56855,7 +56961,7 @@ window.renderWatchlistQuantMatrix = function(stocks) {
         html += `
             <tr style="border-bottom: 1px solid var(--border-glass);">
                 <td style="padding: 10px 14px; font-weight: 800; white-space: nowrap;">
-                    <a href="javascript:void(0)" onclick="window.loadStockAnalysis && window.loadStockAnalysis('${s.symbol}')" style="color: var(--color-primary-light); text-decoration: none;">${baseSym}</a>
+                    <a href="javascript:void(0)" onclick="window.analyzeStock && window.analyzeStock('${s.symbol}')" style="color: var(--color-primary-light); text-decoration: none;">${baseSym}</a>
                     <span style="font-size: 11px; color: var(--text-muted); display: block; font-weight: 500;">${s.company_name || baseSym}</span>
                 </td>
                 <td style="padding: 10px 14px; white-space: nowrap;">
@@ -56880,7 +56986,7 @@ window.renderWatchlistQuantMatrix = function(stocks) {
                 </td>
                 <td style="padding: 10px 14px; text-align: center; white-space: nowrap;">
                     <button class="btn-secondary quant-chart-btn" style="font-size: 11.5px; padding: 4px 8px; margin-right: 4px;" onclick="window.launchStageSimulator('${s.symbol}')" title="Launch Interactive Stage Simulator">Simulate ⚙️</button>
-                    <button class="btn-secondary quant-chart-btn" style="font-size: 11.5px; padding: 4px 8px;" onclick="window.loadStockAnalysis && window.loadStockAnalysis('${s.symbol}')">Chart ↗</button>
+                    <button class="btn-secondary quant-chart-btn" style="font-size: 11.5px; padding: 4px 8px;" onclick="window.openTradingViewChart ? window.openTradingViewChart('${s.symbol}') : (window.analyzeStock && window.analyzeStock('${s.symbol}'))">Chart ↗</button>
                 </td>
             </tr>
         `;
