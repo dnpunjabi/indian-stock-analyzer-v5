@@ -18251,12 +18251,25 @@ async def _eval_watchlist_quant_diagnostics(sym_list: List[str], force_refresh: 
         htf_qual = screeners.get("htf", {}).get("qualified", False)
         twt_qual = screeners.get("three_wt", {}).get("qualified", False)
 
-        qual_count = sum([1 for q in [vcp_qual, wein_qual, htf_qual, twt_qual] if q])
-
         stage_num = diag.get("stage_number", diag.get("stage_classification", {}).get("stage", 1))
         stage_title = diag.get("stage_name", diag.get("stage_classification", {}).get("title", f"Stage {stage_num}"))
 
-        if qual_count == 4:
+        # If stock is in Stage 3 Distribution Top or Stage 4 Capitulation, disqualify bullish setup counts
+        if stage_num in [3, 4] or wein_s3_qual:
+            vcp_qual = False
+            wein_qual = False
+            htf_qual = False
+            twt_qual = False
+
+        qual_count = sum([1 for q in [vcp_qual, wein_qual, htf_qual, twt_qual] if q])
+
+        if stage_num == 3 or wein_s3_qual:
+            qual_label = "STAGE 3 DISTRIBUTION ⚠️"
+            badge_cls = "badge-quant-yellow"
+        elif stage_num == 4:
+            qual_label = "STAGE 4 MARKDOWN 🩸"
+            badge_cls = "badge-quant-red"
+        elif qual_count == 4:
             qual_label = "4/4 QUAD QUALIFIED 🌟"
             badge_cls = "badge-quant-green"
         elif qual_count == 3:
@@ -18272,15 +18285,9 @@ async def _eval_watchlist_quant_diagnostics(sym_list: List[str], force_refresh: 
             if stage_num == 2:
                 qual_label = "STAGE 2 ADVANCING 📈"
                 badge_cls = "badge-quant-blue"
-            elif stage_num == 1:
+            else:
                 qual_label = "STAGE 1 BASE 🔋"
                 badge_cls = "badge-quant-purple"
-            elif stage_num == 3:
-                qual_label = "STAGE 3 DISTRIBUTION ⚠️"
-                badge_cls = "badge-quant-yellow"
-            else:
-                qual_label = "STAGE 4 MARKDOWN 🩸"
-                badge_cls = "badge-quant-red"
 
         pivot = metrics.get("pivot_price", round(price * 1.01, 2))
         sl = metrics.get("stop_loss", round(pivot * 0.95, 2))
