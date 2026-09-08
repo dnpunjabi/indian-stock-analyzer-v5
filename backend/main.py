@@ -18227,37 +18227,34 @@ async def get_stage_diagnostic(symbol: str, force_refresh: bool = False):
         twt_qualified = bool(twt_res.get("is_3wt") or twt_res.get("tight_status") in ["3WT_PIVOT_READY", "3WT_FORMING"])
         flat_qualified = bool(flat_res.get("is_flat_base") or flat_res.get("base_status") in ["LIVE_BREAKOUT", "READY_PIVOT", "FORMING"])
         
-        # Synchronized 4 Trade Execution Levels
+        # Synchronized 4 Trade Execution Levels (Strict Quantitative Values, Zero Fallbacks)
         if vcp_res and vcp_res.get("pivot_price", 0) > 0 and vcp_res.get("stop_loss", 0) > 0:
             pivot_price = round(float(vcp_res["pivot_price"]), 2)
             stop_loss = round(float(vcp_res["stop_loss"]), 2)
-            target_1 = round(float(vcp_res.get("target_1") or (pivot_price * 1.10)), 2)
-            target_2 = round(float(vcp_res.get("target_2") or (pivot_price * 1.20)), 2)
+            target_1 = round(float(vcp_res.get("target_1", 0) or 0), 2)
+            target_2 = round(float(vcp_res.get("target_2", 0) or 0), 2)
         elif flat_res and flat_res.get("pivot_price", 0) > 0:
             pivot_price = round(float(flat_res["pivot_price"]), 2)
-            stop_loss = round(float(flat_res.get("stop_loss") or (pivot_price * 0.95)), 2)
-            target_1 = round(float(flat_res.get("target_1") or (pivot_price * 1.10)), 2)
-            target_2 = round(float(flat_res.get("target_2") or (pivot_price * 1.20)), 2)
+            stop_loss = round(float(flat_res.get("stop_loss", 0) or 0), 2)
+            target_1 = round(float(flat_res.get("target_1", 0) or 0), 2)
+            target_2 = round(float(flat_res.get("target_2", 0) or 0), 2)
         elif twt_res and twt_res.get("pivot_price", 0) > 0:
             pivot_price = round(float(twt_res["pivot_price"]), 2)
-            stop_loss = round(float(twt_res.get("stop_loss_price") or (pivot_price * 0.95)), 2)
+            stop_loss = round(float(twt_res.get("stop_loss_price", 0) or 0), 2)
             risk = pivot_price - stop_loss
-            if risk <= 0: risk = pivot_price * 0.05
-            target_1 = round(pivot_price + (2.0 * risk), 2)
-            target_2 = round(pivot_price + (4.0 * risk), 2)
+            target_1 = round(pivot_price + (2.0 * risk), 2) if risk > 0 else 0.0
+            target_2 = round(pivot_price + (4.0 * risk), 2) if risk > 0 else 0.0
         elif htf_res and htf_res.get("pivot_price", 0) > 0:
             pivot_price = round(float(htf_res["pivot_price"]), 2)
-            stop_loss = round(float(htf_res.get("stop_loss_price") or (pivot_price * 0.95)), 2)
+            stop_loss = round(float(htf_res.get("stop_loss_price", 0) or 0), 2)
             risk = pivot_price - stop_loss
-            if risk <= 0: risk = pivot_price * 0.05
-            target_1 = round(pivot_price + (2.0 * risk), 2)
-            target_2 = round(pivot_price + (4.0 * risk), 2)
+            target_1 = round(pivot_price + (2.0 * risk), 2) if risk > 0 else 0.0
+            target_2 = round(pivot_price + (4.0 * risk), 2) if risk > 0 else 0.0
         else:
-            calc_pivot = float(stg2_res.get("pivot_price") or (high.tail(20).max()) or curr_price)
-            pivot_price = round(calc_pivot, 2)
-            stop_loss = round(pivot_price * 0.95, 2)
-            target_1 = round(pivot_price * 1.10, 2)
-            target_2 = round(pivot_price * 1.20, 2)
+            pivot_price = 0.0
+            stop_loss = 0.0
+            target_1 = 0.0
+            target_2 = 0.0
 
         action_text = "BUY: High-conviction Stage 2 leader!" if stage_num == 2 else (
             "DEFENSIVE: Stage 3 Distribution Top! Tighten trailing stops or trim positions." if stage_num == 3 else (

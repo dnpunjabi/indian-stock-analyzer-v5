@@ -55207,16 +55207,15 @@ window.renderVcpCards = function(stocks) {
             statusBadgeHTML = `<span style="background: rgba(148, 163, 184, 0.15); border: 1px solid rgba(148, 163, 184, 0.4); color: #94a3b8; font-weight: 700; font-size: 11px; padding: 3px 8px; border-radius: 6px; display: inline-flex; align-items: center; gap: 4px;">🟡 STAGE 2 BASE</span>`;
         }
 
-        // Trade Levels Fallback
-        const pPivot = stock.pivot_price || (stock.metrics && stock.metrics.pivot_price) || (stock.current_price ? (stock.current_price * 1.02) : null);
-        const pStop = stock.stop_loss || (stock.metrics && stock.metrics.stop_loss) || (pPivot ? (pPivot * 0.95) : null);
-        const pT1 = stock.target_1 || (stock.metrics && stock.metrics.target_1) || (pPivot ? (pPivot * 1.10) : null);
-        const pT2 = stock.target_2 || (stock.metrics && stock.metrics.target_2) || (pPivot ? (pPivot * 1.20) : null);
-        const rPct = (typeof stock.risk_percent === 'number' && stock.risk_percent > 0) ? stock.risk_percent : (pPivot && pStop ? (((pPivot - pStop) / pPivot) * 100).toFixed(1) : 5.0);
+        // Strict Quantitative Trade Levels (Zero Fallback Math)
+        const pPivot = (typeof stock.pivot_price === 'number' && stock.pivot_price > 0) ? stock.pivot_price : null;
+        const pStop = (typeof stock.stop_loss === 'number' && stock.stop_loss > 0) ? stock.stop_loss : null;
+        const pT1 = (typeof stock.target_1 === 'number' && stock.target_1 > 0) ? stock.target_1 : null;
+        const pT2 = (typeof stock.target_2 === 'number' && stock.target_2 > 0) ? stock.target_2 : null;
+        const rPct = (typeof stock.risk_percent === 'number' && stock.risk_percent > 0) ? stock.risk_percent.toFixed(1) : (pPivot && pStop ? (((pPivot - pStop) / pPivot) * 100).toFixed(1) : null);
 
         // Contractions HTML & Dynamic Header
         const contractions = stock.contractions || [];
-        const lastStageName = contractions.length > 0 ? (contractions[contractions.length - 1].stage || 'T3') : 'T3';
         const contractionsHTML = contractions.map((c) => `
             <div style="flex: 1; min-width: 75px; background: var(--bg-glass-input, rgba(30, 41, 59, 0.6)); border: 1px solid var(--border-glass, rgba(255,255,255,0.08)); border-radius: 6px; padding: 5px 6px; text-align: center;">
                 <div style="font-size: 9.5px; color: #d97706; font-weight: 800; text-transform: uppercase;">Wave T${c.stage}</div>
@@ -55229,19 +55228,11 @@ window.renderVcpCards = function(stocks) {
         // CANSLIM breakdown badges & Tightness
         const score = stock.canslim_score || 0;
         const tightness = stock.tightness_score || 0;
-        const grade = stock.canslim_grade || (score >= 80 ? 'Grade A+' : (score >= 65 ? 'Grade B' : 'Grade C'));
+        const grade = stock.canslim_grade || stock.grade || (score >= 80 ? 'Grade A+' : (score >= 65 ? 'Grade B' : 'Grade C'));
         const gradeBg = score >= 80 ? 'rgba(168, 85, 247, 0.2)' : (score >= 65 ? 'rgba(56, 189, 248, 0.2)' : 'rgba(245, 158, 11, 0.2)');
         const gradeColor = score >= 80 ? '#c084fc' : (score >= 65 ? '#38bdf8' : '#fbbf24');
 
-        const factorsObj = stock.canslim_factors || stock.factors || {
-            "C": { score: score >= 80 ? 10 : 5, max: 15, detail: "+20% YoY" },
-            "A": { score: score >= 80 ? 15 : 10, max: 15, detail: "ROE 25%" },
-            "N": { score: score >= 80 ? 10 : 5, max: 15, detail: "Near 52W" },
-            "S": { score: score >= 80 ? 10 : 5, max: 15, detail: "Deliv 45%" },
-            "L": { score: score >= 80 ? 12 : 8, max: 15, detail: "3M Leader" },
-            "I": { score: score >= 80 ? 15 : 10, max: 15, detail: "FII+DII 45%" },
-            "M": { score: 10, max: 10, detail: "Uptrend" }
-        };
+        const factorsObj = stock.canslim_factors || stock.factors || {};
 
         const factorDefs = {
             "C": "C = Current Qtr PAT Growth",
