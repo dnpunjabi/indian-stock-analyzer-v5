@@ -2033,6 +2033,9 @@
                     <button class="quant-subtab-btn" id="quant-subtab-3wt" onclick="window.switchQuantScannerSubtab && window.switchQuantScannerSubtab('3wt')">
                         <span>🎯</span> 3-Weeks Tight (3WT)
                     </button>
+                    <button class="quant-subtab-btn" id="quant-subtab-flatbase" onclick="window.switchQuantScannerSubtab && window.switchQuantScannerSubtab('flatbase')">
+                        <span>📈</span> Modern Flat Base
+                    </button>
                     <button class="quant-subtab-btn" id="quant-subtab-guide" onclick="window.switchQuantScannerSubtab && window.switchQuantScannerSubtab('guide')">
                         <span>📘</span> 4-Stage Life Cycle Masterclass
                     </button>
@@ -2653,8 +2656,121 @@
                     </div>
                 </div>
 
-                <!-- SUBTAB VIEW 5: STAN WEINSTEIN & DAVID RYAN 4-STAGE LIFE CYCLE MASTERCLASS -->
-                <!-- SUBTAB VIEW 5: STAN WEINSTEIN & DAVID RYAN 4-STAGE LIFE CYCLE MASTERCLASS -->
+                <!-- SUBTAB VIEW 5: WILLIAM O'NEIL / DAN ZANGER / NICOLAS DARVAS MODERN FLAT BASE BREAKOUT -->
+                <div id="quant-view-flatbase" style="display: none;">
+                    <!-- Ultra-Institutional Flat Base Cyber Hero Header Banner -->
+                    <div class="screener-hero-header no-print" style="margin-bottom: 24px; border-radius: 16px; background: linear-gradient(135deg, rgba(15, 23, 42, 0.95), rgba(30, 41, 59, 0.92), rgba(15, 23, 42, 0.95)); border: 1px solid rgba(16, 185, 129, 0.4); backdrop-filter: blur(20px); padding: 22px 28px; box-shadow: 0 12px 32px -4px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.1); position: relative; overflow: hidden; font-family: 'Outfit', 'Inter', sans-serif;">
+                        <div style="position: relative; z-index: 2; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px;">
+                            <div>
+                                <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px;">
+                                    <div style="background: rgba(16, 185, 129, 0.18); border: 1px solid rgba(16, 185, 129, 0.45); padding: 3px 8px; border-radius: 5px; display: inline-flex; align-items: center; gap: 6px;">
+                                        <span class="status-indicator" style="width: 7px; height: 7px; border-radius: 50%; background-color: #10b981; box-shadow: 0 0 8px #10b981;"></span>
+                                        <span style="font-size: 13px; font-weight: 800; color: #34d399; letter-spacing: 0.08em; text-transform: uppercase;">SEPA & IBD FLAT BASE ENGINE</span>
+                                    </div>
+                                    <span style="font-size: 13.5px; color: rgba(255,255,255,0.45); font-weight: 600;">• Nicolas Darvas Box & O'Neil System</span>
+                                </div>
+                                <h2 style="margin: 0; font-size: 22px; font-weight: 800; color: #ffffff; letter-spacing: -0.02em; font-family: 'Outfit', sans-serif;">Modern Flat Base & Darvas Box Breakout Screener</h2>
+                                <p style="margin: 6px 0 0 0; font-size: 12.5px; color: #94a3b8; line-height: 1.5; max-width: 660px;">Detects tight sideways institutional accumulation bases (5–15 weeks duration, strict &le;15% depth, VDU &le;0.85x, and RS &ge;75 leadership).</p>
+                            </div>
+
+                            <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+                                <button onclick="const b=document.getElementById('flatbase-guide-banner'); b.style.display = b.style.display === 'none' ? 'block' : 'none';" class="btn-secondary" style="padding: 10px 16px; background: rgba(16, 185, 129, 0.15); border: 1px solid #10b981; border-radius: 10px; color: #34d399; font-weight: 800; font-size: 13px; cursor: pointer;">
+                                    💡 Guide
+                                </button>
+                                <button onclick="window.runFlatBaseScan && window.runFlatBaseScan(false, true)" class="btn-primary" style="padding: 10px 20px; background: linear-gradient(135deg, #10b981, #059669); border: none; border-radius: 10px; color: #fff; font-weight: 700; font-size: 13px; cursor: pointer; box-shadow: 0 4px 14px rgba(16, 185, 129, 0.35);">
+                                    🔄 Run Flat Base Scan
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- KPI Summary Row -->
+                        <div class="screener-kpi-row" style="display: flex; gap: 16px; margin-top: 20px; flex-wrap: wrap; border-top: 1px solid rgba(255,255,255,0.08); padding-top: 16px;">
+                            <div class="screener-kpi-card" style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(255,255,255,0.08); border-radius: 10px; padding: 10px 16px; flex: 1; min-width: 140px;">
+                                <div style="font-size: 11px; color: #94a3b8; text-transform: uppercase; font-weight: 600;">Total Flat Base Setups</div>
+                                <div id="flatbase-kpi-total" style="font-size: 20px; font-weight: 800; color: #34d399; margin-top: 2px;">--</div>
+                            </div>
+                            <div class="screener-kpi-card" style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(255,255,255,0.08); border-radius: 10px; padding: 10px 16px; flex: 1; min-width: 140px;">
+                                <div style="font-size: 11px; color: #94a3b8; text-transform: uppercase; font-weight: 600;">Ready at Pivot</div>
+                                <div id="flatbase-kpi-ready" style="font-size: 20px; font-weight: 800; color: #fbbf24; margin-top: 2px;">--</div>
+                            </div>
+                            <div class="screener-kpi-card" style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(255,255,255,0.08); border-radius: 10px; padding: 10px 16px; flex: 1; min-width: 140px;">
+                                <div style="font-size: 11px; color: #94a3b8; text-transform: uppercase; font-weight: 600;">Live Breakouts</div>
+                                <div id="flatbase-kpi-breakout" style="font-size: 20px; font-weight: 800; color: #38bdf8; margin-top: 2px;">--</div>
+                            </div>
+                            <div class="screener-kpi-card" style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(255,255,255,0.08); border-radius: 10px; padding: 10px 16px; flex: 1; min-width: 140px;">
+                                <div style="font-size: 11px; color: #94a3b8; text-transform: uppercase; font-weight: 600;">Avg Base Depth</div>
+                                <div id="flatbase-kpi-avg-depth" style="font-size: 20px; font-weight: 800; color: #a855f7; margin-top: 2px;">--</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Collapsible Flat Base Strategy & Attributes Guide Banner -->
+                    <div id="flatbase-guide-banner" class="vcp-guide-banner" style="display: none; margin-bottom: 20px; border-radius: 12px; padding: 16px 20px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                            <strong style="font-size: 14px; font-weight: 800; color: #34d399;">📦 William O'Neil & Dan Zanger Flat Base Strategy & Rules</strong>
+                            <button onclick="document.getElementById('flatbase-guide-banner').style.display='none'" style="background: none; border: none; cursor: pointer; font-size: 15px; color: #94a3b8;">✕</button>
+                        </div>
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 10px; font-size: 11.5px; line-height: 1.45;">
+                            <div style="background: rgba(30,41,59,0.5); padding: 10px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.06);">
+                                <strong style="color: #34d399;">Base Length (4–15 Weeks)</strong>: 20 to 75 trading days of horizontal sideways price consolidation after a Stage 2 uptrend.
+                            </div>
+                            <div style="background: rgba(30,41,59,0.5); padding: 10px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.06);">
+                                <strong style="color: #34d399;">Shallow Depth (&le; 15%)</strong>: Tight consolidation depth (5% to 15%) showing strong institutional support and zero panic selling.
+                            </div>
+                            <div style="background: rgba(30,41,59,0.5); padding: 10px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.06);">
+                                <strong style="color: #34d399;">Prior Uptrend (&ge; 20%)</strong>: Confirms stock has experienced a prior advancing stage before forming the base.
+                            </div>
+                            <div style="background: rgba(30,41,59,0.5); padding: 10px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.06);">
+                                <strong style="color: #34d399;">Volume Dry-Up (VDU &le; 0.85x)</strong>: Daily volume contracts dramatically below average prior to breakout.
+                            </div>
+                            <div style="background: rgba(30,41,59,0.5); padding: 10px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.06);">
+                                <strong style="color: #34d399;">Stacked Boxes (Darvas Box)</strong>: Consolidation bound inside tight price boxes with high pivot line ceiling & floor.
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Search & Filter Controls Bar -->
+                    <div style="display: flex; gap: 14px; margin-bottom: 20px; align-items: center; flex-wrap: wrap;">
+                        <input type="text" id="flatbase-search-input" onkeyup="window.filterFlatBaseTable && window.filterFlatBaseTable()" placeholder="Search symbol or name..." style="background: rgba(30, 41, 59, 0.8); border: 1px solid rgba(255,255,255,0.12); color: #fff; padding: 8px 14px; border-radius: 8px; font-size: 13px; flex: 1; min-width: 200px; outline: none;"/>
+                        <select id="flatbase-status-filter" onchange="window.filterFlatBaseTable && window.filterFlatBaseTable()" style="background: rgba(30, 41, 59, 0.8); border: 1px solid rgba(255,255,255,0.12); color: #fff; padding: 8px 14px; border-radius: 8px; font-size: 13px; outline: none; cursor: pointer;">
+                            <option value="ALL">All Flat Base Setups</option>
+                            <option value="READY_PIVOT">📦 Ready at Pivot</option>
+                            <option value="LIVE_BREAKOUT">🚀 Live Flat Base Breakout</option>
+                            <option value="FORMING">⌛ Forming Base</option>
+                        </select>
+                    </div>
+
+                    <!-- Loading Container -->
+                    <div id="flatbase-loading-container" style="display: none; text-align: center; padding: 60px 20px;">
+                        <div class="spinner" style="border: 4px solid rgba(16, 185, 129, 0.1); border-left-color: #10b981; border-radius: 50%; width: 44px; height: 44px; animation: spin 1s linear infinite; margin: 0 auto 16px auto;"></div>
+                        <p style="color: #94a3b8; font-size: 14px; font-weight: 500;">Scanning Nifty Universe for William O'Neil Modern Flat Base Setups...</p>
+                    </div>
+
+                    <!-- Flat Base Candidates Results Table Wrapper -->
+                    <div class="quant-table-wrapper" style="overflow-x: auto; border-radius: 12px; padding: 16px;">
+                        <table class="quant-table" style="width: 100%; border-collapse: collapse; font-size: 13px;">
+                            <thead>
+                                <tr style="border-bottom: 1px solid rgba(255, 255, 255, 0.1); text-align: left; color: #94a3b8;">
+                                    <th>Symbol</th>
+                                    <th>Status</th>
+                                    <th>Price</th>
+                                    <th>Base Length</th>
+                                    <th>Base Depth %</th>
+                                    <th>VDU Ratio</th>
+                                    <th>Stacked Boxes</th>
+                                    <th>Buy Pivot</th>
+                                    <th>Stop Loss</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="flatbase-table-body">
+                                <tr><td colspan="10" style="text-align:center; padding: 30px; color: #94a3b8;">Click 'Run Flat Base Scan' to load results.</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- SUBTAB VIEW 6: STAN WEINSTEIN & DAVID RYAN 4-STAGE LIFE CYCLE MASTERCLASS -->
                 <div id="quant-view-guide" style="display: none; padding-bottom: 40px; font-family: 'Inter', sans-serif;">
                     <!-- Ultra-Institutional 4-Stage Life Cycle Masterclass Cyber Hero Header Banner -->
                     <div class="screener-hero-header no-print" style="margin-bottom: 24px; border-radius: 16px; background: linear-gradient(135deg, rgba(15, 23, 42, 0.95), rgba(30, 41, 59, 0.92), rgba(15, 23, 42, 0.95)); border: 1px solid rgba(168, 85, 247, 0.4); backdrop-filter: blur(20px); padding: 22px 28px; box-shadow: 0 12px 32px -4px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.1); position: relative; overflow: hidden; font-family: 'Outfit', 'Inter', sans-serif;">

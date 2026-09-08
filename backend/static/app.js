@@ -55939,12 +55939,13 @@ window.allHtfStocks = [];
 window.all3wtStocks = [];
 
 window.switchQuantScannerSubtab = function(tabName) {
-    const subtabs = ['vcp', 'weinstein', 'htf', '3wt', 'guide'];
+    const subtabs = ['vcp', 'weinstein', 'htf', '3wt', 'flatbase', 'guide'];
     const navBtnMap = {
         'vcp': 'tab-vcp-btn',
         'weinstein': 'tab-weinstein-btn',
         'htf': 'tab-htf-btn',
         '3wt': 'tab-3wt-btn',
+        'flatbase': 'tab-flatbase-btn',
         'guide': 'tab-quant-guide-btn'
     };
 
@@ -55963,7 +55964,7 @@ window.switchQuantScannerSubtab = function(tabName) {
     });
 
     // 2. Synchronize Sidebar Navigation Highlighted Button
-    const allQuantNavBtns = ['tab-vcp-btn', 'tab-weinstein-btn', 'tab-htf-btn', 'tab-3wt-btn', 'tab-quant-guide-btn'];
+    const allQuantNavBtns = ['tab-vcp-btn', 'tab-weinstein-btn', 'tab-htf-btn', 'tab-3wt-btn', 'tab-flatbase-btn', 'tab-quant-guide-btn'];
     const targetNavId = navBtnMap[tabName] || 'tab-vcp-btn';
     allQuantNavBtns.forEach(id => {
         const navBtn = document.getElementById(id);
@@ -56000,6 +56001,13 @@ window.switchQuantScannerSubtab = function(tabName) {
             window.run3wtScan(true, false);
         } else {
             window.run3wtScan(false, false);
+        }
+    } else if (tabName === 'flatbase') {
+        if (window.allFlatBaseStocks && window.allFlatBaseStocks.length > 0) {
+            window.renderFlatBaseTable(window.allFlatBaseStocks);
+            window.runFlatBaseScan(true, false);
+        } else {
+            window.runFlatBaseScan(false, false);
         }
     } else if (tabName === 'guide') {
         if (typeof window.initStageSimAutocomplete === 'function') {
@@ -56348,6 +56356,125 @@ window.filter3wtTable = function() {
     });
 
     window.render3wtTable(filtered);
+};
+
+// 4. MODERN FLAT BASE & DARVAS BOX BREAKOUT SCREENER
+window.allFlatBaseStocks = [];
+
+window.runFlatBaseScan = async function(isSilent = false, forceRefresh = false) {
+    const loadingEl = document.getElementById('flatbase-loading-container');
+
+    let hasHydrated = false;
+    try {
+        const cached = localStorage.getItem('cached_flatbase_stocks');
+        if (cached && !forceRefresh) {
+            const parsed = JSON.parse(cached);
+            if (Array.isArray(parsed) && parsed.length > 0) {
+                window.allFlatBaseStocks = parsed;
+                window.renderFlatBaseTable(parsed);
+                hasHydrated = true;
+                if (loadingEl) loadingEl.style.display = 'none';
+            }
+        }
+    } catch(e) {}
+
+    if (!isSilent && !hasHydrated && loadingEl) loadingEl.style.display = 'block';
+
+    try {
+        const res = await fetch(`/api/screener/flat-base${forceRefresh ? '?force_refresh=true' : ''}`);
+        const data = await res.json();
+        const stocksList = data.data || data.stocks || [];
+        if (data.status === 'success' && Array.isArray(stocksList)) {
+            window.allFlatBaseStocks = stocksList;
+            try { localStorage.setItem('cached_flatbase_stocks', JSON.stringify(stocksList)); } catch(e){}
+            window.renderFlatBaseTable(stocksList);
+            if (typeof wsSubscribeSymbols === 'function') wsSubscribeSymbols(stocksList.map(s => s.symbol));
+        }
+    } catch(err) {
+        console.error("Flat Base scan error:", err);
+    } finally {
+        if (loadingEl) loadingEl.style.display = 'none';
+    }
+};
+
+window.renderFlatBaseTable = function(stocks) {
+    const tbody = document.getElementById('flatbase-table-body');
+    if (!tbody) return;
+
+    const totalEl = document.getElementById('flatbase-kpi-total');
+    const readyEl = document.getElementById('flatbase-kpi-ready');
+    const breakoutEl = document.getElementById('flatbase-kpi-breakout');
+    const avgDepthEl = document.getElementById('flatbase-kpi-avg-depth');
+
+    const fullCount = (window.allFlatBaseStocks && window.allFlatBaseStocks.length > 0) ? window.allFlatBaseStocks.length : stocks.length;
+    if (totalEl) totalEl.innerText = stocks.length < fullCount ? `${stocks.length} of ${fullCount}` : fullCount;
+    if (readyEl) readyEl.innerText = stocks.filter(s => s.base_status === 'READY_PIVOT').length;
+    if (breakoutEl) breakoutEl.innerText = stocks.filter(s => s.base_status === 'LIVE_BREAKOUT').length;
+    
+    const avgDepth = stocks.length > 0 ? (stocks.reduce((a, b) => a + (b.base_depth_pct || 0), 0) / stocks.length).toFixed(1) : '0';
+    if (avgDepthEl) avgDepthEl.innerText = `${avgDepth}%`;
+
+    if (stocks.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="10" style="text-align:center; padding: 30px; color: #94a3b8;">No Modern Flat Base setups detected currently.</td></tr>`;
+        return;
+    }
+
+    tbody.innerHTML = stocks.map(s => {
+        const price = s.current_price || s.price || 0;
+        const dayChg = s.day_change_pct || 0;
+        const chgClass = dayChg >= 0 ? 'text-emerald-400' : 'text-rose-400';
+        const chgSign = dayChg >= 0 ? '+' : '';
+        const depth = s.base_depth_pct || 0;
+        const weeks = s.base_length_weeks || 0;
+        const days = s.base_length_days || 0;
+        const pivot = s.pivot_price || s.ceiling_price || 0;
+        const stopL = s.stop_loss || 0;
+        const vduRatio = s.vdu_ratio || 1.0;
+        const boxes = s.stacked_boxes_count || 1;
+
+        let statusBadge = '<span class="badge-quant badge-quant-yellow">FORMING 🧱</span>';
+        if (s.base_status === 'LIVE_BREAKOUT') statusBadge = '<span class="badge-quant badge-quant-green">LIVE BREAKOUT 🚀</span>';
+        else if (s.base_status === 'READY_PIVOT') statusBadge = '<span class="badge-quant badge-quant-teal">READY AT PIVOT 🎯</span>';
+
+        return `
+            <tr>
+                <td style="font-weight: 800;">
+                    <div style="font-size: 14px; color: #38bdf8;">${s.symbol}</div>
+                    <div style="font-size: 11px; color: #94a3b8; font-weight: 500;">${s.company_name || ''}</div>
+                </td>
+                <td style="white-space: nowrap;">${statusBadge}</td>
+                <td style="font-weight: 700;">
+                    <div>₹${price.toLocaleString('en-IN', {minimumFractionDigits: 2})}</div>
+                    <div class="${chgClass}" style="font-size: 11px; font-weight: 700;">${chgSign}${dayChg.toFixed(2)}%</div>
+                </td>
+                <td style="font-weight: 700; color: #cbd5e1;">${weeks} wks <span style="font-size: 11px; color: #94a3b8;">(${days}d)</span></td>
+                <td style="font-weight: 800; color: #34d399;">${depth.toFixed(1)}%</td>
+                <td style="font-weight: 700; color: ${vduRatio <= 0.85 ? '#34d399' : '#fbbf24'};">${vduRatio.toFixed(2)}x ${vduRatio <= 0.85 ? '📉' : ''}</td>
+                <td style="font-weight: 800; color: #c084fc;">${boxes} ${boxes > 1 ? '📦' : '📦'}</td>
+                <td style="font-weight: 800; color: #38bdf8;">₹${pivot.toFixed(2)}</td>
+                <td style="font-weight: 700; color: #f87171;">₹${stopL.toFixed(2)}</td>
+                <td style="text-align: center; white-space: nowrap;">
+                    <button onclick="window.openTradingViewChart && window.openTradingViewChart('${s.symbol}')" class="btn-secondary quant-chart-btn" style="padding: 5px 12px; font-size: 11.5px; border-radius: 8px; cursor: pointer; white-space: nowrap; display: inline-flex; align-items: center; gap: 3px; font-weight: 700;">
+                        Chart ↗
+                    </button>
+                </td>
+            </tr>
+        `;
+    }).join('');
+};
+
+window.filterFlatBaseTable = function() {
+    const q = (document.getElementById('flatbase-search-input')?.value || '').toLowerCase();
+    const status = document.getElementById('flatbase-status-filter')?.value || 'ALL';
+
+    let filtered = window.allFlatBaseStocks.filter(s => {
+        const matchesQ = s.symbol.toLowerCase().includes(q) || (s.company_name || s.name || '').toLowerCase().includes(q);
+        const st = s.base_status;
+        const matchesStatus = status === 'ALL' || st === status;
+        return matchesQ && matchesStatus;
+    });
+
+    window.renderFlatBaseTable(filtered);
 };
 
 // 4. INTERACTIVE STAGE 1-4 STOCK DIAGNOSTIC SIMULATOR

@@ -13443,13 +13443,14 @@ async def _recalculate_vcp_universe():
             _VCP_CANSLIM_GLOBAL_CACHE = {"timestamp": now, "stocks": all_candidates}
             print(f"[VCP CRON] VCP Recalculation complete. {len(all_candidates)} candidates cached in SQLite & RAM (stale records purged).")
             
-            # Pre-compute and warm up Stage 2, HTF, and 3WT screeners in RAM cache
+            # Pre-compute and warm up Stage 2, HTF, 3WT, and Flat Base screeners in RAM cache
             try:
-                print("[CRON] Pre-computing Stan Weinstein Stage 2, HTF, and 3WT screeners...")
+                print("[CRON] Pre-computing Stan Weinstein Stage 2, HTF, 3WT, and Modern Flat Base screeners...")
                 await get_weinstein_stage2_screener(force_refresh=True)
                 await get_high_tight_flag_screener(force_refresh=True)
                 await get_3weeks_tight_screener(force_refresh=True)
-                print("[CRON] All 4 Quant Suite screeners successfully pre-cached in RAM!")
+                await get_flat_base_screener(force_refresh=True)
+                print("[CRON] All 5 Quant Suite screeners successfully pre-cached in RAM!")
             except Exception as ex:
                 print(f"[CRON] Error pre-caching additional screeners: {ex}")
 
@@ -13477,15 +13478,19 @@ def _start_daily_vcp_cron():
                 print(f"[VCP CRON] Next daily 1:30 AM recalculation scheduled in {seconds_until_target / 3600:.2f} hours (at {target_time.strftime('%Y-%m-%d %H:%M:%S')}).")
                 time.sleep(max(seconds_until_target, 10.0))
 
-                print("[VCP CRON] 1:30 AM reached! Triggering full VCP & CANSLIM universe recalculation...")
+                print("[VCP CRON] 1:30 AM reached! Triggering full VCP, Flat Base, Stage 2, HTF, & 3WT universe recalculations...")
                 loop = asyncio.new_event_loop()
                 asyncio.set_event_loop(loop)
                 try:
                     loop.run_until_complete(_recalculate_vcp_universe())
+                    loop.run_until_complete(get_flat_base_screener(force_refresh=True))
+                    loop.run_until_complete(get_weinstein_stage2_screener(force_refresh=True))
+                    loop.run_until_complete(get_high_tight_flag_screener(force_refresh=True))
+                    loop.run_until_complete(get_3weeks_tight_screener(force_refresh=True))
                 finally:
                     loop.close()
 
-                print("[VCP CRON] 1:30 AM recalculation task complete.")
+                print("[VCP CRON] 1:30 AM recalculation tasks complete across all 5 screeners.")
                 time.sleep(60)
             except Exception as e:
                 print(f"[VCP CRON ERROR] {e}")
@@ -17985,13 +17990,93 @@ async def get_3weeks_tight_screener(force_refresh: bool = False):
         "data": results
     }
 
+_FLAT_BASE_SCANNER_CACHE = {"data": [], "last_updated": ""}
+
+async def _scan_single_stock_flat_base(item: dict, sem: asyncio.Semaphore):
+    async with sem:
+        sym = item["symbol"].strip().upper()
+        sym_yf = f"{sym}.NS" if not sym.endswith(".NS") else sym
+        try:
+            df = await fetch_history_df(sym_yf, period="1y", interval="1d")
+            if df is None or df.empty or len(df) < 50:
+                return None
+            from backend.swing_utils import detect_flat_base_breakout
+            res = detect_flat_base_breakout(df)
+            if not res.get("is_flat_base"):
+                return None
+            res["symbol"] = sym
+            res["company_name"] = item.get("company_name", sym)
+            res["sector"] = item.get("sector", "N/A")
+            return res
+        except Exception:
+            return None
+
+@app.get("/api/screener/flat-base")
+async def get_flat_base_screener(force_refresh: bool = False):
+    """
+    Returns William O'Neil / Dan Zanger / Nicolas Darvas Modern Flat Base Breakout candidates.
+    Parallelized with asyncio 25x concurrency and backed by SQLite disk cache.
+    """
+    global _FLAT_BASE_SCANNER_CACHE
+    
+    if not force_refresh:
+        db_cache = _load_screener_db_cache("flat_base_breakout")
+        if db_cache and db_cache.get("data"):
+            _FLAT_BASE_SCANNER_CACHE = db_cache
+            return {
+                "status": "success",
+                "count": len(db_cache["data"]),
+                "last_updated": db_cache["last_updated"],
+                "data": db_cache["data"]
+            }
+        if _FLAT_BASE_SCANNER_CACHE.get("data"):
+            return {
+                "status": "success",
+                "count": len(_FLAT_BASE_SCANNER_CACHE["data"]),
+                "last_updated": _FLAT_BASE_SCANNER_CACHE["last_updated"],
+                "data": _FLAT_BASE_SCANNER_CACHE["data"]
+            }
+
+    results = []
+    try:
+        with get_db() as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT symbol, company_name, sector, cap_type FROM screener_universe WHERE symbol NOT LIKE '%DUMMY%'")
+            stocks = [dict(r) for r in cursor.fetchall()]
+
+        sem = asyncio.Semaphore(25)
+        tasks = [_scan_single_stock_flat_base(item, sem) for item in stocks]
+        raw_results = await asyncio.gather(*tasks, return_exceptions=True)
+
+        for r in raw_results:
+            if isinstance(r, dict) and r is not None:
+                results.append(r)
+
+        status_rank = {"LIVE_BREAKOUT": 3, "READY_PIVOT": 2, "FORMING": 1, "NONE": 0}
+        results.sort(key=lambda x: (status_rank.get(x.get("base_status"), 0), -x.get("base_depth_pct", 0)), reverse=True)
+
+        last_updated = _save_screener_db_cache("flat_base_breakout", results)
+        _FLAT_BASE_SCANNER_CACHE = {
+            "data": results,
+            "last_updated": last_updated
+        }
+    except Exception as e:
+        print(f"Error executing Modern Flat Base screener: {e}")
+
+    return {
+        "status": "success",
+        "count": len(results),
+        "last_updated": _FLAT_BASE_SCANNER_CACHE.get("last_updated", ""),
+        "data": results
+    }
+
 _STAGE_DIAGNOSTIC_CACHE = {}
 
 @app.get("/api/screener/stage-diagnostic/{symbol}")
 async def get_stage_diagnostic(symbol: str, force_refresh: bool = False):
     """
     Computes Stage 1-4 Life Cycle classification, 30-week MA slope,
-    50/200 EMAs, RS rating, and tests qualification for all 4 quantitative screeners.
+    50/200 EMAs, RS rating, and tests qualification for all 5 quantitative screeners.
     """
     global _STAGE_DIAGNOSTIC_CACHE
     from backend.swing_utils import (
@@ -17999,6 +18084,7 @@ async def get_stage_diagnostic(symbol: str, force_refresh: bool = False):
         detect_weinstein_stage3,
         detect_high_tight_flag,
         detect_3weeks_tight,
+        detect_flat_base_breakout,
         detect_vcp_pattern
     )
     
@@ -18065,6 +18151,7 @@ async def get_stage_diagnostic(symbol: str, force_refresh: bool = False):
         stg3_res = detect_weinstein_stage3(df)
         htf_res = detect_high_tight_flag(df)
         twt_res = detect_3weeks_tight(df)
+        flat_res = detect_flat_base_breakout(df, rs_score=rs_rating)
 
         # Stage Classification Rules
         stage_num = 2
@@ -18114,13 +18201,19 @@ async def get_stage_diagnostic(symbol: str, force_refresh: bool = False):
         stg2_qualified = bool((stg2_res.get("is_stage2") or stg2_res.get("is_stage2_breakout") or stg2_res.get("stage_status") in ["STAGE_2_LAUNCH", "STAGE_2_ADVANCING"]) and not stg3_qualified and stage_num == 2)
         htf_qualified = bool(htf_res.get("is_htf") or htf_res.get("htf_status") == "HTF_BREAKOUT_READY")
         twt_qualified = bool(twt_res.get("is_3wt") or twt_res.get("tight_status") in ["3WT_PIVOT_READY", "3WT_FORMING"])
+        flat_qualified = bool(flat_res.get("is_flat_base") or flat_res.get("base_status") in ["LIVE_BREAKOUT", "READY_PIVOT", "FORMING"])
         
-        # Synchronized 4 Trade Execution Levels (100% Exact Parity with VCP & CANSLIM Watchlist Tab)
+        # Synchronized 4 Trade Execution Levels
         if vcp_res and vcp_res.get("pivot_price", 0) > 0 and vcp_res.get("stop_loss", 0) > 0:
             pivot_price = round(float(vcp_res["pivot_price"]), 2)
             stop_loss = round(float(vcp_res["stop_loss"]), 2)
             target_1 = round(float(vcp_res.get("target_1") or (pivot_price * 1.10)), 2)
             target_2 = round(float(vcp_res.get("target_2") or (pivot_price * 1.20)), 2)
+        elif flat_res and flat_res.get("pivot_price", 0) > 0:
+            pivot_price = round(float(flat_res["pivot_price"]), 2)
+            stop_loss = round(float(flat_res.get("stop_loss") or (pivot_price * 0.95)), 2)
+            target_1 = round(float(flat_res.get("target_1") or (pivot_price * 1.10)), 2)
+            target_2 = round(float(flat_res.get("target_2") or (pivot_price * 1.20)), 2)
         elif twt_res and twt_res.get("pivot_price", 0) > 0:
             pivot_price = round(float(twt_res["pivot_price"]), 2)
             stop_loss = round(float(twt_res.get("stop_loss_price") or (pivot_price * 0.95)), 2)
@@ -18199,6 +18292,10 @@ async def get_stage_diagnostic(symbol: str, force_refresh: bool = False):
                 "three_wt": {
                     "qualified": twt_qualified,
                     "reason": f"3WT Status: {twt_res.get('tight_status', 'N/A')}" if twt_qualified else ("Close variance > 2.0%" if twt_res.get("close_variance_pct", 0) > 2.0 else "RS rating < 60 or EMA unaligned")
+                },
+                "flat_base": {
+                    "qualified": flat_qualified,
+                    "reason": f"Flat Base Status: {flat_res.get('base_status', 'N/A')} (Depth {flat_res.get('base_depth_pct', 0.0)}%, {flat_res.get('base_length_weeks', 0)} wks)" if flat_qualified else flat_res.get("rejection_reason", "Base depth > 15% or duration < 5 wks")
                 }
             },
             "screener_audit": {
@@ -18241,6 +18338,13 @@ async def get_stage_diagnostic(symbol: str, force_refresh: bool = False):
                     "reason": f"3WT Status: {twt_res.get('tight_status', 'N/A')}" if twt_qualified else (
                         f"Close variance ({twt_res.get('close_variance_pct', 0.0)}%) > 2.0% threshold" if twt_res.get("close_variance_pct", 0) > 2.0 else "RS rating < 60 or EMA unaligned"
                     )
+                },
+                "flat_base": {
+                    "name": "Nicolas Darvas / O'Neil Modern Flat Base",
+                    "required": "5–15 Wks Length, Depth ≤ 15.0%, VDU ≤ 0.85x, RS ≥ 75, Prior Advance ≥ +25%",
+                    "actual": f"Depth: {flat_res.get('base_depth_pct', 0.0)}%, Length: {flat_res.get('base_length_weeks', 0)} wks ({flat_res.get('base_length_days', 0)}d), VDU: {flat_res.get('vdu_ratio', 1.0)}x",
+                    "qualified": flat_qualified,
+                    "reason": f"Flat Base Status: {flat_res.get('base_status', 'N/A')} (Depth {flat_res.get('base_depth_pct', 0.0)}%)" if flat_qualified else flat_res.get("rejection_reason", "Base depth > 15% or duration < 5 wks")
                 }
             },
             "action_guidance": action_text
