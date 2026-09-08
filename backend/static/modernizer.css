@@ -2843,5 +2843,111 @@ body.light-theme .quant-guide-ref-grid div strong,
     color: #0f172a !important;
 }
 
+/* ==========================================================================
+   4-SCREENER DIAGNOSTIC AUDIT RESPONSIVE CARDS & LIGHT THEME
+   ========================================================================== */
+.audit-cards-wrap {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+body.light-theme .audit-section-container,
+[data-theme="light"] .audit-section-container,
+[data-mode="light"] .audit-section-container {
+    background: #f8fafc !important;
+    border-color: #cbd5e1 !important;
+}
+
+body.light-theme .audit-mobile-card,
+[data-theme="light"] .audit-mobile-card,
+[data-mode="light"] .audit-mobile-card {
+    background: #ffffff !important;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04) !important;
+}
+
+body.light-theme .audit-mobile-card strong,
+[data-theme="light"] .audit-mobile-card strong,
+[data-mode="light"] .audit-mobile-card strong {
+    color: #0f172a !important;
+}
+
+body.light-theme .audit-mobile-card div[style*="background"],
+[data-theme="light"] .audit-mobile-card div[style*="background"],
+[data-mode="light"] .audit-mobile-card div[style*="background"] {
+    background: #f1f5f9 !important;
+}
+
+/* ==========================================================================
+   4-SCREENER DIAGNOSTIC AUDIT RESPONSIVE MOBILE CARDS & LIGHT THEME
+   ========================================================================== */
+/* Disable sticky column floating for 4-Screener Audit table */
+.audit-desktop-table-wrap th,
+.audit-desktop-table-wrap td,
+.audit-desktop-table-wrap th:first-child,
+.audit-desktop-table-wrap td:first-child {
+    position: static !important;
+    left: auto !important;
+    z-index: 1 !important;
+    box-shadow: none !important;
+}
+
+@media (min-width: 992px) {
+    .audit-desktop-table-wrap {
+        display: block !important;
+    }
+    .audit-mobile-cards-wrap {
+        display: none !important;
+    }
+}
+
+@media (max-width: 991px) {
+    .audit-desktop-table-wrap {
+        display: none !important;
+    }
+    .audit-mobile-cards-wrap {
+        display: flex !important;
+    }
+}
+
+/* Light Theme Overrides for Mobile Audit Cards */
+body.light-theme .audit-section-container,
+[data-theme="light"] .audit-section-container,
+[data-mode="light"] .audit-section-container {
+    background: #ffffff !important;
+    border: 1px solid #cbd5e1 !important;
+}
+
+body.light-theme .audit-mobile-card,
+[data-theme="light"] .audit-mobile-card,
+[data-mode="light"] .audit-mobile-card {
+    background: #f8fafc !important;
+}
+
+body.light-theme .audit-mobile-card strong,
+[data-theme="light"] .audit-mobile-card strong,
+[data-mode="light"] .audit-mobile-card strong {
+    color: #0f172a !important;
+}
+
+body.light-theme .audit-mobile-card div[style*="background: rgba(15, 23, 42"],
+[data-theme="light"] .audit-mobile-card div[style*="background: rgba(15, 23, 42"],
+[data-mode="light"] .audit-mobile-card div[style*="background: rgba(15, 23, 42"] {
+    background: #f1f5f9 !important;
+}
+
+body.light-theme .audit-mobile-card span,
+[data-theme="light"] .audit-mobile-card span,
+[data-mode="light"] .audit-mobile-card span {
+    color: #334155 !important;
+}
+
+body.light-theme .audit-mobile-card div,
+[data-theme="light"] .audit-mobile-card div,
+[data-mode="light"] .audit-mobile-card div {
+    color: #334155 !important;
+}
+
+
 
 

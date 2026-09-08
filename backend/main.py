@@ -13425,11 +13425,23 @@ async def _recalculate_vcp_universe():
 
             results = await asyncio.gather(*(process_stock(st) for st in stocks))
             all_candidates = [r for r in results if r is not None]
+
+            # Prune obsolete/disqualified symbols from SQLite vcp_screener_cache so cache never holds stale setups
+            try:
+                valid_symbols = [c["symbol"] for c in all_candidates]
+                if valid_symbols:
+                    placeholders = ",".join(["?"] * len(valid_symbols))
+                    cursor.execute(f"DELETE FROM vcp_screener_cache WHERE symbol NOT IN ({placeholders})", valid_symbols)
+                else:
+                    cursor.execute("DELETE FROM vcp_screener_cache")
+            except Exception as prune_err:
+                print(f"[VCP CRON] Warning pruning stale cache: {prune_err}")
+
             conn.commit()
 
             global _VCP_CANSLIM_GLOBAL_CACHE
             _VCP_CANSLIM_GLOBAL_CACHE = {"timestamp": now, "stocks": all_candidates}
-            print(f"[VCP CRON] Midnight VCP Recalculation complete. {len(all_candidates)} candidates cached in SQLite & RAM.")
+            print(f"[VCP CRON] VCP Recalculation complete. {len(all_candidates)} candidates cached in SQLite & RAM (stale records purged).")
             
             # Pre-compute and warm up Stage 2, HTF, and 3WT screeners in RAM cache
             try:

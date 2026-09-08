@@ -56509,40 +56509,41 @@ window.runStockStageSimulator = async function(symbolInput) {
                 💡 Tactical Action Plan: <span style="font-weight: 500; color: #cbd5e1;">${data.action_guidance || ''}</span>
             </div>
 
-            <!-- NEW: Expanded 4-Screener Diagnostic Audit Table -->
-            <div style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 10px; padding: 14px; margin-bottom: 16px;">
+            <!-- NEW: Clean Universal 4-Screener Diagnostic Audit Card Breakdown -->
+            <div class="audit-section-container" style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 10px; padding: 14px; margin-bottom: 16px;">
                 <h5 style="margin: 0 0 12px 0; font-size: 13px; font-weight: 800; color: #38bdf8; display: flex; align-items: center; gap: 6px;">
                     📊 4-Screener Algorithmic Diagnostic Audit & Criteria Breakdown
                 </h5>
-                <div style="overflow-x: auto;">
-                    <table style="width: 100%; font-size: 11.5px; border-collapse: collapse; text-align: left;">
-                        <thead>
-                            <tr style="border-bottom: 1px solid rgba(255, 255, 255, 0.12); color: #94a3b8; font-size: 11px;">
-                                <th style="padding: 8px 10px;">Screener</th>
-                                <th style="padding: 8px 10px;">Textbook Requirement</th>
-                                <th style="padding: 8px 10px;">Actual Stock Metric</th>
-                                <th style="padding: 8px 10px;">Status</th>
-                                <th style="padding: 8px 10px;">Diagnostic Reason</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            ${Object.entries(data.screener_audit || {}).map(([key, item]) => {
-                                const isQual = item.qualified;
-                                const statusBadge = isQual 
-                                    ? `<span style="background: rgba(52, 211, 153, 0.15); color: #34d399; border: 1px solid #34d399; padding: 2px 6px; border-radius: 4px; font-weight: 800; font-size: 10.5px;">QUALIFIED 🟢</span>`
-                                    : `<span style="background: rgba(248, 113, 113, 0.15); color: #f87171; border: 1px solid #f87171; padding: 2px 6px; border-radius: 4px; font-weight: 800; font-size: 10.5px;">REJECTED ❌</span>`;
-                                return `
-                                    <tr style="border-bottom: 1px solid rgba(255, 255, 255, 0.05);">
-                                        <td style="padding: 10px; font-weight: 700; color: #f8fafc;">${item.name || key}</td>
-                                        <td style="padding: 10px; color: #94a3b8; font-family: monospace; font-size: 11px;">${item.required || ''}</td>
-                                        <td style="padding: 10px; color: #fbbf24; font-family: monospace; font-weight: 700; font-size: 11px;">${item.actual || ''}</td>
-                                        <td style="padding: 10px;">${statusBadge}</td>
-                                        <td style="padding: 10px; color: #cbd5e1; font-size: 11px;">${item.reason || ''}</td>
-                                    </tr>
-                                `;
-                            }).join('')}
-                        </tbody>
-                    </table>
+                
+                <!-- Universal Card Breakdown View (Mobile, Tablet & Desktop) -->
+                <div class="audit-cards-wrap" style="display: flex; flex-direction: column; gap: 10px;">
+                    ${Object.entries(data.screener_audit || {}).map(([key, item]) => {
+                        const isQual = item.qualified;
+                        const statusBadge = isQual 
+                            ? `<span style="background: rgba(52, 211, 153, 0.15); color: #34d399; border: 1px solid #34d399; padding: 2px 6px; border-radius: 4px; font-weight: 800; font-size: 10.5px; white-space: nowrap;">QUALIFIED 🟢</span>`
+                            : `<span style="background: rgba(248, 113, 113, 0.15); color: #f87171; border: 1px solid #f87171; padding: 2px 6px; border-radius: 4px; font-weight: 800; font-size: 10.5px; white-space: nowrap;">REJECTED ❌</span>`;
+                        return `
+                            <div class="audit-mobile-card" style="background: rgba(30, 41, 59, 0.5); border: 1px solid ${isQual ? 'rgba(52, 211, 153, 0.35)' : 'rgba(248, 113, 113, 0.3)'}; border-radius: 10px; padding: 12px;">
+                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; gap: 8px; flex-wrap: wrap;">
+                                    <strong style="font-size: 12.5px; color: #f8fafc; font-weight: 800;">${item.name || key}</strong>
+                                    ${statusBadge}
+                                </div>
+                                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 11px; background: rgba(15, 23, 42, 0.6); padding: 8px 10px; border-radius: 6px; margin-bottom: 8px;">
+                                    <div>
+                                        <span style="font-size: 10px; color: #94a3b8; text-transform: uppercase; font-weight: 700; display: block; margin-bottom: 2px;">Textbook Requirement</span>
+                                        <span style="color: #cbd5e1; font-family: monospace; font-size: 10.5px; font-weight: 600;">${item.required || ''}</span>
+                                    </div>
+                                    <div>
+                                        <span style="font-size: 10px; color: #94a3b8; text-transform: uppercase; font-weight: 700; display: block; margin-bottom: 2px;">Actual Stock Metric</span>
+                                        <span style="color: #fbbf24; font-family: monospace; font-weight: 800; font-size: 10.5px;">${item.actual || ''}</span>
+                                    </div>
+                                </div>
+                                <div style="font-size: 11px; color: #cbd5e1; line-height: 1.45;">
+                                    <strong style="color: #94a3b8; font-weight: 700;">Diagnostic Reason: </strong>${item.reason || ''}
+                                </div>
+                            </div>
+                        `;
+                    }).join('')}
                 </div>
             </div>
 

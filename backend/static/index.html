@@ -2694,23 +2694,28 @@
                                 <p style="margin: 6px 0 0 0; font-size: 12.5px; color: #94a3b8; line-height: 1.5; max-width: 660px;">Master the complete lifespan of Indian stocks: from institutional accumulation (Stage 1) to explosive Mark-Up fortunes (Stage 2), top distribution (Stage 3), and wealth-destroying capitulation (Stage 4).</p>
                             </div>
 
-                            <!-- Quick Control Metrics Pills -->
-                            <div class="hero-metrics-pill" style="display: flex; align-items: center; justify-content: space-between; gap: 12px; background: rgba(0, 0, 0, 0.35); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 12px; padding: 10px 16px;">
-                                <div style="display: flex; flex-direction: column; align-items: flex-start; text-align: left;">
-                                    <span style="font-size: 12.5px; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.05em;">Model Engine</span>
-                                    <span style="font-size: 15px; font-weight: 800; color: #c084fc; font-family: monospace;">4 Stage Quant</span>
-                                </div>
-                                <div style="width: 1px; height: 28px; background: rgba(255,255,255,0.1);"></div>
-                                <div style="display: flex; flex-direction: column; align-items: flex-end;">
-                                    <span style="font-size: 12.5px; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.05em;">Status</span>
-                                    <span style="font-size: 13.5px; font-weight: 800; color: #34d399; background: rgba(16, 185, 129, 0.2); padding: 2px 8px; border-radius: 4px; display: inline-block;">SYNCHRONIZED</span>
+                            <!-- Quick Control Actions & Guide Button -->
+                            <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+                                <button id="stage-masterclass-guide-btn" onclick="const b=document.getElementById('weinstein-playbook-card'); b.style.display = b.style.display === 'none' ? 'block' : 'none';" class="btn-secondary" style="display: inline-flex; align-items: center; gap: 6px; padding: 10px 16px; background: rgba(168, 85, 247, 0.15); border: 1px solid #c084fc; border-radius: 10px; color: #c084fc; font-weight: 800; font-size: 13px; cursor: pointer; transition: all 0.2s;" title="Toggle Stan Weinstein 4-Stage Playbook Guide">
+                                    <span>💡</span> Guide
+                                </button>
+                                <div class="hero-metrics-pill" style="display: flex; align-items: center; justify-content: space-between; gap: 12px; background: rgba(0, 0, 0, 0.35); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 12px; padding: 8px 14px;">
+                                    <div style="display: flex; flex-direction: column; align-items: flex-start; text-align: left;">
+                                        <span style="font-size: 11px; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.05em;">Engine</span>
+                                        <span style="font-size: 13.5px; font-weight: 800; color: #c084fc; font-family: monospace;">4 Stage Quant</span>
+                                    </div>
+                                    <div style="width: 1px; height: 24px; background: rgba(255,255,255,0.1);"></div>
+                                    <div style="display: flex; flex-direction: column; align-items: flex-end;">
+                                        <span style="font-size: 11px; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.05em;">Status</span>
+                                        <span style="font-size: 12.5px; font-weight: 800; color: #34d399; background: rgba(16, 185, 129, 0.2); padding: 2px 8px; border-radius: 4px; display: inline-block;">SYNCHRONIZED</span>
+                                    </div>
                                 </div>
                             </div>
                         </div>
                     </div>
 
-                    <!-- STAN WEINSTEIN 4-STAGE LIFE CYCLE MASTERCLASS & EXECUTION PLAYBOOK CARD -->
-                    <div id="weinstein-playbook-card" style="background: rgba(15, 23, 42, 0.85); border: 1px solid rgba(56, 189, 248, 0.35); border-radius: 16px; padding: 24px; margin-bottom: 28px; box-shadow: 0 12px 32px rgba(0,0,0,0.4);">
+                    <!-- STAN WEINSTEIN 4-STAGE LIFE CYCLE MASTERCLASS & EXECUTION PLAYBOOK CARD (COLLAPSIBLE GUIDE DRAWER) -->
+                    <div id="weinstein-playbook-card" class="vcp-guide-banner" style="display: none; margin-bottom: 28px; border-radius: 16px; padding: 24px; background: rgba(15, 23, 42, 0.85); border: 1px solid rgba(168, 85, 247, 0.35); box-shadow: 0 12px 32px rgba(0,0,0,0.4);">
                         <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; margin-bottom: 18px; padding-bottom: 12px; border-bottom: 1px solid rgba(255,255,255,0.1);">
                             <div>
                                 <h3 style="margin: 0; font-size: 20px; font-weight: 800; color: #f8fafc; display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
@@ -2723,9 +2728,12 @@
                                     </a>
                                 </p>
                             </div>
-                            <span style="font-size: 11px; background: rgba(56, 189, 248, 0.15); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.35); padding: 4px 12px; border-radius: 20px; font-weight: 700;">
-                                INSTITUTIONAL PLAYBOOK
-                            </span>
+                            <div style="display: flex; align-items: center; gap: 10px;">
+                                <span style="font-size: 11px; background: rgba(56, 189, 248, 0.15); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.35); padding: 4px 12px; border-radius: 20px; font-weight: 700;">
+                                    INSTITUTIONAL PLAYBOOK
+                                </span>
+                                <button onclick="document.getElementById('weinstein-playbook-card').style.display='none'" class="vcp-guide-close-btn" style="background: none; border: none; cursor: pointer; font-size: 16px; color: #94a3b8; padding: 2px 6px;">✕</button>
+                            </div>
                         </div>
 
                         <!-- 4 Color-Coded Stage Cards Grid (Fully Responsive Mobile & Desktop) -->
