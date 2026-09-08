@@ -55316,7 +55316,10 @@ window.renderVcpCards = function(stocks) {
                 </div>
 
                 <!-- Footer Action Buttons -->
-                <div style="display: flex; gap: 8px; margin-top: 12px;">
+                <div style="display: flex; gap: 6px; margin-top: 12px;">
+                    <button onclick="window.launchStageSimulator && window.launchStageSimulator('${sym}')" class="btn-secondary vcp-sim-btn" style="padding: 7px 10px; background: rgba(168, 85, 247, 0.15); border: 1px solid rgba(168, 85, 247, 0.4); border-radius: 8px; color: #c084fc; font-weight: 700; font-size: 11.5px; cursor: pointer; transition: all 0.2s;" title="Scan stock in 4-Stage Life Cycle Masterclass Simulator">
+                        Simulate ⚙️
+                    </button>
                     <button onclick="window.openVcpAiDeepResearch && window.openVcpAiDeepResearch('${sym}')" class="btn-secondary vcp-research-btn" style="flex: 1; padding: 7px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; color: #f1f5f9; font-weight: 600; font-size: 11.5px; cursor: pointer; transition: all 0.2s;">
                         📊 Deep Research
                     </button>
@@ -56103,6 +56106,9 @@ window.renderWeinsteinTable = function(stocks) {
                 <td style="font-weight: 800; color: #c084fc;">${rsVal}</td>
                 <td><span class="badge-quant ${badgeClass}">${badgeLabel}</span></td>
                 <td style="text-align: center; white-space: nowrap;">
+                    <button onclick="window.launchStageSimulator && window.launchStageSimulator('${s.symbol}')" class="btn-secondary quant-sim-btn" style="padding: 5px 10px; font-size: 11.5px; border-radius: 8px; cursor: pointer; white-space: nowrap; display: inline-flex; align-items: center; gap: 4px; font-weight: 700; background: rgba(168, 85, 247, 0.15); border: 1px solid rgba(168, 85, 247, 0.4); color: #c084fc; margin-right: 6px;" title="Scan stock in 4-Stage Life Cycle Masterclass Simulator">
+                        Simulate ⚙️
+                    </button>
                     <button onclick="window.openTradingViewChart && window.openTradingViewChart('${s.symbol}')" class="btn-secondary quant-chart-btn" style="padding: 5px 12px; font-size: 11.5px; border-radius: 8px; cursor: pointer; white-space: nowrap; display: inline-flex; align-items: center; gap: 3px; font-weight: 700;">
                         Chart ↗
                     </button>
@@ -56213,6 +56219,9 @@ window.renderHtfTable = function(stocks) {
                 <td style="font-weight: 800; color: #34d399;">₹${pivot.toFixed(2)}</td>
                 <td><span class="badge-quant ${badgeClass}">${badgeLabel}</span></td>
                 <td style="text-align: center; white-space: nowrap;">
+                    <button onclick="window.launchStageSimulator && window.launchStageSimulator('${s.symbol}')" class="btn-secondary quant-sim-btn" style="padding: 5px 10px; font-size: 11.5px; border-radius: 8px; cursor: pointer; white-space: nowrap; display: inline-flex; align-items: center; gap: 4px; font-weight: 700; background: rgba(168, 85, 247, 0.15); border: 1px solid rgba(168, 85, 247, 0.4); color: #c084fc; margin-right: 6px;" title="Scan stock in 4-Stage Life Cycle Masterclass Simulator">
+                        Simulate ⚙️
+                    </button>
                     <button onclick="window.openTradingViewChart && window.openTradingViewChart('${s.symbol}')" class="btn-secondary quant-chart-btn" style="padding: 5px 12px; font-size: 11.5px; border-radius: 8px; cursor: pointer; white-space: nowrap; display: inline-flex; align-items: center; gap: 3px; font-weight: 700;">
                         Chart ↗
                     </button>
@@ -56334,6 +56343,9 @@ window.render3wtTable = function(stocks) {
                 <td style="font-weight: 800; color: #c084fc;">${emaDist}</td>
                 <td style="font-weight: 800; color: #34d399;">₹${pivot.toFixed(2)}</td>
                 <td style="text-align: center; white-space: nowrap;">
+                    <button onclick="window.launchStageSimulator && window.launchStageSimulator('${s.symbol}')" class="btn-secondary quant-sim-btn" style="padding: 5px 10px; font-size: 11.5px; border-radius: 8px; cursor: pointer; white-space: nowrap; display: inline-flex; align-items: center; gap: 4px; font-weight: 700; background: rgba(168, 85, 247, 0.15); border: 1px solid rgba(168, 85, 247, 0.4); color: #c084fc; margin-right: 6px;" title="Scan stock in 4-Stage Life Cycle Masterclass Simulator">
+                        Simulate ⚙️
+                    </button>
                     <button onclick="window.openTradingViewChart && window.openTradingViewChart('${s.symbol}')" class="btn-secondary quant-chart-btn" style="padding: 5px 12px; font-size: 11.5px; border-radius: 8px; cursor: pointer; white-space: nowrap; display: inline-flex; align-items: center; gap: 3px; font-weight: 700;">
                         Chart ↗
                     </button>
@@ -56453,6 +56465,9 @@ window.renderFlatBaseTable = function(stocks) {
                 <td style="font-weight: 800; color: #38bdf8;">₹${pivot.toFixed(2)}</td>
                 <td style="font-weight: 700; color: #f87171;">₹${stopL.toFixed(2)}</td>
                 <td style="text-align: center; white-space: nowrap;">
+                    <button onclick="window.launchStageSimulator && window.launchStageSimulator('${s.symbol}')" class="btn-secondary quant-sim-btn" style="padding: 5px 10px; font-size: 11.5px; border-radius: 8px; cursor: pointer; white-space: nowrap; display: inline-flex; align-items: center; gap: 4px; font-weight: 700; background: rgba(168, 85, 247, 0.15); border: 1px solid rgba(168, 85, 247, 0.4); color: #c084fc; margin-right: 6px;" title="Scan stock in 4-Stage Life Cycle Masterclass Simulator">
+                        Simulate ⚙️
+                    </button>
                     <button onclick="window.openTradingViewChart && window.openTradingViewChart('${s.symbol}')" class="btn-secondary quant-chart-btn" style="padding: 5px 12px; font-size: 11.5px; border-radius: 8px; cursor: pointer; white-space: nowrap; display: inline-flex; align-items: center; gap: 3px; font-weight: 700;">
                         Chart ↗
                     </button>
@@ -56782,6 +56797,7 @@ window.selectStageSimStock = function(sym) {
 window.activeWlQuantMatrixData = null;
 
 window.switchWatchlistSubtab = function(subtabKey) {
+    if (subtabKey === 'vcp') subtabKey = 'quant-matrix';
     window.activeWatchlistView = subtabKey;
     
     const wlTable = document.getElementById('trendlyne-watchlist-table');
@@ -57137,6 +57153,10 @@ window.launchStageSimulator = function(symbol) {
             input.value = symbol;
             if (typeof window.runStockStageSimulator === 'function') window.runStockStageSimulator(symbol);
         }
+        const simCard = document.getElementById('stage-simulator-card');
+        if (simCard) {
+            simCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
     }, 150);
 };
 
@@ -57152,6 +57172,58 @@ window.toggleQuantGuideMap = function() {
         if (btn) btn.innerText = '📖 Show Strategy Guide ▼';
     }
 };
+
+window.updateScreenerHeaderBadges = async function() {
+    try {
+        const res = await fetch('/api/system/cron-status');
+        const statusData = await res.json();
+        if (!statusData || !statusData.screeners) return;
+        
+        const screeners = statusData.screeners;
+        const badgeMap = {
+            'vcp': 'vcp-header-status-badge',
+            'stage2': 'weinstein-header-status-badge',
+            '3wt': '3wt-header-status-badge',
+            'htf': 'htf-header-status-badge',
+            'flat_base': 'flatbase-header-status-badge'
+        };
+        
+        for (const [key, elementId] of Object.entries(badgeMap)) {
+            const badgeEl = document.getElementById(elementId);
+            if (!badgeEl) continue;
+            
+            const info = screeners[key];
+            if (!info) continue;
+            
+            if (info.status === 'RECALCULATING') {
+                badgeEl.innerHTML = `⏳ Recalculating in background...`;
+                badgeEl.style.color = `#f59e0b`;
+                badgeEl.style.borderColor = `rgba(245, 158, 11, 0.3)`;
+                badgeEl.style.background = `rgba(245, 158, 11, 0.12)`;
+            } else if (info.status === 'SUCCESS' || info.qualifying_count >= 0) {
+                const cnt = info.qualifying_count || 0;
+                badgeEl.innerHTML = `🟢 Last Pre-Warmed: Today 1:30 AM (${cnt} leaders cached)`;
+                badgeEl.style.color = `#10b981`;
+                badgeEl.style.borderColor = `rgba(16, 185, 129, 0.3)`;
+                badgeEl.style.background = `rgba(16, 185, 129, 0.12)`;
+            } else {
+                badgeEl.innerHTML = `🟢 Pre-Warmed (SQLite Single Source of Truth)`;
+                badgeEl.style.color = `#38bdf8`;
+                badgeEl.style.borderColor = `rgba(56, 189, 248, 0.3)`;
+                badgeEl.style.background = `rgba(56, 189, 248, 0.12)`;
+            }
+        }
+    } catch (e) {
+        console.warn("Failed to fetch cron status for badges:", e);
+    }
+};
+
+// Initial badge update on boot
+if (typeof window !== 'undefined') {
+    setTimeout(() => {
+        if (typeof window.updateScreenerHeaderBadges === 'function') window.updateScreenerHeaderBadges();
+    }, 1000);
+}
 
 
 

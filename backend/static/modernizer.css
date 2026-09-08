@@ -2416,6 +2416,7 @@ body.light-theme .quant-table tbody tr:hover,
         z-index: 5;
         background: #0f172a;
         box-shadow: 2px 0 8px rgba(0, 0, 0, 0.4);
+        border-right: 1px solid rgba(255, 255, 255, 0.1);
     }
 
     body.light-theme .quant-table th:first-child,
@@ -2970,21 +2971,41 @@ body.light-theme #flatbase-search-input::placeholder,
 }
 
 body.light-theme #quant-view-flatbase .screener-hero-header,
-[data-theme="light"] #quant-view-flatbase .screener-hero-header {
-    background: linear-gradient(135deg, #ffffff, #f8fafc, #f1f5f9) !important;
+[data-theme="light"] #quant-view-flatbase .screener-hero-header,
+[data-mode="light"] #quant-view-flatbase .screener-hero-header {
+    background: linear-gradient(135deg, rgba(15, 23, 42, 0.95), rgba(30, 41, 59, 0.92), rgba(15, 23, 42, 0.95)) !important;
     border: 1px solid rgba(16, 185, 129, 0.4) !important;
-    box-shadow: 0 4px 20px rgba(0,0,0,0.06) !important;
+    box-shadow: 0 12px 32px -4px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.1) !important;
 }
 
 body.light-theme #quant-view-flatbase .screener-hero-header h2,
-[data-theme="light"] #quant-view-flatbase .screener-hero-header h2 {
-    color: #0f172a !important;
+[data-theme="light"] #quant-view-flatbase .screener-hero-header h2,
+[data-mode="light"] #quant-view-flatbase .screener-hero-header h2 {
+    color: #ffffff !important;
+}
+
+body.light-theme #quant-view-flatbase .screener-hero-header p,
+[data-theme="light"] #quant-view-flatbase .screener-hero-header p,
+[data-mode="light"] #quant-view-flatbase .screener-hero-header p {
+    color: #94a3b8 !important;
+    font-weight: 500 !important;
 }
 
 body.light-theme #quant-view-flatbase .screener-kpi-card,
-[data-theme="light"] #quant-view-flatbase .screener-kpi-card {
-    background: #ffffff !important;
-    border: 1px solid #e2e8f0 !important;
+[data-theme="light"] #quant-view-flatbase .screener-kpi-card,
+[data-mode="light"] #quant-view-flatbase .screener-kpi-card {
+    background: rgba(15, 23, 42, 0.6) !important;
+    border: 1px solid rgba(255, 255, 255, 0.08) !important;
+}
+
+/* Flat Base Guide Button Color Theme Override */
+#quant-view-flatbase .screener-hero-header .btn-secondary,
+body.light-theme #quant-view-flatbase .screener-hero-header .btn-secondary,
+[data-theme="light"] #quant-view-flatbase .screener-hero-header .btn-secondary,
+[data-mode="light"] #quant-view-flatbase .screener-hero-header .btn-secondary {
+    background: rgba(16, 185, 129, 0.22) !important;
+    border: 1px solid rgba(16, 185, 129, 0.6) !important;
+    color: #34d399 !important;
 }
 
 

@@ -71,6 +71,8 @@ def get_db():
     conn.row_factory = sqlite3.Row
     conn.execute("PRAGMA foreign_keys = ON")
     conn.execute("PRAGMA journal_mode = WAL")  # Enable Write-Ahead Logging to reduce locks
+    conn.execute("PRAGMA synchronous = NORMAL")
+    conn.execute("PRAGMA cache_size = -64000")  # 64MB SQLite page index RAM cache
     try:
         yield conn
     finally:
@@ -514,6 +516,18 @@ def init_db():
         );
         """)
         cursor.execute("CREATE INDEX IF NOT EXISTS idx_quant_wa_history_sym ON quant_whatsapp_alert_history(symbol, setup_type)")
+
+        cursor.execute("""
+        CREATE TABLE IF NOT EXISTS cron_execution_logs (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            job_name TEXT NOT NULL,
+            run_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            duration_seconds REAL NOT NULL,
+            status TEXT NOT NULL,
+            details_json TEXT
+        );
+        """)
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_cron_logs_runtime ON cron_execution_logs(run_time)")
         # Mock loader for history, block deals, and corporate actions if empty
         cursor.execute("SELECT COUNT(*) as cnt FROM daily_delivery_history")
         hist_count = cursor.fetchone()["cnt"]
@@ -631,74 +645,83 @@ def init_db():
  
 init_db()
 
-async def fetch_history_df(symbol: str, period: str = "6mo", interval: str = "1d") -> pd.DataFrame:
+async def fetch_history_df(symbol: str, period: str = "6mo", interval: str = "1d", max_retries: int = 2) -> pd.DataFrame:
     """
-    Robust history fetching for Yahoo Finance charts.
-    Tries yfinance first, then falls back to raw requests.get chart API with custom headers.
+    Robust history fetching for Yahoo Finance charts with exponential backoff retry,
+    User-Agent rotation, and early exit for delisted (404) tickers.
     """
     import yfinance as yf
     import pandas as pd
     import requests
     from datetime import datetime
+    import random
     
     symbol = symbol.strip().upper()
-    df = pd.DataFrame()
     
-    # 1. Try yfinance Ticker history (most robust, bypasses cloud VM blocks)
-    try:
-        ticker_obj = yf.Ticker(symbol)
-        # Run in thread pool to prevent blocking event loop
-        df = await asyncio.to_thread(
-            ticker_obj.history, 
-            period=period, 
-            interval=interval, 
-            timeout=8
-        )
-        if not df.empty:
-            # Clean tz-aware index to naive naive datetime
-            if df.index.tz is not None:
-                df.index = df.index.tz_localize(None)
-            # Ensure index has name or standard datetime objects
-            df.index = pd.to_datetime(df.index)
-            # Verify columns exist
-            required_cols = ["Open", "High", "Low", "Close", "Volume"]
-            if all(col in df.columns for col in required_cols):
-                # Drop rows with NaN in Close
-                df = df.dropna(subset=["Close"])
-                return df
-    except Exception as yf_err:
-        print(f"yfinance robust history fetch failed for {symbol}: {yf_err}")
-        
-    # 2. Fallback: Raw request to query1.finance.yahoo.com
-    try:
-        # Map period/interval to Yahoo URL parameters
-        url = f"https://query1.finance.yahoo.com/v8/finance/chart/{symbol}?range={period}&interval={interval}"
-        headers = {
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-            "Accept": "application/json"
-        }
-        
-        # Run raw get in thread pool
-        res = await asyncio.to_thread(requests.get, url, headers=headers, timeout=8)
-        if res.status_code == 200:
-            chart_data = res.json()
-            result = chart_data.get("chart", {}).get("result", [None])[0]
-            if result and "timestamp" in result:
-                timestamps = result.get("timestamp", [])
-                indicators = result.get("indicators", {}).get("quote", [{}])[0]
-                
-                dates = [datetime.fromtimestamp(t) for t in timestamps]
-                raw_df = pd.DataFrame(index=dates)
-                raw_df["Open"] = pd.Series(indicators.get("open", [])).ffill().bfill().values
-                raw_df["High"] = pd.Series(indicators.get("high", [])).ffill().bfill().values
-                raw_df["Low"] = pd.Series(indicators.get("low", [])).ffill().bfill().values
-                raw_df["Close"] = pd.Series(indicators.get("close", [])).ffill().bfill().values
-                raw_df["Volume"] = pd.Series(indicators.get("volume", [])).ffill().bfill().values
-                raw_df = raw_df.ffill().bfill().dropna(subset=["Close"])
-                return raw_df
-    except Exception as req_err:
-        print(f"Raw chart request fallback failed for {symbol}: {req_err}")
-        
+    user_agents = [
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.2 Safari/605.1.15",
+        "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36"
+    ]
+    
+    for attempt in range(max_retries + 1):
+        # 1. Try yfinance Ticker history
+        try:
+            ticker_obj = yf.Ticker(symbol)
+            df = await asyncio.to_thread(
+                ticker_obj.history, 
+                period=period, 
+                interval=interval, 
+                timeout=8
+            )
+            if not df.empty and len(df) > 0:
+                if df.index.tz is not None:
+                    df.index = df.index.tz_localize(None)
+                df.index = pd.to_datetime(df.index)
+                required_cols = ["Open", "High", "Low", "Close", "Volume"]
+                if all(col in df.columns for col in required_cols):
+                    df = df.dropna(subset=["Close"])
+                    if not df.empty:
+                        return df
+        except Exception:
+            pass
+            
+        # 2. Fallback: Direct Raw HTTP GET request with User-Agent rotation
+        try:
+            url = f"https://query1.finance.yahoo.com/v8/finance/chart/{symbol}?range={period}&interval={interval}"
+            headers = {
+                "User-Agent": user_agents[attempt % len(user_agents)],
+                "Accept": "application/json"
+            }
+            res = await asyncio.to_thread(requests.get, url, headers=headers, timeout=8)
+            if res.status_code == 200:
+                chart_data = res.json()
+                result = chart_data.get("chart", {}).get("result", [None])[0]
+                if result and "timestamp" in result and result.get("timestamp"):
+                    timestamps = result.get("timestamp", [])
+                    indicators = result.get("indicators", {}).get("quote", [{}])[0]
+                    
+                    dates = [datetime.fromtimestamp(t) for t in timestamps]
+                    raw_df = pd.DataFrame(index=dates)
+                    raw_df["Open"] = pd.Series(indicators.get("open", [])).ffill().bfill().values
+                    raw_df["High"] = pd.Series(indicators.get("high", [])).ffill().bfill().values
+                    raw_df["Low"] = pd.Series(indicators.get("low", [])).ffill().bfill().values
+                    raw_df["Close"] = pd.Series(indicators.get("close", [])).ffill().bfill().values
+                    raw_df["Volume"] = pd.Series(indicators.get("volume", [])).ffill().bfill().values
+                    raw_df = raw_df.ffill().bfill().dropna(subset=["Close"])
+                    if not raw_df.empty:
+                        return raw_df
+            elif res.status_code == 404:
+                # Stock is officially delisted or invalid ticker -> exit retry loop early
+                break
+        except Exception:
+            pass
+
+        # Exponential backoff sleep if attempt failed and retries remain
+        if attempt < max_retries:
+            backoff = (0.5 * (2 ** attempt)) + random.uniform(0.1, 0.3)
+            await asyncio.sleep(backoff)
+
     return pd.DataFrame()
 
 def compute_active_holdings(transactions: list) -> list:
@@ -13316,14 +13339,19 @@ def get_vcp_canslim_universe_from_db(conn):
                 canslim_d = json.loads(r["canslim_json"])
                 c_score = canslim_d.get("canslim_score", 0)
                 
+                is_vcp = vcp_d.get("is_vcp", False)
+                v_status = vcp_d.get("vcp_status", "NONE")
+                if not is_vcp or v_status == "NONE":
+                    continue
+                
                 stock_entry = {
                     "symbol": r["symbol"],
                     "company_name": vcp_d.get("company_name", r["symbol"]),
                     "sector": vcp_d.get("sector", "N/A"),
                     "current_price": vcp_d.get("current_price", 0.0),
                     "change_percent": vcp_d.get("change_percent", 0.0),
-                    "is_vcp": vcp_d.get("is_vcp", True),
-                    "vcp_status": vcp_d.get("vcp_status", "FORMING"),
+                    "is_vcp": is_vcp,
+                    "vcp_status": v_status,
                     "vcp_stage": vcp_d.get("vcp_stage", "T3"),
                     "pivot_price": vcp_d.get("pivot_price"),
                     "stop_loss": vcp_d.get("stop_loss"),
@@ -13366,7 +13394,7 @@ async def _recalculate_vcp_universe():
                     sym = st["symbol"].strip().upper()
                     sym_yf = f"{sym}.NS" if not sym.endswith(".NS") else sym
                     try:
-                        df = await fetch_history_df(sym_yf, period="6mo", interval="1d")
+                        df = await fetch_history_df(sym_yf, period="1y", interval="1d")
                         if df is None or df.empty or len(df) < 40:
                             return None
                             
@@ -13459,6 +13487,99 @@ async def _recalculate_vcp_universe():
         print(f"[VCP CRON] Universe Recalculation Error: {e}")
         return []
 
+async def send_quant_cron_whatsapp_summary(summary_dict: dict, duration_sec: float):
+    """Sends a formatted WhatsApp summary alert after nightly 1:30 AM pre-warm."""
+    wa_token = os.environ.get("WHATSAPP_TOKEN", "")
+    wa_phone_id = os.environ.get("WHATSAPP_PHONE_ID", "")
+    wa_recipient = os.environ.get("WHATSAPP_RECIPIENT", "")
+    
+    if not (wa_token and wa_phone_id and wa_recipient):
+        print("[CRON WHATSAPP] WhatsApp credentials not configured. Skipping WhatsApp alert summary.")
+        return False
+        
+    msg = (
+        "📊 *Quant Suite Nightly Pre-Warm Completed (1:30 AM)*\n\n"
+        f"• *Minervini VCP*: {summary_dict.get('vcp', 0)} pristine setups\n"
+        f"• *Weinstein Stage 2*: {summary_dict.get('stage2', 0)} leaders\n"
+        f"• *David Ryan 3WT*: {summary_dict.get('3wt', 0)} setups\n"
+        f"• *Flat Base*: {summary_dict.get('flat_base', 0)} setups\n"
+        f"• *David Ryan HTF*: {summary_dict.get('htf', 0)} setups\n\n"
+        f"⚡ *All caches updated in SQLite in {duration_sec:.1f}s.*"
+    )
+    
+    try:
+        import httpx
+        url = f"https://graph.facebook.com/v18.0/{wa_phone_id}/messages"
+        headers = {
+            "Authorization": f"Bearer {wa_token}",
+            "Content-Type": "application/json"
+        }
+        payload = {
+            "messaging_product": "whatsapp",
+            "to": wa_recipient,
+            "type": "text",
+            "text": {"preview_url": False, "body": msg}
+        }
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            resp = await client.post(url, json=payload, headers=headers)
+            if resp.status_code == 200:
+                print("[CRON WHATSAPP] Successfully sent nightly summary WhatsApp alert!")
+                return True
+            else:
+                print(f"[CRON WHATSAPP] WhatsApp API returned HTTP {resp.status_code}: {resp.text}")
+    except Exception as e:
+        print(f"[CRON WHATSAPP] Failed to send WhatsApp summary: {e}")
+    return False
+
+async def _run_full_quant_cron_sweep():
+    """Runs full recalculation sweep across all 5 screeners and records execution logs."""
+    t0 = time.time()
+    summary = {}
+    try:
+        print("[CRON] Starting full 5-screener universe recalculation sweep...")
+        vcp_candidates = await _recalculate_vcp_universe()
+        summary["vcp"] = len(vcp_candidates)
+
+        fb_res = await get_flat_base_screener(force_refresh=True)
+        summary["flat_base"] = len(fb_res.get("data", []))
+
+        stg2_res = await get_weinstein_stage2_screener(force_refresh=True)
+        summary["stage2"] = len(stg2_res.get("data", []))
+
+        htf_res = await get_high_tight_flag_screener(force_refresh=True)
+        summary["htf"] = len(htf_res.get("data", []))
+
+        twt_res = await get_3weeks_tight_screener(force_refresh=True)
+        summary["3wt"] = len(twt_res.get("data", []))
+
+        duration = round(time.time() - t0, 2)
+        details_json = json.dumps(summary)
+        
+        # Write execution log to SQLite cron_execution_logs table
+        with get_db() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                "INSERT INTO cron_execution_logs (job_name, run_time, duration_seconds, status, details_json) VALUES (?, CURRENT_TIMESTAMP, ?, ?, ?)",
+                ("nightly_quant_prewarm", duration, "SUCCESS", details_json)
+            )
+            conn.commit()
+            
+        print(f"[CRON SUCCESS] 5-screener sweep complete in {duration}s! Summary: {summary}")
+        await send_quant_cron_whatsapp_summary(summary, duration)
+    except Exception as err:
+        duration = round(time.time() - t0, 2)
+        print(f"[CRON ERROR] Full quant sweep failed after {duration}s: {err}")
+        try:
+            with get_db() as conn:
+                cursor = conn.cursor()
+                cursor.execute(
+                    "INSERT INTO cron_execution_logs (job_name, run_time, duration_seconds, status, details_json) VALUES (?, CURRENT_TIMESTAMP, ?, ?, ?)",
+                    ("nightly_quant_prewarm", duration, "FAILED", json.dumps({"error": str(err)}))
+                )
+                conn.commit()
+        except Exception:
+            pass
+
 def _start_daily_vcp_cron():
     """Background daemon thread that triggers full VCP recalculation immediately on cold startup (if cache empty) and every day at 01:30 AM IST."""
     import threading
@@ -13476,7 +13597,7 @@ def _start_daily_vcp_cron():
                     loop = asyncio.new_event_loop()
                     asyncio.set_event_loop(loop)
                     try:
-                        loop.run_until_complete(_recalculate_vcp_universe())
+                        loop.run_until_complete(_run_full_quant_cron_sweep())
                     finally:
                         loop.close()
         except Exception as cold_err:
@@ -13497,11 +13618,7 @@ def _start_daily_vcp_cron():
                 loop = asyncio.new_event_loop()
                 asyncio.set_event_loop(loop)
                 try:
-                    loop.run_until_complete(_recalculate_vcp_universe())
-                    loop.run_until_complete(get_flat_base_screener(force_refresh=True))
-                    loop.run_until_complete(get_weinstein_stage2_screener(force_refresh=True))
-                    loop.run_until_complete(get_high_tight_flag_screener(force_refresh=True))
-                    loop.run_until_complete(get_3weeks_tight_screener(force_refresh=True))
+                    loop.run_until_complete(_run_full_quant_cron_sweep())
                 finally:
                     loop.close()
 
@@ -13518,6 +13635,47 @@ try:
     _start_daily_vcp_cron()
 except Exception as cron_start_err:
     print(f"Failed to start Daily VCP Cron: {cron_start_err}")
+
+
+@app.get("/api/system/cron-status")
+async def get_cron_status():
+    """Returns status, timestamps, and execution logs for all 5 Quant Suite screeners."""
+    try:
+        with get_db() as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT * FROM cron_execution_logs ORDER BY id DESC LIMIT 10")
+            log_rows = [dict(r) for r in cursor.fetchall()]
+            
+            cursor.execute("SELECT COUNT(*) as count, MAX(updated_at) as last_updated FROM vcp_screener_cache")
+            vcp_row = cursor.fetchone()
+            
+            cursor.execute("SELECT screener_name, cache_json, updated_at FROM screener_results_cache")
+            screener_rows = {r["screener_name"]: r for r in cursor.fetchall()}
+
+        def parse_screener_info(screener_name):
+            row = screener_rows.get(screener_name)
+            if row and row["cache_json"]:
+                try:
+                    data = json.loads(row["cache_json"])
+                    return {"status": "SUCCESS", "last_updated": row["updated_at"], "qualifying_count": len(data) if isinstance(data, list) else 0}
+                except Exception:
+                    pass
+            return {"status": "NOT_RUN", "last_updated": None, "qualifying_count": 0}
+
+        return {
+            "status": "healthy",
+            "last_nightly_run": log_rows[0]["run_time"] if log_rows else None,
+            "screeners": {
+                "vcp": {"status": "SUCCESS" if (vcp_row and vcp_row["last_updated"]) else "NOT_RUN", "last_updated": vcp_row["last_updated"] if vcp_row else None, "qualifying_count": vcp_row["count"] if (vcp_row and vcp_row["count"]) else 0},
+                "stage2": parse_screener_info("weinstein_stage2"),
+                "3wt": parse_screener_info("3weeks_tight"),
+                "htf": parse_screener_info("htf"),
+                "flat_base": parse_screener_info("flat_base_breakout")
+            },
+            "recent_logs": log_rows
+        }
+    except Exception as e:
+        return {"status": "error", "error": str(e)}
 
 
 @app.get("/api/vcp-canslim-screener")
