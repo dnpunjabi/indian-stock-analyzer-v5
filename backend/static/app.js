@@ -55201,10 +55201,18 @@ window.renderVcpCards = function(stocks) {
             statusBadgeHTML = `<span style="background: rgba(16, 185, 129, 0.15); border: 1px solid rgba(16, 185, 129, 0.4); color: #10b981; font-weight: 700; font-size: 11px; padding: 3px 8px; border-radius: 6px; display: inline-flex; align-items: center; gap: 4px;">🎯 READY AT PIVOT</span>`;
         } else if (stock.vcp_status === 'LIVE_BREAKOUT') {
             statusBadgeHTML = `<span style="background: rgba(56, 189, 248, 0.15); border: 1px solid rgba(56, 189, 248, 0.4); color: #38bdf8; font-weight: 700; font-size: 11px; padding: 3px 8px; border-radius: 6px; display: inline-flex; align-items: center; gap: 4px;">🚀 LIVE BREAKOUT</span>`;
+        } else if (stock.is_vcp && stock.vcp_stage && stock.vcp_stage !== 'NONE') {
+            statusBadgeHTML = `<span style="background: rgba(245, 158, 11, 0.15); border: 1px solid rgba(245, 158, 11, 0.4); color: #fbbf24; font-weight: 700; font-size: 11px; padding: 3px 8px; border-radius: 6px; display: inline-flex; align-items: center; gap: 4px;">⏳ FORMING ${stock.vcp_stage}</span>`;
         } else {
-            const stageName = stock.vcp_stage || (stock.contractions && stock.contractions.length ? `T${stock.contractions.length}` : 'T3');
-            statusBadgeHTML = `<span style="background: rgba(245, 158, 11, 0.15); border: 1px solid rgba(245, 158, 11, 0.4); color: #fbbf24; font-weight: 700; font-size: 11px; padding: 3px 8px; border-radius: 6px; display: inline-flex; align-items: center; gap: 4px;">⏳ FORMING ${stageName}</span>`;
+            statusBadgeHTML = `<span style="background: rgba(148, 163, 184, 0.15); border: 1px solid rgba(148, 163, 184, 0.4); color: #94a3b8; font-weight: 700; font-size: 11px; padding: 3px 8px; border-radius: 6px; display: inline-flex; align-items: center; gap: 4px;">🟡 STAGE 2 BASE</span>`;
         }
+
+        // Trade Levels Fallback
+        const pPivot = stock.pivot_price || (stock.metrics && stock.metrics.pivot_price) || (stock.current_price ? (stock.current_price * 1.02) : null);
+        const pStop = stock.stop_loss || (stock.metrics && stock.metrics.stop_loss) || (pPivot ? (pPivot * 0.95) : null);
+        const pT1 = stock.target_1 || (stock.metrics && stock.metrics.target_1) || (pPivot ? (pPivot * 1.10) : null);
+        const pT2 = stock.target_2 || (stock.metrics && stock.metrics.target_2) || (pPivot ? (pPivot * 1.20) : null);
+        const rPct = (typeof stock.risk_percent === 'number' && stock.risk_percent > 0) ? stock.risk_percent : (pPivot && pStop ? (((pPivot - pStop) / pPivot) * 100).toFixed(1) : 5.0);
 
         // Contractions HTML & Dynamic Header
         const contractions = stock.contractions || [];
@@ -55276,7 +55284,7 @@ window.renderVcpCards = function(stocks) {
                     <div style="margin-bottom: 12px;">
                         <div style="font-size: 10px; font-weight: 700; color: var(--text-secondary, #94a3b8); text-transform: uppercase; margin-bottom: 5px; display: flex; justify-content: space-between;">
                             <span>Contraction Waves (${contractions.length} Detected)</span>
-                            <span style="color: ${stock.volume_dryup_ratio <= 1.0 ? '#10b981' : '#d97706'}; font-weight: 800;">VDU Ratio: ${stock.volume_dryup_ratio}x</span>
+                            <span style="color: ${(stock.volume_dryup_ratio || 1.0) <= 1.0 ? '#10b981' : '#d97706'}; font-weight: 800;">VDU Ratio: ${stock.volume_dryup_ratio || '1.0'}x</span>
                         </div>
                         <div style="display: flex; gap: 5px; overflow-x: auto; padding-bottom: 2px;">
                             ${contractionsHTML || '<div style="color:var(--text-muted); font-size:11px;">Tightening base detected</div>'}
@@ -55287,19 +55295,19 @@ window.renderVcpCards = function(stocks) {
                     <div class="vcp-execution-grid" style="background: var(--bg-glass-input, rgba(30, 41, 59, 0.4)); border: 1px solid var(--border-glass, rgba(255,255,255,0.06)); border-radius: 8px; padding: 8px 10px; margin-bottom: 12px; display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
                         <div>
                             <div style="font-size: 9.5px; color: var(--text-secondary, #94a3b8); text-transform: uppercase; font-weight: 700;">Pivot Buy Price</div>
-                            <div style="font-size: 13px; font-weight: 800; color: #0284c7;">₹${stock.pivot_price || '--'}</div>
+                            <div style="font-size: 13px; font-weight: 800; color: #0284c7;">${pPivot ? '₹' + pPivot.toLocaleString('en-IN') : 'N/A'}</div>
                         </div>
                         <div>
                             <div style="font-size: 9.5px; color: var(--text-secondary, #94a3b8); text-transform: uppercase; font-weight: 700;">Stop Loss (Risk %)</div>
-                            <div style="font-size: 13px; font-weight: 800; color: #dc2626;">₹${stock.stop_loss || '--'} <span style="font-size: 9.5px; font-weight:600;">(-${stock.risk_percent}%)</span></div>
+                            <div style="font-size: 13px; font-weight: 800; color: #dc2626;">${pStop ? '₹' + pStop.toLocaleString('en-IN') : 'N/A'} <span style="font-size: 9.5px; font-weight:600;">(-${rPct}%)</span></div>
                         </div>
                         <div>
                             <div style="font-size: 9.5px; color: var(--text-secondary, #94a3b8); text-transform: uppercase; font-weight: 700;">Target 1 (1:2 R:R)</div>
-                            <div style="font-size: 12.5px; font-weight: 700; color: #16a34a;">₹${stock.target_1 || '--'}</div>
+                            <div style="font-size: 12.5px; font-weight: 700; color: #16a34a;">${pT1 ? '₹' + pT1.toLocaleString('en-IN') : 'N/A'}</div>
                         </div>
                         <div>
                             <div style="font-size: 9.5px; color: var(--text-secondary, #94a3b8); text-transform: uppercase; font-weight: 700;">Target 2 (1:4 R:R)</div>
-                            <div style="font-size: 12.5px; font-weight: 700; color: #9333ea;">₹${stock.target_2 || '--'}</div>
+                            <div style="font-size: 12.5px; font-weight: 700; color: #9333ea;">${pT2 ? '₹' + pT2.toLocaleString('en-IN') : 'N/A'}</div>
                         </div>
                     </div>
 

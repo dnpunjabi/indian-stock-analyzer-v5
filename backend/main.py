@@ -13460,13 +13460,28 @@ async def _recalculate_vcp_universe():
         return []
 
 def _start_daily_vcp_cron():
-    """Background daemon thread that triggers full VCP recalculation every day at 01:30 AM IST."""
+    """Background daemon thread that triggers full VCP recalculation immediately on cold startup (if cache empty) and every day at 01:30 AM IST."""
     import threading
     import datetime
     import time
     import asyncio
 
     def cron_worker():
+        # Cold startup check: If DB cache is empty, run initial recalculation immediately in background!
+        try:
+            with get_db() as conn:
+                db_stocks = get_vcp_canslim_universe_from_db(conn)
+                if not db_stocks:
+                    print("[VCP CRON] Cold startup detected! SQLite cache is empty. Running initial universe recalculation in background...")
+                    loop = asyncio.new_event_loop()
+                    asyncio.set_event_loop(loop)
+                    try:
+                        loop.run_until_complete(_recalculate_vcp_universe())
+                    finally:
+                        loop.close()
+        except Exception as cold_err:
+            print(f"[VCP CRON] Cold startup check notice: {cold_err}")
+
         while True:
             try:
                 now = datetime.datetime.now()
@@ -13517,6 +13532,7 @@ async def get_vcp_canslim_screener(
     Scans the Nifty stock universe for Mark Minervini Volatility Contraction Patterns (VCP)
     and William O'Neil 7-letter CANSLIM score leaders.
     Uses SQLite Table + RAM Cache with automatic 12:00 AM Midnight IST Recalculation Cron.
+    Non-blocking async background recalculation prevents HTTP 504 Gateway Timeouts.
     """
     global _VCP_CANSLIM_GLOBAL_CACHE
     now = time.time()
@@ -13526,7 +13542,7 @@ async def get_vcp_canslim_screener(
 
         all_candidates = []
 
-        # Step 1: Database Table Cache (SQLite) - Check disk first so fresh DB updates are served immediately
+        # Step 1: Database Table Cache (SQLite) - Check disk first
         if not force_refresh:
             with get_db() as conn:
                 db_stocks = get_vcp_canslim_universe_from_db(conn)
@@ -13535,12 +13551,20 @@ async def get_vcp_canslim_screener(
                     _VCP_CANSLIM_GLOBAL_CACHE = {"timestamp": now, "stocks": all_candidates}
 
         # Step 2: Memory Cache (RAM)
-        if not all_candidates and not force_refresh and _VCP_CANSLIM_GLOBAL_CACHE["stocks"]:
+        if not all_candidates and not force_refresh and _VCP_CANSLIM_GLOBAL_CACHE.get("stocks"):
             all_candidates = _VCP_CANSLIM_GLOBAL_CACHE["stocks"]
 
-        # Step 3: Run Full Recalculation if Cache Empty or Force Refresh requested
-        if not all_candidates or force_refresh:
-            all_candidates = await _recalculate_vcp_universe()
+        # Step 3: Non-blocking Background Recalculation if Cache Empty or Force Refresh requested
+        if force_refresh or not all_candidates:
+            if not all_candidates:
+                # Trigger background task asynchronously so request responds immediately without timing out
+                asyncio.create_task(_recalculate_vcp_universe())
+                # Return whatever is currently in SQLite database
+                with get_db() as conn:
+                    all_candidates = get_vcp_canslim_universe_from_db(conn)
+            else:
+                # Trigger background task asynchronously on force refresh
+                asyncio.create_task(_recalculate_vcp_universe())
 
         # Step 4: Apply Filters & Live WebSocket Tick Overlay
         candidates = []
