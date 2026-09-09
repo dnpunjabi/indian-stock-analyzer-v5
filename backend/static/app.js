@@ -57205,6 +57205,54 @@ window.runStockStageSimulator = async function(symbolInput) {
                     <li><strong style="color: #f8fafc;">Breakout Catalysts Required:</strong> Needs volume expansion <span style="color: #2dd4bf; font-weight: 700;">≥ 1.40x - 2.0x 20-day average volume</span> on a move above ₹${(m.pivot_price||0).toFixed(2)} to confirm high-conviction Stage 2 institutional mark-up.</li>
                 </ul>
             </div>
+
+            <!-- On-Demand AI Masterclass Synthesis Panel -->
+            <div id="stage-ai-synthesis-container" style="margin-top: 18px; background: var(--card-bg, rgba(15, 23, 42, 0.6)); border: 1px solid var(--border-color, rgba(168, 85, 247, 0.3)); border-radius: 12px; padding: 16px; transition: all 0.3s ease;">
+                <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; margin-bottom: 12px; border-bottom: 1px solid rgba(255,255,255,0.08); padding-bottom: 10px;">
+                    <h5 style="margin: 0; font-size: 14px; font-weight: 800; color: #a855f7; display: flex; align-items: center; gap: 8px;">
+                        <span>🤖</span> ON-DEMAND AI MASTERCLASS SYNTHESIS & AUDIT
+                    </h5>
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <button id="stage-ai-generate-btn" onclick="generateStageDiagnosticAISynthesis('${data.symbol}')" style="background: linear-gradient(135deg, #a855f7, #6366f1); color: #ffffff; border: none; padding: 7px 14px; border-radius: 20px; font-weight: 800; font-size: 12px; cursor: pointer; display: flex; align-items: center; gap: 6px; box-shadow: 0 4px 12px rgba(168, 85, 247, 0.3); transition: all 0.2s ease;">
+                            <span>🧠</span> Generate AI Masterclass Synthesis
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 10 Interactive Prompt Chips Bar -->
+                <div style="margin-bottom: 14px;">
+                    <span style="font-size: 11px; color: var(--text-muted, #94a3b8); font-weight: 700; display: block; margin-bottom: 6px;">💡 QUICK PROMPT TEMPLATE CHIPS:</span>
+                    <div style="display: flex; flex-wrap: wrap; gap: 6px;">
+                        <button class="stage-ai-chip" onclick="generateStageDiagnosticAISynthesis('${data.symbol}', 'Why did VCP / HTF reject?')" style="background: rgba(168, 85, 247, 0.12); border: 1px solid rgba(168, 85, 247, 0.3); color: #d8b4fe; padding: 5px 11px; border-radius: 16px; font-size: 11px; font-weight: 600; cursor: pointer; transition: all 0.2s ease;">🔍 Why did VCP / HTF reject?</button>
+                        <button class="stage-ai-chip" onclick="generateStageDiagnosticAISynthesis('${data.symbol}', 'Is price extended from 50-day / 20-day EMA?')" style="background: rgba(56, 189, 248, 0.12); border: 1px solid rgba(56, 189, 248, 0.3); color: #7dd3fc; padding: 5px 11px; border-radius: 16px; font-size: 11px; font-weight: 600; cursor: pointer; transition: all 0.2s ease;">📐 Is price extended from 50D EMA?</button>
+                        <button class="stage-ai-chip" onclick="generateStageDiagnosticAISynthesis('${data.symbol}', 'Calculate tactical stop-loss level, risk per share in ₹ and %, and position sizing plan.')" style="background: rgba(248, 113, 113, 0.12); border: 1px solid rgba(248, 113, 113, 0.3); color: #fca5a5; padding: 5px 11px; border-radius: 16px; font-size: 11px; font-weight: 600; cursor: pointer; transition: all 0.2s ease;">🛡️ Tactical Stop-Loss & Risk Plan</button>
+                        <button class="stage-ai-chip" onclick="generateStageDiagnosticAISynthesis('${data.symbol}', 'Is this stock in Early, Mid, or Late Stage 2? Analyze 30W MA slope trajectory.')" style="background: rgba(52, 211, 153, 0.12); border: 1px solid rgba(52, 211, 153, 0.3); color: #6ee7b7; padding: 5px 11px; border-radius: 16px; font-size: 11px; font-weight: 600; cursor: pointer; transition: all 0.2s ease;">📊 Early/Mid/Late Stage 2 Analysis</button>
+                        <button class="stage-ai-chip" onclick="generateStageDiagnosticAISynthesis('${data.symbol}', 'Analyze Volume Dry-Up (VDU) & weekly close tightness near base pivot.')" style="background: rgba(251, 191, 36, 0.12); border: 1px solid rgba(251, 191, 36, 0.3); color: #fde047; padding: 5px 11px; border-radius: 16px; font-size: 11px; font-weight: 600; cursor: pointer; transition: all 0.2s ease;">🌊 Volume Dry-Up (VDU) & Tightness</button>
+                        <button class="stage-ai-chip" onclick="generateStageDiagnosticAISynthesis('${data.symbol}', 'Evaluate Relative Strength (RS) leadership compared to Nifty 50 Index.')" style="background: rgba(192, 132, 252, 0.12); border: 1px solid rgba(192, 132, 252, 0.3); color: #e9d5ff; padding: 5px 11px; border-radius: 16px; font-size: 11px; font-weight: 600; cursor: pointer; transition: all 0.2s ease;">👑 RS Leadership vs Nifty 50</button>
+                        <button class="stage-ai-chip" onclick="generateStageDiagnosticAISynthesis('${data.symbol}', 'Evaluate Pocket Pivot & Oliver Kell Reversal stealth entry signals.')" style="background: rgba(45, 212, 191, 0.12); border: 1px solid rgba(45, 212, 191, 0.3); color: #99f6e4; padding: 5px 11px; border-radius: 16px; font-size: 11px; font-weight: 600; cursor: pointer; transition: all 0.2s ease;">⚡ Pocket Pivot & Kell Reversal</button>
+                        <button class="stage-ai-chip" onclick="generateStageDiagnosticAISynthesis('${data.symbol}', 'Specify exact breakout trigger price, required volume surge, and order execution plan.')" style="background: rgba(99, 102, 241, 0.12); border: 1px solid rgba(99, 102, 241, 0.3); color: #a5b4fc; padding: 5px 11px; border-radius: 16px; font-size: 11px; font-weight: 600; cursor: pointer; transition: all 0.2s ease;">🚀 Breakout Trigger & Order Execution</button>
+                        <button class="stage-ai-chip" onclick="generateStageDiagnosticAISynthesis('${data.symbol}', 'Are there any Stage 3 topping distribution warning signs or heavy selling candles?')" style="background: rgba(251, 146, 60, 0.12); border: 1px solid rgba(251, 146, 60, 0.3); color: #fdba74; padding: 5px 11px; border-radius: 16px; font-size: 11px; font-weight: 600; cursor: pointer; transition: all 0.2s ease;">⚠️ Stage 3 Distribution Warning</button>
+                        <button class="stage-ai-chip" onclick="generateStageDiagnosticAISynthesis('${data.symbol}', 'Detect whether current price action shows institutional accumulation vs retail distribution.')" style="background: rgba(244, 114, 182, 0.12); border: 1px solid rgba(244, 114, 182, 0.3); color: #fbcfe8; padding: 5px 11px; border-radius: 16px; font-size: 11px; font-weight: 600; cursor: pointer; transition: all 0.2s ease;">💰 Institutional Accumulation Audit</button>
+                    </div>
+                </div>
+
+                <!-- Custom Ask AI Bar with Speech-to-Text Mic Button -->
+                <div style="display: flex; gap: 8px; margin-bottom: 14px; flex-wrap: wrap;">
+                    <div style="flex: 1; min-width: 220px; position: relative; display: flex; align-items: center;">
+                        <input type="text" id="stage-ai-custom-input" placeholder="💬 Ask AI any custom question about ${data.symbol}..." style="width: 100%; background: var(--bg-input, rgba(30, 41, 59, 0.7)); border: 1px solid var(--border-color, rgba(255, 255, 255, 0.15)); border-radius: 8px; padding: 8px 36px 8px 12px; color: var(--text-color, #f8fafc); font-size: 12px; outline: none;" onkeydown="if(event.key==='Enter') generateStageDiagnosticAISynthesis('${data.symbol}', this.value)" />
+                        <button id="stage-ai-mic-btn" onclick="toggleStageAIMic('${data.symbol}')" title="Voice Input (Speech to Text)" style="position: absolute; right: 6px; background: transparent; border: none; cursor: pointer; font-size: 14px; padding: 4px; border-radius: 50%; color: var(--text-muted, #94a3b8); display: flex; align-items: center; justify-content: center;">
+                            🎙️
+                        </button>
+                    </div>
+                    <button onclick="generateStageDiagnosticAISynthesis('${data.symbol}', document.getElementById('stage-ai-custom-input').value)" style="background: rgba(168, 85, 247, 0.2); border: 1px solid #a855f7; color: #d8b4fe; padding: 8px 14px; border-radius: 8px; font-weight: 700; font-size: 12px; cursor: pointer; white-space: nowrap;">
+                        📤 Ask AI
+                    </button>
+                </div>
+
+                <!-- AI Output Target Container -->
+                <div id="stage-ai-output-box" style="display: none; background: var(--card-bg, rgba(30, 41, 59, 0.5)); border: 1px solid var(--border-color, rgba(168, 85, 247, 0.25)); border-radius: 10px; padding: 14px; margin-top: 10px;">
+                </div>
+            </div>
         `;
     } catch (e) {
         resContainer.innerHTML = `
@@ -57212,6 +57260,125 @@ window.runStockStageSimulator = async function(symbolInput) {
                 ❌ Diagnostic Error: ${e.message || e}
             </div>
         `;
+    }
+};
+
+window.generateStageDiagnosticAISynthesis = async function(symbol, customPrompt = '') {
+    const outputBox = document.getElementById('stage-ai-output-box');
+    if (!outputBox) return;
+
+    outputBox.style.display = 'block';
+    outputBox.innerHTML = `
+        <div style="text-align: center; padding: 20px; color: var(--text-muted, #94a3b8);">
+            <div class="spinner" style="border: 3px solid rgba(255,255,255,0.1); border-top-color: #a855f7; border-radius: 50%; width: 24px; height: 24px; animation: spin 0.8s linear infinite; margin: 0 auto 10px auto;"></div>
+            <p style="margin: 0; font-size: 12.5px; font-weight: 700; color: var(--text-color, #cbd5e1);">Synthesizing Institutional Stage Masterclass Audit for <strong>${symbol}</strong>...</p>
+        </div>
+    `;
+
+    try {
+        const response = await fetch('/api/screener/stage-diagnostic-ai', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                symbol: symbol,
+                custom_prompt: customPrompt
+            })
+        });
+        const data = await response.json();
+
+        if (data.status !== 'success') {
+            outputBox.innerHTML = `
+                <div style="padding: 12px; background: rgba(244, 63, 94, 0.15); border: 1px solid #f87171; border-radius: 8px; color: #f87171; font-weight: 700; font-size: 12px;">
+                    ❌ AI Generation Failed: ${data.message || 'Error communicating with Gemini LLM'}
+                </div>
+            `;
+            return;
+        }
+
+        const rawMarkdown = data.ai_synthesis || '';
+        const parsedHtml = window.marked ? marked.parse(rawMarkdown) : rawMarkdown.replace(/\n/g, '<br/>');
+        const targetId = `stage-ai-content-${Date.now()}`;
+
+        outputBox.innerHTML = `
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; margin-bottom: 10px; padding-bottom: 8px; border-bottom: 1px solid rgba(255,255,255,0.1);">
+                <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                    <span style="font-size: 12px; font-weight: 800; color: #a855f7; text-transform: uppercase; letter-spacing: 0.5px;">✨ STAGE MASTERCLASS AI COMMENTARY</span>
+                    <button class="section-speak-btn" data-target="${targetId}" data-title="${symbol} Stage AI Synthesis" style="background: rgba(168, 85, 247, 0.15); border: 1px solid #a855f7; color: #d8b4fe; border-radius: 12px; padding: 3px 10px; font-size: 11px; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; gap: 4px;">
+                        🔊 Read Aloud
+                    </button>
+                </div>
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <span style="font-size: 10.5px; background: rgba(56, 189, 248, 0.15); border: 1px solid #38bdf8; color: #38bdf8; padding: 2px 8px; border-radius: 12px; font-weight: 700;">⚡ ${data.model || 'Gemini 2.5 Flash'} • ${data.execution_time_sec || 0.8}s</span>
+                    <button onclick="copyTextToClipboard('${encodeURIComponent(rawMarkdown)}')" style="background: none; border: none; color: var(--text-muted, #94a3b8); font-size: 11px; font-weight: 700; cursor: pointer;">📋 Copy</button>
+                </div>
+            </div>
+            <div id="${targetId}" class="stage-ai-rendered-body" style="font-size: 12px; color: var(--text-color, #cbd5e1); line-height: 1.6;">
+                ${parsedHtml}
+            </div>
+        `;
+    } catch (e) {
+        outputBox.innerHTML = `
+            <div style="padding: 12px; background: rgba(244, 63, 94, 0.15); border: 1px solid #f87171; border-radius: 8px; color: #f87171; font-weight: 700; font-size: 12px;">
+                ❌ Connection Error: ${e.message || e}
+            </div>
+        `;
+    }
+};
+
+window.toggleStageAIMic = function(symbol) {
+    const micBtn = document.getElementById('stage-ai-mic-btn');
+    const inputEl = document.getElementById('stage-ai-custom-input');
+    if (!micBtn || !inputEl) return;
+
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+        alert("Speech Recognition is not supported in this browser.");
+        return;
+    }
+
+    if (window._stageAIRecognitionActive) {
+        if (window._stageAIRecognition) {
+            window._stageAIRecognition.stop();
+        }
+        window._stageAIRecognitionActive = false;
+        micBtn.style.color = 'var(--text-muted, #94a3b8)';
+        micBtn.innerHTML = '🎙️';
+        return;
+    }
+
+    try {
+        const recognition = new SpeechRecognition();
+        recognition.lang = 'en-US';
+        recognition.interimResults = false;
+
+        recognition.onstart = function() {
+            window._stageAIRecognitionActive = true;
+            micBtn.style.color = '#f87171';
+            micBtn.innerHTML = '🎙️ Listening...';
+        };
+
+        recognition.onresult = function(event) {
+            const transcript = event.results[0][0].transcript;
+            inputEl.value = transcript;
+            window.generateStageDiagnosticAISynthesis(symbol, transcript);
+        };
+
+        recognition.onerror = function() {
+            window._stageAIRecognitionActive = false;
+            micBtn.style.color = 'var(--text-muted, #94a3b8)';
+            micBtn.innerHTML = '🎙️';
+        };
+
+        recognition.onend = function() {
+            window._stageAIRecognitionActive = false;
+            micBtn.style.color = 'var(--text-muted, #94a3b8)';
+            micBtn.innerHTML = '🎙️';
+        };
+
+        window._stageAIRecognition = recognition;
+        recognition.start();
+    } catch (e) {
+        console.error("Mic error:", e);
     }
 };
 

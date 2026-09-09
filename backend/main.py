@@ -18839,6 +18839,118 @@ async def get_stage_diagnostic(symbol: str, force_refresh: bool = False):
         print(f"Error executing stage diagnostic for {clean_sym}: {e}")
         return {"status": "error", "message": str(e)}
 
+_STAGE_AI_CACHE = {}
+
+class StageDiagnosticAIRequest(BaseModel):
+    symbol: str
+    custom_prompt: Optional[str] = None
+    force_refresh: Optional[bool] = False
+
+@app.post("/api/screener/stage-diagnostic-ai")
+async def post_stage_diagnostic_ai(req: StageDiagnosticAIRequest):
+    """
+    On-Demand AI Masterclass Analysis for Stage 1-4 Life Cycle Diagnostic Simulator.
+    Feeds 8-screener metrics, Stage positioning, and MA slopes into call_llm (Gemini).
+    """
+    global _STAGE_AI_CACHE
+    from backend.llm_config import call_llm, TASK_FAST, get_last_llm_meta
+    import time
+    
+    symbol = req.symbol.strip().upper()
+    if not symbol.endswith(".NS") and not symbol.endswith(".BO") and "^" not in symbol:
+        symbol = f"{symbol}.NS"
+        
+    custom_prompt = (req.custom_prompt or "").strip()
+    cache_key = f"{symbol}_{custom_prompt}"
+    
+    if not req.force_refresh and cache_key in _STAGE_AI_CACHE:
+        entry = _STAGE_AI_CACHE[cache_key]
+        if (datetime.now() - entry["timestamp"]).total_seconds() < 900: # 15 min TTL
+            return entry["payload"]
+            
+    # Fetch diagnostic data
+    diag_data = await get_stage_diagnostic(symbol, force_refresh=req.force_refresh)
+    if diag_data.get("status") == "error":
+        return {"status": "error", "message": diag_data.get("message", "Failed to fetch stage diagnostic metrics")}
+        
+    metrics = diag_data.get("metrics", {})
+    screener_audit = diag_data.get("screener_audit", {})
+    stage_name = diag_data.get("stage_name", "Stage 2")
+    stage_num = diag_data.get("stage_number", 2)
+    stage_conf = diag_data.get("stage_confidence", 90.0)
+    
+    # Format Screener Audit text for prompt
+    audit_summary = []
+    for k, v in screener_audit.items():
+        status_str = "QUALIFIED 🟢" if v.get("qualified") else "REJECTED ❌"
+        audit_summary.append(
+            f"- {v.get('name')}: {status_str}\n"
+            f"  * Textbook Requirement: {v.get('required')}\n"
+            f"  * Actual Stock Metric: {v.get('actual')}\n"
+            f"  * Diagnostic Reason: {v.get('reason')}"
+        )
+    audit_str = "\n".join(audit_summary)
+    
+    system_prompt = (
+        "You are Stan Weinstein, Mark Minervini, and David Ryan's senior quantitative research director. "
+        "Provide a high-conviction, professional financial audit for Indian stock market leaders. "
+        "Use clean Markdown formatting. For section titles, use plain markdown headers (e.g. '### 📊 Stage Lifecycle & Trend Positioning' without wrapping the title in asterisks). "
+        "Use bullet points, bold key numbers (such as prices, percentages, stop-loss levels, and RS ratings), and structured markdown tables where appropriate. "
+        "Be extremely direct, quantitative, and institutional. Avoid generic disclaimer boilerplate."
+    )
+    
+    user_prompt = f"""
+STRICT QUANTITATIVE STAGE DIAGNOSTIC DATA:
+- Symbol: {symbol} (Base: {diag_data.get('base_symbol')})
+- Current Price: ₹{metrics.get('current_price')} ({metrics.get('day_change_pct'):+0.2f}% today)
+- Stage Classification: {stage_name} (Stage {stage_num}, {stage_conf}% Confidence)
+- Moving Averages: 50 EMA = ₹{metrics.get('ema_50')}, 200 EMA = ₹{metrics.get('ema_200')}, 30-Wk MA (150 SMA) Slope = {metrics.get('ma_30wk_slope_pct'):+0.2f}%/20d
+- Distance to 52-Wk High: {metrics.get('dist_52wk_high_pct'):+0.2f}% (High: ₹{metrics.get('high_52w')}, Low: ₹{metrics.get('low_52w')})
+- RS Rating: {metrics.get('rs_rating')}/99 Percentile Leadership
+- Volume Surge Ratio: {metrics.get('vol_ratio')}x 50-day average volume
+- Quantitative Trade Levels: Pivot Resistance = ₹{metrics.get('pivot_price')}, Stop Loss = ₹{metrics.get('stop_loss')}, Target 1 = ₹{metrics.get('target_1')}, Target 2 = ₹{metrics.get('target_2')}
+
+8-SCREENER ALGORITHMIC QUALIFICATION AUDIT:
+{audit_str}
+
+USER SPECIFIC MASTERCLASS QUERY:
+{custom_prompt if custom_prompt else 'Provide a complete institutional synthesis of Stage positioning, 8-screener confluence & rejection reasons, and tactical risk-reward execution plan.'}
+
+INSTRUCTIONS:
+1. Directly answer the user query with quantitative rigor and actionable guidance.
+2. Structure output into 3 clean, distinct markdown sections (without extra asterisks around headers):
+   ### 📊 Stage Lifecycle & Trend Positioning
+   ### 🎯 8-Screener Confluence & Rejection Analysis
+   ### 🛡️ Tactical Risk & Position Sizing Execution
+"""
+
+    start_t = time.time()
+    try:
+        raw_analysis = await asyncio.to_thread(call_llm, TASK_FAST, system_prompt, user_prompt, max_tokens=1500)
+        exec_sec = round(time.time() - start_t, 2)
+        llm_meta = get_last_llm_meta()
+        model_used = llm_meta.get("model", "Gemini 2.5 Flash") if llm_meta else "Gemini 2.5 Flash"
+        
+        payload = {
+            "status": "success",
+            "symbol": symbol,
+            "custom_prompt": custom_prompt,
+            "ai_synthesis": raw_analysis,
+            "model": model_used,
+            "execution_time_sec": exec_sec,
+            "timestamp": datetime.now().isoformat()
+        }
+        
+        _STAGE_AI_CACHE[cache_key] = {
+            "timestamp": datetime.now(),
+            "payload": payload
+        }
+        
+        return payload
+    except Exception as err:
+        print(f"Error generating Stage Diagnostic AI for {symbol}: {err}")
+        return {"status": "error", "message": f"LLM generation error: {str(err)}"}
+
 _WATCHLIST_QUANT_CACHE = {}
 
 class WatchlistQuantRequest(BaseModel):

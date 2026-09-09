@@ -85,6 +85,252 @@
             background: rgba(0, 0, 0, 0.15) !important;
         }
 
+        /* Comprehensive Stage Masterclass AI & Diagnostic Simulator Light/Dark Theme System */
+        #stage-ai-synthesis-container {
+            background: var(--card-bg, rgba(15, 23, 42, 0.85));
+            border: 1px solid var(--border-color, rgba(168, 85, 247, 0.35));
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+        }
+
+        [data-mode="light"] #stage-ai-synthesis-container,
+        [data-theme="light"] #stage-ai-synthesis-container,
+        .light-mode #stage-ai-synthesis-container {
+            background: #ffffff !important;
+            border: 1px solid #c084fc !important;
+            box-shadow: 0 4px 20px rgba(168, 85, 247, 0.15) !important;
+        }
+
+        [data-mode="light"] #stage-ai-synthesis-container h5,
+        [data-theme="light"] #stage-ai-synthesis-container h5,
+        .light-mode #stage-ai-synthesis-container h5 {
+            color: #6b21a8 !important;
+        }
+
+        /* Stage Simulator Card Containers in Light Mode */
+        [data-mode="light"] .stage-sim-card-bg,
+        [data-theme="light"] .stage-sim-card-bg,
+        .light-mode .stage-sim-card-bg {
+            background: #f8fafc !important;
+            border-color: #cbd5e1 !important;
+            color: #0f172a !important;
+        }
+
+        [data-mode="light"] .stage-sim-card-bg strong,
+        [data-theme="light"] .stage-sim-card-bg strong,
+        .light-mode .stage-sim-card-bg strong {
+            color: #0f172a !important;
+        }
+
+        [data-mode="light"] .stage-sim-card-bg p,
+        [data-theme="light"] .stage-sim-card-bg p,
+        .light-mode .stage-sim-card-bg p,
+        [data-mode="light"] .stage-sim-card-bg span,
+        [data-theme="light"] .stage-sim-card-bg span,
+        .light-mode .stage-sim-card-bg span {
+            color: #334155 !important;
+        }
+
+        /* Prompt Chips Interactive Styling */
+        .stage-ai-chip {
+            transition: all 0.2s ease-in-out !important;
+        }
+        .stage-ai-chip:hover {
+            transform: translateY(-1px) !important;
+            filter: brightness(1.15) !important;
+        }
+
+        [data-mode="light"] .stage-ai-chip,
+        [data-theme="light"] .stage-ai-chip,
+        .light-mode .stage-ai-chip {
+            background: #f3e8ff !important;
+            border: 1px solid #d8b4fe !important;
+            color: #6b21a8 !important;
+            font-weight: 700 !important;
+        }
+        [data-mode="light"] .stage-ai-chip:hover,
+        [data-theme="light"] .stage-ai-chip:hover,
+        .light-mode .stage-ai-chip:hover {
+            background: #e9d5ff !important;
+            border-color: #a855f7 !important;
+            color: #581c87 !important;
+        }
+
+        /* Custom Input Bar in Light Mode */
+        [data-mode="light"] #stage-ai-custom-input,
+        [data-theme="light"] #stage-ai-custom-input,
+        .light-mode #stage-ai-custom-input {
+            background: #ffffff !important;
+            border: 1px solid #cbd5e1 !important;
+            color: #0f172a !important;
+            font-weight: 600 !important;
+        }
+        [data-mode="light"] #stage-ai-custom-input::placeholder,
+        [data-theme="light"] #stage-ai-custom-input::placeholder,
+        .light-mode #stage-ai-custom-input::placeholder {
+            color: #64748b !important;
+        }
+
+        /* AI Output Box Container */
+        [data-mode="light"] #stage-ai-output-box,
+        [data-theme="light"] #stage-ai-output-box,
+        .light-mode #stage-ai-output-box {
+            background: #f8fafc !important;
+            border: 1px solid #cbd5e1 !important;
+            color: #0f172a !important;
+        }
+
+        /* Rendered Markdown Typography - Dark Mode Base */
+        .stage-ai-rendered-body {
+            color: #e2e8f0;
+            line-height: 1.65;
+            font-size: 13px;
+        }
+        .stage-ai-rendered-body h1,
+        .stage-ai-rendered-body h2,
+        .stage-ai-rendered-body h3,
+        .stage-ai-rendered-body h4 {
+            color: #f8fafc;
+            font-weight: 800;
+            margin-top: 14px;
+            margin-bottom: 8px;
+            letter-spacing: -0.2px;
+        }
+        .stage-ai-rendered-body h3 {
+            font-size: 14px;
+            border-bottom: 1px solid rgba(168, 85, 247, 0.25);
+            padding-bottom: 4px;
+            color: #c084fc;
+        }
+        .stage-ai-rendered-body h4 {
+            font-size: 13px;
+            color: #38bdf8;
+        }
+        .stage-ai-rendered-body p {
+            margin-bottom: 10px;
+        }
+        .stage-ai-rendered-body ul, 
+        .stage-ai-rendered-body ol {
+            padding-left: 20px;
+            margin-bottom: 10px;
+        }
+        .stage-ai-rendered-body li {
+            margin-bottom: 5px;
+        }
+        .stage-ai-rendered-body strong {
+            color: #ffffff;
+            font-weight: 700;
+        }
+        .stage-ai-rendered-body blockquote {
+            border-left: 3px solid #a855f7;
+            background: rgba(168, 85, 247, 0.08);
+            padding: 8px 12px;
+            margin: 10px 0;
+            border-radius: 0 6px 6px 0;
+        }
+        .stage-ai-rendered-body table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 12px 0;
+            font-size: 12px;
+        }
+        .stage-ai-rendered-body th {
+            background: rgba(30, 41, 59, 0.9);
+            color: #cbd5e1;
+            padding: 6px 10px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            font-weight: 700;
+            text-align: left;
+        }
+        .stage-ai-rendered-body td {
+            padding: 6px 10px;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+        .stage-ai-rendered-body code {
+            background: rgba(15, 23, 42, 0.6);
+            color: #38bdf8;
+            padding: 2px 5px;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 11.5px;
+        }
+        .stage-ai-rendered-body pre {
+            background: #0f172a;
+            padding: 10px;
+            border-radius: 8px;
+            overflow-x: auto;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        /* Rendered Markdown Typography - Light Mode Overrides */
+        [data-mode="light"] .stage-ai-rendered-body,
+        [data-theme="light"] .stage-ai-rendered-body,
+        .light-mode .stage-ai-rendered-body {
+            color: #1e293b !important;
+        }
+        [data-mode="light"] .stage-ai-rendered-body h1,
+        [data-mode="light"] .stage-ai-rendered-body h2,
+        [data-mode="light"] .stage-ai-rendered-body h3,
+        [data-mode="light"] .stage-ai-rendered-body h4,
+        [data-theme="light"] .stage-ai-rendered-body h1,
+        [data-theme="light"] .stage-ai-rendered-body h2,
+        [data-theme="light"] .stage-ai-rendered-body h3,
+        [data-theme="light"] .stage-ai-rendered-body h4,
+        .light-mode .stage-ai-rendered-body h1,
+        .light-mode .stage-ai-rendered-body h2,
+        .light-mode .stage-ai-rendered-body h3,
+        .light-mode .stage-ai-rendered-body h4 {
+            color: #0f172a !important;
+        }
+        [data-mode="light"] .stage-ai-rendered-body h3,
+        [data-theme="light"] .stage-ai-rendered-body h3,
+        .light-mode .stage-ai-rendered-body h3 {
+            color: #6b21a8 !important;
+            border-bottom: 1px solid #e9d5ff !important;
+        }
+        [data-mode="light"] .stage-ai-rendered-body h4,
+        [data-theme="light"] .stage-ai-rendered-body h4,
+        .light-mode .stage-ai-rendered-body h4 {
+            color: #0284c7 !important;
+        }
+        [data-mode="light"] .stage-ai-rendered-body strong,
+        [data-theme="light"] .stage-ai-rendered-body strong,
+        .light-mode .stage-ai-rendered-body strong {
+            color: #0f172a !important;
+        }
+        [data-mode="light"] .stage-ai-rendered-body blockquote,
+        [data-theme="light"] .stage-ai-rendered-body blockquote,
+        .light-mode .stage-ai-rendered-body blockquote {
+            background: #f3e8ff !important;
+            border-left: 3px solid #9333ea !important;
+            color: #3b0764 !important;
+        }
+        [data-mode="light"] .stage-ai-rendered-body th,
+        [data-theme="light"] .stage-ai-rendered-body th,
+        .light-mode .stage-ai-rendered-body th {
+            background: #f1f5f9 !important;
+            color: #0f172a !important;
+            border: 1px solid #cbd5e1 !important;
+        }
+        [data-mode="light"] .stage-ai-rendered-body td,
+        [data-theme="light"] .stage-ai-rendered-body td,
+        .light-mode .stage-ai-rendered-body td {
+            border: 1px solid #cbd5e1 !important;
+            color: #334155 !important;
+        }
+        [data-mode="light"] .stage-ai-rendered-body code,
+        [data-theme="light"] .stage-ai-rendered-body code,
+        .light-mode .stage-ai-rendered-body code {
+            background: #e0f2fe !important;
+            color: #0369a1 !important;
+        }
+        [data-mode="light"] .stage-ai-rendered-body pre,
+        [data-theme="light"] .stage-ai-rendered-body pre,
+        .light-mode .stage-ai-rendered-body pre {
+            background: #f1f5f9 !important;
+            color: #0f172a !important;
+            border: 1px solid #cbd5e1 !important;
+        }
+
         /* Sleek Global Floating Tooltip System */
         .fz-global-tooltip-card {
             position: absolute;
