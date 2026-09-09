@@ -2523,6 +2523,27 @@ function switchTab(tabKey) {
                 window.runVcpScan(true); // Silent background refresh
             }
         }
+    } else if (tabKey === 'episodic-pivot') {
+        document.body.classList.remove('homepage-active');
+        if (typeof window.runEpisodicScan === 'function') {
+            if (!window.allEpisodicStocks || window.allEpisodicStocks.length === 0) {
+                window.runEpisodicScan();
+            }
+        }
+    } else if (tabKey === 'pocket-pivot') {
+        document.body.classList.remove('homepage-active');
+        if (typeof window.runPocketScan === 'function') {
+            if (!window.allPocketStocks || window.allPocketStocks.length === 0) {
+                window.runPocketScan();
+            }
+        }
+    } else if (tabKey === 'oliver-kell') {
+        document.body.classList.remove('homepage-active');
+        if (typeof window.runOliverKellScan === 'function') {
+            if (!window.allOliverKellStocks || window.allOliverKellStocks.length === 0) {
+                window.runOliverKellScan();
+            }
+        }
     } else {
         document.body.classList.remove('homepage-active');
     }
@@ -55939,15 +55960,21 @@ window.openVcpChartModal = async function(symbol) {
 window.allWeinsteinStocks = [];
 window.allHtfStocks = [];
 window.all3wtStocks = [];
+window.allEpisodicStocks = [];
+window.allPocketStocks = [];
+window.allOliverKellStocks = [];
 
 window.switchQuantScannerSubtab = function(tabName) {
-    const subtabs = ['vcp', 'weinstein', 'htf', '3wt', 'flatbase', 'guide'];
+    const subtabs = ['vcp', 'weinstein', 'htf', '3wt', 'flatbase', 'episodic', 'pocket', 'oliverkell', 'guide'];
     const navBtnMap = {
         'vcp': 'tab-vcp-btn',
         'weinstein': 'tab-weinstein-btn',
         'htf': 'tab-htf-btn',
         '3wt': 'tab-3wt-btn',
         'flatbase': 'tab-flatbase-btn',
+        'episodic': 'tab-episodic-btn',
+        'pocket': 'tab-pocket-btn',
+        'oliverkell': 'tab-oliverkell-btn',
         'guide': 'tab-quant-guide-btn'
     };
 
@@ -55966,7 +55993,7 @@ window.switchQuantScannerSubtab = function(tabName) {
     });
 
     // 2. Synchronize Sidebar Navigation Highlighted Button
-    const allQuantNavBtns = ['tab-vcp-btn', 'tab-weinstein-btn', 'tab-htf-btn', 'tab-3wt-btn', 'tab-flatbase-btn', 'tab-quant-guide-btn'];
+    const allQuantNavBtns = ['tab-vcp-btn', 'tab-weinstein-btn', 'tab-htf-btn', 'tab-3wt-btn', 'tab-flatbase-btn', 'tab-episodic-btn', 'tab-pocket-btn', 'tab-oliverkell-btn', 'tab-quant-guide-btn'];
     const targetNavId = navBtnMap[tabName] || 'tab-vcp-btn';
     allQuantNavBtns.forEach(id => {
         const navBtn = document.getElementById(id);
@@ -56010,6 +56037,27 @@ window.switchQuantScannerSubtab = function(tabName) {
             window.runFlatBaseScan(true, false);
         } else {
             window.runFlatBaseScan(false, false);
+        }
+    } else if (tabName === 'episodic') {
+        if (window.allEpisodicStocks && window.allEpisodicStocks.length > 0) {
+            window.renderEpisodicTable(window.allEpisodicStocks);
+            window.runEpisodicScan(true, false);
+        } else {
+            window.runEpisodicScan(false, false);
+        }
+    } else if (tabName === 'pocket') {
+        if (window.allPocketStocks && window.allPocketStocks.length > 0) {
+            window.renderPocketTable(window.allPocketStocks);
+            window.runPocketScan(true, false);
+        } else {
+            window.runPocketScan(false, false);
+        }
+    } else if (tabName === 'oliverkell') {
+        if (window.allOliverKellStocks && window.allOliverKellStocks.length > 0) {
+            window.renderOliverKellTable(window.allOliverKellStocks);
+            window.runOliverKellScan(true, false);
+        } else {
+            window.runOliverKellScan(false, false);
         }
     } else if (tabName === 'guide') {
         if (typeof window.initStageSimAutocomplete === 'function') {
@@ -56491,6 +56539,391 @@ window.filterFlatBaseTable = function() {
     window.renderFlatBaseTable(filtered);
 };
 
+// ==========================================
+// 4. EPISODIC PIVOT (GAP & GO) SCREENER
+// ==========================================
+window.runEpisodicScan = async function(isSilent = false, forceRefresh = false) {
+    const loadingEl = document.getElementById('episodic-loading-container');
+    
+    // Instant SWR Hydration from Local Storage
+    const cached = localStorage.getItem('cache_episodic_screener');
+    if (cached && !window.allEpisodicStocks.length) {
+        try {
+            const parsed = JSON.parse(cached);
+            const list = parsed.data || parsed.matches || [];
+            if (parsed && list.length) {
+                window.allEpisodicStocks = list;
+                window.renderEpisodicTable(list);
+                const badge = document.getElementById('episodic-count-badge');
+                if (badge) badge.innerText = `${list.length} Matches`;
+                const ts = document.getElementById('episodic-timestamp');
+                if (ts && (parsed.last_updated || parsed.timestamp)) ts.innerText = `Cached: ${parsed.last_updated || parsed.timestamp}`;
+            }
+        } catch(e) {}
+    }
+
+    if (!isSilent && loadingEl) loadingEl.style.display = 'block';
+
+    try {
+        const url = `/api/screener/episodic-pivot${forceRefresh ? '?force_refresh=true' : ''}`;
+        const response = await fetch(url);
+        const data = await response.json();
+
+        if (data.status === 'success') {
+            window.allEpisodicStocks = data.data || data.matches || [];
+            localStorage.setItem('cache_episodic_screener', JSON.stringify(data));
+            window.renderEpisodicTable(window.allEpisodicStocks);
+
+            const badge = document.getElementById('episodic-count-badge');
+            const cnt = data.count !== undefined ? data.count : (data.total_matches !== undefined ? data.total_matches : window.allEpisodicStocks.length);
+            if (badge) badge.innerText = `${cnt} Matches`;
+            const ts = document.getElementById('episodic-timestamp');
+            if (ts) ts.innerText = `Last Updated: ${data.last_updated || data.timestamp || 'Just Now'}`;
+        }
+    } catch (err) {
+        console.error('Error running Episodic Pivot scan:', err);
+    } finally {
+        if (loadingEl) loadingEl.style.display = 'none';
+    }
+};
+
+window.renderEpisodicTable = function(stocks) {
+    const tbody = document.getElementById('episodic-table-body');
+    if (!tbody) return;
+
+    const list = stocks || [];
+
+    // Populate KPI summary cards
+    const totalEl = document.getElementById('episodic-kpi-total');
+    const liveEl = document.getElementById('episodic-kpi-live');
+    const rvolEl = document.getElementById('episodic-kpi-rvol');
+    const avgGapEl = document.getElementById('episodic-kpi-avg-gap');
+
+    if (totalEl) totalEl.innerText = list.length;
+    if (liveEl) liveEl.innerText = list.filter(s => (s.gap_pct || 0) >= 4.0).length;
+    if (rvolEl) rvolEl.innerText = list.filter(s => (s.rvol || 0) >= 3.0).length;
+    const avgGap = list.length > 0 ? (list.reduce((a, b) => a + (b.gap_pct || 0), 0) / list.length).toFixed(2) : '0.00';
+    if (avgGapEl) avgGapEl.innerText = `${avgGap}%`;
+
+    if (list.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="10" style="text-align: center; padding: 40px; color: #64748b;">No high-volume Episodic Pivot (Gap & Go) setups detected currently.</td></tr>`;
+        return;
+    }
+
+    tbody.innerHTML = list.map(s => {
+        const gapPct = (s.gap_pct || s.gap_up_pct || 0).toFixed(2);
+        const volMult = (s.rvol || s.volume_multiplier || 1.0).toFixed(2);
+        const currPrice = s.current_price || s.close || 0;
+        const dayChg = s.day_change_pct || 0;
+        const compName = s.company_name || s.name || '';
+        const pivotPrice = s.pivot_price || s.buy_pivot || currPrice;
+        const stopLoss = s.stop_loss || (currPrice * 0.95);
+        const epStatus = s.ep_status || s.status || 'EP_GAP_LIVE';
+        const chgClass = dayChg >= 0 ? 'color: #34d399;' : 'color: #f87171;';
+        const chgSign = dayChg >= 0 ? '+' : '';
+
+        return `
+            <tr style="border-bottom: 1px solid rgba(255,255,255,0.05);">
+                <td style="padding: 12px;">
+                    <div style="font-weight: 700; color: #f8fafc; font-size: 14px;">${s.symbol}</div>
+                    <div style="font-size: 11px; color: #94a3b8;">${compName}</div>
+                </td>
+                <td style="padding: 12px; color: #38bdf8; font-weight: 700;">₹${currPrice.toLocaleString('en-IN', {minimumFractionDigits: 2})}</td>
+                <td style="padding: 12px; font-weight: 700; ${chgClass}">${chgSign}${dayChg.toFixed(2)}%</td>
+                <td style="padding: 12px;">
+                    <span style="background: rgba(16, 185, 129, 0.15); color: #34d399; font-weight: 700; padding: 4px 8px; border-radius: 6px; font-size: 12px;">+${gapPct}%</span>
+                </td>
+                <td style="padding: 12px;">
+                    <span style="background: rgba(245, 158, 11, 0.15); color: #fbbf24; font-weight: 700; padding: 4px 8px; border-radius: 6px; font-size: 12px;">${volMult}x</span>
+                </td>
+                <td style="padding: 12px; font-size: 12px; color: #cbd5e1; font-weight: 600;">
+                    ${s.base_duration_days || 10}d Base (${(s.base_volatility_pct || 8.5).toFixed(1)}%)
+                </td>
+                <td style="padding: 12px; font-weight: 800; color: #34d399;">₹${pivotPrice.toFixed(2)}</td>
+                <td style="padding: 12px; font-weight: 700; color: #f87171;">₹${stopLoss.toFixed(2)}</td>
+                <td style="padding: 12px;">
+                    <span style="background: rgba(236, 72, 153, 0.15); color: #f472b6; font-weight: 700; padding: 4px 8px; border-radius: 6px; font-size: 11.5px;">${epStatus}</span>
+                </td>
+                <td style="padding: 12px; text-align: right; white-space: nowrap;">
+                    <button onclick="window.launchStageSimulator && window.launchStageSimulator('${s.symbol}')" class="btn-secondary quant-sim-btn" style="padding: 5px 10px; font-size: 11.5px; border-radius: 8px; cursor: pointer; white-space: nowrap; display: inline-flex; align-items: center; gap: 4px; font-weight: 700; background: rgba(168, 85, 247, 0.15); border: 1px solid rgba(168, 85, 247, 0.4); color: #c084fc; margin-right: 6px;" title="Scan stock in 4-Stage Life Cycle Masterclass Simulator">
+                        Simulate ⚙️
+                    </button>
+                    <button onclick="window.openTradingViewChart && window.openTradingViewChart('${s.symbol}')" class="btn-secondary quant-chart-btn" style="padding: 5px 12px; font-size: 11.5px; border-radius: 8px; cursor: pointer; white-space: nowrap; display: inline-flex; align-items: center; gap: 3px; font-weight: 700;">
+                        Chart ↗
+                    </button>
+                </td>
+            </tr>
+        `;
+    }).join('');
+};
+
+window.filterEpisodicTable = function() {
+    const q = (document.getElementById('episodic-search-input')?.value || '').toLowerCase();
+    const status = document.getElementById('episodic-status-filter')?.value || 'ALL';
+
+    let filtered = (window.allEpisodicStocks || []).filter(s => {
+        const matchesQ = s.symbol.toLowerCase().includes(q) || (s.company_name || s.name || '').toLowerCase().includes(q);
+        const matchesStatus = status === 'ALL' || s.ep_status === status || s.status === status;
+        return matchesQ && matchesStatus;
+    });
+
+    window.renderEpisodicTable(filtered);
+};
+
+// ==========================================
+// 5. DR. CHRIS KACHER POCKET PIVOT SCREENER
+// ==========================================
+window.runPocketScan = async function(isSilent = false, forceRefresh = false) {
+    const loadingEl = document.getElementById('pocket-loading-container');
+    
+    const cached = localStorage.getItem('cache_pocket_screener');
+    if (cached && !window.allPocketStocks.length) {
+        try {
+            const parsed = JSON.parse(cached);
+            const list = parsed.data || parsed.matches || [];
+            if (parsed && list.length) {
+                window.allPocketStocks = list;
+                window.renderPocketTable(list);
+                const badge = document.getElementById('pocket-count-badge');
+                if (badge) badge.innerText = `${list.length} Matches`;
+                const ts = document.getElementById('pocket-timestamp');
+                if (ts && (parsed.last_updated || parsed.timestamp)) ts.innerText = `Cached: ${parsed.last_updated || parsed.timestamp}`;
+            }
+        } catch(e) {}
+    }
+
+    if (!isSilent && loadingEl) loadingEl.style.display = 'block';
+
+    try {
+        const url = `/api/screener/pocket-pivot${forceRefresh ? '?force_refresh=true' : ''}`;
+        const response = await fetch(url);
+        const data = await response.json();
+
+        if (data.status === 'success') {
+            window.allPocketStocks = data.data || data.matches || [];
+            localStorage.setItem('cache_pocket_screener', JSON.stringify(data));
+            window.renderPocketTable(window.allPocketStocks);
+
+            const badge = document.getElementById('pocket-count-badge');
+            const cnt = data.count !== undefined ? data.count : (data.total_matches !== undefined ? data.total_matches : window.allPocketStocks.length);
+            if (badge) badge.innerText = `${cnt} Matches`;
+            const ts = document.getElementById('pocket-timestamp');
+            if (ts) ts.innerText = `Last Updated: ${data.last_updated || data.timestamp || 'Just Now'}`;
+        }
+    } catch (err) {
+        console.error('Error running Pocket Pivot scan:', err);
+    } finally {
+        if (loadingEl) loadingEl.style.display = 'none';
+    }
+};
+
+window.renderPocketTable = function(stocks) {
+    const tbody = document.getElementById('pocket-table-body');
+    if (!tbody) return;
+
+    const list = stocks || [];
+
+    // Populate KPI summary cards
+    const totalEl = document.getElementById('pocket-kpi-total');
+    const liveEl = document.getElementById('pocket-kpi-live');
+    const formingEl = document.getElementById('pocket-kpi-forming');
+    const avgVolEl = document.getElementById('pocket-kpi-avg-vol');
+
+    if (totalEl) totalEl.innerText = list.length;
+    if (liveEl) liveEl.innerText = list.filter(s => (s.vol_ratio_vs_max_down || 0) >= 1.5).length;
+    if (formingEl) formingEl.innerText = list.filter(s => (s.pocket_status || '').includes('FORMING')).length;
+    const avgVol = list.length > 0 ? (list.reduce((a, b) => a + (b.vol_ratio_vs_max_down || 1.0), 0) / list.length).toFixed(2) : '1.00';
+    if (avgVolEl) avgVolEl.innerText = `${avgVol}x`;
+
+    if (list.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="10" style="text-align: center; padding: 40px; color: #64748b;">No Dr. Chris Kacher Pocket Pivot accumulation setups found currently.</td></tr>`;
+        return;
+    }
+
+    tbody.innerHTML = list.map(s => {
+        const currPrice = s.current_price || s.close || 0;
+        const dayChg = s.day_change_pct || 0;
+        const volRatio = (s.vol_ratio_vs_max_down || s.vol_ratio || 1.0).toFixed(2);
+        const maSupp = s.ma_support_line || s.pocket_status || '10/20 EMA';
+        const compName = s.company_name || s.name || '';
+        const pivotPrice = s.pivot_price || s.buy_pivot || currPrice;
+        const stopLoss = s.stop_loss || (currPrice * 0.95);
+        const upVol = (s.up_volume || s.volume || 1000000).toLocaleString('en-IN');
+        const maxDownVol = (s.max_down_vol_10d || s.max_down_volume || 600000).toLocaleString('en-IN');
+
+        const chgClass = dayChg >= 0 ? 'color: #34d399;' : 'color: #f87171;';
+        const chgSign = dayChg >= 0 ? '+' : '';
+
+        return `
+            <tr style="border-bottom: 1px solid rgba(255,255,255,0.05);">
+                <td style="padding: 12px;">
+                    <div style="font-weight: 700; color: #f8fafc; font-size: 14px;">${s.symbol}</div>
+                    <div style="font-size: 11px; color: #94a3b8;">${compName}</div>
+                </td>
+                <td style="padding: 12px; color: #38bdf8; font-weight: 700;">₹${currPrice.toLocaleString('en-IN', {minimumFractionDigits: 2})}</td>
+                <td style="padding: 12px; font-weight: 700; ${chgClass}">${chgSign}${dayChg.toFixed(2)}%</td>
+                <td style="padding: 12px; font-weight: 700; color: #34d399;">${upVol}</td>
+                <td style="padding: 12px; font-weight: 600; color: #94a3b8;">${maxDownVol}</td>
+                <td style="padding: 12px;">
+                    <span style="background: rgba(16, 185, 129, 0.15); color: #34d399; font-weight: 700; padding: 4px 8px; border-radius: 6px; font-size: 12px;">${volRatio}x Down Vol</span>
+                </td>
+                <td style="padding: 12px; font-weight: 800; color: #38bdf8;">₹${pivotPrice.toFixed(2)}</td>
+                <td style="padding: 12px; font-weight: 700; color: #f87171;">₹${stopLoss.toFixed(2)}</td>
+                <td style="padding: 12px;">
+                    <span style="background: rgba(168, 85, 247, 0.15); color: #c084fc; font-weight: 700; padding: 4px 8px; border-radius: 6px; font-size: 11.5px;">${maSupp}</span>
+                </td>
+                <td style="padding: 12px; text-align: right; white-space: nowrap;">
+                    <button onclick="window.launchStageSimulator && window.launchStageSimulator('${s.symbol}')" class="btn-secondary quant-sim-btn" style="padding: 5px 10px; font-size: 11.5px; border-radius: 8px; cursor: pointer; white-space: nowrap; display: inline-flex; align-items: center; gap: 4px; font-weight: 700; background: rgba(168, 85, 247, 0.15); border: 1px solid rgba(168, 85, 247, 0.4); color: #c084fc; margin-right: 6px;" title="Scan stock in 4-Stage Life Cycle Masterclass Simulator">
+                        Simulate ⚙️
+                    </button>
+                    <button onclick="window.openTradingViewChart && window.openTradingViewChart('${s.symbol}')" class="btn-secondary quant-chart-btn" style="padding: 5px 12px; font-size: 11.5px; border-radius: 8px; cursor: pointer; white-space: nowrap; display: inline-flex; align-items: center; gap: 3px; font-weight: 700;">
+                        Chart ↗
+                    </button>
+                </td>
+            </tr>
+        `;
+    }).join('');
+};
+
+window.filterPocketTable = function() {
+    const q = (document.getElementById('pocket-search-input')?.value || '').toLowerCase();
+    const status = document.getElementById('pocket-status-filter')?.value || 'ALL';
+
+    let filtered = (window.allPocketStocks || []).filter(s => {
+        const matchesQ = s.symbol.toLowerCase().includes(q) || (s.company_name || s.name || '').toLowerCase().includes(q);
+        const matchesStatus = status === 'ALL' || s.pocket_status === status;
+        return matchesQ && matchesStatus;
+    });
+
+    window.renderPocketTable(filtered);
+};
+
+// ==========================================
+// 6. OLIVER KELL TREND STRUCTURE & EMAs SCREENER
+// ==========================================
+window.runOliverKellScan = async function(isSilent = false, forceRefresh = false) {
+    const loadingEl = document.getElementById('oliverkell-loading-container');
+    
+    const cached = localStorage.getItem('cache_oliverkell_screener');
+    if (cached && !window.allOliverKellStocks.length) {
+        try {
+            const parsed = JSON.parse(cached);
+            const list = parsed.data || parsed.matches || [];
+            if (parsed && list.length) {
+                window.allOliverKellStocks = list;
+                window.renderOliverKellTable(list);
+                const badge = document.getElementById('oliverkell-count-badge');
+                if (badge) badge.innerText = `${list.length} Matches`;
+                const ts = document.getElementById('oliverkell-timestamp');
+                if (ts && (parsed.last_updated || parsed.timestamp)) ts.innerText = `Cached: ${parsed.last_updated || parsed.timestamp}`;
+            }
+        } catch(e) {}
+    }
+
+    if (!isSilent && loadingEl) loadingEl.style.display = 'block';
+
+    try {
+        const url = `/api/screener/oliver-kell${forceRefresh ? '?force_refresh=true' : ''}`;
+        const response = await fetch(url);
+        const data = await response.json();
+
+        if (data.status === 'success') {
+            window.allOliverKellStocks = data.data || data.matches || [];
+            localStorage.setItem('cache_oliverkell_screener', JSON.stringify(data));
+            window.renderOliverKellTable(window.allOliverKellStocks);
+
+            const badge = document.getElementById('oliverkell-count-badge');
+            const cnt = data.count !== undefined ? data.count : (data.total_matches !== undefined ? data.total_matches : window.allOliverKellStocks.length);
+            if (badge) badge.innerText = `${cnt} Matches`;
+            const ts = document.getElementById('oliverkell-timestamp');
+            if (ts) ts.innerText = `Last Updated: ${data.last_updated || data.timestamp || 'Just Now'}`;
+        }
+    } catch (err) {
+        console.error('Error running Oliver Kell scan:', err);
+    } finally {
+        if (loadingEl) loadingEl.style.display = 'none';
+    }
+};
+
+window.renderOliverKellTable = function(stocks) {
+    const tbody = document.getElementById('oliverkell-table-body');
+    if (!tbody) return;
+
+    const list = stocks || [];
+
+    // Populate KPI summary cards
+    const totalEl = document.getElementById('oliverkell-kpi-total');
+    const liveEl = document.getElementById('oliverkell-kpi-live');
+    const pullbackEl = document.getElementById('oliverkell-kpi-pullback');
+    const avgGainEl = document.getElementById('oliverkell-kpi-avg-gain');
+
+    if (totalEl) totalEl.innerText = list.length;
+    if (liveEl) liveEl.innerText = list.filter(s => (s.day_change_pct || 0) > 0).length;
+    if (pullbackEl) pullbackEl.innerText = list.filter(s => (s.day_change_pct || 0) <= 0).length;
+    const avgGain = list.length > 0 ? (list.reduce((a, b) => a + (b.day_change_pct || 0), 0) / list.length).toFixed(2) : '0.00';
+    if (avgGainEl) avgGainEl.innerText = `${avgGain}%`;
+
+    if (list.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="10" style="text-align: center; padding: 40px; color: #64748b;">No Oliver Kell Trend Structure / EMA Pullback setups currently detected.</td></tr>`;
+        return;
+    }
+
+    tbody.innerHTML = list.map(s => {
+        const currPrice = s.current_price || s.close || 0;
+        const dayChg = s.day_change_pct || 0;
+        const ema10 = s.ema_10 || (currPrice * 0.98);
+        const ema20 = s.ema_20 || (currPrice * 0.96);
+        const dist10 = s.dist_to_10ema !== undefined ? s.dist_to_10ema.toFixed(2) : (currPrice > 0 ? (((currPrice - ema10) / currPrice) * 100).toFixed(2) : '0.00');
+        const status = s.tested_ma || s.kell_status || s.extension_status || '10 EMA Touch';
+        const compName = s.company_name || s.name || '';
+        const pivotPrice = s.pivot_price || s.buy_pivot || currPrice;
+        const stopLoss = s.stop_loss || ema20;
+
+        const chgClass = dayChg >= 0 ? 'color: #34d399;' : 'color: #f87171;';
+        const chgSign = dayChg >= 0 ? '+' : '';
+
+        return `
+            <tr style="border-bottom: 1px solid rgba(255,255,255,0.05);">
+                <td style="padding: 12px;">
+                    <div style="font-weight: 700; color: #f8fafc; font-size: 14px;">${s.symbol}</div>
+                    <div style="font-size: 11px; color: #94a3b8;">${compName}</div>
+                </td>
+                <td style="padding: 12px; color: #38bdf8; font-weight: 700;">₹${currPrice.toLocaleString('en-IN', {minimumFractionDigits: 2})}</td>
+                <td style="padding: 12px; font-weight: 700; ${chgClass}">${chgSign}${dayChg.toFixed(2)}%</td>
+                <td style="padding: 12px; font-weight: 700; color: #38bdf8;">₹${ema10.toFixed(2)}</td>
+                <td style="padding: 12px; font-weight: 700; color: #c084fc;">₹${ema20.toFixed(2)}</td>
+                <td style="padding: 12px; font-weight: 800; color: ${parseFloat(dist10) >= 0 ? '#34d399' : '#fbbf24'};">${dist10}%</td>
+                <td style="padding: 12px; font-weight: 800; color: #34d399;">₹${pivotPrice.toFixed(2)}</td>
+                <td style="padding: 12px; font-weight: 700; color: #f87171;">₹${stopLoss.toFixed(2)}</td>
+                <td style="padding: 12px;">
+                    <span style="background: rgba(56, 189, 248, 0.15); color: #38bdf8; font-weight: 700; padding: 4px 8px; border-radius: 6px; font-size: 11.5px;">${status}</span>
+                </td>
+                <td style="padding: 12px; text-align: right; white-space: nowrap;">
+                    <button onclick="window.launchStageSimulator && window.launchStageSimulator('${s.symbol}')" class="btn-secondary quant-sim-btn" style="padding: 5px 10px; font-size: 11.5px; border-radius: 8px; cursor: pointer; white-space: nowrap; display: inline-flex; align-items: center; gap: 4px; font-weight: 700; background: rgba(168, 85, 247, 0.15); border: 1px solid rgba(168, 85, 247, 0.4); color: #c084fc; margin-right: 6px;" title="Scan stock in 4-Stage Life Cycle Masterclass Simulator">
+                        Simulate ⚙️
+                    </button>
+                    <button onclick="window.openTradingViewChart && window.openTradingViewChart('${s.symbol}')" class="btn-secondary quant-chart-btn" style="padding: 5px 12px; font-size: 11.5px; border-radius: 8px; cursor: pointer; white-space: nowrap; display: inline-flex; align-items: center; gap: 3px; font-weight: 700;">
+                        Chart ↗
+                    </button>
+                </td>
+            </tr>
+        `;
+    }).join('');
+};
+
+window.filterOliverKellTable = function() {
+    const q = (document.getElementById('oliverkell-search-input')?.value || '').toLowerCase();
+    const status = document.getElementById('oliverkell-status-filter')?.value || 'ALL';
+
+    let filtered = window.allOliverKellStocks.filter(s => {
+        const matchesQ = s.symbol.toLowerCase().includes(q) || (s.name || '').toLowerCase().includes(q);
+        const matchesStatus = status === 'ALL' || s.extension_status === status;
+        return matchesQ && matchesStatus;
+    });
+
+    window.renderOliverKellTable(filtered);
+};
+
 // 4. INTERACTIVE STAGE 1-4 STOCK DIAGNOSTIC SIMULATOR
 window.runStockStageSimulator = async function(symbolInput) {
     let sym = symbolInput || document.getElementById('stage-sim-input')?.value || 'SUZLON.NS';
@@ -56602,14 +57035,14 @@ window.runStockStageSimulator = async function(symbolInput) {
                 </div>
             </div>
 
-            <!-- 4 Screener Qualification Status Cards -->
+            <!-- 8 Screener Qualification Status Cards -->
             <h5 style="margin: 0 0 10px 0; font-size: 13px; font-weight: 800; color: #f8fafc;">
-                🎯 4-Screener Algorithmic Qualification Checks:
+                🎯 8-Screener Algorithmic Qualification Checks:
             </h5>
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px; margin-bottom: 18px;">
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 10px; margin-bottom: 18px;">
                 <div style="background: rgba(15, 23, 42, 0.5); border: 1px solid ${(st.vcp || {}).qualified ? '#34d399' : 'rgba(255,255,255,0.1)'}; padding: 10px 12px; border-radius: 8px;">
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
-                        <strong style="color: #fbbf24; font-size: 12px;">🔥 VCP & CANSLIM</strong>
+                        <strong style="color: #fbbf24; font-size: 12px;">🔥 Minervini VCP</strong>
                         <span style="font-size: 11px; font-weight: 800; color: ${(st.vcp || {}).qualified ? '#34d399' : '#f87171'};">
                             ${(st.vcp || {}).qualified ? '✅ QUALIFIED' : '❌ REJECTED'}
                         </span>
@@ -56643,6 +57076,42 @@ window.runStockStageSimulator = async function(symbolInput) {
                     </div>
                     <p style="margin: 0; font-size: 11px; color: #cbd5e1;">${(st.three_wt || {}).reason || ''}</p>
                 </div>
+                <div style="background: rgba(15, 23, 42, 0.5); border: 1px solid ${(st.flat_base || {}).qualified ? '#34d399' : 'rgba(255,255,255,0.1)'}; padding: 10px 12px; border-radius: 8px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+                        <strong style="color: #f472b6; font-size: 12px;">🧱 Flat Base</strong>
+                        <span style="font-size: 11px; font-weight: 800; color: ${(st.flat_base || {}).qualified ? '#34d399' : '#f87171'};">
+                            ${(st.flat_base || {}).qualified ? '✅ QUALIFIED' : '❌ REJECTED'}
+                        </span>
+                    </div>
+                    <p style="margin: 0; font-size: 11px; color: #cbd5e1;">${(st.flat_base || {}).reason || ''}</p>
+                </div>
+                <div style="background: rgba(15, 23, 42, 0.5); border: 1px solid ${(st.episodic || {}).qualified ? '#34d399' : 'rgba(255,255,255,0.1)'}; padding: 10px 12px; border-radius: 8px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+                        <strong style="color: #fb923c; font-size: 12px;">⚡ Episodic Pivot</strong>
+                        <span style="font-size: 11px; font-weight: 800; color: ${(st.episodic || {}).qualified ? '#34d399' : '#f87171'};">
+                            ${(st.episodic || {}).qualified ? '✅ QUALIFIED' : '❌ REJECTED'}
+                        </span>
+                    </div>
+                    <p style="margin: 0; font-size: 11px; color: #cbd5e1;">${(st.episodic || {}).reason || ''}</p>
+                </div>
+                <div style="background: rgba(15, 23, 42, 0.5); border: 1px solid ${(st.pocket || {}).qualified ? '#34d399' : 'rgba(255,255,255,0.1)'}; padding: 10px 12px; border-radius: 8px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+                        <strong style="color: #a78bfa; font-size: 12px;">💎 Pocket Pivot</strong>
+                        <span style="font-size: 11px; font-weight: 800; color: ${(st.pocket || {}).qualified ? '#34d399' : '#f87171'};">
+                            ${(st.pocket || {}).qualified ? '✅ QUALIFIED' : '❌ REJECTED'}
+                        </span>
+                    </div>
+                    <p style="margin: 0; font-size: 11px; color: #cbd5e1;">${(st.pocket || {}).reason || ''}</p>
+                </div>
+                <div style="background: rgba(15, 23, 42, 0.5); border: 1px solid ${(st.kell || {}).qualified ? '#34d399' : 'rgba(255,255,255,0.1)'}; padding: 10px 12px; border-radius: 8px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+                        <strong style="color: #38bdf8; font-size: 12px;">🌊 Oliver Kell</strong>
+                        <span style="font-size: 11px; font-weight: 800; color: ${(st.kell || {}).qualified ? '#34d399' : '#f87171'};">
+                            ${(st.kell || {}).qualified ? '✅ QUALIFIED' : '❌ REJECTED'}
+                        </span>
+                    </div>
+                    <p style="margin: 0; font-size: 11px; color: #cbd5e1;">${(st.kell || {}).reason || ''}</p>
+                </div>
             </div>
 
             <!-- Tactical Guidance Banner -->
@@ -56650,10 +57119,10 @@ window.runStockStageSimulator = async function(symbolInput) {
                 💡 Tactical Action Plan: <span style="font-weight: 500; color: #cbd5e1;">${data.action_guidance || ''}</span>
             </div>
 
-            <!-- NEW: Clean Universal 4-Screener Diagnostic Audit Card Breakdown -->
+            <!-- NEW: Clean Universal 8-Screener Diagnostic Audit Card Breakdown -->
             <div class="audit-section-container" style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 10px; padding: 14px; margin-bottom: 16px;">
                 <h5 style="margin: 0 0 12px 0; font-size: 13px; font-weight: 800; color: #38bdf8; display: flex; align-items: center; gap: 6px;">
-                    📊 4-Screener Algorithmic Diagnostic Audit & Criteria Breakdown
+                    📊 8-Screener Algorithmic Diagnostic Audit & Criteria Breakdown
                 </h5>
                 
                 <!-- Universal Card Breakdown View (Mobile, Tablet & Desktop) -->
@@ -57038,6 +57507,10 @@ window.renderWatchlistQuantMatrix = function(stocks) {
         if (filterVal === 'VCP') return s.vcp_qualified;
         if (filterVal === 'HTF') return s.htf_qualified;
         if (filterVal === '3WT') return s.three_wt_qualified;
+        if (filterVal === 'FLAT') return s.flat_qualified;
+        if (filterVal === 'EP') return s.episodic_qualified;
+        if (filterVal === 'POCKET') return s.pocket_qualified;
+        if (filterVal === 'KELL') return s.kell_qualified;
 
         return true;
     });
@@ -57060,7 +57533,7 @@ window.renderWatchlistQuantMatrix = function(stocks) {
     if (!tbody) return;
 
     if (filtered.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="11" style="text-align: center; padding: 30px; color: #94a3b8;">No watchlist stocks match the active filter criteria.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="15" style="text-align: center; padding: 30px; color: #94a3b8;">No watchlist stocks match the active filter criteria.</td></tr>`;
         return;
     }
 
@@ -57082,6 +57555,10 @@ window.renderWatchlistQuantMatrix = function(stocks) {
         const weinHtml = s.weinstein_qualified ? `<span class="badge-quant badge-quant-green">STAGE 2 🚀</span>` : `<span style="color: #94a3b8;">${s.weinstein_status}</span>`;
         const htfHtml = s.htf_qualified ? `<span class="badge-quant badge-quant-teal">HTF READY 🎯</span>` : `<span style="color: #94a3b8;">${s.htf_status}</span>`;
         const twtHtml = s.three_wt_qualified ? `<span class="badge-quant badge-quant-teal">3WT TIGHT 🎯</span>` : `<span style="color: #94a3b8;">${s.three_wt_status}</span>`;
+        const flatHtml = s.flat_qualified ? `<span class="badge-quant badge-quant-green">FLAT BASE 🧱</span>` : `<span style="color: #94a3b8;">${s.flat_status}</span>`;
+        const epHtml = s.episodic_qualified ? `<span class="badge-quant badge-quant-pink">EPISODIC PIVOT ⚡</span>` : `<span style="color: #94a3b8;">${s.episodic_status}</span>`;
+        const pocketHtml = s.pocket_qualified ? `<span class="badge-quant badge-quant-purple">POCKET PIVOT 🎯</span>` : `<span style="color: #94a3b8;">${s.pocket_status}</span>`;
+        const kellHtml = s.kell_qualified ? `<span class="badge-quant badge-quant-blue">OLIVER KELL 10/20 📈</span>` : `<span style="color: #94a3b8;">${s.kell_status}</span>`;
 
         const pivotP = s.pivot_price || (s.current_price ? Number((s.current_price * 1.01).toFixed(2)) : 0);
         const stopL = s.stop_loss || (pivotP ? Number((pivotP * 0.95).toFixed(2)) : 0);
@@ -57121,6 +57598,10 @@ window.renderWatchlistQuantMatrix = function(stocks) {
                 <td style="padding: 10px 14px; white-space: nowrap;">${weinHtml}</td>
                 <td style="padding: 10px 14px; white-space: nowrap;">${htfHtml}</td>
                 <td style="padding: 10px 14px; white-space: nowrap;">${twtHtml}</td>
+                <td style="padding: 10px 14px; white-space: nowrap;">${flatHtml}</td>
+                <td style="padding: 10px 14px; white-space: nowrap;">${epHtml}</td>
+                <td style="padding: 10px 14px; white-space: nowrap;">${pocketHtml}</td>
+                <td style="padding: 10px 14px; white-space: nowrap;">${kellHtml}</td>
                 <td style="padding: 10px 14px; white-space: nowrap;">
                     <span class="badge-quant ${s.badge_class}">${s.qualification_label}</span>
                 </td>

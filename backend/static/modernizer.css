@@ -3008,6 +3008,120 @@ body.light-theme #quant-view-flatbase .screener-hero-header .btn-secondary,
     color: #34d399 !important;
 }
 
+/* Episodic Pivot (EP) Hero Header & KPI Cards Light Mode Overrides */
+body.light-theme #quant-view-episodic .screener-hero-header,
+[data-theme="light"] #quant-view-episodic .screener-hero-header,
+[data-mode="light"] #quant-view-episodic .screener-hero-header {
+    background: linear-gradient(135deg, rgba(15, 23, 42, 0.95), rgba(30, 41, 59, 0.92), rgba(15, 23, 42, 0.95)) !important;
+    border: 1px solid rgba(236, 72, 153, 0.4) !important;
+    box-shadow: 0 12px 32px -4px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.1) !important;
+}
+
+body.light-theme #quant-view-episodic .screener-hero-header h2,
+[data-theme="light"] #quant-view-episodic .screener-hero-header h2,
+[data-mode="light"] #quant-view-episodic .screener-hero-header h2 {
+    color: #ffffff !important;
+}
+
+body.light-theme #quant-view-episodic .screener-hero-header p,
+[data-theme="light"] #quant-view-episodic .screener-hero-header p,
+[data-mode="light"] #quant-view-episodic .screener-hero-header p {
+    color: #94a3b8 !important;
+    font-weight: 500 !important;
+}
+
+body.light-theme #quant-view-episodic .screener-kpi-card,
+[data-theme="light"] #quant-view-episodic .screener-kpi-card,
+[data-mode="light"] #quant-view-episodic .screener-kpi-card {
+    background: rgba(15, 23, 42, 0.6) !important;
+    border: 1px solid rgba(255, 255, 255, 0.08) !important;
+}
+
+#quant-view-episodic .screener-hero-header .btn-secondary,
+body.light-theme #quant-view-episodic .screener-hero-header .btn-secondary,
+[data-theme="light"] #quant-view-episodic .screener-hero-header .btn-secondary,
+[data-mode="light"] #quant-view-episodic .screener-hero-header .btn-secondary {
+    background: rgba(236, 72, 153, 0.22) !important;
+    border: 1px solid rgba(236, 72, 153, 0.6) !important;
+    color: #f472b6 !important;
+}
+
+/* Pocket Pivot Hero Header & KPI Cards Light Mode Overrides */
+body.light-theme #quant-view-pocket .screener-hero-header,
+[data-theme="light"] #quant-view-pocket .screener-hero-header,
+[data-mode="light"] #quant-view-pocket .screener-hero-header {
+    background: linear-gradient(135deg, rgba(15, 23, 42, 0.95), rgba(30, 41, 59, 0.92), rgba(15, 23, 42, 0.95)) !important;
+    border: 1px solid rgba(168, 85, 247, 0.4) !important;
+    box-shadow: 0 12px 32px -4px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.1) !important;
+}
+
+body.light-theme #quant-view-pocket .screener-hero-header h2,
+[data-theme="light"] #quant-view-pocket .screener-hero-header h2,
+[data-mode="light"] #quant-view-pocket .screener-hero-header h2 {
+    color: #ffffff !important;
+}
+
+body.light-theme #quant-view-pocket .screener-hero-header p,
+[data-theme="light"] #quant-view-pocket .screener-hero-header p,
+[data-mode="light"] #quant-view-pocket .screener-hero-header p {
+    color: #94a3b8 !important;
+    font-weight: 500 !important;
+}
+
+body.light-theme #quant-view-pocket .screener-kpi-card,
+[data-theme="light"] #quant-view-pocket .screener-kpi-card,
+[data-mode="light"] #quant-view-pocket .screener-kpi-card {
+    background: rgba(15, 23, 42, 0.6) !important;
+    border: 1px solid rgba(255, 255, 255, 0.08) !important;
+}
+
+#quant-view-pocket .screener-hero-header .btn-secondary,
+body.light-theme #quant-view-pocket .screener-hero-header .btn-secondary,
+[data-theme="light"] #quant-view-pocket .screener-hero-header .btn-secondary,
+[data-mode="light"] #quant-view-pocket .screener-hero-header .btn-secondary {
+    background: rgba(168, 85, 247, 0.22) !important;
+    border: 1px solid rgba(168, 85, 247, 0.6) !important;
+    color: #c084fc !important;
+}
+
+/* Oliver Kell Hero Header & KPI Cards Light Mode Overrides */
+body.light-theme #quant-view-oliverkell .screener-hero-header,
+[data-theme="light"] #quant-view-oliverkell .screener-hero-header,
+[data-mode="light"] #quant-view-oliverkell .screener-hero-header {
+    background: linear-gradient(135deg, rgba(15, 23, 42, 0.95), rgba(30, 41, 59, 0.92), rgba(15, 23, 42, 0.95)) !important;
+    border: 1px solid rgba(56, 189, 248, 0.4) !important;
+    box-shadow: 0 12px 32px -4px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.1) !important;
+}
+
+body.light-theme #quant-view-oliverkell .screener-hero-header h2,
+[data-theme="light"] #quant-view-oliverkell .screener-hero-header h2,
+[data-mode="light"] #quant-view-oliverkell .screener-hero-header h2 {
+    color: #ffffff !important;
+}
+
+body.light-theme #quant-view-oliverkell .screener-hero-header p,
+[data-theme="light"] #quant-view-oliverkell .screener-hero-header p,
+[data-mode="light"] #quant-view-oliverkell .screener-hero-header p {
+    color: #94a3b8 !important;
+    font-weight: 500 !important;
+}
+
+body.light-theme #quant-view-oliverkell .screener-kpi-card,
+[data-theme="light"] #quant-view-oliverkell .screener-kpi-card,
+[data-mode="light"] #quant-view-oliverkell .screener-kpi-card {
+    background: rgba(15, 23, 42, 0.6) !important;
+    border: 1px solid rgba(255, 255, 255, 0.08) !important;
+}
+
+#quant-view-oliverkell .screener-hero-header .btn-secondary,
+body.light-theme #quant-view-oliverkell .screener-hero-header .btn-secondary,
+[data-theme="light"] #quant-view-oliverkell .screener-hero-header .btn-secondary,
+[data-mode="light"] #quant-view-oliverkell .screener-hero-header .btn-secondary {
+    background: rgba(56, 189, 248, 0.22) !important;
+    border: 1px solid rgba(56, 189, 248, 0.6) !important;
+    color: #38bdf8 !important;
+}
+
 
 
 

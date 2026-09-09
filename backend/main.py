@@ -13499,12 +13499,15 @@ async def send_quant_cron_whatsapp_summary(summary_dict: dict, duration_sec: flo
         
     msg = (
         "📊 *Quant Suite Nightly Pre-Warm Completed (1:30 AM)*\n\n"
-        f"• *Minervini VCP*: {summary_dict.get('vcp', 0)} pristine setups\n"
+        f"• *Minervini VCP*: {summary_dict.get('vcp', 0)} setups\n"
         f"• *Weinstein Stage 2*: {summary_dict.get('stage2', 0)} leaders\n"
         f"• *David Ryan 3WT*: {summary_dict.get('3wt', 0)} setups\n"
         f"• *Flat Base*: {summary_dict.get('flat_base', 0)} setups\n"
-        f"• *David Ryan HTF*: {summary_dict.get('htf', 0)} setups\n\n"
-        f"⚡ *All caches updated in SQLite in {duration_sec:.1f}s.*"
+        f"• *David Ryan HTF*: {summary_dict.get('htf', 0)} setups\n"
+        f"• *Episodic Pivot (EP)*: {summary_dict.get('episodic_pivot', 0)} gap setups\n"
+        f"• *Pocket Pivot*: {summary_dict.get('pocket_pivot', 0)} accumulation setups\n"
+        f"• *Oliver Kell 10/20 EMA*: {summary_dict.get('oliver_kell', 0)} reversals\n\n"
+        f"⚡ *All 8 screener caches updated in SQLite in {duration_sec:.1f}s.*"
     )
     
     try:
@@ -13532,11 +13535,11 @@ async def send_quant_cron_whatsapp_summary(summary_dict: dict, duration_sec: flo
     return False
 
 async def _run_full_quant_cron_sweep():
-    """Runs full recalculation sweep across all 5 screeners and records execution logs."""
+    """Runs full recalculation sweep across all 8 screeners and records execution logs."""
     t0 = time.time()
     summary = {}
     try:
-        print("[CRON] Starting full 5-screener universe recalculation sweep...")
+        print("[CRON] Starting full 8-screener universe recalculation sweep...")
         vcp_candidates = await _recalculate_vcp_universe()
         summary["vcp"] = len(vcp_candidates)
 
@@ -13552,6 +13555,15 @@ async def _run_full_quant_cron_sweep():
         twt_res = await get_3weeks_tight_screener(force_refresh=True)
         summary["3wt"] = len(twt_res.get("data", []))
 
+        ep_res = await get_episodic_pivot_screener(force_refresh=True)
+        summary["episodic_pivot"] = len(ep_res.get("data", []))
+
+        pocket_res = await get_pocket_pivot_screener(force_refresh=True)
+        summary["pocket_pivot"] = len(pocket_res.get("data", []))
+
+        kell_res = await get_oliver_kell_screener(force_refresh=True)
+        summary["oliver_kell"] = len(kell_res.get("data", []))
+
         duration = round(time.time() - t0, 2)
         details_json = json.dumps(summary)
         
@@ -13564,7 +13576,7 @@ async def _run_full_quant_cron_sweep():
             )
             conn.commit()
             
-        print(f"[CRON SUCCESS] 5-screener sweep complete in {duration}s! Summary: {summary}")
+        print(f"[CRON SUCCESS] 8-screener sweep complete in {duration}s! Summary: {summary}")
         await send_quant_cron_whatsapp_summary(summary, duration)
     except Exception as err:
         duration = round(time.time() - t0, 2)
@@ -18252,6 +18264,234 @@ async def get_flat_base_screener(force_refresh: bool = False):
         "data": results
     }
 
+_EPISODIC_PIVOT_SCANNER_CACHE = {"data": [], "last_updated": ""}
+
+async def _scan_single_stock_episodic_pivot(item: dict, sem: asyncio.Semaphore):
+    async with sem:
+        sym = item["symbol"].strip().upper()
+        sym_yf = f"{sym}.NS" if not sym.endswith(".NS") else sym
+        try:
+            df = await fetch_history_df(sym_yf, period="1y", interval="1d")
+            if df is None or df.empty or len(df) < 40:
+                return None
+            from backend.swing_utils import detect_episodic_pivot
+            res = detect_episodic_pivot(df)
+            if not res.get("is_episodic_pivot"):
+                return None
+            res["symbol"] = sym
+            res["company_name"] = item.get("company_name", sym)
+            res["sector"] = item.get("sector", "N/A")
+            return res
+        except Exception:
+            return None
+
+@app.get("/api/screener/episodic-pivot")
+async def get_episodic_pivot_screener(force_refresh: bool = False):
+    """
+    Returns Kristjan Qullamaggie Episodic Pivot (EP / Catalyst Gap-Up) candidates.
+    Parallelized with asyncio 25x concurrency and backed by SQLite disk cache.
+    """
+    global _EPISODIC_PIVOT_SCANNER_CACHE
+    if not force_refresh:
+        db_cache = _load_screener_db_cache("episodic_pivot")
+        if db_cache and db_cache.get("data"):
+            _EPISODIC_PIVOT_SCANNER_CACHE = db_cache
+            return {
+                "status": "success",
+                "count": len(db_cache["data"]),
+                "last_updated": db_cache["last_updated"],
+                "data": db_cache["data"]
+            }
+        if _EPISODIC_PIVOT_SCANNER_CACHE.get("data"):
+            return {
+                "status": "success",
+                "count": len(_EPISODIC_PIVOT_SCANNER_CACHE["data"]),
+                "last_updated": _EPISODIC_PIVOT_SCANNER_CACHE["last_updated"],
+                "data": _EPISODIC_PIVOT_SCANNER_CACHE["data"]
+            }
+
+    results = []
+    try:
+        with get_db() as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT symbol, company_name, sector, cap_type FROM screener_universe WHERE symbol NOT LIKE '%DUMMY%'")
+            stocks = [dict(r) for r in cursor.fetchall()]
+
+        sem = asyncio.Semaphore(25)
+        tasks = [_scan_single_stock_episodic_pivot(item, sem) for item in stocks]
+        raw_results = await asyncio.gather(*tasks, return_exceptions=True)
+
+        for r in raw_results:
+            if isinstance(r, dict) and r is not None:
+                results.append(r)
+
+        status_rank = {"EP_GAP_LIVE": 3, "EP_ORB_BREAKOUT": 2, "EP_FLAG_FORMING": 1, "NONE": 0}
+        results.sort(key=lambda x: (status_rank.get(x.get("ep_status"), 0), x.get("rvol", 0), x.get("gap_pct", 0)), reverse=True)
+
+        last_updated = _save_screener_db_cache("episodic_pivot", results)
+        _EPISODIC_PIVOT_SCANNER_CACHE = {"data": results, "last_updated": last_updated}
+    except Exception as e:
+        print(f"Error executing Episodic Pivot screener: {e}")
+
+    return {
+        "status": "success",
+        "count": len(results),
+        "last_updated": _EPISODIC_PIVOT_SCANNER_CACHE.get("last_updated", ""),
+        "data": results
+    }
+
+_POCKET_PIVOT_SCANNER_CACHE = {"data": [], "last_updated": ""}
+
+async def _scan_single_stock_pocket_pivot(item: dict, sem: asyncio.Semaphore):
+    async with sem:
+        sym = item["symbol"].strip().upper()
+        sym_yf = f"{sym}.NS" if not sym.endswith(".NS") else sym
+        try:
+            df = await fetch_history_df(sym_yf, period="1y", interval="1d")
+            if df is None or df.empty or len(df) < 50:
+                return None
+            from backend.swing_utils import detect_pocket_pivot
+            res = detect_pocket_pivot(df)
+            if not res.get("is_pocket_pivot"):
+                return None
+            res["symbol"] = sym
+            res["company_name"] = item.get("company_name", sym)
+            res["sector"] = item.get("sector", "N/A")
+            return res
+        except Exception:
+            return None
+
+@app.get("/api/screener/pocket-pivot")
+async def get_pocket_pivot_screener(force_refresh: bool = False):
+    """
+    Returns Gil Morales & Chris Kacher Pocket Pivot Accumulation candidates.
+    Parallelized with asyncio 25x concurrency and backed by SQLite disk cache.
+    """
+    global _POCKET_PIVOT_SCANNER_CACHE
+    if not force_refresh:
+        db_cache = _load_screener_db_cache("pocket_pivot")
+        if db_cache and db_cache.get("data"):
+            _POCKET_PIVOT_SCANNER_CACHE = db_cache
+            return {
+                "status": "success",
+                "count": len(db_cache["data"]),
+                "last_updated": db_cache["last_updated"],
+                "data": db_cache["data"]
+            }
+        if _POCKET_PIVOT_SCANNER_CACHE.get("data"):
+            return {
+                "status": "success",
+                "count": len(_POCKET_PIVOT_SCANNER_CACHE["data"]),
+                "last_updated": _POCKET_PIVOT_SCANNER_CACHE["last_updated"],
+                "data": _POCKET_PIVOT_SCANNER_CACHE["data"]
+            }
+
+    results = []
+    try:
+        with get_db() as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT symbol, company_name, sector, cap_type FROM screener_universe WHERE symbol NOT LIKE '%DUMMY%'")
+            stocks = [dict(r) for r in cursor.fetchall()]
+
+        sem = asyncio.Semaphore(25)
+        tasks = [_scan_single_stock_pocket_pivot(item, sem) for item in stocks]
+        raw_results = await asyncio.gather(*tasks, return_exceptions=True)
+
+        for r in raw_results:
+            if isinstance(r, dict) and r is not None:
+                results.append(r)
+
+        status_rank = {"POCKET_PIVOT_LIVE": 2, "POCKET_PIVOT_FORMING": 1, "NONE": 0}
+        results.sort(key=lambda x: (status_rank.get(x.get("pocket_status"), 0), x.get("vol_ratio_vs_max_down", 0)), reverse=True)
+
+        last_updated = _save_screener_db_cache("pocket_pivot", results)
+        _POCKET_PIVOT_SCANNER_CACHE = {"data": results, "last_updated": last_updated}
+    except Exception as e:
+        print(f"Error executing Pocket Pivot screener: {e}")
+
+    return {
+        "status": "success",
+        "count": len(results),
+        "last_updated": _POCKET_PIVOT_SCANNER_CACHE.get("last_updated", ""),
+        "data": results
+    }
+
+_OLIVER_KELL_SCANNER_CACHE = {"data": [], "last_updated": ""}
+
+async def _scan_single_stock_oliver_kell(item: dict, sem: asyncio.Semaphore):
+    async with sem:
+        sym = item["symbol"].strip().upper()
+        sym_yf = f"{sym}.NS" if not sym.endswith(".NS") else sym
+        try:
+            df = await fetch_history_df(sym_yf, period="1y", interval="1d")
+            if df is None or df.empty or len(df) < 50:
+                return None
+            from backend.swing_utils import detect_oliver_kell_reversal
+            res = detect_oliver_kell_reversal(df)
+            if not res.get("is_kell_reversal"):
+                return None
+            res["symbol"] = sym
+            res["company_name"] = item.get("company_name", sym)
+            res["sector"] = item.get("sector", "N/A")
+            return res
+        except Exception:
+            return None
+
+@app.get("/api/screener/oliver-kell")
+async def get_oliver_kell_screener(force_refresh: bool = False):
+    """
+    Returns Oliver Kell EMA Trend Continuation & 10/20 EMA Reversal candidates.
+    Parallelized with asyncio 25x concurrency and backed by SQLite disk cache.
+    """
+    global _OLIVER_KELL_SCANNER_CACHE
+    if not force_refresh:
+        db_cache = _load_screener_db_cache("oliver_kell_reversal")
+        if db_cache and db_cache.get("data"):
+            _OLIVER_KELL_SCANNER_CACHE = db_cache
+            return {
+                "status": "success",
+                "count": len(db_cache["data"]),
+                "last_updated": db_cache["last_updated"],
+                "data": db_cache["data"]
+            }
+        if _OLIVER_KELL_SCANNER_CACHE.get("data"):
+            return {
+                "status": "success",
+                "count": len(_OLIVER_KELL_SCANNER_CACHE["data"]),
+                "last_updated": _OLIVER_KELL_SCANNER_CACHE["last_updated"],
+                "data": _OLIVER_KELL_SCANNER_CACHE["data"]
+            }
+
+    results = []
+    try:
+        with get_db() as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT symbol, company_name, sector, cap_type FROM screener_universe WHERE symbol NOT LIKE '%DUMMY%'")
+            stocks = [dict(r) for r in cursor.fetchall()]
+
+        sem = asyncio.Semaphore(25)
+        tasks = [_scan_single_stock_oliver_kell(item, sem) for item in stocks]
+        raw_results = await asyncio.gather(*tasks, return_exceptions=True)
+
+        for r in raw_results:
+            if isinstance(r, dict) and r is not None:
+                results.append(r)
+
+        status_rank = {"KELL_REVERSAL_LIVE": 2, "KELL_PULLBACK_TEST": 1, "NONE": 0}
+        results.sort(key=lambda x: (status_rank.get(x.get("kell_status"), 0), x.get("day_change_pct", 0)), reverse=True)
+
+        last_updated = _save_screener_db_cache("oliver_kell_reversal", results)
+        _OLIVER_KELL_SCANNER_CACHE = {"data": results, "last_updated": last_updated}
+    except Exception as e:
+        print(f"Error executing Oliver Kell screener: {e}")
+
+    return {
+        "status": "success",
+        "count": len(results),
+        "last_updated": _OLIVER_KELL_SCANNER_CACHE.get("last_updated", ""),
+        "data": results
+    }
+
 _STAGE_DIAGNOSTIC_CACHE = {}
 
 @app.get("/api/screener/stage-diagnostic/{symbol}")
@@ -18267,7 +18507,10 @@ async def get_stage_diagnostic(symbol: str, force_refresh: bool = False):
         detect_high_tight_flag,
         detect_3weeks_tight,
         detect_flat_base_breakout,
-        detect_vcp_pattern
+        detect_vcp_pattern,
+        detect_episodic_pivot,
+        detect_pocket_pivot,
+        detect_oliver_kell_reversal
     )
     
     clean_sym = symbol.strip().upper()
@@ -18334,6 +18577,9 @@ async def get_stage_diagnostic(symbol: str, force_refresh: bool = False):
         htf_res = detect_high_tight_flag(df)
         twt_res = detect_3weeks_tight(df)
         flat_res = detect_flat_base_breakout(df, rs_score=rs_rating)
+        ep_res = detect_episodic_pivot(df)
+        pocket_res = detect_pocket_pivot(df)
+        kell_res = detect_oliver_kell_reversal(df)
 
         # Stage Classification Rules
         stage_num = 2
@@ -18384,8 +18630,11 @@ async def get_stage_diagnostic(symbol: str, force_refresh: bool = False):
         htf_qualified = bool(htf_res.get("is_htf") or htf_res.get("htf_status") == "HTF_BREAKOUT_READY")
         twt_qualified = bool(twt_res.get("is_3wt") or twt_res.get("tight_status") in ["3WT_PIVOT_READY", "3WT_FORMING"])
         flat_qualified = bool(flat_res.get("is_flat_base") or flat_res.get("base_status") in ["LIVE_BREAKOUT", "READY_PIVOT", "FORMING"])
+        ep_qualified = bool(ep_res.get("is_episodic_pivot"))
+        pocket_qualified = bool(pocket_res.get("is_pocket_pivot"))
+        kell_qualified = bool(kell_res.get("is_kell_reversal"))
         
-        # Synchronized 4 Trade Execution Levels (Strict Quantitative Values, Zero Fallbacks)
+        # Synchronized Trade Execution Levels (Strict Quantitative Values, Zero Fallbacks)
         if vcp_res and vcp_res.get("pivot_price", 0) > 0 and vcp_res.get("stop_loss", 0) > 0:
             pivot_price = round(float(vcp_res["pivot_price"]), 2)
             stop_loss = round(float(vcp_res["stop_loss"]), 2)
@@ -18405,6 +18654,24 @@ async def get_stage_diagnostic(symbol: str, force_refresh: bool = False):
         elif htf_res and htf_res.get("pivot_price", 0) > 0:
             pivot_price = round(float(htf_res["pivot_price"]), 2)
             stop_loss = round(float(htf_res.get("stop_loss_price", 0) or 0), 2)
+            risk = pivot_price - stop_loss
+            target_1 = round(pivot_price + (2.0 * risk), 2) if risk > 0 else 0.0
+            target_2 = round(pivot_price + (4.0 * risk), 2) if risk > 0 else 0.0
+        elif ep_res and ep_res.get("pivot_price", 0) > 0:
+            pivot_price = round(float(ep_res["pivot_price"]), 2)
+            stop_loss = round(float(ep_res.get("stop_loss_price", 0) or 0), 2)
+            risk = pivot_price - stop_loss
+            target_1 = round(pivot_price + (2.0 * risk), 2) if risk > 0 else 0.0
+            target_2 = round(pivot_price + (4.0 * risk), 2) if risk > 0 else 0.0
+        elif pocket_res and pocket_res.get("pivot_price", 0) > 0:
+            pivot_price = round(float(pocket_res["pivot_price"]), 2)
+            stop_loss = round(float(pocket_res.get("stop_loss_price", 0) or 0), 2)
+            risk = pivot_price - stop_loss
+            target_1 = round(pivot_price + (2.0 * risk), 2) if risk > 0 else 0.0
+            target_2 = round(pivot_price + (4.0 * risk), 2) if risk > 0 else 0.0
+        elif kell_res and kell_res.get("pivot_price", 0) > 0:
+            pivot_price = round(float(kell_res["pivot_price"]), 2)
+            stop_loss = round(float(kell_res.get("stop_loss_price", 0) or 0), 2)
             risk = pivot_price - stop_loss
             target_1 = round(pivot_price + (2.0 * risk), 2) if risk > 0 else 0.0
             target_2 = round(pivot_price + (4.0 * risk), 2) if risk > 0 else 0.0
@@ -18475,6 +18742,18 @@ async def get_stage_diagnostic(symbol: str, force_refresh: bool = False):
                 "flat_base": {
                     "qualified": flat_qualified,
                     "reason": f"Flat Base Status: {flat_res.get('base_status', 'N/A')} (Depth {flat_res.get('base_depth_pct', 0.0)}%, {flat_res.get('base_length_weeks', 0)} wks)" if flat_qualified else flat_res.get("rejection_reason", "Base depth > 15% or duration < 5 wks")
+                },
+                "episodic_pivot": {
+                    "qualified": ep_qualified,
+                    "reason": f"EP Gap-Up Active: {ep_res.get('ep_status', 'N/A')} (+{ep_res.get('gap_pct', 0.0)}% Gap, {ep_res.get('rvol', 0.0)}x RVOL)" if ep_qualified else ep_res.get("rejection_reason", "Gap < 4% or RVOL < 2.5x")
+                },
+                "pocket_pivot": {
+                    "qualified": pocket_qualified,
+                    "reason": f"Pocket Pivot Active: {pocket_res.get('pocket_status', 'N/A')} (Vol {pocket_res.get('vol_ratio_vs_max_down', 0.0)}x vs 10D Down Max)" if pocket_qualified else pocket_res.get("rejection_reason", "Volume lower than highest down-day volume in 10 days")
+                },
+                "oliver_kell": {
+                    "qualified": kell_qualified,
+                    "reason": f"Oliver Kell Status: {kell_res.get('kell_status', 'N/A')}" if kell_qualified else kell_res.get("rejection_reason", "No 10/20 EMA reversal or trend wedge breakout")
                 }
             },
             "screener_audit": {
@@ -18524,6 +18803,27 @@ async def get_stage_diagnostic(symbol: str, force_refresh: bool = False):
                     "actual": f"Depth: {flat_res.get('base_depth_pct', 0.0)}%, Length: {flat_res.get('base_length_weeks', 0)} wks ({flat_res.get('base_length_days', 0)}d), VDU: {flat_res.get('vdu_ratio', 1.0)}x",
                     "qualified": flat_qualified,
                     "reason": f"Flat Base Status: {flat_res.get('base_status', 'N/A')} (Depth {flat_res.get('base_depth_pct', 0.0)}%)" if flat_qualified else flat_res.get("rejection_reason", "Base depth > 15% or duration < 5 wks")
+                },
+                "episodic_pivot": {
+                    "name": "Kristjan Qullamaggie Episodic Pivot (EP)",
+                    "required": "Gap ≥ +4.0%, RVOL ≥ 2.5x 50-day avg, Consolidation Base ≥ 10 days",
+                    "actual": f"Gap: +{ep_res.get('gap_pct', 0.0)}%, RVOL: {ep_res.get('rvol', 0.0)}x, Consolidation: {ep_res.get('consolidation_days', 0)}d",
+                    "qualified": ep_qualified,
+                    "reason": f"EP Gap-Up Active: {ep_res.get('ep_status', 'N/A')}" if ep_qualified else ep_res.get("rejection_reason", "Gap < 4% or RVOL < 2.5x")
+                },
+                "pocket_pivot": {
+                    "name": "Gil Morales & Chris Kacher Pocket Pivot",
+                    "required": "Up-Day Vol > Max Down-Day Vol in last 10 days, Base / EMA Touch",
+                    "actual": f"Up Vol: {pocket_res.get('up_day_vol', 0)}, Max Down Vol: {pocket_res.get('max_down_vol_10d', 0)}, Ratio: {pocket_res.get('vol_ratio_vs_max_down', 0.0)}x",
+                    "qualified": pocket_qualified,
+                    "reason": f"Pocket Pivot Active: {pocket_res.get('pocket_status', 'N/A')}" if pocket_qualified else pocket_res.get("rejection_reason", "Volume lower than highest down-day volume in 10 days")
+                },
+                "oliver_kell": {
+                    "name": "Oliver Kell EMA Trend Continuation & Reversal",
+                    "required": "10 EMA > 20 EMA > 50 EMA, Wedge / Flag Reversal, 20 EMA Support",
+                    "actual": f"Status: {kell_res.get('kell_status', 'NONE')}, Dist to 10 EMA: {kell_res.get('dist_to_10ema_pct', 0.0)}%, Dist to 20 EMA: {kell_res.get('dist_to_20ema_pct', 0.0)}%",
+                    "qualified": kell_qualified,
+                    "reason": f"Oliver Kell Status: {kell_res.get('kell_status', 'N/A')}" if kell_qualified else kell_res.get("rejection_reason", "No 10/20 EMA reversal or trend wedge breakout")
                 }
             },
             "action_guidance": action_text
@@ -18587,6 +18887,10 @@ async def _eval_watchlist_quant_diagnostics(sym_list: List[str], force_refresh: 
         wein_s3_qual = screeners.get("weinstein_stage3", {}).get("qualified", False)
         htf_qual = screeners.get("htf", {}).get("qualified", False)
         twt_qual = screeners.get("three_wt", {}).get("qualified", False)
+        flat_qual = screeners.get("flat_base", {}).get("qualified", False)
+        ep_qual = screeners.get("episodic_pivot", {}).get("qualified", False)
+        pocket_qual = screeners.get("pocket_pivot", {}).get("qualified", False)
+        kell_qual = screeners.get("oliver_kell", {}).get("qualified", False)
 
         stage_num = diag.get("stage_number", diag.get("stage_classification", {}).get("stage", 1))
         stage_title = diag.get("stage_name", diag.get("stage_classification", {}).get("title", f"Stage {stage_num}"))
@@ -18597,8 +18901,12 @@ async def _eval_watchlist_quant_diagnostics(sym_list: List[str], force_refresh: 
             wein_qual = False
             htf_qual = False
             twt_qual = False
+            flat_qual = False
+            ep_qual = False
+            pocket_qual = False
+            kell_qual = False
 
-        qual_count = sum([1 for q in [vcp_qual, wein_qual, htf_qual, twt_qual] if q])
+        qual_count = sum([1 for q in [vcp_qual, wein_qual, htf_qual, twt_qual, flat_qual, ep_qual, pocket_qual, kell_qual] if q])
 
         if stage_num == 3 or wein_s3_qual:
             qual_label = "STAGE 3 DISTRIBUTION ⚠️"
@@ -18606,17 +18914,14 @@ async def _eval_watchlist_quant_diagnostics(sym_list: List[str], force_refresh: 
         elif stage_num == 4:
             qual_label = "STAGE 4 MARKDOWN 🩸"
             badge_cls = "badge-quant-red"
-        elif qual_count == 4:
-            qual_label = "4/4 QUAD QUALIFIED 🌟"
+        elif qual_count >= 4:
+            qual_label = f"{qual_count} QUANT QUALIFIED 🌟"
             badge_cls = "badge-quant-green"
-        elif qual_count == 3:
-            qual_label = "3/4 TRIPLE QUALIFIED 🚀"
+        elif qual_count >= 2:
+            qual_label = f"{qual_count} QUANT QUALIFIED 🚀"
             badge_cls = "badge-quant-teal"
-        elif qual_count == 2:
-            qual_label = "2/4 QUALIFIED 📈"
-            badge_cls = "badge-quant-blue"
         elif qual_count == 1:
-            qual_label = "1/4 QUALIFIED 🎯"
+            qual_label = "1 QUANT QUALIFIED 🎯"
             badge_cls = "badge-quant-purple"
         else:
             if stage_num == 2:
@@ -18649,6 +18954,14 @@ async def _eval_watchlist_quant_diagnostics(sym_list: List[str], force_refresh: 
             "htf_status": screeners.get("htf", {}).get("reason", "N/A"),
             "three_wt_qualified": twt_qual,
             "three_wt_status": screeners.get("three_wt", {}).get("reason", "N/A"),
+            "flat_qualified": flat_qual,
+            "flat_status": screeners.get("flat_base", {}).get("reason", "N/A"),
+            "episodic_qualified": ep_qual,
+            "episodic_status": screeners.get("episodic_pivot", {}).get("reason", "N/A"),
+            "pocket_qualified": pocket_qual,
+            "pocket_status": screeners.get("pocket_pivot", {}).get("reason", "N/A"),
+            "kell_qualified": kell_qual,
+            "kell_status": screeners.get("oliver_kell", {}).get("reason", "N/A"),
             "qual_count": qual_count,
             "qualification_label": qual_label,
             "badge_class": badge_cls,

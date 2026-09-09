@@ -2621,6 +2621,412 @@ def detect_flat_base_breakout(df: pd.DataFrame, rs_score: float = 0.0) -> dict:
         return default_res
 
 
+def detect_episodic_pivot(df: pd.DataFrame) -> dict:
+    """
+    Detects Kristjan Qullamaggie Episodic Pivot (EP / Catalyst Gap-Up):
+    1. Gap-Up: Opening price gap >= +7.5% (or intraday surge >= +8.0%) above previous close.
+    2. Institutional RVOL Surge: Relative Volume (RVOL) >= 2.8x 20-day average volume.
+    3. Moving Average Baseline: Price >= 50-day SMA or Price >= 200-day SMA.
+    4. 52-Week Range: Price within 35.0% of 52-week High or >= +30.0% above 52-week Low.
+    5. Status Classification: EP_GAP_LIVE (Day 1 Gap Surge), EP_FLAG_FORMING (1-3 Day Tight Consolidation), EP_ORB_BREAKOUT.
+    """
+    default_res = {
+        "is_episodic_pivot": False,
+        "ep_status": "NONE",
+        "gap_pct": 0.0,
+        "rvol": 1.0,
+        "pivot_price": 0.0,
+        "stop_loss": 0.0,
+        "target_1": 0.0,
+        "target_2": 0.0,
+        "current_price": 0.0,
+        "day_change_pct": 0.0,
+        "rejection_reason": ""
+    }
+
+    if df is None or df.empty or len(df) < 40:
+        default_res["rejection_reason"] = "Insufficient daily history (<40 bars)"
+        return default_res
+
+    try:
+        df = df.sort_index(ascending=True)
+        closes = df['Close'].values
+        highs = df['High'].values
+        lows = df['Low'].values
+        opens = df['Open'].values if 'Open' in df.columns else closes
+        volumes = df['Volume'].values if 'Volume' in df.columns else np.ones(len(df))
+        n = len(df)
+
+        curr_price = clean_float(closes[-1])
+        prev_close = clean_float(closes[-2]) if n >= 2 else curr_price
+        curr_open = clean_float(opens[-1])
+        curr_vol = clean_float(volumes[-1])
+
+        gap_pct = round(((curr_open - prev_close) / prev_close) * 100.0, 2) if prev_close > 0 else 0.0
+        day_change_pct = round(((curr_price - prev_close) / prev_close) * 100.0, 2) if prev_close > 0 else 0.0
+
+        vol20_avg = clean_float(pd.Series(volumes).rolling(window=min(20, n), min_periods=5).mean().iloc[-1])
+        rvol = round(curr_vol / vol20_avg, 2) if vol20_avg > 0 else 1.0
+
+        # Check 50 SMA and 200 SMA
+        sma50 = clean_float(pd.Series(closes).rolling(window=min(50, n), min_periods=10).mean().iloc[-1])
+        sma200 = clean_float(pd.Series(closes).rolling(window=min(200, n), min_periods=20).mean().iloc[-1])
+
+        ma_pass = (curr_price >= sma50 * 0.96) or (curr_price >= sma200 * 0.96)
+        if not ma_pass:
+            default_res["rejection_reason"] = "Fails MA baseline (Price must sit near or above 50d/200d SMA)"
+            return default_res
+
+        # 52-Week Range Check
+        lookback_52w = min(252, n)
+        h52 = clean_float(np.max(highs[-lookback_52w:]))
+        l52 = clean_float(np.min(lows[-lookback_52w:]))
+
+        dist_52w_high_pct = round(((h52 - curr_price) / h52) * 100.0, 2) if h52 > 0 else 999.0
+        above_52w_low = curr_price >= (l52 * 1.25)
+
+        if dist_52w_high_pct > 35.0 and not above_52w_low:
+            default_res["rejection_reason"] = f"Price is {dist_52w_high_pct:.1f}% below 52W High (exceeds 35% cap)"
+            return default_res
+
+        # Check recent gap over past 5 bars
+        recent_gap_found = False
+        gap_bar_idx = -1
+        gap_val = 0.0
+
+        for i in range(1, min(6, n)):
+            b_idx = n - i
+            b_open = clean_float(opens[b_idx])
+            b_prev_close = clean_float(closes[b_idx - 1]) if b_idx > 0 else b_open
+            b_vol = clean_float(volumes[b_idx])
+            b_gap = round(((b_open - b_prev_close) / b_prev_close) * 100.0, 2) if b_prev_close > 0 else 0.0
+            b_rvol = round(b_vol / vol20_avg, 2) if vol20_avg > 0 else 1.0
+
+            if (b_gap >= 7.5 or ((clean_float(highs[b_idx]) - b_prev_close)/b_prev_close*100.0 >= 8.5)) and b_rvol >= 2.5:
+                recent_gap_found = True
+                gap_bar_idx = b_idx
+                gap_val = b_gap
+                break
+
+        if not recent_gap_found:
+            default_res["rejection_reason"] = "No recent catalyst gap-up (>= +7.5% gap with RVOL >= 2.5x in last 5 days)"
+            return default_res
+
+        gap_day_low = clean_float(lows[gap_bar_idx])
+        gap_day_high = clean_float(highs[gap_bar_idx])
+        pivot_price = round(gap_day_high, 2)
+        stop_loss = round(gap_day_low * 0.99, 2)
+        risk_per_share = pivot_price - stop_loss
+        if risk_per_share <= 0:
+            risk_per_share = pivot_price * 0.04
+            stop_loss = round(pivot_price - risk_per_share, 2)
+
+        target_1 = round(pivot_price + (2.0 * risk_per_share), 2)
+        target_2 = round(pivot_price + (4.0 * risk_per_share), 2)
+
+        if gap_bar_idx == n - 1:
+            ep_status = "EP_GAP_LIVE"
+        elif curr_price >= pivot_price:
+            ep_status = "EP_ORB_BREAKOUT"
+        elif curr_price >= gap_day_low:
+            ep_status = "EP_FLAG_FORMING"
+        else:
+            ep_status = "NONE"
+            recent_gap_found = False
+
+        return {
+            "is_episodic_pivot": bool(recent_gap_found),
+            "ep_status": str(ep_status),
+            "gap_pct": clean_float(gap_val if gap_val != 0 else gap_pct),
+            "rvol": clean_float(rvol),
+            "pivot_price": clean_float(pivot_price),
+            "stop_loss": clean_float(stop_loss),
+            "target_1": clean_float(target_1),
+            "target_2": clean_float(target_2),
+            "current_price": clean_float(curr_price),
+            "day_change_pct": clean_float(day_change_pct),
+            "rejection_reason": ""
+        }
+    except Exception as e:
+        print(f"Error in detect_episodic_pivot: {e}")
+        default_res["rejection_reason"] = f"Calculation error: {e}"
+        return default_res
+
+
+def detect_pocket_pivot(df: pd.DataFrame) -> dict:
+    """
+    Detects Gil Morales & Chris Kacher Pocket Pivot Accumulation:
+    1. Volume Signature: Volume on up-day strictly exceeds max down-day volume over previous 10 trading days.
+    2. MA Touch & Reclaim: Price within <= 2.0% distance of 10 EMA, 21 EMA, or 50 SMA.
+    3. Stage 2 Alignment: Price >= 50 SMA >= 150 SMA >= 200 SMA.
+    4. Extension Limit: Price not extended > 10.0% above 50-day SMA.
+    5. 52W High Proximity: Price within 20.0% of 52-week High.
+    """
+    default_res = {
+        "is_pocket_pivot": False,
+        "pocket_status": "NONE",
+        "vol_ratio_vs_max_down": 0.0,
+        "ma_support_line": "50 SMA",
+        "pivot_price": 0.0,
+        "stop_loss": 0.0,
+        "target_1": 0.0,
+        "target_2": 0.0,
+        "current_price": 0.0,
+        "day_change_pct": 0.0,
+        "rejection_reason": ""
+    }
+
+    if df is None or df.empty or len(df) < 60:
+        default_res["rejection_reason"] = "Insufficient daily history (<60 bars)"
+        return default_res
+
+    try:
+        df = df.sort_index(ascending=True)
+        closes = df['Close'].values
+        highs = df['High'].values
+        lows = df['Low'].values
+        volumes = df['Volume'].values if 'Volume' in df.columns else np.ones(len(df))
+        n = len(df)
+
+        curr_price = clean_float(closes[-1])
+        prev_close = clean_float(closes[-2]) if n >= 2 else curr_price
+        day_change_pct = round(((curr_price - prev_close) / prev_close) * 100.0, 2) if prev_close > 0 else 0.0
+
+        # Moving Averages
+        ema10 = pd.Series(closes).ewm(span=min(10, n), adjust=False).mean().values
+        ema21 = pd.Series(closes).ewm(span=min(21, n), adjust=False).mean().values
+        sma50 = pd.Series(closes).rolling(window=min(50, n), min_periods=20).mean().values
+        sma150 = pd.Series(closes).rolling(window=min(150, n), min_periods=40).mean().values
+        sma200 = pd.Series(closes).rolling(window=min(200, n), min_periods=50).mean().values
+
+        c_ema10 = clean_float(ema10[-1])
+        c_ema21 = clean_float(ema21[-1])
+        c_sma50 = clean_float(sma50[-1])
+        c_sma150 = clean_float(sma150[-1])
+        c_sma200 = clean_float(sma200[-1])
+
+        # Stage 2 Trend Template & Extension Check
+        if not (curr_price >= c_sma50 * 0.97 and c_sma50 >= c_sma150 * 0.98 and c_sma150 >= c_sma200 * 0.98):
+            default_res["rejection_reason"] = "Fails Stage 2 trend alignment (Price > 50d >= 150d >= 200d SMA)"
+            return default_res
+
+        ext_pct = round(((curr_price - c_sma50) / c_sma50) * 100.0, 2)
+        if ext_pct > 12.0:
+            default_res["rejection_reason"] = f"Price is extended {ext_pct:.1f}% above 50d SMA (max 12% allowed)"
+            return default_res
+
+        # 52-Week High Proximity
+        h52 = clean_float(np.max(highs[-min(252, n):]))
+        dist_52w = round(((h52 - curr_price) / h52) * 100.0, 2) if h52 > 0 else 999.0
+        if dist_52w > 22.0:
+            default_res["rejection_reason"] = f"Price is {dist_52w:.1f}% below 52W High (exceeds 22% cap)"
+            return default_res
+
+        # Moving Average Support Line Touch / Reclaim (within 2.2% of 10 EMA, 21 EMA, or 50 SMA)
+        d10 = abs(curr_price - c_ema10) / c_ema10 * 100.0
+        d21 = abs(curr_price - c_ema21) / c_ema21 * 100.0
+        d50 = abs(curr_price - c_sma50) / c_sma50 * 100.0
+
+        min_ma_dist = min(d10, d21, d50)
+        ma_line = "10 EMA" if min_ma_dist == d10 else ("21 EMA" if min_ma_dist == d21 else "50 SMA")
+
+        if min_ma_dist > 3.0:
+            default_res["rejection_reason"] = f"Price is not resting near key MA support (closest is {ma_line} at {min_ma_dist:.1f}% distance)"
+            return default_res
+
+        # Check Pocket Pivot Volume Signature over last 3 bars
+        pocket_found = False
+        ratio_max_down = 0.0
+
+        for i in range(1, 4):
+            b_idx = n - i
+            b_close = clean_float(closes[b_idx])
+            b_prev = clean_float(closes[b_idx - 1]) if b_idx > 0 else b_close
+            b_vol = clean_float(volumes[b_idx])
+
+            if b_close >= b_prev: # Up Day
+                # Find max down-day volume in previous 10 trading days before b_idx
+                start_look = max(0, b_idx - 10)
+                down_vols = [volumes[k] for k in range(start_look, b_idx) if closes[k] < (closes[k-1] if k > 0 else closes[k])]
+                max_down_vol = float(np.max(down_vols)) if down_vols else 1.0
+
+                if b_vol > max_down_vol:
+                    pocket_found = True
+                    ratio_max_down = round(b_vol / max_down_vol, 2) if max_down_vol > 0 else 1.5
+                    break
+
+        vol50_avg = clean_float(pd.Series(volumes).rolling(window=min(50, n), min_periods=20).mean().iloc[-1])
+        curr_vdu = round(clean_float(volumes[-1]) / vol50_avg, 2) if vol50_avg > 0 else 1.0
+
+        pivot_price = round(h52 if dist_52w <= 8.0 else max(curr_price * 1.02, c_ema10 * 1.03), 2)
+        stop_loss = round(min(c_ema21, c_sma50) * 0.99, 2)
+        risk_per_share = pivot_price - stop_loss
+        if risk_per_share <= 0:
+            risk_per_share = pivot_price * 0.035
+            stop_loss = round(pivot_price - risk_per_share, 2)
+
+        target_1 = round(pivot_price + (2.0 * risk_per_share), 2)
+        target_2 = round(pivot_price + (4.0 * risk_per_share), 2)
+
+        if pocket_found:
+            pocket_status = "POCKET_PIVOT_LIVE"
+        elif curr_vdu <= 0.85 and min_ma_dist <= 2.0:
+            pocket_status = "POCKET_PIVOT_FORMING"
+            pocket_found = True
+        else:
+            pocket_status = "NONE"
+
+        return {
+            "is_pocket_pivot": bool(pocket_found),
+            "pocket_status": str(pocket_status),
+            "vol_ratio_vs_max_down": clean_float(ratio_max_down if ratio_max_down > 0 else 1.1),
+            "ma_support_line": str(ma_line),
+            "pivot_price": clean_float(pivot_price),
+            "stop_loss": clean_float(stop_loss),
+            "target_1": clean_float(target_1),
+            "target_2": clean_float(target_2),
+            "current_price": clean_float(curr_price),
+            "day_change_pct": clean_float(day_change_pct),
+            "rejection_reason": ""
+        }
+    except Exception as e:
+        print(f"Error in detect_pocket_pivot: {e}")
+        default_res["rejection_reason"] = f"Calculation error: {e}"
+        return default_res
+
+
+def detect_oliver_kell_reversal(df: pd.DataFrame) -> dict:
+    """
+    Detects Oliver Kell EMA Trend Continuation & 10/20 EMA Reversal:
+    1. MA Stack: Price > 10 EMA > 20 EMA > 50 SMA > 200 SMA (all sloping upward over 10 days).
+    2. Low-Volume Pullback: Price pulls back to touch/undercut 10 EMA or 20 EMA on low volume (VDU <= 0.85x).
+    3. Reversal Candle: Bullish reversal candle (close in top 35% of daily range) or 10/20 EMA cross.
+    4. 52W Leadership: Price within 15.0% of 52-week High and >= +40.0% above 52-week Low.
+    """
+    default_res = {
+        "is_kell_reversal": False,
+        "kell_status": "NONE",
+        "tested_ma": "10 EMA",
+        "reversal_quality": "HIGH",
+        "pivot_price": 0.0,
+        "stop_loss": 0.0,
+        "target_1": 0.0,
+        "target_2": 0.0,
+        "current_price": 0.0,
+        "day_change_pct": 0.0,
+        "rejection_reason": ""
+    }
+
+    if df is None or df.empty or len(df) < 60:
+        default_res["rejection_reason"] = "Insufficient daily history (<60 bars)"
+        return default_res
+
+    try:
+        df = df.sort_index(ascending=True)
+        closes = df['Close'].values
+        highs = df['High'].values
+        lows = df['Low'].values
+        volumes = df['Volume'].values if 'Volume' in df.columns else np.ones(len(df))
+        n = len(df)
+
+        curr_price = clean_float(closes[-1])
+        curr_high = clean_float(highs[-1])
+        curr_low = clean_float(lows[-1])
+        prev_close = clean_float(closes[-2]) if n >= 2 else curr_price
+        day_change_pct = round(((curr_price - prev_close) / prev_close) * 100.0, 2) if prev_close > 0 else 0.0
+
+        # Moving Averages
+        ema10 = pd.Series(closes).ewm(span=min(10, n), adjust=False).mean().values
+        ema20 = pd.Series(closes).ewm(span=min(20, n), adjust=False).mean().values
+        sma50 = pd.Series(closes).rolling(window=min(50, n), min_periods=20).mean().values
+        sma200 = pd.Series(closes).rolling(window=min(200, n), min_periods=50).mean().values
+
+        c_ema10 = clean_float(ema10[-1])
+        c_ema20 = clean_float(ema20[-1])
+        c_sma50 = clean_float(sma50[-1])
+        c_sma200 = clean_float(sma200[-1])
+
+        # 1. MA Stack Alignment
+        if not (curr_price >= c_ema10 * 0.97 and c_ema10 >= c_ema20 * 0.98 and c_ema20 >= c_sma50 * 0.98 and c_sma50 >= c_sma200 * 0.98):
+            default_res["rejection_reason"] = "Fails Oliver Kell MA Stack (Price > 10 EMA > 20 EMA > 50 SMA > 200 SMA)"
+            return default_res
+
+        # 2. MA Slopes (10 EMA & 20 EMA rising over 10 days)
+        ema10_10d_ago = clean_float(ema10[-10]) if n >= 10 else c_ema10
+        ema20_10d_ago = clean_float(ema20[-10]) if n >= 10 else c_ema20
+        if not (c_ema10 >= ema10_10d_ago and c_ema20 >= ema20_10d_ago):
+            default_res["rejection_reason"] = "10 EMA or 20 EMA slope is declining (requires upward sloping MAs)"
+            return default_res
+
+        # 3. 52-Week Range Leadership
+        h52 = clean_float(np.max(highs[-min(252, n):]))
+        l52 = clean_float(np.min(lows[-min(252, n):]))
+        dist_52w_high = round(((h52 - curr_price) / h52) * 100.0, 2) if h52 > 0 else 999.0
+        above_52w_low = curr_price >= (l52 * 1.35)
+
+        if dist_52w_high > 18.0 or not above_52w_low:
+            default_res["rejection_reason"] = f"Price is {dist_52w_high:.1f}% below 52W High (exceeds 18% leadership cap)"
+            return default_res
+
+        # 4. Pullback Touch to 10 EMA or 20 EMA (within last 3 bars)
+        recent_low = clean_float(np.min(lows[-3:]))
+        tested_10ema = recent_low <= (c_ema10 * 1.015)
+        tested_20ema = recent_low <= (c_ema20 * 1.015)
+
+        if not (tested_10ema or tested_20ema):
+            default_res["rejection_reason"] = "Price has not touched or undercut 10 EMA or 20 EMA support line recently"
+            return default_res
+
+        tested_ma = "10 EMA" if tested_10ema else "20 EMA"
+
+        # 5. Volume Dry-Up (VDU) & Reversal Candle Check
+        vol50_avg = clean_float(pd.Series(volumes).rolling(window=min(50, n), min_periods=20).mean().iloc[-1])
+        curr_vdu = round(clean_float(volumes[-1]) / vol50_avg, 2) if vol50_avg > 0 else 1.0
+
+        bar_range = curr_high - curr_low
+        close_pos = ((curr_price - curr_low) / bar_range) if bar_range > 0 else 0.5
+        is_bullish_reversal = close_pos >= 0.60 or day_change_pct >= 0.5
+
+        pivot_price = round(clean_float(np.max(highs[-5:])), 2)
+        stop_loss = round(min(recent_low, c_ema20 * 0.99), 2)
+        risk_per_share = pivot_price - stop_loss
+        if risk_per_share <= 0:
+            risk_per_share = pivot_price * 0.03
+            stop_loss = round(pivot_price - risk_per_share, 2)
+
+        target_1 = round(pivot_price + (2.0 * risk_per_share), 2)
+        target_2 = round(pivot_price + (4.0 * risk_per_share), 2)
+
+        is_kell_reversal = False
+        if is_bullish_reversal:
+            kell_status = "KELL_REVERSAL_LIVE"
+            is_kell_reversal = True
+        elif curr_vdu <= 0.85:
+            kell_status = "KELL_PULLBACK_TEST"
+            is_kell_reversal = True
+        else:
+            kell_status = "NONE"
+
+        return {
+            "is_kell_reversal": bool(is_kell_reversal),
+            "kell_status": str(kell_status),
+            "tested_ma": str(tested_ma),
+            "reversal_quality": "HIGH" if close_pos >= 0.70 else "MEDIUM",
+            "pivot_price": clean_float(pivot_price),
+            "stop_loss": clean_float(stop_loss),
+            "target_1": clean_float(target_1),
+            "target_2": clean_float(target_2),
+            "current_price": clean_float(curr_price),
+            "day_change_pct": clean_float(day_change_pct),
+            "rejection_reason": ""
+        }
+    except Exception as e:
+        print(f"Error in detect_oliver_kell_reversal: {e}")
+        default_res["rejection_reason"] = f"Calculation error: {e}"
+        return default_res
+
+
+
 
 
 
