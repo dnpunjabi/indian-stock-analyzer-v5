@@ -2137,39 +2137,72 @@ body.light-theme #weinstein-playbook-card div[style*="background: rgba(15, 23, 4
     transform: translateY(-1px);
 }
 
+.quant-subtab-btn.active {
+    font-weight: 800 !important;
+    transform: translateY(-1px) scale(1.03);
+}
+
 .quant-subtab-btn.active#quant-subtab-vcp {
     color: #fbbf24;
-    background: rgba(245, 158, 11, 0.15);
-    border-color: rgba(245, 158, 11, 0.5);
-    box-shadow: 0 4px 14px rgba(245, 158, 11, 0.2);
+    background: rgba(245, 158, 11, 0.22);
+    border-color: #f59e0b;
+    box-shadow: 0 4px 16px rgba(245, 158, 11, 0.35);
 }
 
 .quant-subtab-btn.active#quant-subtab-weinstein {
     color: #38bdf8;
-    background: rgba(56, 189, 248, 0.15);
-    border-color: rgba(56, 189, 248, 0.5);
-    box-shadow: 0 4px 14px rgba(56, 189, 248, 0.2);
+    background: rgba(56, 189, 248, 0.22);
+    border-color: #38bdf8;
+    box-shadow: 0 4px 16px rgba(56, 189, 248, 0.35);
 }
 
 .quant-subtab-btn.active#quant-subtab-htf {
     color: #c084fc;
-    background: rgba(192, 132, 252, 0.15);
-    border-color: rgba(192, 132, 252, 0.5);
-    box-shadow: 0 4px 14px rgba(192, 132, 252, 0.2);
+    background: rgba(192, 132, 252, 0.22);
+    border-color: #c084fc;
+    box-shadow: 0 4px 16px rgba(192, 132, 252, 0.35);
 }
 
 .quant-subtab-btn.active#quant-subtab-3wt {
     color: #2dd4bf;
-    background: rgba(45, 212, 191, 0.15);
-    border-color: rgba(45, 212, 191, 0.5);
-    box-shadow: 0 4px 14px rgba(45, 212, 191, 0.2);
+    background: rgba(45, 212, 191, 0.22);
+    border-color: #2dd4bf;
+    box-shadow: 0 4px 16px rgba(45, 212, 191, 0.35);
+}
+
+.quant-subtab-btn.active#quant-subtab-flatbase {
+    color: #34d399;
+    background: rgba(16, 185, 129, 0.22);
+    border-color: #10b981;
+    box-shadow: 0 4px 16px rgba(16, 185, 129, 0.35);
+}
+
+.quant-subtab-btn.active#quant-subtab-episodic {
+    color: #f472b6;
+    background: rgba(236, 72, 153, 0.22);
+    border-color: #ec4899;
+    box-shadow: 0 4px 16px rgba(236, 72, 153, 0.35);
+}
+
+.quant-subtab-btn.active#quant-subtab-pocket {
+    color: #38bdf8;
+    background: rgba(56, 189, 248, 0.22);
+    border-color: #0284c7;
+    box-shadow: 0 4px 16px rgba(56, 189, 248, 0.35);
+}
+
+.quant-subtab-btn.active#quant-subtab-oliverkell {
+    color: #c084fc;
+    background: rgba(192, 132, 252, 0.22);
+    border-color: #9333ea;
+    box-shadow: 0 4px 16px rgba(192, 132, 252, 0.35);
 }
 
 .quant-subtab-btn.active#quant-subtab-guide {
     color: #c084fc;
-    background: rgba(168, 85, 247, 0.18);
-    border-color: rgba(168, 85, 247, 0.5);
-    box-shadow: 0 4px 14px rgba(168, 85, 247, 0.25);
+    background: rgba(168, 85, 247, 0.22);
+    border-color: #a855f7;
+    box-shadow: 0 4px 16px rgba(168, 85, 247, 0.35);
 }
 
 /* Custom Table Controls & Styles */
@@ -2275,44 +2308,84 @@ body.light-theme .quant-subtab-btn:hover,
     color: #0f172a !important;
 }
 
+body.light-theme .quant-subtab-btn.active,
+[data-theme="light"] .quant-subtab-btn.active,
+[data-mode="light"] .quant-subtab-btn.active {
+    font-weight: 800 !important;
+    transform: translateY(-1px) scale(1.03) !important;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.15) !important;
+}
+
 body.light-theme .quant-subtab-btn.active#quant-subtab-vcp,
 [data-theme="light"] .quant-subtab-btn.active#quant-subtab-vcp,
 [data-mode="light"] .quant-subtab-btn.active#quant-subtab-vcp {
     background: #fef3c7 !important;
-    border-color: #d97706 !important;
-    color: #b45309 !important;
+    border: 2px solid #d97706 !important;
+    color: #92400e !important;
 }
 
 body.light-theme .quant-subtab-btn.active#quant-subtab-weinstein,
 [data-theme="light"] .quant-subtab-btn.active#quant-subtab-weinstein,
 [data-mode="light"] .quant-subtab-btn.active#quant-subtab-weinstein {
     background: #e0f2fe !important;
-    border-color: #0284c7 !important;
-    color: #0369a1 !important;
+    border: 2px solid #0284c7 !important;
+    color: #075985 !important;
 }
 
 body.light-theme .quant-subtab-btn.active#quant-subtab-htf,
 [data-theme="light"] .quant-subtab-btn.active#quant-subtab-htf,
 [data-mode="light"] .quant-subtab-btn.active#quant-subtab-htf {
     background: #f3e8ff !important;
-    border-color: #9333ea !important;
-    color: #7e22ce !important;
+    border: 2px solid #9333ea !important;
+    color: #581c87 !important;
 }
 
 body.light-theme .quant-subtab-btn.active#quant-subtab-3wt,
 [data-theme="light"] .quant-subtab-btn.active#quant-subtab-3wt,
 [data-mode="light"] .quant-subtab-btn.active#quant-subtab-3wt {
     background: #ccfbf1 !important;
-    border-color: #0d9488 !important;
-    color: #0f766e !important;
+    border: 2px solid #0d9488 !important;
+    color: #115e59 !important;
+}
+
+body.light-theme .quant-subtab-btn.active#quant-subtab-flatbase,
+[data-theme="light"] .quant-subtab-btn.active#quant-subtab-flatbase,
+[data-mode="light"] .quant-subtab-btn.active#quant-subtab-flatbase {
+    background: #dcfce7 !important;
+    border: 2px solid #16a34a !important;
+    color: #14532d !important;
+}
+
+body.light-theme .quant-subtab-btn.active#quant-subtab-episodic,
+[data-theme="light"] .quant-subtab-btn.active#quant-subtab-episodic,
+[data-mode="light"] .quant-subtab-btn.active#quant-subtab-episodic {
+    background: #fce7f3 !important;
+    border: 2px solid #db2777 !important;
+    color: #831843 !important;
+}
+
+body.light-theme .quant-subtab-btn.active#quant-subtab-pocket,
+[data-theme="light"] .quant-subtab-btn.active#quant-subtab-pocket,
+[data-mode="light"] .quant-subtab-btn.active#quant-subtab-pocket {
+    background: #e0f2fe !important;
+    border: 2px solid #0284c7 !important;
+    color: #0c4a6e !important;
+}
+
+body.light-theme .quant-subtab-btn.active#quant-subtab-oliverkell,
+[data-theme="light"] .quant-subtab-btn.active#quant-subtab-oliverkell,
+[data-mode="light"] .quant-subtab-btn.active#quant-subtab-oliverkell {
+    background: #f3e8ff !important;
+    border: 2px solid #9333ea !important;
+    color: #581c87 !important;
 }
 
 body.light-theme .quant-subtab-btn.active#quant-subtab-guide,
 [data-theme="light"] .quant-subtab-btn.active#quant-subtab-guide,
 [data-mode="light"] .quant-subtab-btn.active#quant-subtab-guide {
     background: #f3e8ff !important;
-    border-color: #9333ea !important;
-    color: #6b21a8 !important;
+    border: 2px solid #7e22ce !important;
+    color: #4c1d95 !important;
 }
 
 body.light-theme .quant-table-wrapper,
@@ -2994,8 +3067,16 @@ body.light-theme #quant-view-flatbase .screener-hero-header p,
 body.light-theme #quant-view-flatbase .screener-kpi-card,
 [data-theme="light"] #quant-view-flatbase .screener-kpi-card,
 [data-mode="light"] #quant-view-flatbase .screener-kpi-card {
-    background: rgba(15, 23, 42, 0.6) !important;
-    border: 1px solid rgba(255, 255, 255, 0.08) !important;
+    background: #ffffff !important;
+    border: 1px solid #e2e8f0 !important;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.03) !important;
+}
+
+body.light-theme #quant-view-flatbase .screener-kpi-card div:first-child,
+[data-theme="light"] #quant-view-flatbase .screener-kpi-card div:first-child,
+[data-mode="light"] #quant-view-flatbase .screener-kpi-card div:first-child {
+    color: #64748b !important;
+    font-weight: 700 !important;
 }
 
 /* Flat Base Guide Button Color Theme Override */
@@ -3033,8 +3114,16 @@ body.light-theme #quant-view-episodic .screener-hero-header p,
 body.light-theme #quant-view-episodic .screener-kpi-card,
 [data-theme="light"] #quant-view-episodic .screener-kpi-card,
 [data-mode="light"] #quant-view-episodic .screener-kpi-card {
-    background: rgba(15, 23, 42, 0.6) !important;
-    border: 1px solid rgba(255, 255, 255, 0.08) !important;
+    background: #ffffff !important;
+    border: 1px solid #e2e8f0 !important;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.03) !important;
+}
+
+body.light-theme #quant-view-episodic .screener-kpi-card div:first-child,
+[data-theme="light"] #quant-view-episodic .screener-kpi-card div:first-child,
+[data-mode="light"] #quant-view-episodic .screener-kpi-card div:first-child {
+    color: #64748b !important;
+    font-weight: 700 !important;
 }
 
 #quant-view-episodic .screener-hero-header .btn-secondary,
@@ -3071,8 +3160,16 @@ body.light-theme #quant-view-pocket .screener-hero-header p,
 body.light-theme #quant-view-pocket .screener-kpi-card,
 [data-theme="light"] #quant-view-pocket .screener-kpi-card,
 [data-mode="light"] #quant-view-pocket .screener-kpi-card {
-    background: rgba(15, 23, 42, 0.6) !important;
-    border: 1px solid rgba(255, 255, 255, 0.08) !important;
+    background: #ffffff !important;
+    border: 1px solid #e2e8f0 !important;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.03) !important;
+}
+
+body.light-theme #quant-view-pocket .screener-kpi-card div:first-child,
+[data-theme="light"] #quant-view-pocket .screener-kpi-card div:first-child,
+[data-mode="light"] #quant-view-pocket .screener-kpi-card div:first-child {
+    color: #64748b !important;
+    font-weight: 700 !important;
 }
 
 #quant-view-pocket .screener-hero-header .btn-secondary,
@@ -3109,8 +3206,16 @@ body.light-theme #quant-view-oliverkell .screener-hero-header p,
 body.light-theme #quant-view-oliverkell .screener-kpi-card,
 [data-theme="light"] #quant-view-oliverkell .screener-kpi-card,
 [data-mode="light"] #quant-view-oliverkell .screener-kpi-card {
-    background: rgba(15, 23, 42, 0.6) !important;
-    border: 1px solid rgba(255, 255, 255, 0.08) !important;
+    background: #ffffff !important;
+    border: 1px solid #e2e8f0 !important;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.03) !important;
+}
+
+body.light-theme #quant-view-oliverkell .screener-kpi-card div:first-child,
+[data-theme="light"] #quant-view-oliverkell .screener-kpi-card div:first-child,
+[data-mode="light"] #quant-view-oliverkell .screener-kpi-card div:first-child {
+    color: #64748b !important;
+    font-weight: 700 !important;
 }
 
 #quant-view-oliverkell .screener-hero-header .btn-secondary,

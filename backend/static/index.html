@@ -1323,6 +1323,15 @@
                 <button class="nav-btn" id="tab-flatbase-btn" data-title="William O'Neil Modern Flat Base" onclick="window.switchTab && window.switchTab('vcp'); window.switchQuantScannerSubtab && window.switchQuantScannerSubtab('flatbase');">
                     <span class="btn-icon">📦</span> <span class="btn-text">Modern Flat Base</span>
                 </button>
+                <button class="nav-btn" id="tab-episodic-btn" data-title="Pradeep Bonde Episodic Pivot (EP)" onclick="window.switchTab && window.switchTab('vcp'); window.switchQuantScannerSubtab && window.switchQuantScannerSubtab('episodic');">
+                    <span class="btn-icon">⚡</span> <span class="btn-text">Episodic Pivot (EP)</span>
+                </button>
+                <button class="nav-btn" id="tab-pocket-btn" data-title="Dr. Chris Kacher Pocket Pivot" onclick="window.switchTab && window.switchTab('vcp'); window.switchQuantScannerSubtab && window.switchQuantScannerSubtab('pocket');">
+                    <span class="btn-icon">🎯</span> <span class="btn-text">Pocket Pivot</span>
+                </button>
+                <button class="nav-btn" id="tab-oliverkell-btn" data-title="Oliver Kell EMA Structure" onclick="window.switchTab && window.switchTab('vcp'); window.switchQuantScannerSubtab && window.switchQuantScannerSubtab('oliverkell');">
+                    <span class="btn-icon">📈</span> <span class="btn-text">Oliver Kell Structure</span>
+                </button>
                 <button class="nav-btn" id="tab-quant-guide-btn" data-title="4-Stage Life Cycle Masterclass & Guide" onclick="window.switchTab && window.switchTab('vcp'); window.switchQuantScannerSubtab && window.switchQuantScannerSubtab('guide');">
                     <span class="btn-icon">📘</span> <span class="btn-text">Stage Masterclass & Guide</span>
                 </button>
@@ -2037,7 +2046,16 @@
                         <span>🎯</span> 3-Weeks Tight (3WT)
                     </button>
                     <button class="quant-subtab-btn" id="quant-subtab-flatbase" onclick="window.switchQuantScannerSubtab && window.switchQuantScannerSubtab('flatbase')">
-                        <span>📈</span> Modern Flat Base
+                        <span>📦</span> Modern Flat Base
+                    </button>
+                    <button class="quant-subtab-btn" id="quant-subtab-episodic" onclick="window.switchQuantScannerSubtab && window.switchQuantScannerSubtab('episodic')">
+                        <span>⚡</span> Episodic Pivot (EP)
+                    </button>
+                    <button class="quant-subtab-btn" id="quant-subtab-pocket" onclick="window.switchQuantScannerSubtab && window.switchQuantScannerSubtab('pocket')">
+                        <span>🎯</span> Pocket Pivot
+                    </button>
+                    <button class="quant-subtab-btn" id="quant-subtab-oliverkell" onclick="window.switchQuantScannerSubtab && window.switchQuantScannerSubtab('oliverkell')">
+                        <span>📈</span> Oliver Kell Structure
                     </button>
                     <button class="quant-subtab-btn" id="quant-subtab-guide" onclick="window.switchQuantScannerSubtab && window.switchQuantScannerSubtab('guide')">
                         <span>📘</span> 4-Stage Life Cycle Masterclass
@@ -2794,6 +2812,378 @@
                     </div>
                 </div>
 
+                <!-- SUBTAB VIEW 6: PRADEEP BONDE EPISODIC PIVOT (GAP & GO) -->
+                <div id="quant-view-episodic" style="display: none;">
+                    <div class="screener-hero-header no-print" style="margin-bottom: 24px; border-radius: 16px; background: linear-gradient(135deg, rgba(15, 23, 42, 0.95), rgba(30, 41, 59, 0.92), rgba(15, 23, 42, 0.95)); border: 1px solid rgba(236, 72, 153, 0.4); backdrop-filter: blur(20px); padding: 22px 28px; box-shadow: 0 12px 32px -4px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.1); position: relative; overflow: hidden; font-family: 'Outfit', 'Inter', sans-serif;">
+                        <div style="position: absolute; top: -50px; right: -50px; width: 250px; height: 250px; background: radial-gradient(circle, rgba(236, 72, 153, 0.25), transparent 70%); pointer-events: none; border-radius: 50%;"></div>
+                        <div style="position: absolute; bottom: -60px; left: -60px; width: 220px; height: 220px; background: radial-gradient(circle, rgba(244, 114, 182, 0.2), transparent 70%); pointer-events: none; border-radius: 50%;"></div>
+
+                        <!-- Database Node & EP Network SVG Background -->
+                        <svg style="position: absolute; right: 0; bottom: 0; width: 55%; height: 100%; opacity: 0.22; pointer-events: none;" viewBox="0 0 400 120" preserveAspectRatio="none">
+                            <g stroke="#ec4899" stroke-width="1.2" fill="none">
+                                <path d="M 280 25 C 280 15, 340 15, 340 25 C 340 35, 280 35, 280 25 Z"/>
+                                <path d="M 280 25 L 280 55 C 280 65, 340 65, 340 55 L 340 25"/>
+                                <path d="M 280 55 L 280 85 C 280 95, 340 95, 340 85 L 340 55"/>
+                            </g>
+                            <line x1="120" y1="40" x2="280" y2="25" stroke="#ec4899" stroke-width="1" stroke-dasharray="3,3"/>
+                            <line x1="150" y1="80" x2="280" y2="55" stroke="#f472b6" stroke-width="1" stroke-dasharray="3,3"/>
+                            <circle cx="120" cy="40" r="5" fill="#ec4899"/>
+                            <circle cx="150" cy="80" r="5" fill="#f472b6"/>
+                            <circle cx="200" cy="20" r="4" fill="#38bdf8"/>
+                            <circle cx="230" cy="95" r="4" fill="#fbbf24"/>
+                            <line x1="200" y1="20" x2="280" y2="25" stroke="#38bdf8" stroke-width="1"/>
+                            <line x1="230" y1="95" x2="280" y2="85" stroke="#fbbf24" stroke-width="1"/>
+                        </svg>
+
+                        <div style="position: relative; z-index: 2; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px;">
+                            <div>
+                                <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px;">
+                                    <div style="background: rgba(236, 72, 153, 0.18); border: 1px solid rgba(236, 72, 153, 0.45); padding: 3px 8px; border-radius: 5px; display: inline-flex; align-items: center; gap: 6px;">
+                                        <span class="status-indicator" style="width: 7px; height: 7px; border-radius: 50%; background-color: #ec4899; box-shadow: 0 0 8px #ec4899;"></span>
+                                        <span style="font-size: 13px; font-weight: 800; color: #f472b6; letter-spacing: 0.08em; text-transform: uppercase;">PRADEEP BONDE EPISODIC PIVOT ENGINE</span>
+                                    </div>
+                                    <span style="font-size: 13.5px; color: rgba(255,255,255,0.45); font-weight: 600;">• Catalyst Gap & Go System</span>
+                                    <span id="episodic-timestamp" style="font-size: 12px; font-weight: 700; color: #ec4899; background: rgba(236, 72, 153, 0.12); padding: 3px 8px; border-radius: 6px; border: 1px solid rgba(236, 72, 153, 0.3); margin-left: 8px;">🟢 Last Pre-Warmed: Today 1:30 AM</span>
+                                </div>
+                                <h2 style="margin: 0; font-size: 22px; font-weight: 800; color: #ffffff; letter-spacing: -0.02em; font-family: 'Outfit', sans-serif;">Episodic Pivot (Gap & Go) Screener</h2>
+                                <p style="margin: 6px 0 0 0; font-size: 12.5px; color: #94a3b8; line-height: 1.5; max-width: 660px;">Detects institutional catalyst-driven gap-ups (&ge;+7.5% gap with Relative Volume &ge;2.5x) breaking out of tight multi-week bases.</p>
+                            </div>
+
+                            <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+                                <button onclick="const b=document.getElementById('episodic-guide-banner'); b.style.display = b.style.display === 'none' ? 'block' : 'none';" class="btn-secondary" style="padding: 10px 16px; background: rgba(236, 72, 153, 0.15); border: 1px solid #ec4899; border-radius: 10px; color: #f472b6; font-weight: 800; font-size: 13px; cursor: pointer;">
+                                    💡 Guide
+                                </button>
+                                <button onclick="window.runEpisodicScan && window.runEpisodicScan(false, true)" class="btn-primary" style="padding: 10px 20px; background: linear-gradient(135deg, #ec4899, #db2777); border: none; border-radius: 10px; color: #fff; font-weight: 700; font-size: 13px; cursor: pointer; box-shadow: 0 4px 14px rgba(236, 72, 153, 0.35);">
+                                    🔄 Run Episodic Scan
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="screener-kpi-row" style="display: flex; gap: 16px; margin-top: 20px; flex-wrap: wrap; border-top: 1px solid rgba(255,255,255,0.08); padding-top: 16px;">
+                            <div class="screener-kpi-card" style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(255,255,255,0.08); border-radius: 10px; padding: 10px 16px; flex: 1; min-width: 140px;">
+                                <div style="font-size: 11px; color: #94a3b8; text-transform: uppercase; font-weight: 600;">Total EP Setups</div>
+                                <div id="episodic-kpi-total" style="font-size: 20px; font-weight: 800; color: #f472b6; margin-top: 2px;">--</div>
+                            </div>
+                            <div class="screener-kpi-card" style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(255,255,255,0.08); border-radius: 10px; padding: 10px 16px; flex: 1; min-width: 140px;">
+                                <div style="font-size: 11px; color: #94a3b8; text-transform: uppercase; font-weight: 600;">High Gap (+4%+)</div>
+                                <div id="episodic-kpi-live" style="font-size: 20px; font-weight: 800; color: #38bdf8; margin-top: 2px;">--</div>
+                            </div>
+                            <div class="screener-kpi-card" style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(255,255,255,0.08); border-radius: 10px; padding: 10px 16px; flex: 1; min-width: 140px;">
+                                <div style="font-size: 11px; color: #94a3b8; text-transform: uppercase; font-weight: 600;">Huge Vol (3x+)</div>
+                                <div id="episodic-kpi-rvol" style="font-size: 20px; font-weight: 800; color: #fbbf24; margin-top: 2px;">--</div>
+                            </div>
+                            <div class="screener-kpi-card" style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(255,255,255,0.08); border-radius: 10px; padding: 10px 16px; flex: 1; min-width: 140px;">
+                                <div style="font-size: 11px; color: #94a3b8; text-transform: uppercase; font-weight: 600;">Avg Gap %</div>
+                                <div id="episodic-kpi-avg-gap" style="font-size: 20px; font-weight: 800; color: #34d399; margin-top: 2px;">--</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="episodic-guide-banner" class="vcp-guide-banner" style="display: none; margin-bottom: 20px; border-radius: 12px; padding: 16px 20px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                            <strong style="font-size: 14px; font-weight: 800; color: #f472b6;">⚡ Pradeep Bonde Episodic Pivot (EP) Rules</strong>
+                            <button onclick="document.getElementById('episodic-guide-banner').style.display='none'" style="background: none; border: none; cursor: pointer; font-size: 15px; color: #94a3b8;">✕</button>
+                        </div>
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 10px; font-size: 11.5px; line-height: 1.45;">
+                            <div style="background: rgba(30,41,59,0.5); padding: 10px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.06);">
+                                <strong style="color: #f472b6;">Fundamental Catalyst</strong>: Earnings surprise, FDA approval, major contract, or structural industry shift.
+                            </div>
+                            <div style="background: rgba(30,41,59,0.5); padding: 10px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.06);">
+                                <strong style="color: #f472b6;">Gap Size (&ge; +7.5%)</strong>: Massive opening gap demonstrating institutional urgency to buy at any price.
+                            </div>
+                            <div style="background: rgba(30,41,59,0.5); padding: 10px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.06);">
+                                <strong style="color: #f472b6;">Relative Volume (&ge; 2.5x)</strong>: Daily volume expands to multi-month high (3x to 10x 50D average volume).
+                            </div>
+                            <div style="background: rgba(30,41,59,0.5); padding: 10px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.06);">
+                                <strong style="color: #f472b6;">Tight Base Consolidation</strong>: Stock was previously neglected or consolidating tightly before the catalyst event.
+                            </div>
+                        </div>
+                    </div>
+
+                    <div style="display: flex; gap: 14px; margin-bottom: 20px; align-items: center; flex-wrap: wrap;">
+                        <input type="text" id="episodic-search-input" onkeyup="window.filterEpisodicTable && window.filterEpisodicTable()" placeholder="Search symbol or name..." style="background: rgba(30, 41, 59, 0.8); border: 1px solid rgba(255,255,255,0.12); color: #fff; padding: 8px 14px; border-radius: 8px; font-size: 13px; flex: 1; min-width: 200px; outline: none;"/>
+                        <select id="episodic-status-filter" onchange="window.filterEpisodicTable && window.filterEpisodicTable()" style="background: rgba(30, 41, 59, 0.8); border: 1px solid rgba(255,255,255,0.12); color: #fff; padding: 8px 14px; border-radius: 8px; font-size: 13px; outline: none; cursor: pointer;">
+                            <option value="ALL">All EP Setups</option>
+                            <option value="EP_GAP_LIVE">🚀 Live Gap & Go Breakout</option>
+                            <option value="EP_FORMING">⌛ Forming Base</option>
+                        </select>
+                    </div>
+
+                    <div id="episodic-loading-container" style="display: none; text-align: center; padding: 60px 20px;">
+                        <div class="spinner" style="border: 4px solid rgba(236, 72, 153, 0.1); border-left-color: #ec4899; border-radius: 50%; width: 44px; height: 44px; animation: spin 1s linear infinite; margin: 0 auto 16px auto;"></div>
+                        <p style="color: #94a3b8; font-size: 14px; font-weight: 500;">Scanning Nifty Universe for Pradeep Bonde Episodic Pivots...</p>
+                    </div>
+
+                    <div class="quant-table-wrapper">
+                        <table class="quant-table" style="width: 100%; border-collapse: collapse; font-size: 13px;">
+                            <thead>
+                                <tr style="border-bottom: 1px solid rgba(255, 255, 255, 0.1); text-align: left; color: #94a3b8;">
+                                    <th>Symbol</th>
+                                    <th>Price</th>
+                                    <th>Day Chg %</th>
+                                    <th>Gap Up %</th>
+                                    <th>RVOL</th>
+                                    <th>Base Setup</th>
+                                    <th>Buy Pivot</th>
+                                    <th>Stop Loss</th>
+                                    <th>EP Status</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="episodic-table-body">
+                                <tr><td colspan="10" style="text-align:center; padding: 30px; color: #94a3b8;">Click 'Run Episodic Scan' to load results.</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- SUBTAB VIEW 7: DR. CHRIS KACHER POCKET PIVOT -->
+                <div id="quant-view-pocket" style="display: none;">
+                    <div class="screener-hero-header no-print" style="margin-bottom: 24px; border-radius: 16px; background: linear-gradient(135deg, rgba(15, 23, 42, 0.95), rgba(30, 41, 59, 0.92), rgba(15, 23, 42, 0.95)); border: 1px solid rgba(56, 189, 248, 0.4); backdrop-filter: blur(20px); padding: 22px 28px; box-shadow: 0 12px 32px -4px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.1); position: relative; overflow: hidden; font-family: 'Outfit', 'Inter', sans-serif;">
+                        <div style="position: absolute; top: -50px; right: -50px; width: 250px; height: 250px; background: radial-gradient(circle, rgba(56, 189, 248, 0.25), transparent 70%); pointer-events: none; border-radius: 50%;"></div>
+                        <div style="position: absolute; bottom: -60px; left: -60px; width: 220px; height: 220px; background: radial-gradient(circle, rgba(14, 165, 233, 0.2), transparent 70%); pointer-events: none; border-radius: 50%;"></div>
+
+                        <!-- Database Node & Pocket Pivot Network SVG Background -->
+                        <svg style="position: absolute; right: 0; bottom: 0; width: 55%; height: 100%; opacity: 0.22; pointer-events: none;" viewBox="0 0 400 120" preserveAspectRatio="none">
+                            <g stroke="#38bdf8" stroke-width="1.2" fill="none">
+                                <path d="M 280 25 C 280 15, 340 15, 340 25 C 340 35, 280 35, 280 25 Z"/>
+                                <path d="M 280 25 L 280 55 C 280 65, 340 65, 340 55 L 340 25"/>
+                                <path d="M 280 55 L 280 85 C 280 95, 340 95, 340 85 L 340 55"/>
+                            </g>
+                            <line x1="120" y1="40" x2="280" y2="25" stroke="#38bdf8" stroke-width="1" stroke-dasharray="3,3"/>
+                            <line x1="150" y1="80" x2="280" y2="55" stroke="#0284c7" stroke-width="1" stroke-dasharray="3,3"/>
+                            <circle cx="120" cy="40" r="5" fill="#38bdf8"/>
+                            <circle cx="150" cy="80" r="5" fill="#0284c7"/>
+                            <circle cx="200" cy="20" r="4" fill="#34d399"/>
+                            <circle cx="230" cy="95" r="4" fill="#fbbf24"/>
+                            <line x1="200" y1="20" x2="280" y2="25" stroke="#34d399" stroke-width="1"/>
+                            <line x1="230" y1="95" x2="280" y2="85" stroke="#fbbf24" stroke-width="1"/>
+                        </svg>
+
+                        <div style="position: relative; z-index: 2; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px;">
+                            <div>
+                                <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px;">
+                                    <div style="background: rgba(56, 189, 248, 0.18); border: 1px solid rgba(56, 189, 248, 0.45); padding: 3px 8px; border-radius: 5px; display: inline-flex; align-items: center; gap: 6px;">
+                                        <span class="status-indicator" style="width: 7px; height: 7px; border-radius: 50%; background-color: #38bdf8; box-shadow: 0 0 8px #38bdf8;"></span>
+                                        <span style="font-size: 13px; font-weight: 800; color: #38bdf8; letter-spacing: 0.08em; text-transform: uppercase;">DR. CHRIS KACHER POCKET PIVOT ENGINE</span>
+                                    </div>
+                                    <span style="font-size: 13.5px; color: rgba(255,255,255,0.45); font-weight: 600;">• Institutional Pre-Breakout Accumulation</span>
+                                    <span id="pocket-timestamp" style="font-size: 12px; font-weight: 700; color: #38bdf8; background: rgba(56, 189, 248, 0.12); padding: 3px 8px; border-radius: 6px; border: 1px solid rgba(56, 189, 248, 0.3); margin-left: 8px;">🟢 Last Pre-Warmed: Today 1:30 AM</span>
+                                </div>
+                                <h2 style="margin: 0; font-size: 22px; font-weight: 800; color: #ffffff; letter-spacing: -0.02em; font-family: 'Outfit', sans-serif;">Dr. Chris Kacher Pocket Pivot Screener</h2>
+                                <p style="margin: 6px 0 0 0; font-size: 12.5px; color: #94a3b8; line-height: 1.5; max-width: 660px;">Detects institutional early-entry accumulation inside a base where single-day up volume exceeds the maximum down volume of the prior 10 trading days.</p>
+                            </div>
+
+                            <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+                                <button onclick="const b=document.getElementById('pocket-guide-banner'); b.style.display = b.style.display === 'none' ? 'block' : 'none';" class="btn-secondary" style="padding: 10px 16px; background: rgba(56, 189, 248, 0.15); border: 1px solid #38bdf8; border-radius: 10px; color: #38bdf8; font-weight: 800; font-size: 13px; cursor: pointer;">
+                                    💡 Guide
+                                </button>
+                                <button onclick="window.runPocketScan && window.runPocketScan(false, true)" class="btn-primary" style="padding: 10px 20px; background: linear-gradient(135deg, #38bdf8, #0284c7); border: none; border-radius: 10px; color: #fff; font-weight: 700; font-size: 13px; cursor: pointer; box-shadow: 0 4px 14px rgba(56, 189, 248, 0.35);">
+                                    🔄 Run Pocket Scan
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="screener-kpi-row" style="display: flex; gap: 16px; margin-top: 20px; flex-wrap: wrap; border-top: 1px solid rgba(255,255,255,0.08); padding-top: 16px;">
+                            <div class="screener-kpi-card" style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(255,255,255,0.08); border-radius: 10px; padding: 10px 16px; flex: 1; min-width: 140px;">
+                                <div style="font-size: 11px; color: #94a3b8; text-transform: uppercase; font-weight: 600;">Total Pocket Pivots</div>
+                                <div id="pocket-kpi-total" style="font-size: 20px; font-weight: 800; color: #38bdf8; margin-top: 2px;">--</div>
+                            </div>
+                            <div class="screener-kpi-card" style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(255,255,255,0.08); border-radius: 10px; padding: 10px 16px; flex: 1; min-width: 140px;">
+                                <div style="font-size: 11px; color: #94a3b8; text-transform: uppercase; font-weight: 600;">High Vol (1.5x+)</div>
+                                <div id="pocket-kpi-live" style="font-size: 20px; font-weight: 800; color: #34d399; margin-top: 2px;">--</div>
+                            </div>
+                            <div class="screener-kpi-card" style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(255,255,255,0.08); border-radius: 10px; padding: 10px 16px; flex: 1; min-width: 140px;">
+                                <div style="font-size: 11px; color: #94a3b8; text-transform: uppercase; font-weight: 600;">Forming Base</div>
+                                <div id="pocket-kpi-forming" style="font-size: 20px; font-weight: 800; color: #fbbf24; margin-top: 2px;">--</div>
+                            </div>
+                            <div class="screener-kpi-card" style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(255,255,255,0.08); border-radius: 10px; padding: 10px 16px; flex: 1; min-width: 140px;">
+                                <div style="font-size: 11px; color: #94a3b8; text-transform: uppercase; font-weight: 600;">Avg Vol Ratio</div>
+                                <div id="pocket-kpi-avg-vol" style="font-size: 20px; font-weight: 800; color: #c084fc; margin-top: 2px;">--</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="pocket-guide-banner" class="vcp-guide-banner" style="display: none; margin-bottom: 20px; border-radius: 12px; padding: 16px 20px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                            <strong style="font-size: 14px; font-weight: 800; color: #38bdf8;">🎯 Dr. Chris Kacher Pocket Pivot Rules</strong>
+                            <button onclick="document.getElementById('pocket-guide-banner').style.display='none'" style="background: none; border: none; cursor: pointer; font-size: 15px; color: #94a3b8;">✕</button>
+                        </div>
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 10px; font-size: 11.5px; line-height: 1.45;">
+                            <div style="background: rgba(30,41,59,0.5); padding: 10px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.06);">
+                                <strong style="color: #38bdf8;">Up-Volume Expansion</strong>: Single-day up volume must be larger than the highest down-day volume over the prior 10 trading days.
+                            </div>
+                            <div style="background: rgba(30,41,59,0.5); padding: 10px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.06);">
+                                <strong style="color: #38bdf8;">Moving Average Support</strong>: Price must break out while touching or sitting near the 10 EMA or 20 EMA line inside a base.
+                            </div>
+                            <div style="background: rgba(30,41,59,0.5); padding: 10px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.06);">
+                                <strong style="color: #38bdf8;">Uptrend Context</strong>: Stock must be in Stage 2 advancing phase above its 50-day and 200-day moving averages.
+                            </div>
+                        </div>
+                    </div>
+
+                    <div style="display: flex; gap: 14px; margin-bottom: 20px; align-items: center; flex-wrap: wrap;">
+                        <input type="text" id="pocket-search-input" onkeyup="window.filterPocketTable && window.filterPocketTable()" placeholder="Search symbol or name..." style="background: rgba(30, 41, 59, 0.8); border: 1px solid rgba(255,255,255,0.12); color: #fff; padding: 8px 14px; border-radius: 8px; font-size: 13px; flex: 1; min-width: 200px; outline: none;"/>
+                        <select id="pocket-status-filter" onchange="window.filterPocketTable && window.filterPocketTable()" style="background: rgba(30, 41, 59, 0.8); border: 1px solid rgba(255,255,255,0.12); color: #fff; padding: 8px 14px; border-radius: 8px; font-size: 13px; outline: none; cursor: pointer;">
+                            <option value="ALL">All Pocket Pivots</option>
+                            <option value="POCKET_PIVOT_LIVE">🎯 Live Pocket Pivot</option>
+                            <option value="POCKET_PIVOT_FORMING">⌛ Base Support Touch</option>
+                        </select>
+                    </div>
+
+                    <div id="pocket-loading-container" style="display: none; text-align: center; padding: 60px 20px;">
+                        <div class="spinner" style="border: 4px solid rgba(56, 189, 248, 0.1); border-left-color: #38bdf8; border-radius: 50%; width: 44px; height: 44px; animation: spin 1s linear infinite; margin: 0 auto 16px auto;"></div>
+                        <p style="color: #94a3b8; font-size: 14px; font-weight: 500;">Scanning Nifty Universe for Dr. Chris Kacher Pocket Pivots...</p>
+                    </div>
+
+                    <div class="quant-table-wrapper">
+                        <table class="quant-table" style="width: 100%; border-collapse: collapse; font-size: 13px;">
+                            <thead>
+                                <tr style="border-bottom: 1px solid rgba(255, 255, 255, 0.1); text-align: left; color: #94a3b8;">
+                                    <th>Symbol</th>
+                                    <th>Price</th>
+                                    <th>Day Chg %</th>
+                                    <th>Up Volume</th>
+                                    <th>Max 10D Down Vol</th>
+                                    <th>Vol Ratio</th>
+                                    <th>Buy Pivot</th>
+                                    <th>Stop Loss</th>
+                                    <th>MA Support</th>
+                                    <th>Status</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="pocket-table-body">
+                                <tr><td colspan="11" style="text-align:center; padding: 30px; color: #94a3b8;">Click 'Run Pocket Scan' to load results.</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- SUBTAB VIEW 8: OLIVER KELL TREND STRUCTURE & EMAS -->
+                <div id="quant-view-oliverkell" style="display: none;">
+                    <div class="screener-hero-header no-print" style="margin-bottom: 24px; border-radius: 16px; background: linear-gradient(135deg, rgba(15, 23, 42, 0.95), rgba(30, 41, 59, 0.92), rgba(15, 23, 42, 0.95)); border: 1px solid rgba(192, 132, 252, 0.4); backdrop-filter: blur(20px); padding: 22px 28px; box-shadow: 0 12px 32px -4px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.1); position: relative; overflow: hidden; font-family: 'Outfit', 'Inter', sans-serif;">
+                        <div style="position: absolute; top: -50px; right: -50px; width: 250px; height: 250px; background: radial-gradient(circle, rgba(192, 132, 252, 0.25), transparent 70%); pointer-events: none; border-radius: 50%;"></div>
+                        <div style="position: absolute; bottom: -60px; left: -60px; width: 220px; height: 220px; background: radial-gradient(circle, rgba(168, 85, 247, 0.2), transparent 70%); pointer-events: none; border-radius: 50%;"></div>
+
+                        <!-- Database Node & Oliver Kell Network SVG Background -->
+                        <svg style="position: absolute; right: 0; bottom: 0; width: 55%; height: 100%; opacity: 0.22; pointer-events: none;" viewBox="0 0 400 120" preserveAspectRatio="none">
+                            <g stroke="#c084fc" stroke-width="1.2" fill="none">
+                                <path d="M 280 25 C 280 15, 340 15, 340 25 C 340 35, 280 35, 280 25 Z"/>
+                                <path d="M 280 25 L 280 55 C 280 65, 340 65, 340 55 L 340 25"/>
+                                <path d="M 280 55 L 280 85 C 280 95, 340 95, 340 85 L 340 55"/>
+                            </g>
+                            <line x1="120" y1="40" x2="280" y2="25" stroke="#c084fc" stroke-width="1" stroke-dasharray="3,3"/>
+                            <line x1="150" y1="80" x2="280" y2="55" stroke="#9333ea" stroke-width="1" stroke-dasharray="3,3"/>
+                            <circle cx="120" cy="40" r="5" fill="#c084fc"/>
+                            <circle cx="150" cy="80" r="5" fill="#9333ea"/>
+                            <circle cx="200" cy="20" r="4" fill="#38bdf8"/>
+                            <circle cx="230" cy="95" r="4" fill="#34d399"/>
+                            <line x1="200" y1="20" x2="280" y2="25" stroke="#38bdf8" stroke-width="1"/>
+                            <line x1="230" y1="95" x2="280" y2="85" stroke="#34d399" stroke-width="1"/>
+                        </svg>
+
+                        <div style="position: relative; z-index: 2; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px;">
+                            <div>
+                                <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px;">
+                                    <div style="background: rgba(192, 132, 252, 0.18); border: 1px solid rgba(192, 132, 252, 0.45); padding: 3px 8px; border-radius: 5px; display: inline-flex; align-items: center; gap: 6px;">
+                                        <span class="status-indicator" style="width: 7px; height: 7px; border-radius: 50%; background-color: #c084fc; box-shadow: 0 0 8px #c084fc;"></span>
+                                        <span style="font-size: 13px; font-weight: 800; color: #c084fc; letter-spacing: 0.08em; text-transform: uppercase;">OLIVER KELL EMA STRUCTURE ENGINE</span>
+                                    </div>
+                                    <span style="font-size: 13.5px; color: rgba(255,255,255,0.45); font-weight: 600;">• US Investing Champion Momentum System</span>
+                                    <span id="oliverkell-timestamp" style="font-size: 12px; font-weight: 700; color: #c084fc; background: rgba(192, 132, 252, 0.12); padding: 3px 8px; border-radius: 6px; border: 1px solid rgba(192, 132, 252, 0.3); margin-left: 8px;">🟢 Last Pre-Warmed: Today 1:30 AM</span>
+                                </div>
+                                <h2 style="margin: 0; font-size: 22px; font-weight: 800; color: #ffffff; letter-spacing: -0.02em; font-family: 'Outfit', sans-serif;">Oliver Kell Trend Structure & EMA Screener</h2>
+                                <p style="margin: 6px 0 0 0; font-size: 12.5px; color: #94a3b8; line-height: 1.5; max-width: 660px;">Detects US Investing Champion Oliver Kell's structural momentum pullbacks to 10/20 EMAs and wedge pop breakouts.</p>
+                            </div>
+
+                            <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+                                <button onclick="const b=document.getElementById('oliverkell-guide-banner'); b.style.display = b.style.display === 'none' ? 'block' : 'none';" class="btn-secondary" style="padding: 10px 16px; background: rgba(192, 132, 252, 0.15); border: 1px solid #c084fc; border-radius: 10px; color: #c084fc; font-weight: 800; font-size: 13px; cursor: pointer;">
+                                    💡 Guide
+                                </button>
+                                <button onclick="window.runOliverKellScan && window.runOliverKellScan(false, true)" class="btn-primary" style="padding: 10px 20px; background: linear-gradient(135deg, #c084fc, #9333ea); border: none; border-radius: 10px; color: #fff; font-weight: 700; font-size: 13px; cursor: pointer; box-shadow: 0 4px 14px rgba(192, 132, 252, 0.35);">
+                                    🔄 Run Oliver Kell Scan
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="screener-kpi-row" style="display: flex; gap: 16px; margin-top: 20px; flex-wrap: wrap; border-top: 1px solid rgba(255,255,255,0.08); padding-top: 16px;">
+                            <div class="screener-kpi-card" style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(255,255,255,0.08); border-radius: 10px; padding: 10px 16px; flex: 1; min-width: 140px;">
+                                <div style="font-size: 11px; color: #94a3b8; text-transform: uppercase; font-weight: 600;">Total Setups</div>
+                                <div id="oliverkell-kpi-total" style="font-size: 20px; font-weight: 800; color: #c084fc; margin-top: 2px;">--</div>
+                            </div>
+                            <div class="screener-kpi-card" style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(255,255,255,0.08); border-radius: 10px; padding: 10px 16px; flex: 1; min-width: 140px;">
+                                <div style="font-size: 11px; color: #94a3b8; text-transform: uppercase; font-weight: 600;">Advancers Today</div>
+                                <div id="oliverkell-kpi-live" style="font-size: 20px; font-weight: 800; color: #34d399; margin-top: 2px;">--</div>
+                            </div>
+                            <div class="screener-kpi-card" style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(255,255,255,0.08); border-radius: 10px; padding: 10px 16px; flex: 1; min-width: 140px;">
+                                <div style="font-size: 11px; color: #94a3b8; text-transform: uppercase; font-weight: 600;">EMA Pullbacks</div>
+                                <div id="oliverkell-kpi-pullback" style="font-size: 20px; font-weight: 800; color: #fbbf24; margin-top: 2px;">--</div>
+                            </div>
+                            <div class="screener-kpi-card" style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(255,255,255,0.08); border-radius: 10px; padding: 10px 16px; flex: 1; min-width: 140px;">
+                                <div style="font-size: 11px; color: #94a3b8; text-transform: uppercase; font-weight: 600;">Avg Day Chg %</div>
+                                <div id="oliverkell-kpi-avg-gain" style="font-size: 20px; font-weight: 800; color: #38bdf8; margin-top: 2px;">--</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="oliverkell-guide-banner" class="vcp-guide-banner" style="display: none; margin-bottom: 20px; border-radius: 12px; padding: 16px 20px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                            <strong style="font-size: 14px; font-weight: 800; color: #c084fc;">📈 Oliver Kell EMA Trend Rules</strong>
+                            <button onclick="document.getElementById('oliverkell-guide-banner').style.display='none'" style="background: none; border: none; cursor: pointer; font-size: 15px; color: #94a3b8;">✕</button>
+                        </div>
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 10px; font-size: 11.5px; line-height: 1.45;">
+                            <div style="background: rgba(30,41,59,0.5); padding: 10px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.06);">
+                                <strong style="color: #c084fc;">10/20 EMA Support</strong>: Stock rides fast 10 EMA and 20 EMA trend lines without closing below key structural levels.
+                            </div>
+                            <div style="background: rgba(30,41,59,0.5); padding: 10px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.06);">
+                                <strong style="color: #c084fc;">Base Recovery (&ge; 35%)</strong>: Stock has recovered at least 35% from its 52-week low.
+                            </div>
+                            <div style="background: rgba(30,41,59,0.5); padding: 10px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.06);">
+                                <strong style="color: #c084fc;">Wedge Pop / Reversal</strong>: Immediate expansion back above 10 EMA line after a tight pullback.
+                            </div>
+                        </div>
+                    </div>
+
+                    <div style="display: flex; gap: 14px; margin-bottom: 20px; align-items: center; flex-wrap: wrap;">
+                        <input type="text" id="oliverkell-search-input" onkeyup="window.filterOliverKellTable && window.filterOliverKellTable()" placeholder="Search symbol or name..." style="background: rgba(30, 41, 59, 0.8); border: 1px solid rgba(255,255,255,0.12); color: #fff; padding: 8px 14px; border-radius: 8px; font-size: 13px; flex: 1; min-width: 200px; outline: none;"/>
+                        <select id="oliverkell-status-filter" onchange="window.filterOliverKellTable && window.filterOliverKellTable()" style="background: rgba(30, 41, 59, 0.8); border: 1px solid rgba(255,255,255,0.12); color: #fff; padding: 8px 14px; border-radius: 8px; font-size: 13px; outline: none; cursor: pointer;">
+                            <option value="ALL">All Oliver Kell Setups</option>
+                            <option value="KELL_REVERSAL_LIVE">🚀 Live Reversal Breakout</option>
+                            <option value="KELL_PULLBACK_TEST">📉 Low Vol Pullback Test</option>
+                            <option value="10 EMA">🎯 10 EMA Support</option>
+                            <option value="20 EMA">📈 20 EMA Support</option>
+                        </select>
+                    </div>
+
+                    <div id="oliverkell-loading-container" style="display: none; text-align: center; padding: 60px 20px;">
+                        <div class="spinner" style="border: 4px solid rgba(192, 132, 252, 0.1); border-left-color: #c084fc; border-radius: 50%; width: 44px; height: 44px; animation: spin 1s linear infinite; margin: 0 auto 16px auto;"></div>
+                        <p style="color: #94a3b8; font-size: 14px; font-weight: 500;">Scanning Nifty Universe for Oliver Kell EMA Structure Setups...</p>
+                    </div>
+
+                    <div class="quant-table-wrapper">
+                        <table class="quant-table" style="width: 100%; border-collapse: collapse; font-size: 13px;">
+                            <thead>
+                                <tr style="border-bottom: 1px solid rgba(255, 255, 255, 0.1); text-align: left; color: #94a3b8;">
+                                    <th>Symbol</th>
+                                    <th>Price</th>
+                                    <th>Day Chg %</th>
+                                    <th>10 EMA</th>
+                                    <th>20 EMA</th>
+                                    <th>Dist to 10 EMA %</th>
+                                    <th>Buy Pivot</th>
+                                    <th>Stop Loss</th>
+                                    <th>Kell Structure</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="oliverkell-table-body">
+                                <tr><td colspan="10" style="text-align:center; padding: 30px; color: #94a3b8;">Click 'Run Oliver Kell Scan' to load results.</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
                 <!-- SUBTAB VIEW 6: STAN WEINSTEIN & DAVID RYAN 4-STAGE LIFE CYCLE MASTERCLASS -->
                 <div id="quant-view-guide" style="display: none; padding-bottom: 40px; font-family: 'Inter', sans-serif;">
                     <!-- Ultra-Institutional 4-Stage Life Cycle Masterclass Cyber Hero Header Banner -->
@@ -3051,10 +3441,10 @@
                         <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; flex-wrap: wrap; gap: 12px;">
                             <div>
                                 <h3 style="margin: 0; font-size: 19px; font-weight: 800; color: #f8fafc; display: flex; align-items: center; gap: 8px;">
-                                    <span>📊</span> 4-Screener Quantitative Life Cycle Alignment Map
+                                    <span>📊</span> 8-Screener Quantitative Life Cycle Alignment Map
                                 </h3>
                                 <p style="margin: 4px 0 0 0; font-size: 12px; color: #94a3b8;">
-                                    Shows exact entry placement & volume trigger timing for VCP, Stage 2 Breakout, HTF, and 3WT on the 4-Stage curve.
+                                    Shows exact entry placement & volume trigger timing for Stage 2 Breakout, Episodic Pivot, VCP, Flat Base, Pocket Pivot, HTF, Oliver Kell, and 3WT on the 4-Stage curve.
                                 </p>
                             </div>
                             <div style="display: flex; gap: 8px; flex-wrap: wrap; font-size: 11px; font-weight: 700;">
@@ -3068,24 +3458,40 @@
                         <!-- Chronological Sequence Explanation Callout Box -->
                         <div style="background: rgba(30, 41, 59, 0.6); border-left: 4px solid #38bdf8; border-radius: 10px; padding: 16px 18px; margin-bottom: 18px; font-size: 12.5px; line-height: 1.55; color: #cbd5e1;">
                             <strong style="color: #38bdf8; display: flex; align-items: center; gap: 6px; font-size: 14px; margin-bottom: 8px;">
-                                <span>🧠</span> 4-Screener Quantitative Life Cycle Progression Sequence:
+                                <span>🧠</span> 8-Screener Quantitative Life Cycle Progression Sequence:
                             </strong>
                             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; margin-top: 10px;">
                                 <div style="background: rgba(15, 23, 42, 0.6); padding: 12px; border-radius: 8px; border: 1px solid rgba(56, 189, 248, 0.3);" class="quant-strategy-card">
                                     <strong style="color: #38bdf8; font-size: 12.5px;">1. Weinstein Stage 2 = Ignition Spark</strong><br>
-                                    Fires at the <em>birth</em> of the uptrend when price breaks out of a flat Stage 1 base on 2.0x volume expansion. 30-week MA (150d SMA) slope turns positive (>0.3%/day).
+                                    Price clears Stage 1 resistance on &ge; 2.0x volume expansion. Moving Average stack (Price > 50d > 150d &ge; 200d SMA) confirms institutional mark-up.
+                                </div>
+                                <div style="background: rgba(15, 23, 42, 0.6); padding: 12px; border-radius: 8px; border: 1px solid rgba(244, 114, 182, 0.3);" class="quant-strategy-card">
+                                    <strong style="color: #f472b6; font-size: 12.5px;">2. Episodic Pivot (EP) = News Gap Catalyst</strong><br>
+                                    Pradeep Bonde / Qullamaggie Gap & Go. Explosive earnings gap-up (&ge; +7.5% gap / +8.0% day change) on &ge; 2.8x RVOL surge sitting at or above 50d/200d SMA.
                                 </div>
                                 <div style="background: rgba(15, 23, 42, 0.6); padding: 12px; border-radius: 8px; border: 1px solid rgba(251, 191, 36, 0.3);" class="quant-strategy-card">
-                                    <strong style="color: #fbbf24; font-size: 12.5px;">2. Minervini VCP = Trend Confirmation</strong><br>
-                                    Mark Minervini's #1 rule requires a stock to <em>already</em> be in an established Stage 2 uptrend before forming progressive Volatility Contractions (T1 to T4) near 52-week highs.
+                                    <strong style="color: #fbbf24; font-size: 12.5px;">3. Minervini VCP = SEPA Trend Confirmation</strong><br>
+                                    Full 7-Point SEPA Template (RS > 70, 200 SMA rising). Forms 2-4 Volatility Contractions near 52W Highs with T1 &le; -9.5% (&ge;6d) & Volume Dry-Up (&le; 0.50x).
+                                </div>
+                                <div style="background: rgba(15, 23, 42, 0.6); padding: 12px; border-radius: 8px; border: 1px solid rgba(52, 211, 153, 0.3);" class="quant-strategy-card">
+                                    <strong style="color: #34d399; font-size: 12.5px;">4. O'Neil Flat Base = Base Building Shelf</strong><br>
+                                    5 to 65 week shallow consolidation (&le; 15% depth) following a prior +20%+ advance. Features volume dry-up inside shelf & breakout volume &ge; 1.4x 50d SMA.
+                                </div>
+                                <div style="background: rgba(15, 23, 42, 0.6); padding: 12px; border-radius: 8px; border: 1px solid rgba(167, 139, 250, 0.3);" class="quant-strategy-card">
+                                    <strong style="color: #a78bfa; font-size: 12.5px;">5. Dr. Kacher Pocket Pivot = Early Accumulation</strong><br>
+                                    Gil Morales & Chris Kacher stealth buy. Up-day volume strictly exceeds the max down-day volume of the prior 10 days while resting near key MAs (10/21 EMA, 50 SMA).
                                 </div>
                                 <div style="background: rgba(15, 23, 42, 0.6); padding: 12px; border-radius: 8px; border: 1px solid rgba(192, 132, 252, 0.3);" class="quant-strategy-card">
-                                    <strong style="color: #c084fc; font-size: 12.5px;">3. High-Tight Flag = Momentum Surge</strong><br>
-                                    Pioneered by David Ryan & O'Neil. Stock doubles (+100% to +120% in 4–8 weeks), then consolidates in a tight flag (<25% depth) with <strong>volume drying up to record lows</strong>.
+                                    <strong style="color: #c084fc; font-size: 12.5px;">6. High-Tight Flag = Momentum Surge</strong><br>
+                                    David Ryan & O'Neil rocket move. Stock surges &ge; +80% in &le; 8 weeks (40 trading days), then consolidates in an ultra-tight flag (&le; 25% depth) with VDU &le; 0.70x.
+                                </div>
+                                <div style="background: rgba(15, 23, 42, 0.6); padding: 12px; border-radius: 8px; border: 1px solid rgba(56, 189, 248, 0.3);" class="quant-strategy-card">
+                                    <strong style="color: #38bdf8; font-size: 12.5px;">7. Oliver Kell Structure = EMA Continuation</strong><br>
+                                    US Champion Oliver Kell setup. Low-volume pullback to 10/20 EMA or Wedge Pop breakout in a bullish MA stack (Price > 10 > 20 > 50 > 200).
                                 </div>
                                 <div style="background: rgba(15, 23, 42, 0.6); padding: 12px; border-radius: 8px; border: 1px solid rgba(45, 212, 191, 0.3);" class="quant-strategy-card">
-                                    <strong style="color: #2dd4bf; font-size: 12.5px;">4. 3-Weeks Tight = Pyramiding Shelf</strong><br>
-                                    David Ryan's low-risk re-entry. 3 consecutive weekly closes within an ultra-narrow <1.5% band above rising 50/200 EMAs allow tight-stop (3–5%) position sizing expansion.
+                                    <strong style="color: #2dd4bf; font-size: 12.5px;">8. 3-Weeks Tight = Pyramiding Shelf</strong><br>
+                                    David Ryan's low-risk re-entry. 3 consecutive weekly closes within an ultra-narrow &le; 2.0% variance band above rising 50d/200d SMAs (RS > 70).
                                 </div>
                             </div>
 
@@ -3559,15 +3965,15 @@
                         </div>
                     </div>
 
-                    <!-- 4-SCREENER 4-STAGE ALIGNMENT MASTER MATRIX TABLE -->
+                    <!-- 8-SCREENER 4-STAGE ALIGNMENT MASTER MATRIX TABLE -->
                     <div style="background: rgba(15, 23, 42, 0.85); border: 1px solid rgba(255, 255, 255, 0.12); border-radius: 16px; padding: 24px; box-shadow: 0 10px 30px rgba(0,0,0,0.4);">
                         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 12px;">
                             <div>
                                 <h3 style="margin: 0; font-size: 19px; font-weight: 800; color: #f8fafc; display: flex; align-items: center; gap: 8px;">
-                                    <span>🧠</span> 4-Screener Quantitative Master Alignment Matrix
+                                    <span>🧠</span> 8-Screener Quantitative Master Alignment Matrix
                                 </h3>
                                 <p style="margin: 4px 0 0 0; font-size: 12px; color: #94a3b8;">
-                                    Compare entry pivots, volume triggers, risk-reward ratios, and capital-protection rules across all 4 momentum engines.
+                                    Compare entry pivots, volume triggers, risk-reward ratios, and capital-protection rules across all 8 momentum engines.
                                 </p>
                             </div>
                         </div>
@@ -3588,30 +3994,13 @@
                                 <tbody>
                                     <tr>
                                         <td>
-                                            <strong style="color: #fbbf24; display: flex; align-items: center; gap: 6px;">
-                                                <span>🔥</span> Minervini VCP & CANSLIM
-                                            </strong>
-                                        </td>
-                                        <td><span class="badge-quant badge-quant-green">Early Stage 2 Confirmation</span></td>
-                                        <td>Contraction pivot breakout (2-4 contractions)</td>
-                                        <td>&ge; 1.5x 50-day SMA volume surge</td>
-                                        <td><strong style="color: #34d399;">1:3 to 1:5+</strong></td>
-                                        <td><span style="color: #f87171; font-weight: 700;">🛡️ Auto-Rejects RS &lt; 70 &amp; Flat 200 EMA</span></td>
-                                        <td>
-                                            <button onclick="window.switchQuantScannerSubtab('vcp')" class="btn-secondary" style="padding: 4px 10px; font-size: 11px; background: rgba(245, 158, 11, 0.15); border: 1px solid #fbbf24; color: #fbbf24; border-radius: 6px; cursor: pointer; font-weight: 700;">
-                                                Go to VCP ↗
-                                            </button>
-                                        </td>
-                                    </tr>
-                                    <tr>
-                                        <td>
                                             <strong style="color: #38bdf8; display: flex; align-items: center; gap: 6px;">
                                                 <span>📈</span> Stan Weinstein Stage 2
                                             </strong>
                                         </td>
                                         <td><span class="badge-quant badge-quant-green">Stage 1 ➔ Stage 2 Transition</span></td>
                                         <td>Price clears upper resistance of Stage 1 box</td>
-                                        <td>&ge; 2.0x 30-week MA volume expansion</td>
+                                        <td>&ge; 2.0x 10-week MA volume expansion</td>
                                         <td><strong style="color: #34d399;">1:4 to 1:8+</strong></td>
                                         <td><span style="color: #f87171; font-weight: 700;">🛡️ Auto-Rejects Declining 30-Week MA Slope</span></td>
                                         <td>
@@ -3622,18 +4011,103 @@
                                     </tr>
                                     <tr>
                                         <td>
+                                            <strong style="color: #f472b6; display: flex; align-items: center; gap: 6px;">
+                                                <span>⚡</span> Episodic Pivot (EP)
+                                            </strong>
+                                        </td>
+                                        <td><span class="badge-quant badge-quant-green">Stage 1/2 Catalyst Gap</span></td>
+                                        <td>Gap-Up &ge; +7.5% or Intraday Surge &ge; +8.0%</td>
+                                        <td>&ge; 2.8x 20-day RVOL volume surge</td>
+                                        <td><strong style="color: #34d399;">1:3 to 1:6+</strong></td>
+                                        <td><span style="color: #f87171; font-weight: 700;">🛡️ Auto-Rejects Below 50d/200d SMA Baseline</span></td>
+                                        <td>
+                                            <button onclick="window.switchQuantScannerSubtab('episodic')" class="btn-secondary" style="padding: 4px 10px; font-size: 11px; background: rgba(244, 114, 182, 0.15); border: 1px solid #f472b6; color: #f472b6; border-radius: 6px; cursor: pointer; font-weight: 700;">
+                                                Go to EP ↗
+                                            </button>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td>
+                                            <strong style="color: #fbbf24; display: flex; align-items: center; gap: 6px;">
+                                                <span>🔥</span> Minervini VCP & CANSLIM
+                                            </strong>
+                                        </td>
+                                        <td><span class="badge-quant badge-quant-green">Early Stage 2 Confirmation</span></td>
+                                        <td>Contraction pivot breakout (2-4 contractions, T1 &le; -9.5%)</td>
+                                        <td>&ge; 1.5x 50-day SMA volume (VDU &le; 0.50x)</td>
+                                        <td><strong style="color: #34d399;">1:3 to 1:5+</strong></td>
+                                        <td><span style="color: #f87171; font-weight: 700;">🛡️ Auto-Rejects RS &lt; 70, Flat 200 SMA, Depth > 35%</span></td>
+                                        <td>
+                                            <button onclick="window.switchQuantScannerSubtab('vcp')" class="btn-secondary" style="padding: 4px 10px; font-size: 11px; background: rgba(245, 158, 11, 0.15); border: 1px solid #fbbf24; color: #fbbf24; border-radius: 6px; cursor: pointer; font-weight: 700;">
+                                                Go to VCP ↗
+                                            </button>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td>
+                                            <strong style="color: #34d399; display: flex; align-items: center; gap: 6px;">
+                                                <span>🛡️</span> O'Neil Modern Flat Base
+                                            </strong>
+                                        </td>
+                                        <td><span class="badge-quant badge-quant-green">Early Stage 2 Consolidation</span></td>
+                                        <td>Flat base breakout (5-65 wks, depth &le; 15%)</td>
+                                        <td>&ge; 1.4x 50-day SMA volume (VDU &le; 0.85x)</td>
+                                        <td><strong style="color: #34d399;">1:3 to 1:5+</strong></td>
+                                        <td><span style="color: #f87171; font-weight: 700;">🛡️ Auto-Rejects Base Depth > 15% / Prior Gain &lt; 20%</span></td>
+                                        <td>
+                                            <button onclick="window.switchQuantScannerSubtab('flatbase')" class="btn-secondary" style="padding: 4px 10px; font-size: 11px; background: rgba(52, 211, 153, 0.15); border: 1px solid #34d399; color: #34d399; border-radius: 6px; cursor: pointer; font-weight: 700;">
+                                                Go to Flat Base ↗
+                                            </button>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td>
+                                            <strong style="color: #a78bfa; display: flex; align-items: center; gap: 6px;">
+                                                <span>🎯</span> Dr. Kacher Pocket Pivot
+                                            </strong>
+                                        </td>
+                                        <td><span class="badge-quant badge-quant-green">Base / MA Accumulation</span></td>
+                                        <td>Up-day volume > Max Down-Day Vol of prior 10d</td>
+                                        <td>Volume strictly exceeds max down volume of 10d</td>
+                                        <td><strong style="color: #34d399;">1:3 to 1:5+</strong></td>
+                                        <td><span style="color: #f87171; font-weight: 700;">🛡️ Auto-Rejects Extended > 12% above 50 SMA / 52W &gt; 22%</span></td>
+                                        <td>
+                                            <button onclick="window.switchQuantScannerSubtab('pocket')" class="btn-secondary" style="padding: 4px 10px; font-size: 11px; background: rgba(167, 139, 250, 0.15); border: 1px solid #a78bfa; color: #a78bfa; border-radius: 6px; cursor: pointer; font-weight: 700;">
+                                                Go to Pocket ↗
+                                            </button>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td>
                                             <strong style="color: #c084fc; display: flex; align-items: center; gap: 6px;">
                                                 <span>🚀</span> David Ryan High-Tight Flag
                                             </strong>
                                         </td>
                                         <td><span class="badge-quant badge-quant-green">Mid Stage 2 Momentum Surge</span></td>
-                                        <td>&ge;100% gain in &lt;8 wks, tight 20-25% flag breakout</td>
-                                        <td>&ge; 2.5x volume explosion on breakout</td>
+                                        <td>&ge; +80% gain in &le; 8 wks, tight &le; 25% flag breakout</td>
+                                        <td>&ge; 2.0x volume explosion (VDU &le; 0.70x inside flag)</td>
                                         <td><strong style="color: #34d399;">1:5 to 1:10+</strong></td>
-                                        <td><span style="color: #f87171; font-weight: 700;">🛡️ Auto-Rejects Pullbacks &gt; 25% Depth</span></td>
+                                        <td><span style="color: #f87171; font-weight: 700;">🛡️ Auto-Rejects Flag Depth &gt; 25% &amp; Slow Advance (&lt;80%)</span></td>
                                         <td>
                                             <button onclick="window.switchQuantScannerSubtab('htf')" class="btn-secondary" style="padding: 4px 10px; font-size: 11px; background: rgba(192, 132, 252, 0.15); border: 1px solid #c084fc; color: #c084fc; border-radius: 6px; cursor: pointer; font-weight: 700;">
                                                 Go to HTF ↗
+                                            </button>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td>
+                                            <strong style="color: #38bdf8; display: flex; align-items: center; gap: 6px;">
+                                                <span>🌊</span> Oliver Kell Structure
+                                            </strong>
+                                        </td>
+                                        <td><span class="badge-quant badge-quant-green">Stage 2 Trend Continuation</span></td>
+                                        <td>Low-volume pullback to 10/20 EMA or Wedge Pop</td>
+                                        <td>Low volume during pullback (VDU &le; 0.85x)</td>
+                                        <td><strong style="color: #34d399;">1:3 to 1:6+</strong></td>
+                                        <td><span style="color: #f87171; font-weight: 700;">🛡️ Auto-Rejects Broken MA Stack (Price > 10 > 20 > 50 > 200)</span></td>
+                                        <td>
+                                            <button onclick="window.switchQuantScannerSubtab('oliverkell')" class="btn-secondary" style="padding: 4px 10px; font-size: 11px; background: rgba(56, 189, 248, 0.15); border: 1px solid #38bdf8; color: #38bdf8; border-radius: 6px; cursor: pointer; font-weight: 700;">
+                                                Go to Oliver Kell ↗
                                             </button>
                                         </td>
                                     </tr>
@@ -3645,9 +4119,9 @@
                                         </td>
                                         <td><span class="badge-quant badge-quant-green">Mid-to-Late Stage 2 Continuation</span></td>
                                         <td>3 consecutive weekly closes within &le; 2.0% range</td>
-                                        <td>Dry volume during shelf, expansion on breakout</td>
+                                        <td>Dry volume during shelf (VDU &le; 0.85x), expansion on breakout</td>
                                         <td><strong style="color: #34d399;">1:4 to 1:6+</strong></td>
-                                        <td><span style="color: #f87171; font-weight: 700;">🛡️ Auto-Rejects Stage 3 Distribution Tops</span></td>
+                                        <td><span style="color: #f87171; font-weight: 700;">🛡️ Auto-Rejects Close Variance > 2.0%, VDU > 0.85x, RS < 70</span></td>
                                         <td>
                                             <button onclick="window.switchQuantScannerSubtab('3wt')" class="btn-secondary" style="padding: 4px 10px; font-size: 11px; background: rgba(45, 212, 191, 0.15); border: 1px solid #2dd4bf; color: #2dd4bf; border-radius: 6px; cursor: pointer; font-weight: 700;">
                                                 Go to 3WT ↗
@@ -11578,8 +12052,8 @@
                                     <div style="display: flex; align-items: center; gap: 10px;">
                                         <span style="font-size: 20px;">🧭</span>
                                         <div>
-                                            <h3 style="font-size: 14.5px; font-weight: 800; color: #38bdf8; margin: 0; letter-spacing: 0.02em;">4-Screener Quantitative Life Cycle Alignment Map</h3>
-                                            <p style="font-size: 12px; color: #94a3b8; margin: 2px 0 0 0;">How Weinstein Stage 2, Minervini VCP, HTF, and 3WT differentiate Stage 2 Continuations from Stage 3 Tops</p>
+                                            <h3 style="font-size: 14.5px; font-weight: 800; color: #38bdf8; margin: 0; letter-spacing: 0.02em;">8-Screener Quantitative Life Cycle Alignment Map</h3>
+                                            <p style="font-size: 12px; color: #94a3b8; margin: 2px 0 0 0;">How Weinstein Stage 2, Episodic Pivot, Minervini VCP, Flat Base, Pocket Pivot, HTF, Oliver Kell, and 3WT differentiate Stage 2 Continuations from Stage 3 Tops</p>
                                         </div>
                                     </div>
                                     <button id="toggle-quant-guide-btn" class="btn-secondary" style="font-size: 12px; padding: 4px 10px; border-radius: 6px; color: #38bdf8; border-color: rgba(56, 189, 248, 0.4); background: rgba(56, 189, 248, 0.1);">
@@ -11589,7 +12063,7 @@
 
                                 <!-- Collapsible Content Body -->
                                 <div id="quant-guide-content-body" style="display: none; padding: 18px; border-top: 1px solid var(--border-glass);">
-                                    <!-- 4 Quantitative Engines Alignment Grid -->
+                                    <!-- 8 Quantitative Engines Alignment Grid -->
                                     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px; margin-bottom: 20px;">
                                         <!-- Card 1: Stan Weinstein Stage 2 -->
                                         <div class="quant-strategy-card" style="background: rgba(30, 41, 59, 0.6); border-left: 4px solid #38bdf8; border-radius: 8px; padding: 14px;">
@@ -11598,43 +12072,91 @@
                                                 <span style="font-size: 10.5px; font-weight: 700; background: rgba(56,189,248,0.15); color: #38bdf8; padding: 2px 6px; border-radius: 4px;">Initial Trend Change</span>
                                             </div>
                                             <p style="font-size: 12px; color: var(--text-secondary); margin: 0 0 8px 0; line-height: 1.45;">
-                                                Triggers when price breaks out above the 150-day SMA (30-week MA) on 200%+ volume as the MA slope turns positive (>0.3%/day).
+                                                Triggers when price clears Stage 1 resistance on &ge; 2.0x 10-week volume as 150d/200d SMA slope turns positive.
                                             </p>
                                             <div style="font-size: 11.5px; color: #34d399; font-weight: 700;">🎯 Primary Edge: Catches new multi-month institutional markups at origin.</div>
                                         </div>
 
-                                        <!-- Card 2: Mark Minervini VCP -->
+                                        <!-- Card 2: Episodic Pivot (EP) -->
+                                        <div class="quant-strategy-card" style="background: rgba(30, 41, 59, 0.6); border-left: 4px solid #f472b6; border-radius: 8px; padding: 14px;">
+                                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                                                <strong style="font-size: 13px; color: #f472b6;">⚡ Episodic Pivot (EP)</strong>
+                                                <span style="font-size: 10.5px; font-weight: 700; background: rgba(244,114,182,0.15); color: #f472b6; padding: 2px 6px; border-radius: 4px;">Catalyst Gap & Go</span>
+                                            </div>
+                                            <p style="font-size: 12px; color: var(--text-secondary); margin: 0 0 8px 0; line-height: 1.45;">
+                                                Pradeep Bonde / Qullamaggie Gap-Up (&ge; +7.5% gap or +8.0% day change) on &ge; 2.8x RVOL surge at/above key SMAs.
+                                            </p>
+                                            <div style="font-size: 11.5px; color: #f472b6; font-weight: 700;">🎯 Primary Edge: Exploits post-earnings institutional re-rate momentum.</div>
+                                        </div>
+
+                                        <!-- Card 3: Mark Minervini VCP -->
                                         <div class="quant-strategy-card" style="background: rgba(30, 41, 59, 0.6); border-left: 4px solid #f59e0b; border-radius: 8px; padding: 14px;">
                                             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
                                                 <strong style="font-size: 13px; color: #f59e0b;">🔥 Minervini VCP Pattern</strong>
                                                 <span style="font-size: 10.5px; font-weight: 700; background: rgba(245,158,11,0.15); color: #f59e0b; padding: 2px 6px; border-radius: 4px;">Mid-Stage Consolidation</span>
                                             </div>
                                             <p style="font-size: 12px; color: var(--text-secondary); margin: 0 0 8px 0; line-height: 1.45;">
-                                                Progressive Volatility Contraction (T1 to T4) with volume dry-up (<50% 20d avg) near 52-week highs in a confirmed Stage 2 uptrend.
+                                                Full 7-Point SEPA Trend Template with 2-4 Volatility Contractions (T1 &le; -9.5% &ge;6d) & VDU &le; 0.50x near 52W Highs.
                                             </p>
                                             <div style="font-size: 11.5px; color: #fbbf24; font-weight: 700;">🎯 Primary Edge: Precise risk-defined entry inside established markup.</div>
                                         </div>
 
-                                        <!-- Card 3: High-Tight Flag -->
-                                        <div class="quant-strategy-card" style="background: rgba(30, 41, 59, 0.6); border-left: 4px solid #a855f7; border-radius: 8px; padding: 14px;">
+                                        <!-- Card 4: O'Neil Flat Base -->
+                                        <div class="quant-strategy-card" style="background: rgba(30, 41, 59, 0.6); border-left: 4px solid #34d399; border-radius: 8px; padding: 14px;">
                                             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
-                                                <strong style="font-size: 13px; color: #c084fc;">🚀 High-Tight Flag (HTF)</strong>
-                                                <span style="font-size: 10.5px; font-weight: 700; background: rgba(168,85,247,0.15); color: #c084fc; padding: 2px 6px; border-radius: 4px;">Late Stage 2 Momentum</span>
+                                                <strong style="font-size: 13px; color: #34d399;">🛡️ O'Neil Flat Base</strong>
+                                                <span style="font-size: 10.5px; font-weight: 700; background: rgba(52,211,153,0.15); color: #34d399; padding: 2px 6px; border-radius: 4px;">Early Stage 2 Shelf</span>
                                             </div>
                                             <p style="font-size: 12px; color: var(--text-secondary); margin: 0 0 8px 0; line-height: 1.45;">
-                                                Stock doubles (+100% to +120% in 4–8 weeks), then consolidates in a tight flag (<25% depth) with <strong>volume drying up to record lows</strong>.
+                                                5-65 week shallow shelf (&le; 15% depth) following prior +20%+ move, with volume dry-up & &ge; 1.4x breakout volume.
+                                            </p>
+                                            <div style="font-size: 11.5px; color: #34d399; font-weight: 700;">🎯 Primary Edge: High-win-rate continuation shelf after Stage 2 initial leg.</div>
+                                        </div>
+
+                                        <!-- Card 5: Dr. Kacher Pocket Pivot -->
+                                        <div class="quant-strategy-card" style="background: rgba(30, 41, 59, 0.6); border-left: 4px solid #a78bfa; border-radius: 8px; padding: 14px;">
+                                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                                                <strong style="font-size: 13px; color: #a78bfa;">🎯 Dr. Kacher Pocket Pivot</strong>
+                                                <span style="font-size: 10.5px; font-weight: 700; background: rgba(167,139,250,0.15); color: #a78bfa; padding: 2px 6px; border-radius: 4px;">Stealth Accumulation</span>
+                                            </div>
+                                            <p style="font-size: 12px; color: var(--text-secondary); margin: 0 0 8px 0; line-height: 1.45;">
+                                                Up-day volume strictly exceeds max down-day volume of last 10 days while price rests near key MAs (10/21 EMA, 50 SMA).
+                                            </p>
+                                            <div style="font-size: 11.5px; color: #a78bfa; font-weight: 700;">🎯 Primary Edge: Buys institutional accumulation before visible base breakouts.</div>
+                                        </div>
+
+                                        <!-- Card 6: High-Tight Flag -->
+                                        <div class="quant-strategy-card" style="background: rgba(30, 41, 59, 0.6); border-left: 4px solid #c084fc; border-radius: 8px; padding: 14px;">
+                                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                                                <strong style="font-size: 13px; color: #c084fc;">🚀 High-Tight Flag (HTF)</strong>
+                                                <span style="font-size: 10.5px; font-weight: 700; background: rgba(192,132,252,0.15); color: #c084fc; padding: 2px 6px; border-radius: 4px;">Late Stage 2 Surge</span>
+                                            </div>
+                                            <p style="font-size: 12px; color: var(--text-secondary); margin: 0 0 8px 0; line-height: 1.45;">
+                                                Stock surges &ge; +80% in &le; 8 weeks (&le; 40d), then consolidates in a tight flag (&le; 25% depth) with VDU &le; 0.70x.
                                             </p>
                                             <div style="font-size: 11.5px; color: #c084fc; font-weight: 700;">🎯 Primary Edge: Catches 100%+ explosive continuations in market leaders.</div>
                                         </div>
 
-                                        <!-- Card 4: 3-Weeks Tight -->
+                                        <!-- Card 7: Oliver Kell Structure -->
+                                        <div class="quant-strategy-card" style="background: rgba(30, 41, 59, 0.6); border-left: 4px solid #38bdf8; border-radius: 8px; padding: 14px;">
+                                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                                                <strong style="font-size: 13px; color: #38bdf8;">🌊 Oliver Kell Structure</strong>
+                                                <span style="font-size: 10.5px; font-weight: 700; background: rgba(56,189,248,0.15); color: #38bdf8; padding: 2px 6px; border-radius: 4px;">EMA Trend Reversal</span>
+                                            </div>
+                                            <p style="font-size: 12px; color: var(--text-secondary); margin: 0 0 8px 0; line-height: 1.45;">
+                                                Low-volume pullback to 10/20 EMA or Wedge Pop breakout with aligned MA stack (Price > 10 > 20 > 50 > 200).
+                                            </p>
+                                            <div style="font-size: 11.5px; color: #38bdf8; font-weight: 700;">🎯 Primary Edge: Tactical low-risk pullback entries along fast moving averages.</div>
+                                        </div>
+
+                                        <!-- Card 8: 3-Weeks Tight -->
                                         <div class="quant-strategy-card" style="background: rgba(30, 41, 59, 0.6); border-left: 4px solid #2dd4bf; border-radius: 8px; padding: 14px;">
                                             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
                                                 <strong style="font-size: 13px; color: #2dd4bf;">🎯 3-Weeks Tight (3WT)</strong>
                                                 <span style="font-size: 10.5px; font-weight: 700; background: rgba(45,212,191,0.15); color: #2dd4bf; padding: 2px 6px; border-radius: 4px;">Uptrend Extension</span>
                                             </div>
                                             <p style="font-size: 12px; color: var(--text-secondary); margin: 0 0 8px 0; line-height: 1.45;">
-                                                3 consecutive weekly closes within an ultra-narrow <1.5% variance band above rising 50-day and 200-day EMAs.
+                                                3 consecutive weekly closes within an ultra-narrow &le; 2.0% variance band above rising 50d/200d SMAs (RS > 70).
                                             </p>
                                             <div style="font-size: 11.5px; color: #2dd4bf; font-weight: 700;">🎯 Primary Edge: Low-risk (3–5% stop) re-entry & position pyramiding.</div>
                                         </div>
@@ -11712,7 +12234,7 @@
                                 <div class="screener-kpi-card" style="background: rgba(15, 23, 42, 0.6); border: 1px solid var(--border-glass); border-radius: 10px; padding: 12px 16px;">
                                     <div style="font-size: 11px; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.05em;">Multi-Factor Qualified</div>
                                     <div style="font-size: 22px; font-weight: 800; color: #2dd4bf; margin-top: 4px;" id="wl-matrix-kpi-qualified">0</div>
-                                    <div style="font-size: 11px; color: #2dd4bf; margin-top: 2px;">VCP / HTF / 3WT ready</div>
+                                    <div style="font-size: 11px; color: #2dd4bf; margin-top: 2px;">8 Quant Engines Ready</div>
                                 </div>
                                 <div class="screener-kpi-card" style="background: rgba(15, 23, 42, 0.6); border: 1px solid var(--border-glass); border-radius: 10px; padding: 12px 16px;">
                                     <div style="font-size: 11px; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.05em;">Avg 30-Wk MA Slope</div>
@@ -11729,8 +12251,12 @@
                                         <option value="ALL">All Watchlist Setups</option>
                                         <option value="STAGE_2">🚀 Stage 2 Markup Only</option>
                                         <option value="QUALIFIED">🎯 Multi-Factor Qualified Only</option>
-                                        <option value="VCP">🔥 VCP Candidates</option>
+                                        <option value="VCP">🔥 Minervini VCP</option>
+                                        <option value="EP">⚡ Episodic Pivot (EP)</option>
+                                        <option value="FLAT">🛡️ Modern Flat Base</option>
+                                        <option value="POCKET">🎯 Pocket Pivot</option>
                                         <option value="HTF">🚀 High-Tight Flag</option>
+                                        <option value="KELL">🌊 Oliver Kell Structure</option>
                                         <option value="3WT">🎯 3-Weeks Tight</option>
                                     </select>
                                 </div>

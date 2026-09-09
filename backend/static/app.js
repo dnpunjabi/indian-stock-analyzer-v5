@@ -56641,8 +56641,12 @@ window.renderEpisodicTable = function(stocks) {
                 </td>
                 <td style="padding: 12px; font-weight: 800; color: #34d399;">₹${pivotPrice.toFixed(2)}</td>
                 <td style="padding: 12px; font-weight: 700; color: #f87171;">₹${stopLoss.toFixed(2)}</td>
+                <td style="padding: 12px; font-weight: 800; color: #34d399;">₹${pivotPrice.toFixed(2)}</td>
+                <td style="padding: 12px; font-weight: 700; color: #f87171;">₹${stopLoss.toFixed(2)}</td>
                 <td style="padding: 12px;">
-                    <span style="background: rgba(236, 72, 153, 0.15); color: #f472b6; font-weight: 700; padding: 4px 8px; border-radius: 6px; font-size: 11.5px;">${epStatus}</span>
+                    ${(epStatus.includes('LIVE') || epStatus === 'EP_GAP_LIVE') ? 
+                        `<span style="background: rgba(236, 72, 153, 0.18); color: #f472b6; border: 1px solid rgba(236, 72, 153, 0.4); font-weight: 800; padding: 4px 8px; border-radius: 6px; font-size: 11.5px;">🚀 GAP & GO LIVE</span>` : 
+                        `<span style="background: rgba(245, 158, 11, 0.18); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.4); font-weight: 800; padding: 4px 8px; border-radius: 6px; font-size: 11.5px;">⌛ FORMING BASE</span>`}
                 </td>
                 <td style="padding: 12px; text-align: right; white-space: nowrap;">
                     <button onclick="window.launchStageSimulator && window.launchStageSimulator('${s.symbol}')" class="btn-secondary quant-sim-btn" style="padding: 5px 10px; font-size: 11.5px; border-radius: 8px; cursor: pointer; white-space: nowrap; display: inline-flex; align-items: center; gap: 4px; font-weight: 700; background: rgba(168, 85, 247, 0.15); border: 1px solid rgba(168, 85, 247, 0.4); color: #c084fc; margin-right: 6px;" title="Scan stock in 4-Stage Life Cycle Masterclass Simulator">
@@ -56663,7 +56667,10 @@ window.filterEpisodicTable = function() {
 
     let filtered = (window.allEpisodicStocks || []).filter(s => {
         const matchesQ = s.symbol.toLowerCase().includes(q) || (s.company_name || s.name || '').toLowerCase().includes(q);
-        const matchesStatus = status === 'ALL' || s.ep_status === status || s.status === status;
+        const epStatus = s.ep_status || s.episodic_status || s.status || '';
+        const matchesStatus = status === 'ALL' || epStatus === status || 
+            (status === 'EP_GAP_LIVE' && (epStatus === 'EP_GAP_LIVE' || epStatus.includes('LIVE'))) || 
+            (status === 'EP_FORMING' && (epStatus === 'EP_FORMING' || epStatus.includes('FORMING')));
         return matchesQ && matchesStatus;
     });
 
@@ -56736,7 +56743,7 @@ window.renderPocketTable = function(stocks) {
     if (avgVolEl) avgVolEl.innerText = `${avgVol}x`;
 
     if (list.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="10" style="text-align: center; padding: 40px; color: #64748b;">No Dr. Chris Kacher Pocket Pivot accumulation setups found currently.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="11" style="text-align: center; padding: 40px; color: #64748b;">No Dr. Chris Kacher Pocket Pivot accumulation setups found currently.</td></tr>`;
         return;
     }
 
@@ -56750,6 +56757,7 @@ window.renderPocketTable = function(stocks) {
         const stopLoss = s.stop_loss || (currPrice * 0.95);
         const upVol = (s.up_volume || s.volume || 1000000).toLocaleString('en-IN');
         const maxDownVol = (s.max_down_vol_10d || s.max_down_volume || 600000).toLocaleString('en-IN');
+        const pStatus = s.pocket_status || s.status || 'POCKET_PIVOT_LIVE';
 
         const chgClass = dayChg >= 0 ? 'color: #34d399;' : 'color: #f87171;';
         const chgSign = dayChg >= 0 ? '+' : '';
@@ -56772,6 +56780,11 @@ window.renderPocketTable = function(stocks) {
                 <td style="padding: 12px;">
                     <span style="background: rgba(168, 85, 247, 0.15); color: #c084fc; font-weight: 700; padding: 4px 8px; border-radius: 6px; font-size: 11.5px;">${maSupp}</span>
                 </td>
+                <td style="padding: 12px;">
+                    ${(pStatus.includes('LIVE') || pStatus === 'POCKET_PIVOT_LIVE') ? 
+                        `<span style="background: rgba(16, 185, 129, 0.18); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.4); font-weight: 800; padding: 4px 8px; border-radius: 6px; font-size: 11.5px;">🟢 POCKET PIVOT LIVE</span>` : 
+                        `<span style="background: rgba(245, 158, 11, 0.18); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.4); font-weight: 800; padding: 4px 8px; border-radius: 6px; font-size: 11.5px;">⌛ FORMING BASE</span>`}
+                </td>
                 <td style="padding: 12px; text-align: right; white-space: nowrap;">
                     <button onclick="window.launchStageSimulator && window.launchStageSimulator('${s.symbol}')" class="btn-secondary quant-sim-btn" style="padding: 5px 10px; font-size: 11.5px; border-radius: 8px; cursor: pointer; white-space: nowrap; display: inline-flex; align-items: center; gap: 4px; font-weight: 700; background: rgba(168, 85, 247, 0.15); border: 1px solid rgba(168, 85, 247, 0.4); color: #c084fc; margin-right: 6px;" title="Scan stock in 4-Stage Life Cycle Masterclass Simulator">
                         Simulate ⚙️
@@ -56791,7 +56804,10 @@ window.filterPocketTable = function() {
 
     let filtered = (window.allPocketStocks || []).filter(s => {
         const matchesQ = s.symbol.toLowerCase().includes(q) || (s.company_name || s.name || '').toLowerCase().includes(q);
-        const matchesStatus = status === 'ALL' || s.pocket_status === status;
+        const pStatus = s.pocket_status || s.status || '';
+        const matchesStatus = status === 'ALL' || pStatus === status || 
+            (status === 'POCKET_PIVOT_LIVE' && (pStatus === 'POCKET_PIVOT_LIVE' || pStatus.includes('LIVE'))) || 
+            (status === 'POCKET_PIVOT_FORMING' && (pStatus === 'POCKET_PIVOT_FORMING' || pStatus.includes('FORMING')));
         return matchesQ && matchesStatus;
     });
 
@@ -56874,13 +56890,19 @@ window.renderOliverKellTable = function(stocks) {
         const ema10 = s.ema_10 || (currPrice * 0.98);
         const ema20 = s.ema_20 || (currPrice * 0.96);
         const dist10 = s.dist_to_10ema !== undefined ? s.dist_to_10ema.toFixed(2) : (currPrice > 0 ? (((currPrice - ema10) / currPrice) * 100).toFixed(2) : '0.00');
-        const status = s.tested_ma || s.kell_status || s.extension_status || '10 EMA Touch';
+        const kStatus = s.kell_status || s.status || 'KELL_REVERSAL_LIVE';
+        const testedMa = s.tested_ma || '10 EMA';
         const compName = s.company_name || s.name || '';
         const pivotPrice = s.pivot_price || s.buy_pivot || currPrice;
         const stopLoss = s.stop_loss || ema20;
 
         const chgClass = dayChg >= 0 ? 'color: #34d399;' : 'color: #f87171;';
         const chgSign = dayChg >= 0 ? '+' : '';
+
+        let kellStatusBadge = `<span style="background: rgba(192, 132, 252, 0.18); color: #c084fc; border: 1px solid rgba(192, 132, 252, 0.4); font-weight: 800; padding: 4px 8px; border-radius: 6px; font-size: 11.5px;">🚀 REVERSAL (${testedMa})</span>`;
+        if (kStatus.includes('PULLBACK')) {
+            kellStatusBadge = `<span style="background: rgba(56, 189, 248, 0.18); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.4); font-weight: 800; padding: 4px 8px; border-radius: 6px; font-size: 11.5px;">📉 PULLBACK TEST (${testedMa})</span>`;
+        }
 
         return `
             <tr style="border-bottom: 1px solid rgba(255,255,255,0.05);">
@@ -56896,7 +56918,7 @@ window.renderOliverKellTable = function(stocks) {
                 <td style="padding: 12px; font-weight: 800; color: #34d399;">₹${pivotPrice.toFixed(2)}</td>
                 <td style="padding: 12px; font-weight: 700; color: #f87171;">₹${stopLoss.toFixed(2)}</td>
                 <td style="padding: 12px;">
-                    <span style="background: rgba(56, 189, 248, 0.15); color: #38bdf8; font-weight: 700; padding: 4px 8px; border-radius: 6px; font-size: 11.5px;">${status}</span>
+                    ${kellStatusBadge}
                 </td>
                 <td style="padding: 12px; text-align: right; white-space: nowrap;">
                     <button onclick="window.launchStageSimulator && window.launchStageSimulator('${s.symbol}')" class="btn-secondary quant-sim-btn" style="padding: 5px 10px; font-size: 11.5px; border-radius: 8px; cursor: pointer; white-space: nowrap; display: inline-flex; align-items: center; gap: 4px; font-weight: 700; background: rgba(168, 85, 247, 0.15); border: 1px solid rgba(168, 85, 247, 0.4); color: #c084fc; margin-right: 6px;" title="Scan stock in 4-Stage Life Cycle Masterclass Simulator">
@@ -56912,12 +56934,18 @@ window.renderOliverKellTable = function(stocks) {
 };
 
 window.filterOliverKellTable = function() {
-    const q = (document.getElementById('oliverkell-search-input')?.value || '').toLowerCase();
+    const q = (document.getElementById('episodic-search-input')?.value || document.getElementById('oliverkell-search-input')?.value || '').toLowerCase();
     const status = document.getElementById('oliverkell-status-filter')?.value || 'ALL';
 
-    let filtered = window.allOliverKellStocks.filter(s => {
-        const matchesQ = s.symbol.toLowerCase().includes(q) || (s.name || '').toLowerCase().includes(q);
-        const matchesStatus = status === 'ALL' || s.extension_status === status;
+    let filtered = (window.allOliverKellStocks || []).filter(s => {
+        const matchesQ = s.symbol.toLowerCase().includes(q) || (s.company_name || s.name || '').toLowerCase().includes(q);
+        const kStatus = s.kell_status || s.status || '';
+        const tMA = s.tested_ma || '';
+        const matchesStatus = status === 'ALL' || kStatus === status || tMA === status || 
+            (status === 'KELL_REVERSAL_LIVE' && (kStatus === 'KELL_REVERSAL_LIVE' || kStatus.includes('LIVE'))) || 
+            (status === 'KELL_PULLBACK_TEST' && (kStatus === 'KELL_PULLBACK_TEST' || kStatus.includes('PULLBACK'))) ||
+            (status === '10 EMA' && tMA === '10 EMA') ||
+            (status === '20 EMA' && tMA === '20 EMA');
         return matchesQ && matchesStatus;
     });
 
@@ -56960,6 +56988,15 @@ window.runStockStageSimulator = async function(symbolInput) {
 
         const m = data.metrics || {};
         const st = data.screener_status || {};
+        
+        const st_vcp = st.vcp || {};
+        const st_ws2 = st.weinstein_stage2 || {};
+        const st_htf = st.htf || {};
+        const st_3wt = st.three_wt || {};
+        const st_flat = st.flat_base || {};
+        const st_ep = st.episodic_pivot || st.episodic || {};
+        const st_pp = st.pocket_pivot || st.pocket || {};
+        const st_kell = st.oliver_kell || st.kell || {};
         
         let badgeBg = 'rgba(16, 185, 129, 0.2)';
         let badgeBorder = '#34d399';
@@ -57040,77 +57077,77 @@ window.runStockStageSimulator = async function(symbolInput) {
                 🎯 8-Screener Algorithmic Qualification Checks:
             </h5>
             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 10px; margin-bottom: 18px;">
-                <div style="background: rgba(15, 23, 42, 0.5); border: 1px solid ${(st.vcp || {}).qualified ? '#34d399' : 'rgba(255,255,255,0.1)'}; padding: 10px 12px; border-radius: 8px;">
+                <div style="background: rgba(15, 23, 42, 0.5); border: 1px solid ${st_vcp.qualified ? '#34d399' : 'rgba(255,255,255,0.1)'}; padding: 10px 12px; border-radius: 8px;">
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
                         <strong style="color: #fbbf24; font-size: 12px;">🔥 Minervini VCP</strong>
-                        <span style="font-size: 11px; font-weight: 800; color: ${(st.vcp || {}).qualified ? '#34d399' : '#f87171'};">
-                            ${(st.vcp || {}).qualified ? '✅ QUALIFIED' : '❌ REJECTED'}
+                        <span style="font-size: 11px; font-weight: 800; color: ${st_vcp.qualified ? '#34d399' : '#f87171'};">
+                            ${st_vcp.qualified ? '✅ QUALIFIED' : '❌ REJECTED'}
                         </span>
                     </div>
-                    <p style="margin: 0; font-size: 11px; color: #cbd5e1;">${(st.vcp || {}).reason || ''}</p>
+                    <p style="margin: 0; font-size: 11px; color: #cbd5e1;">${st_vcp.reason || ''}</p>
                 </div>
-                <div style="background: rgba(15, 23, 42, 0.5); border: 1px solid ${(st.weinstein_stage2 || {}).qualified ? '#34d399' : 'rgba(255,255,255,0.1)'}; padding: 10px 12px; border-radius: 8px;">
+                <div style="background: rgba(15, 23, 42, 0.5); border: 1px solid ${st_ws2.qualified ? '#34d399' : 'rgba(255,255,255,0.1)'}; padding: 10px 12px; border-radius: 8px;">
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
                         <strong style="color: #38bdf8; font-size: 12px;">📈 Stage 2 Breakout</strong>
-                        <span style="font-size: 11px; font-weight: 800; color: ${(st.weinstein_stage2 || {}).qualified ? '#34d399' : '#f87171'};">
-                            ${(st.weinstein_stage2 || {}).qualified ? '✅ QUALIFIED' : '❌ REJECTED'}
+                        <span style="font-size: 11px; font-weight: 800; color: ${st_ws2.qualified ? '#34d399' : '#f87171'};">
+                            ${st_ws2.qualified ? '✅ QUALIFIED' : '❌ REJECTED'}
                         </span>
                     </div>
-                    <p style="margin: 0; font-size: 11px; color: #cbd5e1;">${(st.weinstein_stage2 || {}).reason || ''}</p>
+                    <p style="margin: 0; font-size: 11px; color: #cbd5e1;">${st_ws2.reason || ''}</p>
                 </div>
-                <div style="background: rgba(15, 23, 42, 0.5); border: 1px solid ${(st.htf || {}).qualified ? '#34d399' : 'rgba(255,255,255,0.1)'}; padding: 10px 12px; border-radius: 8px;">
+                <div style="background: rgba(15, 23, 42, 0.5); border: 1px solid ${st_htf.qualified ? '#34d399' : 'rgba(255,255,255,0.1)'}; padding: 10px 12px; border-radius: 8px;">
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
                         <strong style="color: #c084fc; font-size: 12px;">🚀 High-Tight Flag</strong>
-                        <span style="font-size: 11px; font-weight: 800; color: ${(st.htf || {}).qualified ? '#34d399' : '#f87171'};">
-                            ${(st.htf || {}).qualified ? '✅ QUALIFIED' : '❌ REJECTED'}
+                        <span style="font-size: 11px; font-weight: 800; color: ${st_htf.qualified ? '#34d399' : '#f87171'};">
+                            ${st_htf.qualified ? '✅ QUALIFIED' : '❌ REJECTED'}
                         </span>
                     </div>
-                    <p style="margin: 0; font-size: 11px; color: #cbd5e1;">${(st.htf || {}).reason || ''}</p>
+                    <p style="margin: 0; font-size: 11px; color: #cbd5e1;">${st_htf.reason || ''}</p>
                 </div>
-                <div style="background: rgba(15, 23, 42, 0.5); border: 1px solid ${(st.three_wt || {}).qualified ? '#34d399' : 'rgba(255,255,255,0.1)'}; padding: 10px 12px; border-radius: 8px;">
+                <div style="background: rgba(15, 23, 42, 0.5); border: 1px solid ${st_3wt.qualified ? '#34d399' : 'rgba(255,255,255,0.1)'}; padding: 10px 12px; border-radius: 8px;">
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
                         <strong style="color: #2dd4bf; font-size: 12px;">🎯 3-Weeks Tight</strong>
-                        <span style="font-size: 11px; font-weight: 800; color: ${(st.three_wt || {}).qualified ? '#34d399' : '#f87171'};">
-                            ${(st.three_wt || {}).qualified ? '✅ QUALIFIED' : '❌ REJECTED'}
+                        <span style="font-size: 11px; font-weight: 800; color: ${st_3wt.qualified ? '#34d399' : '#f87171'};">
+                            ${st_3wt.qualified ? '✅ QUALIFIED' : '❌ REJECTED'}
                         </span>
                     </div>
-                    <p style="margin: 0; font-size: 11px; color: #cbd5e1;">${(st.three_wt || {}).reason || ''}</p>
+                    <p style="margin: 0; font-size: 11px; color: #cbd5e1;">${st_3wt.reason || ''}</p>
                 </div>
-                <div style="background: rgba(15, 23, 42, 0.5); border: 1px solid ${(st.flat_base || {}).qualified ? '#34d399' : 'rgba(255,255,255,0.1)'}; padding: 10px 12px; border-radius: 8px;">
+                <div style="background: rgba(15, 23, 42, 0.5); border: 1px solid ${st_flat.qualified ? '#34d399' : 'rgba(255,255,255,0.1)'}; padding: 10px 12px; border-radius: 8px;">
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
                         <strong style="color: #f472b6; font-size: 12px;">🧱 Flat Base</strong>
-                        <span style="font-size: 11px; font-weight: 800; color: ${(st.flat_base || {}).qualified ? '#34d399' : '#f87171'};">
-                            ${(st.flat_base || {}).qualified ? '✅ QUALIFIED' : '❌ REJECTED'}
+                        <span style="font-size: 11px; font-weight: 800; color: ${st_flat.qualified ? '#34d399' : '#f87171'};">
+                            ${st_flat.qualified ? '✅ QUALIFIED' : '❌ REJECTED'}
                         </span>
                     </div>
-                    <p style="margin: 0; font-size: 11px; color: #cbd5e1;">${(st.flat_base || {}).reason || ''}</p>
+                    <p style="margin: 0; font-size: 11px; color: #cbd5e1;">${st_flat.reason || ''}</p>
                 </div>
-                <div style="background: rgba(15, 23, 42, 0.5); border: 1px solid ${(st.episodic || {}).qualified ? '#34d399' : 'rgba(255,255,255,0.1)'}; padding: 10px 12px; border-radius: 8px;">
+                <div style="background: rgba(15, 23, 42, 0.5); border: 1px solid ${st_ep.qualified ? '#34d399' : 'rgba(255,255,255,0.1)'}; padding: 10px 12px; border-radius: 8px;">
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
                         <strong style="color: #fb923c; font-size: 12px;">⚡ Episodic Pivot</strong>
-                        <span style="font-size: 11px; font-weight: 800; color: ${(st.episodic || {}).qualified ? '#34d399' : '#f87171'};">
-                            ${(st.episodic || {}).qualified ? '✅ QUALIFIED' : '❌ REJECTED'}
+                        <span style="font-size: 11px; font-weight: 800; color: ${st_ep.qualified ? '#34d399' : '#f87171'};">
+                            ${st_ep.qualified ? '✅ QUALIFIED' : '❌ REJECTED'}
                         </span>
                     </div>
-                    <p style="margin: 0; font-size: 11px; color: #cbd5e1;">${(st.episodic || {}).reason || ''}</p>
+                    <p style="margin: 0; font-size: 11px; color: #cbd5e1;">${st_ep.reason || ''}</p>
                 </div>
-                <div style="background: rgba(15, 23, 42, 0.5); border: 1px solid ${(st.pocket || {}).qualified ? '#34d399' : 'rgba(255,255,255,0.1)'}; padding: 10px 12px; border-radius: 8px;">
+                <div style="background: rgba(15, 23, 42, 0.5); border: 1px solid ${st_pp.qualified ? '#34d399' : 'rgba(255,255,255,0.1)'}; padding: 10px 12px; border-radius: 8px;">
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
                         <strong style="color: #a78bfa; font-size: 12px;">💎 Pocket Pivot</strong>
-                        <span style="font-size: 11px; font-weight: 800; color: ${(st.pocket || {}).qualified ? '#34d399' : '#f87171'};">
-                            ${(st.pocket || {}).qualified ? '✅ QUALIFIED' : '❌ REJECTED'}
+                        <span style="font-size: 11px; font-weight: 800; color: ${st_pp.qualified ? '#34d399' : '#f87171'};">
+                            ${st_pp.qualified ? '✅ QUALIFIED' : '❌ REJECTED'}
                         </span>
                     </div>
-                    <p style="margin: 0; font-size: 11px; color: #cbd5e1;">${(st.pocket || {}).reason || ''}</p>
+                    <p style="margin: 0; font-size: 11px; color: #cbd5e1;">${st_pp.reason || ''}</p>
                 </div>
-                <div style="background: rgba(15, 23, 42, 0.5); border: 1px solid ${(st.kell || {}).qualified ? '#34d399' : 'rgba(255,255,255,0.1)'}; padding: 10px 12px; border-radius: 8px;">
+                <div style="background: rgba(15, 23, 42, 0.5); border: 1px solid ${st_kell.qualified ? '#34d399' : 'rgba(255,255,255,0.1)'}; padding: 10px 12px; border-radius: 8px;">
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
                         <strong style="color: #38bdf8; font-size: 12px;">🌊 Oliver Kell</strong>
-                        <span style="font-size: 11px; font-weight: 800; color: ${(st.kell || {}).qualified ? '#34d399' : '#f87171'};">
-                            ${(st.kell || {}).qualified ? '✅ QUALIFIED' : '❌ REJECTED'}
+                        <span style="font-size: 11px; font-weight: 800; color: ${st_kell.qualified ? '#34d399' : '#f87171'};">
+                            ${st_kell.qualified ? '✅ QUALIFIED' : '❌ REJECTED'}
                         </span>
                     </div>
-                    <p style="margin: 0; font-size: 11px; color: #cbd5e1;">${(st.kell || {}).reason || ''}</p>
+                    <p style="margin: 0; font-size: 11px; color: #cbd5e1;">${st_kell.reason || ''}</p>
                 </div>
             </div>
 

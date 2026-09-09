@@ -2838,6 +2838,9 @@ def detect_pocket_pivot(df: pd.DataFrame) -> dict:
         pocket_found = False
         ratio_max_down = 0.0
 
+        up_day_vol_val = 0
+        max_down_vol_val = 0
+
         for i in range(1, 4):
             b_idx = n - i
             b_close = clean_float(closes[b_idx])
@@ -2853,6 +2856,8 @@ def detect_pocket_pivot(df: pd.DataFrame) -> dict:
                 if b_vol > max_down_vol:
                     pocket_found = True
                     ratio_max_down = round(b_vol / max_down_vol, 2) if max_down_vol > 0 else 1.5
+                    up_day_vol_val = int(b_vol)
+                    max_down_vol_val = int(max_down_vol)
                     break
 
         vol50_avg = clean_float(pd.Series(volumes).rolling(window=min(50, n), min_periods=20).mean().iloc[-1])
@@ -2880,6 +2885,8 @@ def detect_pocket_pivot(df: pd.DataFrame) -> dict:
             "is_pocket_pivot": bool(pocket_found),
             "pocket_status": str(pocket_status),
             "vol_ratio_vs_max_down": clean_float(ratio_max_down if ratio_max_down > 0 else 1.1),
+            "up_day_vol": int(up_day_vol_val),
+            "max_down_vol_10d": int(max_down_vol_val),
             "ma_support_line": str(ma_line),
             "pivot_price": clean_float(pivot_price),
             "stop_loss": clean_float(stop_loss),
@@ -2964,8 +2971,11 @@ def detect_oliver_kell_reversal(df: pd.DataFrame) -> dict:
         dist_52w_high = round(((h52 - curr_price) / h52) * 100.0, 2) if h52 > 0 else 999.0
         above_52w_low = curr_price >= (l52 * 1.35)
 
-        if dist_52w_high > 18.0 or not above_52w_low:
+        if dist_52w_high > 18.0:
             default_res["rejection_reason"] = f"Price is {dist_52w_high:.1f}% below 52W High (exceeds 18% leadership cap)"
+            return default_res
+        elif not above_52w_low:
+            default_res["rejection_reason"] = f"Price is < 35% above 52W Low (requires strong base recovery)"
             return default_res
 
         # 4. Pullback Touch to 10 EMA or 20 EMA (within last 3 bars)
@@ -3007,11 +3017,17 @@ def detect_oliver_kell_reversal(df: pd.DataFrame) -> dict:
         else:
             kell_status = "NONE"
 
+        dist_10ema = round(abs(curr_price - c_ema10) / c_ema10 * 100.0, 2) if c_ema10 > 0 else 0.0
+        dist_20ema = round(abs(curr_price - c_ema20) / c_ema20 * 100.0, 2) if c_ema20 > 0 else 0.0
+
         return {
             "is_kell_reversal": bool(is_kell_reversal),
             "kell_status": str(kell_status),
             "tested_ma": str(tested_ma),
             "reversal_quality": "HIGH" if close_pos >= 0.70 else "MEDIUM",
+            "dist_52w_high": clean_float(dist_52w_high),
+            "dist_to_10ema_pct": clean_float(dist_10ema),
+            "dist_to_20ema_pct": clean_float(dist_20ema),
             "pivot_price": clean_float(pivot_price),
             "stop_loss": clean_float(stop_loss),
             "target_1": clean_float(target_1),

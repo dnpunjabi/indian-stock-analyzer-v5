@@ -18814,14 +18814,14 @@ async def get_stage_diagnostic(symbol: str, force_refresh: bool = False):
                 "pocket_pivot": {
                     "name": "Gil Morales & Chris Kacher Pocket Pivot",
                     "required": "Up-Day Vol > Max Down-Day Vol in last 10 days, Base / EMA Touch",
-                    "actual": f"Up Vol: {pocket_res.get('up_day_vol', 0)}, Max Down Vol: {pocket_res.get('max_down_vol_10d', 0)}, Ratio: {pocket_res.get('vol_ratio_vs_max_down', 0.0)}x",
+                    "actual": f"Vol Ratio vs 10D Down Max: {pocket_res.get('vol_ratio_vs_max_down', 0.0)}x, Support MA: {pocket_res.get('ma_support_line', '50 SMA')}",
                     "qualified": pocket_qualified,
                     "reason": f"Pocket Pivot Active: {pocket_res.get('pocket_status', 'N/A')}" if pocket_qualified else pocket_res.get("rejection_reason", "Volume lower than highest down-day volume in 10 days")
                 },
                 "oliver_kell": {
                     "name": "Oliver Kell EMA Trend Continuation & Reversal",
                     "required": "10 EMA > 20 EMA > 50 EMA, Wedge / Flag Reversal, 20 EMA Support",
-                    "actual": f"Status: {kell_res.get('kell_status', 'NONE')}, Dist to 10 EMA: {kell_res.get('dist_to_10ema_pct', 0.0)}%, Dist to 20 EMA: {kell_res.get('dist_to_20ema_pct', 0.0)}%",
+                    "actual": f"Tested MA: {kell_res.get('tested_ma', '10 EMA')}, Reversal Quality: {kell_res.get('reversal_quality', 'HIGH')}, 10 EMA Dist: {kell_res.get('dist_to_10ema_pct', 0.0)}%",
                     "qualified": kell_qualified,
                     "reason": f"Oliver Kell Status: {kell_res.get('kell_status', 'N/A')}" if kell_qualified else kell_res.get("rejection_reason", "No 10/20 EMA reversal or trend wedge breakout")
                 }
