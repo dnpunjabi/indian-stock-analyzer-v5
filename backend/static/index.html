@@ -17,6 +17,8 @@
     <script src="https://unpkg.com/lightweight-charts@4.1.1/dist/lightweight-charts.standalone.production.js"></script>
     <!-- TradingView Advanced Widget -->
     <script type="text/javascript" src="https://s3.tradingview.com/tv.js"></script>
+    <!-- Marked.js Markdown Parser -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <link rel="stylesheet" href="styles.css?v=5.0.3">
     <link rel="stylesheet" href="modernizer.css?v=5.0.3">
     <style>
@@ -229,44 +231,104 @@
         }
         .stage-ai-rendered-body table {
             width: 100%;
-            border-collapse: collapse;
+            border-collapse: separate;
+            border-spacing: 0;
             margin: 12px 0;
             font-size: 12px;
+            border-radius: 8px;
+            overflow: hidden;
+            border: 1px solid var(--border-color, rgba(255, 255, 255, 0.12));
         }
         .stage-ai-rendered-body th {
             background: rgba(30, 41, 59, 0.9);
-            color: #cbd5e1;
-            padding: 6px 10px;
-            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: #94a3b8;
+            padding: 8px 12px;
+            border-bottom: 2px solid rgba(255, 255, 255, 0.1);
             font-weight: 700;
             text-align: left;
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            white-space: nowrap;
         }
         .stage-ai-rendered-body td {
-            padding: 6px 10px;
-            border: 1px solid rgba(255, 255, 255, 0.08);
+            padding: 8px 12px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+            color: #cbd5e1;
+            vertical-align: middle;
+        }
+        .stage-ai-rendered-body tr:last-child td {
+            border-bottom: none;
+        }
+        .stage-ai-rendered-body tr:hover td {
+            background: rgba(168, 85, 247, 0.06);
+        }
+        .ai-table-responsive {
+            width: 100%;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+            margin: 14px 0;
+            border-radius: 8px;
+        }
+        .ai-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 3px 8px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 800;
+            letter-spacing: 0.3px;
+            text-transform: uppercase;
+            white-space: nowrap;
+        }
+        .ai-pill-pass {
+            background: rgba(34, 197, 94, 0.15);
+            border: 1px solid rgba(34, 197, 94, 0.4);
+            color: #4ade80;
+        }
+        .ai-pill-fail {
+            background: rgba(239, 68, 68, 0.15);
+            border: 1px solid rgba(239, 68, 68, 0.4);
+            color: #f87171;
+        }
+        .ai-pill-info {
+            background: rgba(56, 189, 248, 0.15);
+            border: 1px solid rgba(56, 189, 248, 0.4);
+            color: #38bdf8;
+        }
+        .ai-pill-warning {
+            background: rgba(245, 158, 11, 0.15);
+            border: 1px solid rgba(245, 158, 11, 0.4);
+            color: #fbbf24;
         }
         .stage-ai-rendered-body code {
             background: rgba(15, 23, 42, 0.6);
             color: #38bdf8;
-            padding: 2px 5px;
+            padding: 2px 6px;
             border-radius: 4px;
             font-family: monospace;
             font-size: 11.5px;
         }
         .stage-ai-rendered-body pre {
             background: #0f172a;
-            padding: 10px;
+            padding: 10px 14px;
             border-radius: 8px;
             overflow-x: auto;
             border: 1px solid rgba(255, 255, 255, 0.1);
         }
 
         /* Rendered Markdown Typography - Light Mode Overrides */
+        body.light-theme .stage-ai-rendered-body,
         [data-mode="light"] .stage-ai-rendered-body,
         [data-theme="light"] .stage-ai-rendered-body,
         .light-mode .stage-ai-rendered-body {
             color: #1e293b !important;
         }
+        body.light-theme .stage-ai-rendered-body h1,
+        body.light-theme .stage-ai-rendered-body h2,
+        body.light-theme .stage-ai-rendered-body h3,
+        body.light-theme .stage-ai-rendered-body h4,
         [data-mode="light"] .stage-ai-rendered-body h1,
         [data-mode="light"] .stage-ai-rendered-body h2,
         [data-mode="light"] .stage-ai-rendered-body h3,
@@ -281,22 +343,26 @@
         .light-mode .stage-ai-rendered-body h4 {
             color: #0f172a !important;
         }
+        body.light-theme .stage-ai-rendered-body h3,
         [data-mode="light"] .stage-ai-rendered-body h3,
         [data-theme="light"] .stage-ai-rendered-body h3,
         .light-mode .stage-ai-rendered-body h3 {
             color: #6b21a8 !important;
             border-bottom: 1px solid #e9d5ff !important;
         }
+        body.light-theme .stage-ai-rendered-body h4,
         [data-mode="light"] .stage-ai-rendered-body h4,
         [data-theme="light"] .stage-ai-rendered-body h4,
         .light-mode .stage-ai-rendered-body h4 {
             color: #0284c7 !important;
         }
+        body.light-theme .stage-ai-rendered-body strong,
         [data-mode="light"] .stage-ai-rendered-body strong,
         [data-theme="light"] .stage-ai-rendered-body strong,
         .light-mode .stage-ai-rendered-body strong {
             color: #0f172a !important;
         }
+        body.light-theme .stage-ai-rendered-body blockquote,
         [data-mode="light"] .stage-ai-rendered-body blockquote,
         [data-theme="light"] .stage-ai-rendered-body blockquote,
         .light-mode .stage-ai-rendered-body blockquote {
@@ -304,25 +370,74 @@
             border-left: 3px solid #9333ea !important;
             color: #3b0764 !important;
         }
+        body.light-theme .stage-ai-rendered-body table,
+        [data-mode="light"] .stage-ai-rendered-body table,
+        [data-theme="light"] .stage-ai-rendered-body table,
+        .light-mode .stage-ai-rendered-body table {
+            border-color: #cbd5e1 !important;
+            background: #ffffff !important;
+        }
+        body.light-theme .stage-ai-rendered-body th,
         [data-mode="light"] .stage-ai-rendered-body th,
         [data-theme="light"] .stage-ai-rendered-body th,
         .light-mode .stage-ai-rendered-body th {
             background: #f1f5f9 !important;
-            color: #0f172a !important;
-            border: 1px solid #cbd5e1 !important;
+            color: #334155 !important;
+            border-bottom: 2px solid #cbd5e1 !important;
         }
+        body.light-theme .stage-ai-rendered-body td,
         [data-mode="light"] .stage-ai-rendered-body td,
         [data-theme="light"] .stage-ai-rendered-body td,
         .light-mode .stage-ai-rendered-body td {
-            border: 1px solid #cbd5e1 !important;
-            color: #334155 !important;
+            border-bottom: 1px solid #e2e8f0 !important;
+            color: #1e293b !important;
         }
+        body.light-theme .stage-ai-rendered-body tr:hover td,
+        [data-mode="light"] .stage-ai-rendered-body tr:hover td,
+        [data-theme="light"] .stage-ai-rendered-body tr:hover td,
+        .light-mode .stage-ai-rendered-body tr:hover td {
+            background: #f8fafc !important;
+        }
+        body.light-theme .ai-pill-pass,
+        [data-mode="light"] .ai-pill-pass,
+        [data-theme="light"] .ai-pill-pass,
+        .light-mode .ai-pill-pass {
+            background: #dcfce7 !important;
+            border-color: #86efac !important;
+            color: #15803d !important;
+        }
+        body.light-theme .ai-pill-fail,
+        [data-mode="light"] .ai-pill-fail,
+        [data-theme="light"] .ai-pill-fail,
+        .light-mode .ai-pill-fail {
+            background: #fee2e2 !important;
+            border-color: #fca5a5 !important;
+            color: #b91c1c !important;
+        }
+        body.light-theme .ai-pill-info,
+        [data-mode="light"] .ai-pill-info,
+        [data-theme="light"] .ai-pill-info,
+        .light-mode .ai-pill-info {
+            background: #e0f2fe !important;
+            border-color: #7dd3fc !important;
+            color: #0369a1 !important;
+        }
+        body.light-theme .ai-pill-warning,
+        [data-mode="light"] .ai-pill-warning,
+        [data-theme="light"] .ai-pill-warning,
+        .light-mode .ai-pill-warning {
+            background: #fef3c7 !important;
+            border-color: #fde047 !important;
+            color: #b45309 !important;
+        }
+        body.light-theme .stage-ai-rendered-body code,
         [data-mode="light"] .stage-ai-rendered-body code,
         [data-theme="light"] .stage-ai-rendered-body code,
         .light-mode .stage-ai-rendered-body code {
             background: #e0f2fe !important;
             color: #0369a1 !important;
         }
+        body.light-theme .stage-ai-rendered-body pre,
         [data-mode="light"] .stage-ai-rendered-body pre,
         [data-theme="light"] .stage-ai-rendered-body pre,
         .light-mode .stage-ai-rendered-body pre {
@@ -1578,6 +1693,9 @@
                 <button class="nav-btn" id="tab-oliverkell-btn" data-title="Oliver Kell EMA Structure" onclick="window.switchTab && window.switchTab('vcp'); window.switchQuantScannerSubtab && window.switchQuantScannerSubtab('oliverkell');">
                     <span class="btn-icon">📈</span> <span class="btn-text">Oliver Kell Structure</span>
                 </button>
+                <button class="nav-btn" id="tab-cuphandle-btn" data-title="William O'Neil Cup With Handle (CANSLIM)" onclick="window.switchTab && window.switchTab('vcp'); window.switchQuantScannerSubtab && window.switchQuantScannerSubtab('cuphandle');">
+                    <span class="btn-icon">☕</span> <span class="btn-text">Cup With Handle (CANSLIM)</span>
+                </button>
                 <button class="nav-btn" id="tab-quant-guide-btn" data-title="4-Stage Life Cycle Masterclass & Guide" onclick="window.switchTab && window.switchTab('vcp'); window.switchQuantScannerSubtab && window.switchQuantScannerSubtab('guide');">
                     <span class="btn-icon">📘</span> <span class="btn-text">Stage Masterclass & Guide</span>
                 </button>
@@ -2302,6 +2420,9 @@
                     </button>
                     <button class="quant-subtab-btn" id="quant-subtab-oliverkell" onclick="window.switchQuantScannerSubtab && window.switchQuantScannerSubtab('oliverkell')">
                         <span>📈</span> Oliver Kell Structure
+                    </button>
+                    <button class="quant-subtab-btn" id="quant-subtab-cuphandle" onclick="window.switchQuantScannerSubtab && window.switchQuantScannerSubtab('cuphandle')">
+                        <span>☕</span> Cup With Handle (CANSLIM)
                     </button>
                     <button class="quant-subtab-btn" id="quant-subtab-guide" onclick="window.switchQuantScannerSubtab && window.switchQuantScannerSubtab('guide')">
                         <span>📘</span> 4-Stage Life Cycle Masterclass
@@ -3430,6 +3551,126 @@
                     </div>
                 </div>
 
+                <!-- SUBTAB VIEW 9: WILLIAM O'NEIL / CANSLIM CUP WITH HANDLE -->
+                <div id="quant-view-cuphandle" style="display: none;">
+                    <div class="screener-hero-header no-print" style="margin-bottom: 24px; border-radius: 16px; background: linear-gradient(135deg, rgba(15, 23, 42, 0.95), rgba(30, 41, 59, 0.92), rgba(15, 23, 42, 0.95)); border: 1px solid rgba(245, 158, 11, 0.4); backdrop-filter: blur(20px); padding: 22px 28px; box-shadow: 0 12px 32px -4px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.1); position: relative; overflow: hidden; font-family: 'Outfit', 'Inter', sans-serif;">
+                        <div style="position: absolute; top: -50px; right: -50px; width: 250px; height: 250px; background: radial-gradient(circle, rgba(245, 158, 11, 0.25), transparent 70%); pointer-events: none; border-radius: 50%;"></div>
+                        <div style="position: absolute; bottom: -60px; left: -60px; width: 220px; height: 220px; background: radial-gradient(circle, rgba(251, 191, 36, 0.2), transparent 70%); pointer-events: none; border-radius: 50%;"></div>
+
+                        <!-- Cup & Handle SVG Illustration Background -->
+                        <svg style="position: absolute; right: 0; bottom: 0; width: 45%; height: 100%; opacity: 0.22; pointer-events: none;" viewBox="0 0 400 120" preserveAspectRatio="none">
+                            <path d="M 50 25 C 100 100, 220 100, 270 25 C 285 45, 305 45, 320 25" fill="none" stroke="#f59e0b" stroke-width="3" stroke-linecap="round"/>
+                            <line x1="40" y1="25" x2="330" y2="25" stroke="#fbbf24" stroke-width="1.5" stroke-dasharray="4,4"/>
+                            <circle cx="320" cy="25" r="5" fill="#10b981"/>
+                        </svg>
+
+                        <div style="position: relative; z-index: 2; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px;">
+                            <div>
+                                <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px;">
+                                    <div style="background: rgba(245, 158, 11, 0.18); border: 1px solid rgba(245, 158, 11, 0.45); padding: 3px 8px; border-radius: 5px; display: inline-flex; align-items: center; gap: 6px;">
+                                        <span class="status-indicator" style="width: 7px; height: 7px; border-radius: 50%; background-color: #f59e0b; box-shadow: 0 0 8px #f59e0b;"></span>
+                                        <span style="font-size: 13px; font-weight: 800; color: #f59e0b; letter-spacing: 0.08em; text-transform: uppercase;">WILLIAM O'NEIL CANSLIM ENGINE</span>
+                                    </div>
+                                    <span style="font-size: 13.5px; color: rgba(255,255,255,0.45); font-weight: 600;">• Standard 7-65 Week Cup With Handle System</span>
+                                    <span id="cuphandle-timestamp" style="font-size: 12px; font-weight: 700; color: #f59e0b; background: rgba(245, 158, 11, 0.12); padding: 3px 8px; border-radius: 6px; border: 1px solid rgba(245, 158, 11, 0.3); margin-left: 8px;">🟢 Pre-Warmed</span>
+                                </div>
+                                <h2 style="margin: 0; font-size: 22px; font-weight: 800; color: #ffffff; letter-spacing: -0.02em; font-family: 'Outfit', sans-serif;">William O'Neil / CANSLIM Cup With Handle Screener</h2>
+                                <p style="margin: 6px 0 0 0; font-size: 12.5px; color: #94a3b8; line-height: 1.5; max-width: 660px;">Detects textbook CANSLIM Cup with Handle formations with Stage 2 uptrends, handle midpoints in the upper half of the cup, volume dry-up, and RS leadership.</p>
+                            </div>
+
+                            <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+                                <button onclick="const b=document.getElementById('cuphandle-guide-banner'); b.style.display = b.style.display === 'none' ? 'block' : 'none';" class="btn-secondary" style="padding: 10px 16px; background: rgba(245, 158, 11, 0.15); border: 1px solid #f59e0b; border-radius: 10px; color: #f59e0b; font-weight: 800; font-size: 13px; cursor: pointer;">
+                                    💡 Rules Guide
+                                </button>
+                                <button onclick="window.runCupHandleScan && window.runCupHandleScan(false, true)" class="btn-primary" style="padding: 10px 20px; background: linear-gradient(135deg, #f59e0b, #d97706); border: none; border-radius: 10px; color: #fff; font-weight: 700; font-size: 13px; cursor: pointer; box-shadow: 0 4px 14px rgba(245, 158, 11, 0.35);">
+                                    🔄 Run Cup & Handle Scan
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- KPI Summary Row -->
+                        <div class="screener-kpi-row" style="display: flex; gap: 16px; margin-top: 20px; flex-wrap: wrap; border-top: 1px solid rgba(255,255,255,0.08); padding-top: 16px;">
+                            <div class="screener-kpi-card" style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(255,255,255,0.08); border-radius: 10px; padding: 10px 16px; flex: 1; min-width: 140px;">
+                                <div style="font-size: 11px; color: #94a3b8; text-transform: uppercase; font-weight: 600;">Total Cup Setups</div>
+                                <div id="cuphandle-card-total" style="font-size: 20px; font-weight: 800; color: #f59e0b; margin-top: 2px;">-</div>
+                            </div>
+                            <div class="screener-kpi-card" style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(255,255,255,0.08); border-radius: 10px; padding: 10px 16px; flex: 1; min-width: 140px;">
+                                <div style="font-size: 11px; color: #94a3b8; text-transform: uppercase; font-weight: 600;">Handle Ready 🟢</div>
+                                <div id="cuphandle-card-ready" style="font-size: 20px; font-weight: 800; color: #10b981; margin-top: 2px;">-</div>
+                            </div>
+                            <div class="screener-kpi-card" style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(255,255,255,0.08); border-radius: 10px; padding: 10px 16px; flex: 1; min-width: 140px;">
+                                <div style="font-size: 11px; color: #94a3b8; text-transform: uppercase; font-weight: 600;">Cup Forming 🟡</div>
+                                <div id="cuphandle-card-forming" style="font-size: 20px; font-weight: 800; color: #fbbf24; margin-top: 2px;">-</div>
+                            </div>
+                            <div class="screener-kpi-card" style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(255,255,255,0.08); border-radius: 10px; padding: 10px 16px; flex: 1; min-width: 140px;">
+                                <div style="font-size: 11px; color: #94a3b8; text-transform: uppercase; font-weight: 600;">Near Pivot Alert</div>
+                                <div id="cuphandle-card-pivot" style="font-size: 20px; font-weight: 800; color: #38bdf8; margin-top: 2px;">-</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Educational Rules Banner -->
+                    <div id="cuphandle-guide-banner" class="vcp-guide-banner" style="display: none; margin-bottom: 20px; border-radius: 12px; padding: 16px 20px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                            <strong style="font-size: 14px; font-weight: 800; color: #f59e0b;">☕ CANSLIM Cup With Handle Standard Identification Rules</strong>
+                            <button onclick="document.getElementById('cuphandle-guide-banner').style.display='none'" style="background: none; border: none; cursor: pointer; font-size: 15px; color: #94a3b8;">✕</button>
+                        </div>
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 10px; font-size: 11.5px; line-height: 1.45;">
+                            <div style="background: rgba(30,41,59,0.5); padding: 10px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.06);">
+                                <strong style="color: #f59e0b;">1. Stage 2 Uptrend & RS</strong>: Stock must be in Stage 2 (Price > 50 SMA > 150 SMA >= 200 SMA, 200 SMA rising, near 52W High) with RS Rating >= 70.
+                            </div>
+                            <div style="background: rgba(30,41,59,0.5); padding: 10px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.06);">
+                                <strong style="color: #f59e0b;">2. Cup Depth & Duration</strong>: Cup must be 7 to 65 weeks long (35-325 trading days) with depth of -12% to -35% (-50% max in severe bear markets).
+                            </div>
+                            <div style="background: rgba(30,41,59,0.5); padding: 10px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.06);">
+                                <strong style="color: #f59e0b;">3. Handle Formation</strong>: Handle forms in 1 to 4 weeks (5-20 trading days) with depth <= 12% (-15% max). Handle low MUST stay in the upper half of the cup.
+                            </div>
+                            <div style="background: rgba(30,41,59,0.5); padding: 10px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.06);">
+                                <strong style="color: #f59e0b;">4. Volume Dry-Up (VDU)</strong>: Handle volume must contract strongly (VDU <= 0.85x 50-day average volume) showing institutional absorption before breakout.
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Filter Controls -->
+                    <div style="display: flex; gap: 14px; margin-bottom: 20px; align-items: center; flex-wrap: wrap;">
+                        <input type="text" id="cuphandle-search-input" onkeyup="window.filterCupHandleTable && window.filterCupHandleTable()" placeholder="Search symbol or name..." style="background: rgba(30, 41, 59, 0.8); border: 1px solid rgba(255,255,255,0.12); color: #fff; padding: 8px 14px; border-radius: 8px; font-size: 13px; flex: 1; min-width: 200px; outline: none;"/>
+                        <select id="cuphandle-status-filter" onchange="window.filterCupHandleTable && window.filterCupHandleTable()" style="background: rgba(30, 41, 59, 0.8); border: 1px solid rgba(255,255,255,0.12); color: #fff; padding: 8px 14px; border-radius: 8px; font-size: 13px; outline: none; cursor: pointer;">
+                            <option value="ALL">All Cup & Handle Setups</option>
+                            <option value="HANDLE_READY">🚀 Handle Ready (Pristine)</option>
+                            <option value="BREAKOUT_ALERT">⚡ Breakout / Near Pivot</option>
+                            <option value="CUP_FORMING">🟡 Cup Forming / Right Side</option>
+                        </select>
+                    </div>
+
+                    <div id="cuphandle-loading-container" style="display: none; text-align: center; padding: 60px 20px;">
+                        <div class="spinner" style="border: 4px solid rgba(245, 158, 11, 0.1); border-left-color: #f59e0b; border-radius: 50%; width: 44px; height: 44px; animation: spin 1s linear infinite; margin: 0 auto 16px auto;"></div>
+                        <p style="color: #94a3b8; font-size: 14px; font-weight: 500;">Scanning Nifty Universe for Standard CANSLIM Cup With Handle Setups...</p>
+                    </div>
+
+                    <div class="quant-table-wrapper">
+                        <table class="quant-table" style="width: 100%; border-collapse: collapse; font-size: 13px;">
+                            <thead>
+                                <tr style="border-bottom: 1px solid rgba(255, 255, 255, 0.1); text-align: left; color: #94a3b8;">
+                                    <th>Symbol</th>
+                                    <th>Price</th>
+                                    <th>Day Chg %</th>
+                                    <th>Cup Depth %</th>
+                                    <th>Cup Length</th>
+                                    <th>Handle Depth %</th>
+                                    <th>Handle Position</th>
+                                    <th>Vol Dry-Up</th>
+                                    <th>RS Rating</th>
+                                    <th>Pattern Status</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="cuphandle-table-body">
+                                <tr><td colspan="11" style="text-align:center; padding: 30px; color: #94a3b8;">Click 'Run Cup & Handle Scan' to load results.</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
                 <!-- SUBTAB VIEW 6: STAN WEINSTEIN & DAVID RYAN 4-STAGE LIFE CYCLE MASTERCLASS -->
                 <div id="quant-view-guide" style="display: none; padding-bottom: 40px; font-family: 'Inter', sans-serif;">
                     <!-- Ultra-Institutional 4-Stage Life Cycle Masterclass Cyber Hero Header Banner -->
@@ -3631,7 +3872,7 @@
                                     <span>⚡</span> Interactive Stage 1-4 Diagnostic Simulator & Screener Qualification Engine
                                 </h3>
                                 <p style="margin: 4px 0 0 0; font-size: 12.5px; color: #94a3b8;">
-                                    Analyze any Indian stock symbol live to compute its Stage Phase (1, 2, 3, or 4), 30-week MA slope, and qualification against all 4 quant screeners.
+                                    Analyze any Indian stock symbol live to compute its Stage Phase (1, 2, 3, or 4), 30-week MA slope, and qualification against all 9 quant screeners.
                                 </p>
                             </div>
                             <span style="font-size: 11px; background: rgba(168, 85, 247, 0.2); color: #c084fc; border: 1px solid rgba(168, 85, 247, 0.4); padding: 4px 12px; border-radius: 20px; font-weight: 700;">
@@ -3687,10 +3928,10 @@
                         <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; flex-wrap: wrap; gap: 12px;">
                             <div>
                                 <h3 style="margin: 0; font-size: 19px; font-weight: 800; color: #f8fafc; display: flex; align-items: center; gap: 8px;">
-                                    <span>📊</span> 8-Screener Quantitative Life Cycle Alignment Map
+                                    <span>📊</span> 9-Screener Quantitative Life Cycle Alignment Map
                                 </h3>
                                 <p style="margin: 4px 0 0 0; font-size: 12px; color: #94a3b8;">
-                                    Shows exact entry placement & volume trigger timing for Stage 2 Breakout, Episodic Pivot, VCP, Flat Base, Pocket Pivot, HTF, Oliver Kell, and 3WT on the 4-Stage curve.
+                                    Shows exact entry placement & volume trigger timing for Stage 2 Breakout, Episodic Pivot, VCP, Cup With Handle, Flat Base, Pocket Pivot, HTF, Oliver Kell, and 3WT on the 4-Stage curve.
                                 </p>
                             </div>
                             <div style="display: flex; gap: 8px; flex-wrap: wrap; font-size: 11px; font-weight: 700;">
@@ -3730,7 +3971,7 @@
                                         <span style="font-size: 10px; background: rgba(245,158,11,0.2); padding: 1px 6px; border-radius: 4px;">Classic Pivots</span>
                                     </div>
                                     <p style="margin: 0; color: #cbd5e1; font-size: 11.5px; line-height: 1.45;">
-                                        <strong style="color: #f8fafc;">Minervini VCP</strong>, <strong style="color: #f8fafc;">William O'Neil Flat Base</strong>, and <strong style="color: #f8fafc;">David Ryan 3WT</strong> — Standard volatility contraction & high-tight shelf breakout triggers.
+                                        <strong style="color: #f8fafc;">Minervini VCP</strong>, <strong style="color: #f8fafc;">William O'Neil Cup With Handle</strong>, <strong style="color: #f8fafc;">Flat Base</strong>, and <strong style="color: #f8fafc;">3WT</strong> — Standard volatility contraction & base pivot breakout triggers.
                                     </p>
                                 </div>
                                 <div style="background: rgba(30, 41, 59, 0.6); border-left: 4px solid #f472b6; border-radius: 8px; padding: 12px;">
@@ -3757,7 +3998,7 @@
                         <!-- Chronological Sequence Explanation Callout Box -->
                         <div style="background: rgba(30, 41, 59, 0.6); border-left: 4px solid #38bdf8; border-radius: 10px; padding: 16px 18px; margin-bottom: 18px; font-size: 12.5px; line-height: 1.55; color: #cbd5e1;">
                             <strong style="color: #38bdf8; display: flex; align-items: center; gap: 6px; font-size: 14px; margin-bottom: 8px;">
-                                <span>🧠</span> 8-Screener Quantitative Life Cycle Progression Sequence:
+                                <span>🧠</span> 9-Screener Quantitative Life Cycle Progression Sequence:
                             </strong>
                             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; margin-top: 10px;">
                                 <div style="background: rgba(15, 23, 42, 0.6); padding: 12px; border-radius: 8px; border: 1px solid rgba(56, 189, 248, 0.3);" class="quant-strategy-card">
@@ -3772,24 +4013,28 @@
                                     <strong style="color: #fbbf24; font-size: 12.5px;">3. Minervini VCP = SEPA Trend Confirmation</strong><br>
                                     Full 7-Point SEPA Template (RS > 70, 200 SMA rising). Forms 2-4 Volatility Contractions near 52W Highs with T1 &le; -9.5% (&ge;6d) & Volume Dry-Up (&le; 0.50x).
                                 </div>
+                                <div style="background: rgba(15, 23, 42, 0.6); padding: 12px; border-radius: 8px; border: 1px solid rgba(245, 158, 11, 0.3);" class="quant-strategy-card">
+                                    <strong style="color: #f59e0b; font-size: 12.5px;">4. O'Neil Cup With Handle = Foundation Base</strong><br>
+                                    William O'Neil 7 to 65 week classic cup with handle formation. Handle midpoint strictly in upper half, VDU &le; 0.85x, and RS Rating &ge; 70.
+                                </div>
                                 <div style="background: rgba(15, 23, 42, 0.6); padding: 12px; border-radius: 8px; border: 1px solid rgba(52, 211, 153, 0.3);" class="quant-strategy-card">
-                                    <strong style="color: #34d399; font-size: 12.5px;">4. O'Neil Flat Base = Base Building Shelf</strong><br>
+                                    <strong style="color: #34d399; font-size: 12.5px;">5. O'Neil Flat Base = Base Building Shelf</strong><br>
                                     5 to 65 week shallow consolidation (&le; 15% depth) following a prior +20%+ advance. Features volume dry-up inside shelf & breakout volume &ge; 1.4x 50d SMA.
                                 </div>
                                 <div style="background: rgba(15, 23, 42, 0.6); padding: 12px; border-radius: 8px; border: 1px solid rgba(167, 139, 250, 0.3);" class="quant-strategy-card">
-                                    <strong style="color: #a78bfa; font-size: 12.5px;">5. Dr. Kacher Pocket Pivot = Early Accumulation</strong><br>
+                                    <strong style="color: #a78bfa; font-size: 12.5px;">6. Dr. Kacher Pocket Pivot = Early Accumulation</strong><br>
                                     Gil Morales & Chris Kacher stealth buy. Up-day volume strictly exceeds the max down-day volume of the prior 10 days while resting near key MAs (10/21 EMA, 50 SMA).
                                 </div>
                                 <div style="background: rgba(15, 23, 42, 0.6); padding: 12px; border-radius: 8px; border: 1px solid rgba(192, 132, 252, 0.3);" class="quant-strategy-card">
-                                    <strong style="color: #c084fc; font-size: 12.5px;">6. High-Tight Flag = Momentum Surge</strong><br>
+                                    <strong style="color: #c084fc; font-size: 12.5px;">7. High-Tight Flag = Momentum Surge</strong><br>
                                     David Ryan & O'Neil rocket move. Stock surges &ge; +80% in &le; 8 weeks (40 trading days), then consolidates in an ultra-tight flag (&le; 25% depth) with VDU &le; 0.70x.
                                 </div>
                                 <div style="background: rgba(15, 23, 42, 0.6); padding: 12px; border-radius: 8px; border: 1px solid rgba(56, 189, 248, 0.3);" class="quant-strategy-card">
-                                    <strong style="color: #38bdf8; font-size: 12.5px;">7. Oliver Kell Structure = EMA Continuation</strong><br>
+                                    <strong style="color: #38bdf8; font-size: 12.5px;">8. Oliver Kell Structure = EMA Continuation</strong><br>
                                     US Champion Oliver Kell setup. Low-volume pullback to 10/20 EMA or Wedge Pop breakout in a bullish MA stack (Price > 10 > 20 > 50 > 200).
                                 </div>
                                 <div style="background: rgba(15, 23, 42, 0.6); padding: 12px; border-radius: 8px; border: 1px solid rgba(45, 212, 191, 0.3);" class="quant-strategy-card">
-                                    <strong style="color: #2dd4bf; font-size: 12.5px;">8. 3-Weeks Tight = Pyramiding Shelf</strong><br>
+                                    <strong style="color: #2dd4bf; font-size: 12.5px;">9. 3-Weeks Tight = Pyramiding Shelf</strong><br>
                                     David Ryan's low-risk re-entry. 3 consecutive weekly closes within an ultra-narrow &le; 2.0% variance band above rising 50d/200d SMAs (RS > 70).
                                 </div>
                             </div>
@@ -4264,15 +4509,15 @@
                         </div>
                     </div>
 
-                    <!-- 8-SCREENER 4-STAGE ALIGNMENT MASTER MATRIX TABLE -->
+                    <!-- 9-SCREENER 4-STAGE ALIGNMENT MASTER MATRIX TABLE -->
                     <div style="background: rgba(15, 23, 42, 0.85); border: 1px solid rgba(255, 255, 255, 0.12); border-radius: 16px; padding: 24px; box-shadow: 0 10px 30px rgba(0,0,0,0.4);">
                         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 12px;">
                             <div>
                                 <h3 style="margin: 0; font-size: 19px; font-weight: 800; color: #f8fafc; display: flex; align-items: center; gap: 8px;">
-                                    <span>🧠</span> 8-Screener Quantitative Master Alignment Matrix
+                                    <span>🧠</span> 9-Screener Quantitative Master Alignment Matrix
                                 </h3>
                                 <p style="margin: 4px 0 0 0; font-size: 12px; color: #94a3b8;">
-                                    Compare entry pivots, volume triggers, risk-reward ratios, and capital-protection rules across all 8 momentum engines.
+                                    Compare entry pivots, volume triggers, risk-reward ratios, and capital-protection rules across all 9 momentum engines.
                                 </p>
                             </div>
                         </div>
@@ -4339,6 +4584,23 @@
                                         <td>
                                             <button onclick="window.switchQuantScannerSubtab('vcp')" class="btn-secondary" style="padding: 4px 10px; font-size: 11px; background: rgba(245, 158, 11, 0.15); border: 1px solid #fbbf24; color: #fbbf24; border-radius: 6px; cursor: pointer; font-weight: 700;">
                                                 Go to VCP ↗
+                                            </button>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td>
+                                            <strong style="color: #f59e0b; display: flex; align-items: center; gap: 6px;">
+                                                <span>☕</span> William O'Neil Cup With Handle
+                                            </strong>
+                                        </td>
+                                        <td><span class="badge-quant badge-quant-yellow">Stage 2 Foundation Consolidation</span></td>
+                                        <td>Cup with handle breakout (7-65 wks cup, depth &le; 35%, upper-half handle)</td>
+                                        <td>&ge; 1.4x 50-day SMA volume (VDU &le; 0.85x in handle)</td>
+                                        <td><strong style="color: #34d399;">1:3 to 1:5+</strong></td>
+                                        <td><span style="color: #f87171; font-weight: 700;">🛡️ Auto-Rejects Lower-Half Handle, Cup Depth &gt; 35%, RS &lt; 70</span></td>
+                                        <td>
+                                            <button onclick="window.switchQuantScannerSubtab('cuphandle')" class="btn-secondary" style="padding: 4px 10px; font-size: 11px; background: rgba(245, 158, 11, 0.15); border: 1px solid #f59e0b; color: #f59e0b; border-radius: 6px; cursor: pointer; font-weight: 700;">
+                                                Go to Cup & Handle ↗
                                             </button>
                                         </td>
                                     </tr>
@@ -12351,8 +12613,8 @@
                                     <div style="display: flex; align-items: center; gap: 10px;">
                                         <span style="font-size: 20px;">🧭</span>
                                         <div>
-                                            <h3 style="font-size: 14.5px; font-weight: 800; color: #38bdf8; margin: 0; letter-spacing: 0.02em;">8-Screener Quantitative Life Cycle Alignment Map</h3>
-                                            <p style="font-size: 12px; color: #94a3b8; margin: 2px 0 0 0;">How Weinstein Stage 2, Episodic Pivot, Minervini VCP, Flat Base, Pocket Pivot, HTF, Oliver Kell, and 3WT differentiate Stage 2 Continuations from Stage 3 Tops</p>
+                                            <h3 style="font-size: 14.5px; font-weight: 800; color: #38bdf8; margin: 0; letter-spacing: 0.02em;">9-Screener Quantitative Life Cycle Alignment Map</h3>
+                                            <p style="font-size: 12px; color: #94a3b8; margin: 2px 0 0 0;">How Weinstein Stage 2, Episodic Pivot, Minervini VCP, Flat Base, Pocket Pivot, HTF, Oliver Kell, 3WT, and Cup with Handle differentiate Stage 2 Continuations from Stage 3 Tops</p>
                                         </div>
                                     </div>
                                     <button id="toggle-quant-guide-btn" class="btn-secondary" style="font-size: 12px; padding: 4px 10px; border-radius: 6px; color: #38bdf8; border-color: rgba(56, 189, 248, 0.4); background: rgba(56, 189, 248, 0.1);">
@@ -12392,7 +12654,7 @@
                                                     <span style="font-size: 10px; background: rgba(245,158,11,0.2); padding: 1px 6px; border-radius: 4px;">Classic Pivots</span>
                                                 </div>
                                                 <p style="margin: 0; color: #cbd5e1; font-size: 11.5px; line-height: 1.45;">
-                                                    <strong style="color: #f8fafc;">Minervini VCP</strong>, <strong style="color: #f8fafc;">William O'Neil Flat Base</strong>, and <strong style="color: #f8fafc;">David Ryan 3WT</strong> — Standard volatility contraction & high-tight shelf breakout triggers.
+                                                    <strong style="color: #f8fafc;">Minervini VCP</strong>, <strong style="color: #f8fafc;">William O'Neil Flat Base</strong>, <strong style="color: #f8fafc;">William O'Neil Cup with Handle (C&H)</strong>, and <strong style="color: #f8fafc;">David Ryan 3WT</strong> — Standard volatility contraction & primary base breakout triggers.
                                                 </p>
                                             </div>
                                             <div style="background: rgba(30, 41, 59, 0.6); border-left: 4px solid #f472b6; border-radius: 8px; padding: 12px;">
@@ -12512,6 +12774,18 @@
                                             </p>
                                             <div style="font-size: 11.5px; color: #2dd4bf; font-weight: 700;">🎯 Primary Edge: Low-risk (3–5% stop) re-entry & position pyramiding.</div>
                                         </div>
+
+                                        <!-- Card 9: William O'Neil Cup with Handle -->
+                                        <div class="quant-strategy-card" style="background: rgba(30, 41, 59, 0.6); border-left: 4px solid #f59e0b; border-radius: 8px; padding: 14px;">
+                                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                                                <strong style="font-size: 13px; color: #f59e0b;">☕ William O'Neil Cup with Handle</strong>
+                                                <span style="font-size: 10.5px; font-weight: 700; background: rgba(245,158,11,0.15); color: #f59e0b; padding: 2px 6px; border-radius: 4px;">Primary Base Continuation</span>
+                                            </div>
+                                            <p style="font-size: 12px; color: var(--text-secondary); margin: 0 0 8px 0; line-height: 1.45;">
+                                                7-65 week U-shaped cup (-12% to -33% depth) with upper-half handle contraction (1-4 wks, -5% to -12% depth) & volume dry-up (VDU &le; 0.85x).
+                                            </p>
+                                            <div style="font-size: 11.5px; color: #f59e0b; font-weight: 700;">🎯 Primary Edge: Institutional primary base breakout with high risk-reward ratio (1:3 to 1:5).</div>
+                                        </div>
                                     </div>
 
                                     <!-- Stage 2 Continuation vs. Stage 3 Distribution Comparison Table -->
@@ -12586,7 +12860,7 @@
                                 <div class="screener-kpi-card" style="background: rgba(15, 23, 42, 0.6); border: 1px solid var(--border-glass); border-radius: 10px; padding: 12px 16px;">
                                     <div style="font-size: 11px; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.05em;">Multi-Factor Qualified</div>
                                     <div style="font-size: 22px; font-weight: 800; color: #2dd4bf; margin-top: 4px;" id="wl-matrix-kpi-qualified">0</div>
-                                    <div style="font-size: 11px; color: #2dd4bf; margin-top: 2px;">8 Quant Engines Ready</div>
+                                    <div style="font-size: 11px; color: #2dd4bf; margin-top: 2px;">9 Quant Engines Ready</div>
                                 </div>
                                 <div class="screener-kpi-card" style="background: rgba(15, 23, 42, 0.6); border: 1px solid var(--border-glass); border-radius: 10px; padding: 12px 16px;">
                                     <div style="font-size: 11px; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.05em;">Avg 30-Wk MA Slope</div>
@@ -12610,6 +12884,7 @@
                                         <option value="HTF">🚀 High-Tight Flag</option>
                                         <option value="KELL">🌊 Oliver Kell Structure</option>
                                         <option value="3WT">🎯 3-Weeks Tight</option>
+                                        <option value="CUP">☕ Cup With Handle (CANSLIM)</option>
                                     </select>
                                 </div>
                                 <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
@@ -12645,6 +12920,7 @@
                                             <th style="padding: 12px 14px; font-weight: 800; color: #f472b6;">EPISODIC PIVOT</th>
                                             <th style="padding: 12px 14px; font-weight: 800; color: #c084fc;">POCKET PIVOT</th>
                                             <th style="padding: 12px 14px; font-weight: 800; color: #38bdf8;">OLIVER KELL 10/20</th>
+                                            <th style="padding: 12px 14px; font-weight: 800; color: #f59e0b;">CUP WITH HANDLE</th>
                                             <th style="padding: 12px 14px; font-weight: 800; color: #94a3b8;">QUALIFICATION SCORE</th>
                                             <th style="padding: 12px 14px; font-weight: 800; color: #38bdf8;">🎯 EXECUTION PLAN (LEVELS)</th>
                                             <th style="padding: 12px 14px; font-weight: 800; color: #94a3b8; text-align: center;">ACTIONS</th>
@@ -12652,7 +12928,7 @@
                                     </thead>
                                     <tbody id="watchlist-matrix-table-body">
                                         <tr>
-                                            <td colspan="15" style="text-align: center; padding: 30px; color: #94a3b8;">
+                                            <td colspan="16" style="text-align: center; padding: 30px; color: #94a3b8;">
                                                 Select a watchlist to run the Stage 1-4 Quant Qualification Scan.
                                             </td>
                                         </tr>

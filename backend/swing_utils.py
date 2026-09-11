@@ -2980,14 +2980,14 @@ def detect_oliver_kell_reversal(df: pd.DataFrame) -> dict:
 
         # 4. Pullback Touch to 10 EMA or 20 EMA (within last 3 bars)
         recent_low = clean_float(np.min(lows[-3:]))
-        tested_10ema = recent_low <= (c_ema10 * 1.015)
         tested_20ema = recent_low <= (c_ema20 * 1.015)
+        tested_10ema = recent_low <= (c_ema10 * 1.015)
 
         if not (tested_10ema or tested_20ema):
             default_res["rejection_reason"] = "Price has not touched or undercut 10 EMA or 20 EMA support line recently"
             return default_res
 
-        tested_ma = "10 EMA" if tested_10ema else "20 EMA"
+        tested_ma = "20 EMA" if tested_20ema else "10 EMA"
 
         # 5. Volume Dry-Up (VDU) & Reversal Candle Check
         vol50_avg = clean_float(pd.Series(volumes).rolling(window=min(50, n), min_periods=20).mean().iloc[-1])
@@ -2995,7 +2995,7 @@ def detect_oliver_kell_reversal(df: pd.DataFrame) -> dict:
 
         bar_range = curr_high - curr_low
         close_pos = ((curr_price - curr_low) / bar_range) if bar_range > 0 else 0.5
-        is_bullish_reversal = close_pos >= 0.60 or day_change_pct >= 0.5
+        is_bullish_reversal = (close_pos >= 0.65 and day_change_pct >= 0.0) or day_change_pct >= 1.5
 
         pivot_price = round(clean_float(np.max(highs[-5:])), 2)
         stop_loss = round(min(recent_low, c_ema20 * 0.99), 2)
@@ -3011,7 +3011,7 @@ def detect_oliver_kell_reversal(df: pd.DataFrame) -> dict:
         if is_bullish_reversal:
             kell_status = "KELL_REVERSAL_LIVE"
             is_kell_reversal = True
-        elif curr_vdu <= 0.85:
+        elif curr_vdu <= 0.90:
             kell_status = "KELL_PULLBACK_TEST"
             is_kell_reversal = True
         else:
@@ -3040,6 +3040,240 @@ def detect_oliver_kell_reversal(df: pd.DataFrame) -> dict:
         print(f"Error in detect_oliver_kell_reversal: {e}")
         default_res["rejection_reason"] = f"Calculation error: {e}"
         return default_res
+
+
+def detect_cup_with_handle(df: pd.DataFrame, rs_score: float = 0.0) -> dict:
+    """
+    Identifies William O'Neil / CANSLIM Cup with Handle (C&H) Pattern:
+    1. SEPA Stage 2 Trend Template: Price > EMA50 > SMA150 >= SMA200; 200 SMA rising over 30 days.
+    2. 52W Proximity: Price within 25.0% of 52W High; >= 30.0% above 52W Low.
+    3. Liquidity Filter: 50-day average volume >= 50,000 shares/day.
+    4. Prior Advance: Minimum +30.0% prior uptrend before left lip.
+    5. Cup Base: 35 to 300 trading days (7 to 65 weeks); depth -12.0% to -33.0%.
+    6. Right Lip Recovery: Price recovers to within 5.0% of left lip high.
+    7. Upper-Half Handle Rule: Handle low >= Cup Midpoint (cup_low + 0.5 * (left_lip - cup_low)).
+    8. Handle Base: Duration 5 to 20 trading days (1 to 4 weeks); depth -5.0% to -12.0% (max -15.0%).
+    9. Volume Dry-Up (VDU): Handle 5-day average volume <= 0.85x 50-day average volume.
+    10. Relative Strength: RS Score >= 70.0.
+    """
+    default_res = {
+        "is_cup_handle": False,
+        "ch_status": "NONE",
+        "cup_depth_pct": 0.0,
+        "cup_length_weeks": 0,
+        "handle_depth_pct": 0.0,
+        "handle_length_days": 0,
+        "is_upper_half_handle": False,
+        "pivot_price": 0.0,
+        "stop_loss": 0.0,
+        "target_1": 0.0,
+        "target_2": 0.0,
+        "risk_reward_ratio": "1 : 0",
+        "vdu_ratio": 1.0,
+        "is_vdu": False,
+        "prior_advance_pct": 0.0,
+        "rs_rating": round(clean_float(rs_score), 1),
+        "rejection_reason": ""
+    }
+
+    if df is None or df.empty or len(df) < 80:
+        default_res["rejection_reason"] = "Insufficient daily history bars (<80 days)"
+        return default_res
+
+    try:
+        df = df.sort_index(ascending=True)
+        closes = df['Close'].values
+        highs = df['High'].values
+        lows = df['Low'].values
+        volumes = df['Volume'].values if 'Volume' in df.columns else np.ones(len(df))
+        n = len(df)
+
+        curr_price = clean_float(closes[-1])
+        curr_vol = clean_float(volumes[-1])
+        day_change_pct = round(((curr_price - closes[-2]) / closes[-2]) * 100.0, 2) if n > 1 and closes[-2] > 0 else 0.0
+
+        h52 = clean_float(np.max(highs[-min(252, n):]))
+        l52 = clean_float(np.min(lows[-min(252, n):]))
+
+        # 1. 52-Week High & Low Proximity
+        dist_52w_high_pct = round(((h52 - curr_price) / h52) * 100.0, 2) if h52 > 0 else 999.0
+        dist_52w_low_pct = round(((curr_price - l52) / l52) * 100.0, 2) if l52 > 0 else 0.0
+
+        if dist_52w_high_pct > 25.0:
+            default_res["rejection_reason"] = f"Price is {dist_52w_high_pct:.1f}% below 52W High (exceeds 25% limit)"
+            return default_res
+
+        if dist_52w_low_pct < 30.0:
+            default_res["rejection_reason"] = f"Price is only +{dist_52w_low_pct:.1f}% above 52W Low (requires >= +30%)"
+            return default_res
+
+        # 2. Moving Average Alignment (Price > EMA50 > SMA150 >= SMA200 with rising 200 SMA)
+        ema50 = pd.Series(closes).ewm(span=min(50, n), adjust=False).mean().values
+        sma150 = pd.Series(closes).rolling(window=min(150, n), min_periods=30).mean().values
+        sma200 = pd.Series(closes).rolling(window=min(200, n), min_periods=40).mean().values
+        vol_sma50 = pd.Series(volumes).rolling(window=min(50, n), min_periods=20).mean().values
+
+        c_ema50 = clean_float(ema50[-1])
+        c_sma150 = clean_float(sma150[-1])
+        c_sma200 = clean_float(sma200[-1])
+        c_vol50 = clean_float(vol_sma50[-1])
+
+        # Liquidity Check (50d Avg Volume >= 50,000)
+        if c_vol50 < 50000:
+            default_res["rejection_reason"] = f"Low liquidity (50d avg vol {c_vol50:,.0f} < 50,000)"
+            return default_res
+
+        # 200 SMA Slope
+        sma200_30d_ago = clean_float(sma200[-30]) if n >= 30 else c_sma200
+        sma200_rising = c_sma200 >= (sma200_30d_ago * 0.998)
+
+        if not (curr_price >= (c_ema50 * 0.98) and c_ema50 >= (c_sma150 * 0.97) and c_ema50 >= (c_sma200 * 0.97) and c_sma150 >= (c_sma200 * 0.95) and sma200_rising):
+            default_res["rejection_reason"] = "Failed Stage 2 Trend Template (Price >= EMA50 >= SMA150 >= SMA200 rising)"
+            return default_res
+
+        # 3. RS Rating check
+        calc_rs = clean_float(rs_score)
+        if calc_rs <= 0 and n >= 65:
+            past_close = clean_float(closes[-min(252, n)])
+            calc_rs = round(((curr_price - past_close) / past_close) * 100.0, 1) if past_close > 0 else 50.0
+        default_res["rs_rating"] = calc_rs
+
+        # 4. Locate Cup Geometry (Left Lip, Cup Low, Right Lip, Handle Low)
+        # Search for Left Lip peak in window [n-300:n-15]
+        min_lookback = min(300, n)
+        search_start = max(0, n - min_lookback)
+        search_end = max(search_start + 20, n - 15)
+
+        sub_highs = highs[search_start:search_end]
+        left_lip_rel_idx = np.argmax(sub_highs)
+        left_lip_idx = search_start + left_lip_rel_idx
+        left_lip_price = clean_float(highs[left_lip_idx])
+
+        # Prior Advance Check: Advance into Left Lip must be >= +25%
+        prior_start_idx = max(0, left_lip_idx - 120)
+        prior_low_price = clean_float(np.min(lows[prior_start_idx:left_lip_idx])) if left_lip_idx > prior_start_idx else left_lip_price * 0.8
+        prior_advance_pct = round(((left_lip_price - prior_low_price) / prior_low_price) * 100.0, 2) if prior_low_price > 0 else 0.0
+        default_res["prior_advance_pct"] = prior_advance_pct
+
+        if prior_advance_pct < 25.0:
+            default_res["rejection_reason"] = f"Prior advance into cup lip is +{prior_advance_pct:.1f}% (requires >= +25%)"
+            return default_res
+
+        # Cup Low: Minimum low between Left Lip and recent days (n-5)
+        cup_search_end = max(left_lip_idx + 10, n - 5)
+        cup_low_rel_idx = np.argmin(lows[left_lip_idx:cup_search_end])
+        cup_low_idx = left_lip_idx + cup_low_rel_idx
+        cup_low_price = clean_float(lows[cup_low_idx])
+
+        cup_depth_pct = round(((cup_low_price - left_lip_price) / left_lip_price) * 100.0, 2)
+        default_res["cup_depth_pct"] = cup_depth_pct
+
+        if not (-35.0 <= cup_depth_pct <= -10.0):
+            default_res["rejection_reason"] = f"Cup depth is {cup_depth_pct:.1f}% (must be between -10% and -35%)"
+            return default_res
+
+        # Right Lip: High point after Cup Low
+        right_lip_search_start = min(cup_low_idx + 5, n - 5)
+        if right_lip_search_start >= n - 2:
+            default_res["rejection_reason"] = "Right lip formation incomplete"
+            return default_res
+
+        right_lip_rel_idx = np.argmax(highs[right_lip_search_start:n])
+        right_lip_idx = right_lip_search_start + right_lip_rel_idx
+        right_lip_price = clean_float(highs[right_lip_idx])
+
+        # Right Lip must recover to within 10% of Left Lip
+        right_lip_diff_pct = round(((right_lip_price - left_lip_price) / left_lip_price) * 100.0, 2)
+        if right_lip_diff_pct < -10.0:
+            default_res["rejection_reason"] = f"Right lip is {right_lip_diff_pct:.1f}% below left lip (requires within -10%)"
+            return default_res
+
+        # 5. Handle Base Geometry (from Right Lip to Current Bar)
+        handle_days = max(1, n - right_lip_idx)
+        default_res["handle_length_days"] = handle_days
+        default_res["cup_length_weeks"] = round((right_lip_idx - left_lip_idx) / 5.0, 1)
+
+        handle_low_price = clean_float(np.min(lows[right_lip_idx:n]))
+        handle_depth_pct = round(((handle_low_price - right_lip_price) / right_lip_price) * 100.0, 2)
+        default_res["handle_depth_pct"] = handle_depth_pct
+
+        # Upper-Half Handle Rule: Handle Low >= Cup Midpoint
+        cup_midpoint = cup_low_price + 0.5 * (left_lip_price - cup_low_price)
+        is_upper_half = handle_low_price >= (cup_midpoint * 0.98)
+        default_res["is_upper_half_handle"] = bool(is_upper_half)
+
+        if not is_upper_half:
+            default_res["rejection_reason"] = f"Handle formed in lower half of cup (low ₹{handle_low_price:.2f} < midpoint ₹{cup_midpoint:.2f})"
+            return default_res
+
+        if not (-16.0 <= handle_depth_pct <= -2.0):
+            default_res["rejection_reason"] = f"Handle pullback depth is {handle_depth_pct:.1f}% (must be between -2% and -16%)"
+            return default_res
+
+        # 6. Volume Dry-Up (VDU) in Handle
+        handle_avg_vol = clean_float(np.mean(volumes[-min(5, handle_days):]))
+        vdu_ratio = round(handle_avg_vol / c_vol50, 2) if c_vol50 > 0 else 1.0
+        default_res["vdu_ratio"] = vdu_ratio
+        default_res["is_vdu"] = bool(vdu_ratio <= 0.85)
+
+        # 7. Pivot Price, Stop Loss, Risk-Reward Targets
+        pivot_price = round(clean_float(max(right_lip_price, highs[-1])), 2)
+        stop_loss = round(clean_float(max(handle_low_price, c_ema50 * 0.98)), 2)
+        risk_per_share = pivot_price - stop_loss
+        if risk_per_share <= 0:
+            risk_per_share = pivot_price * 0.04
+            stop_loss = round(pivot_price - risk_per_share, 2)
+
+        risk_pct = round((risk_per_share / pivot_price) * 100.0, 2)
+        target_1 = round(pivot_price + (1.5 * risk_per_share), 2)
+        target_2 = round(pivot_price + (3.0 * risk_per_share), 2)
+
+        # Qualification Status
+        is_breakout = (curr_price >= (pivot_price * 0.995) and curr_vol >= (c_vol50 * 1.3))
+        is_ready = (curr_price >= (pivot_price * 0.96) and vdu_ratio <= 0.85)
+
+        if is_breakout:
+            ch_status = "CUP_HANDLE_LIVE_BREAKOUT"
+            is_ch = True
+        elif is_ready or (vdu_ratio <= 0.85 and dist_52w_high_pct <= 15.0):
+            ch_status = "CUP_HANDLE_READY_PIVOT"
+            is_ch = True
+        elif dist_52w_high_pct <= 22.0:
+            ch_status = "CUP_HANDLE_FORMING"
+            is_ch = True
+        else:
+            ch_status = "NONE"
+            is_ch = False
+
+        return {
+            "is_cup_with_handle": bool(is_ch),
+            "is_cup_handle": bool(is_ch),
+            "ch_status": str(ch_status),
+            "base_status": str(ch_status),
+            "cup_depth_pct": clean_float(cup_depth_pct),
+            "cup_length_weeks": clean_float(default_res["cup_length_weeks"]),
+            "handle_depth_pct": clean_float(handle_depth_pct),
+            "handle_length_days": int(handle_days),
+            "handle_length_weeks": round(handle_days / 5.0, 1),
+            "base_length_weeks": round((handle_days + (right_lip_idx - left_lip_idx)) / 5.0, 1),
+            "is_upper_half_handle": bool(is_upper_half),
+            "pivot_price": clean_float(pivot_price),
+            "stop_loss": clean_float(stop_loss),
+            "target_1": clean_float(target_1),
+            "target_2": clean_float(target_2),
+            "risk_percent": clean_float(risk_pct),
+            "risk_reward_ratio": "1 : 3.0",
+            "vdu_ratio": clean_float(vdu_ratio),
+            "is_vdu": bool(default_res["is_vdu"]),
+            "prior_advance_pct": clean_float(prior_advance_pct),
+            "rs_rating": clean_float(calc_rs),
+            "rejection_reason": ""
+        }
+    except Exception as e:
+        print(f"Error in detect_cup_with_handle: {e}")
+        default_res["rejection_reason"] = f"Calculation error: {e}"
+        return default_res
+
 
 
 

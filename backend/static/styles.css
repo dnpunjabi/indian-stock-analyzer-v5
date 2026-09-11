@@ -34345,6 +34345,80 @@ th[data-sort],
     color: #334155 !important;
 }
 
+/* Light Mode AI KPI Banner & RS Leadership High-Contrast Rules */
+.ai-kpi-card {
+    background: var(--bg-card-sub, rgba(30, 41, 59, 0.4));
+    border: 1px solid var(--border-sub, rgba(255, 255, 255, 0.1));
+    border-radius: 8px;
+    padding: 8px 10px;
+    text-align: center;
+    transition: all 0.2s ease;
+}
+
+[data-mode="light"] .ai-kpi-card,
+[data-theme="light"] .ai-kpi-card,
+body.light-theme .ai-kpi-card,
+body.theme-light .ai-kpi-card {
+    background: #ffffff !important;
+    border: 1px solid rgba(0, 0, 0, 0.12) !important;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05) !important;
+}
+
+/* Global Light Mode High Contrast Purple Overrides for RS Leadership (#c084fc) */
+[data-mode="light"] div[style*="color: #c084fc"],
+[data-theme="light"] div[style*="color: #c084fc"],
+body.light-theme div[style*="color: #c084fc"],
+body.theme-light div[style*="color: #c084fc"],
+[data-mode="light"] span[style*="color: #c084fc"],
+[data-theme="light"] span[style*="color: #c084fc"],
+body.light-theme span[style*="color: #c084fc"],
+body.theme-light span[style*="color: #c084fc"],
+[data-mode="light"] .kpi-val-rs,
+[data-theme="light"] .kpi-val-rs,
+body.light-theme .kpi-val-rs,
+body.theme-light .kpi-val-rs {
+    color: #7e22ce !important; /* Deep vibrant purple for 100% legibility in light theme */
+}
+
+/* Light Theme High Contrast for other AI KPI Card fields */
+[data-mode="light"] .ai-kpi-card .kpi-label,
+[data-theme="light"] .ai-kpi-card .kpi-label,
+body.light-theme .ai-kpi-card .kpi-label,
+body.theme-light .ai-kpi-card .kpi-label {
+    color: #475569 !important;
+}
+
+[data-mode="light"] .ai-kpi-card .kpi-val-stage,
+[data-theme="light"] .ai-kpi-card .kpi-val-stage,
+body.light-theme .ai-kpi-card .kpi-val-stage {
+    color: #0284c7 !important;
+}
+
+[data-mode="light"] .ai-kpi-card .kpi-val-price,
+[data-theme="light"] .ai-kpi-card .kpi-val-price,
+body.light-theme .ai-kpi-card .kpi-val-price {
+    color: #0f172a !important;
+}
+
+[data-mode="light"] .ai-kpi-card .kpi-val-pivot,
+[data-theme="light"] .ai-kpi-card .kpi-val-pivot,
+body.light-theme .ai-kpi-card .kpi-val-pivot {
+    color: #d97706 !important;
+}
+
+[data-mode="light"] .ai-kpi-card .kpi-val-stop,
+[data-theme="light"] .ai-kpi-card .kpi-val-stop,
+body.light-theme .ai-kpi-card .kpi-val-stop {
+    color: #dc2626 !important;
+}
+
+[data-mode="light"] .ai-kpi-card .kpi-val-target,
+[data-theme="light"] .ai-kpi-card .kpi-val-target,
+body.light-theme .ai-kpi-card .kpi-val-target {
+    color: #059669 !important;
+}
+
+
 
 
 

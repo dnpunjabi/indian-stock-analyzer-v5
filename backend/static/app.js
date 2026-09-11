@@ -55963,9 +55963,10 @@ window.all3wtStocks = [];
 window.allEpisodicStocks = [];
 window.allPocketStocks = [];
 window.allOliverKellStocks = [];
+window.allCupHandleStocks = [];
 
 window.switchQuantScannerSubtab = function(tabName) {
-    const subtabs = ['vcp', 'weinstein', 'htf', '3wt', 'flatbase', 'episodic', 'pocket', 'oliverkell', 'guide'];
+    const subtabs = ['vcp', 'weinstein', 'htf', '3wt', 'flatbase', 'episodic', 'pocket', 'oliverkell', 'cuphandle', 'guide'];
     const navBtnMap = {
         'vcp': 'tab-vcp-btn',
         'weinstein': 'tab-weinstein-btn',
@@ -55975,6 +55976,7 @@ window.switchQuantScannerSubtab = function(tabName) {
         'episodic': 'tab-episodic-btn',
         'pocket': 'tab-pocket-btn',
         'oliverkell': 'tab-oliverkell-btn',
+        'cuphandle': 'tab-cuphandle-btn',
         'guide': 'tab-quant-guide-btn'
     };
 
@@ -55993,7 +55995,7 @@ window.switchQuantScannerSubtab = function(tabName) {
     });
 
     // 2. Synchronize Sidebar Navigation Highlighted Button
-    const allQuantNavBtns = ['tab-vcp-btn', 'tab-weinstein-btn', 'tab-htf-btn', 'tab-3wt-btn', 'tab-flatbase-btn', 'tab-episodic-btn', 'tab-pocket-btn', 'tab-oliverkell-btn', 'tab-quant-guide-btn'];
+    const allQuantNavBtns = ['tab-vcp-btn', 'tab-weinstein-btn', 'tab-htf-btn', 'tab-3wt-btn', 'tab-flatbase-btn', 'tab-episodic-btn', 'tab-pocket-btn', 'tab-oliverkell-btn', 'tab-cuphandle-btn', 'tab-quant-guide-btn'];
     const targetNavId = navBtnMap[tabName] || 'tab-vcp-btn';
     allQuantNavBtns.forEach(id => {
         const navBtn = document.getElementById(id);
@@ -56058,6 +56060,13 @@ window.switchQuantScannerSubtab = function(tabName) {
             window.runOliverKellScan(true, false);
         } else {
             window.runOliverKellScan(false, false);
+        }
+    } else if (tabName === 'cuphandle') {
+        if (window.allCupHandleStocks && window.allCupHandleStocks.length > 0) {
+            window.renderCupHandleTable(window.allCupHandleStocks);
+            window.runCupHandleScan(true, false);
+        } else {
+            window.runCupHandleScan(false, false);
         }
     } else if (tabName === 'guide') {
         if (typeof window.initStageSimAutocomplete === 'function') {
@@ -56142,7 +56151,7 @@ window.renderWeinsteinTable = function(stocks) {
 
         return `
             <tr>
-                <td style="font-weight: 800; color: #f8fafc;">
+                <td style="font-weight: 800;">
                     <div style="font-size: 14px;">${s.symbol}</div>
                     <div style="font-size: 11px; color: #94a3b8; font-weight: 500;">${s.company_name || s.name || ''}</div>
                 </td>
@@ -56254,7 +56263,7 @@ window.renderHtfTable = function(stocks) {
 
         return `
             <tr>
-                <td style="font-weight: 800; color: #f8fafc;">
+                <td style="font-weight: 800;">
                     <div style="font-size: 14px;">${s.symbol}</div>
                     <div style="font-size: 11px; color: #94a3b8; font-weight: 500;">${s.company_name || s.name || ''}</div>
                 </td>
@@ -56625,7 +56634,7 @@ window.renderEpisodicTable = function(stocks) {
         return `
             <tr style="border-bottom: 1px solid rgba(255,255,255,0.05);">
                 <td style="padding: 12px;">
-                    <div style="font-weight: 700; color: #f8fafc; font-size: 14px;">${s.symbol}</div>
+                    <div style="font-weight: 700; font-size: 14px;">${s.symbol}</div>
                     <div style="font-size: 11px; color: #94a3b8;">${compName}</div>
                 </td>
                 <td style="padding: 12px; color: #38bdf8; font-weight: 700;">₹${currPrice.toLocaleString('en-IN', {minimumFractionDigits: 2})}</td>
@@ -56765,7 +56774,7 @@ window.renderPocketTable = function(stocks) {
         return `
             <tr style="border-bottom: 1px solid rgba(255,255,255,0.05);">
                 <td style="padding: 12px;">
-                    <div style="font-weight: 700; color: #f8fafc; font-size: 14px;">${s.symbol}</div>
+                    <div style="font-weight: 700; font-size: 14px;">${s.symbol}</div>
                     <div style="font-size: 11px; color: #94a3b8;">${compName}</div>
                 </td>
                 <td style="padding: 12px; color: #38bdf8; font-weight: 700;">₹${currPrice.toLocaleString('en-IN', {minimumFractionDigits: 2})}</td>
@@ -56907,7 +56916,7 @@ window.renderOliverKellTable = function(stocks) {
         return `
             <tr style="border-bottom: 1px solid rgba(255,255,255,0.05);">
                 <td style="padding: 12px;">
-                    <div style="font-weight: 700; color: #f8fafc; font-size: 14px;">${s.symbol}</div>
+                    <div style="font-weight: 700; font-size: 14px;">${s.symbol}</div>
                     <div style="font-size: 11px; color: #94a3b8;">${compName}</div>
                 </td>
                 <td style="padding: 12px; color: #38bdf8; font-weight: 700;">₹${currPrice.toLocaleString('en-IN', {minimumFractionDigits: 2})}</td>
@@ -56934,22 +56943,192 @@ window.renderOliverKellTable = function(stocks) {
 };
 
 window.filterOliverKellTable = function() {
-    const q = (document.getElementById('episodic-search-input')?.value || document.getElementById('oliverkell-search-input')?.value || '').toLowerCase();
+    const q = (document.getElementById('oliverkell-search-input')?.value || '').toLowerCase().trim();
     const status = document.getElementById('oliverkell-status-filter')?.value || 'ALL';
 
     let filtered = (window.allOliverKellStocks || []).filter(s => {
-        const matchesQ = s.symbol.toLowerCase().includes(q) || (s.company_name || s.name || '').toLowerCase().includes(q);
-        const kStatus = s.kell_status || s.status || '';
-        const tMA = s.tested_ma || '';
-        const matchesStatus = status === 'ALL' || kStatus === status || tMA === status || 
-            (status === 'KELL_REVERSAL_LIVE' && (kStatus === 'KELL_REVERSAL_LIVE' || kStatus.includes('LIVE'))) || 
-            (status === 'KELL_PULLBACK_TEST' && (kStatus === 'KELL_PULLBACK_TEST' || kStatus.includes('PULLBACK'))) ||
-            (status === '10 EMA' && tMA === '10 EMA') ||
-            (status === '20 EMA' && tMA === '20 EMA');
-        return matchesQ && matchesStatus;
+        const matchesQ = !q || s.symbol.toLowerCase().includes(q) || (s.company_name || s.name || '').toLowerCase().includes(q);
+        if (!matchesQ) return false;
+
+        if (status === 'ALL') return true;
+
+        const kStatus = (s.kell_status || s.status || '').toUpperCase();
+        const tMA = (s.tested_ma || '').toUpperCase();
+
+        if (status === 'KELL_REVERSAL_LIVE') {
+            return kStatus.includes('REVERSAL') || kStatus.includes('LIVE');
+        }
+        if (status === 'KELL_PULLBACK_TEST') {
+            return kStatus.includes('PULLBACK') || kStatus.includes('TEST');
+        }
+        if (status === '10 EMA') {
+            return tMA.includes('10');
+        }
+        if (status === '20 EMA') {
+            return tMA.includes('20');
+        }
+        return kStatus === status || tMA === status;
     });
 
     window.renderOliverKellTable(filtered);
+};
+
+// 3.5 WILLIAM O'NEIL / CANSLIM CUP WITH HANDLE SCREENER
+window.runCupHandleScan = async function(isSilent = false, forceRefresh = false) {
+    const loadingEl = document.getElementById('cuphandle-loading-container');
+    
+    const cached = localStorage.getItem('cache_cuphandle_screener');
+    if (cached && !window.allCupHandleStocks.length) {
+        try {
+            const parsed = JSON.parse(cached);
+            const list = parsed.data || parsed.matches || [];
+            if (parsed && list.length) {
+                window.allCupHandleStocks = list;
+                window.renderCupHandleTable(list);
+                const badge = document.getElementById('cuphandle-count-badge');
+                if (badge) badge.innerText = `${list.length} Matches`;
+                const ts = document.getElementById('cuphandle-timestamp');
+                if (ts && (parsed.last_updated || parsed.timestamp)) ts.innerText = `Cached: ${parsed.last_updated || parsed.timestamp}`;
+            }
+        } catch(e) {}
+    }
+
+    if (!isSilent && loadingEl) loadingEl.style.display = 'block';
+
+    try {
+        const url = `/api/screener/cup-with-handle${forceRefresh ? '?force_refresh=true' : ''}`;
+        const response = await fetch(url);
+        const data = await response.json();
+
+        if (data.status === 'success') {
+            window.allCupHandleStocks = data.data || data.matches || [];
+            localStorage.setItem('cache_cuphandle_screener', JSON.stringify(data));
+            window.renderCupHandleTable(window.allCupHandleStocks);
+
+            const badge = document.getElementById('cuphandle-count-badge');
+            const cnt = data.count !== undefined ? data.count : (data.total_matches !== undefined ? data.total_matches : window.allCupHandleStocks.length);
+            if (badge) badge.innerText = `${cnt} Matches`;
+            const ts = document.getElementById('cuphandle-timestamp');
+            if (ts) ts.innerText = `Last Updated: ${data.last_updated || data.timestamp || 'Just Now'}`;
+        }
+    } catch (err) {
+        console.error('Error running Cup & Handle scan:', err);
+    } finally {
+        if (loadingEl) loadingEl.style.display = 'none';
+    }
+};
+
+window.renderCupHandleTable = function(stocks) {
+    const tbody = document.getElementById('cuphandle-table-body');
+    if (!tbody) return;
+
+    const list = stocks || [];
+    const allStocks = (window.allCupHandleStocks && window.allCupHandleStocks.length) ? window.allCupHandleStocks : list;
+
+    // Populate KPI summary cards based on ALL loaded stocks
+    const totalEl = document.getElementById('cuphandle-card-total');
+    const readyEl = document.getElementById('cuphandle-card-ready');
+    const formingEl = document.getElementById('cuphandle-card-forming');
+    const pivotEl = document.getElementById('cuphandle-card-pivot');
+
+    if (totalEl) totalEl.innerText = allStocks.length;
+    if (readyEl) readyEl.innerText = allStocks.filter(s => {
+        const st = (s.ch_status || s.base_status || s.pattern_status || s.status || '').toUpperCase();
+        return (st.includes('READY') || st === 'HANDLE_READY') && !st.includes('FORMING') && !st.includes('BREAKOUT') && !st.includes('LIVE');
+    }).length;
+    if (formingEl) formingEl.innerText = allStocks.filter(s => {
+        const st = (s.ch_status || s.base_status || s.pattern_status || s.status || '').toUpperCase();
+        return st.includes('FORMING');
+    }).length;
+    if (pivotEl) pivotEl.innerText = allStocks.filter(s => {
+        const st = (s.ch_status || s.base_status || s.pattern_status || s.status || '').toUpperCase();
+        return st.includes('BREAKOUT') || st.includes('LIVE');
+    }).length;
+
+    if (list.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="11" style="text-align: center; padding: 40px; color: #64748b;">No Standard CANSLIM Cup With Handle setups match the active filter criteria.</td></tr>`;
+        return;
+    }
+
+    tbody.innerHTML = list.map(s => {
+        const currPrice = s.current_price || s.price || s.close || s.pivot_price || 0;
+        const dayChg = s.day_change_pct !== undefined ? s.day_change_pct : (s.change_pct || s.day_change || 0);
+        const cupDepth = Math.abs(s.cup_depth_pct !== undefined ? s.cup_depth_pct : (s.cup_depth !== undefined ? s.cup_depth : 0));
+        const cupWeeks = s.cup_length_weeks !== undefined ? s.cup_length_weeks : (s.cup_weeks || (s.cup_days ? Math.round(s.cup_days / 5) : 0));
+        const handleDepth = Math.abs(s.handle_depth_pct !== undefined ? s.handle_depth_pct : (s.handle_depth !== undefined ? s.handle_depth : 0));
+        const handleWVal = s.handle_length_weeks !== undefined ? s.handle_length_weeks : (s.handle_weeks || (s.handle_length_days ? (s.handle_length_days / 5).toFixed(1) : (s.handle_days ? Math.round(s.handle_days / 5) : 0)));
+        const handleWeeks = (typeof handleWVal === 'number') ? handleWVal.toFixed(1) : handleWVal;
+        const handleUpper = s.is_upper_half_handle !== undefined ? s.is_upper_half_handle : (s.handle_in_upper_half !== undefined ? s.handle_in_upper_half : true);
+        const vduRatio = s.vdu_ratio !== undefined ? s.vdu_ratio : (s.volume_ratio || 0.80);
+        const rsRating = s.rs_rating !== undefined ? s.rs_rating : (s.rs || 75);
+        const pStatus = (s.ch_status || s.base_status || s.pattern_status || s.status || 'CUP_HANDLE_READY_PIVOT').toUpperCase();
+        const compName = s.company_name || s.name || '';
+
+        const chgClass = dayChg >= 0 ? 'color: #34d399;' : 'color: #f87171;';
+        const chgSign = dayChg >= 0 ? '+' : '';
+
+        let statusBadge = `<span style="background: rgba(16, 185, 129, 0.18); color: #10b981; border: 1px solid rgba(16, 185, 129, 0.4); font-weight: 800; padding: 4px 8px; border-radius: 6px; font-size: 11.5px;">🚀 HANDLE READY</span>`;
+        if (pStatus.includes('BREAKOUT') || pStatus.includes('LIVE')) {
+            statusBadge = `<span style="background: rgba(56, 189, 248, 0.18); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.4); font-weight: 800; padding: 4px 8px; border-radius: 6px; font-size: 11.5px;">⚡ BREAKOUT ALERT</span>`;
+        } else if (pStatus.includes('FORMING')) {
+            statusBadge = `<span style="background: rgba(245, 158, 11, 0.18); color: #f59e0b; border: 1px solid rgba(245, 158, 11, 0.4); font-weight: 800; padding: 4px 8px; border-radius: 6px; font-size: 11.5px;">🟡 CUP FORMING</span>`;
+        }
+
+        const upperBadge = handleUpper ? `<span style="color:#10b981; font-weight:700;">Upper 50% ✓</span>` : `<span style="color:#f87171; font-weight:700;">Lower 50% ✗</span>`;
+        const vduBadge = vduRatio <= 0.85 ? `<span style="color:#10b981; font-weight:700;">${vduRatio.toFixed(2)}x (Dry)</span>` : `<span style="color:#fbbf24;">${vduRatio.toFixed(2)}x</span>`;
+
+        return `
+            <tr style="border-bottom: 1px solid rgba(255,255,255,0.05);">
+                <td style="padding: 12px;">
+                    <div style="font-weight: 700; font-size: 14px;">${s.symbol}</div>
+                    <div style="font-size: 11px; color: #94a3b8;">${compName}</div>
+                </td>
+                <td style="padding: 12px; color: #38bdf8; font-weight: 700;">₹${currPrice.toLocaleString('en-IN', {minimumFractionDigits: 2})}</td>
+                <td style="padding: 12px; font-weight: 700; ${chgClass}">${chgSign}${dayChg.toFixed(2)}%</td>
+                <td style="padding: 12px; font-weight: 700; color: #fbbf24;">-${cupDepth.toFixed(1)}%</td>
+                <td style="padding: 12px; font-weight: 700; color: #cbd5e1;">${cupWeeks} Wks</td>
+                <td style="padding: 12px; font-weight: 700; color: #10b981;">-${handleDepth.toFixed(1)}% (${handleWeeks}W)</td>
+                <td style="padding: 12px;">${upperBadge}</td>
+                <td style="padding: 12px;">${vduBadge}</td>
+                <td style="padding: 12px; font-weight: 800; color: #c084fc;">${rsRating}</td>
+                <td style="padding: 12px;">${statusBadge}</td>
+                <td style="padding: 12px; text-align: right; white-space: nowrap;">
+                    <button onclick="window.launchStageSimulator && window.launchStageSimulator('${s.symbol}')" class="btn-secondary quant-sim-btn" style="padding: 5px 10px; font-size: 11.5px; border-radius: 8px; cursor: pointer; white-space: nowrap; display: inline-flex; align-items: center; gap: 4px; font-weight: 700; background: rgba(245, 158, 11, 0.15); border: 1px solid rgba(245, 158, 11, 0.4); color: #f59e0b; margin-right: 6px;" title="Scan stock in 4-Stage Life Cycle Masterclass Simulator">
+                        Simulate ⚙️
+                    </button>
+                    <button onclick="window.openTradingViewChart && window.openTradingViewChart('${s.symbol}')" class="btn-secondary quant-chart-btn" style="padding: 5px 12px; font-size: 11.5px; border-radius: 8px; cursor: pointer; white-space: nowrap; display: inline-flex; align-items: center; gap: 3px; font-weight: 700;">
+                        Chart ↗
+                    </button>
+                </td>
+            </tr>
+        `;
+    }).join('');
+};
+
+window.filterCupHandleTable = function() {
+    const q = (document.getElementById('cuphandle-search-input')?.value || '').toLowerCase().trim();
+    const statusFilter = document.getElementById('cuphandle-status-filter')?.value || 'ALL';
+
+    let filtered = (window.allCupHandleStocks || []).filter(s => {
+        const matchesQ = !q || s.symbol.toLowerCase().includes(q) || (s.company_name || s.name || '').toLowerCase().includes(q);
+        if (!matchesQ) return false;
+
+        if (statusFilter === 'ALL') return true;
+
+        const pStatus = (s.ch_status || s.base_status || s.pattern_status || s.status || '').toUpperCase();
+        if (statusFilter === 'HANDLE_READY') {
+            return (pStatus.includes('READY') || pStatus === 'HANDLE_READY') && !pStatus.includes('FORMING') && !pStatus.includes('BREAKOUT') && !pStatus.includes('LIVE');
+        }
+        if (statusFilter === 'BREAKOUT_ALERT') {
+            return pStatus.includes('BREAKOUT') || pStatus.includes('LIVE');
+        }
+        if (statusFilter === 'CUP_FORMING') {
+            return pStatus.includes('FORMING');
+        }
+        return pStatus === statusFilter;
+    });
+
+    window.renderCupHandleTable(filtered);
 };
 
 // 4. INTERACTIVE STAGE 1-4 STOCK DIAGNOSTIC SIMULATOR
@@ -56997,6 +57176,7 @@ window.runStockStageSimulator = async function(symbolInput) {
         const st_ep = st.episodic_pivot || st.episodic || {};
         const st_pp = st.pocket_pivot || st.pocket || {};
         const st_kell = st.oliver_kell || st.kell || {};
+        const st_ch = st.cup_with_handle || st.cup_handle || {};
         
         let badgeBg = 'rgba(16, 185, 129, 0.2)';
         let badgeBorder = '#34d399';
@@ -57072,9 +57252,9 @@ window.runStockStageSimulator = async function(symbolInput) {
                 </div>
             </div>
 
-            <!-- 8 Screener Qualification Status Cards -->
+            <!-- 9 Screener Qualification Status Cards -->
             <h5 style="margin: 0 0 10px 0; font-size: 13px; font-weight: 800; color: #f8fafc;">
-                🎯 8-Screener Algorithmic Qualification Checks:
+                🎯 9-Screener Algorithmic Qualification Checks:
             </h5>
             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 10px; margin-bottom: 18px;">
                 <div style="background: rgba(15, 23, 42, 0.5); border: 1px solid ${st_vcp.qualified ? '#34d399' : 'rgba(255,255,255,0.1)'}; padding: 10px 12px; border-radius: 8px;">
@@ -57149,6 +57329,15 @@ window.runStockStageSimulator = async function(symbolInput) {
                     </div>
                     <p style="margin: 0; font-size: 11px; color: #cbd5e1;">${st_kell.reason || ''}</p>
                 </div>
+                <div style="background: rgba(15, 23, 42, 0.5); border: 1px solid ${st_ch.qualified ? '#34d399' : 'rgba(255,255,255,0.1)'}; padding: 10px 12px; border-radius: 8px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+                        <strong style="color: #f59e0b; font-size: 12px;">☕ Cup with Handle</strong>
+                        <span style="font-size: 11px; font-weight: 800; color: ${st_ch.qualified ? '#34d399' : '#f87171'};">
+                            ${st_ch.qualified ? '✅ QUALIFIED' : '❌ REJECTED'}
+                        </span>
+                    </div>
+                    <p style="margin: 0; font-size: 11px; color: #cbd5e1;">${st_ch.reason || ''}</p>
+                </div>
             </div>
 
             <!-- Tactical Guidance Banner -->
@@ -57156,10 +57345,10 @@ window.runStockStageSimulator = async function(symbolInput) {
                 💡 Tactical Action Plan: <span style="font-weight: 500; color: #cbd5e1;">${data.action_guidance || ''}</span>
             </div>
 
-            <!-- NEW: Clean Universal 8-Screener Diagnostic Audit Card Breakdown -->
+            <!-- NEW: Clean Universal 9-Screener Diagnostic Audit Card Breakdown -->
             <div class="audit-section-container" style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 10px; padding: 14px; margin-bottom: 16px;">
                 <h5 style="margin: 0 0 12px 0; font-size: 13px; font-weight: 800; color: #38bdf8; display: flex; align-items: center; gap: 6px;">
-                    📊 8-Screener Algorithmic Diagnostic Audit & Criteria Breakdown
+                    📊 9-Screener Algorithmic Diagnostic Audit & Criteria Breakdown
                 </h5>
                 
                 <!-- Universal Card Breakdown View (Mobile, Tablet & Desktop) -->
@@ -57295,8 +57484,150 @@ window.generateStageDiagnosticAISynthesis = async function(symbol, customPrompt 
             return;
         }
 
+window.renderAIMarkdown = function(text) {
+    if (!text) return '';
+    if (window.marked && typeof window.marked.parse === 'function') {
+        try {
+            return window.marked.parse(text);
+        } catch (e) {
+            console.warn('marked.parse error:', e);
+        }
+    }
+    let lines = text.split('\n');
+    let inTable = false;
+    let html = '';
+    let inPre = false;
+    let preBuffer = [];
+
+    for (let i = 0; i < lines.length; i++) {
+        let line = lines[i];
+
+        if (line.trim().startsWith('```')) {
+            if (inPre) {
+                html += '<pre style="background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.1); padding: 10px; border-radius: 6px; font-family: monospace; font-size: 11px; overflow-x: auto; color: #e2e8f0;">' + preBuffer.join('\n') + '</pre>';
+                preBuffer = [];
+                inPre = false;
+            } else {
+                inPre = true;
+            }
+            continue;
+        }
+        if (inPre) {
+            preBuffer.push(line);
+            continue;
+        }
+
+        if (line.trim().startsWith('|') && line.trim().endsWith('|')) {
+            let cells = line.trim().slice(1, -1).split('|').map(c => c.trim());
+            if (cells.every(c => /^[:\s-]{3,}$/.test(c))) {
+                continue;
+            }
+            if (!inTable) {
+                inTable = true;
+                html += '<div class="ai-table-responsive"><table style="width: 100%; border-collapse: collapse; margin: 10px 0; font-size: 12px;"><thead><tr>';
+                cells.forEach(c => {
+                    let formatted = c.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+                    html += `<th style="padding: 8px 10px; border-bottom: 2px solid rgba(255,255,255,0.15); text-align: left; background: rgba(30,41,59,0.5); color: #38bdf8;">${formatted}</th>`;
+                });
+                html += '</tr></thead><tbody>';
+            } else {
+                html += '<tr>';
+                cells.forEach(c => {
+                    let formatted = c.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+                    html += `<td style="padding: 8px 10px; border-bottom: 1px solid rgba(255,255,255,0.05);">${formatted}</td>`;
+                });
+                html += '</tr>';
+            }
+            continue;
+        } else if (inTable) {
+            inTable = false;
+            html += '</tbody></table></div>';
+        }
+
+        if (line.startsWith('#### ')) {
+            html += `<h5 style="color: #38bdf8; margin: 12px 0 6px 0; font-size: 13px; font-weight: 700;">${line.substring(5)}</h5>`;
+            continue;
+        } else if (line.startsWith('### ')) {
+            html += `<h4 style="color: #a855f7; margin: 16px 0 8px 0; font-size: 14px; font-weight: 800; border-bottom: 1px solid rgba(255,255,255,0.08); padding-bottom: 4px;">${line.substring(4)}</h4>`;
+            continue;
+        } else if (line.startsWith('## ')) {
+            html += `<h3 style="color: #a855f7; margin: 18px 0 10px 0; font-size: 15px; font-weight: 800;">${line.substring(3)}</h3>`;
+            continue;
+        }
+
+        if (/^---{3,}$/.test(line.trim())) {
+            html += '<hr style="border: 0; border-top: 1px solid rgba(255,255,255,0.1); margin: 12px 0;"/>';
+            continue;
+        }
+
+        let formattedLine = line
+            .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+            .replace(/\*(.*?)\*/g, '<em>$1</em>');
+
+        if (line.trim().startsWith('* ') || line.trim().startsWith('- ')) {
+            html += `<li style="margin-left: 16px; margin-bottom: 4px;">${formattedLine.trim().substring(2)}</li>`;
+            continue;
+        }
+
+        if (formattedLine.trim().length > 0) {
+            html += `<p style="margin: 4px 0 8px 0;">${formattedLine}</p>`;
+        }
+    }
+
+    if (inTable) {
+        html += '</tbody></table></div>';
+    }
+
+    return html;
+};
+
         const rawMarkdown = data.ai_synthesis || '';
-        const parsedHtml = window.marked ? marked.parse(rawMarkdown) : rawMarkdown.replace(/\n/g, '<br/>');
+        
+        // Pre-clean markdown headers (remove asterisks inside headers like ### **Title**)
+        const cleanedMarkdown = rawMarkdown.replace(/^(#{1,6})\s*\*\*(.*?)\*\*/gm, '$1 $2');
+        let parsedHtml = window.renderAIMarkdown(cleanedMarkdown);
+        
+        // Wrap any unhandled <table> elements in <div class="ai-table-responsive"> for smooth mobile touch scrolling
+        if (!parsedHtml.includes('ai-table-responsive')) {
+            parsedHtml = parsedHtml.replace(/<table>/g, '<div class="ai-table-responsive"><table>');
+            parsedHtml = parsedHtml.replace(/<\/table>/g, '</table></div>');
+        }
+        
+        // Convert status indicators into visual theme-aware pill badges
+        parsedHtml = parsedHtml.replace(/(?:[🟢|✅]\s*)?\bQUALIFIED\b/gi, '<span class="ai-pill ai-pill-pass">🟢 QUALIFIED</span>');
+        parsedHtml = parsedHtml.replace(/(?:[❌|🔴]\s*)?\bREJECTED\b/gi, '<span class="ai-pill ai-pill-fail">🔴 REJECTED</span>');
+        parsedHtml = parsedHtml.replace(/(?:[🟡|⚠️]\s*)?\b(NEUTRAL|WATCH)\b/gi, '<span class="ai-pill ai-pill-warning">⚠️ WATCH</span>');
+
+        const m = data.metrics || {};
+        const kpiGridHtml = m.current_price ? `
+            <div class="ai-kpi-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 8px; margin-bottom: 14px;">
+                <div class="ai-kpi-card" style="background: var(--bg-muted, rgba(30, 41, 59, 0.4)); border: 1px solid var(--border-color, rgba(255, 255, 255, 0.1)); border-radius: 8px; padding: 8px 10px; text-align: center;">
+                    <div style="font-size: 10px; font-weight: 700; color: var(--text-muted, #94a3b8); text-transform: uppercase;">Stage Cycle</div>
+                    <div style="font-size: 12.5px; font-weight: 800; color: #38bdf8;">${data.stage_name || 'Stage 2'} <span style="font-size: 10px; color: #a855f7;">(${data.stage_confidence || 90}%)</span></div>
+                </div>
+                <div class="ai-kpi-card" style="background: var(--bg-muted, rgba(30, 41, 59, 0.4)); border: 1px solid var(--border-color, rgba(255, 255, 255, 0.1)); border-radius: 8px; padding: 8px 10px; text-align: center;">
+                    <div style="font-size: 10px; font-weight: 700; color: var(--text-muted, #94a3b8); text-transform: uppercase;">Current Price</div>
+                    <div style="font-size: 12.5px; font-weight: 800; color: var(--text-color, #f8fafc); font-family: monospace;">₹${(m.current_price || 0).toLocaleString('en-IN')}</div>
+                </div>
+                <div class="ai-kpi-card" style="background: var(--bg-muted, rgba(30, 41, 59, 0.4)); border: 1px solid var(--border-color, rgba(255, 255, 255, 0.1)); border-radius: 8px; padding: 8px 10px; text-align: center;">
+                    <div style="font-size: 10px; font-weight: 700; color: var(--text-muted, #94a3b8); text-transform: uppercase;">Pivot Trigger</div>
+                    <div style="font-size: 12.5px; font-weight: 800; color: #fbbf24; font-family: monospace;">₹${(m.pivot_price || 0).toLocaleString('en-IN')}</div>
+                </div>
+                <div class="ai-kpi-card" style="background: var(--bg-muted, rgba(30, 41, 59, 0.4)); border: 1px solid var(--border-color, rgba(255, 255, 255, 0.1)); border-radius: 8px; padding: 8px 10px; text-align: center;">
+                    <div style="font-size: 10px; font-weight: 700; color: var(--text-muted, #94a3b8); text-transform: uppercase;">Stop-Loss</div>
+                    <div style="font-size: 12.5px; font-weight: 800; color: #f87171; font-family: monospace;">₹${(m.stop_loss || 0).toLocaleString('en-IN')}</div>
+                </div>
+                <div class="ai-kpi-card" style="background: var(--bg-muted, rgba(30, 41, 59, 0.4)); border: 1px solid var(--border-color, rgba(255, 255, 255, 0.1)); border-radius: 8px; padding: 8px 10px; text-align: center;">
+                    <div style="font-size: 10px; font-weight: 700; color: var(--text-muted, #94a3b8); text-transform: uppercase;">Target 1</div>
+                    <div style="font-size: 12.5px; font-weight: 800; color: #34d399; font-family: monospace;">₹${(m.target_1 || 0).toLocaleString('en-IN')}</div>
+                </div>
+                <div class="ai-kpi-card" style="background: var(--bg-muted, rgba(30, 41, 59, 0.4)); border: 1px solid var(--border-color, rgba(255, 255, 255, 0.1)); border-radius: 8px; padding: 8px 10px; text-align: center;">
+                    <div style="font-size: 10px; font-weight: 700; color: var(--text-muted, #94a3b8); text-transform: uppercase;">RS Leadership</div>
+                    <div style="font-size: 12.5px; font-weight: 800; color: #c084fc;">${m.rs_rating || 'N/A'}/99</div>
+                </div>
+            </div>
+        ` : '';
+
         const targetId = `stage-ai-content-${Date.now()}`;
 
         outputBox.innerHTML = `
@@ -57312,6 +57643,7 @@ window.generateStageDiagnosticAISynthesis = async function(symbol, customPrompt 
                     <button onclick="copyTextToClipboard('${encodeURIComponent(rawMarkdown)}')" style="background: none; border: none; color: var(--text-muted, #94a3b8); font-size: 11px; font-weight: 700; cursor: pointer;">📋 Copy</button>
                 </div>
             </div>
+            ${kpiGridHtml}
             <div id="${targetId}" class="stage-ai-rendered-body" style="font-size: 12px; color: var(--text-color, #cbd5e1); line-height: 1.6;">
                 ${parsedHtml}
             </div>
@@ -57588,12 +57920,16 @@ window.runWatchlistQuantScan = async function(isSilent = false, forceRefresh = f
     let hasHydrated = false;
 
     const cacheKey = `wl_quant_matrix_${activeWatchlistId}_${symbols.slice().sort().join('_')}`;
+    if (forceRefresh) {
+        try { localStorage.removeItem(cacheKey); } catch(e){}
+    }
     const cachedStr = localStorage.getItem(cacheKey);
 
     if (!forceRefresh && cachedStr) {
         try {
             const cachedObj = JSON.parse(cachedStr);
-            const isValidData = Array.isArray(cachedObj.data) && cachedObj.data.length > 0 && cachedObj.data.some(s => (s.current_price || 0) > 0);
+            const isFresh = cachedObj.timestamp && (Date.now() - cachedObj.timestamp) < 300000; // 5 mins TTL
+            const isValidData = isFresh && Array.isArray(cachedObj.data) && cachedObj.data.length > 0 && cachedObj.data.some(s => (s.current_price || 0) > 0);
             if (isValidData) {
                 window.activeWlQuantMatrixData = cachedObj.data;
                 window.renderWatchlistQuantMatrix(cachedObj.data);
@@ -57715,6 +58051,7 @@ window.renderWatchlistQuantMatrix = function(stocks) {
         if (filterVal === 'EP') return s.episodic_qualified;
         if (filterVal === 'POCKET') return s.pocket_qualified;
         if (filterVal === 'KELL') return s.kell_qualified;
+        if (filterVal === 'CUP') return s.cup_qualified;
 
         return true;
     });
@@ -57737,7 +58074,7 @@ window.renderWatchlistQuantMatrix = function(stocks) {
     if (!tbody) return;
 
     if (filtered.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="15" style="text-align: center; padding: 30px; color: #94a3b8;">No watchlist stocks match the active filter criteria.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="16" style="text-align: center; padding: 30px; color: #94a3b8;">No watchlist stocks match the active filter criteria.</td></tr>`;
         return;
     }
 
@@ -57763,6 +58100,7 @@ window.renderWatchlistQuantMatrix = function(stocks) {
         const epHtml = s.episodic_qualified ? `<span class="badge-quant badge-quant-pink">EPISODIC PIVOT ⚡</span>` : `<span style="color: #94a3b8;">${s.episodic_status}</span>`;
         const pocketHtml = s.pocket_qualified ? `<span class="badge-quant badge-quant-purple">POCKET PIVOT 🎯</span>` : `<span style="color: #94a3b8;">${s.pocket_status}</span>`;
         const kellHtml = s.kell_qualified ? `<span class="badge-quant badge-quant-blue">OLIVER KELL 10/20 📈</span>` : `<span style="color: #94a3b8;">${s.kell_status}</span>`;
+        const cupHtml = s.cup_qualified ? `<span class="badge-quant badge-quant-yellow">CUP & HANDLE ☕</span>` : `<span style="color: #94a3b8;">${s.cup_status || 'N/A'}</span>`;
 
         const pivotP = s.pivot_price || (s.current_price ? Number((s.current_price * 1.01).toFixed(2)) : 0);
         const stopL = s.stop_loss || (pivotP ? Number((pivotP * 0.95).toFixed(2)) : 0);
@@ -57806,6 +58144,7 @@ window.renderWatchlistQuantMatrix = function(stocks) {
                 <td style="padding: 10px 14px; white-space: nowrap;">${epHtml}</td>
                 <td style="padding: 10px 14px; white-space: nowrap;">${pocketHtml}</td>
                 <td style="padding: 10px 14px; white-space: nowrap;">${kellHtml}</td>
+                <td style="padding: 10px 14px; white-space: nowrap;">${cupHtml}</td>
                 <td style="padding: 10px 14px; white-space: nowrap;">
                     <span class="badge-quant ${s.badge_class}">${s.qualification_label}</span>
                 </td>

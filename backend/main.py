@@ -13506,8 +13506,9 @@ async def send_quant_cron_whatsapp_summary(summary_dict: dict, duration_sec: flo
         f"• *David Ryan HTF*: {summary_dict.get('htf', 0)} setups\n"
         f"• *Episodic Pivot (EP)*: {summary_dict.get('episodic_pivot', 0)} gap setups\n"
         f"• *Pocket Pivot*: {summary_dict.get('pocket_pivot', 0)} accumulation setups\n"
-        f"• *Oliver Kell 10/20 EMA*: {summary_dict.get('oliver_kell', 0)} reversals\n\n"
-        f"⚡ *All 8 screener caches updated in SQLite in {duration_sec:.1f}s.*"
+        f"• *Oliver Kell 10/20 EMA*: {summary_dict.get('oliver_kell', 0)} reversals\n"
+        f"• *Cup with Handle (CANSLIM)*: {summary_dict.get('cup_with_handle', 0)} setups\n\n"
+        f"⚡ *All 9 screener caches updated in SQLite in {duration_sec:.1f}s.*"
     )
     
     try:
@@ -13563,6 +13564,9 @@ async def _run_full_quant_cron_sweep():
 
         kell_res = await get_oliver_kell_screener(force_refresh=True)
         summary["oliver_kell"] = len(kell_res.get("data", []))
+
+        ch_res = await get_cup_with_handle_screener(force_refresh=True)
+        summary["cup_with_handle"] = len(ch_res.get("data", []))
 
         duration = round(time.time() - t0, 2)
         details_json = json.dumps(summary)
@@ -17988,21 +17992,116 @@ def _load_screener_db_cache(screener_name: str):
         print(f"Error loading screener DB cache for {screener_name}: {e}")
     return None
 
-def _save_screener_db_cache(screener_name: str, data: list):
+
+def _save_screener_db_cache(screener_name: str, results: list) -> str:
+    updated_at = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     try:
-        updated_at = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        cache_json = json.dumps(data)
         with get_db() as conn:
             cursor = conn.cursor()
-            cursor.execute(
-                "INSERT OR REPLACE INTO screener_results_cache (screener_name, cache_json, updated_at) VALUES (?, ?, ?)",
-                (screener_name, cache_json, updated_at)
-            )
+            cursor.execute("""
+                INSERT INTO screener_results_cache (screener_name, cache_json, updated_at)
+                VALUES (?, ?, ?)
+                ON CONFLICT(screener_name) DO UPDATE SET
+                    cache_json=excluded.cache_json,
+                    updated_at=excluded.updated_at
+            """, (screener_name, json.dumps(results), updated_at))
             conn.commit()
         return updated_at
     except Exception as e:
         print(f"Error saving screener DB cache for {screener_name}: {e}")
-        return datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        return updated_at
+
+
+def _overlay_live_quotes_on_candidates(candidates: list) -> list:
+    """
+    Overlays live real-time price quotes & today's % change onto screener candidates.
+    1. Checks WebSocket tick_store (in-memory real-time Angel One/YF ticks)
+    2. Checks SQLite cached_profiles fundamentals & technicals
+    3. Normalizes keys: current_price, price, day_change_pct, change_pct, change_percent
+    4. Dynamically re-calculates distance to pivot % if pivot_price is present.
+    """
+    if not candidates or not isinstance(candidates, list):
+        return []
+    
+    try:
+        from backend.websocket_server import tick_store
+    except Exception:
+        tick_store = None
+
+    profile_map = {}
+    try:
+        symbols = [c.get("symbol", "") for c in candidates if isinstance(c, dict) and c.get("symbol")]
+        if symbols:
+            with get_db() as conn:
+                cursor = conn.cursor()
+                placeholders = ",".join(["?"] * len(symbols))
+                cursor.execute(f"SELECT symbol, profile_json FROM cached_profiles WHERE symbol IN ({placeholders})", symbols)
+                rows = cursor.fetchall()
+                for r in rows:
+                    try:
+                        p_data = json.loads(r["profile_json"])
+                        profile_map[r["symbol"]] = p_data
+                    except Exception:
+                        pass
+    except Exception as e:
+        print(f"Error fetching profile_map in _overlay_live_quotes_on_candidates: {e}")
+
+    updated_candidates = []
+    for item in candidates:
+        if not isinstance(item, dict):
+            continue
+        st = dict(item)
+        sym = st.get("symbol", "").strip().upper()
+        base_sym = sym.replace(".NS", "").replace(".BO", "")
+
+        live_price = None
+        live_chg_pct = None
+
+        # 1. Try WebSocket tick_store
+        if tick_store:
+            tick = tick_store.get(sym) or tick_store.get(base_sym) or tick_store.get(f"{base_sym}.NS")
+            if tick and isinstance(tick, dict):
+                p_val = tick.get("price") or tick.get("ltp")
+                if p_val and float(p_val) > 0:
+                    live_price = float(p_val)
+                chg_val = tick.get("change_pct") if tick.get("change_pct") is not None else tick.get("day_change_pct")
+                if chg_val is not None:
+                    live_chg_pct = float(chg_val)
+
+        # 2. Try cached_profiles if missing
+        if live_price is None or live_chg_pct is None:
+            p_data = profile_map.get(sym) or profile_map.get(f"{base_sym}.NS")
+            if p_data:
+                if live_price is None:
+                    cp = p_data.get("fundamentals", {}).get("current_price")
+                    if cp and float(cp) > 0:
+                        live_price = float(cp)
+                if live_chg_pct is None:
+                    chg = p_data.get("technicals", {}).get("price_change_pct")
+                    if chg is not None:
+                        live_chg_pct = float(chg)
+
+        # 3. Apply live values if found, fallback to original cached values
+        final_price = round(live_price, 2) if live_price is not None else round(st.get("current_price") or st.get("price") or st.get("close") or 0.0, 2)
+        orig_chg = st.get("day_change_pct") if st.get("day_change_pct") is not None else (st.get("change_pct") if st.get("change_pct") is not None else st.get("change_percent", 0.0))
+        final_chg_pct = round(live_chg_pct, 2) if live_chg_pct is not None else round(float(orig_chg or 0.0), 2)
+
+        # Standardize keys on the object
+        st["current_price"] = final_price
+        st["price"] = final_price
+        st["close"] = final_price
+        st["day_change_pct"] = final_chg_pct
+        st["change_pct"] = final_chg_pct
+        st["change_percent"] = final_chg_pct
+
+        # Dynamically recalculate dist_to_pivot_pct if pivot_price is present
+        p_price = st.get("pivot_price") or st.get("buy_pivot") or st.get("ceiling_price") or 0.0
+        if p_price > 0 and final_price > 0:
+            st["dist_to_pivot_pct"] = round(((final_price - p_price) / p_price) * 100.0, 2)
+
+        updated_candidates.append(st)
+
+    return updated_candidates
 
 
 @app.get("/api/screener/weinstein-stage2")
@@ -18016,19 +18115,21 @@ async def get_weinstein_stage2_screener(force_refresh: bool = False):
     if not force_refresh:
         db_cache = _load_screener_db_cache("weinstein_stage2")
         if db_cache and db_cache.get("data"):
-            _WEINSTEIN_STAGE2_CACHE = db_cache
+            hydrated = _overlay_live_quotes_on_candidates(db_cache["data"])
+            _WEINSTEIN_STAGE2_CACHE = {"data": hydrated, "last_updated": db_cache["last_updated"]}
             return {
                 "status": "success",
-                "count": len(db_cache["data"]),
+                "count": len(hydrated),
                 "last_updated": db_cache["last_updated"],
-                "data": db_cache["data"]
+                "data": hydrated
             }
-        if _WEINSTEIN_STAGE2_CACHE["data"]:
+        if _WEINSTEIN_STAGE2_CACHE.get("data"):
+            hydrated = _overlay_live_quotes_on_candidates(_WEINSTEIN_STAGE2_CACHE["data"])
             return {
                 "status": "success",
-                "count": len(_WEINSTEIN_STAGE2_CACHE["data"]),
+                "count": len(hydrated),
                 "last_updated": _WEINSTEIN_STAGE2_CACHE["last_updated"],
-                "data": _WEINSTEIN_STAGE2_CACHE["data"]
+                "data": hydrated
             }
         
     results = []
@@ -18061,11 +18162,12 @@ async def get_weinstein_stage2_screener(force_refresh: bool = False):
     except Exception as e:
         print(f"Error executing Weinstein Stage 2 screener: {e}")
         
+    hydrated_results = _overlay_live_quotes_on_candidates(results)
     return {
         "status": "success",
-        "count": len(results),
+        "count": len(hydrated_results),
         "last_updated": _WEINSTEIN_STAGE2_CACHE["last_updated"],
-        "data": results
+        "data": hydrated_results
     }
 
 @app.get("/api/screener/high-tight-flag")
@@ -18079,19 +18181,21 @@ async def get_high_tight_flag_screener(force_refresh: bool = False):
     if not force_refresh:
         db_cache = _load_screener_db_cache("htf")
         if db_cache and db_cache.get("data"):
-            _HTF_SCANNER_CACHE = db_cache
+            hydrated = _overlay_live_quotes_on_candidates(db_cache["data"])
+            _HTF_SCANNER_CACHE = {"data": hydrated, "last_updated": db_cache["last_updated"]}
             return {
                 "status": "success",
-                "count": len(db_cache["data"]),
+                "count": len(hydrated),
                 "last_updated": db_cache["last_updated"],
-                "data": db_cache["data"]
+                "data": hydrated
             }
-        if _HTF_SCANNER_CACHE["data"]:
+        if _HTF_SCANNER_CACHE.get("data"):
+            hydrated = _overlay_live_quotes_on_candidates(_HTF_SCANNER_CACHE["data"])
             return {
                 "status": "success",
-                "count": len(_HTF_SCANNER_CACHE["data"]),
+                "count": len(hydrated),
                 "last_updated": _HTF_SCANNER_CACHE["last_updated"],
-                "data": _HTF_SCANNER_CACHE["data"]
+                "data": hydrated
             }
 
     results = []
@@ -18119,11 +18223,12 @@ async def get_high_tight_flag_screener(force_refresh: bool = False):
     except Exception as e:
         print(f"Error executing High-Tight Flag screener: {e}")
 
+    hydrated_results = _overlay_live_quotes_on_candidates(results)
     return {
         "status": "success",
-        "count": len(results),
+        "count": len(hydrated_results),
         "last_updated": _HTF_SCANNER_CACHE["last_updated"],
-        "data": results
+        "data": hydrated_results
     }
 
 @app.get("/api/screener/3weeks-tight")
@@ -18137,19 +18242,21 @@ async def get_3weeks_tight_screener(force_refresh: bool = False):
     if not force_refresh:
         db_cache = _load_screener_db_cache("3weeks_tight")
         if db_cache and db_cache.get("data"):
-            _3WT_SCANNER_CACHE = db_cache
+            hydrated = _overlay_live_quotes_on_candidates(db_cache["data"])
+            _3WT_SCANNER_CACHE = {"data": hydrated, "last_updated": db_cache["last_updated"]}
             return {
                 "status": "success",
-                "count": len(db_cache["data"]),
+                "count": len(hydrated),
                 "last_updated": db_cache["last_updated"],
-                "data": db_cache["data"]
+                "data": hydrated
             }
-        if _3WT_SCANNER_CACHE["data"]:
+        if _3WT_SCANNER_CACHE.get("data"):
+            hydrated = _overlay_live_quotes_on_candidates(_3WT_SCANNER_CACHE["data"])
             return {
                 "status": "success",
-                "count": len(_3WT_SCANNER_CACHE["data"]),
+                "count": len(hydrated),
                 "last_updated": _3WT_SCANNER_CACHE["last_updated"],
-                "data": _3WT_SCANNER_CACHE["data"]
+                "data": hydrated
             }
 
     results = []
@@ -18177,11 +18284,12 @@ async def get_3weeks_tight_screener(force_refresh: bool = False):
     except Exception as e:
         print(f"Error executing 3-Weeks Tight screener: {e}")
 
+    hydrated_results = _overlay_live_quotes_on_candidates(results)
     return {
         "status": "success",
-        "count": len(results),
+        "count": len(hydrated_results),
         "last_updated": _3WT_SCANNER_CACHE["last_updated"],
-        "data": results
+        "data": hydrated_results
     }
 
 _FLAT_BASE_SCANNER_CACHE = {"data": [], "last_updated": ""}
@@ -18216,19 +18324,21 @@ async def get_flat_base_screener(force_refresh: bool = False):
     if not force_refresh:
         db_cache = _load_screener_db_cache("flat_base_breakout")
         if db_cache and db_cache.get("data"):
-            _FLAT_BASE_SCANNER_CACHE = db_cache
+            hydrated = _overlay_live_quotes_on_candidates(db_cache["data"])
+            _FLAT_BASE_SCANNER_CACHE = {"data": hydrated, "last_updated": db_cache["last_updated"]}
             return {
                 "status": "success",
-                "count": len(db_cache["data"]),
+                "count": len(hydrated),
                 "last_updated": db_cache["last_updated"],
-                "data": db_cache["data"]
+                "data": hydrated
             }
         if _FLAT_BASE_SCANNER_CACHE.get("data"):
+            hydrated = _overlay_live_quotes_on_candidates(_FLAT_BASE_SCANNER_CACHE["data"])
             return {
                 "status": "success",
-                "count": len(_FLAT_BASE_SCANNER_CACHE["data"]),
-                "last_updated": _FLAT_BASE_SCANNER_CACHE["last_updated"],
-                "data": _FLAT_BASE_SCANNER_CACHE["data"]
+                "count": len(hydrated),
+                "last_updated": _FLAT_BASE_SCANNER_CACHE.get("last_updated", ""),
+                "data": hydrated
             }
 
     results = []
@@ -18257,11 +18367,12 @@ async def get_flat_base_screener(force_refresh: bool = False):
     except Exception as e:
         print(f"Error executing Modern Flat Base screener: {e}")
 
+    hydrated_results = _overlay_live_quotes_on_candidates(results)
     return {
         "status": "success",
-        "count": len(results),
+        "count": len(hydrated_results),
         "last_updated": _FLAT_BASE_SCANNER_CACHE.get("last_updated", ""),
-        "data": results
+        "data": hydrated_results
     }
 
 _EPISODIC_PIVOT_SCANNER_CACHE = {"data": [], "last_updated": ""}
@@ -18295,19 +18406,21 @@ async def get_episodic_pivot_screener(force_refresh: bool = False):
     if not force_refresh:
         db_cache = _load_screener_db_cache("episodic_pivot")
         if db_cache and db_cache.get("data"):
-            _EPISODIC_PIVOT_SCANNER_CACHE = db_cache
+            hydrated = _overlay_live_quotes_on_candidates(db_cache["data"])
+            _EPISODIC_PIVOT_SCANNER_CACHE = {"data": hydrated, "last_updated": db_cache["last_updated"]}
             return {
                 "status": "success",
-                "count": len(db_cache["data"]),
+                "count": len(hydrated),
                 "last_updated": db_cache["last_updated"],
-                "data": db_cache["data"]
+                "data": hydrated
             }
         if _EPISODIC_PIVOT_SCANNER_CACHE.get("data"):
+            hydrated = _overlay_live_quotes_on_candidates(_EPISODIC_PIVOT_SCANNER_CACHE["data"])
             return {
                 "status": "success",
-                "count": len(_EPISODIC_PIVOT_SCANNER_CACHE["data"]),
-                "last_updated": _EPISODIC_PIVOT_SCANNER_CACHE["last_updated"],
-                "data": _EPISODIC_PIVOT_SCANNER_CACHE["data"]
+                "count": len(hydrated),
+                "last_updated": _EPISODIC_PIVOT_SCANNER_CACHE.get("last_updated", ""),
+                "data": hydrated
             }
 
     results = []
@@ -18333,11 +18446,12 @@ async def get_episodic_pivot_screener(force_refresh: bool = False):
     except Exception as e:
         print(f"Error executing Episodic Pivot screener: {e}")
 
+    hydrated_results = _overlay_live_quotes_on_candidates(results)
     return {
         "status": "success",
-        "count": len(results),
+        "count": len(hydrated_results),
         "last_updated": _EPISODIC_PIVOT_SCANNER_CACHE.get("last_updated", ""),
-        "data": results
+        "data": hydrated_results
     }
 
 _POCKET_PIVOT_SCANNER_CACHE = {"data": [], "last_updated": ""}
@@ -18371,19 +18485,21 @@ async def get_pocket_pivot_screener(force_refresh: bool = False):
     if not force_refresh:
         db_cache = _load_screener_db_cache("pocket_pivot")
         if db_cache and db_cache.get("data"):
-            _POCKET_PIVOT_SCANNER_CACHE = db_cache
+            hydrated = _overlay_live_quotes_on_candidates(db_cache["data"])
+            _POCKET_PIVOT_SCANNER_CACHE = {"data": hydrated, "last_updated": db_cache["last_updated"]}
             return {
                 "status": "success",
-                "count": len(db_cache["data"]),
+                "count": len(hydrated),
                 "last_updated": db_cache["last_updated"],
-                "data": db_cache["data"]
+                "data": hydrated
             }
         if _POCKET_PIVOT_SCANNER_CACHE.get("data"):
+            hydrated = _overlay_live_quotes_on_candidates(_POCKET_PIVOT_SCANNER_CACHE["data"])
             return {
                 "status": "success",
-                "count": len(_POCKET_PIVOT_SCANNER_CACHE["data"]),
-                "last_updated": _POCKET_PIVOT_SCANNER_CACHE["last_updated"],
-                "data": _POCKET_PIVOT_SCANNER_CACHE["data"]
+                "count": len(hydrated),
+                "last_updated": _POCKET_PIVOT_SCANNER_CACHE.get("last_updated", ""),
+                "data": hydrated
             }
 
     results = []
@@ -18409,11 +18525,12 @@ async def get_pocket_pivot_screener(force_refresh: bool = False):
     except Exception as e:
         print(f"Error executing Pocket Pivot screener: {e}")
 
+    hydrated_results = _overlay_live_quotes_on_candidates(results)
     return {
         "status": "success",
-        "count": len(results),
+        "count": len(hydrated_results),
         "last_updated": _POCKET_PIVOT_SCANNER_CACHE.get("last_updated", ""),
-        "data": results
+        "data": hydrated_results
     }
 
 _OLIVER_KELL_SCANNER_CACHE = {"data": [], "last_updated": ""}
@@ -18447,19 +18564,21 @@ async def get_oliver_kell_screener(force_refresh: bool = False):
     if not force_refresh:
         db_cache = _load_screener_db_cache("oliver_kell_reversal")
         if db_cache and db_cache.get("data"):
-            _OLIVER_KELL_SCANNER_CACHE = db_cache
+            hydrated = _overlay_live_quotes_on_candidates(db_cache["data"])
+            _OLIVER_KELL_SCANNER_CACHE = {"data": hydrated, "last_updated": db_cache["last_updated"]}
             return {
                 "status": "success",
-                "count": len(db_cache["data"]),
+                "count": len(hydrated),
                 "last_updated": db_cache["last_updated"],
-                "data": db_cache["data"]
+                "data": hydrated
             }
         if _OLIVER_KELL_SCANNER_CACHE.get("data"):
+            hydrated = _overlay_live_quotes_on_candidates(_OLIVER_KELL_SCANNER_CACHE["data"])
             return {
                 "status": "success",
-                "count": len(_OLIVER_KELL_SCANNER_CACHE["data"]),
-                "last_updated": _OLIVER_KELL_SCANNER_CACHE["last_updated"],
-                "data": _OLIVER_KELL_SCANNER_CACHE["data"]
+                "count": len(hydrated),
+                "last_updated": _OLIVER_KELL_SCANNER_CACHE.get("last_updated", ""),
+                "data": hydrated
             }
 
     results = []
@@ -18485,11 +18604,91 @@ async def get_oliver_kell_screener(force_refresh: bool = False):
     except Exception as e:
         print(f"Error executing Oliver Kell screener: {e}")
 
+    hydrated_results = _overlay_live_quotes_on_candidates(results)
     return {
         "status": "success",
-        "count": len(results),
+        "count": len(hydrated_results),
         "last_updated": _OLIVER_KELL_SCANNER_CACHE.get("last_updated", ""),
-        "data": results
+        "data": hydrated_results
+    }
+
+_CUP_HANDLE_SCANNER_CACHE = {"data": [], "last_updated": ""}
+
+async def _scan_single_stock_cup_handle(item: dict, sem: asyncio.Semaphore):
+    async with sem:
+        sym = item["symbol"].strip().upper()
+        sym_yf = f"{sym}.NS" if not sym.endswith(".NS") else sym
+        try:
+            df = await fetch_history_df(sym_yf, period="1y", interval="1d")
+            if df is None or df.empty or len(df) < 50:
+                return None
+            from backend.swing_utils import detect_cup_with_handle
+            res = detect_cup_with_handle(df)
+            if not res.get("is_cup_handle"):
+                return None
+            res["symbol"] = sym
+            res["company_name"] = item.get("company_name", sym)
+            res["sector"] = item.get("sector", "N/A")
+            return res
+        except Exception:
+            return None
+
+@app.get("/api/screener/cup-with-handle")
+async def get_cup_with_handle_screener(force_refresh: bool = False):
+    """
+    Returns William O'Neil / CANSLIM Cup with Handle (C&H) candidates.
+    Parallelized with asyncio 25x concurrency and backed by SQLite disk cache.
+    """
+    global _CUP_HANDLE_SCANNER_CACHE
+    if not force_refresh:
+        db_cache = _load_screener_db_cache("cup_with_handle")
+        if db_cache and db_cache.get("data"):
+            hydrated = _overlay_live_quotes_on_candidates(db_cache["data"])
+            _CUP_HANDLE_SCANNER_CACHE = {"data": hydrated, "last_updated": db_cache["last_updated"]}
+            return {
+                "status": "success",
+                "count": len(hydrated),
+                "last_updated": db_cache["last_updated"],
+                "data": hydrated
+            }
+        if _CUP_HANDLE_SCANNER_CACHE.get("data"):
+            hydrated = _overlay_live_quotes_on_candidates(_CUP_HANDLE_SCANNER_CACHE["data"])
+            return {
+                "status": "success",
+                "count": len(hydrated),
+                "last_updated": _CUP_HANDLE_SCANNER_CACHE.get("last_updated", ""),
+                "data": hydrated
+            }
+
+    results = []
+    try:
+        with get_db() as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT symbol, company_name, sector, cap_type FROM screener_universe WHERE symbol NOT LIKE '%DUMMY%'")
+            stocks = [dict(r) for r in cursor.fetchall()]
+
+        sem = asyncio.Semaphore(25)
+        tasks = [_scan_single_stock_cup_handle(item, sem) for item in stocks]
+        raw_results = await asyncio.gather(*tasks, return_exceptions=True)
+
+        for r in raw_results:
+            if isinstance(r, dict) and r is not None:
+                results.append(r)
+
+        status_rank = {"CUP_HANDLE_LIVE_BREAKOUT": 2, "CUP_HANDLE_READY_PIVOT": 1, "NONE": 0}
+        results.sort(key=lambda x: (status_rank.get(x.get("ch_status"), 0), x.get("day_change_pct", 0)), reverse=True)
+
+        last_updated = _save_screener_db_cache("cup_with_handle", results)
+        _CUP_HANDLE_SCANNER_CACHE = {"data": results, "last_updated": last_updated}
+    except Exception as e:
+        print(f"Error executing Cup with Handle screener: {e}")
+
+    hydrated_results = _overlay_live_quotes_on_candidates(results)
+    return {
+        "status": "success",
+        "count": len(hydrated_results),
+        "last_updated": _CUP_HANDLE_SCANNER_CACHE.get("last_updated", ""),
+        "data": hydrated_results
     }
 
 _STAGE_DIAGNOSTIC_CACHE = {}
@@ -18510,7 +18709,8 @@ async def get_stage_diagnostic(symbol: str, force_refresh: bool = False):
         detect_vcp_pattern,
         detect_episodic_pivot,
         detect_pocket_pivot,
-        detect_oliver_kell_reversal
+        detect_oliver_kell_reversal,
+        detect_cup_with_handle
     )
     
     clean_sym = symbol.strip().upper()
@@ -18580,6 +18780,7 @@ async def get_stage_diagnostic(symbol: str, force_refresh: bool = False):
         ep_res = detect_episodic_pivot(df)
         pocket_res = detect_pocket_pivot(df)
         kell_res = detect_oliver_kell_reversal(df)
+        ch_res = detect_cup_with_handle(df, rs_score=rs_rating)
 
         # Stage Classification Rules
         stage_num = 2
@@ -18626,13 +18827,14 @@ async def get_stage_diagnostic(symbol: str, force_refresh: bool = False):
         
         vcp_qualified = bool(vcp_res.get("is_vcp"))
         stg3_qualified = bool(stg3_res.get("is_stage3"))
-        stg2_qualified = bool((stg2_res.get("is_stage2") or stg2_res.get("is_stage2_breakout") or stg2_res.get("stage_status") in ["STAGE_2_LAUNCH", "STAGE_2_ADVANCING"]) and not stg3_qualified and stage_num == 2)
-        htf_qualified = bool(htf_res.get("is_htf") or htf_res.get("htf_status") == "HTF_BREAKOUT_READY")
-        twt_qualified = bool(twt_res.get("is_3wt") or twt_res.get("tight_status") in ["3WT_PIVOT_READY", "3WT_FORMING"])
-        flat_qualified = bool(flat_res.get("is_flat_base") or flat_res.get("base_status") in ["LIVE_BREAKOUT", "READY_PIVOT", "FORMING"])
+        stg2_qualified = bool(stg2_res.get("is_stage2") and not stg3_qualified and stage_num == 2)
+        htf_qualified = bool(htf_res.get("is_htf"))
+        twt_qualified = bool(twt_res.get("is_3wt"))
+        flat_qualified = bool(flat_res.get("is_flat_base"))
         ep_qualified = bool(ep_res.get("is_episodic_pivot"))
         pocket_qualified = bool(pocket_res.get("is_pocket_pivot"))
         kell_qualified = bool(kell_res.get("is_kell_reversal"))
+        ch_qualified = bool(ch_res.get("is_cup_with_handle"))
         
         # Synchronized Trade Execution Levels (Strict Quantitative Values, Zero Fallbacks)
         if vcp_res and vcp_res.get("pivot_price", 0) > 0 and vcp_res.get("stop_loss", 0) > 0:
@@ -18754,6 +18956,10 @@ async def get_stage_diagnostic(symbol: str, force_refresh: bool = False):
                 "oliver_kell": {
                     "qualified": kell_qualified,
                     "reason": f"Oliver Kell Status: {kell_res.get('kell_status', 'N/A')}" if kell_qualified else kell_res.get("rejection_reason", "No 10/20 EMA reversal or trend wedge breakout")
+                },
+                "cup_with_handle": {
+                    "qualified": ch_qualified,
+                    "reason": f"Cup & Handle Active: {ch_res.get('base_status', 'N/A')} (Cup {ch_res.get('cup_depth_pct', 0.0)}%, Handle {ch_res.get('handle_depth_pct', 0.0)}%)" if ch_qualified else ch_res.get("rejection_reason", "Cup depth > 35% or duration < 7 wks")
                 }
             },
             "screener_audit": {
@@ -18824,6 +19030,13 @@ async def get_stage_diagnostic(symbol: str, force_refresh: bool = False):
                     "actual": f"Tested MA: {kell_res.get('tested_ma', '10 EMA')}, Reversal Quality: {kell_res.get('reversal_quality', 'HIGH')}, 10 EMA Dist: {kell_res.get('dist_to_10ema_pct', 0.0)}%",
                     "qualified": kell_qualified,
                     "reason": f"Oliver Kell Status: {kell_res.get('kell_status', 'N/A')}" if kell_qualified else kell_res.get("rejection_reason", "No 10/20 EMA reversal or trend wedge breakout")
+                },
+                "cup_with_handle": {
+                    "name": "William O'Neil Cup With Handle (CANSLIM)",
+                    "required": "7–65 Wks Length, Cup Depth 12–35%, Handle Depth 3–15%, Handle Duration 1–4 Wks, Prior Trend ≥ +30%, VDU ≤ 0.85x",
+                    "actual": f"Cup Depth: {ch_res.get('cup_depth_pct', 0.0)}%, Handle Depth: {ch_res.get('handle_depth_pct', 0.0)}%, Length: {ch_res.get('base_length_weeks', 0)} wks, VDU: {ch_res.get('vdu_ratio', 1.0)}x",
+                    "qualified": ch_qualified,
+                    "reason": f"Cup & Handle Active: {ch_res.get('base_status', 'N/A')} (Cup {ch_res.get('cup_depth_pct', 0.0)}%)" if ch_qualified else ch_res.get("rejection_reason", "Cup depth > 35% or duration < 7 wks")
                 }
             },
             "action_guidance": action_text
@@ -18910,17 +19123,17 @@ STRICT QUANTITATIVE STAGE DIAGNOSTIC DATA:
 - Volume Surge Ratio: {metrics.get('vol_ratio')}x 50-day average volume
 - Quantitative Trade Levels: Pivot Resistance = ₹{metrics.get('pivot_price')}, Stop Loss = ₹{metrics.get('stop_loss')}, Target 1 = ₹{metrics.get('target_1')}, Target 2 = ₹{metrics.get('target_2')}
 
-8-SCREENER ALGORITHMIC QUALIFICATION AUDIT:
+9-SCREENER ALGORITHMIC QUALIFICATION AUDIT:
 {audit_str}
 
 USER SPECIFIC MASTERCLASS QUERY:
-{custom_prompt if custom_prompt else 'Provide a complete institutional synthesis of Stage positioning, 8-screener confluence & rejection reasons, and tactical risk-reward execution plan.'}
+{custom_prompt if custom_prompt else 'Provide a complete institutional synthesis of Stage positioning, 9-screener confluence & rejection reasons, and tactical risk-reward execution plan.'}
 
 INSTRUCTIONS:
 1. Directly answer the user query with quantitative rigor and actionable guidance.
 2. Structure output into 3 clean, distinct markdown sections (without extra asterisks around headers):
    ### 📊 Stage Lifecycle & Trend Positioning
-   ### 🎯 8-Screener Confluence & Rejection Analysis
+   ### 🎯 9-Screener Confluence & Rejection Analysis
    ### 🛡️ Tactical Risk & Position Sizing Execution
 """
 
@@ -18934,6 +19147,9 @@ INSTRUCTIONS:
         payload = {
             "status": "success",
             "symbol": symbol,
+            "stage_name": stage_name,
+            "stage_confidence": stage_conf,
+            "metrics": metrics,
             "custom_prompt": custom_prompt,
             "ai_synthesis": raw_analysis,
             "model": model_used,
@@ -19003,6 +19219,7 @@ async def _eval_watchlist_quant_diagnostics(sym_list: List[str], force_refresh: 
         ep_qual = screeners.get("episodic_pivot", {}).get("qualified", False)
         pocket_qual = screeners.get("pocket_pivot", {}).get("qualified", False)
         kell_qual = screeners.get("oliver_kell", {}).get("qualified", False)
+        cup_qual = screeners.get("cup_with_handle", screeners.get("cup_handle", {})).get("qualified", False)
 
         stage_num = diag.get("stage_number", diag.get("stage_classification", {}).get("stage", 1))
         stage_title = diag.get("stage_name", diag.get("stage_classification", {}).get("title", f"Stage {stage_num}"))
@@ -19017,8 +19234,9 @@ async def _eval_watchlist_quant_diagnostics(sym_list: List[str], force_refresh: 
             ep_qual = False
             pocket_qual = False
             kell_qual = False
+            cup_qual = False
 
-        qual_count = sum([1 for q in [vcp_qual, wein_qual, htf_qual, twt_qual, flat_qual, ep_qual, pocket_qual, kell_qual] if q])
+        qual_count = sum([1 for q in [vcp_qual, wein_qual, htf_qual, twt_qual, flat_qual, ep_qual, pocket_qual, kell_qual, cup_qual] if q])
 
         if stage_num == 3 or wein_s3_qual:
             qual_label = "STAGE 3 DISTRIBUTION ⚠️"
@@ -19074,6 +19292,8 @@ async def _eval_watchlist_quant_diagnostics(sym_list: List[str], force_refresh: 
             "pocket_status": screeners.get("pocket_pivot", {}).get("reason", "N/A"),
             "kell_qualified": kell_qual,
             "kell_status": screeners.get("oliver_kell", {}).get("reason", "N/A"),
+            "cup_qualified": cup_qual,
+            "cup_status": screeners.get("cup_with_handle", screeners.get("cup_handle", {})).get("reason", "N/A"),
             "qual_count": qual_count,
             "qualification_label": qual_label,
             "badge_class": badge_cls,
