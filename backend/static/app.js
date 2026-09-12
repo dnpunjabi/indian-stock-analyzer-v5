@@ -57489,7 +57489,108 @@ window.filterUndercutTable = function() {
     window.renderUndercutTable(filtered);
 };
 
-// 4. INTERACTIVE STAGE 1-4 STOCK DIAGNOSTIC SIMULATOR
+// 4. INTERACTIVE STAGE 1-4 STOCK DIAGNOSTIC SIMULATOR & HELPER UTILITIES
+window.simplifyDiagnosticReason = function(key, rawReason, isQualified) {
+    if (!rawReason) rawReason = '';
+    const r = rawReason.toLowerCase();
+
+    if (key === 'vcp') {
+        if (isQualified) return '🔥 Volatility Contraction Pattern (VCP) active with price tightening near pivot resistance.';
+        if (r.includes('30-wk ma') || r.includes('30-week')) return '💡 Stock is below 30-week MA. Wait for long-term uptrend to establish.';
+        if (r.includes('50-day') || r.includes('200-day')) return '💡 Price is below key moving averages (50D/200D EMA).';
+        if (r.includes('pivot')) return '💡 Price contraction is not yet tight enough near breakout pivot level.';
+        if (r.includes('52w high') || r.includes('52-week')) return '💡 Price is >25% below 52-week high (outside Minervini trend template).';
+        return '💡 Volatility contraction criteria not fully met. Consolidation remains loose.';
+    }
+    if (key === 'weinstein_stage2' || key === 'stage2') {
+        if (isQualified) return '📈 Confirmed Stage 2 institutional mark-up with 30-week MA sloping upward & price above 200D EMA.';
+        if (r.includes('slope')) return '💡 30-week moving average slope is flat or negative. Stage 2 trend not active.';
+        if (r.includes('200')) return '💡 Stock is below 200-day EMA. Heavy institutional overhead resistance.';
+        return '💡 Stock is in Stage 1 basing or Stage 4 capitulation, not Stage 2 mark-up.';
+    }
+    if (key === 'htf') {
+        if (isQualified) return '🚀 High-Tight Flag setup! Prior surge >100% with tight flag pullback <20%.';
+        if (r.includes('gain') || r.includes('rally') || r.includes('100%') || r.includes('prior')) return '💡 Lacks explosive prior rally (requires ≥100% gain within 4-8 weeks).';
+        if (r.includes('pullback') || r.includes('depth')) return '💡 Flag pullback depth exceeds maximum 25% allowed.';
+        return '💡 High-Tight Flag criteria not met (lacks preceding 100%+ move).';
+    }
+    if (key === 'three_wt' || key === '3wt') {
+        if (isQualified) return '🎯 3-Weeks Tight pattern! Weekly closes within 1.5% range showing institutional absorption.';
+        if (r.includes('forming')) return '💡 3-Weeks Tight pattern forming. Awaiting 3rd consecutive tight weekly close.';
+        return '💡 Weekly closing prices fluctuating >1.5%—tightness not established.';
+    }
+    if (key === 'flat_base' || key === 'flat') {
+        if (isQualified) return '🧱 Flat Base pattern complete (5+ weeks of horizontal base with <15% correction depth).';
+        if (r.includes('weeks')) return '💡 Base length is under 5 weeks minimum required duration.';
+        if (r.includes('depth')) return '💡 Base depth exceeds maximum 15% allowed for flat base.';
+        return '💡 Flat base criteria not met. Consolidation structure lacks 5+ weeks duration.';
+    }
+    if (key === 'episodic_pivot' || key === 'episodic' || key === 'ep') {
+        if (isQualified) return '⚡ Episodic Pivot! Massive gap-up on huge institutional volume following catalyst/earnings.';
+        if (r.includes('gap')) return '💡 Requires a massive price gap-up (≥5%-8%) on fundamental catalyst.';
+        if (r.includes('volume')) return '💡 Volume on catalyst day was below 3.0x average volume threshold.';
+        return '💡 No sudden high-volume earnings/catalyst gap-up detected.';
+    }
+    if (key === 'pocket_pivot' || key === 'pocket' || key === 'pp') {
+        if (isQualified) return '💎 Pocket Pivot buy point inside base! Up-volume higher than largest down-volume in 10 days.';
+        if (r.includes('volume')) return '💡 Up-day volume was not larger than highest down-day volume in last 10 sessions.';
+        if (r.includes('extended')) return '💡 Price is extended >5% above 10-day / 50-day moving average.';
+        return '💡 Pocket Pivot institutional accumulation signature absent in recent sessions.';
+    }
+    if (key === 'oliver_kell' || key === 'kell') {
+        if (isQualified) return '🌊 Oliver Kell Trend Reversal setup (Wedge Pop / Extension Break out of EMA structure).';
+        if (r.includes('ema')) return '💡 Price is not reclaiming or riding 10-day / 20-day EMA support.';
+        return '💡 Oliver Kell structural reversal criteria not confirmed.';
+    }
+    if (key === 'cup_with_handle' || key === 'cup_handle' || key === 'ch') {
+        if (isQualified) return '☕ Cup with Handle base complete with U-shaped bowl and tight handle consolidation.';
+        if (r.includes('depth')) return '💡 Cup depth is too deep (>35%-50% drop from left lip).';
+        if (r.includes('handle')) return '💡 Handle is drifting downward or not formed in upper half of cup.';
+        return '💡 Cup with Handle pattern structure not present.';
+    }
+    if (key === 'rs_line_new_high' || key === 'rsnh') {
+        if (isQualified) return '🚀 RS Line at new 52-week high BEFORE price breakout! Outperforming broader market.';
+        if (r.includes('rs')) return '💡 RS line is not making a new 52-week high relative to Nifty 50.';
+        return '💡 Relative strength line is lagging or moving sideways.';
+    }
+    if (key === 'undercut_and_rally' || key === 'undercut' || key === 'ur') {
+        if (isQualified) return '⚡ Undercut & Rally (U&R)! Key swing low undercut & reclaimed—classic shakeout trap.';
+        if (r.includes('low')) return '💡 No undercut of prior key swing low detected within last 10-20 days.';
+        return '💡 Undercut & Rally shakeout setup not present.';
+    }
+
+    if (rawReason) {
+        let cleaned = rawReason.replace(/₹?(\d+)\.0\b/g, '₹$1');
+        return (isQualified ? '✅ ' : '💡 ') + cleaned;
+    }
+    return isQualified ? '✅ Met all algorithmic quantitative criteria.' : '💡 Did not meet specific technical criteria.';
+};
+
+window.filterDiagScreenerGrid = function(mode) {
+    const grid = document.getElementById('diag-screener-cards-wrap');
+    if (!grid) return;
+    const cards = grid.querySelectorAll('.diag-screener-card');
+    cards.forEach(card => {
+        const qual = card.getAttribute('data-qualified') === 'true';
+        if (mode === 'all') {
+            card.style.display = 'block';
+        } else if (mode === 'qualified') {
+            card.style.display = qual ? 'block' : 'none';
+        } else if (mode === 'rejected') {
+            card.style.display = !qual ? 'block' : 'none';
+        }
+    });
+
+    const btns = document.querySelectorAll('.diag-filter-btn');
+    btns.forEach(btn => {
+        if (btn.getAttribute('data-mode') === mode) {
+            btn.classList.add('active');
+        } else {
+            btn.classList.remove('active');
+        }
+    });
+};
+
 window.runStockStageSimulator = async function(symbolInput) {
     let sym = symbolInput || document.getElementById('stage-sim-input')?.value || 'SUZLON.NS';
     sym = sym.trim().toUpperCase();
@@ -57526,210 +57627,171 @@ window.runStockStageSimulator = async function(symbolInput) {
         const m = data.metrics || {};
         const st = data.screener_status || {};
         
-        const st_vcp = st.vcp || {};
-        const st_ws2 = st.weinstein_stage2 || {};
-        const st_htf = st.htf || {};
-        const st_3wt = st.three_wt || {};
-        const st_flat = st.flat_base || {};
-        const st_ep = st.episodic_pivot || st.episodic || {};
-        const st_pp = st.pocket_pivot || st.pocket || {};
-        const st_kell = st.oliver_kell || st.kell || {};
-        const st_ch = st.cup_with_handle || st.cup_handle || {};
-        const st_rsnh = st.rs_line_new_high || st.rsnh || {};
-        const st_ur = st.undercut_and_rally || st.undercut || {};
-        
-        let badgeBg = 'rgba(16, 185, 129, 0.2)';
-        let badgeBorder = '#34d399';
-        let badgeColor = '#34d399';
-        if (data.stage_number === 4) {
-            badgeBg = 'rgba(244, 63, 94, 0.2)';
-            badgeBorder = '#f87171';
-            badgeColor = '#f87171';
-        } else if (data.stage_number === 3) {
-            badgeBg = 'rgba(249, 115, 22, 0.2)';
-            badgeBorder = '#fb923c';
-            badgeColor = '#fb923c';
-        } else if (data.stage_number === 1) {
-            badgeBg = 'rgba(245, 158, 11, 0.2)';
-            badgeBorder = '#fbbf24';
-            badgeColor = '#fbbf24';
+        const screenersList = [
+            { key: 'vcp', name: 'Minervini VCP', icon: '🔥', obj: st.vcp || {} },
+            { key: 'weinstein_stage2', name: 'Stage 2 Breakout', icon: '📈', obj: st.weinstein_stage2 || {} },
+            { key: 'htf', name: 'High-Tight Flag', icon: '🚀', obj: st.htf || {} },
+            { key: 'three_wt', name: '3-Weeks Tight', icon: '🎯', obj: st.three_wt || {} },
+            { key: 'flat_base', name: 'Flat Base', icon: '🧱', obj: st.flat_base || {} },
+            { key: 'episodic_pivot', name: 'Episodic Pivot', icon: '⚡', obj: st.episodic_pivot || st.episodic || {} },
+            { key: 'pocket_pivot', name: 'Pocket Pivot', icon: '💎', obj: st.pocket_pivot || st.pocket || {} },
+            { key: 'oliver_kell', name: 'Oliver Kell', icon: '🌊', obj: st.oliver_kell || st.kell || {} },
+            { key: 'cup_with_handle', name: 'Cup with Handle', icon: '☕', obj: st.cup_with_handle || st.cup_handle || {} },
+            { key: 'rs_line_new_high', name: 'RS Line New High', icon: '🚀', obj: st.rs_line_new_high || st.rsnh || {} },
+            { key: 'undercut_and_rally', name: 'Undercut & Rally', icon: '⚡', obj: st.undercut_and_rally || st.undercut || {} }
+        ];
+
+        let qualCount = 0;
+        let rejCount = 0;
+        screenersList.forEach(s => {
+            if (s.obj.qualified) qualCount++;
+            else rejCount++;
+        });
+
+        let stageNum = data.stage_number || 1;
+        let verdictTitle = 'STAGE 1: BASING (WATCHLIST ZONE)';
+        let verdictSummary = 'Stock is forming a base. Wait for volume expansion breakout before entering long positions.';
+        if (stageNum === 2) {
+            verdictTitle = 'STAGE 2: MARK-UP (BULLISH / BUY ZONE)';
+            verdictSummary = 'Institutions are actively accumulating. Favorable risk-reward for long position entries.';
+        } else if (stageNum === 3) {
+            verdictTitle = 'STAGE 3: TOP DISTRIBUTION (CAUTION ZONE)';
+            verdictSummary = 'Rally is losing momentum. Tighten stop-losses or lock in partial profits.';
+        } else if (stageNum === 4) {
+            verdictTitle = 'STAGE 4: CAPITULATION (DANGER / AVOID)';
+            verdictSummary = 'Heavy institutional selling. Avoid buying or averaging down on declining prices.';
         }
 
         resContainer.innerHTML = `
-            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; margin-bottom: 18px; padding-bottom: 14px; border-bottom: 1px solid rgba(255,255,255,0.1);">
-                <div>
-                    <h4 style="margin: 0; font-size: 20px; font-weight: 800; color: #f8fafc; display: flex; align-items: center; gap: 8px;">
-                        <span>📊</span> ${data.symbol} (${data.base_symbol})
-                        <span style="font-size: 14px; color: #cbd5e1; font-weight: 700;">₹${(m.current_price || 0).toFixed(2)}</span>
-                        <span style="font-size: 13px; font-weight: 800; color: ${(m.day_change_pct || 0) >= 0 ? '#34d399' : '#f87171'};">
-                            ${(m.day_change_pct || 0) >= 0 ? '+' : ''}${(m.day_change_pct || 0).toFixed(2)}%
-                        </span>
-                    </h4>
+            <!-- Plain-English Stage Executive Verdict Banner -->
+            <div class="stage-verdict-banner stage-verdict-s${stageNum}">
+                <div class="stage-verdict-top">
+                    <div class="stage-verdict-symbol-info">
+                        <h4 class="stage-verdict-symbol">
+                            <span>📊</span> ${data.symbol} (${data.base_symbol || data.symbol})
+                            <span class="stage-verdict-price">₹${(m.current_price || 0).toFixed(2)}</span>
+                            <span class="stage-verdict-change ${(m.day_change_pct || 0) >= 0 ? 'pos' : 'neg'}">
+                                ${(m.day_change_pct || 0) >= 0 ? '+' : ''}${(m.day_change_pct || 0).toFixed(2)}%
+                            </span>
+                        </h4>
+                    </div>
+                    <div class="stage-verdict-badge">
+                        <span>${verdictTitle}</span>
+                        <span class="stage-verdict-conf">(${data.stage_confidence}% Confidence)</span>
+                    </div>
                 </div>
-                <div style="background: ${badgeBg}; border: 1px solid ${badgeBorder}; color: ${badgeColor}; padding: 6px 14px; border-radius: 20px; font-weight: 800; font-size: 13px; display: flex; align-items: center; gap: 6px;">
-                    <span>${data.stage_name}</span>
-                    <span style="opacity: 0.8; font-size: 11px;">(${data.stage_confidence}% Confidence)</span>
+                <div class="stage-verdict-summary">
+                    📌 <strong>Executive Summary & Recommendation:</strong> ${verdictSummary}
                 </div>
             </div>
 
             <!-- Key Indicators Metrics Grid -->
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; margin-bottom: 20px;">
-                <div style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(255, 255, 255, 0.08); padding: 10px; border-radius: 8px; text-align: center;">
-                    <div style="font-size: 10.5px; color: #94a3b8; font-weight: 700;">30-WK MA SLOPE</div>
-                    <div style="font-size: 15px; font-weight: 800; color: ${(m.ma_30wk_slope_pct || 0) > 0 ? '#34d399' : '#f87171'}; font-family: monospace;">
+            <div class="stage-metrics-grid">
+                <div class="diag-metric-card">
+                    <div class="diag-metric-label">30-WK MA SLOPE</div>
+                    <div class="diag-metric-val ${(m.ma_30wk_slope_pct || 0) >= 0 ? 'pos' : 'neg'}">
                         ${(m.ma_30wk_slope_pct || 0) >= 0 ? '+' : ''}${(m.ma_30wk_slope_pct || 0).toFixed(2)}%
                     </div>
                 </div>
-                <div style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(255, 255, 255, 0.08); padding: 10px; border-radius: 8px; text-align: center;">
-                    <div style="font-size: 10.5px; color: #94a3b8; font-weight: 700;">50-DAY EMA</div>
-                    <div style="font-size: 15px; font-weight: 800; color: #38bdf8; font-family: monospace;">
+                <div class="diag-metric-card">
+                    <div class="diag-metric-label">50-DAY EMA</div>
+                    <div class="diag-metric-val cyan">
                         ₹${(m.ema_50 || 0).toFixed(2)}
                     </div>
                 </div>
-                <div style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(255, 255, 255, 0.08); padding: 10px; border-radius: 8px; text-align: center;">
-                    <div style="font-size: 10.5px; color: #94a3b8; font-weight: 700;">200-DAY EMA</div>
-                    <div style="font-size: 15px; font-weight: 800; color: #fbbf24; font-family: monospace;">
+                <div class="diag-metric-card">
+                    <div class="diag-metric-label">200-DAY EMA</div>
+                    <div class="diag-metric-val yellow">
                         ₹${(m.ema_200 || 0).toFixed(2)}
                     </div>
                 </div>
-                <div style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(255, 255, 255, 0.08); padding: 10px; border-radius: 8px; text-align: center;">
-                    <div style="font-size: 10.5px; color: #94a3b8; font-weight: 700;">DIST TO 52W HIGH</div>
-                    <div style="font-size: 15px; font-weight: 800; color: ${(m.dist_52wk_high_pct || 0) >= -15 ? '#34d399' : '#f87171'}; font-family: monospace;">
+                <div class="diag-metric-card">
+                    <div class="diag-metric-label">DIST TO 52W HIGH</div>
+                    <div class="diag-metric-val ${(m.dist_52wk_high_pct || 0) >= -15 ? 'pos' : 'neg'}">
                         ${(m.dist_52wk_high_pct || 0).toFixed(2)}%
                     </div>
                 </div>
-                <div style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(255, 255, 255, 0.08); padding: 10px; border-radius: 8px; text-align: center;">
-                    <div style="font-size: 10.5px; color: #94a3b8; font-weight: 700;">RS RATING</div>
-                    <div style="font-size: 15px; font-weight: 800; color: #c084fc; font-family: monospace;">
+                <div class="diag-metric-card">
+                    <div class="diag-metric-label">RS RATING</div>
+                    <div class="diag-metric-val purple">
                         ${m.rs_rating || 50} / 99
                     </div>
                 </div>
-                <div style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(255, 255, 255, 0.08); padding: 10px; border-radius: 8px; text-align: center;">
-                    <div style="font-size: 10.5px; color: #94a3b8; font-weight: 700;">VOL SURGE</div>
-                    <div style="font-size: 15px; font-weight: 800; color: #2dd4bf; font-family: monospace;">
+                <div class="diag-metric-card">
+                    <div class="diag-metric-label">VOL SURGE</div>
+                    <div class="diag-metric-val teal">
                         ${(m.vol_ratio || 1.0).toFixed(1)}x SMA
                     </div>
                 </div>
             </div>
 
-            <!-- 11 Screener Qualification Status Cards -->
-            <h5 style="margin: 0 0 10px 0; font-size: 13px; font-weight: 800; color: #f8fafc;">
-                🎯 11-Screener Algorithmic Qualification Checks:
-            </h5>
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 10px; margin-bottom: 18px;">
-                <div style="background: rgba(15, 23, 42, 0.5); border: 1px solid ${st_vcp.qualified ? '#34d399' : 'rgba(255,255,255,0.1)'}; padding: 10px 12px; border-radius: 8px;">
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
-                        <strong style="color: #fbbf24; font-size: 12px;">🔥 Minervini VCP</strong>
-                        <span style="font-size: 11px; font-weight: 800; color: ${st_vcp.qualified ? '#34d399' : '#f87171'};">
-                            ${st_vcp.qualified ? '✅ QUALIFIED' : '❌ REJECTED'}
-                        </span>
-                    </div>
-                    <p style="margin: 0; font-size: 11px; color: #cbd5e1;">${st_vcp.reason || ''}</p>
+            <!-- 11-Screener Qualification Status Cards with Filter Chips Bar -->
+            <div class="diag-screener-header">
+                <h5 class="diag-screener-title">🎯 11-Screener Qualification Results</h5>
+                <div class="diag-screener-filter-bar">
+                    <button class="diag-filter-btn active" data-mode="all" onclick="filterDiagScreenerGrid('all')">All (11)</button>
+                    <button class="diag-filter-btn" data-mode="qualified" onclick="filterDiagScreenerGrid('qualified')">Qualified (${qualCount})</button>
+                    <button class="diag-filter-btn" data-mode="rejected" onclick="filterDiagScreenerGrid('rejected')">Rejected (${rejCount})</button>
                 </div>
-                <div style="background: rgba(15, 23, 42, 0.5); border: 1px solid ${st_ws2.qualified ? '#34d399' : 'rgba(255,255,255,0.1)'}; padding: 10px 12px; border-radius: 8px;">
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
-                        <strong style="color: #38bdf8; font-size: 12px;">📈 Stage 2 Breakout</strong>
-                        <span style="font-size: 11px; font-weight: 800; color: ${st_ws2.qualified ? '#34d399' : '#f87171'};">
-                            ${st_ws2.qualified ? '✅ QUALIFIED' : '❌ REJECTED'}
-                        </span>
+            </div>
+            
+            <div class="diag-screener-grid" id="diag-screener-cards-wrap">
+                ${screenersList.map(s => {
+                    const isQual = s.obj.qualified;
+                    const reasonText = simplifyDiagnosticReason(s.key, s.obj.reason || '', isQual);
+                    return `
+                        <div class="diag-screener-card ${isQual ? 'qualified' : 'rejected'}" data-qualified="${isQual}">
+                            <div class="diag-screener-card-header">
+                                <strong class="diag-screener-name">${s.icon} ${s.name}</strong>
+                                <span class="diag-screener-badge ${isQual ? 'qual' : 'rej'}">
+                                    ${isQual ? '✅ QUALIFIED' : '❌ REJECTED'}
+                                </span>
+                            </div>
+                            <p class="diag-screener-reason">${reasonText}</p>
+                        </div>
+                    `;
+                }).join('')}
+            </div>
+
+            <!-- Clean 3-Part Tactical Action Playbook Card -->
+            <div class="tactical-playbook-card">
+                <h5 class="tactical-playbook-title">📌 Key Takeaways & Strategic Actionable Insights</h5>
+                
+                <div class="tactical-playbook-step">
+                    <div class="tactical-step-num">1</div>
+                    <div class="tactical-step-content">
+                        <strong class="tactical-step-heading">Stage Cycle & Structural Position:</strong>
+                        <p class="tactical-step-desc">Stock is currently in <span class="highlight-cyan">${data.stage_name || ''}</span> with a 30-week MA slope of <span class="${(m.ma_30wk_slope_pct||0)>0 ? 'pos':'neg'}">${(m.ma_30wk_slope_pct||0)>0 ? '+':''}${(m.ma_30wk_slope_pct||0).toFixed(2)}%</span>. ${verdictSummary}</p>
                     </div>
-                    <p style="margin: 0; font-size: 11px; color: #cbd5e1;">${st_ws2.reason || ''}</p>
                 </div>
-                <div style="background: rgba(15, 23, 42, 0.5); border: 1px solid ${st_htf.qualified ? '#34d399' : 'rgba(255,255,255,0.1)'}; padding: 10px 12px; border-radius: 8px;">
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
-                        <strong style="color: #c084fc; font-size: 12px;">🚀 High-Tight Flag</strong>
-                        <span style="font-size: 11px; font-weight: 800; color: ${st_htf.qualified ? '#34d399' : '#f87171'};">
-                            ${st_htf.qualified ? '✅ QUALIFIED' : '❌ REJECTED'}
-                        </span>
+
+                <div class="tactical-playbook-step">
+                    <div class="tactical-step-num">2</div>
+                    <div class="tactical-step-content">
+                        <strong class="tactical-step-heading">Key Technical Levels & Risk Plan:</strong>
+                        <p class="tactical-step-desc">
+                            Pivot Resistance: <span class="highlight-yellow">₹${(m.pivot_price||0).toFixed(2)}</span> | 
+                            Protective Risk Stop: <span class="highlight-red">₹${(m.stop_loss||0).toFixed(2)}</span> | 
+                            Target 1: <span class="highlight-green">₹${(m.target_1||0).toFixed(2)}</span>
+                        </p>
                     </div>
-                    <p style="margin: 0; font-size: 11px; color: #cbd5e1;">${st_htf.reason || ''}</p>
                 </div>
-                <div style="background: rgba(15, 23, 42, 0.5); border: 1px solid ${st_3wt.qualified ? '#34d399' : 'rgba(255,255,255,0.1)'}; padding: 10px 12px; border-radius: 8px;">
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
-                        <strong style="color: #2dd4bf; font-size: 12px;">🎯 3-Weeks Tight</strong>
-                        <span style="font-size: 11px; font-weight: 800; color: ${st_3wt.qualified ? '#34d399' : '#f87171'};">
-                            ${st_3wt.qualified ? '✅ QUALIFIED' : '❌ REJECTED'}
-                        </span>
+
+                <div class="tactical-playbook-step">
+                    <div class="tactical-step-num">3</div>
+                    <div class="tactical-step-content">
+                        <strong class="tactical-step-heading">Breakout Catalysts & Action Steps:</strong>
+                        <p class="tactical-step-desc">${data.action_guidance || 'Watch for volume surge (≥1.40x-2.0x average) on a clean breakout above pivot resistance.'}</p>
                     </div>
-                    <p style="margin: 0; font-size: 11px; color: #cbd5e1;">${st_3wt.reason || ''}</p>
-                </div>
-                <div style="background: rgba(15, 23, 42, 0.5); border: 1px solid ${st_flat.qualified ? '#34d399' : 'rgba(255,255,255,0.1)'}; padding: 10px 12px; border-radius: 8px;">
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
-                        <strong style="color: #f472b6; font-size: 12px;">🧱 Flat Base</strong>
-                        <span style="font-size: 11px; font-weight: 800; color: ${st_flat.qualified ? '#34d399' : '#f87171'};">
-                            ${st_flat.qualified ? '✅ QUALIFIED' : '❌ REJECTED'}
-                        </span>
-                    </div>
-                    <p style="margin: 0; font-size: 11px; color: #cbd5e1;">${st_flat.reason || ''}</p>
-                </div>
-                <div style="background: rgba(15, 23, 42, 0.5); border: 1px solid ${st_ep.qualified ? '#34d399' : 'rgba(255,255,255,0.1)'}; padding: 10px 12px; border-radius: 8px;">
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
-                        <strong style="color: #fb923c; font-size: 12px;">⚡ Episodic Pivot</strong>
-                        <span style="font-size: 11px; font-weight: 800; color: ${st_ep.qualified ? '#34d399' : '#f87171'};">
-                            ${st_ep.qualified ? '✅ QUALIFIED' : '❌ REJECTED'}
-                        </span>
-                    </div>
-                    <p style="margin: 0; font-size: 11px; color: #cbd5e1;">${st_ep.reason || ''}</p>
-                </div>
-                <div style="background: rgba(15, 23, 42, 0.5); border: 1px solid ${st_pp.qualified ? '#34d399' : 'rgba(255,255,255,0.1)'}; padding: 10px 12px; border-radius: 8px;">
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
-                        <strong style="color: #a78bfa; font-size: 12px;">💎 Pocket Pivot</strong>
-                        <span style="font-size: 11px; font-weight: 800; color: ${st_pp.qualified ? '#34d399' : '#f87171'};">
-                            ${st_pp.qualified ? '✅ QUALIFIED' : '❌ REJECTED'}
-                        </span>
-                    </div>
-                    <p style="margin: 0; font-size: 11px; color: #cbd5e1;">${st_pp.reason || ''}</p>
-                </div>
-                <div style="background: rgba(15, 23, 42, 0.5); border: 1px solid ${st_kell.qualified ? '#34d399' : 'rgba(255,255,255,0.1)'}; padding: 10px 12px; border-radius: 8px;">
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
-                        <strong style="color: #38bdf8; font-size: 12px;">🌊 Oliver Kell</strong>
-                        <span style="font-size: 11px; font-weight: 800; color: ${st_kell.qualified ? '#34d399' : '#f87171'};">
-                            ${st_kell.qualified ? '✅ QUALIFIED' : '❌ REJECTED'}
-                        </span>
-                    </div>
-                    <p style="margin: 0; font-size: 11px; color: #cbd5e1;">${st_kell.reason || ''}</p>
-                </div>
-                <div style="background: rgba(15, 23, 42, 0.5); border: 1px solid ${st_ch.qualified ? '#34d399' : 'rgba(255,255,255,0.1)'}; padding: 10px 12px; border-radius: 8px;">
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
-                        <strong style="color: #f59e0b; font-size: 12px;">☕ Cup with Handle</strong>
-                        <span style="font-size: 11px; font-weight: 800; color: ${st_ch.qualified ? '#34d399' : '#f87171'};">
-                            ${st_ch.qualified ? '✅ QUALIFIED' : '❌ REJECTED'}
-                        </span>
-                    </div>
-                    <p style="margin: 0; font-size: 11px; color: #cbd5e1;">${st_ch.reason || ''}</p>
-                </div>
-                <div style="background: rgba(15, 23, 42, 0.5); border: 1px solid ${st_rsnh.qualified ? '#34d399' : 'rgba(255,255,255,0.1)'}; padding: 10px 12px; border-radius: 8px;">
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
-                        <strong style="color: #c084fc; font-size: 12px;">🚀 RS Line New High</strong>
-                        <span style="font-size: 11px; font-weight: 800; color: ${st_rsnh.qualified ? '#34d399' : '#f87171'};">
-                            ${st_rsnh.qualified ? '✅ QUALIFIED' : '❌ REJECTED'}
-                        </span>
-                    </div>
-                    <p style="margin: 0; font-size: 11px; color: #cbd5e1;">${st_rsnh.reason || ''}</p>
-                </div>
-                <div style="background: rgba(15, 23, 42, 0.5); border: 1px solid ${st_ur.qualified ? '#34d399' : 'rgba(255,255,255,0.1)'}; padding: 10px 12px; border-radius: 8px;">
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
-                        <strong style="color: #38bdf8; font-size: 12px;">⚡ Undercut & Rally</strong>
-                        <span style="font-size: 11px; font-weight: 800; color: ${st_ur.qualified ? '#34d399' : '#f87171'};">
-                            ${st_ur.qualified ? '✅ QUALIFIED' : '❌ REJECTED'}
-                        </span>
-                    </div>
-                    <p style="margin: 0; font-size: 11px; color: #cbd5e1;">${st_ur.reason || ''}</p>
                 </div>
             </div>
 
-            <!-- Tactical Guidance Banner -->
-            <div style="background: rgba(30, 41, 59, 0.6); border-left: 4px solid ${badgeBorder}; padding: 10px 14px; border-radius: 6px; font-size: 12.5px; font-weight: 700; color: #f8fafc; margin-bottom: 16px;">
-                💡 Tactical Action Plan: <span style="font-weight: 500; color: #cbd5e1;">${data.action_guidance || ''}</span>
-            </div>
-
-            <!-- NEW: Clean Universal 11-Screener Diagnostic Audit Card Breakdown -->
-            <div class="audit-section-container" style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 10px; padding: 14px; margin-bottom: 16px;">
+            <!-- Detailed 11-Screener Algorithmic Diagnostic Audit & Criteria Breakdown -->
+            <div class="audit-section-container" style="border-radius: 10px; padding: 14px; margin-bottom: 16px;">
                 <h5 style="margin: 0 0 12px 0; font-size: 13px; font-weight: 800; color: #38bdf8; display: flex; align-items: center; gap: 6px;">
                     📊 11-Screener Algorithmic Diagnostic Audit & Criteria Breakdown
                 </h5>
                 
-                <!-- Universal Card Breakdown View (Mobile, Tablet & Desktop) -->
                 <div class="audit-cards-wrap" style="display: flex; flex-direction: column; gap: 10px;">
                     ${Object.entries(data.screener_audit || {}).map(([key, item]) => {
                         const isQual = item.qualified;
@@ -57737,23 +57799,23 @@ window.runStockStageSimulator = async function(symbolInput) {
                             ? `<span style="background: rgba(52, 211, 153, 0.15); color: #34d399; border: 1px solid #34d399; padding: 2px 6px; border-radius: 4px; font-weight: 800; font-size: 10.5px; white-space: nowrap;">QUALIFIED 🟢</span>`
                             : `<span style="background: rgba(248, 113, 113, 0.15); color: #f87171; border: 1px solid #f87171; padding: 2px 6px; border-radius: 4px; font-weight: 800; font-size: 10.5px; white-space: nowrap;">REJECTED ❌</span>`;
                         return `
-                            <div class="audit-mobile-card" style="background: rgba(30, 41, 59, 0.5); border: 1px solid ${isQual ? 'rgba(52, 211, 153, 0.35)' : 'rgba(248, 113, 113, 0.3)'}; border-radius: 10px; padding: 12px;">
+                            <div class="audit-mobile-card" style="border-radius: 10px; padding: 12px;">
                                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; gap: 8px; flex-wrap: wrap;">
-                                    <strong style="font-size: 12.5px; color: #f8fafc; font-weight: 800;">${item.name || key}</strong>
+                                    <strong style="font-size: 12.5px; color: var(--text-primary, #f8fafc); font-weight: 800;">${item.name || key}</strong>
                                     ${statusBadge}
                                 </div>
                                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 11px; background: rgba(15, 23, 42, 0.6); padding: 8px 10px; border-radius: 6px; margin-bottom: 8px;">
                                     <div>
-                                        <span style="font-size: 10px; color: #94a3b8; text-transform: uppercase; font-weight: 700; display: block; margin-bottom: 2px;">Textbook Requirement</span>
-                                        <span style="color: #cbd5e1; font-family: monospace; font-size: 10.5px; font-weight: 600;">${item.required || ''}</span>
+                                        <span style="font-size: 10px; color: var(--text-muted, #94a3b8); text-transform: uppercase; font-weight: 700; display: block; margin-bottom: 2px;">Textbook Requirement</span>
+                                        <span style="color: var(--text-secondary, #cbd5e1); font-family: monospace; font-size: 10.5px; font-weight: 600;">${item.required || ''}</span>
                                     </div>
                                     <div>
-                                        <span style="font-size: 10px; color: #94a3b8; text-transform: uppercase; font-weight: 700; display: block; margin-bottom: 2px;">Actual Stock Metric</span>
+                                        <span style="font-size: 10px; color: var(--text-muted, #94a3b8); text-transform: uppercase; font-weight: 700; display: block; margin-bottom: 2px;">Actual Stock Metric</span>
                                         <span style="color: #fbbf24; font-family: monospace; font-weight: 800; font-size: 10.5px;">${item.actual || ''}</span>
                                     </div>
                                 </div>
-                                <div style="font-size: 11px; color: #cbd5e1; line-height: 1.45;">
-                                    <strong style="color: #94a3b8; font-weight: 700;">Diagnostic Reason: </strong>${item.reason || ''}
+                                <div style="font-size: 11px; color: var(--text-secondary, #cbd5e1); line-height: 1.45;">
+                                    <strong style="color: var(--text-muted, #94a3b8); font-weight: 700;">Diagnostic Reason: </strong>${item.reason || ''}
                                 </div>
                             </div>
                         `;
