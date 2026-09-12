@@ -57496,66 +57496,76 @@ window.simplifyDiagnosticReason = function(key, rawReason, isQualified) {
 
     if (key === 'vcp') {
         if (isQualified) return '🔥 Volatility Contraction Pattern (VCP) active with price tightening near pivot resistance.';
-        if (r.includes('30-wk ma') || r.includes('30-week')) return '💡 Stock is below 30-week MA. Wait for long-term uptrend to establish.';
-        if (r.includes('50-day') || r.includes('200-day')) return '💡 Price is below key moving averages (50D/200D EMA).';
-        if (r.includes('pivot')) return '💡 Price contraction is not yet tight enough near breakout pivot level.';
-        if (r.includes('52w high') || r.includes('52-week')) return '💡 Price is >25% below 52-week high (outside Minervini trend template).';
+        if (r.includes('30-wk ma') || r.includes('30-week') || r.includes('30w')) return '💡 Stock is below 30-week MA. Wait for long-term uptrend to establish.';
+        if (r.includes('50-day') || r.includes('200-day') || r.includes('ema')) return '💡 Price is below key moving averages (50D/200D EMA).';
+        if (r.includes('52w') || r.includes('52-week')) return '💡 Price is >25% below 52-week high (outside Minervini trend template).';
+        if (r.includes('pivot') || r.includes('contraction')) return '💡 Volatility contraction is not yet tight enough near breakout pivot level.';
+        if (r.includes('wave') || r.includes('vdu')) return '💡 Contraction waves or volume dry-up criteria not fully met.';
         return '💡 Volatility contraction criteria not fully met. Consolidation remains loose.';
     }
     if (key === 'weinstein_stage2' || key === 'stage2') {
         if (isQualified) return '📈 Confirmed Stage 2 institutional mark-up with 30-week MA sloping upward & price above 200D EMA.';
         if (r.includes('slope')) return '💡 30-week moving average slope is flat or negative. Stage 2 trend not active.';
         if (r.includes('200')) return '💡 Stock is below 200-day EMA. Heavy institutional overhead resistance.';
-        return '💡 Stock is in Stage 1 basing or Stage 4 capitulation, not Stage 2 mark-up.';
+        if (r.includes('pivot') || r.includes('base') || r.includes('above current price')) {
+            let match = rawReason.match(/₹?(\d[\d,.]*)/);
+            let pivotVal = match ? ('₹' + match[1].replace('.0', '')) : '';
+            return `💡 Stock in Stage 2 trend, but price is consolidating below base pivot${pivotVal ? ' (' + pivotVal + ')' : ''}. Awaiting volume breakout.`;
+        }
+        if (r.includes('vol')) return '💡 Stock in Stage 2 trend, but breakout volume is below 1.4x threshold.';
+        return '💡 Price is consolidating below base pivot resistance or volume is below 1.4x threshold.';
     }
     if (key === 'htf') {
         if (isQualified) return '🚀 High-Tight Flag setup! Prior surge >100% with tight flag pullback <20%.';
-        if (r.includes('gain') || r.includes('rally') || r.includes('100%') || r.includes('prior')) return '💡 Lacks explosive prior rally (requires ≥100% gain within 4-8 weeks).';
-        if (r.includes('pullback') || r.includes('depth')) return '💡 Flag pullback depth exceeds maximum 25% allowed.';
+        if (r.includes('gain') || r.includes('rally') || r.includes('100%') || r.includes('prior') || r.includes('pole')) return '💡 Lacks explosive prior rally (requires ≥100% gain within 4-8 weeks).';
+        if (r.includes('pullback') || r.includes('depth') || r.includes('flag')) return '💡 Flag pullback depth exceeds maximum 25% allowed.';
         return '💡 High-Tight Flag criteria not met (lacks preceding 100%+ move).';
     }
     if (key === 'three_wt' || key === '3wt') {
         if (isQualified) return '🎯 3-Weeks Tight pattern! Weekly closes within 1.5% range showing institutional absorption.';
         if (r.includes('forming')) return '💡 3-Weeks Tight pattern forming. Awaiting 3rd consecutive tight weekly close.';
-        return '💡 Weekly closing prices fluctuating >1.5%—tightness not established.';
+        if (r.includes('variance') || r.includes('fluctuat') || r.includes('close')) return '💡 Weekly closing prices fluctuating >1.5%—tightness not established.';
+        return '💡 Weekly closes lack the required <1.5% tight range.';
     }
     if (key === 'flat_base' || key === 'flat') {
         if (isQualified) return '🧱 Flat Base pattern complete (5+ weeks of horizontal base with <15% correction depth).';
-        if (r.includes('weeks')) return '💡 Base length is under 5 weeks minimum required duration.';
+        if (r.includes('week') || r.includes('duration') || r.includes('day') || r.includes('length') || r.includes('peak')) return '💡 Base duration or consolidation age is under 5 weeks minimum requirement.';
         if (r.includes('depth')) return '💡 Base depth exceeds maximum 15% allowed for flat base.';
         return '💡 Flat base criteria not met. Consolidation structure lacks 5+ weeks duration.';
     }
     if (key === 'episodic_pivot' || key === 'episodic' || key === 'ep') {
         if (isQualified) return '⚡ Episodic Pivot! Massive gap-up on huge institutional volume following catalyst/earnings.';
-        if (r.includes('gap')) return '💡 Requires a massive price gap-up (≥5%-8%) on fundamental catalyst.';
-        if (r.includes('volume')) return '💡 Volume on catalyst day was below 3.0x average volume threshold.';
+        if (r.includes('gap') || r.includes('catalyst')) return '💡 Requires a massive price gap-up (≥5%-8%) on fundamental catalyst.';
+        if (r.includes('vol') || r.includes('rvol')) return '💡 Volume on catalyst day was below 2.5x-3.0x average volume threshold.';
         return '💡 No sudden high-volume earnings/catalyst gap-up detected.';
     }
     if (key === 'pocket_pivot' || key === 'pocket' || key === 'pp') {
         if (isQualified) return '💎 Pocket Pivot buy point inside base! Up-volume higher than largest down-volume in 10 days.';
-        if (r.includes('volume')) return '💡 Up-day volume was not larger than highest down-day volume in last 10 sessions.';
-        if (r.includes('extended')) return '💡 Price is extended >5% above 10-day / 50-day moving average.';
+        if (r.includes('vol')) return '💡 Up-day volume was not larger than highest down-day volume in last 10 sessions.';
+        if (r.includes('extend')) return '💡 Price is extended >5% above 10-day / 50-day moving average.';
         return '💡 Pocket Pivot institutional accumulation signature absent in recent sessions.';
     }
     if (key === 'oliver_kell' || key === 'kell') {
         if (isQualified) return '🌊 Oliver Kell Trend Reversal setup (Wedge Pop / Extension Break out of EMA structure).';
-        if (r.includes('ema')) return '💡 Price is not reclaiming or riding 10-day / 20-day EMA support.';
+        if (r.includes('slope') || r.includes('declin')) return '💡 10-day or 20-day EMA slope is declining (requires upward sloping EMAs).';
+        if (r.includes('ema') || r.includes('reclaim')) return '💡 Price is not reclaiming or riding 10-day / 20-day EMA support.';
         return '💡 Oliver Kell structural reversal criteria not confirmed.';
     }
     if (key === 'cup_with_handle' || key === 'cup_handle' || key === 'ch') {
         if (isQualified) return '☕ Cup with Handle base complete with U-shaped bowl and tight handle consolidation.';
+        if (r.includes('liquid') || r.includes('vol')) return '💡 Average daily volume is too low (<50,000 shares) for institutional Cup with Handle threshold.';
         if (r.includes('depth')) return '💡 Cup depth is too deep (>35%-50% drop from left lip).';
         if (r.includes('handle')) return '💡 Handle is drifting downward or not formed in upper half of cup.';
         return '💡 Cup with Handle pattern structure not present.';
     }
     if (key === 'rs_line_new_high' || key === 'rsnh') {
         if (isQualified) return '🚀 RS Line at new 52-week high BEFORE price breakout! Outperforming broader market.';
-        if (r.includes('rs')) return '💡 RS line is not making a new 52-week high relative to Nifty 50.';
+        if (r.includes('rs') || r.includes('52w') || r.includes('high')) return '💡 RS line is not making a new 52-week high relative to Nifty 50.';
         return '💡 Relative strength line is lagging or moving sideways.';
     }
     if (key === 'undercut_and_rally' || key === 'undercut' || key === 'ur') {
         if (isQualified) return '⚡ Undercut & Rally (U&R)! Key swing low undercut & reclaimed—classic shakeout trap.';
-        if (r.includes('low')) return '💡 No undercut of prior key swing low detected within last 10-20 days.';
+        if (r.includes('low') || r.includes('swing') || r.includes('shakeout')) return '💡 No undercut of prior key swing low detected within last 10-20 days.';
         return '💡 Undercut & Rally shakeout setup not present.';
     }
 
@@ -57781,7 +57791,20 @@ window.runStockStageSimulator = async function(symbolInput) {
                     <div class="tactical-step-num">3</div>
                     <div class="tactical-step-content">
                         <strong class="tactical-step-heading">Breakout Catalysts & Action Steps:</strong>
-                        <p class="tactical-step-desc">${data.action_guidance || 'Watch for volume surge (≥1.40x-2.0x average) on a clean breakout above pivot resistance.'}</p>
+                        <p class="tactical-step-desc">
+                            ${stageNum === 2 ? 
+                                (m.pivot_price > 0 && m.current_price < m.pivot_price ? 
+                                    `Stock is in a confirmed Stage 2 uptrend. Watch for high-volume breakout (≥1.40x avg volume) above ₹${(m.pivot_price||0).toFixed(2)} pivot resistance for optimal entry.` :
+                                    `High-conviction Stage 2 institutional mark-up leader. Hold position with trailing 50-day EMA stop-loss at ₹${(m.ema_50||0).toFixed(2)}.`) :
+                                (stageNum === 1 ?
+                                    `Stock is in Stage 1 basing phase. Add to watchlist and wait for volume expansion breakout above pivot resistance before entering long.` :
+                                    (stageNum === 3 ?
+                                        `Stage 3 Distribution Top. Tighten stop-loss or trim positions to protect profits as institutional selling increases.` :
+                                        `Stage 4 Capitulation downtrend. Avoid buying or averaging down on declining prices.`
+                                    )
+                                )
+                            }
+                        </p>
                     </div>
                 </div>
             </div>
