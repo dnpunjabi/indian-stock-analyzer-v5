@@ -2753,14 +2753,17 @@ def detect_episodic_pivot(df: pd.DataFrame) -> dict:
         return default_res
 
 
-def detect_pocket_pivot(df: pd.DataFrame) -> dict:
+def detect_pocket_pivot(df: pd.DataFrame, rs_score: float = 0.0) -> dict:
     """
-    Detects Gil Morales & Chris Kacher Pocket Pivot Accumulation:
-    1. Volume Signature: Volume on up-day strictly exceeds max down-day volume over previous 10 trading days.
-    2. MA Touch & Reclaim: Price within <= 2.0% distance of 10 EMA, 21 EMA, or 50 SMA.
-    3. Stage 2 Alignment: Price >= 50 SMA >= 150 SMA >= 200 SMA.
-    4. Extension Limit: Price not extended > 10.0% above 50-day SMA.
-    5. 52W High Proximity: Price within 20.0% of 52-week High.
+    Detects Gil Morales & Chris Kacher Pocket Pivot Accumulation (Strict Institutional Standard):
+    1. Volume Signature: Up-day volume strictly exceeds max down-day volume over previous 10 trading days AND is >= 1.0x 50d avg vol.
+    2. Pocket Bar Integrity: Pocket pivot bar must be an UP day and price holding above its low.
+    3. MA Touch & Reclaim: Price within <= 2.5% distance of 10 EMA, 21 EMA, or 50 SMA.
+    4. Stage 2 Alignment: Price >= 50 SMA >= 150 SMA >= 200 SMA (Price >= 0.98x 50 SMA).
+    5. 30-Week MA Slope: 200 SMA slope is flat to positive (>= -0.2%).
+    6. Extension Limit: Price not extended > 10.0% above 50-day SMA.
+    7. 52W High Proximity: Price within 20.0% of 52-week High.
+    8. Relative Strength: RS score >= 65 (if provided).
     """
     default_res = {
         "is_pocket_pivot": False,
@@ -2773,6 +2776,8 @@ def detect_pocket_pivot(df: pd.DataFrame) -> dict:
         "target_2": 0.0,
         "current_price": 0.0,
         "day_change_pct": 0.0,
+        "slope_30wk_pct": 0.0,
+        "rs_score": clean_float(rs_score),
         "rejection_reason": ""
     }
 
@@ -2792,6 +2797,11 @@ def detect_pocket_pivot(df: pd.DataFrame) -> dict:
         prev_close = clean_float(closes[-2]) if n >= 2 else curr_price
         day_change_pct = round(((curr_price - prev_close) / prev_close) * 100.0, 2) if prev_close > 0 else 0.0
 
+        # Relative Strength Check (Strict RS >= 65)
+        if rs_score > 0 and rs_score < 65.0:
+            default_res["rejection_reason"] = f"Relative Strength (RS) score {rs_score:.1f} below 65 threshold"
+            return default_res
+
         # Moving Averages
         ema10 = pd.Series(closes).ewm(span=min(10, n), adjust=False).mean().values
         ema21 = pd.Series(closes).ewm(span=min(21, n), adjust=False).mean().values
@@ -2805,24 +2815,33 @@ def detect_pocket_pivot(df: pd.DataFrame) -> dict:
         c_sma150 = clean_float(sma150[-1])
         c_sma200 = clean_float(sma200[-1])
 
+        # 30-Week (200 SMA) Slope Check
+        sma200_20d_ago = clean_float(sma200[-20]) if n >= 20 else c_sma200
+        slope_30wk_pct = round(((c_sma200 - sma200_20d_ago) / sma200_20d_ago) * 100.0, 2) if sma200_20d_ago > 0 else 0.0
+        default_res["slope_30wk_pct"] = slope_30wk_pct
+
+        if slope_30wk_pct < -0.2:
+            default_res["rejection_reason"] = f"30-Week (200 SMA) slope is negative ({slope_30wk_pct:.2f}%)"
+            return default_res
+
         # Stage 2 Trend Template & Extension Check
-        if not (curr_price >= c_sma50 * 0.97 and c_sma50 >= c_sma150 * 0.98 and c_sma150 >= c_sma200 * 0.98):
+        if not (curr_price >= c_sma50 * 0.98 and c_sma50 >= c_sma150 * 0.99 and c_sma150 >= c_sma200 * 0.99):
             default_res["rejection_reason"] = "Fails Stage 2 trend alignment (Price > 50d >= 150d >= 200d SMA)"
             return default_res
 
         ext_pct = round(((curr_price - c_sma50) / c_sma50) * 100.0, 2)
-        if ext_pct > 12.0:
-            default_res["rejection_reason"] = f"Price is extended {ext_pct:.1f}% above 50d SMA (max 12% allowed)"
+        if ext_pct > 10.0:
+            default_res["rejection_reason"] = f"Price is extended {ext_pct:.1f}% above 50d SMA (max 10% allowed)"
             return default_res
 
         # 52-Week High Proximity
         h52 = clean_float(np.max(highs[-min(252, n):]))
         dist_52w = round(((h52 - curr_price) / h52) * 100.0, 2) if h52 > 0 else 999.0
-        if dist_52w > 22.0:
-            default_res["rejection_reason"] = f"Price is {dist_52w:.1f}% below 52W High (exceeds 22% cap)"
+        if dist_52w > 20.0:
+            default_res["rejection_reason"] = f"Price is {dist_52w:.1f}% below 52W High (exceeds 20% cap)"
             return default_res
 
-        # Moving Average Support Line Touch / Reclaim (within 2.2% of 10 EMA, 21 EMA, or 50 SMA)
+        # Moving Average Support Line Touch / Reclaim (within 2.5% of 10 EMA, 21 EMA, or 50 SMA)
         d10 = abs(curr_price - c_ema10) / c_ema10 * 100.0
         d21 = abs(curr_price - c_ema21) / c_ema21 * 100.0
         d50 = abs(curr_price - c_sma50) / c_sma50 * 100.0
@@ -2830,38 +2849,40 @@ def detect_pocket_pivot(df: pd.DataFrame) -> dict:
         min_ma_dist = min(d10, d21, d50)
         ma_line = "10 EMA" if min_ma_dist == d10 else ("21 EMA" if min_ma_dist == d21 else "50 SMA")
 
-        if min_ma_dist > 3.0:
+        if min_ma_dist > 2.5:
             default_res["rejection_reason"] = f"Price is not resting near key MA support (closest is {ma_line} at {min_ma_dist:.1f}% distance)"
             return default_res
 
-        # Check Pocket Pivot Volume Signature over last 3 bars
+        vol50_avg = clean_float(pd.Series(volumes).rolling(window=min(50, n), min_periods=20).mean().iloc[-1])
+        curr_vdu = round(clean_float(volumes[-1]) / vol50_avg, 2) if vol50_avg > 0 else 1.0
+
+        # Check Pocket Pivot Volume Signature over last 2 bars (today or yesterday)
         pocket_found = False
         ratio_max_down = 0.0
-
         up_day_vol_val = 0
         max_down_vol_val = 0
 
-        for i in range(1, 4):
+        for i in range(1, 3):
             b_idx = n - i
             b_close = clean_float(closes[b_idx])
             b_prev = clean_float(closes[b_idx - 1]) if b_idx > 0 else b_close
+            b_low = clean_float(lows[b_idx])
             b_vol = clean_float(volumes[b_idx])
 
-            if b_close >= b_prev: # Up Day
+            # Must be a solid UP day (gain >= +0.1%) AND current price holding at/above pocket bar close (-0.8% tolerance max)
+            if b_close >= b_prev * 1.001 and curr_price >= b_close * 0.992:
                 # Find max down-day volume in previous 10 trading days before b_idx
                 start_look = max(0, b_idx - 10)
                 down_vols = [volumes[k] for k in range(start_look, b_idx) if closes[k] < (closes[k-1] if k > 0 else closes[k])]
                 max_down_vol = float(np.max(down_vols)) if down_vols else 1.0
 
-                if b_vol > max_down_vol:
+                # Volume must strictly exceed max down volume AND be at least 1.0x 50d average volume
+                if b_vol > max_down_vol and b_vol >= vol50_avg * 1.0:
                     pocket_found = True
                     ratio_max_down = round(b_vol / max_down_vol, 2) if max_down_vol > 0 else 1.5
                     up_day_vol_val = int(b_vol)
                     max_down_vol_val = int(max_down_vol)
                     break
-
-        vol50_avg = clean_float(pd.Series(volumes).rolling(window=min(50, n), min_periods=20).mean().iloc[-1])
-        curr_vdu = round(clean_float(volumes[-1]) / vol50_avg, 2) if vol50_avg > 0 else 1.0
 
         pivot_price = round(h52 if dist_52w <= 8.0 else max(curr_price * 1.02, c_ema10 * 1.03), 2)
         stop_loss = round(min(c_ema21, c_sma50) * 0.99, 2)
@@ -2873,16 +2894,19 @@ def detect_pocket_pivot(df: pd.DataFrame) -> dict:
         target_1 = round(pivot_price + (2.0 * risk_per_share), 2)
         target_2 = round(pivot_price + (4.0 * risk_per_share), 2)
 
+        is_qualified = False
         if pocket_found:
             pocket_status = "POCKET_PIVOT_LIVE"
-        elif curr_vdu <= 0.85 and min_ma_dist <= 2.0:
+            is_qualified = True
+        elif curr_vdu <= 0.65 and min_ma_dist <= 1.8: # Strict VDU volume contraction (<= 0.65x avg)
             pocket_status = "POCKET_PIVOT_FORMING"
-            pocket_found = True
+            is_qualified = True
         else:
             pocket_status = "NONE"
+            default_res["rejection_reason"] = "No live pocket pivot volume signature or strict VDU forming base"
 
         return {
-            "is_pocket_pivot": bool(pocket_found),
+            "is_pocket_pivot": bool(is_qualified),
             "pocket_status": str(pocket_status),
             "vol_ratio_vs_max_down": clean_float(ratio_max_down if ratio_max_down > 0 else 1.1),
             "up_day_vol": int(up_day_vol_val),
@@ -2894,7 +2918,9 @@ def detect_pocket_pivot(df: pd.DataFrame) -> dict:
             "target_2": clean_float(target_2),
             "current_price": clean_float(curr_price),
             "day_change_pct": clean_float(day_change_pct),
-            "rejection_reason": ""
+            "slope_30wk_pct": clean_float(slope_30wk_pct),
+            "rs_score": clean_float(rs_score),
+            "rejection_reason": default_res["rejection_reason"] if not is_qualified else ""
         }
     except Exception as e:
         print(f"Error in detect_pocket_pivot: {e}")
@@ -3376,9 +3402,13 @@ def detect_rs_line_new_high(df: pd.DataFrame, nifty_df: pd.DataFrame = None, rs_
 
 def detect_undercut_and_rally(df: pd.DataFrame, rs_score: float = 0.0) -> dict:
     """
-    Detects Mark Minervini & Gil Morales Undercut & Rally (U&R).
-    Finds a healthy stock (Price > 200 SMA or near 52W High) that dipped 0.5% - 4.0% below
-    a prior key swing low (15-45 days old) and reclaimed the low on 1.3x+ volume.
+    Detects Mark Minervini & Gil Morales Undercut & Rally (U&R Strict Standard):
+    1. Trend Baseline: Stock in Stage 2 (Price >= 200 SMA or 50 SMA) with flat to rising 30-Week MA (slope >= -0.2%).
+    2. Prior Swing Low: Identifies key prior fractal swing low / pivot trough (10-45 days old).
+    3. The Undercut: Price dips 0.4% to 3.8% max below the prior swing low (shallow shakeout).
+    4. The Reclaim: Price quickly rallies and closes back at or above prior swing low (Risk <= 5.0%).
+    5. Reclaim Volume: Live reclaims require >= 1.35x 20d average volume; forming setups require VDU <= 0.70x.
+    6. Relative Strength: RS score >= 65 (if provided).
     """
     default_res = {
         "is_undercut_and_rally": False,
@@ -3389,78 +3419,127 @@ def detect_undercut_and_rally(df: pd.DataFrame, rs_score: float = 0.0) -> dict:
         "stop_loss": 0.0,
         "risk_pct": 0.0,
         "reclaim_vol_ratio": 0.0,
+        "slope_30wk_pct": 0.0,
+        "rs_score": clean_float(rs_score),
         "reason": "No active Undercut & Rally setup"
     }
     try:
-        if df is None or df.empty or len(df) < 50:
+        if df is None or df.empty or len(df) < 60:
+            default_res["reason"] = "Insufficient daily history (<60 bars)"
             return default_res
 
         close_s = df['Close']
         high_s = df['High']
         low_s = df['Low']
         vol_s = df['Volume']
+        n = len(df)
         curr_price = float(close_s.iloc[-1])
 
-        sma200 = float(close_s.tail(200).mean()) if len(df) >= 200 else float(close_s.mean())
-        high_52w = float(high_s.tail(252).max()) if len(df) >= 252 else float(high_s.max())
+        # Relative Strength Check (Strict RS >= 65)
+        if rs_score > 0 and rs_score < 65.0:
+            default_res["reason"] = f"Relative Strength (RS) score {rs_score:.1f} below 65 threshold"
+            return default_res
+
+        # 200 SMA & 30-Week Slope Check
+        sma50 = float(close_s.tail(min(50, n)).mean())
+        sma200 = float(close_s.tail(min(200, n)).mean())
+        sma200_20d_ago = float(close_s.iloc[:-20].tail(min(200, n)).mean()) if n >= 40 else sma200
+        slope_30wk_pct = round(((sma200 - sma200_20d_ago) / sma200_20d_ago) * 100.0, 2) if sma200_20d_ago > 0 else 0.0
+        default_res["slope_30wk_pct"] = slope_30wk_pct
+
+        if slope_30wk_pct < -0.2:
+            default_res["reason"] = f"Fails 30-Week (200 SMA) slope requirement ({slope_30wk_pct:.2f}%)"
+            return default_res
+
+        high_52w = float(high_s.tail(min(252, n)).max())
         dist_from_high = ((high_52w - curr_price) / high_52w) * 100.0 if high_52w > 0 else 0.0
 
-        if curr_price < sma200 * 0.95 and dist_from_high > 30.0:
-            default_res["reason"] = "Stock not in Stage 2 / Base 1 health (Below 200 SMA)"
+        if not (curr_price >= sma200 * 0.98 or curr_price >= sma50 * 0.98) or dist_from_high > 20.0:
+            default_res["reason"] = f"Stock not in Stage 2 health (Below MAs or {dist_from_high:.1f}% below 52W High)"
             return default_res
 
-        recent_window = low_s.iloc[-45:-8] if len(df) >= 45 else low_s.iloc[:-5]
-        if len(recent_window) < 10:
-            return default_res
-
-        prior_swing_low = float(recent_window.min())
+        # Find local pivot swing lows in lookback window (-45 to -5 bars)
+        window_start = max(0, n - 45)
+        window_end = max(1, n - 5)
         
+        swing_low_candidates = []
+        low_vals = low_s.values
+
+        for idx in range(window_start + 2, window_end - 1):
+            if low_vals[idx] <= low_vals[idx-1] and low_vals[idx] <= low_vals[idx-2] and low_vals[idx] <= low_vals[idx+1]:
+                swing_low_candidates.append(float(low_vals[idx]))
+
+        if not swing_low_candidates:
+            recent_slice = low_s.iloc[window_start:window_end]
+            if len(recent_slice) >= 5:
+                swing_low_candidates.append(float(recent_slice.min()))
+            else:
+                return default_res
+
         is_ur_found = False
+        target_prior_low = 0.0
         shakeout_low = 0.0
         reclaim_vol_ratio = 0.0
         undercut_pct = 0.0
-
         avg_vol_20 = float(vol_s.tail(20).mean())
-        default_res["prior_swing_low"] = round(prior_swing_low, 2)
-        default_res["reclaim_vol_ratio"] = round(float(vol_s.iloc[-1]) / avg_vol_20, 2) if avg_vol_20 > 0 else 1.0
 
-        for offset in range(1, 4):
-            idx = -offset
-            check_low = float(low_s.iloc[idx])
-            check_vol = float(vol_s.iloc[idx])
+        # Check recent 3 bars for an undercut & reclaim of any candidate swing low
+        for prior_low in sorted(swing_low_candidates, reverse=True):
+            for offset in range(1, 4):
+                idx = -offset
+                check_low = float(low_s.iloc[idx])
+                check_vol = float(vol_s.iloc[idx])
 
-            if check_low < prior_swing_low:
-                undercut_pct = ((prior_swing_low - check_low) / prior_swing_low) * 100.0
-                if 0.4 <= undercut_pct <= 5.0:
-                    if curr_price >= prior_swing_low:
-                        is_ur_found = True
-                        shakeout_low = check_low
-                        reclaim_vol_ratio = round(check_vol / avg_vol_20, 2) if avg_vol_20 > 0 else 1.0
-                        break
+                if check_low < prior_low:
+                    u_pct = ((prior_low - check_low) / prior_low) * 100.0
+                    # Strict Minervini undercut depth: 0.4% to 3.8% max
+                    if 0.4 <= u_pct <= 3.8:
+                        if curr_price >= prior_low * 0.998:
+                            is_ur_found = True
+                            target_prior_low = prior_low
+                            shakeout_low = check_low
+                            undercut_pct = u_pct
+                            reclaim_vol_ratio = round(check_vol / avg_vol_20, 2) if avg_vol_20 > 0 else 1.0
+                            break
+            if is_ur_found:
+                break
 
         if not is_ur_found:
+            default_res["prior_swing_low"] = round(swing_low_candidates[0], 2)
             return default_res
 
         stop_loss = round(shakeout_low * 0.995, 2)
         risk_pct = round(((curr_price - stop_loss) / curr_price) * 100.0, 1)
 
-        if reclaim_vol_ratio >= 1.3:
+        if risk_pct > 5.0:
+            default_res["reason"] = f"Shakeout too deep (Risk {risk_pct}% exceeds 5.0% cap)"
+            return default_res
+
+        is_qualified = False
+        if reclaim_vol_ratio >= 1.35:
             ur_status = "UR_LIVE_RECLAIM"
-            reason = f"Live U&R Reclaim! Undercut prior low ₹{prior_swing_low:.2f} by {undercut_pct:.1f}% & reclaimed on {reclaim_vol_ratio}x volume."
-        else:
+            is_qualified = True
+            reason = f"Live U&R Reclaim! Undercut prior low Rs.{target_prior_low:.2f} by {undercut_pct:.1f}% & reclaimed on {reclaim_vol_ratio}x volume."
+        elif reclaim_vol_ratio <= 0.70 and risk_pct <= 3.5:
             ur_status = "UR_FORMING"
-            reason = f"U&R Reclaim forming above prior low ₹{prior_swing_low:.2f} (Risk: {risk_pct}%)."
+            is_qualified = True
+            reason = f"U&R Shakeout forming above prior low Rs.{target_prior_low:.2f} on tight low volume (Risk: {risk_pct}%)."
+        else:
+            ur_status = "NONE"
+            reason = f"U&R move lacks volume signature (reclaim vol ratio {reclaim_vol_ratio}x is between 0.70x and 1.35x)"
 
         return {
-            "is_undercut_and_rally": True,
-            "is_ur": True,
+            "is_undercut_and_rally": bool(is_qualified),
+            "is_ur": bool(is_qualified),
             "ur_status": str(ur_status),
-            "prior_swing_low": round(prior_swing_low, 2),
+            "prior_swing_low": round(target_prior_low, 2),
             "shakeout_low": round(shakeout_low, 2),
             "stop_loss": stop_loss,
             "risk_pct": risk_pct,
             "reclaim_vol_ratio": reclaim_vol_ratio,
-            "reason": reason
+            "slope_30wk_pct": slope_30wk_pct,
+            "rs_score": clean_float(rs_score),
+            "reason": reason if is_qualified else default_res["reason"]
         }
     except Exception as e:
         print(f"Error in detect_undercut_and_rally: {e}")

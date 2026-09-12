@@ -18478,8 +18478,17 @@ async def _scan_single_stock_pocket_pivot(item: dict, sem: asyncio.Semaphore):
             df = await fetch_history_df(sym_yf, period="1y", interval="1d")
             if df is None or df.empty or len(df) < 50:
                 return None
+            closes = df['Close'].values
+            curr_price = float(closes[-1])
+            sma50 = float(pd.Series(closes).rolling(50, min_periods=20).mean().iloc[-1])
+            sma200 = float(pd.Series(closes).rolling(200, min_periods=50).mean().iloc[-1])
+            yr_ret = (curr_price - closes[0]) / closes[0] * 100.0 if closes[0] > 0 else 0.0
+            
+            # Relative Strength Rating (0-99 scale approximation)
+            rs_rating = 85.0 if (curr_price > sma50 > sma200 and yr_ret > 15.0) else (65.0 if curr_price > sma200 else 40.0)
+
             from backend.swing_utils import detect_pocket_pivot
-            res = detect_pocket_pivot(df)
+            res = detect_pocket_pivot(df, rs_score=rs_rating)
             if not res.get("is_pocket_pivot"):
                 return None
             res["symbol"] = sym
@@ -18815,8 +18824,17 @@ async def _scan_single_stock_undercut_and_rally(item: dict, sem: asyncio.Semapho
             df = await fetch_history_df(sym_yf, period="1y", interval="1d")
             if df is None or df.empty or len(df) < 50:
                 return None
+            closes = df['Close'].values
+            curr_price = float(closes[-1])
+            sma50 = float(pd.Series(closes).rolling(50, min_periods=20).mean().iloc[-1])
+            sma200 = float(pd.Series(closes).rolling(200, min_periods=50).mean().iloc[-1])
+            yr_ret = (curr_price - closes[0]) / closes[0] * 100.0 if closes[0] > 0 else 0.0
+            
+            # Relative Strength Rating (0-99 scale approximation)
+            rs_rating = 85.0 if (curr_price > sma50 > sma200 and yr_ret > 15.0) else (65.0 if curr_price > sma200 else 40.0)
+
             from backend.swing_utils import detect_undercut_and_rally
-            res = detect_undercut_and_rally(df)
+            res = detect_undercut_and_rally(df, rs_score=rs_rating)
             if not res.get("is_undercut_and_rally"):
                 return None
             res["symbol"] = sym
@@ -18883,6 +18901,268 @@ async def get_undercut_and_rally_screener(force_refresh: bool = False):
         "last_updated": _UNDERCUT_RALLY_SCANNER_CACHE.get("last_updated", ""),
         "data": hydrated_results
     }
+
+
+_MULTI_CONFLUENCE_CACHE = {}
+
+@app.get("/api/screener/multi-confluence-leaderboard")
+async def get_multi_confluence_leaderboard(force_refresh: bool = False):
+    """
+    Multi-Screener Confluence & Top High-Profit Stocks Engine.
+    Cross-indexes 11 screeners cached in SQLite, applies multi-dimensional category weighting,
+    evaluates buy-zone actionability, sector clusters, and ranks top qualified setups.
+    """
+    global _MULTI_CONFLUENCE_CACHE
+    
+    screener_names_map = {
+        "weinstein_stage2": {"label": "Stage 2 Mark-Up", "badge": "badge-stage2", "category": "Trend Alignment"},
+        "htf": {"label": "High Tight Flag (HTF)", "badge": "badge-htf", "category": "Base Structure"},
+        "3weeks_tight": {"label": "3-Weeks Tight", "badge": "badge-3wt", "category": "Base Structure"},
+        "flat_base_breakout": {"label": "Flat Base Breakout", "badge": "badge-flatbase", "category": "Base Structure"},
+        "episodic_pivot": {"label": "Episodic Pivot (EP)", "badge": "badge-ep", "category": "Volume Catalysts"},
+        "pocket_pivot": {"label": "Pocket Pivot", "badge": "badge-pocket", "category": "Volume Catalysts"},
+        "oliver_kell_reversal": {"label": "Oliver Kell EMA", "badge": "badge-kell", "category": "Trend Alignment"},
+        "cup_with_handle": {"label": "Cup With Handle", "badge": "badge-cwh", "category": "Base Structure"},
+        "rs_line_new_high": {"label": "RS Line New High", "badge": "badge-rs", "category": "Market Leadership"},
+        "undercut_and_rally": {"label": "Undercut & Rally (U&R)", "badge": "badge-ur", "category": "Base Structure"},
+        "minervini_vcp": {"label": "Minervini VCP", "badge": "badge-vcp", "category": "Base Structure"}
+    }
+    
+    stock_map = {}
+    
+    # 1. Load the 10 screeners from screener_results_cache
+    for s_key in [
+        "weinstein_stage2", "htf", "3weeks_tight", "flat_base_breakout",
+        "episodic_pivot", "pocket_pivot", "oliver_kell_reversal",
+        "cup_with_handle", "rs_line_new_high", "undercut_and_rally"
+    ]:
+        cached = _load_screener_db_cache(s_key)
+        if cached and cached.get("data"):
+            for item in cached["data"]:
+                sym = item.get("symbol")
+                if not sym:
+                    continue
+                if sym not in stock_map:
+                    stock_map[sym] = {
+                        "symbol": sym,
+                        "company_name": item.get("company_name", sym),
+                        "sector": item.get("sector", "N/A"),
+                        "current_price": item.get("current_price", item.get("close", 0.0)),
+                        "change_percent": item.get("change_percent", item.get("change_pct", 0.0)),
+                        "rs_rating": item.get("rs_rating", 80),
+                        "pivot_price": item.get("pivot_price") or item.get("breakout_level") or item.get("pivot"),
+                        "stop_loss": item.get("stop_loss"),
+                        "target_1": item.get("target_1"),
+                        "target_2": item.get("target_2"),
+                        "screeners_passed": [],
+                        "screeners_keys": set(),
+                        "categories_passed": set()
+                    }
+                if s_key not in stock_map[sym]["screeners_keys"]:
+                    stock_map[sym]["screeners_keys"].add(s_key)
+                    cat = screener_names_map[s_key]["category"]
+                    stock_map[sym]["categories_passed"].add(cat)
+                    stock_map[sym]["screeners_passed"].append({
+                        "key": s_key,
+                        "label": screener_names_map[s_key]["label"],
+                        "badge": screener_names_map[s_key]["badge"],
+                        "category": cat
+                    })
+                    if not stock_map[sym]["pivot_price"] and item.get("pivot_price"):
+                        stock_map[sym]["pivot_price"] = item.get("pivot_price")
+                    if not stock_map[sym]["stop_loss"] and item.get("stop_loss"):
+                        stock_map[sym]["stop_loss"] = item.get("stop_loss")
+
+    # 2. Load VCP candidates from vcp_screener_cache
+    try:
+        with get_db() as conn:
+            vcp_stocks = get_vcp_canslim_universe_from_db(conn)
+            for v_item in vcp_stocks:
+                sym = v_item.get("symbol")
+                if not sym or not v_item.get("is_vcp"):
+                    continue
+                if sym not in stock_map:
+                    stock_map[sym] = {
+                        "symbol": sym,
+                        "company_name": v_item.get("company_name", sym),
+                        "sector": v_item.get("sector", "N/A"),
+                        "current_price": v_item.get("current_price", 0.0),
+                        "change_percent": v_item.get("change_percent", 0.0),
+                        "rs_rating": 85,
+                        "pivot_price": v_item.get("pivot_price"),
+                        "stop_loss": v_item.get("stop_loss"),
+                        "target_1": v_item.get("target_1"),
+                        "target_2": v_item.get("target_2"),
+                        "screeners_passed": [],
+                        "screeners_keys": set(),
+                        "categories_passed": set()
+                    }
+                if "minervini_vcp" not in stock_map[sym]["screeners_keys"]:
+                    stock_map[sym]["screeners_keys"].add("minervini_vcp")
+                    cat = screener_names_map["minervini_vcp"]["category"]
+                    stock_map[sym]["categories_passed"].add(cat)
+                    stock_map[sym]["screeners_passed"].append({
+                        "key": "minervini_vcp",
+                        "label": screener_names_map["minervini_vcp"]["label"],
+                        "badge": screener_names_map["minervini_vcp"]["badge"],
+                        "category": cat
+                    })
+                    if not stock_map[sym]["pivot_price"] and v_item.get("pivot_price"):
+                        stock_map[sym]["pivot_price"] = v_item.get("pivot_price")
+                    if not stock_map[sym]["stop_loss"] and v_item.get("stop_loss"):
+                        stock_map[sym]["stop_loss"] = v_item.get("stop_loss")
+    except Exception as e:
+        print(f"Error reading VCP cache for confluence: {e}")
+
+    # Sector aggregation pass to identify Hot Industry Clusters (>= 3 stocks)
+    sector_counts = {}
+    for sym, st in stock_map.items():
+        if len(st["screeners_keys"]) >= 2:
+            sec = st.get("sector", "N/A")
+            if sec and sec != "N/A":
+                sector_counts[sec] = sector_counts.get(sec, 0) + 1
+
+    hot_sectors = {s for s, c in sector_counts.items() if c >= 3}
+
+    # 3. Process & Rank Candidates
+    candidates = []
+    tier_counts = {"tier_1": 0, "tier_2": 0, "tier_3": 0, "tier_4": 0}
+    
+    for sym, st in stock_map.items():
+        keys = st["screeners_keys"]
+        count = len(keys)
+        if count < 2:
+            # Multi-screener confluence requires at least 2 screeners passed
+            continue
+            
+        dim_count = len(st["categories_passed"])
+        has_htf = "htf" in keys
+        has_ep = "episodic_pivot" in keys
+        sec = st.get("sector", "N/A")
+        is_hot_sec = sec in hot_sectors
+
+        # Determine Tier by Multi-Dimensional Confluence
+        if count >= 4 and dim_count >= 3:
+            tier_code = 1
+            tier_title = "TIER 1: APEX CONFLUENCE (Multi-Category Leader)"
+            tier_counts["tier_1"] += 1
+            freshness = "🔥 APEX BREAKOUT"
+        elif count >= 3 and dim_count >= 2:
+            tier_code = 2
+            tier_title = "TIER 2: HIGH CONFLUENCE SETUP"
+            tier_counts["tier_2"] += 1
+            freshness = "⭐ HIGH PROBABILITY"
+        elif count >= 2 and (has_htf or has_ep):
+            tier_code = 3
+            tier_title = "TIER 3: EXPLOSIVE CATALYST / HTF"
+            tier_counts["tier_3"] += 1
+            freshness = "⚡ CATALYST POWERED"
+        else:
+            tier_code = 4
+            tier_title = "TIER 4: SOLID MULTI-CONFIRMATION"
+            tier_counts["tier_4"] += 1
+            freshness = "🔍 MULTI-CONFIRMED"
+
+        price = float(st.get("current_price") or 0.0)
+        chg = float(st.get("change_percent") or 0.0)
+        
+        # Risk-Reward & Tactical Calculations
+        pivot = float(st.get("pivot_price") or (price * 0.98 if price > 0 else 0.0))
+        if pivot <= 0:
+            pivot = price
+        
+        sl = float(st.get("stop_loss") or (pivot * 0.93))
+        if sl >= pivot:
+            sl = round(pivot * 0.93, 2)
+            
+        target_1 = float(st.get("target_1") or (pivot * 1.15))
+        target_2 = float(st.get("target_2") or (pivot * 1.25))
+        
+        risk_pct = round(((pivot - sl) / pivot) * 100.0, 1) if pivot > 0 else 7.0
+        gain_pct = round(((target_1 - pivot) / pivot) * 100.0, 1) if pivot > 0 else 15.0
+        rr_ratio = round(gain_pct / risk_pct, 1) if risk_pct > 0 else 2.1
+
+        # Buy Zone Proximity Assessment
+        if price > 0 and pivot > 0:
+            dist_pct = ((price - pivot) / pivot) * 100.0
+            if -3.0 <= dist_pct <= 5.0:
+                buy_zone_status = "IN_BUY_ZONE"
+                buy_zone_label = "🎯 IN BUY ZONE"
+                buy_zone_bonus = 15
+            elif dist_pct > 5.0:
+                buy_zone_status = "EXTENDED"
+                buy_zone_label = "⚠️ EXTENDED (>5%)"
+                buy_zone_bonus = 0
+            else:
+                buy_zone_status = "FORMING_BASE"
+                buy_zone_label = "⏳ FORMING BASE"
+                buy_zone_bonus = 5
+        else:
+            buy_zone_status = "IN_BUY_ZONE"
+            buy_zone_label = "🎯 IN BUY ZONE"
+            buy_zone_bonus = 10
+
+        # Weighted Ranking Score
+        hot_sector_bonus = 10 if is_hot_sec else 0
+        rank_score = (dim_count * 20) + (count * 5) + buy_zone_bonus + hot_sector_bonus
+
+        # Tactical recommendation string
+        if buy_zone_status == "IN_BUY_ZONE":
+            tactical = f"🟢 Actionable Buy Zone near ₹{pivot:,.2f}. Suggested SL ₹{sl:,.2f} (-{risk_pct}%), Target ₹{target_1:,.2f} (R:R {rr_ratio}:1)."
+        elif buy_zone_status == "EXTENDED":
+            tactical = f"⚠️ Stock is extended +{dist_pct:.1f}% past pivot ₹{pivot:,.2f}. Wait for pull-back to 10/20 EMA before fresh entry."
+        else:
+            tactical = f"⏳ Stock is consolidating near ₹{pivot:,.2f}. Track for volume expansion & breakout above pivot."
+
+        candidates.append({
+            "symbol": sym,
+            "company_name": st["company_name"],
+            "sector": sec,
+            "is_hot_sector": is_hot_sec,
+            "current_price": price,
+            "change_percent": chg,
+            "rs_rating": st.get("rs_rating", 80),
+            "confluence_count": count,
+            "dimensions_count": dim_count,
+            "categories_passed": list(st["categories_passed"]),
+            "tier_code": tier_code,
+            "tier_title": tier_title,
+            "freshness_badge": freshness,
+            "buy_zone_status": buy_zone_status,
+            "buy_zone_label": buy_zone_label,
+            "rank_score": rank_score,
+            "tactical_levels": {
+                "pivot_price": round(pivot, 2),
+                "stop_loss": round(sl, 2),
+                "target_1": round(target_1, 2),
+                "target_2": round(target_2, 2),
+                "risk_pct": risk_pct,
+                "gain_pct": gain_pct,
+                "rr_ratio": rr_ratio
+            },
+            "screeners_passed": st["screeners_passed"],
+            "tactical_action": tactical
+        })
+
+    # Sort candidates by rank_score (desc) then tier_code (asc) then change_percent (desc)
+    candidates.sort(key=lambda x: (-x["rank_score"], x["tier_code"], -x["change_percent"]))
+    
+    # Hydrate with live quotes if available
+    hydrated = _overlay_live_quotes_on_candidates(candidates)
+
+    # Sort sector tailwinds by count desc
+    top_sectors = sorted([{"sector": k, "count": v, "is_hot": (k in hot_sectors)} for k, v in sector_counts.items()], key=lambda x: x["count"], reverse=True)[:6]
+
+    return {
+        "status": "success",
+        "total_confluence_stocks": len(hydrated),
+        "tier_counts": tier_counts,
+        "sector_tailwinds": top_sectors,
+        "hot_industry_clusters": list(hot_sectors),
+        "last_updated": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        "candidates": hydrated
+    }
+
 
 
 _STAGE_DIAGNOSTIC_CACHE = {}
@@ -18969,18 +19249,19 @@ async def get_stage_diagnostic(symbol: str, force_refresh: bool = False):
         # Relative Strength Rating
         rs_rating = 85 if curr_price > ema_50 > ema_200 and ma_30wk_slope_pct > 0 else (65 if curr_price > ema_200 else 40)
         
+        # Fetch Nifty index data for benchmark comparison (Mansfield RS & RS Line)
+        nifty_df = await _get_nifty_index_df()
+        
         # Run Quantitative Detectors
-        stg2_res = detect_weinstein_stage2(df)
-        stg3_res = detect_weinstein_stage3(df)
+        stg2_res = detect_weinstein_stage2(df, benchmark_df=nifty_df)
+        stg3_res = detect_weinstein_stage3(df, benchmark_df=nifty_df)
         htf_res = detect_high_tight_flag(df)
         twt_res = detect_3weeks_tight(df)
         flat_res = detect_flat_base_breakout(df, rs_score=rs_rating)
         ep_res = detect_episodic_pivot(df)
-        pocket_res = detect_pocket_pivot(df)
+        pocket_res = detect_pocket_pivot(df, rs_score=rs_rating)
         kell_res = detect_oliver_kell_reversal(df)
         ch_res = detect_cup_with_handle(df, rs_score=rs_rating)
-        
-        nifty_df = await _get_nifty_index_df()
         rsnh_res = detect_rs_line_new_high(df, nifty_df=nifty_df, rs_score=rs_rating)
         ur_res = detect_undercut_and_rally(df, rs_score=rs_rating)
 

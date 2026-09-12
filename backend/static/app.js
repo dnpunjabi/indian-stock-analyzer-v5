@@ -56007,8 +56007,9 @@ window.switchQuantScannerSubtab = function(tabName) {
         window.openQuantAccordion();
     }
 
-    const subtabs = ['vcp', 'weinstein', 'htf', '3wt', 'flatbase', 'episodic', 'pocket', 'oliverkell', 'cuphandle', 'rsnh', 'undercut', 'guide'];
+    const subtabs = ['confluence', 'vcp', 'weinstein', 'htf', '3wt', 'flatbase', 'episodic', 'pocket', 'oliverkell', 'cuphandle', 'rsnh', 'undercut', 'guide'];
     const navBtnMap = {
+        'confluence': 'tab-confluence-btn',
         'vcp': 'tab-vcp-btn',
         'weinstein': 'tab-weinstein-btn',
         'htf': 'tab-htf-btn',
@@ -56038,8 +56039,8 @@ window.switchQuantScannerSubtab = function(tabName) {
     });
 
     // 2. Synchronize Sidebar Navigation Highlighted Button
-    const allQuantNavBtns = ['tab-vcp-btn', 'tab-weinstein-btn', 'tab-htf-btn', 'tab-3wt-btn', 'tab-flatbase-btn', 'tab-episodic-btn', 'tab-pocket-btn', 'tab-oliverkell-btn', 'tab-cuphandle-btn', 'tab-rsnh-btn', 'tab-undercut-btn', 'tab-quant-guide-btn'];
-    const targetNavId = navBtnMap[tabName] || 'tab-vcp-btn';
+    const allQuantNavBtns = ['tab-confluence-btn', 'tab-vcp-btn', 'tab-weinstein-btn', 'tab-htf-btn', 'tab-3wt-btn', 'tab-flatbase-btn', 'tab-episodic-btn', 'tab-pocket-btn', 'tab-oliverkell-btn', 'tab-cuphandle-btn', 'tab-rsnh-btn', 'tab-undercut-btn', 'tab-quant-guide-btn'];
+    const targetNavId = navBtnMap[tabName] || 'tab-confluence-btn';
     allQuantNavBtns.forEach(id => {
         const navBtn = document.getElementById(id);
         if (navBtn) {
@@ -56055,7 +56056,11 @@ window.switchQuantScannerSubtab = function(tabName) {
     if (overlay) overlay.classList.remove('active');
 
     // 3. Lazy Data Fetching & Instant SWR Hydration for Scanners
-    if (tabName === 'weinstein') {
+    if (tabName === 'confluence') {
+        if (window.loadMultiConfluenceLeaderboard) {
+            window.loadMultiConfluenceLeaderboard();
+        }
+    } else if (tabName === 'weinstein') {
         if (window.allWeinsteinStocks && window.allWeinsteinStocks.length > 0) {
             window.renderWeinsteinTable(window.allWeinsteinStocks);
             window.runWeinsteinScan(true, false);
@@ -57576,6 +57581,508 @@ window.simplifyDiagnosticReason = function(key, rawReason, isQualified) {
     return isQualified ? '✅ Met all algorithmic quantitative criteria.' : '💡 Did not meet specific technical criteria.';
 };
 
+/* --- MULTI-SCREENER CONFLUENCE LEADERBOARD ENGINE --- */
+window.allConfluenceCandidates = [];
+window.activeConfluenceTierFilter = 'ALL';
+window.activeConfluenceBuyZoneFilter = 'ALL';
+window.cachedConfluenceResponse = null;
+
+window.loadMultiConfluenceLeaderboard = async function(forceRefresh = false) {
+    const container = document.getElementById('confluence-leaderboard-container');
+    if (!container) return;
+
+    if (!forceRefresh) {
+        const cached = localStorage.getItem('cache_multi_confluence_leaderboard');
+        if (cached) {
+            try {
+                const parsed = JSON.parse(cached);
+                if (parsed && parsed.candidates && (Date.now() - (parsed.cached_time || 0) < 300000)) {
+                    window.cachedConfluenceResponse = parsed;
+                    window.allConfluenceCandidates = parsed.candidates || [];
+                    window.renderMultiConfluenceLeaderboard(parsed);
+                    const tsText = document.getElementById('confluence-last-updated-text');
+                    if (tsText && parsed.last_updated) tsText.innerText = `Live Sync: ${parsed.last_updated}`;
+                    return;
+                }
+            } catch (e) {
+                console.warn("Error reading confluence cache:", e);
+            }
+        }
+    }
+
+    container.innerHTML = `
+        <div style="text-align: center; padding: 60px 20px; color: var(--text-secondary, #94a3b8);">
+            <div class="spinner" style="margin: 0 auto 16px auto; width: 40px; height: 40px; border: 3px solid rgba(245,158,11,0.2); border-top-color: #f59e0b; border-radius: 50%; animation: spin 0.8s linear infinite;"></div>
+            <div style="font-size: 16px; font-weight: 700; color: #fff;">Aggregating 11 Quantitative Screeners...</div>
+            <div style="font-size: 13px; margin-top: 6px;">Cross-indexing VCP, Stage 2, Oliver Kell, HTF, EP, RS New High & Buy-Zone Actionability</div>
+        </div>
+    `;
+
+    try {
+        const res = await fetch(`/api/screener/multi-confluence-leaderboard${forceRefresh ? '?force_refresh=true' : ''}`);
+        if (!res.ok) throw new Error(`HTTP error ${res.status}`);
+        const data = await res.json();
+
+        data.cached_time = Date.now();
+        localStorage.setItem('cache_multi_confluence_leaderboard', JSON.stringify(data));
+        window.cachedConfluenceResponse = data;
+        window.allConfluenceCandidates = data.candidates || [];
+
+        const tsText = document.getElementById('confluence-last-updated-text');
+        if (tsText && data.last_updated) tsText.innerText = `Live Sync: ${data.last_updated}`;
+
+        window.renderMultiConfluenceLeaderboard(data);
+    } catch (err) {
+        console.error("Error loading confluence leaderboard:", err);
+        container.innerHTML = `
+            <div style="text-align: center; padding: 40px; background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.3); border-radius: 12px; color: #f87171;">
+                <div style="font-size: 18px; font-weight: 700; margin-bottom: 8px;">⚠️ Failed to load Confluence Leaderboard</div>
+                <div style="font-size: 13px;">${err.message || 'Server connection error'}</div>
+                <button class="btn-primary" onclick="window.loadMultiConfluenceLeaderboard(true)" style="margin-top: 14px; padding: 8px 16px;">Try Again</button>
+            </div>
+        `;
+    }
+};
+
+window.toggleConfluenceGuide = function() {
+    const body = document.getElementById('confluence-guide-body');
+    const btn = document.getElementById('toggle-confluence-guide-btn');
+    if (!body) return;
+    if (body.style.display === 'none') {
+        body.style.display = 'block';
+        if (btn) btn.innerText = 'Hide Guide ▲';
+    } else {
+        body.style.display = 'none';
+        if (btn) btn.innerText = 'Show Guide ▼';
+    }
+};
+
+window.renderMultiConfluenceLeaderboard = function(data) {
+    const container = document.getElementById('confluence-leaderboard-container');
+    const clustersContainer = document.getElementById('confluence-sector-clusters-container');
+    const heroStatsRow = document.getElementById('confluence-hero-stats-row');
+    if (!container) return;
+
+    const candidates = window.allConfluenceCandidates || [];
+    const tierCounts = data.tier_counts || { tier_1: 0, tier_2: 0, tier_3: 0, tier_4: 0 };
+    const hotClusters = data.hot_industry_clusters || [];
+    const inBuyZoneCount = candidates.filter(c => c.buy_zone_status === 'IN_BUY_ZONE').length;
+
+    // Render embedded Hero Stat Cards Row inside Hero Card (matching Weinstein Stage 2 reference banner!)
+    if (heroStatsRow) {
+        heroStatsRow.innerHTML = `
+            <div class="screener-kpi-card" style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(255,255,255,0.08); border-radius: 10px; padding: 10px 16px; flex: 1; min-width: 140px;">
+                <div style="font-size: 11px; color: #94a3b8; text-transform: uppercase; font-weight: 700;">TOTAL CONFLUENCE</div>
+                <div style="font-size: 20px; font-weight: 800; color: #38bdf8; margin-top: 2px;">${candidates.length} <span style="font-size: 12px; color: #94a3b8; font-weight: 500;">Stocks</span></div>
+            </div>
+            <div class="screener-kpi-card" style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(245, 158, 11, 0.3); border-radius: 10px; padding: 10px 16px; flex: 1; min-width: 140px;">
+                <div style="font-size: 11px; color: #f59e0b; text-transform: uppercase; font-weight: 700;">TIER 1 APEX</div>
+                <div style="font-size: 20px; font-weight: 800; color: #f59e0b; margin-top: 2px;">${tierCounts.tier_1 || 0} <span style="font-size: 12px; color: #94a3b8; font-weight: 500;">Leaders</span></div>
+            </div>
+            <div class="screener-kpi-card" style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(56, 189, 248, 0.3); border-radius: 10px; padding: 10px 16px; flex: 1; min-width: 140px;">
+                <div style="font-size: 11px; color: #38bdf8; text-transform: uppercase; font-weight: 700;">TIER 2 HIGH</div>
+                <div style="font-size: 20px; font-weight: 800; color: #38bdf8; margin-top: 2px;">${tierCounts.tier_2 || 0} <span style="font-size: 12px; color: #94a3b8; font-weight: 500;">Setups</span></div>
+            </div>
+            <div class="screener-kpi-card" style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(16, 185, 129, 0.3); border-radius: 10px; padding: 10px 16px; flex: 1; min-width: 140px;">
+                <div style="font-size: 11px; color: #10b981; text-transform: uppercase; font-weight: 700;">🎯 IN BUY ZONE</div>
+                <div style="font-size: 20px; font-weight: 800; color: #10b981; margin-top: 2px;">${inBuyZoneCount} <span style="font-size: 12px; color: #94a3b8; font-weight: 500;">Actionable</span></div>
+            </div>
+        `;
+    }
+
+
+    // Render Hot Industry Group Clusters Banner if any
+    if (clustersContainer) {
+        if (hotClusters.length > 0) {
+            clustersContainer.innerHTML = `
+                <div class="confluence-cluster-banner" style="border-radius: 12px; padding: 14px 18px; display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap;">
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <span style="font-size: 20px;">🔥</span>
+                        <div>
+                            <div style="font-weight: 800; font-size: 14px; color: #f59e0b; text-transform: uppercase; letter-spacing: 0.5px;">Hot Industry Group Clusters</div>
+                            <div style="font-size: 12.5px; margin-top: 2px;">Institutional sector tailwind detected across multiple high-confluence setups:</div>
+                        </div>
+                    </div>
+                    <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                        ${hotClusters.map(sec => `
+                            <span class="confluence-sector-pill" style="font-size: 12px; font-weight: 700; padding: 4px 12px; border-radius: 20px; display: inline-flex; align-items: center; gap: 4px;">
+                                🏭 ${sec}
+                            </span>
+                        `).join('')}
+                    </div>
+                </div>
+            `;
+        } else {
+            clustersContainer.innerHTML = '';
+        }
+    }
+
+    const actionCounts = {
+        IN_BUY_ZONE: candidates.filter(c => c.buy_zone_status === 'IN_BUY_ZONE').length,
+        FORMING_BASE: candidates.filter(c => c.buy_zone_status === 'FORMING_BASE').length,
+        EXTENDED: candidates.filter(c => c.buy_zone_status === 'EXTENDED').length
+    };
+
+    // Filter candidates by active filters
+    let filtered = candidates.filter(c => {
+        if (window.activeConfluenceTierFilter !== 'ALL') {
+            if (`tier_${c.tier_code}` !== window.activeConfluenceTierFilter) return false;
+        }
+        if (window.activeConfluenceBuyZoneFilter !== 'ALL') {
+            if (c.buy_zone_status !== window.activeConfluenceBuyZoneFilter) return false;
+        }
+        return true;
+    });
+
+    window.currentFilteredConfluenceStocks = filtered;
+
+    let html = `
+        <!-- Filter Chips & Watchlist Action Toolbar -->
+        <div class="confluence-toolbar" style="display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 20px; padding: 12px 16px; border-radius: 12px;">
+            <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                <span class="confluence-stat-label" style="font-size: 12px; font-weight: 700; text-transform: uppercase;">Tier:</span>
+                <button class="confluence-filter-chip ${window.activeConfluenceTierFilter === 'ALL' ? 'active' : ''}" onclick="window.setConfluenceTierFilter('ALL')">All (${candidates.length})</button>
+                <button class="confluence-filter-chip ${window.activeConfluenceTierFilter === 'tier_1' ? 'active' : ''}" onclick="window.setConfluenceTierFilter('tier_1')">👑 Tier 1 Apex (${tierCounts.tier_1 || 0})</button>
+                <button class="confluence-filter-chip ${window.activeConfluenceTierFilter === 'tier_2' ? 'active' : ''}" onclick="window.setConfluenceTierFilter('tier_2')">⭐ Tier 2 High (${tierCounts.tier_2 || 0})</button>
+                <button class="confluence-filter-chip ${window.activeConfluenceTierFilter === 'tier_3' ? 'active' : ''}" onclick="window.setConfluenceTierFilter('tier_3')">⚡ Tier 3 Catalyst (${tierCounts.tier_3 || 0})</button>
+                <button class="confluence-filter-chip ${window.activeConfluenceTierFilter === 'tier_4' ? 'active' : ''}" onclick="window.setConfluenceTierFilter('tier_4')">🔍 Tier 4 Solid (${tierCounts.tier_4 || 0})</button>
+            </div>
+            <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                <span class="confluence-stat-label" style="font-size: 12px; font-weight: 700; text-transform: uppercase;">Action:</span>
+                <button class="confluence-filter-chip ${window.activeConfluenceBuyZoneFilter === 'ALL' ? 'active' : ''}" onclick="window.setConfluenceBuyZoneFilter('ALL')">All (${candidates.length})</button>
+                <button class="confluence-filter-chip ${window.activeConfluenceBuyZoneFilter === 'IN_BUY_ZONE' ? 'active' : ''}" onclick="window.setConfluenceBuyZoneFilter('IN_BUY_ZONE')">🎯 In Buy Zone (${actionCounts.IN_BUY_ZONE})</button>
+                <button class="confluence-filter-chip ${window.activeConfluenceBuyZoneFilter === 'FORMING_BASE' ? 'active' : ''}" onclick="window.setConfluenceBuyZoneFilter('FORMING_BASE')">⏳ Forming Base (${actionCounts.FORMING_BASE})</button>
+                <button class="confluence-filter-chip ${window.activeConfluenceBuyZoneFilter === 'EXTENDED' ? 'active' : ''}" onclick="window.setConfluenceBuyZoneFilter('EXTENDED')">⚠️ Extended (${actionCounts.EXTENDED})</button>
+            </div>
+            <div style="display: flex; align-items: center; gap: 8px; margin-left: auto;">
+                <button id="btn-confluence-create-watchlist" class="confluence-create-wl-btn" onclick="window.openConfluenceWatchlistModal()" ${filtered.length === 0 ? 'disabled' : ''}>
+                    <span>➕</span> Save Watchlist (${filtered.length})
+                </button>
+            </div>
+        </div>
+
+
+        <!-- Stock Cards Grid -->
+        <div class="confluence-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 16px;">
+    `;
+
+    if (filtered.length === 0) {
+        html += `
+            <div style="grid-column: 1 / -1; text-align: center; padding: 50px; background: rgba(30, 41, 59, 0.4); border-radius: 12px; color: var(--text-secondary, #94a3b8);">
+                <div style="font-size: 24px; margin-bottom: 8px;">🔍</div>
+                <div style="font-size: 15px; font-weight: 700;">No stocks match the selected filter</div>
+                <div style="font-size: 13px; margin-top: 4px;">Try selecting 'All' to view all confluence candidates.</div>
+            </div>
+        `;
+    } else {
+        filtered.forEach(item => {
+            const sym = item.symbol || '';
+            const cleanSym = sym.replace('.NS', '').replace('.BO', '');
+            const chg = item.change_percent || 0;
+            const chgClass = chg >= 0 ? 'text-success' : 'text-danger';
+            const chgSign = chg >= 0 ? '+' : '';
+            const lvl = item.tactical_levels || {};
+
+            let bzStyle = 'background: rgba(16, 185, 129, 0.2); border: 1px solid #10b981; color: #10b981;';
+            if (item.buy_zone_status === 'EXTENDED') {
+                bzStyle = 'background: rgba(239, 68, 68, 0.2); border: 1px solid #ef4444; color: #ef4444;';
+            } else if (item.buy_zone_status === 'FORMING_BASE') {
+                bzStyle = 'background: rgba(59, 130, 246, 0.2); border: 1px solid #3b82f6; color: #3b82f6;';
+            }
+
+            let tierBorder = 'border-color: rgba(245, 158, 11, 0.5);';
+            if (item.tier_code === 2) tierBorder = 'border-color: rgba(56, 189, 248, 0.4);';
+            if (item.tier_code === 3) tierBorder = 'border-color: rgba(168, 85, 247, 0.4);';
+            if (item.tier_code === 4) tierBorder = 'border-color: var(--border-glass, rgba(255,255,255,0.08));';
+
+            html += `
+                <div class="confluence-card" style="border: 1px solid; ${tierBorder} border-radius: 14px; padding: 18px; position: relative; display: flex; flex-direction: column; justify-content: space-between;">
+                    
+                    <!-- Header Row -->
+                    <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px;">
+                        <div>
+                            <div style="display: flex; align-items: center; gap: 8px;">
+                                <a href="javascript:void(0)" class="confluence-sym-link" onclick="window.switchTab && window.switchTab('analyzer'); window.loadStockProfile && window.loadStockProfile('${sym}')" style="font-size: 18px; font-weight: 800; text-decoration: none; font-family: 'Outfit', sans-serif;">
+                                    ${cleanSym}
+                                </a>
+                                <span style="font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 12px; ${bzStyle}">
+                                    ${item.buy_zone_label || '🎯 IN BUY ZONE'}
+                                </span>
+                            </div>
+                            <div style="font-size: 12px; margin-top: 2px; font-weight: 500;">
+                                ${item.company_name} · <span style="color: #f59e0b; font-weight: 700;">${item.sector}</span>
+                                ${item.is_hot_sector ? '<span style="color: #ef4444; font-weight: 700; margin-left: 4px;">🔥 Hot Group</span>' : ''}
+                            </div>
+                        </div>
+                        <div style="text-align: right;">
+                            <div class="confluence-price-text" style="font-size: 17px; font-weight: 800;">₹${(item.current_price || 0).toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</div>
+                            <div style="font-size: 12px; font-weight: 700;" class="${chgClass}">${chgSign}${chg.toFixed(2)}%</div>
+                        </div>
+                    </div>
+
+                    <!-- Confluence Badge Banner -->
+                    <div class="confluence-badge-box" style="display: flex; align-items: center; justify-content: space-between; padding: 8px 12px; border-radius: 8px; margin-bottom: 12px;">
+                        <div style="display: flex; align-items: center; gap: 6px;">
+                            <span style="font-size: 13px;">🏆</span>
+                            <span style="font-size: 12px; font-weight: 800; color: #f59e0b;">${item.confluence_count} Screeners Triggered</span>
+                        </div>
+                        <span style="font-size: 11px; font-weight: 700; color: #38bdf8; background: rgba(56, 189, 248, 0.15); padding: 2px 8px; border-radius: 10px;">
+                            ${item.dimensions_count || 1} Categories Passed
+                        </span>
+                    </div>
+
+                    <!-- Screeners Passed Badges -->
+                    <div style="display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 14px;">
+                        ${(item.screeners_passed || []).map(s => `
+                            <span class="${s.badge || 'badge-vcp'}" style="font-size: 11px; font-weight: 700; padding: 3px 9px; border-radius: 6px; display: inline-flex; align-items: center; gap: 4px;">
+                                ${s.label}
+                            </span>
+                        `).join('')}
+                    </div>
+
+                    <!-- Tactical Risk-Reward Grid -->
+                    <div class="confluence-rr-grid" style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; padding: 10px; border-radius: 8px; margin-bottom: 12px; text-align: center;">
+                        <div>
+                            <div class="confluence-rr-label" style="font-size: 10px; font-weight: 600;">PIVOT</div>
+                            <div style="font-size: 12px; font-weight: 800; color: #38bdf8;">₹${lvl.pivot_price || 0}</div>
+                        </div>
+                        <div>
+                            <div class="confluence-rr-label" style="font-size: 10px; font-weight: 600;">STOP</div>
+                            <div style="font-size: 12px; font-weight: 800; color: #f87171;">₹${lvl.stop_loss || 0}</div>
+                        </div>
+                        <div>
+                            <div class="confluence-rr-label" style="font-size: 10px; font-weight: 600;">TARGET</div>
+                            <div style="font-size: 12px; font-weight: 800; color: #34d399;">₹${lvl.target_1 || 0}</div>
+                        </div>
+                        <div>
+                            <div class="confluence-rr-label" style="font-size: 10px; font-weight: 600;">R:R</div>
+                            <div style="font-size: 12px; font-weight: 800; color: #f59e0b;">${lvl.rr_ratio || 2.0}:1</div>
+                        </div>
+                    </div>
+
+                    <!-- Action Guidance & Interactive Buttons Footer -->
+                    <div style="display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: auto; padding-top: 10px; border-top: 1px solid var(--border-glass, rgba(255,255,255,0.06)); flex-wrap: wrap;">
+                        <div class="confluence-action-footer" style="font-size: 11.5px; line-height: 1.4; padding: 6px 10px; border-radius: 6px; border-left: 3px solid #f59e0b; flex: 1; min-width: 170px;">
+                            ${item.tactical_action || 'Look for high-volume breakout near pivot level.'}
+                        </div>
+                        <div style="display: flex; gap: 6px; flex-shrink: 0;">
+                            <button onclick="event.stopPropagation(); window.launchStageSimulator && window.launchStageSimulator('${cleanSym}')" class="btn-secondary quant-sim-btn" style="padding: 6px 11px; font-size: 11.5px; border-radius: 7px; cursor: pointer; white-space: nowrap; display: inline-flex; align-items: center; gap: 4px; font-weight: 700; background: rgba(168, 85, 247, 0.15); border: 1px solid rgba(168, 85, 247, 0.4); color: #c084fc;" title="Scan stock in 4-Stage Life Cycle Masterclass Simulator">
+                                Simulate ⚙️
+                            </button>
+                            <button onclick="event.stopPropagation(); window.openTradingViewChart && window.openTradingViewChart('${cleanSym}')" class="btn-secondary quant-chart-btn" style="padding: 6px 12px; font-size: 11.5px; border-radius: 7px; cursor: pointer; white-space: nowrap; display: inline-flex; align-items: center; gap: 3px; font-weight: 700; background: rgba(56, 189, 248, 0.15); border: 1px solid rgba(56, 189, 248, 0.4); color: #38bdf8;" title="View Interactive Technical Chart">
+                                Chart ↗
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+        });
+    }
+
+    html += `</div>`;
+    container.innerHTML = html;
+};
+
+
+
+window.setConfluenceTierFilter = function(tier) {
+    window.activeConfluenceTierFilter = tier;
+    if (window.cachedConfluenceResponse) {
+        window.renderMultiConfluenceLeaderboard(window.cachedConfluenceResponse);
+    } else {
+        window.loadMultiConfluenceLeaderboard();
+    }
+};
+
+window.setConfluenceBuyZoneFilter = function(status) {
+    window.activeConfluenceBuyZoneFilter = window.activeConfluenceBuyZoneFilter === status ? 'ALL' : status;
+    if (window.cachedConfluenceResponse) {
+        window.renderMultiConfluenceLeaderboard(window.cachedConfluenceResponse);
+    } else {
+        window.loadMultiConfluenceLeaderboard();
+    }
+};
+
+window.openConfluenceWatchlistModal = function() {
+    const filtered = window.currentFilteredConfluenceStocks || [];
+    if (!filtered || filtered.length === 0) {
+        if (typeof showToast === 'function') showToast('No filtered stocks available to save', 'warning');
+        return;
+    }
+
+    const tierFilter = window.activeConfluenceTierFilter || 'ALL';
+    const actionFilter = window.activeConfluenceBuyZoneFilter || 'ALL';
+
+    const parts = [];
+    if (tierFilter !== 'ALL') {
+        const tierNames = { tier_1: 'Tier 1 Apex', tier_2: 'Tier 2 High', tier_3: 'Tier 3 Catalyst', tier_4: 'Tier 4 Solid' };
+        parts.push(tierNames[tierFilter] || tierFilter);
+    }
+    if (actionFilter !== 'ALL') {
+        const actionNames = { IN_BUY_ZONE: 'In Buy Zone', FORMING_BASE: 'Forming Base', EXTENDED: 'Extended' };
+        parts.push(actionNames[actionFilter] || actionFilter);
+    }
+
+    const dateStr = new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short' });
+    const defaultName = `Confluence: ${parts.length ? parts.join(' - ') : 'All Leaderboard'} (${dateStr})`;
+
+    let existingOptionsHtml = '<option value="NEW">+ Create New Watchlist</option>';
+    if (typeof watchlistsList !== 'undefined' && Array.isArray(watchlistsList) && watchlistsList.length > 0) {
+        watchlistsList.forEach(w => {
+            if (w && w.id) {
+                existingOptionsHtml += `<option value="${w.id}">Append to: ${w.name} (${w.items ? w.items.length : 0} items)</option>`;
+            }
+        });
+    }
+
+    const modalHtml = `
+        <div id="confluence-watchlist-modal" class="confluence-modal-backdrop" onclick="if(event.target === this) window.closeConfluenceWatchlistModal()">
+            <div class="confluence-modal-content">
+                <div class="confluence-modal-header">
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <span style="font-size: 20px;">📋</span>
+                        <h3 class="confluence-modal-title">Create Watchlist from Filter</h3>
+                    </div>
+                    <button class="confluence-modal-close-btn" onclick="window.closeConfluenceWatchlistModal()">&times;</button>
+                </div>
+                
+                <div class="confluence-modal-body">
+                    <!-- Filter Context Summary -->
+                    <div class="confluence-filter-summary-box">
+                        <span class="confluence-summary-label">Active Filter:</span>
+                        <span class="confluence-summary-tag">${parts.length ? parts.join(' • ') : 'All Candidates'}</span>
+                        <span class="confluence-summary-count">${filtered.length} Stocks</span>
+                    </div>
+
+                    <!-- Target Selection -->
+                    <div style="margin-bottom: 16px;">
+                        <label class="confluence-input-label">Target Watchlist:</label>
+                        <select id="confluence-wl-target-select" class="confluence-modal-select" onchange="window.toggleConfluenceWatchlistNameInput(this.value)">
+                            ${existingOptionsHtml}
+                        </select>
+                    </div>
+
+                    <!-- Watchlist Name Input -->
+                    <div id="confluence-wl-name-group" style="margin-bottom: 16px;">
+                        <label class="confluence-input-label">Watchlist Name:</label>
+                        <input type="text" id="confluence-wl-name-input" class="confluence-modal-input" value="${defaultName}" placeholder="Enter watchlist name..." />
+                    </div>
+
+                    <!-- Matching Symbols Badges -->
+                    <div style="margin-bottom: 8px;">
+                        <label class="confluence-input-label">Matching Symbols (${filtered.length}):</label>
+                        <div class="confluence-symbols-scroll-box">
+                            ${filtered.map(item => {
+                                const cleanSym = (item.symbol || '').replace('.NS','').replace('.BO','');
+                                return `<span class="confluence-symbol-chip">${cleanSym}</span>`;
+                            }).join('')}
+                        </div>
+                    </div>
+                </div>
+
+                <div class="confluence-modal-footer">
+                    <button class="confluence-btn-secondary" onclick="window.closeConfluenceWatchlistModal()">Cancel</button>
+                    <button id="btn-submit-confluence-wl" class="confluence-btn-primary" onclick="window.submitConfluenceWatchlist()">
+                        <span>💾</span> Save Watchlist (${filtered.length})
+                    </button>
+                </div>
+            </div>
+        </div>
+    `;
+
+    const existingModal = document.getElementById('confluence-watchlist-modal');
+    if (existingModal) existingModal.remove();
+
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+};
+
+window.toggleConfluenceWatchlistNameInput = function(val) {
+    const nameGroup = document.getElementById('confluence-wl-name-group');
+    if (nameGroup) {
+        nameGroup.style.display = (val === 'NEW') ? 'block' : 'none';
+    }
+};
+
+window.closeConfluenceWatchlistModal = function() {
+    const modal = document.getElementById('confluence-watchlist-modal');
+    if (modal) modal.remove();
+};
+
+window.submitConfluenceWatchlist = async function() {
+    const filtered = window.currentFilteredConfluenceStocks || [];
+    if (!filtered || filtered.length === 0) {
+        if (typeof showToast === 'function') showToast('No stocks available to save', 'warning');
+        return;
+    }
+
+    const targetSelect = document.getElementById('confluence-wl-target-select');
+    const targetVal = targetSelect ? targetSelect.value : 'NEW';
+    const nameInput = document.getElementById('confluence-wl-name-input');
+    const submitBtn = document.getElementById('btn-submit-confluence-wl');
+
+    let watchlistId = null;
+    let watchlistName = '';
+
+    if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<span>⏳</span> Saving...';
+    }
+
+    try {
+        if (targetVal === 'NEW') {
+            watchlistName = nameInput ? nameInput.value.trim() : 'Confluence Watchlist';
+            if (!watchlistName) watchlistName = 'Confluence Watchlist';
+
+            const createRes = await fetch('/api/watchlists', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name: watchlistName })
+            });
+            const createData = await createRes.json();
+            if (!createData.id) throw new Error('Failed to create watchlist in database');
+            watchlistId = createData.id;
+        } else {
+            watchlistId = parseInt(targetVal, 10);
+            const selectedOpt = targetSelect.options[targetSelect.selectedIndex];
+            watchlistName = selectedOpt ? selectedOpt.text.replace(/^Append to:\s*/, '') : 'Selected Watchlist';
+        }
+
+        let addedCount = 0;
+        for (const item of filtered) {
+            const sym = item.symbol || '';
+            if (!sym) continue;
+            try {
+                await fetch(`/api/watchlists/${watchlistId}/items`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ symbol: sym })
+                });
+                addedCount++;
+            } catch (e) {
+                console.error(`Error adding ${sym} to watchlist ${watchlistId}:`, e);
+            }
+        }
+
+        window.closeConfluenceWatchlistModal();
+        if (typeof showToast === 'function') {
+            showToast(`Saved ${addedCount} stocks to Watchlist "${watchlistName}"`, 'success');
+        }
+
+        if (typeof fetchWatchlists === 'function') {
+            fetchWatchlists(true);
+        }
+    } catch (err) {
+        console.error('Error in submitConfluenceWatchlist:', err);
+        if (typeof showToast === 'function') {
+            showToast('Failed to save watchlist: ' + err.message, 'error');
+        }
+        if (submitBtn) {
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = `<span>💾</span> Save Watchlist (${filtered.length})`;
+        }
+    }
+};
+
 window.filterDiagScreenerGrid = function(mode) {
     const grid = document.getElementById('diag-screener-cards-wrap');
     if (!grid) return;
@@ -57636,19 +58143,20 @@ window.runStockStageSimulator = async function(symbolInput) {
 
         const m = data.metrics || {};
         const st = data.screener_status || {};
-        
+        const sa = data.screener_audit || {};
+
         const screenersList = [
-            { key: 'vcp', name: 'Minervini VCP', icon: '🔥', obj: st.vcp || {} },
-            { key: 'weinstein_stage2', name: 'Stage 2 Breakout', icon: '📈', obj: st.weinstein_stage2 || {} },
-            { key: 'htf', name: 'High-Tight Flag', icon: '🚀', obj: st.htf || {} },
-            { key: 'three_wt', name: '3-Weeks Tight', icon: '🎯', obj: st.three_wt || {} },
-            { key: 'flat_base', name: 'Flat Base', icon: '🧱', obj: st.flat_base || {} },
-            { key: 'episodic_pivot', name: 'Episodic Pivot', icon: '⚡', obj: st.episodic_pivot || st.episodic || {} },
-            { key: 'pocket_pivot', name: 'Pocket Pivot', icon: '💎', obj: st.pocket_pivot || st.pocket || {} },
-            { key: 'oliver_kell', name: 'Oliver Kell', icon: '🌊', obj: st.oliver_kell || st.kell || {} },
-            { key: 'cup_with_handle', name: 'Cup with Handle', icon: '☕', obj: st.cup_with_handle || st.cup_handle || {} },
-            { key: 'rs_line_new_high', name: 'RS Line New High', icon: '🚀', obj: st.rs_line_new_high || st.rsnh || {} },
-            { key: 'undercut_and_rally', name: 'Undercut & Rally', icon: '⚡', obj: st.undercut_and_rally || st.undercut || {} }
+            { key: 'vcp', name: 'Mark Minervini VCP & CANSLIM', icon: '🔥', obj: sa.vcp || st.vcp || {} },
+            { key: 'weinstein_stage2', name: 'Stan Weinstein Stage 2 Breakout', icon: '📈', obj: sa.weinstein_stage2 || st.weinstein_stage2 || {} },
+            { key: 'htf', name: 'David Ryan High-Tight Flag (HTF)', icon: '🚀', obj: sa.htf || st.htf || {} },
+            { key: 'three_wt', name: '3-Weeks Tight (3WT)', icon: '🎯', obj: sa.three_wt || st.three_wt || {} },
+            { key: 'flat_base', name: 'Modern Flat Base Breakout', icon: '🧱', obj: sa.flat_base || st.flat_base || {} },
+            { key: 'episodic_pivot', name: 'Kristjan Qullamaggie Episodic Pivot (EP)', icon: '⚡', obj: sa.episodic_pivot || st.episodic_pivot || st.episodic || {} },
+            { key: 'pocket_pivot', name: 'Gil Morales Pocket Pivot Accumulation', icon: '💎', obj: sa.pocket_pivot || st.pocket_pivot || st.pocket || {} },
+            { key: 'oliver_kell', name: 'Oliver Kell 10/20 EMA Reversal & Wedge Pop', icon: '🌊', obj: sa.oliver_kell || st.oliver_kell || st.kell || {} },
+            { key: 'cup_with_handle', name: 'William O\'Neil / CANSLIM Cup with Handle', icon: '☕', obj: sa.cup_with_handle || st.cup_with_handle || st.cup_handle || {} },
+            { key: 'rs_line_new_high', name: 'William O\'Neil RS Line New High (RSNH)', icon: '🚀', obj: sa.rs_line_new_high || st.rs_line_new_high || st.rsnh || {} },
+            { key: 'undercut_and_rally', name: 'Mark Minervini Undercut & Rally (U&R)', icon: '⚡', obj: sa.undercut_and_rally || st.undercut_and_rally || st.undercut || {} }
         ];
 
         let qualCount = 0;
@@ -57809,53 +58317,48 @@ window.runStockStageSimulator = async function(symbolInput) {
                 </div>
             </div>
 
-            <!-- Detailed 11-Screener Algorithmic Diagnostic Audit & Criteria Breakdown -->
-            <div class="audit-section-container" style="border-radius: 10px; padding: 14px; margin-bottom: 16px;">
-                <h5 style="margin: 0 0 12px 0; font-size: 13px; font-weight: 800; color: #38bdf8; display: flex; align-items: center; gap: 6px;">
-                    📊 11-Screener Algorithmic Diagnostic Audit & Criteria Breakdown
+
+            <!-- Full 11-Screener Algorithmic Diagnostic Audit & Criteria Breakdown (Exact Match to Reference Screenshot 1) -->
+            <div class="audit-section-container" style="margin-bottom: 20px; background: var(--card-bg, rgba(15, 23, 42, 0.6)); border: 1px solid var(--border-color, rgba(255, 255, 255, 0.1)); border-radius: 12px; padding: 18px 20px;">
+                <h5 style="margin: 0 0 16px 0; font-size: 14px; font-weight: 800; color: var(--text-color, #f8fafc); display: flex; align-items: center; gap: 8px;">
+                    <span>📊</span> 11-Screener Algorithmic Diagnostic Audit & Criteria Breakdown
                 </h5>
                 
-                <div class="audit-cards-wrap" style="display: flex; flex-direction: column; gap: 10px;">
-                    ${Object.entries(data.screener_audit || {}).map(([key, item]) => {
-                        const isQual = item.qualified;
+                <div class="audit-cards-wrap" style="display: flex; flex-direction: column; gap: 12px;">
+                    ${screenersList.map(s => {
+                        const isQual = s.obj.qualified;
+                        const displayName = s.obj.name || s.name;
+                        const reqVal = s.obj.required || "SEPA / O'Neil Criteria";
+                        const actVal = s.obj.actual || (isQual ? 'Criteria Met' : 'Threshold Not Met');
+                        const reasonVal = s.obj.reason || '';
+
                         const statusBadge = isQual 
-                            ? `<span style="background: rgba(52, 211, 153, 0.15); color: #34d399; border: 1px solid #34d399; padding: 2px 6px; border-radius: 4px; font-weight: 800; font-size: 10.5px; white-space: nowrap;">QUALIFIED 🟢</span>`
-                            : `<span style="background: rgba(248, 113, 113, 0.15); color: #f87171; border: 1px solid #f87171; padding: 2px 6px; border-radius: 4px; font-weight: 800; font-size: 10.5px; white-space: nowrap;">REJECTED ❌</span>`;
+                            ? `<span style="background: rgba(52, 211, 153, 0.12); color: #34d399; border: 1px solid #34d399; padding: 3px 10px; border-radius: 6px; font-weight: 800; font-size: 11px;">QUALIFIED ✅</span>`
+                            : `<span style="background: rgba(248, 113, 113, 0.12); color: #f87171; border: 1px solid #f87171; padding: 3px 10px; border-radius: 6px; font-weight: 800; font-size: 11px;">REJECTED ❌</span>`;
+
                         return `
-                            <div class="audit-mobile-card" style="border-radius: 10px; padding: 12px;">
+                            <div class="audit-mobile-card" style="background: var(--bg-glass-input, rgba(30, 41, 59, 0.5)); border: 1px solid ${isQual ? 'rgba(52, 211, 153, 0.3)' : 'rgba(248, 113, 113, 0.25)'}; border-radius: 10px; padding: 14px 16px;">
                                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; gap: 8px; flex-wrap: wrap;">
-                                    <strong style="font-size: 12.5px; color: var(--text-primary, #f8fafc); font-weight: 800;">${item.name || key}</strong>
+                                    <strong style="font-size: 13px; color: var(--text-color, #f8fafc); font-weight: 800;">${displayName}</strong>
                                     ${statusBadge}
                                 </div>
-                                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 11px; background: rgba(15, 23, 42, 0.6); padding: 8px 10px; border-radius: 6px; margin-bottom: 8px;">
+                                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; font-size: 11px; background: rgba(15, 23, 42, 0.4); padding: 10px 14px; border-radius: 6px; margin-bottom: 10px;">
                                     <div>
-                                        <span style="font-size: 10px; color: var(--text-muted, #94a3b8); text-transform: uppercase; font-weight: 700; display: block; margin-bottom: 2px;">Textbook Requirement</span>
-                                        <span style="color: var(--text-secondary, #cbd5e1); font-family: monospace; font-size: 10.5px; font-weight: 600;">${item.required || ''}</span>
+                                        <span style="font-size: 10px; color: #94a3b8; text-transform: uppercase; font-weight: 800; letter-spacing: 0.5px; display: block; margin-bottom: 3px;">TEXTBOOK REQUIREMENT</span>
+                                        <span style="color: var(--text-color, #cbd5e1); font-family: 'JetBrains Mono', monospace; font-size: 11px; font-weight: 600; line-height: 1.4;">${reqVal}</span>
                                     </div>
                                     <div>
-                                        <span style="font-size: 10px; color: var(--text-muted, #94a3b8); text-transform: uppercase; font-weight: 700; display: block; margin-bottom: 2px;">Actual Stock Metric</span>
-                                        <span style="color: #fbbf24; font-family: monospace; font-weight: 800; font-size: 10.5px;">${item.actual || ''}</span>
+                                        <span style="font-size: 10px; color: #94a3b8; text-transform: uppercase; font-weight: 800; letter-spacing: 0.5px; display: block; margin-bottom: 3px;">ACTUAL STOCK METRIC</span>
+                                        <span style="color: ${isQual ? '#34d399' : '#fbbf24'}; font-family: 'JetBrains Mono', monospace; font-weight: 800; font-size: 11px; line-height: 1.4;">${actVal}</span>
                                     </div>
                                 </div>
-                                <div style="font-size: 11px; color: var(--text-secondary, #cbd5e1); line-height: 1.45;">
-                                    <strong style="color: var(--text-muted, #94a3b8); font-weight: 700;">Diagnostic Reason: </strong>${item.reason || ''}
+                                <div style="font-size: 12px; color: var(--text-secondary, #cbd5e1); line-height: 1.45;">
+                                    <strong style="color: #94a3b8; font-weight: 700;">Diagnostic Reason: </strong>${reasonVal}
                                 </div>
                             </div>
                         `;
                     }).join('')}
                 </div>
-            </div>
-
-            <!-- NEW: Key Technical Takeaways & Strategic Action Levels Card -->
-            <div style="background: rgba(30, 41, 59, 0.5); border: 1px solid rgba(56, 189, 248, 0.3); border-radius: 10px; padding: 14px;">
-                <h5 style="margin: 0 0 10px 0; font-size: 13px; font-weight: 800; color: #fbbf24; display: flex; align-items: center; gap: 6px;">
-                    📌 Key Takeaways & Strategic Actionable Insights
-                </h5>
-                <ul style="margin: 0; padding-left: 18px; font-size: 11.5px; color: #cbd5e1; line-height: 1.6;">
-                    <li><strong style="color: #f8fafc;">Stage Cycle Structure:</strong> Stock is currently in <span style="color: #38bdf8; font-weight: 700;">${data.stage_name || ''}</span> with a 30-week MA slope of <span style="font-family: monospace; color: ${(m.ma_30wk_slope_pct||0) > 0 ? '#34d399' : '#f87171'}; font-weight: 800;">${(m.ma_30wk_slope_pct||0) > 0 ? '+' : ''}${(m.ma_30wk_slope_pct||0).toFixed(2)}%</span>.</li>
-                    <li><strong style="color: #f8fafc;">Key Technical Levels:</strong> Pivot Resistance: <span style="color: #fbbf24; font-family: monospace; font-weight: 700;">₹${(m.pivot_price||0).toFixed(2)}</span> | Protective Risk Stop: <span style="color: #f87171; font-family: monospace; font-weight: 700;">₹${(m.stop_loss||0).toFixed(2)}</span> | Target 1: <span style="color: #34d399; font-family: monospace; font-weight: 700;">₹${(m.target_1||0).toFixed(2)}</span>.</li>
-                    <li><strong style="color: #f8fafc;">Breakout Catalysts Required:</strong> Needs volume expansion <span style="color: #2dd4bf; font-weight: 700;">≥ 1.40x - 2.0x 20-day average volume</span> on a move above ₹${(m.pivot_price||0).toFixed(2)} to confirm high-conviction Stage 2 institutional mark-up.</li>
-                </ul>
             </div>
 
             <!-- On-Demand AI Masterclass Synthesis Panel -->

@@ -2142,6 +2142,13 @@ body.light-theme #weinstein-playbook-card div[style*="background: rgba(15, 23, 4
     transform: translateY(-1px) scale(1.03);
 }
 
+.quant-subtab-btn.active#quant-subtab-confluence {
+    color: #fbbf24;
+    background: rgba(245, 158, 11, 0.22);
+    border-color: #f59e0b;
+    box-shadow: 0 4px 16px rgba(245, 158, 11, 0.35);
+}
+
 .quant-subtab-btn.active#quant-subtab-vcp {
     color: #fbbf24;
     background: rgba(245, 158, 11, 0.22);
@@ -2335,6 +2342,14 @@ body.light-theme .quant-subtab-btn.active,
     font-weight: 800 !important;
     transform: translateY(-1px) scale(1.03) !important;
     box-shadow: 0 4px 14px rgba(0, 0, 0, 0.15) !important;
+}
+
+body.light-theme .quant-subtab-btn.active#quant-subtab-confluence,
+[data-theme="light"] .quant-subtab-btn.active#quant-subtab-confluence,
+[data-mode="light"] .quant-subtab-btn.active#quant-subtab-confluence {
+    background: #fef3c7 !important;
+    border: 2px solid #d97706 !important;
+    color: #92400e !important;
 }
 
 body.light-theme .quant-subtab-btn.active#quant-subtab-vcp,
