@@ -2955,6 +2955,11 @@ def detect_oliver_kell_reversal(df: pd.DataFrame) -> dict:
         c_sma50 = clean_float(sma50[-1])
         c_sma200 = clean_float(sma200[-1])
 
+        default_res["ema10"] = round(c_ema10, 2)
+        default_res["ema20"] = round(c_ema20, 2)
+        default_res["current_price"] = round(curr_price, 2)
+        default_res["day_change_pct"] = day_change_pct
+
         # 1. MA Stack Alignment
         if not (curr_price >= c_ema10 * 0.97 and c_ema10 >= c_ema20 * 0.98 and c_ema20 >= c_sma50 * 0.98 and c_sma50 >= c_sma200 * 0.98):
             default_res["rejection_reason"] = "Fails Oliver Kell MA Stack (Price > 10 EMA > 20 EMA > 50 SMA > 200 SMA)"
@@ -3416,6 +3421,8 @@ def detect_undercut_and_rally(df: pd.DataFrame, rs_score: float = 0.0) -> dict:
         undercut_pct = 0.0
 
         avg_vol_20 = float(vol_s.tail(20).mean())
+        default_res["prior_swing_low"] = round(prior_swing_low, 2)
+        default_res["reclaim_vol_ratio"] = round(float(vol_s.iloc[-1]) / avg_vol_20, 2) if avg_vol_20 > 0 else 1.0
 
         for offset in range(1, 4):
             idx = -offset

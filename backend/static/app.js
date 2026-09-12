@@ -57674,7 +57674,7 @@ window.runStockStageSimulator = async function(symbolInput) {
 
         resContainer.innerHTML = `
             <!-- Plain-English Stage Executive Verdict Banner -->
-            <div class="stage-verdict-banner stage-verdict-s${stageNum}">
+            <div class="stage-verdict-banner stage-verdict-s${stageNum} stage-${stageNum}-banner">
                 <div class="stage-verdict-top">
                     <div class="stage-verdict-symbol-info">
                         <h4 class="stage-verdict-symbol">
@@ -57738,7 +57738,7 @@ window.runStockStageSimulator = async function(symbolInput) {
             <!-- 11-Screener Qualification Status Cards with Filter Chips Bar -->
             <div class="diag-screener-header">
                 <h5 class="diag-screener-title">🎯 11-Screener Qualification Results</h5>
-                <div class="diag-screener-filter-bar">
+                <div class="diag-screener-filter-bar diag-filter-bar">
                     <button class="diag-filter-btn active" data-mode="all" onclick="filterDiagScreenerGrid('all')">All (11)</button>
                     <button class="diag-filter-btn" data-mode="qualified" onclick="filterDiagScreenerGrid('qualified')">Qualified (${qualCount})</button>
                     <button class="diag-filter-btn" data-mode="rejected" onclick="filterDiagScreenerGrid('rejected')">Rejected (${rejCount})</button>
@@ -57750,7 +57750,7 @@ window.runStockStageSimulator = async function(symbolInput) {
                     const isQual = s.obj.qualified;
                     const reasonText = simplifyDiagnosticReason(s.key, s.obj.reason || '', isQual);
                     return `
-                        <div class="diag-screener-card ${isQual ? 'qualified' : 'rejected'}" data-qualified="${isQual}">
+                        <div class="diag-screener-card ${isQual ? 'qualified qualified-card' : 'rejected rejected-card'}" data-qualified="${isQual}">
                             <div class="diag-screener-card-header">
                                 <strong class="diag-screener-name">${s.icon} ${s.name}</strong>
                                 <span class="diag-screener-badge ${isQual ? 'qual' : 'rej'}">

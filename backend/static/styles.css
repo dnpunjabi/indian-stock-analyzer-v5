@@ -35021,6 +35021,151 @@ body.light-theme .highlight-green { color: #059669 !important; }
     }
 }
 
+/* Stage Engine Executive Verdict & Playbook Cards Styling */
+.stage-verdict-banner {
+    border-radius: 12px;
+    padding: 16px;
+    margin-bottom: 20px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+    box-sizing: border-box;
+}
+
+.stage-verdict-banner.stage-2-banner {
+    background: linear-gradient(135deg, rgba(0, 230, 118, 0.12) 0%, rgba(16, 185, 129, 0.05) 100%);
+    border: 1px solid rgba(0, 230, 118, 0.35);
+}
+.stage-verdict-banner.stage-1-banner {
+    background: linear-gradient(135deg, rgba(245, 158, 11, 0.12) 0%, rgba(217, 119, 6, 0.05) 100%);
+    border: 1px solid rgba(245, 158, 11, 0.35);
+}
+.stage-verdict-banner.stage-3-banner {
+    background: linear-gradient(135deg, rgba(251, 146, 60, 0.12) 0%, rgba(234, 88, 12, 0.05) 100%);
+    border: 1px solid rgba(251, 146, 60, 0.35);
+}
+.stage-verdict-banner.stage-4-banner {
+    background: linear-gradient(135deg, rgba(255, 82, 82, 0.12) 0%, rgba(220, 38, 38, 0.05) 100%);
+    border: 1px solid rgba(255, 82, 82, 0.35);
+}
+
+.diag-filter-bar {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+.diag-filter-btn {
+    background: var(--bg-card-sub, rgba(255, 255, 255, 0.05));
+    border: 1px solid var(--border-glass, rgba(255, 255, 255, 0.12));
+    color: var(--text-secondary, #94a3b8);
+    border-radius: 20px;
+    padding: 4px 12px;
+    font-size: 0.78rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+.diag-filter-btn:hover {
+    background: rgba(59, 130, 246, 0.15);
+    color: var(--text-primary, #ffffff);
+}
+.diag-filter-btn.active {
+    background: rgba(59, 130, 246, 0.25);
+    border-color: #3b82f6;
+    color: #60a5fa;
+}
+
+.diag-screener-card {
+    background: var(--bg-card, #0e131f);
+    border-radius: 10px;
+    padding: 12px 14px;
+    box-sizing: border-box;
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+.diag-screener-card:hover {
+    transform: translateY(-1px);
+}
+.diag-screener-card.qualified-card {
+    border: 1px solid rgba(0, 230, 118, 0.28);
+    background: linear-gradient(180deg, rgba(0, 230, 118, 0.04) 0%, var(--bg-card, #0e131f) 100%);
+}
+.diag-screener-card.rejected-card {
+    border: 1px solid rgba(255, 82, 82, 0.18);
+    background: var(--bg-card, #0e131f);
+}
+
+.tactical-playbook-card {
+    background: var(--bg-card, #0e131f);
+    border: 1px solid var(--border-glass, rgba(255, 255, 255, 0.1));
+    border-radius: 12px;
+    padding: 16px;
+    margin-top: 18px;
+    box-sizing: border-box;
+}
+
+/* Light Mode Overrides for Stage Engine Diagnostic Results */
+[data-mode="light"] .stage-verdict-banner.stage-2-banner,
+[data-theme="light"] .stage-verdict-banner.stage-2-banner,
+body.light-theme .stage-verdict-banner.stage-2-banner {
+    background: #ecfdf5 !important;
+    border: 1px solid #a7f3d0 !important;
+}
+[data-mode="light"] .stage-verdict-banner.stage-1-banner,
+[data-theme="light"] .stage-verdict-banner.stage-1-banner,
+body.light-theme .stage-verdict-banner.stage-1-banner {
+    background: #fffbeb !important;
+    border: 1px solid #fde68a !important;
+}
+[data-mode="light"] .stage-verdict-banner.stage-3-banner,
+[data-theme="light"] .stage-verdict-banner.stage-3-banner,
+body.light-theme .stage-verdict-banner.stage-3-banner {
+    background: #fff7ed !important;
+    border: 1px solid #fed7aa !important;
+}
+[data-mode="light"] .stage-verdict-banner.stage-4-banner,
+[data-theme="light"] .stage-verdict-banner.stage-4-banner,
+body.light-theme .stage-verdict-banner.stage-4-banner {
+    background: #fef2f2 !important;
+    border: 1px solid #fecaca !important;
+}
+
+[data-mode="light"] .diag-screener-card,
+[data-theme="light"] .diag-screener-card,
+body.light-theme .diag-screener-card {
+    background: #ffffff !important;
+}
+[data-mode="light"] .diag-screener-card.qualified-card,
+[data-theme="light"] .diag-screener-card.qualified-card,
+body.light-theme .diag-screener-card.qualified-card {
+    border: 1px solid #a7f3d0 !important;
+    background: #f0fdf4 !important;
+}
+[data-mode="light"] .diag-screener-card.rejected-card,
+[data-theme="light"] .diag-screener-card.rejected-card,
+body.light-theme .diag-screener-card.rejected-card {
+    border: 1px solid #e2e8f0 !important;
+    background: #f8fafc !important;
+}
+
+[data-mode="light"] .tactical-playbook-card,
+[data-theme="light"] .tactical-playbook-card,
+body.light-theme .tactical-playbook-card {
+    background: #ffffff !important;
+    border: 1px solid #e2e8f0 !important;
+}
+[data-mode="light"] .diag-filter-btn,
+[data-theme="light"] .diag-filter-btn,
+body.light-theme .diag-filter-btn {
+    background: #f1f5f9 !important;
+    border: 1px solid #cbd5e1 !important;
+    color: #475569 !important;
+}
+[data-mode="light"] .diag-filter-btn.active,
+[data-theme="light"] .diag-filter-btn.active,
+body.light-theme .diag-filter-btn.active {
+    background: #eff6ff !important;
+    border-color: #3b82f6 !important;
+    color: #1d4ed8 !important;
+}
+
 
 
 
