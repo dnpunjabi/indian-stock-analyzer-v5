@@ -3275,6 +3275,189 @@ def detect_cup_with_handle(df: pd.DataFrame, rs_score: float = 0.0) -> dict:
         return default_res
 
 
+def detect_rs_line_new_high(df: pd.DataFrame, nifty_df: pd.DataFrame = None, rs_score: float = 0.0) -> dict:
+    """
+    Detects William O'Neil RS Line New High (RSNH).
+    Calculates the ratio time-series: RS_Line = Stock_Close / Nifty_Close.
+    Returns qualified if RS_Line hits a 52-week (252 trading day) high while stock is near/below 52W high.
+    """
+    default_res = {
+        "is_rs_new_high": False,
+        "is_rsnh": False,
+        "rsnh_status": "NONE",
+        "rs_line_52w_high": False,
+        "rs_ratio_current": 0.0,
+        "rs_ratio_max_252d": 0.0,
+        "price_pct_from_52w_high": 0.0,
+        "rs_trend_20d": "FLAT",
+        "reason": "Insufficient price history"
+    }
+    try:
+        if df is None or df.empty or len(df) < 50:
+            return default_res
+
+        close_s = df['Close']
+        curr_price = float(close_s.iloc[-1])
+        high_52w = float(df['High'].tail(252).max()) if len(df) >= 252 else float(df['High'].max())
+        
+        if high_52w <= 0:
+            return default_res
+
+        dist_from_52w_pct = ((high_52w - curr_price) / high_52w) * 100.0
+
+        if nifty_df is not None and not nifty_df.empty and 'Close' in nifty_df:
+            stock_closes = df[['Close']].copy()
+            stock_closes.index = pd.to_datetime(stock_closes.index)
+            nifty_closes = nifty_df[['Close']].copy()
+            nifty_closes.index = pd.to_datetime(nifty_closes.index)
+            
+            merged = pd.merge_asof(stock_closes.sort_index(), nifty_closes.sort_index(), left_index=True, right_index=True, suffixes=('_stock', '_nifty'))
+            merged['rs_ratio'] = merged['Close_stock'] / merged['Close_nifty']
+            merged = merged.dropna(subset=['rs_ratio'])
+            
+            if len(merged) >= 20:
+                rs_series = merged['rs_ratio']
+                curr_rs_ratio = float(rs_series.iloc[-1])
+                max_rs_252d = float(rs_series.tail(252).max())
+                
+                prev_rs_20d = float(rs_series.iloc[-20]) if len(rs_series) >= 20 else curr_rs_ratio
+                rs_trend_pct = ((curr_rs_ratio - prev_rs_20d) / prev_rs_20d) * 100.0 if prev_rs_20d > 0 else 0.0
+                rs_trend = "RISING" if rs_trend_pct > 1.0 else ("FALLING" if rs_trend_pct < -1.0 else "FLAT")
+                
+                is_rs_high = (curr_rs_ratio >= max_rs_252d * 0.995)
+            else:
+                is_rs_high = False
+                curr_rs_ratio = 0.0
+                max_rs_252d = 0.0
+                rs_trend = "FLAT"
+        else:
+            curr_rs_ratio = float(rs_score) / 100.0 if rs_score > 0 else 0.85
+            max_rs_252d = 1.0
+            is_rs_high = rs_score >= 85 and dist_from_52w_pct <= 15.0
+            rs_trend = "RISING" if rs_score >= 80 else "FLAT"
+
+        is_qualified = is_rs_high and (dist_from_52w_pct <= 20.0)
+        
+        if is_qualified:
+            if dist_from_52w_pct <= 3.0:
+                status = "RSNH_BREAKOUT_READY"
+            else:
+                status = "RSNH_LEADERSHIP_QUALIFIED"
+            reason = f"RS Line at 52-week High! Stock price is {dist_from_52w_pct:.1f}% below peak."
+        else:
+            status = "NONE"
+            reason = f"RS Line not at 52W max or stock >20% below high ({dist_from_52w_pct:.1f}%)."
+
+        return {
+            "is_rs_new_high": bool(is_qualified),
+            "is_rsnh": bool(is_qualified),
+            "rsnh_status": str(status),
+            "rs_line_52w_high": bool(is_rs_high),
+            "rs_ratio_current": round(curr_rs_ratio, 6),
+            "rs_ratio_max_252d": round(max_rs_252d, 6),
+            "price_pct_from_52w_high": round(dist_from_52w_pct, 1),
+            "rs_trend_20d": str(rs_trend),
+            "reason": reason
+        }
+    except Exception as e:
+        print(f"Error in detect_rs_line_new_high: {e}")
+        default_res["reason"] = f"Error: {e}"
+        return default_res
+
+
+def detect_undercut_and_rally(df: pd.DataFrame, rs_score: float = 0.0) -> dict:
+    """
+    Detects Mark Minervini & Gil Morales Undercut & Rally (U&R).
+    Finds a healthy stock (Price > 200 SMA or near 52W High) that dipped 0.5% - 4.0% below
+    a prior key swing low (15-45 days old) and reclaimed the low on 1.3x+ volume.
+    """
+    default_res = {
+        "is_undercut_and_rally": False,
+        "is_ur": False,
+        "ur_status": "NONE",
+        "prior_swing_low": 0.0,
+        "shakeout_low": 0.0,
+        "stop_loss": 0.0,
+        "risk_pct": 0.0,
+        "reclaim_vol_ratio": 0.0,
+        "reason": "No active Undercut & Rally setup"
+    }
+    try:
+        if df is None or df.empty or len(df) < 50:
+            return default_res
+
+        close_s = df['Close']
+        high_s = df['High']
+        low_s = df['Low']
+        vol_s = df['Volume']
+        curr_price = float(close_s.iloc[-1])
+
+        sma200 = float(close_s.tail(200).mean()) if len(df) >= 200 else float(close_s.mean())
+        high_52w = float(high_s.tail(252).max()) if len(df) >= 252 else float(high_s.max())
+        dist_from_high = ((high_52w - curr_price) / high_52w) * 100.0 if high_52w > 0 else 0.0
+
+        if curr_price < sma200 * 0.95 and dist_from_high > 30.0:
+            default_res["reason"] = "Stock not in Stage 2 / Base 1 health (Below 200 SMA)"
+            return default_res
+
+        recent_window = low_s.iloc[-45:-8] if len(df) >= 45 else low_s.iloc[:-5]
+        if len(recent_window) < 10:
+            return default_res
+
+        prior_swing_low = float(recent_window.min())
+        
+        is_ur_found = False
+        shakeout_low = 0.0
+        reclaim_vol_ratio = 0.0
+        undercut_pct = 0.0
+
+        avg_vol_20 = float(vol_s.tail(20).mean())
+
+        for offset in range(1, 4):
+            idx = -offset
+            check_low = float(low_s.iloc[idx])
+            check_vol = float(vol_s.iloc[idx])
+
+            if check_low < prior_swing_low:
+                undercut_pct = ((prior_swing_low - check_low) / prior_swing_low) * 100.0
+                if 0.4 <= undercut_pct <= 5.0:
+                    if curr_price >= prior_swing_low:
+                        is_ur_found = True
+                        shakeout_low = check_low
+                        reclaim_vol_ratio = round(check_vol / avg_vol_20, 2) if avg_vol_20 > 0 else 1.0
+                        break
+
+        if not is_ur_found:
+            return default_res
+
+        stop_loss = round(shakeout_low * 0.995, 2)
+        risk_pct = round(((curr_price - stop_loss) / curr_price) * 100.0, 1)
+
+        if reclaim_vol_ratio >= 1.3:
+            ur_status = "UR_LIVE_RECLAIM"
+            reason = f"Live U&R Reclaim! Undercut prior low ₹{prior_swing_low:.2f} by {undercut_pct:.1f}% & reclaimed on {reclaim_vol_ratio}x volume."
+        else:
+            ur_status = "UR_FORMING"
+            reason = f"U&R Reclaim forming above prior low ₹{prior_swing_low:.2f} (Risk: {risk_pct}%)."
+
+        return {
+            "is_undercut_and_rally": True,
+            "is_ur": True,
+            "ur_status": str(ur_status),
+            "prior_swing_low": round(prior_swing_low, 2),
+            "shakeout_low": round(shakeout_low, 2),
+            "stop_loss": stop_loss,
+            "risk_pct": risk_pct,
+            "reclaim_vol_ratio": reclaim_vol_ratio,
+            "reason": reason
+        }
+    except Exception as e:
+        print(f"Error in detect_undercut_and_rally: {e}")
+        default_res["reason"] = f"Error: {e}"
+        return default_res
+
+
+
 
 
 

@@ -2205,6 +2205,27 @@ body.light-theme #weinstein-playbook-card div[style*="background: rgba(15, 23, 4
     box-shadow: 0 4px 16px rgba(168, 85, 247, 0.35);
 }
 
+.quant-subtab-btn.active#quant-subtab-cuphandle {
+    color: #fbbf24;
+    background: rgba(245, 158, 11, 0.22);
+    border-color: #f59e0b;
+    box-shadow: 0 4px 16px rgba(245, 158, 11, 0.35);
+}
+
+.quant-subtab-btn.active#quant-subtab-rsnh {
+    color: #c084fc;
+    background: rgba(192, 132, 252, 0.22);
+    border-color: #c084fc;
+    box-shadow: 0 4px 16px rgba(192, 132, 252, 0.35);
+}
+
+.quant-subtab-btn.active#quant-subtab-undercut {
+    color: #38bdf8;
+    background: rgba(56, 189, 248, 0.22);
+    border-color: #38bdf8;
+    box-shadow: 0 4px 16px rgba(56, 189, 248, 0.35);
+}
+
 /* Custom Table Controls & Styles */
 .quant-table-wrapper {
     width: 100%;
@@ -2386,6 +2407,30 @@ body.light-theme .quant-subtab-btn.active#quant-subtab-guide,
     background: #f3e8ff !important;
     border: 2px solid #7e22ce !important;
     color: #4c1d95 !important;
+}
+
+body.light-theme .quant-subtab-btn.active#quant-subtab-cuphandle,
+[data-theme="light"] .quant-subtab-btn.active#quant-subtab-cuphandle,
+[data-mode="light"] .quant-subtab-btn.active#quant-subtab-cuphandle {
+    background: #fef3c7 !important;
+    border: 2px solid #d97706 !important;
+    color: #92400e !important;
+}
+
+body.light-theme .quant-subtab-btn.active#quant-subtab-rsnh,
+[data-theme="light"] .quant-subtab-btn.active#quant-subtab-rsnh,
+[data-mode="light"] .quant-subtab-btn.active#quant-subtab-rsnh {
+    background: #f3e8ff !important;
+    border: 2px solid #7e22ce !important;
+    color: #581c87 !important;
+}
+
+body.light-theme .quant-subtab-btn.active#quant-subtab-undercut,
+[data-theme="light"] .quant-subtab-btn.active#quant-subtab-undercut,
+[data-mode="light"] .quant-subtab-btn.active#quant-subtab-undercut {
+    background: #e0f2fe !important;
+    border: 2px solid #0284c7 !important;
+    color: #075985 !important;
 }
 
 body.light-theme .quant-table-wrapper,

@@ -20215,6 +20215,9 @@ function setupMobileMenu() {
 
         document.addEventListener('click', (e) => {
             const navMore = document.getElementById('nav-more');
+            if (e.target && e.target.closest && (e.target.closest('.sidebar-accordion-header') || e.target.closest('.sidebar-accordion-group'))) {
+                return;
+            }
             if (sidebar.classList.contains('open') && !sidebar.contains(e.target) && e.target !== toggleBtn && e.target !== closeBtnMobile && (!navMore || !navMore.contains(e.target))) {
                 sidebar.classList.remove('open');
             }
@@ -20222,7 +20225,11 @@ function setupMobileMenu() {
 
         const navBtns = document.querySelectorAll('.nav-btn');
         navBtns.forEach(btn => {
-            btn.addEventListener('click', () => {
+            btn.addEventListener('click', (e) => {
+                if (btn.classList.contains('sidebar-accordion-header') || btn.closest('.sidebar-accordion-header') || (e.target && e.target.closest && e.target.closest('.sidebar-accordion-header'))) {
+                    if (e && typeof e.stopPropagation === 'function') e.stopPropagation();
+                    return;
+                }
                 sidebar.classList.remove('open');
             });
         });
@@ -55964,9 +55971,43 @@ window.allEpisodicStocks = [];
 window.allPocketStocks = [];
 window.allOliverKellStocks = [];
 window.allCupHandleStocks = [];
+window.allRsnhStocks = [];
+window.allUndercutStocks = [];
+
+window.toggleSidebarAccordion = function(accordionId, event) {
+    if (event) {
+        if (typeof event.stopPropagation === 'function') event.stopPropagation();
+        if (typeof event.stopImmediatePropagation === 'function') event.stopImmediatePropagation();
+    }
+    const body = document.getElementById(accordionId);
+    const arrow = document.getElementById(accordionId + '-arrow');
+    if (!body) return;
+    const isHidden = body.style.display === 'none' || getComputedStyle(body).display === 'none';
+    if (isHidden) {
+        body.style.display = 'block';
+        if (arrow) arrow.style.transform = 'rotate(180deg)';
+    } else {
+        body.style.display = 'none';
+        if (arrow) arrow.style.transform = 'rotate(0deg)';
+    }
+};
+
+window.openQuantAccordion = function() {
+    const body = document.getElementById('quant-screeners-accordion');
+    const arrow = document.getElementById('quant-screeners-accordion-arrow');
+    if (body) {
+        body.style.display = 'block';
+        if (arrow) arrow.style.transform = 'rotate(180deg)';
+    }
+};
 
 window.switchQuantScannerSubtab = function(tabName) {
-    const subtabs = ['vcp', 'weinstein', 'htf', '3wt', 'flatbase', 'episodic', 'pocket', 'oliverkell', 'cuphandle', 'guide'];
+    // Expand sidebar accordion if a sub-screener is selected
+    if (tabName !== 'guide') {
+        window.openQuantAccordion();
+    }
+
+    const subtabs = ['vcp', 'weinstein', 'htf', '3wt', 'flatbase', 'episodic', 'pocket', 'oliverkell', 'cuphandle', 'rsnh', 'undercut', 'guide'];
     const navBtnMap = {
         'vcp': 'tab-vcp-btn',
         'weinstein': 'tab-weinstein-btn',
@@ -55977,6 +56018,8 @@ window.switchQuantScannerSubtab = function(tabName) {
         'pocket': 'tab-pocket-btn',
         'oliverkell': 'tab-oliverkell-btn',
         'cuphandle': 'tab-cuphandle-btn',
+        'rsnh': 'tab-rsnh-btn',
+        'undercut': 'tab-undercut-btn',
         'guide': 'tab-quant-guide-btn'
     };
 
@@ -55995,7 +56038,7 @@ window.switchQuantScannerSubtab = function(tabName) {
     });
 
     // 2. Synchronize Sidebar Navigation Highlighted Button
-    const allQuantNavBtns = ['tab-vcp-btn', 'tab-weinstein-btn', 'tab-htf-btn', 'tab-3wt-btn', 'tab-flatbase-btn', 'tab-episodic-btn', 'tab-pocket-btn', 'tab-oliverkell-btn', 'tab-cuphandle-btn', 'tab-quant-guide-btn'];
+    const allQuantNavBtns = ['tab-vcp-btn', 'tab-weinstein-btn', 'tab-htf-btn', 'tab-3wt-btn', 'tab-flatbase-btn', 'tab-episodic-btn', 'tab-pocket-btn', 'tab-oliverkell-btn', 'tab-cuphandle-btn', 'tab-rsnh-btn', 'tab-undercut-btn', 'tab-quant-guide-btn'];
     const targetNavId = navBtnMap[tabName] || 'tab-vcp-btn';
     allQuantNavBtns.forEach(id => {
         const navBtn = document.getElementById(id);
@@ -56067,6 +56110,20 @@ window.switchQuantScannerSubtab = function(tabName) {
             window.runCupHandleScan(true, false);
         } else {
             window.runCupHandleScan(false, false);
+        }
+    } else if (tabName === 'rsnh') {
+        if (window.allRsnhStocks && window.allRsnhStocks.length > 0) {
+            window.renderRsnhTable(window.allRsnhStocks);
+            window.runRsnhScan(true, false);
+        } else {
+            window.runRsnhScan(false, false);
+        }
+    } else if (tabName === 'undercut') {
+        if (window.allUndercutStocks && window.allUndercutStocks.length > 0) {
+            window.renderUndercutTable(window.allUndercutStocks);
+            window.runUndercutScan(true, false);
+        } else {
+            window.runUndercutScan(false, false);
         }
     } else if (tabName === 'guide') {
         if (typeof window.initStageSimAutocomplete === 'function') {
@@ -57131,6 +57188,307 @@ window.filterCupHandleTable = function() {
     window.renderCupHandleTable(filtered);
 };
 
+// RS LINE NEW HIGH (RSNH) SCREENER
+window.runRsnhScan = async function(isSilent = false, forceRefresh = false) {
+    const loadingEl = document.getElementById('rsnh-loading-container');
+    
+    // SWR Hydration from Local Storage
+    let hasHydrated = false;
+    try {
+        const cached = localStorage.getItem('cache_rsnh_screener');
+        if (cached && !forceRefresh) {
+            const parsed = JSON.parse(cached);
+            const list = parsed.data || parsed.matches || [];
+            if (parsed && list.length) {
+                window.allRsnhStocks = list;
+                window.renderRsnhTable(list);
+                const badge = document.getElementById('rsnh-count-badge');
+                if (badge) badge.innerText = `${list.length} Matches`;
+                const ts = document.getElementById('rsnh-timestamp');
+                if (ts && (parsed.last_updated || parsed.timestamp)) ts.innerText = `Cached: ${parsed.last_updated || parsed.timestamp}`;
+                hasHydrated = true;
+                if (loadingEl) loadingEl.style.display = 'none';
+            }
+        }
+    } catch(e) {}
+
+    if (!isSilent && !hasHydrated && loadingEl) loadingEl.style.display = 'block';
+
+    try {
+        const url = `/api/screener/rs-line-new-high${forceRefresh ? '?force_refresh=true' : ''}`;
+        const response = await fetch(url);
+        const data = await response.json();
+
+        if (data.status === 'success') {
+            window.allRsnhStocks = data.data || data.matches || [];
+            localStorage.setItem('cache_rsnh_screener', JSON.stringify(data));
+            window.renderRsnhTable(window.allRsnhStocks);
+
+            const badge = document.getElementById('rsnh-count-badge');
+            const cnt = data.count !== undefined ? data.count : window.allRsnhStocks.length;
+            if (badge) badge.innerText = `${cnt} Matches`;
+            const ts = document.getElementById('rsnh-timestamp');
+            if (ts) ts.innerText = `Last Updated: ${data.last_updated || data.timestamp || 'Just Now'}`;
+        }
+    } catch (err) {
+        console.error('Error running RS Line New High scan:', err);
+    } finally {
+        if (loadingEl) loadingEl.style.display = 'none';
+    }
+};
+
+window.renderRsnhTable = function(stocks) {
+    const tbody = document.getElementById('rsnh-table-body');
+    if (!tbody) return;
+
+    const list = stocks || [];
+    const allStocks = (window.allRsnhStocks && window.allRsnhStocks.length) ? window.allRsnhStocks : list;
+
+    const totalEl = document.getElementById('rsnh-card-total');
+    const readyEl = document.getElementById('rsnh-card-ready');
+    const qualifiedEl = document.getElementById('rsnh-card-qualified');
+    const surgeEl = document.getElementById('rsnh-card-surge');
+
+    if (totalEl) totalEl.innerText = allStocks.length;
+    if (readyEl) readyEl.innerText = allStocks.filter(s => {
+        const st = (s.rsnh_status || s.status || '').toUpperCase();
+        return st.includes('BREAKOUT') || st.includes('READY');
+    }).length;
+    if (qualifiedEl) qualifiedEl.innerText = allStocks.filter(s => {
+        const st = (s.rsnh_status || s.status || '').toUpperCase();
+        return st.includes('LEADERSHIP') || st.includes('QUALIFIED');
+    }).length;
+    if (surgeEl) surgeEl.innerText = allStocks.filter(s => {
+        const dist = Math.abs(s.price_pct_from_52w_high !== undefined ? s.price_pct_from_52w_high : 0);
+        return dist <= 5.0;
+    }).length;
+
+    if (list.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="9" style="text-align: center; padding: 40px; color: #64748b;">No William O'Neil RS Line New High setups match the active filter criteria.</td></tr>`;
+        return;
+    }
+
+    tbody.innerHTML = list.map(s => {
+        const currPrice = s.current_price || s.price || s.close || 0;
+        const dayChg = s.day_change_pct !== undefined ? s.day_change_pct : (s.change_pct || 0);
+        const currRs = s.rs_ratio_current !== undefined ? s.rs_ratio_current : 0;
+        const maxRs = s.rs_ratio_max_252d !== undefined ? s.rs_ratio_max_252d : 0;
+        const rsTrend = s.rs_trend_20d || 'RISING';
+        const dist52w = Math.abs(s.price_pct_from_52w_high !== undefined ? s.price_pct_from_52w_high : (s.dist_52wk_high_pct || 0));
+        const pStatus = (s.rsnh_status || s.status || 'RSNH_LEADERSHIP_QUALIFIED').toUpperCase();
+        const compName = s.company_name || s.name || '';
+
+        const chgClass = dayChg >= 0 ? 'color: #34d399;' : 'color: #f87171;';
+        const chgSign = dayChg >= 0 ? '+' : '';
+
+        let statusBadge = `<span style="background: rgba(192, 132, 252, 0.18); color: #c084fc; border: 1px solid rgba(192, 132, 252, 0.4); font-weight: 800; padding: 4px 8px; border-radius: 6px; font-size: 11.5px;">🚀 RSNH 52W HIGH</span>`;
+        if (pStatus.includes('BREAKOUT') || pStatus.includes('READY')) {
+            statusBadge = `<span style="background: rgba(16, 185, 129, 0.18); color: #10b981; border: 1px solid rgba(16, 185, 129, 0.4); font-weight: 800; padding: 4px 8px; border-radius: 6px; font-size: 11.5px;">🎯 BREAKOUT READY</span>`;
+        }
+
+        const trendBadge = rsTrend === 'RISING' 
+            ? `<span style="color:#10b981; font-weight:700;">🟢 Rising</span>`
+            : (rsTrend === 'FALLING' ? `<span style="color:#f87171; font-weight:700;">🔴 Falling</span>` : `<span style="color:#fbbf24; font-weight:700;">🟡 Flat</span>`);
+
+        return `
+            <tr style="border-bottom: 1px solid rgba(255,255,255,0.05);">
+                <td style="padding: 12px;">
+                    <div style="font-weight: 700; font-size: 14px;">${s.symbol}</div>
+                    <div style="font-size: 11px; color: #94a3b8;">${compName}</div>
+                </td>
+                <td style="padding: 12px; color: #38bdf8; font-weight: 700;">₹${currPrice.toLocaleString('en-IN', {minimumFractionDigits: 2})}</td>
+                <td style="padding: 12px; font-weight: 700; ${chgClass}">${chgSign}${dayChg.toFixed(2)}%</td>
+                <td style="padding: 12px; font-weight: 700; color: #c084fc; font-family: monospace;">${currRs ? currRs.toFixed(4) : 'N/A'}</td>
+                <td style="padding: 12px; font-weight: 700; color: #38bdf8; font-family: monospace;">${maxRs ? maxRs.toFixed(4) : 'N/A'}</td>
+                <td style="padding: 12px;">${trendBadge}</td>
+                <td style="padding: 12px; font-weight: 700; color: #fbbf24;">-${dist52w.toFixed(1)}%</td>
+                <td style="padding: 12px;">${statusBadge}</td>
+                <td style="padding: 12px; text-align: right; white-space: nowrap;">
+                    <button onclick="window.launchStageSimulator && window.launchStageSimulator('${s.symbol}')" class="btn-secondary quant-sim-btn" style="padding: 5px 10px; font-size: 11.5px; border-radius: 8px; cursor: pointer; white-space: nowrap; display: inline-flex; align-items: center; gap: 4px; font-weight: 700; background: rgba(192, 132, 252, 0.15); border: 1px solid rgba(192, 132, 252, 0.4); color: #c084fc; margin-right: 6px;" title="Scan stock in 4-Stage Life Cycle Masterclass Simulator">
+                        Simulate ⚙️
+                    </button>
+                    <button onclick="window.openTradingViewChart && window.openTradingViewChart('${s.symbol}')" class="btn-secondary quant-chart-btn" style="padding: 5px 12px; font-size: 11.5px; border-radius: 8px; cursor: pointer; white-space: nowrap; display: inline-flex; align-items: center; gap: 3px; font-weight: 700;">
+                        Chart ↗
+                    </button>
+                </td>
+            </tr>
+        `;
+    }).join('');
+};
+
+window.filterRsnhTable = function() {
+    const q = (document.getElementById('rsnh-search-input')?.value || '').toLowerCase().trim();
+    const statusFilter = document.getElementById('rsnh-status-filter')?.value || 'ALL';
+
+    let filtered = (window.allRsnhStocks || []).filter(s => {
+        const matchesQ = !q || s.symbol.toLowerCase().includes(q) || (s.company_name || s.name || '').toLowerCase().includes(q);
+        if (!matchesQ) return false;
+
+        if (statusFilter === 'ALL') return true;
+
+        const pStatus = (s.rsnh_status || s.status || '').toUpperCase();
+        if (statusFilter === 'RSNH_BREAKOUT_READY') {
+            return pStatus.includes('BREAKOUT') || pStatus.includes('READY');
+        }
+        if (statusFilter === 'RSNH_LEADERSHIP_QUALIFIED') {
+            return pStatus.includes('LEADERSHIP') || pStatus.includes('QUALIFIED');
+        }
+        return pStatus === statusFilter;
+    });
+
+    window.renderRsnhTable(filtered);
+};
+
+// MINERVINI UNDERCUT & RALLY (U&R) SCREENER
+window.runUndercutScan = async function(isSilent = false, forceRefresh = false) {
+    const loadingEl = document.getElementById('undercut-loading-container');
+    
+    // SWR Hydration from Local Storage
+    let hasHydrated = false;
+    try {
+        const cached = localStorage.getItem('cache_undercut_screener');
+        if (cached && !forceRefresh) {
+            const parsed = JSON.parse(cached);
+            const list = parsed.data || parsed.matches || [];
+            if (parsed && list.length) {
+                window.allUndercutStocks = list;
+                window.renderUndercutTable(list);
+                const badge = document.getElementById('undercut-count-badge');
+                if (badge) badge.innerText = `${list.length} Matches`;
+                const ts = document.getElementById('undercut-timestamp');
+                if (ts && (parsed.last_updated || parsed.timestamp)) ts.innerText = `Cached: ${parsed.last_updated || parsed.timestamp}`;
+                hasHydrated = true;
+                if (loadingEl) loadingEl.style.display = 'none';
+            }
+        }
+    } catch(e) {}
+
+    if (!isSilent && !hasHydrated && loadingEl) loadingEl.style.display = 'block';
+
+    try {
+        const url = `/api/screener/undercut-and-rally${forceRefresh ? '?force_refresh=true' : ''}`;
+        const response = await fetch(url);
+        const data = await response.json();
+
+        if (data.status === 'success') {
+            window.allUndercutStocks = data.data || data.matches || [];
+            localStorage.setItem('cache_undercut_screener', JSON.stringify(data));
+            window.renderUndercutTable(window.allUndercutStocks);
+
+            const badge = document.getElementById('undercut-count-badge');
+            const cnt = data.count !== undefined ? data.count : window.allUndercutStocks.length;
+            if (badge) badge.innerText = `${cnt} Matches`;
+            const ts = document.getElementById('undercut-timestamp');
+            if (ts) ts.innerText = `Last Updated: ${data.last_updated || data.timestamp || 'Just Now'}`;
+        }
+    } catch (err) {
+        console.error('Error running Undercut & Rally scan:', err);
+    } finally {
+        if (loadingEl) loadingEl.style.display = 'none';
+    }
+};
+
+window.renderUndercutTable = function(stocks) {
+    const tbody = document.getElementById('undercut-table-body');
+    if (!tbody) return;
+
+    const list = stocks || [];
+    const allStocks = (window.allUndercutStocks && window.allUndercutStocks.length) ? window.allUndercutStocks : list;
+
+    const totalEl = document.getElementById('undercut-card-total');
+    const liveEl = document.getElementById('undercut-card-live');
+    const formingEl = document.getElementById('undercut-card-forming');
+    const volEl = document.getElementById('undercut-card-vol');
+
+    if (totalEl) totalEl.innerText = allStocks.length;
+    if (liveEl) liveEl.innerText = allStocks.filter(s => {
+        const st = (s.ur_status || s.status || '').toUpperCase();
+        return st.includes('LIVE') || st.includes('RECLAIM');
+    }).length;
+    if (formingEl) formingEl.innerText = allStocks.filter(s => {
+        const st = (s.ur_status || s.status || '').toUpperCase();
+        return st.includes('FORMING');
+    }).length;
+    if (volEl) volEl.innerText = allStocks.filter(s => (s.reclaim_vol_ratio || 0) >= 1.3).length;
+
+    if (list.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="9" style="text-align: center; padding: 40px; color: #64748b;">No Mark Minervini Undercut & Rally setups match the active filter criteria.</td></tr>`;
+        return;
+    }
+
+    tbody.innerHTML = list.map(s => {
+        const currPrice = s.current_price || s.price || s.close || 0;
+        const dayChg = s.day_change_pct !== undefined ? s.day_change_pct : (s.change_pct || 0);
+        const priorLow = s.prior_swing_low || 0;
+        const shakeoutLow = s.shakeout_low || 0;
+        const stopLoss = s.stop_loss || (shakeoutLow * 0.995);
+        const riskPct = s.risk_pct !== undefined ? s.risk_pct : 0;
+        const volRatio = s.reclaim_vol_ratio !== undefined ? s.reclaim_vol_ratio : 1.0;
+        const pStatus = (s.ur_status || s.status || 'UR_LIVE_RECLAIM').toUpperCase();
+        const compName = s.company_name || s.name || '';
+
+        const chgClass = dayChg >= 0 ? 'color: #34d399;' : 'color: #f87171;';
+        const chgSign = dayChg >= 0 ? '+' : '';
+
+        let statusBadge = `<span style="background: rgba(56, 189, 248, 0.18); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.4); font-weight: 800; padding: 4px 8px; border-radius: 6px; font-size: 11.5px;">⚡ U&R RECLAIM (Risk: ${riskPct}%)</span>`;
+        if (pStatus.includes('LIVE')) {
+            statusBadge = `<span style="background: rgba(16, 185, 129, 0.18); color: #10b981; border: 1px solid rgba(16, 185, 129, 0.4); font-weight: 800; padding: 4px 8px; border-radius: 6px; font-size: 11.5px;">🚀 LIVE RECLAIM (Vol ${volRatio}x)</span>`;
+        } else if (pStatus.includes('FORMING')) {
+            statusBadge = `<span style="background: rgba(245, 158, 11, 0.18); color: #f59e0b; border: 1px solid rgba(245, 158, 11, 0.4); font-weight: 800; padding: 4px 8px; border-radius: 6px; font-size: 11.5px;">🟡 U&R FORMING</span>`;
+        }
+
+        const volBadge = volRatio >= 1.3 ? `<span style="color:#10b981; font-weight:700;">${volRatio.toFixed(2)}x Surge</span>` : `<span style="color:#94a3b8;">${volRatio.toFixed(2)}x</span>`;
+
+        return `
+            <tr style="border-bottom: 1px solid rgba(255,255,255,0.05);">
+                <td style="padding: 12px;">
+                    <div style="font-weight: 700; font-size: 14px;">${s.symbol}</div>
+                    <div style="font-size: 11px; color: #94a3b8;">${compName}</div>
+                </td>
+                <td style="padding: 12px; color: #38bdf8; font-weight: 700;">₹${currPrice.toLocaleString('en-IN', {minimumFractionDigits: 2})}</td>
+                <td style="padding: 12px; font-weight: 700; ${chgClass}">${chgSign}${dayChg.toFixed(2)}%</td>
+                <td style="padding: 12px; font-weight: 700; color: #cbd5e1;">₹${priorLow.toFixed(2)}</td>
+                <td style="padding: 12px; font-weight: 700; color: #fbbf24;">₹${shakeoutLow.toFixed(2)}</td>
+                <td style="padding: 12px; font-weight: 700; color: #f87171;">₹${stopLoss.toFixed(2)}</td>
+                <td style="padding: 12px; font-weight: 700; color: #f87171;">${riskPct}%</td>
+                <td style="padding: 12px;">${volBadge}</td>
+                <td style="padding: 12px;">${statusBadge}</td>
+                <td style="padding: 12px; text-align: right; white-space: nowrap;">
+                    <button onclick="window.launchStageSimulator && window.launchStageSimulator('${s.symbol}')" class="btn-secondary quant-sim-btn" style="padding: 5px 10px; font-size: 11.5px; border-radius: 8px; cursor: pointer; white-space: nowrap; display: inline-flex; align-items: center; gap: 4px; font-weight: 700; background: rgba(56, 189, 248, 0.15); border: 1px solid rgba(56, 189, 248, 0.4); color: #38bdf8; margin-right: 6px;" title="Scan stock in 4-Stage Life Cycle Masterclass Simulator">
+                        Simulate ⚙️
+                    </button>
+                    <button onclick="window.openTradingViewChart && window.openTradingViewChart('${s.symbol}')" class="btn-secondary quant-chart-btn" style="padding: 5px 12px; font-size: 11.5px; border-radius: 8px; cursor: pointer; white-space: nowrap; display: inline-flex; align-items: center; gap: 3px; font-weight: 700;">
+                        Chart ↗
+                    </button>
+                </td>
+            </tr>
+        `;
+    }).join('');
+};
+
+window.filterUndercutTable = function() {
+    const q = (document.getElementById('undercut-search-input')?.value || '').toLowerCase().trim();
+    const statusFilter = document.getElementById('undercut-status-filter')?.value || 'ALL';
+
+    let filtered = (window.allUndercutStocks || []).filter(s => {
+        const matchesQ = !q || s.symbol.toLowerCase().includes(q) || (s.company_name || s.name || '').toLowerCase().includes(q);
+        if (!matchesQ) return false;
+
+        if (statusFilter === 'ALL') return true;
+
+        const pStatus = (s.ur_status || s.status || '').toUpperCase();
+        if (statusFilter === 'UR_LIVE_RECLAIM') {
+            return pStatus.includes('LIVE') || pStatus.includes('RECLAIM');
+        }
+        if (statusFilter === 'UR_FORMING') {
+            return pStatus.includes('FORMING');
+        }
+        return pStatus === statusFilter;
+    });
+
+    window.renderUndercutTable(filtered);
+};
+
 // 4. INTERACTIVE STAGE 1-4 STOCK DIAGNOSTIC SIMULATOR
 window.runStockStageSimulator = async function(symbolInput) {
     let sym = symbolInput || document.getElementById('stage-sim-input')?.value || 'SUZLON.NS';
@@ -57177,6 +57535,8 @@ window.runStockStageSimulator = async function(symbolInput) {
         const st_pp = st.pocket_pivot || st.pocket || {};
         const st_kell = st.oliver_kell || st.kell || {};
         const st_ch = st.cup_with_handle || st.cup_handle || {};
+        const st_rsnh = st.rs_line_new_high || st.rsnh || {};
+        const st_ur = st.undercut_and_rally || st.undercut || {};
         
         let badgeBg = 'rgba(16, 185, 129, 0.2)';
         let badgeBorder = '#34d399';
@@ -57252,9 +57612,9 @@ window.runStockStageSimulator = async function(symbolInput) {
                 </div>
             </div>
 
-            <!-- 9 Screener Qualification Status Cards -->
+            <!-- 11 Screener Qualification Status Cards -->
             <h5 style="margin: 0 0 10px 0; font-size: 13px; font-weight: 800; color: #f8fafc;">
-                🎯 9-Screener Algorithmic Qualification Checks:
+                🎯 11-Screener Algorithmic Qualification Checks:
             </h5>
             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 10px; margin-bottom: 18px;">
                 <div style="background: rgba(15, 23, 42, 0.5); border: 1px solid ${st_vcp.qualified ? '#34d399' : 'rgba(255,255,255,0.1)'}; padding: 10px 12px; border-radius: 8px;">
@@ -57338,6 +57698,24 @@ window.runStockStageSimulator = async function(symbolInput) {
                     </div>
                     <p style="margin: 0; font-size: 11px; color: #cbd5e1;">${st_ch.reason || ''}</p>
                 </div>
+                <div style="background: rgba(15, 23, 42, 0.5); border: 1px solid ${st_rsnh.qualified ? '#34d399' : 'rgba(255,255,255,0.1)'}; padding: 10px 12px; border-radius: 8px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+                        <strong style="color: #c084fc; font-size: 12px;">🚀 RS Line New High</strong>
+                        <span style="font-size: 11px; font-weight: 800; color: ${st_rsnh.qualified ? '#34d399' : '#f87171'};">
+                            ${st_rsnh.qualified ? '✅ QUALIFIED' : '❌ REJECTED'}
+                        </span>
+                    </div>
+                    <p style="margin: 0; font-size: 11px; color: #cbd5e1;">${st_rsnh.reason || ''}</p>
+                </div>
+                <div style="background: rgba(15, 23, 42, 0.5); border: 1px solid ${st_ur.qualified ? '#34d399' : 'rgba(255,255,255,0.1)'}; padding: 10px 12px; border-radius: 8px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+                        <strong style="color: #38bdf8; font-size: 12px;">⚡ Undercut & Rally</strong>
+                        <span style="font-size: 11px; font-weight: 800; color: ${st_ur.qualified ? '#34d399' : '#f87171'};">
+                            ${st_ur.qualified ? '✅ QUALIFIED' : '❌ REJECTED'}
+                        </span>
+                    </div>
+                    <p style="margin: 0; font-size: 11px; color: #cbd5e1;">${st_ur.reason || ''}</p>
+                </div>
             </div>
 
             <!-- Tactical Guidance Banner -->
@@ -57345,10 +57723,10 @@ window.runStockStageSimulator = async function(symbolInput) {
                 💡 Tactical Action Plan: <span style="font-weight: 500; color: #cbd5e1;">${data.action_guidance || ''}</span>
             </div>
 
-            <!-- NEW: Clean Universal 9-Screener Diagnostic Audit Card Breakdown -->
+            <!-- NEW: Clean Universal 11-Screener Diagnostic Audit Card Breakdown -->
             <div class="audit-section-container" style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 10px; padding: 14px; margin-bottom: 16px;">
                 <h5 style="margin: 0 0 12px 0; font-size: 13px; font-weight: 800; color: #38bdf8; display: flex; align-items: center; gap: 6px;">
-                    📊 9-Screener Algorithmic Diagnostic Audit & Criteria Breakdown
+                    📊 11-Screener Algorithmic Diagnostic Audit & Criteria Breakdown
                 </h5>
                 
                 <!-- Universal Card Breakdown View (Mobile, Tablet & Desktop) -->
@@ -58052,6 +58430,8 @@ window.renderWatchlistQuantMatrix = function(stocks) {
         if (filterVal === 'POCKET') return s.pocket_qualified;
         if (filterVal === 'KELL') return s.kell_qualified;
         if (filterVal === 'CUP') return s.cup_qualified;
+        if (filterVal === 'RSNH') return s.rsnh_qualified;
+        if (filterVal === 'UR') return s.ur_qualified;
 
         return true;
     });
@@ -58074,7 +58454,7 @@ window.renderWatchlistQuantMatrix = function(stocks) {
     if (!tbody) return;
 
     if (filtered.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="16" style="text-align: center; padding: 30px; color: #94a3b8;">No watchlist stocks match the active filter criteria.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="18" style="text-align: center; padding: 30px; color: #94a3b8;">No watchlist stocks match the active filter criteria.</td></tr>`;
         return;
     }
 
@@ -58101,6 +58481,8 @@ window.renderWatchlistQuantMatrix = function(stocks) {
         const pocketHtml = s.pocket_qualified ? `<span class="badge-quant badge-quant-purple">POCKET PIVOT 🎯</span>` : `<span style="color: #94a3b8;">${s.pocket_status}</span>`;
         const kellHtml = s.kell_qualified ? `<span class="badge-quant badge-quant-blue">OLIVER KELL 10/20 📈</span>` : `<span style="color: #94a3b8;">${s.kell_status}</span>`;
         const cupHtml = s.cup_qualified ? `<span class="badge-quant badge-quant-yellow">CUP & HANDLE ☕</span>` : `<span style="color: #94a3b8;">${s.cup_status || 'N/A'}</span>`;
+        const rsnhHtml = s.rsnh_qualified ? `<span class="badge-quant badge-quant-rsnh">RSNH 52W HIGH 🚀</span>` : `<span style="color: #94a3b8;">${s.rsnh_status || 'N/A'}</span>`;
+        const urHtml = s.ur_qualified ? `<span class="badge-quant badge-quant-ur">U&R RECLAIM ⚡</span>` : `<span style="color: #94a3b8;">${s.ur_status || 'N/A'}</span>`;
 
         const pivotP = s.pivot_price || (s.current_price ? Number((s.current_price * 1.01).toFixed(2)) : 0);
         const stopL = s.stop_loss || (pivotP ? Number((pivotP * 0.95).toFixed(2)) : 0);
@@ -58145,6 +58527,8 @@ window.renderWatchlistQuantMatrix = function(stocks) {
                 <td style="padding: 10px 14px; white-space: nowrap;">${pocketHtml}</td>
                 <td style="padding: 10px 14px; white-space: nowrap;">${kellHtml}</td>
                 <td style="padding: 10px 14px; white-space: nowrap;">${cupHtml}</td>
+                <td style="padding: 10px 14px; white-space: nowrap;">${rsnhHtml}</td>
+                <td style="padding: 10px 14px; white-space: nowrap;">${urHtml}</td>
                 <td style="padding: 10px 14px; white-space: nowrap;">
                     <span class="badge-quant ${s.badge_class}">${s.qualification_label}</span>
                 </td>

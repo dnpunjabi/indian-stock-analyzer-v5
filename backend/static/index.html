@@ -1669,33 +1669,53 @@
                 <button class="nav-btn" id="tab-screener-btn" data-title="Quant Screener & Scanner">
                     <span class="btn-icon">🔍</span> <span class="btn-text">Quant Screener & Scanner</span>
                 </button>
-                <button class="nav-btn" id="tab-vcp-btn" data-title="Minervini VCP & CANSLIM Screener" onclick="window.switchTab && window.switchTab('vcp'); window.switchQuantScannerSubtab && window.switchQuantScannerSubtab('vcp');">
-                    <span class="btn-icon">🔥</span> <span class="btn-text">Minervini VCP & CANSLIM</span>
-                </button>
-                <button class="nav-btn" id="tab-weinstein-btn" data-title="Stan Weinstein Stage 2 Breakout" onclick="window.switchTab && window.switchTab('vcp'); window.switchQuantScannerSubtab && window.switchQuantScannerSubtab('weinstein');">
-                    <span class="btn-icon">📈</span> <span class="btn-text">Weinstein Stage 2</span>
-                </button>
-                <button class="nav-btn" id="tab-htf-btn" data-title="David Ryan High-Tight Flag (HTF)" onclick="window.switchTab && window.switchTab('vcp'); window.switchQuantScannerSubtab && window.switchQuantScannerSubtab('htf');">
-                    <span class="btn-icon">🚀</span> <span class="btn-text">High-Tight Flag (HTF)</span>
-                </button>
-                <button class="nav-btn" id="tab-3wt-btn" data-title="David Ryan 3-Weeks Tight (3WT)" onclick="window.switchTab && window.switchTab('vcp'); window.switchQuantScannerSubtab && window.switchQuantScannerSubtab('3wt');">
-                    <span class="btn-icon">🎯</span> <span class="btn-text">3-Weeks Tight (3WT)</span>
-                </button>
-                <button class="nav-btn" id="tab-flatbase-btn" data-title="William O'Neil Modern Flat Base" onclick="window.switchTab && window.switchTab('vcp'); window.switchQuantScannerSubtab && window.switchQuantScannerSubtab('flatbase');">
-                    <span class="btn-icon">📦</span> <span class="btn-text">Modern Flat Base</span>
-                </button>
-                <button class="nav-btn" id="tab-episodic-btn" data-title="Pradeep Bonde Episodic Pivot (EP)" onclick="window.switchTab && window.switchTab('vcp'); window.switchQuantScannerSubtab && window.switchQuantScannerSubtab('episodic');">
-                    <span class="btn-icon">⚡</span> <span class="btn-text">Episodic Pivot (EP)</span>
-                </button>
-                <button class="nav-btn" id="tab-pocket-btn" data-title="Dr. Chris Kacher Pocket Pivot" onclick="window.switchTab && window.switchTab('vcp'); window.switchQuantScannerSubtab && window.switchQuantScannerSubtab('pocket');">
-                    <span class="btn-icon">🎯</span> <span class="btn-text">Pocket Pivot</span>
-                </button>
-                <button class="nav-btn" id="tab-oliverkell-btn" data-title="Oliver Kell EMA Structure" onclick="window.switchTab && window.switchTab('vcp'); window.switchQuantScannerSubtab && window.switchQuantScannerSubtab('oliverkell');">
-                    <span class="btn-icon">📈</span> <span class="btn-text">Oliver Kell Structure</span>
-                </button>
-                <button class="nav-btn" id="tab-cuphandle-btn" data-title="William O'Neil Cup With Handle (CANSLIM)" onclick="window.switchTab && window.switchTab('vcp'); window.switchQuantScannerSubtab && window.switchQuantScannerSubtab('cuphandle');">
-                    <span class="btn-icon">☕</span> <span class="btn-text">Cup With Handle (CANSLIM)</span>
-                </button>
+                <div class="sidebar-accordion-group" style="margin-bottom: 2px;">
+                    <button class="nav-btn sidebar-accordion-header" id="quant-screeners-accordion-btn" onclick="window.toggleSidebarAccordion && window.toggleSidebarAccordion('quant-screeners-accordion', event)" style="display: flex; align-items: center; justify-content: space-between; width: 100%; text-align: left;">
+                        <span style="display: flex; align-items: center; gap: 8px;">
+                            <span class="btn-icon">⚡</span>
+                            <span class="btn-text">Quant Screeners</span>
+                        </span>
+                        <span style="display: flex; align-items: center; gap: 6px;">
+                            <span class="badge-count-pill" style="font-size: 10px; background: rgba(56, 189, 248, 0.15); color: #38bdf8; padding: 2px 7px; border-radius: 10px; font-weight: 800; border: 1px solid rgba(56, 189, 248, 0.3);">11</span>
+                            <span class="accordion-arrow" id="quant-screeners-accordion-arrow" style="font-size: 10px; transition: transform 0.2s ease; display: inline-block;">▼</span>
+                        </span>
+                    </button>
+                    <div class="sidebar-accordion-body" id="quant-screeners-accordion" style="display: none; padding-left: 10px; margin-left: 14px; border-left: 2px solid rgba(56, 189, 248, 0.25); margin-top: 2px; margin-bottom: 4px;">
+                        <button class="nav-btn" id="tab-vcp-btn" data-title="Minervini VCP & CANSLIM Screener" onclick="window.switchTab && window.switchTab('vcp'); window.switchQuantScannerSubtab && window.switchQuantScannerSubtab('vcp');">
+                            <span class="btn-icon">🔥</span> <span class="btn-text">Minervini VCP & CANSLIM</span>
+                        </button>
+                        <button class="nav-btn" id="tab-weinstein-btn" data-title="Stan Weinstein Stage 2 Breakout" onclick="window.switchTab && window.switchTab('vcp'); window.switchQuantScannerSubtab && window.switchQuantScannerSubtab('weinstein');">
+                            <span class="btn-icon">📈</span> <span class="btn-text">Weinstein Stage 2</span>
+                        </button>
+                        <button class="nav-btn" id="tab-htf-btn" data-title="David Ryan High-Tight Flag (HTF)" onclick="window.switchTab && window.switchTab('vcp'); window.switchQuantScannerSubtab && window.switchQuantScannerSubtab('htf');">
+                            <span class="btn-icon">🚀</span> <span class="btn-text">High-Tight Flag (HTF)</span>
+                        </button>
+                        <button class="nav-btn" id="tab-3wt-btn" data-title="David Ryan 3-Weeks Tight (3WT)" onclick="window.switchTab && window.switchTab('vcp'); window.switchQuantScannerSubtab && window.switchQuantScannerSubtab('3wt');">
+                            <span class="btn-icon">🎯</span> <span class="btn-text">3-Weeks Tight (3WT)</span>
+                        </button>
+                        <button class="nav-btn" id="tab-flatbase-btn" data-title="William O'Neil Modern Flat Base" onclick="window.switchTab && window.switchTab('vcp'); window.switchQuantScannerSubtab && window.switchQuantScannerSubtab('flatbase');">
+                            <span class="btn-icon">📦</span> <span class="btn-text">Modern Flat Base</span>
+                        </button>
+                        <button class="nav-btn" id="tab-episodic-btn" data-title="Pradeep Bonde Episodic Pivot (EP)" onclick="window.switchTab && window.switchTab('vcp'); window.switchQuantScannerSubtab && window.switchQuantScannerSubtab('episodic');">
+                            <span class="btn-icon">⚡</span> <span class="btn-text">Episodic Pivot (EP)</span>
+                        </button>
+                        <button class="nav-btn" id="tab-pocket-btn" data-title="Dr. Chris Kacher Pocket Pivot" onclick="window.switchTab && window.switchTab('vcp'); window.switchQuantScannerSubtab && window.switchQuantScannerSubtab('pocket');">
+                            <span class="btn-icon">🎯</span> <span class="btn-text">Pocket Pivot</span>
+                        </button>
+                        <button class="nav-btn" id="tab-oliverkell-btn" data-title="Oliver Kell EMA Structure" onclick="window.switchTab && window.switchTab('vcp'); window.switchQuantScannerSubtab && window.switchQuantScannerSubtab('oliverkell');">
+                            <span class="btn-icon">📈</span> <span class="btn-text">Oliver Kell Structure</span>
+                        </button>
+                        <button class="nav-btn" id="tab-cuphandle-btn" data-title="William O'Neil Cup With Handle (CANSLIM)" onclick="window.switchTab && window.switchTab('vcp'); window.switchQuantScannerSubtab && window.switchQuantScannerSubtab('cuphandle');">
+                            <span class="btn-icon">☕</span> <span class="btn-text">Cup With Handle (CANSLIM)</span>
+                        </button>
+                        <button class="nav-btn" id="tab-rsnh-btn" data-title="William O'Neil RS Line New High (RSNH)" onclick="window.switchTab && window.switchTab('vcp'); window.switchQuantScannerSubtab && window.switchQuantScannerSubtab('rsnh');">
+                            <span class="btn-icon">🚀</span> <span class="btn-text">RS Line New High (RSNH)</span>
+                        </button>
+                        <button class="nav-btn" id="tab-undercut-btn" data-title="Mark Minervini Undercut & Rally (U&R)" onclick="window.switchTab && window.switchTab('vcp'); window.switchQuantScannerSubtab && window.switchQuantScannerSubtab('undercut');">
+                            <span class="btn-icon">⚡</span> <span class="btn-text">Undercut & Rally (U&R)</span>
+                        </button>
+                    </div>
+                </div>
                 <button class="nav-btn" id="tab-quant-guide-btn" data-title="4-Stage Life Cycle Masterclass & Guide" onclick="window.switchTab && window.switchTab('vcp'); window.switchQuantScannerSubtab && window.switchQuantScannerSubtab('guide');">
                     <span class="btn-icon">📘</span> <span class="btn-text">Stage Masterclass & Guide</span>
                 </button>
@@ -2396,7 +2416,7 @@
             <!-- SECTION: MINERVINI VCP & CANSLIM SCREENER ENGINE -->
             <section class="workspace-tab" id="tab-vcp" style="display: none; font-family: 'Inter', sans-serif;">
                 <!-- Screener Subtabs Navigation Bar -->
-                <div class="quant-subtabs-bar no-print">
+                <div class="quant-subtabs-bar no-print" style="display: flex; gap: 8px; overflow-x: auto; white-space: nowrap; padding: 6px 4px 12px 4px; margin-bottom: 20px; scrollbar-width: thin; border-bottom: 1px solid var(--border-glass, rgba(255,255,255,0.08)); flex-wrap: nowrap; -webkit-overflow-scrolling: touch;">
                     <button class="quant-subtab-btn active" id="quant-subtab-vcp" onclick="window.switchQuantScannerSubtab && window.switchQuantScannerSubtab('vcp')">
                         <span>🔥</span> Minervini VCP & CANSLIM
                     </button>
@@ -2423,6 +2443,12 @@
                     </button>
                     <button class="quant-subtab-btn" id="quant-subtab-cuphandle" onclick="window.switchQuantScannerSubtab && window.switchQuantScannerSubtab('cuphandle')">
                         <span>☕</span> Cup With Handle (CANSLIM)
+                    </button>
+                    <button class="quant-subtab-btn" id="quant-subtab-rsnh" onclick="window.switchQuantScannerSubtab && window.switchQuantScannerSubtab('rsnh')">
+                        <span>🚀</span> RS Line New High (RSNH)
+                    </button>
+                    <button class="quant-subtab-btn" id="quant-subtab-undercut" onclick="window.switchQuantScannerSubtab && window.switchQuantScannerSubtab('undercut')">
+                        <span>⚡</span> Undercut & Rally (U&R)
                     </button>
                     <button class="quant-subtab-btn" id="quant-subtab-guide" onclick="window.switchQuantScannerSubtab && window.switchQuantScannerSubtab('guide')">
                         <span>📘</span> 4-Stage Life Cycle Masterclass
@@ -3671,6 +3697,236 @@
                     </div>
                 </div>
 
+                <!-- SUBTAB VIEW: RS LINE NEW HIGH (RSNH) SCREENER -->
+                <div id="quant-view-rsnh" style="display: none;">
+                    <div class="screener-hero-header no-print" style="margin-bottom: 24px; border-radius: 16px; background: linear-gradient(135deg, rgba(15, 23, 42, 0.95), rgba(30, 41, 59, 0.92), rgba(15, 23, 42, 0.95)); border: 1px solid rgba(192, 132, 252, 0.4); backdrop-filter: blur(20px); padding: 22px 28px; box-shadow: 0 12px 32px -4px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.1); position: relative; overflow: hidden; font-family: 'Outfit', 'Inter', sans-serif;">
+                        <div style="position: absolute; top: -50px; right: -50px; width: 250px; height: 250px; background: radial-gradient(circle, rgba(192, 132, 252, 0.25), transparent 70%); pointer-events: none; border-radius: 50%;"></div>
+                        <div style="position: absolute; bottom: -60px; left: -60px; width: 220px; height: 220px; background: radial-gradient(circle, rgba(56, 189, 248, 0.2), transparent 70%); pointer-events: none; border-radius: 50%;"></div>
+
+                        <!-- RS Line New High SVG Illustration Background -->
+                        <svg style="position: absolute; right: 0; bottom: 0; width: 45%; height: 100%; opacity: 0.22; pointer-events: none;" viewBox="0 0 400 120" preserveAspectRatio="none">
+                            <path d="M 40 90 L 120 80 L 180 85 L 260 50 L 310 45 L 360 15" fill="none" stroke="#c084fc" stroke-width="3" stroke-linecap="round"/>
+                            <line x1="40" y1="45" x2="360" y2="45" stroke="#a855f7" stroke-width="1.5" stroke-dasharray="4,4"/>
+                            <circle cx="360" cy="15" r="5" fill="#10b981"/>
+                        </svg>
+
+                        <div style="position: relative; z-index: 2; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px;">
+                            <div>
+                                <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px;">
+                                    <div style="background: rgba(192, 132, 252, 0.18); border: 1px solid rgba(192, 132, 252, 0.45); padding: 3px 8px; border-radius: 5px; display: inline-flex; align-items: center; gap: 6px;">
+                                        <span class="status-indicator" style="width: 7px; height: 7px; border-radius: 50%; background-color: #c084fc; box-shadow: 0 0 8px #c084fc;"></span>
+                                        <span style="font-size: 13px; font-weight: 800; color: #c084fc; letter-spacing: 0.08em; text-transform: uppercase;">WILLIAM O'NEIL RS LEADERSHIP ENGINE</span>
+                                    </div>
+                                    <span style="font-size: 13.5px; color: rgba(255,255,255,0.45); font-weight: 600;">• Relative Strength Ratio at 52-Week High System</span>
+                                    <span id="rsnh-timestamp" style="font-size: 12px; font-weight: 700; color: #c084fc; background: rgba(192, 132, 252, 0.12); padding: 3px 8px; border-radius: 6px; border: 1px solid rgba(192, 132, 252, 0.3); margin-left: 8px;">🟢 Pre-Warmed</span>
+                                </div>
+                                <h2 style="margin: 0; font-size: 22px; font-weight: 800; color: #ffffff; letter-spacing: -0.02em; font-family: 'Outfit', sans-serif;">William O'Neil RS Line New High (RSNH) Screener</h2>
+                                <p style="margin: 6px 0 0 0; font-size: 12.5px; color: #94a3b8; line-height: 1.5; max-width: 660px;">Detects market leaders whose Relative Strength line against Nifty 50 reaches a 52-week new high BEFORE or SIMULTANEOUSLY with price breaking out.</p>
+                            </div>
+
+                            <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+                                <button onclick="const b=document.getElementById('rsnh-guide-banner'); b.style.display = b.style.display === 'none' ? 'block' : 'none';" class="btn-secondary" style="padding: 10px 16px; background: rgba(192, 132, 252, 0.15); border: 1px solid #c084fc; border-radius: 10px; color: #c084fc; font-weight: 800; font-size: 13px; cursor: pointer;">
+                                    💡 Rules Guide
+                                </button>
+                                <button onclick="window.runRsnhScan && window.runRsnhScan(false, true)" class="btn-primary" style="padding: 10px 20px; background: linear-gradient(135deg, #c084fc, #9333ea); border: none; border-radius: 10px; color: #fff; font-weight: 700; font-size: 13px; cursor: pointer; box-shadow: 0 4px 14px rgba(192, 132, 252, 0.35);">
+                                    ⚡ Run RSNH Scan
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- KPI Summary Row -->
+                        <div class="screener-kpi-row" style="display: flex; gap: 16px; margin-top: 20px; flex-wrap: wrap; border-top: 1px solid rgba(255,255,255,0.08); padding-top: 16px;">
+                            <div class="screener-kpi-card" style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(255,255,255,0.08); border-radius: 10px; padding: 10px 16px; flex: 1; min-width: 140px;">
+                                <div style="font-size: 11px; color: #94a3b8; text-transform: uppercase; font-weight: 600;">Total RSNH Setups</div>
+                                <div id="rsnh-card-total" style="font-size: 20px; font-weight: 800; color: #c084fc; margin-top: 2px;">-</div>
+                            </div>
+                            <div class="screener-kpi-card" style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(255,255,255,0.08); border-radius: 10px; padding: 10px 16px; flex: 1; min-width: 140px;">
+                                <div style="font-size: 11px; color: #94a3b8; text-transform: uppercase; font-weight: 600;">Breakout Ready 🟢</div>
+                                <div id="rsnh-card-ready" style="font-size: 20px; font-weight: 800; color: #10b981; margin-top: 2px;">-</div>
+                            </div>
+                            <div class="screener-kpi-card" style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(255,255,255,0.08); border-radius: 10px; padding: 10px 16px; flex: 1; min-width: 140px;">
+                                <div style="font-size: 11px; color: #94a3b8; text-transform: uppercase; font-weight: 600;">Leadership Qualified 🔵</div>
+                                <div id="rsnh-card-qualified" style="font-size: 20px; font-weight: 800; color: #38bdf8; margin-top: 2px;">-</div>
+                            </div>
+                            <div class="screener-kpi-card" style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(255,255,255,0.08); border-radius: 10px; padding: 10px 16px; flex: 1; min-width: 140px;">
+                                <div style="font-size: 11px; color: #94a3b8; text-transform: uppercase; font-weight: 600;">RS Peak Surge 🚀</div>
+                                <div id="rsnh-card-surge" style="font-size: 20px; font-weight: 800; color: #c084fc; margin-top: 2px;">-</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Educational Rules Banner -->
+                    <div id="rsnh-guide-banner" class="vcp-guide-banner" style="display: none; margin-bottom: 20px; border-radius: 12px; padding: 16px 20px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                            <strong style="font-size: 14px; font-weight: 800; color: #c084fc;">🚀 RS Line New High (RSNH) Identification Rules</strong>
+                            <button onclick="document.getElementById('rsnh-guide-banner').style.display='none'" style="background: none; border: none; cursor: pointer; font-size: 15px; color: #94a3b8;">✕</button>
+                        </div>
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 10px; font-size: 11.5px; line-height: 1.45;">
+                            <div style="background: rgba(30,41,59,0.5); padding: 10px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.06);">
+                                <strong style="color: #c084fc;">1. RS Ratio 52-Week High</strong>: Stock Price / Nifty 50 Index Ratio reaches a 252-trading-day peak.
+                            </div>
+                            <div style="background: rgba(30,41,59,0.5); padding: 10px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.06);">
+                                <strong style="color: #c084fc;">2. Price Positioning</strong>: Stock trades within <= 20% of its own 52-week price high.
+                            </div>
+                            <div style="background: rgba(30,41,59,0.5); padding: 10px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.06);">
+                                <strong style="color: #c084fc;">3. Leading Indicator</strong>: RS line hitting a new high before price is the single most reliable sign of institutional accumulation.
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Filter Controls -->
+                    <div style="display: flex; gap: 14px; margin-bottom: 20px; align-items: center; flex-wrap: wrap;">
+                        <input type="text" id="rsnh-search-input" onkeyup="window.filterRsnhTable && window.filterRsnhTable()" placeholder="Search symbol or name..." style="background: rgba(30, 41, 59, 0.8); border: 1px solid rgba(255,255,255,0.12); color: #fff; padding: 8px 14px; border-radius: 8px; font-size: 13px; flex: 1; min-width: 200px; outline: none;"/>
+                        <select id="rsnh-status-filter" onchange="window.filterRsnhTable && window.filterRsnhTable()" style="background: rgba(30, 41, 59, 0.8); border: 1px solid rgba(255,255,255,0.12); color: #fff; padding: 8px 14px; border-radius: 8px; font-size: 13px; outline: none; cursor: pointer;">
+                            <option value="ALL">All RSNH Setups</option>
+                            <option value="RSNH_BREAKOUT_READY">🎯 Breakout Ready (RS New High)</option>
+                            <option value="RSNH_LEADERSHIP_QUALIFIED">🔵 Leadership Qualified</option>
+                        </select>
+                    </div>
+
+                    <div id="rsnh-loading-container" style="display: none; text-align: center; padding: 60px 20px;">
+                        <div class="spinner" style="border: 4px solid rgba(192, 132, 252, 0.1); border-left-color: #c084fc; border-radius: 50%; width: 44px; height: 44px; animation: spin 1s linear infinite; margin: 0 auto 16px auto;"></div>
+                        <p style="color: #94a3b8; font-size: 14px; font-weight: 500;">Scanning Nifty Universe for William O'Neil RS Line New High Setups...</p>
+                    </div>
+
+                    <div class="quant-table-wrapper">
+                        <table class="quant-table" style="width: 100%; border-collapse: collapse; font-size: 13px;">
+                            <thead>
+                                <tr style="border-bottom: 1px solid rgba(255, 255, 255, 0.1); text-align: left; color: #94a3b8;">
+                                    <th>Symbol</th>
+                                    <th>Price</th>
+                                    <th>Day Chg %</th>
+                                    <th>Current RS Ratio</th>
+                                    <th>52W Max RS Ratio</th>
+                                    <th>20D RS Trend</th>
+                                    <th>% From 52W High</th>
+                                    <th>Pattern Status</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="rsnh-table-body">
+                                <tr><td colspan="9" style="text-align:center; padding: 30px; color: #94a3b8;">Click 'Run RSNH Scan' to load results.</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- SUBTAB VIEW: UNDERCUT & RALLY (U&R) SCREENER -->
+                <div id="quant-view-undercut" style="display: none;">
+                    <div class="screener-hero-header no-print" style="margin-bottom: 24px; border-radius: 16px; background: linear-gradient(135deg, rgba(15, 23, 42, 0.95), rgba(30, 41, 59, 0.92), rgba(15, 23, 42, 0.95)); border: 1px solid rgba(56, 189, 248, 0.4); backdrop-filter: blur(20px); padding: 22px 28px; box-shadow: 0 12px 32px -4px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.1); position: relative; overflow: hidden; font-family: 'Outfit', 'Inter', sans-serif;">
+                        <div style="position: absolute; top: -50px; right: -50px; width: 250px; height: 250px; background: radial-gradient(circle, rgba(56, 189, 248, 0.25), transparent 70%); pointer-events: none; border-radius: 50%;"></div>
+                        <div style="position: absolute; bottom: -60px; left: -60px; width: 220px; height: 220px; background: radial-gradient(circle, rgba(16, 185, 129, 0.2), transparent 70%); pointer-events: none; border-radius: 50%;"></div>
+
+                        <!-- Undercut & Rally SVG Illustration Background -->
+                        <svg style="position: absolute; right: 0; bottom: 0; width: 45%; height: 100%; opacity: 0.22; pointer-events: none;" viewBox="0 0 400 120" preserveAspectRatio="none">
+                            <line x1="40" y1="60" x2="360" y2="60" stroke="#38bdf8" stroke-width="1.5" stroke-dasharray="4,4"/>
+                            <path d="M 50 40 L 140 58 L 220 55 L 260 90 L 290 35 L 360 20" fill="none" stroke="#38bdf8" stroke-width="3" stroke-linecap="round"/>
+                            <circle cx="260" cy="90" r="4" fill="#f87171"/>
+                            <circle cx="290" cy="35" r="5" fill="#10b981"/>
+                        </svg>
+
+                        <div style="position: relative; z-index: 2; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px;">
+                            <div>
+                                <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px;">
+                                    <div style="background: rgba(56, 189, 248, 0.18); border: 1px solid rgba(56, 189, 248, 0.45); padding: 3px 8px; border-radius: 5px; display: inline-flex; align-items: center; gap: 6px;">
+                                        <span class="status-indicator" style="width: 7px; height: 7px; border-radius: 50%; background-color: #38bdf8; box-shadow: 0 0 8px #38bdf8;"></span>
+                                        <span style="font-size: 13px; font-weight: 800; color: #38bdf8; letter-spacing: 0.08em; text-transform: uppercase;">MINERVINI & MORALES U&R RECLAIM ENGINE</span>
+                                    </div>
+                                    <span style="font-size: 13.5px; color: rgba(255,255,255,0.45); font-weight: 600;">• Prior Swing Low Shakeout & Reclaim System</span>
+                                    <span id="undercut-timestamp" style="font-size: 12px; font-weight: 700; color: #38bdf8; background: rgba(56, 189, 248, 0.12); padding: 3px 8px; border-radius: 6px; border: 1px solid rgba(56, 189, 248, 0.3); margin-left: 8px;">🟢 Pre-Warmed</span>
+                                </div>
+                                <h2 style="margin: 0; font-size: 22px; font-weight: 800; color: #ffffff; letter-spacing: -0.02em; font-family: 'Outfit', sans-serif;">Minervini & Morales Undercut & Rally (U&R) Screener</h2>
+                                <p style="margin: 6px 0 0 0; font-size: 12.5px; color: #94a3b8; line-height: 1.5; max-width: 660px;">Detects market leaders that undercut a prior key swing low by 0.5%–4% to flush weak hands and immediately rally back above the low on heavy institutional volume.</p>
+                            </div>
+
+                            <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+                                <button onclick="const b=document.getElementById('undercut-guide-banner'); b.style.display = b.style.display === 'none' ? 'block' : 'none';" class="btn-secondary" style="padding: 10px 16px; background: rgba(56, 189, 248, 0.15); border: 1px solid #38bdf8; border-radius: 10px; color: #38bdf8; font-weight: 800; font-size: 13px; cursor: pointer;">
+                                    💡 Rules Guide
+                                </button>
+                                <button onclick="window.runUndercutScan && window.runUndercutScan(false, true)" class="btn-primary" style="padding: 10px 20px; background: linear-gradient(135deg, #38bdf8, #0284c7); border: none; border-radius: 10px; color: #fff; font-weight: 700; font-size: 13px; cursor: pointer; box-shadow: 0 4px 14px rgba(56, 189, 248, 0.35);">
+                                    ⚡ Run U&R Scan
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- KPI Summary Row -->
+                        <div class="screener-kpi-row" style="display: flex; gap: 16px; margin-top: 20px; flex-wrap: wrap; border-top: 1px solid rgba(255,255,255,0.08); padding-top: 16px;">
+                            <div class="screener-kpi-card" style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(255,255,255,0.08); border-radius: 10px; padding: 10px 16px; flex: 1; min-width: 140px;">
+                                <div style="font-size: 11px; color: #94a3b8; text-transform: uppercase; font-weight: 600;">Total U&R Setups</div>
+                                <div id="undercut-card-total" style="font-size: 20px; font-weight: 800; color: #38bdf8; margin-top: 2px;">-</div>
+                            </div>
+                            <div class="screener-kpi-card" style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(255,255,255,0.08); border-radius: 10px; padding: 10px 16px; flex: 1; min-width: 140px;">
+                                <div style="font-size: 11px; color: #94a3b8; text-transform: uppercase; font-weight: 600;">Live Reclaims 🚀</div>
+                                <div id="undercut-card-live" style="font-size: 20px; font-weight: 800; color: #10b981; margin-top: 2px;">-</div>
+                            </div>
+                            <div class="screener-kpi-card" style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(255,255,255,0.08); border-radius: 10px; padding: 10px 16px; flex: 1; min-width: 140px;">
+                                <div style="font-size: 11px; color: #94a3b8; text-transform: uppercase; font-weight: 600;">Forming Shakeouts 🟡</div>
+                                <div id="undercut-card-forming" style="font-size: 20px; font-weight: 800; color: #fbbf24; margin-top: 2px;">-</div>
+                            </div>
+                            <div class="screener-kpi-card" style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(255,255,255,0.08); border-radius: 10px; padding: 10px 16px; flex: 1; min-width: 140px;">
+                                <div style="font-size: 11px; color: #94a3b8; text-transform: uppercase; font-weight: 600;">Heavy Vol Reclaims ⚡</div>
+                                <div id="undercut-card-vol" style="font-size: 20px; font-weight: 800; color: #38bdf8; margin-top: 2px;">-</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Educational Rules Banner -->
+                    <div id="undercut-guide-banner" class="vcp-guide-banner" style="display: none; margin-bottom: 20px; border-radius: 12px; padding: 16px 20px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                            <strong style="font-size: 14px; font-weight: 800; color: #38bdf8;">⚡ Undercut & Rally (U&R) Identification Rules</strong>
+                            <button onclick="document.getElementById('undercut-guide-banner').style.display='none'" style="background: none; border: none; cursor: pointer; font-size: 15px; color: #94a3b8;">✕</button>
+                        </div>
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 10px; font-size: 11.5px; line-height: 1.45;">
+                            <div style="background: rgba(30,41,59,0.5); padding: 10px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.06);">
+                                <strong style="color: #38bdf8;">1. Prior Swing Low</strong>: Key support low established 15 to 45 trading days prior in a Stage 2 stock.
+                            </div>
+                            <div style="background: rgba(30,41,59,0.5); padding: 10px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.06);">
+                                <strong style="color: #38bdf8;">2. Controlled Undercut</strong>: Price dips 0.5% to 4.0% below the prior low to trigger stop orders.
+                            </div>
+                            <div style="background: rgba(30,41,59,0.5); padding: 10px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.06);">
+                                <strong style="color: #38bdf8;">3. High Volume Reclaim</strong>: Close returns above the swing low on >= 1.3x 50-day average volume, setting tight stop loss at intraday low.
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Filter Controls -->
+                    <div style="display: flex; gap: 14px; margin-bottom: 20px; align-items: center; flex-wrap: wrap;">
+                        <input type="text" id="undercut-search-input" onkeyup="window.filterUndercutTable && window.filterUndercutTable()" placeholder="Search symbol or name..." style="background: rgba(30, 41, 59, 0.8); border: 1px solid rgba(255,255,255,0.12); color: #fff; padding: 8px 14px; border-radius: 8px; font-size: 13px; flex: 1; min-width: 200px; outline: none;"/>
+                        <select id="undercut-status-filter" onchange="window.filterUndercutTable && window.filterUndercutTable()" style="background: rgba(30, 41, 59, 0.8); border: 1px solid rgba(255,255,255,0.12); color: #fff; padding: 8px 14px; border-radius: 8px; font-size: 13px; outline: none; cursor: pointer;">
+                            <option value="ALL">All U&R Setups</option>
+                            <option value="UR_LIVE_RECLAIM">🚀 Live Reclaim (Active)</option>
+                            <option value="UR_FORMING">⏳ Forming Shakeout</option>
+                        </select>
+                    </div>
+
+                    <div id="undercut-loading-container" style="display: none; text-align: center; padding: 60px 20px;">
+                        <div class="spinner" style="border: 4px solid rgba(56, 189, 248, 0.1); border-left-color: #38bdf8; border-radius: 50%; width: 44px; height: 44px; animation: spin 1s linear infinite; margin: 0 auto 16px auto;"></div>
+                        <p style="color: #94a3b8; font-size: 14px; font-weight: 500;">Scanning Nifty Universe for Undercut & Rally (U&R) Setups...</p>
+                    </div>
+
+                    <div class="quant-table-wrapper">
+                        <table class="quant-table" style="width: 100%; border-collapse: collapse; font-size: 13px;">
+                            <thead>
+                                <tr style="border-bottom: 1px solid rgba(255, 255, 255, 0.1); text-align: left; color: #94a3b8;">
+                                    <th>Symbol</th>
+                                    <th>Price</th>
+                                    <th>Day Chg %</th>
+                                    <th>Prior Swing Low</th>
+                                    <th>Shakeout Low</th>
+                                    <th>Stop Loss</th>
+                                    <th>Risk %</th>
+                                    <th>Reclaim Vol</th>
+                                    <th>Pattern Status</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="undercut-table-body">
+                                <tr><td colspan="10" style="text-align:center; padding: 30px; color: #94a3b8;">Click 'Run U&R Scan' to load results.</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
                 <!-- SUBTAB VIEW 6: STAN WEINSTEIN & DAVID RYAN 4-STAGE LIFE CYCLE MASTERCLASS -->
                 <div id="quant-view-guide" style="display: none; padding-bottom: 40px; font-family: 'Inter', sans-serif;">
                     <!-- Ultra-Institutional 4-Stage Life Cycle Masterclass Cyber Hero Header Banner -->
@@ -3872,7 +4128,7 @@
                                     <span>⚡</span> Interactive Stage 1-4 Diagnostic Simulator & Screener Qualification Engine
                                 </h3>
                                 <p style="margin: 4px 0 0 0; font-size: 12.5px; color: #94a3b8;">
-                                    Analyze any Indian stock symbol live to compute its Stage Phase (1, 2, 3, or 4), 30-week MA slope, and qualification against all 9 quant screeners.
+                                    Analyze any Indian stock symbol live to compute its Stage Phase (1, 2, 3, or 4), 30-week MA slope, and qualification against all 11 quant screeners.
                                 </p>
                             </div>
                             <span style="font-size: 11px; background: rgba(168, 85, 247, 0.2); color: #c084fc; border: 1px solid rgba(168, 85, 247, 0.4); padding: 4px 12px; border-radius: 20px; font-weight: 700;">
@@ -3928,10 +4184,10 @@
                         <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; flex-wrap: wrap; gap: 12px;">
                             <div>
                                 <h3 style="margin: 0; font-size: 19px; font-weight: 800; color: #f8fafc; display: flex; align-items: center; gap: 8px;">
-                                    <span>📊</span> 9-Screener Quantitative Life Cycle Alignment Map
+                                    <span>📊</span> 11-Screener Quantitative Life Cycle Alignment Map
                                 </h3>
                                 <p style="margin: 4px 0 0 0; font-size: 12px; color: #94a3b8;">
-                                    Shows exact entry placement & volume trigger timing for Stage 2 Breakout, Episodic Pivot, VCP, Cup With Handle, Flat Base, Pocket Pivot, HTF, Oliver Kell, and 3WT on the 4-Stage curve.
+                                    Shows exact entry placement & volume trigger timing for Stage 2 Breakout, Episodic Pivot, VCP, Cup With Handle, Flat Base, Pocket Pivot, HTF, Oliver Kell, 3WT, RS Line New High, and Undercut & Rally on the 4-Stage curve.
                                 </p>
                             </div>
                             <div style="display: flex; gap: 8px; flex-wrap: wrap; font-size: 11px; font-weight: 700;">
@@ -3998,7 +4254,7 @@
                         <!-- Chronological Sequence Explanation Callout Box -->
                         <div style="background: rgba(30, 41, 59, 0.6); border-left: 4px solid #38bdf8; border-radius: 10px; padding: 16px 18px; margin-bottom: 18px; font-size: 12.5px; line-height: 1.55; color: #cbd5e1;">
                             <strong style="color: #38bdf8; display: flex; align-items: center; gap: 6px; font-size: 14px; margin-bottom: 8px;">
-                                <span>🧠</span> 9-Screener Quantitative Life Cycle Progression Sequence:
+                                <span>🧠</span> 11-Screener Quantitative Life Cycle Progression Sequence:
                             </strong>
                             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; margin-top: 10px;">
                                 <div style="background: rgba(15, 23, 42, 0.6); padding: 12px; border-radius: 8px; border: 1px solid rgba(56, 189, 248, 0.3);" class="quant-strategy-card">
@@ -4036,6 +4292,14 @@
                                 <div style="background: rgba(15, 23, 42, 0.6); padding: 12px; border-radius: 8px; border: 1px solid rgba(45, 212, 191, 0.3);" class="quant-strategy-card">
                                     <strong style="color: #2dd4bf; font-size: 12.5px;">9. 3-Weeks Tight = Pyramiding Shelf</strong><br>
                                     David Ryan's low-risk re-entry. 3 consecutive weekly closes within an ultra-narrow &le; 2.0% variance band above rising 50d/200d SMAs (RS > 70).
+                                </div>
+                                <div style="background: rgba(15, 23, 42, 0.6); padding: 12px; border-radius: 8px; border: 1px solid rgba(192, 132, 252, 0.3);" class="quant-strategy-card">
+                                    <strong style="color: #c084fc; font-size: 12.5px;">10. RS Line New High (RSNH) = Leadership Breakout</strong><br>
+                                    William O'Neil institutional leader setup. Stock/Nifty50 RS ratio hits a 52-week new high BEFORE price breaks out, with stock within &le; 20% of peak.
+                                </div>
+                                <div style="background: rgba(15, 23, 42, 0.6); padding: 12px; border-radius: 8px; border: 1px solid rgba(56, 189, 248, 0.3);" class="quant-strategy-card">
+                                    <strong style="color: #38bdf8; font-size: 12.5px;">11. Undercut & Rally (U&R) = Shakeout Reclaim</strong><br>
+                                    Mark Minervini & Gil Morales low-risk entry. Stage 2 stock undercuts a prior 15–45D swing low by 0.5%–4.0% & immediately reclaims it on &ge; 1.3x volume.
                                 </div>
                             </div>
 
@@ -4509,15 +4773,15 @@
                         </div>
                     </div>
 
-                    <!-- 9-SCREENER 4-STAGE ALIGNMENT MASTER MATRIX TABLE -->
+                    <!-- 11-SCREENER 4-STAGE ALIGNMENT MASTER MATRIX TABLE -->
                     <div style="background: rgba(15, 23, 42, 0.85); border: 1px solid rgba(255, 255, 255, 0.12); border-radius: 16px; padding: 24px; box-shadow: 0 10px 30px rgba(0,0,0,0.4);">
                         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 12px;">
                             <div>
                                 <h3 style="margin: 0; font-size: 19px; font-weight: 800; color: #f8fafc; display: flex; align-items: center; gap: 8px;">
-                                    <span>🧠</span> 9-Screener Quantitative Master Alignment Matrix
+                                    <span>🧠</span> 11-Screener Quantitative Master Alignment Matrix
                                 </h3>
                                 <p style="margin: 4px 0 0 0; font-size: 12px; color: #94a3b8;">
-                                    Compare entry pivots, volume triggers, risk-reward ratios, and capital-protection rules across all 9 momentum engines.
+                                    Compare entry pivots, volume triggers, risk-reward ratios, and capital-protection rules across all 11 momentum engines.
                                 </p>
                             </div>
                         </div>
@@ -4686,6 +4950,40 @@
                                         <td>
                                             <button onclick="window.switchQuantScannerSubtab('3wt')" class="btn-secondary" style="padding: 4px 10px; font-size: 11px; background: rgba(45, 212, 191, 0.15); border: 1px solid #2dd4bf; color: #2dd4bf; border-radius: 6px; cursor: pointer; font-weight: 700;">
                                                 Go to 3WT ↗
+                                            </button>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td>
+                                            <strong style="color: #c084fc; display: flex; align-items: center; gap: 6px;">
+                                                <span>🚀</span> William O'Neil RS Line New High
+                                            </strong>
+                                        </td>
+                                        <td><span class="badge-quant badge-quant-rsnh">Pre-Breakout / Stage 2 Leadership</span></td>
+                                        <td>Stock/Nifty50 RS Ratio hits 52W High before price breakout</td>
+                                        <td>Rising RS trend 20D, stock within &le; 20% of 52W High</td>
+                                        <td><strong style="color: #34d399;">1:4 to 1:8+</strong></td>
+                                        <td><span style="color: #f87171; font-weight: 700;">🛡️ Auto-Rejects Stock &gt; 20% below 52W High or RS &lt; 52W Peak</span></td>
+                                        <td>
+                                            <button onclick="window.switchQuantScannerSubtab('rsnh')" class="btn-secondary" style="padding: 4px 10px; font-size: 11px; background: rgba(192, 132, 252, 0.15); border: 1px solid #c084fc; color: #c084fc; border-radius: 6px; cursor: pointer; font-weight: 700;">
+                                                Go to RSNH ↗
+                                            </button>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td>
+                                            <strong style="color: #38bdf8; display: flex; align-items: center; gap: 6px;">
+                                                <span>⚡</span> Minervini & Morales Undercut & Rally
+                                            </strong>
+                                        </td>
+                                        <td><span class="badge-quant badge-quant-ur">Stage 2 Base / Shakeout Reclaim</span></td>
+                                        <td>Brief 0.5%–4% dip below prior 15–45D swing low & immediate reclaim</td>
+                                        <td>&ge; 1.3x 20D average volume surge on reclaim candle</td>
+                                        <td><strong style="color: #34d399;">1:5 to 1:10+</strong></td>
+                                        <td><span style="color: #f87171; font-weight: 700;">🛡️ Auto-Rejects Stock Below 200 SMA or Shakeout &gt; 5.0%</span></td>
+                                        <td>
+                                            <button onclick="window.switchQuantScannerSubtab('undercut')" class="btn-secondary" style="padding: 4px 10px; font-size: 11px; background: rgba(56, 189, 248, 0.15); border: 1px solid #38bdf8; color: #38bdf8; border-radius: 6px; cursor: pointer; font-weight: 700;">
+                                                Go to U&R ↗
                                             </button>
                                         </td>
                                     </tr>
@@ -12613,8 +12911,8 @@
                                     <div style="display: flex; align-items: center; gap: 10px;">
                                         <span style="font-size: 20px;">🧭</span>
                                         <div>
-                                            <h3 style="font-size: 14.5px; font-weight: 800; color: #38bdf8; margin: 0; letter-spacing: 0.02em;">9-Screener Quantitative Life Cycle Alignment Map</h3>
-                                            <p style="font-size: 12px; color: #94a3b8; margin: 2px 0 0 0;">How Weinstein Stage 2, Episodic Pivot, Minervini VCP, Flat Base, Pocket Pivot, HTF, Oliver Kell, 3WT, and Cup with Handle differentiate Stage 2 Continuations from Stage 3 Tops</p>
+                                            <h3 style="font-size: 14.5px; font-weight: 800; color: #38bdf8; margin: 0; letter-spacing: 0.02em;">11-Screener Quantitative Life Cycle Alignment Map</h3>
+                                            <p style="font-size: 12px; color: #94a3b8; margin: 2px 0 0 0;">How Weinstein Stage 2, Episodic Pivot, Minervini VCP, Flat Base, Pocket Pivot, HTF, Oliver Kell, 3WT, Cup with Handle, RS Line New High, and Undercut & Rally differentiate Stage 2 Continuations from Stage 3 Tops</p>
                                         </div>
                                     </div>
                                     <button id="toggle-quant-guide-btn" class="btn-secondary" style="font-size: 12px; padding: 4px 10px; border-radius: 6px; color: #38bdf8; border-color: rgba(56, 189, 248, 0.4); background: rgba(56, 189, 248, 0.1);">
@@ -12645,7 +12943,7 @@
                                                     <span style="font-size: 10px; background: rgba(167,139,250,0.2); padding: 1px 6px; border-radius: 4px;">3–10 Days Early</span>
                                                 </div>
                                                 <p style="margin: 0; color: #cbd5e1; font-size: 11.5px; line-height: 1.45;">
-                                                    <strong style="color: #f8fafc;">Morales & Kacher Pocket Pivot</strong> — Buys stealth institutional volume accumulation near key MAs before standard base breakouts (gets you in 3–10 days before standard breakouts).
+                                                    <strong style="color: #f8fafc;">Pocket Pivot</strong> & <strong style="color: #f8fafc;">Undercut & Rally (U&R)</strong> — Buys stealth volume accumulation & low-risk shakeout reclaims before standard breakouts.
                                                 </p>
                                             </div>
                                             <div style="background: rgba(30, 41, 59, 0.6); border-left: 4px solid #f59e0b; border-radius: 8px; padding: 12px;">
@@ -12654,7 +12952,7 @@
                                                     <span style="font-size: 10px; background: rgba(245,158,11,0.2); padding: 1px 6px; border-radius: 4px;">Classic Pivots</span>
                                                 </div>
                                                 <p style="margin: 0; color: #cbd5e1; font-size: 11.5px; line-height: 1.45;">
-                                                    <strong style="color: #f8fafc;">Minervini VCP</strong>, <strong style="color: #f8fafc;">William O'Neil Flat Base</strong>, <strong style="color: #f8fafc;">William O'Neil Cup with Handle (C&H)</strong>, and <strong style="color: #f8fafc;">David Ryan 3WT</strong> — Standard volatility contraction & primary base breakout triggers.
+                                                    <strong style="color: #f8fafc;">Minervini VCP</strong>, <strong style="color: #f8fafc;">Flat Base</strong>, <strong style="color: #f8fafc;">Cup with Handle</strong>, and <strong style="color: #f8fafc;">3WT</strong> — Standard volatility contraction & primary base breakout triggers.
                                                 </p>
                                             </div>
                                             <div style="background: rgba(30, 41, 59, 0.6); border-left: 4px solid #f472b6; border-radius: 8px; padding: 12px;">
@@ -12663,7 +12961,7 @@
                                                     <span style="font-size: 10px; background: rgba(244,114,182,0.2); padding: 1px 6px; border-radius: 4px;">High Velocity</span>
                                                 </div>
                                                 <p style="margin: 0; color: #cbd5e1; font-size: 11.5px; line-height: 1.45;">
-                                                    <strong style="color: #f8fafc;">Kristjan Qullamaggie EP</strong> and <strong style="color: #f8fafc;">David Ryan High-Tight Flag (HTF)</strong> — Post-earnings gap-up thrusts & momentum flag surges.
+                                                    <strong style="color: #f8fafc;">Kristjan Qullamaggie EP</strong>, <strong style="color: #f8fafc;">High-Tight Flag (HTF)</strong>, and <strong style="color: #f8fafc;">RS Line New High (RSNH)</strong> — Explosive momentum & RS leadership surges.
                                                 </p>
                                             </div>
                                             <div style="background: rgba(30, 41, 59, 0.6); border-left: 4px solid #38bdf8; border-radius: 8px; padding: 12px;">
@@ -12677,7 +12975,7 @@
                                             </div>
                                         </div>
                                     </div>
-                                    <!-- 8 Quantitative Engines Alignment Grid -->
+                                    <!-- 11 Quantitative Engines Alignment Grid -->
                                     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px; margin-bottom: 20px;">
                                         <!-- Card 1: Stan Weinstein Stage 2 -->
                                         <div class="quant-strategy-card" style="background: rgba(30, 41, 59, 0.6); border-left: 4px solid #38bdf8; border-radius: 8px; padding: 14px;">
@@ -12786,6 +13084,30 @@
                                             </p>
                                             <div style="font-size: 11.5px; color: #f59e0b; font-weight: 700;">🎯 Primary Edge: Institutional primary base breakout with high risk-reward ratio (1:3 to 1:5).</div>
                                         </div>
+
+                                        <!-- Card 10: William O'Neil RS Line New High -->
+                                        <div class="quant-strategy-card" style="background: rgba(30, 41, 59, 0.6); border-left: 4px solid #c084fc; border-radius: 8px; padding: 14px;">
+                                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                                                <strong style="font-size: 13px; color: #c084fc;">🚀 RS Line New High (RSNH)</strong>
+                                                <span style="font-size: 10.5px; font-weight: 700; background: rgba(192,132,252,0.15); color: #c084fc; padding: 2px 6px; border-radius: 4px;">Institutional Leadership</span>
+                                            </div>
+                                            <p style="font-size: 12px; color: var(--text-secondary); margin: 0 0 8px 0; line-height: 1.45;">
+                                                RS Ratio (Stock/Nifty50) hits a 52-week new high BEFORE price breaks out, signaling extreme relative strength.
+                                            </p>
+                                            <div style="font-size: 11.5px; color: #c084fc; font-weight: 700;">🎯 Primary Edge: Leading indicator for explosive market breakouts.</div>
+                                        </div>
+
+                                        <!-- Card 11: Minervini Undercut & Rally -->
+                                        <div class="quant-strategy-card" style="background: rgba(30, 41, 59, 0.6); border-left: 4px solid #38bdf8; border-radius: 8px; padding: 14px;">
+                                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                                                <strong style="font-size: 13px; color: #38bdf8;">⚡ Undercut & Rally (U&R)</strong>
+                                                <span style="font-size: 10.5px; font-weight: 700; background: rgba(56,189,248,0.15); color: #38bdf8; padding: 2px 6px; border-radius: 4px;">Shakeout Reclaim</span>
+                                            </div>
+                                            <p style="font-size: 12px; color: var(--text-secondary); margin: 0 0 8px 0; line-height: 1.45;">
+                                                Brief 0.5%–4.0% shakeout dip below a prior key swing low immediately reclaimed on &ge; 1.3x heavy volume.
+                                            </p>
+                                            <div style="font-size: 11.5px; color: #38bdf8; font-weight: 700;">🎯 Primary Edge: Ultra-tight stop-loss entry after weak hands are flushed out.</div>
+                                        </div>
                                     </div>
 
                                     <!-- Stage 2 Continuation vs. Stage 3 Distribution Comparison Table -->
@@ -12838,7 +13160,7 @@
                                         <h5 style="font-size: 12px; font-weight: 800; color: #38bdf8; margin: 0 0 6px 0;">📌 Table Attribute Reference:</h5>
                                         <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 8px; font-size: 11.5px; color: #94a3b8;" class="quant-guide-ref-grid">
                                             <div><strong style="color: #f8fafc;">30W MA Slope:</strong> Daily % angle of 150d SMA (Uptrend >0.3%/day).</div>
-                                            <div><strong style="color: #f8fafc;">Qualification Score:</strong> Total quant criteria passed (0/4 to 4/4 Quad).</div>
+                                            <div><strong style="color: #f8fafc;">Qualification Score:</strong> Total quant criteria passed (0/11 to 11/11).</div>
                                             <div><strong style="color: #38bdf8;">Execution Plan:</strong> Pattern Pivot, Stop Loss (capped at 7%), T1 (+2:1 R:R), T2 (+4:1 R:R).</div>
                                         </div>
                                     </div>
@@ -12860,7 +13182,7 @@
                                 <div class="screener-kpi-card" style="background: rgba(15, 23, 42, 0.6); border: 1px solid var(--border-glass); border-radius: 10px; padding: 12px 16px;">
                                     <div style="font-size: 11px; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.05em;">Multi-Factor Qualified</div>
                                     <div style="font-size: 22px; font-weight: 800; color: #2dd4bf; margin-top: 4px;" id="wl-matrix-kpi-qualified">0</div>
-                                    <div style="font-size: 11px; color: #2dd4bf; margin-top: 2px;">9 Quant Engines Ready</div>
+                                    <div style="font-size: 11px; color: #2dd4bf; margin-top: 2px;">11 Quant Engines Ready</div>
                                 </div>
                                 <div class="screener-kpi-card" style="background: rgba(15, 23, 42, 0.6); border: 1px solid var(--border-glass); border-radius: 10px; padding: 12px 16px;">
                                     <div style="font-size: 11px; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.05em;">Avg 30-Wk MA Slope</div>
@@ -12885,6 +13207,8 @@
                                         <option value="KELL">🌊 Oliver Kell Structure</option>
                                         <option value="3WT">🎯 3-Weeks Tight</option>
                                         <option value="CUP">☕ Cup With Handle (CANSLIM)</option>
+                                        <option value="RSNH">🚀 RS Line New High (RSNH)</option>
+                                        <option value="UR">⚡ Undercut & Rally (U&R)</option>
                                     </select>
                                 </div>
                                 <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
@@ -12921,6 +13245,8 @@
                                             <th style="padding: 12px 14px; font-weight: 800; color: #c084fc;">POCKET PIVOT</th>
                                             <th style="padding: 12px 14px; font-weight: 800; color: #38bdf8;">OLIVER KELL 10/20</th>
                                             <th style="padding: 12px 14px; font-weight: 800; color: #f59e0b;">CUP WITH HANDLE</th>
+                                            <th style="padding: 12px 14px; font-weight: 800; color: #c084fc;">RS LINE NEW HIGH</th>
+                                            <th style="padding: 12px 14px; font-weight: 800; color: #38bdf8;">UNDERCUT & RALLY</th>
                                             <th style="padding: 12px 14px; font-weight: 800; color: #94a3b8;">QUALIFICATION SCORE</th>
                                             <th style="padding: 12px 14px; font-weight: 800; color: #38bdf8;">🎯 EXECUTION PLAN (LEVELS)</th>
                                             <th style="padding: 12px 14px; font-weight: 800; color: #94a3b8; text-align: center;">ACTIONS</th>

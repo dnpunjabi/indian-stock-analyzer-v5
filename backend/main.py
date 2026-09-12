@@ -13507,8 +13507,10 @@ async def send_quant_cron_whatsapp_summary(summary_dict: dict, duration_sec: flo
         f"• *Episodic Pivot (EP)*: {summary_dict.get('episodic_pivot', 0)} gap setups\n"
         f"• *Pocket Pivot*: {summary_dict.get('pocket_pivot', 0)} accumulation setups\n"
         f"• *Oliver Kell 10/20 EMA*: {summary_dict.get('oliver_kell', 0)} reversals\n"
-        f"• *Cup with Handle (CANSLIM)*: {summary_dict.get('cup_with_handle', 0)} setups\n\n"
-        f"⚡ *All 9 screener caches updated in SQLite in {duration_sec:.1f}s.*"
+        f"• *Cup with Handle (CANSLIM)*: {summary_dict.get('cup_with_handle', 0)} setups\n"
+        f"• *RS Line New High (RSNH)*: {summary_dict.get('rs_line_new_high', 0)} leaders\n"
+        f"• *Undercut & Rally (U&R)*: {summary_dict.get('undercut_and_rally', 0)} reclaims\n\n"
+        f"⚡ *All 11 screener caches updated in SQLite in {duration_sec:.1f}s.*"
     )
     
     try:
@@ -13536,11 +13538,11 @@ async def send_quant_cron_whatsapp_summary(summary_dict: dict, duration_sec: flo
     return False
 
 async def _run_full_quant_cron_sweep():
-    """Runs full recalculation sweep across all 8 screeners and records execution logs."""
+    """Runs full recalculation sweep across all 11 screeners and records execution logs."""
     t0 = time.time()
     summary = {}
     try:
-        print("[CRON] Starting full 8-screener universe recalculation sweep...")
+        print("[CRON] Starting full 11-screener universe recalculation sweep...")
         vcp_candidates = await _recalculate_vcp_universe()
         summary["vcp"] = len(vcp_candidates)
 
@@ -13568,6 +13570,12 @@ async def _run_full_quant_cron_sweep():
         ch_res = await get_cup_with_handle_screener(force_refresh=True)
         summary["cup_with_handle"] = len(ch_res.get("data", []))
 
+        rsnh_res = await get_rs_line_new_high_screener(force_refresh=True)
+        summary["rs_line_new_high"] = len(rsnh_res.get("data", []))
+
+        ur_res = await get_undercut_and_rally_screener(force_refresh=True)
+        summary["undercut_and_rally"] = len(ur_res.get("data", []))
+
         duration = round(time.time() - t0, 2)
         details_json = json.dumps(summary)
         
@@ -13580,7 +13588,7 @@ async def _run_full_quant_cron_sweep():
             )
             conn.commit()
             
-        print(f"[CRON SUCCESS] 8-screener sweep complete in {duration}s! Summary: {summary}")
+        print(f"[CRON SUCCESS] 11-screener sweep complete in {duration}s! Summary: {summary}")
         await send_quant_cron_whatsapp_summary(summary, duration)
     except Exception as err:
         duration = round(time.time() - t0, 2)
@@ -13630,7 +13638,7 @@ def _start_daily_vcp_cron():
                 print(f"[VCP CRON] Next daily 1:30 AM recalculation scheduled in {seconds_until_target / 3600:.2f} hours (at {target_time.strftime('%Y-%m-%d %H:%M:%S')}).")
                 time.sleep(max(seconds_until_target, 10.0))
 
-                print("[VCP CRON] 1:30 AM reached! Triggering full VCP, Flat Base, Stage 2, HTF, & 3WT universe recalculations...")
+                print("[VCP CRON] 1:30 AM reached! Triggering full 11-screener universe recalculations...")
                 loop = asyncio.new_event_loop()
                 asyncio.set_event_loop(loop)
                 try:
@@ -13638,7 +13646,7 @@ def _start_daily_vcp_cron():
                 finally:
                     loop.close()
 
-                print("[VCP CRON] 1:30 AM recalculation tasks complete across all 5 screeners.")
+                print("[VCP CRON] 1:30 AM recalculation tasks complete across all 11 screeners.")
                 time.sleep(60)
             except Exception as e:
                 print(f"[VCP CRON ERROR] {e}")
@@ -13655,7 +13663,7 @@ except Exception as cron_start_err:
 
 @app.get("/api/system/cron-status")
 async def get_cron_status():
-    """Returns status, timestamps, and execution logs for all 5 Quant Suite screeners."""
+    """Returns status, timestamps, and execution logs for all 11 Quant Suite screeners."""
     try:
         with get_db() as conn:
             cursor = conn.cursor()
@@ -13686,7 +13694,13 @@ async def get_cron_status():
                 "stage2": parse_screener_info("weinstein_stage2"),
                 "3wt": parse_screener_info("3weeks_tight"),
                 "htf": parse_screener_info("htf"),
-                "flat_base": parse_screener_info("flat_base_breakout")
+                "flat_base": parse_screener_info("flat_base_breakout"),
+                "episodic_pivot": parse_screener_info("episodic_pivot"),
+                "pocket_pivot": parse_screener_info("pocket_pivot"),
+                "oliver_kell": parse_screener_info("oliver_kell_reversal"),
+                "cup_with_handle": parse_screener_info("cup_with_handle"),
+                "rs_line_new_high": parse_screener_info("rs_line_new_high"),
+                "undercut_and_rally": parse_screener_info("undercut_and_rally")
             },
             "recent_logs": log_rows
         }
@@ -18691,13 +18705,193 @@ async def get_cup_with_handle_screener(force_refresh: bool = False):
         "data": hydrated_results
     }
 
+
+_NIFTY_DF_CACHE = {"df": None, "timestamp": None}
+
+async def _get_nifty_index_df():
+    global _NIFTY_DF_CACHE
+    now = datetime.now()
+    if _NIFTY_DF_CACHE["df"] is not None and _NIFTY_DF_CACHE["timestamp"] is not None:
+        if (now - _NIFTY_DF_CACHE["timestamp"]).total_seconds() < 3600:
+            return _NIFTY_DF_CACHE["df"]
+    try:
+        df = await fetch_history_df("^NSEI", period="1y", interval="1d")
+        if df is not None and not df.empty:
+            _NIFTY_DF_CACHE = {"df": df, "timestamp": now}
+            return df
+    except Exception as e:
+        print(f"Error fetching Nifty 50 index data: {e}")
+    return None
+
+
+_RS_LINE_NEW_HIGH_SCANNER_CACHE = {"data": [], "last_updated": ""}
+
+async def _scan_single_stock_rs_line_new_high(item: dict, sem: asyncio.Semaphore, nifty_df: pd.DataFrame):
+    async with sem:
+        sym = item["symbol"].strip().upper()
+        sym_yf = f"{sym}.NS" if not sym.endswith(".NS") else sym
+        try:
+            df = await fetch_history_df(sym_yf, period="1y", interval="1d")
+            if df is None or df.empty or len(df) < 50:
+                return None
+            from backend.swing_utils import detect_rs_line_new_high
+            res = detect_rs_line_new_high(df, nifty_df=nifty_df)
+            if not res.get("is_rs_new_high"):
+                return None
+            res["symbol"] = sym
+            res["company_name"] = item.get("company_name", sym)
+            res["sector"] = item.get("sector", "N/A")
+            return res
+        except Exception:
+            return None
+
+@app.get("/api/screener/rs-line-new-high")
+async def get_rs_line_new_high_screener(force_refresh: bool = False):
+    """
+    Returns William O'Neil RS Line New High (RSNH) candidates.
+    Parallelized with asyncio 25x concurrency and backed by SQLite disk cache.
+    """
+    global _RS_LINE_NEW_HIGH_SCANNER_CACHE
+    if not force_refresh:
+        db_cache = _load_screener_db_cache("rs_line_new_high")
+        if db_cache and db_cache.get("data"):
+            hydrated = _overlay_live_quotes_on_candidates(db_cache["data"])
+            _RS_LINE_NEW_HIGH_SCANNER_CACHE = {"data": hydrated, "last_updated": db_cache["last_updated"]}
+            return {
+                "status": "success",
+                "count": len(hydrated),
+                "last_updated": db_cache["last_updated"],
+                "data": hydrated
+            }
+        if _RS_LINE_NEW_HIGH_SCANNER_CACHE.get("data"):
+            hydrated = _overlay_live_quotes_on_candidates(_RS_LINE_NEW_HIGH_SCANNER_CACHE["data"])
+            return {
+                "status": "success",
+                "count": len(hydrated),
+                "last_updated": _RS_LINE_NEW_HIGH_SCANNER_CACHE.get("last_updated", ""),
+                "data": hydrated
+            }
+
+    results = []
+    try:
+        nifty_df = await _get_nifty_index_df()
+        with get_db() as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT symbol, company_name, sector, cap_type FROM screener_universe WHERE symbol NOT LIKE '%DUMMY%'")
+            stocks = [dict(r) for r in cursor.fetchall()]
+
+        sem = asyncio.Semaphore(25)
+        tasks = [_scan_single_stock_rs_line_new_high(item, sem, nifty_df) for item in stocks]
+        raw_results = await asyncio.gather(*tasks, return_exceptions=True)
+
+        for r in raw_results:
+            if isinstance(r, dict) and r is not None:
+                results.append(r)
+
+        status_rank = {"RSNH_BREAKOUT_READY": 2, "RSNH_LEADERSHIP_QUALIFIED": 1, "NONE": 0}
+        results.sort(key=lambda x: (status_rank.get(x.get("rsnh_status"), 0), x.get("day_change_pct", 0)), reverse=True)
+
+        last_updated = _save_screener_db_cache("rs_line_new_high", results)
+        _RS_LINE_NEW_HIGH_SCANNER_CACHE = {"data": results, "last_updated": last_updated}
+    except Exception as e:
+        print(f"Error executing RS Line New High screener: {e}")
+
+    hydrated_results = _overlay_live_quotes_on_candidates(results)
+    return {
+        "status": "success",
+        "count": len(hydrated_results),
+        "last_updated": _RS_LINE_NEW_HIGH_SCANNER_CACHE.get("last_updated", ""),
+        "data": hydrated_results
+    }
+
+
+_UNDERCUT_RALLY_SCANNER_CACHE = {"data": [], "last_updated": ""}
+
+async def _scan_single_stock_undercut_and_rally(item: dict, sem: asyncio.Semaphore):
+    async with sem:
+        sym = item["symbol"].strip().upper()
+        sym_yf = f"{sym}.NS" if not sym.endswith(".NS") else sym
+        try:
+            df = await fetch_history_df(sym_yf, period="1y", interval="1d")
+            if df is None or df.empty or len(df) < 50:
+                return None
+            from backend.swing_utils import detect_undercut_and_rally
+            res = detect_undercut_and_rally(df)
+            if not res.get("is_undercut_and_rally"):
+                return None
+            res["symbol"] = sym
+            res["company_name"] = item.get("company_name", sym)
+            res["sector"] = item.get("sector", "N/A")
+            return res
+        except Exception:
+            return None
+
+@app.get("/api/screener/undercut-and-rally")
+async def get_undercut_and_rally_screener(force_refresh: bool = False):
+    """
+    Returns Mark Minervini & Gil Morales Undercut & Rally (U&R) candidates.
+    Parallelized with asyncio 25x concurrency and backed by SQLite disk cache.
+    """
+    global _UNDERCUT_RALLY_SCANNER_CACHE
+    if not force_refresh:
+        db_cache = _load_screener_db_cache("undercut_and_rally")
+        if db_cache and db_cache.get("data"):
+            hydrated = _overlay_live_quotes_on_candidates(db_cache["data"])
+            _UNDERCUT_RALLY_SCANNER_CACHE = {"data": hydrated, "last_updated": db_cache["last_updated"]}
+            return {
+                "status": "success",
+                "count": len(hydrated),
+                "last_updated": db_cache["last_updated"],
+                "data": hydrated
+            }
+        if _UNDERCUT_RALLY_SCANNER_CACHE.get("data"):
+            hydrated = _overlay_live_quotes_on_candidates(_UNDERCUT_RALLY_SCANNER_CACHE["data"])
+            return {
+                "status": "success",
+                "count": len(hydrated),
+                "last_updated": _UNDERCUT_RALLY_SCANNER_CACHE.get("last_updated", ""),
+                "data": hydrated
+            }
+
+    results = []
+    try:
+        with get_db() as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT symbol, company_name, sector, cap_type FROM screener_universe WHERE symbol NOT LIKE '%DUMMY%'")
+            stocks = [dict(r) for r in cursor.fetchall()]
+
+        sem = asyncio.Semaphore(25)
+        tasks = [_scan_single_stock_undercut_and_rally(item, sem) for item in stocks]
+        raw_results = await asyncio.gather(*tasks, return_exceptions=True)
+
+        for r in raw_results:
+            if isinstance(r, dict) and r is not None:
+                results.append(r)
+
+        status_rank = {"UR_LIVE_RECLAIM": 2, "UR_FORMING": 1, "NONE": 0}
+        results.sort(key=lambda x: (status_rank.get(x.get("ur_status"), 0), x.get("reclaim_vol_ratio", 0)), reverse=True)
+
+        last_updated = _save_screener_db_cache("undercut_and_rally", results)
+        _UNDERCUT_RALLY_SCANNER_CACHE = {"data": results, "last_updated": last_updated}
+    except Exception as e:
+        print(f"Error executing Undercut and Rally screener: {e}")
+
+    hydrated_results = _overlay_live_quotes_on_candidates(results)
+    return {
+        "status": "success",
+        "count": len(hydrated_results),
+        "last_updated": _UNDERCUT_RALLY_SCANNER_CACHE.get("last_updated", ""),
+        "data": hydrated_results
+    }
+
+
 _STAGE_DIAGNOSTIC_CACHE = {}
 
 @app.get("/api/screener/stage-diagnostic/{symbol}")
 async def get_stage_diagnostic(symbol: str, force_refresh: bool = False):
     """
     Computes Stage 1-4 Life Cycle classification, 30-week MA slope,
-    50/200 EMAs, RS rating, and tests qualification for all 5 quantitative screeners.
+    50/200 EMAs, RS rating, and tests qualification for all quantitative screeners.
     """
     global _STAGE_DIAGNOSTIC_CACHE
     from backend.swing_utils import (
@@ -18710,7 +18904,9 @@ async def get_stage_diagnostic(symbol: str, force_refresh: bool = False):
         detect_episodic_pivot,
         detect_pocket_pivot,
         detect_oliver_kell_reversal,
-        detect_cup_with_handle
+        detect_cup_with_handle,
+        detect_rs_line_new_high,
+        detect_undercut_and_rally
     )
     
     clean_sym = symbol.strip().upper()
@@ -18781,6 +18977,10 @@ async def get_stage_diagnostic(symbol: str, force_refresh: bool = False):
         pocket_res = detect_pocket_pivot(df)
         kell_res = detect_oliver_kell_reversal(df)
         ch_res = detect_cup_with_handle(df, rs_score=rs_rating)
+        
+        nifty_df = await _get_nifty_index_df()
+        rsnh_res = detect_rs_line_new_high(df, nifty_df=nifty_df, rs_score=rs_rating)
+        ur_res = detect_undercut_and_rally(df, rs_score=rs_rating)
 
         # Stage Classification Rules
         stage_num = 2
@@ -18835,6 +19035,8 @@ async def get_stage_diagnostic(symbol: str, force_refresh: bool = False):
         pocket_qualified = bool(pocket_res.get("is_pocket_pivot"))
         kell_qualified = bool(kell_res.get("is_kell_reversal"))
         ch_qualified = bool(ch_res.get("is_cup_with_handle"))
+        rsnh_qualified = bool(rsnh_res.get("is_rs_new_high"))
+        ur_qualified = bool(ur_res.get("is_undercut_and_rally"))
         
         # Synchronized Trade Execution Levels (Strict Quantitative Values, Zero Fallbacks)
         if vcp_res and vcp_res.get("pivot_price", 0) > 0 and vcp_res.get("stop_loss", 0) > 0:
@@ -18874,6 +19076,12 @@ async def get_stage_diagnostic(symbol: str, force_refresh: bool = False):
         elif kell_res and kell_res.get("pivot_price", 0) > 0:
             pivot_price = round(float(kell_res["pivot_price"]), 2)
             stop_loss = round(float(kell_res.get("stop_loss_price", 0) or 0), 2)
+            risk = pivot_price - stop_loss
+            target_1 = round(pivot_price + (2.0 * risk), 2) if risk > 0 else 0.0
+            target_2 = round(pivot_price + (4.0 * risk), 2) if risk > 0 else 0.0
+        elif ur_res and ur_res.get("is_undercut_and_rally"):
+            pivot_price = round(curr_price * 1.005, 2)
+            stop_loss = round(float(ur_res.get("stop_loss", curr_price * 0.96)), 2)
             risk = pivot_price - stop_loss
             target_1 = round(pivot_price + (2.0 * risk), 2) if risk > 0 else 0.0
             target_2 = round(pivot_price + (4.0 * risk), 2) if risk > 0 else 0.0
@@ -18960,6 +19168,14 @@ async def get_stage_diagnostic(symbol: str, force_refresh: bool = False):
                 "cup_with_handle": {
                     "qualified": ch_qualified,
                     "reason": f"Cup & Handle Active: {ch_res.get('base_status', 'N/A')} (Cup {ch_res.get('cup_depth_pct', 0.0)}%, Handle {ch_res.get('handle_depth_pct', 0.0)}%)" if ch_qualified else ch_res.get("rejection_reason", "Cup depth > 35% or duration < 7 wks")
+                },
+                "rs_line_new_high": {
+                    "qualified": rsnh_qualified,
+                    "reason": f"RS Line at 52-Week High ({rsnh_res.get('rsnh_status', 'N/A')})" if rsnh_qualified else rsnh_res.get("reason", "RS Line not at 52W max")
+                },
+                "undercut_and_rally": {
+                    "qualified": ur_qualified,
+                    "reason": f"U&R Reclaim Active: {ur_res.get('reason', 'N/A')}" if ur_qualified else ur_res.get("reason", "No active Undercut & Rally setup")
                 }
             },
             "screener_audit": {
@@ -18988,55 +19204,63 @@ async def get_stage_diagnostic(symbol: str, force_refresh: bool = False):
                     "required": "Pole Surge ≥ +80% in <8 wks, Flag Depth ≤ 25%, Flag Days 8–30",
                     "actual": f"Pole Gain: +{htf_res.get('pole_gain_pct', 0.0)}%, Flag Depth: {htf_res.get('flag_depth_pct', 0.0)}%, Flag Days: {htf_res.get('flag_days', 0)}",
                     "qualified": htf_qualified,
-                    "reason": f"HTF Status: {htf_res.get('htf_status', 'N/A')}" if htf_qualified else (
-                        f"Pole gain (+{htf_res.get('pole_gain_pct', 0.0)}%) < 80.0% threshold" if htf_res.get('pole_gain_pct', 0.0) < 80.0 else (
-                            f"Flag depth ({htf_res.get('flag_depth_pct', 0.0)}%) > 25.0% cap" if htf_res.get('flag_depth_pct', 0.0) > 25.0 else "Flag duration outside 8-30 days window"
-                        )
-                    )
+                    "reason": f"HTF Status: {htf_res.get('htf_status', 'N/A')}" if htf_qualified else "Requires 100%+ rally in <8 wks"
                 },
                 "three_wt": {
-                    "name": "David Ryan 3-Weeks Tight (3WT)",
-                    "required": "Weekly Close Variance ≤ 2.0%, Price > 50 EMA, VDU ≤ 0.85x",
+                    "name": "3-Weeks Tight (3WT)",
+                    "required": "3 Consecutive Weekly Closes within 1.5% Variance, RS ≥ 60",
                     "actual": f"Close Variance: {twt_res.get('close_variance_pct', 0.0)}%, Weekly Closes: {twt_res.get('weekly_closes', [])}",
                     "qualified": twt_qualified,
-                    "reason": f"3WT Status: {twt_res.get('tight_status', 'N/A')}" if twt_qualified else (
-                        f"Close variance ({twt_res.get('close_variance_pct', 0.0)}%) > 2.0% threshold" if twt_res.get("close_variance_pct", 0) > 2.0 else "RS rating < 60 or EMA unaligned"
-                    )
+                    "reason": f"3WT Status: {twt_res.get('tight_status', 'N/A')}" if twt_qualified else "Close variance > 2.0% or RS < 60"
                 },
                 "flat_base": {
-                    "name": "Nicolas Darvas / O'Neil Modern Flat Base",
-                    "required": "5–15 Wks Length, Depth ≤ 15.0%, VDU ≤ 0.85x, RS ≥ 75, Prior Advance ≥ +25%",
-                    "actual": f"Depth: {flat_res.get('base_depth_pct', 0.0)}%, Length: {flat_res.get('base_length_weeks', 0)} wks ({flat_res.get('base_length_days', 0)}d), VDU: {flat_res.get('vdu_ratio', 1.0)}x",
+                    "name": "Modern Flat Base Breakout",
+                    "required": "Base Depth ≤ 15%, Duration ≥ 5 Wks, Price within 20% of 52W High",
+                    "actual": f"Base Depth: {flat_res.get('base_depth_pct', 0.0)}%, Duration: {flat_res.get('base_length_weeks', 0)} wks, Dist 52W High: {dist_52wk_high_pct:.1f}%",
                     "qualified": flat_qualified,
-                    "reason": f"Flat Base Status: {flat_res.get('base_status', 'N/A')} (Depth {flat_res.get('base_depth_pct', 0.0)}%)" if flat_qualified else flat_res.get("rejection_reason", "Base depth > 15% or duration < 5 wks")
+                    "reason": f"Flat Base Status: {flat_res.get('base_status', 'N/A')}" if flat_qualified else flat_res.get("rejection_reason", "Base depth > 15% or duration < 5 wks")
                 },
                 "episodic_pivot": {
                     "name": "Kristjan Qullamaggie Episodic Pivot (EP)",
-                    "required": "Gap ≥ +4.0%, RVOL ≥ 2.5x 50-day avg, Consolidation Base ≥ 10 days",
-                    "actual": f"Gap: +{ep_res.get('gap_pct', 0.0)}%, RVOL: {ep_res.get('rvol', 0.0)}x, Consolidation: {ep_res.get('consolidation_days', 0)}d",
+                    "required": "Catalyst Gap-Up ≥ +4.0%, RVOL ≥ 2.5x 50D Average, High Volume Close",
+                    "actual": f"Gap %: +{ep_res.get('gap_pct', 0.0)}%, RVOL: {ep_res.get('rvol', 0.0)}x, EP Status: {ep_res.get('ep_status', 'NONE')}",
                     "qualified": ep_qualified,
-                    "reason": f"EP Gap-Up Active: {ep_res.get('ep_status', 'N/A')}" if ep_qualified else ep_res.get("rejection_reason", "Gap < 4% or RVOL < 2.5x")
+                    "reason": f"EP Gap-Up Active ({ep_res.get('ep_status', 'NONE')})" if ep_qualified else ep_res.get("rejection_reason", "Gap < 4.0% or RVOL < 2.5x")
                 },
                 "pocket_pivot": {
-                    "name": "Gil Morales & Chris Kacher Pocket Pivot",
-                    "required": "Up-Day Vol > Max Down-Day Vol in last 10 days, Base / EMA Touch",
-                    "actual": f"Vol Ratio vs 10D Down Max: {pocket_res.get('vol_ratio_vs_max_down', 0.0)}x, Support MA: {pocket_res.get('ma_support_line', '50 SMA')}",
+                    "name": "Gil Morales Pocket Pivot Accumulation",
+                    "required": "Up-Day Volume > Highest Down-Day Volume in Last 10 Days, Price near 10/50 EMA",
+                    "actual": f"Vol Ratio vs 10D Down Max: {pocket_res.get('vol_ratio_vs_max_down', 0.0)}x, Status: {pocket_res.get('pocket_status', 'NONE')}",
                     "qualified": pocket_qualified,
-                    "reason": f"Pocket Pivot Active: {pocket_res.get('pocket_status', 'N/A')}" if pocket_qualified else pocket_res.get("rejection_reason", "Volume lower than highest down-day volume in 10 days")
+                    "reason": f"Pocket Pivot Active ({pocket_res.get('pocket_status', 'NONE')})" if pocket_qualified else pocket_res.get("rejection_reason", "Volume < Highest 10D Down Volume")
                 },
                 "oliver_kell": {
-                    "name": "Oliver Kell EMA Trend Continuation & Reversal",
-                    "required": "10 EMA > 20 EMA > 50 EMA, Wedge / Flag Reversal, 20 EMA Support",
-                    "actual": f"Tested MA: {kell_res.get('tested_ma', '10 EMA')}, Reversal Quality: {kell_res.get('reversal_quality', 'HIGH')}, 10 EMA Dist: {kell_res.get('dist_to_10ema_pct', 0.0)}%",
+                    "name": "Oliver Kell 10/20 EMA Reversal & Wedge Pop",
+                    "required": "10 EMA > 20 EMA, Reversal Bounce off 10/20 EMA or Trend Wedge Breakout",
+                    "actual": f"Kell Status: {kell_res.get('kell_status', 'NONE')}, 10 EMA: ₹{kell_res.get('ema10', 0.0)}, 20 EMA: ₹{kell_res.get('ema20', 0.0)}",
                     "qualified": kell_qualified,
-                    "reason": f"Oliver Kell Status: {kell_res.get('kell_status', 'N/A')}" if kell_qualified else kell_res.get("rejection_reason", "No 10/20 EMA reversal or trend wedge breakout")
+                    "reason": f"Oliver Kell Active ({kell_res.get('kell_status', 'NONE')})" if kell_qualified else kell_res.get("rejection_reason", "No 10/20 EMA reversal or wedge pop")
                 },
                 "cup_with_handle": {
-                    "name": "William O'Neil Cup With Handle (CANSLIM)",
-                    "required": "7–65 Wks Length, Cup Depth 12–35%, Handle Depth 3–15%, Handle Duration 1–4 Wks, Prior Trend ≥ +30%, VDU ≤ 0.85x",
-                    "actual": f"Cup Depth: {ch_res.get('cup_depth_pct', 0.0)}%, Handle Depth: {ch_res.get('handle_depth_pct', 0.0)}%, Length: {ch_res.get('base_length_weeks', 0)} wks, VDU: {ch_res.get('vdu_ratio', 1.0)}x",
+                    "name": "William O'Neil / CANSLIM Cup with Handle",
+                    "required": "Cup Depth 12%–33%, Handle Depth 5%–15% in Upper Half of Cup, Volume Dry-Up ≤ 0.75x",
+                    "actual": f"Cup Depth: {ch_res.get('cup_depth_pct', 0.0)}%, Handle Depth: {ch_res.get('handle_depth_pct', 0.0)}%, VDU Ratio: {ch_res.get('vdu_ratio', 1.0)}x, Upper 50%: {'Yes' if ch_res.get('is_upper_half_handle') else 'No'}",
                     "qualified": ch_qualified,
-                    "reason": f"Cup & Handle Active: {ch_res.get('base_status', 'N/A')} (Cup {ch_res.get('cup_depth_pct', 0.0)}%)" if ch_qualified else ch_res.get("rejection_reason", "Cup depth > 35% or duration < 7 wks")
+                    "reason": f"Cup & Handle Active ({ch_res.get('base_status', 'NONE')})" if ch_qualified else ch_res.get("rejection_reason", "Cup depth > 35% or handle not in upper 50%")
+                },
+                "rs_line_new_high": {
+                    "name": "William O'Neil RS Line New High (RSNH)",
+                    "required": "RS Ratio (Stock/Nifty50) at 52W Max, Price ≤ 20% from 52W High",
+                    "actual": f"RS Ratio Current: {rsnh_res.get('rs_ratio_current')}, 52W Max: {rsnh_res.get('rs_ratio_max_252d')}, Trend: {rsnh_res.get('rs_trend_20d')}",
+                    "qualified": rsnh_qualified,
+                    "reason": rsnh_res.get("reason", "")
+                },
+                "undercut_and_rally": {
+                    "name": "Mark Minervini Undercut & Rally (U&R)",
+                    "required": "Prior Swing Low Shakeout (0.5–4%), Reclaim Close > Prior Low, Vol ≥ 1.3x",
+                    "actual": f"Prior Low: ₹{ur_res.get('prior_swing_low')}, Shakeout Low: ₹{ur_res.get('shakeout_low')}, Vol Ratio: {ur_res.get('reclaim_vol_ratio')}x, Risk: {ur_res.get('risk_pct')}%",
+                    "qualified": ur_qualified,
+                    "reason": ur_res.get("reason", "")
                 }
             },
             "action_guidance": action_text
@@ -19123,17 +19347,17 @@ STRICT QUANTITATIVE STAGE DIAGNOSTIC DATA:
 - Volume Surge Ratio: {metrics.get('vol_ratio')}x 50-day average volume
 - Quantitative Trade Levels: Pivot Resistance = ₹{metrics.get('pivot_price')}, Stop Loss = ₹{metrics.get('stop_loss')}, Target 1 = ₹{metrics.get('target_1')}, Target 2 = ₹{metrics.get('target_2')}
 
-9-SCREENER ALGORITHMIC QUALIFICATION AUDIT:
+11-SCREENER ALGORITHMIC QUALIFICATION AUDIT:
 {audit_str}
 
 USER SPECIFIC MASTERCLASS QUERY:
-{custom_prompt if custom_prompt else 'Provide a complete institutional synthesis of Stage positioning, 9-screener confluence & rejection reasons, and tactical risk-reward execution plan.'}
+{custom_prompt if custom_prompt else 'Provide a complete institutional synthesis of Stage positioning, 11-screener confluence & rejection reasons, and tactical risk-reward execution plan.'}
 
 INSTRUCTIONS:
 1. Directly answer the user query with quantitative rigor and actionable guidance.
 2. Structure output into 3 clean, distinct markdown sections (without extra asterisks around headers):
    ### 📊 Stage Lifecycle & Trend Positioning
-   ### 🎯 9-Screener Confluence & Rejection Analysis
+   ### 🎯 11-Screener Confluence & Rejection Analysis
    ### 🛡️ Tactical Risk & Position Sizing Execution
 """
 
@@ -19220,6 +19444,8 @@ async def _eval_watchlist_quant_diagnostics(sym_list: List[str], force_refresh: 
         pocket_qual = screeners.get("pocket_pivot", {}).get("qualified", False)
         kell_qual = screeners.get("oliver_kell", {}).get("qualified", False)
         cup_qual = screeners.get("cup_with_handle", screeners.get("cup_handle", {})).get("qualified", False)
+        rsnh_qual = screeners.get("rs_line_new_high", {}).get("qualified", False)
+        ur_qual = screeners.get("undercut_and_rally", {}).get("qualified", False)
 
         stage_num = diag.get("stage_number", diag.get("stage_classification", {}).get("stage", 1))
         stage_title = diag.get("stage_name", diag.get("stage_classification", {}).get("title", f"Stage {stage_num}"))
@@ -19235,8 +19461,10 @@ async def _eval_watchlist_quant_diagnostics(sym_list: List[str], force_refresh: 
             pocket_qual = False
             kell_qual = False
             cup_qual = False
+            rsnh_qual = False
+            ur_qual = False
 
-        qual_count = sum([1 for q in [vcp_qual, wein_qual, htf_qual, twt_qual, flat_qual, ep_qual, pocket_qual, kell_qual, cup_qual] if q])
+        qual_count = sum([1 for q in [vcp_qual, wein_qual, htf_qual, twt_qual, flat_qual, ep_qual, pocket_qual, kell_qual, cup_qual, rsnh_qual, ur_qual] if q])
 
         if stage_num == 3 or wein_s3_qual:
             qual_label = "STAGE 3 DISTRIBUTION ⚠️"
@@ -19294,6 +19522,10 @@ async def _eval_watchlist_quant_diagnostics(sym_list: List[str], force_refresh: 
             "kell_status": screeners.get("oliver_kell", {}).get("reason", "N/A"),
             "cup_qualified": cup_qual,
             "cup_status": screeners.get("cup_with_handle", screeners.get("cup_handle", {})).get("reason", "N/A"),
+            "rsnh_qualified": rsnh_qual,
+            "rsnh_status": screeners.get("rs_line_new_high", {}).get("reason", "N/A"),
+            "ur_qualified": ur_qual,
+            "ur_status": screeners.get("undercut_and_rally", {}).get("reason", "N/A"),
             "qual_count": qual_count,
             "qualification_label": qual_label,
             "badge_class": badge_cls,
@@ -19483,21 +19715,20 @@ async def run_background_midnight_quant_scanner():
             
             # Check if 2:30 AM IST (window between 2:25 and 2:35 AM IST)
             if now_ist.hour == 2 and 25 <= now_ist.minute <= 35:
-                print("Midnight Quant Scanner (2:30 AM IST): Running full quantitative scan sweep...")
-                await get_weinstein_stage2_screener(force_refresh=True)
-                await get_high_tight_flag_screener(force_refresh=True)
-                await get_3weeks_tight_screener(force_refresh=True)
+                # Run full 11-screener sweep
+                await _run_full_quant_cron_sweep()
                 
                 # Check user watchlists for newly qualified Stage 2 setups
                 try:
                     with get_db() as conn:
                         cursor = conn.cursor()
-                        cursor.execute("SELECT id, name FROM watchlists")
-                        wlists = cursor.fetchall()
-                        for wl in wlists:
-                            wl_id = wl["id"]
-                            q_matrix = get_watchlist_quant_scan_matrix(wl_id)
-                            for row in q_matrix.get("data", []):
+                        cursor.execute("SELECT DISTINCT symbol FROM watchlist_items")
+                        w_rows = cursor.fetchall()
+                        wl_syms = [r["symbol"] for r in w_rows if r["symbol"]]
+                    
+                    if wl_syms:
+                        q_matrix = await _eval_watchlist_quant_diagnostics(wl_syms, force_refresh=True)
+                        for row in q_matrix.get("data", []):
                                 sym = row["symbol"]
                                 stage = row["stage_diagnosis"]
                                 qual_score = row["qualification_score"]
@@ -19510,9 +19741,17 @@ async def run_background_midnight_quant_scanner():
                                     if not already_alerted:
                                         print(f"Midnight Alert Triggered for NEW Setup: {sym} ({stage})")
                                         active_setups = []
-                                        if row.get("vcp_badge", {}).get("text") == "QUALIFIED": active_setups.append("Minervini VCP")
-                                        if row.get("htf_badge", {}).get("text") in ["STAGE 2", "READY"]: active_setups.append("High-Tight Flag")
-                                        if row.get("t3w_badge", {}).get("text") == "3WT TIGHT": active_setups.append("3-Weeks Tight")
+                                        if row.get("vcp_qualified"): active_setups.append("Minervini VCP")
+                                        if row.get("weinstein_qualified"): active_setups.append("Weinstein Stage 2")
+                                        if row.get("htf_qualified"): active_setups.append("High-Tight Flag")
+                                        if row.get("three_wt_qualified"): active_setups.append("3-Weeks Tight")
+                                        if row.get("flat_qualified"): active_setups.append("Flat Base")
+                                        if row.get("episodic_qualified"): active_setups.append("Episodic Pivot")
+                                        if row.get("pocket_qualified"): active_setups.append("Pocket Pivot")
+                                        if row.get("kell_qualified"): active_setups.append("Oliver Kell Reversal")
+                                        if row.get("cup_qualified"): active_setups.append("Cup with Handle")
+                                        if row.get("rsnh_qualified"): active_setups.append("RS Line New High")
+                                        if row.get("ur_qualified"): active_setups.append("Undercut & Rally")
                                         
                                         await dispatch_quant_whatsapp_alert(
                                             symbol=sym,
