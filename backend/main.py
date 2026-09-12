@@ -18945,6 +18945,8 @@ async def get_stage_diagnostic(symbol: str, force_refresh: bool = False):
         day_change_pct = float(((curr_price - close.iloc[-2]) / close.iloc[-2]) * 100) if len(close) > 1 else 0.0
         
         # Moving Averages
+        ema_10 = float(close.ewm(span=10).mean().iloc[-1])
+        ema_20 = float(close.ewm(span=20).mean().iloc[-1])
         ema_50 = float(close.ewm(span=50).mean().iloc[-1])
         ema_200 = float(close.ewm(span=200).mean().iloc[-1]) if len(close) >= 150 else float(close.mean())
         
