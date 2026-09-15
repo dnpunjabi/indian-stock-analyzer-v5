@@ -2815,13 +2815,13 @@ def detect_pocket_pivot(df: pd.DataFrame, rs_score: float = 0.0) -> dict:
         c_sma150 = clean_float(sma150[-1])
         c_sma200 = clean_float(sma200[-1])
 
-        # 30-Week (200 SMA) Slope Check
-        sma200_20d_ago = clean_float(sma200[-20]) if n >= 20 else c_sma200
-        slope_30wk_pct = round(((c_sma200 - sma200_20d_ago) / sma200_20d_ago) * 100.0, 2) if sma200_20d_ago > 0 else 0.0
+        # 30-Week (150 SMA) Slope Check over 20 trading days
+        sma150_20d_ago = clean_float(sma150[-20]) if n >= 20 else c_sma150
+        slope_30wk_pct = round(((c_sma150 - sma150_20d_ago) / sma150_20d_ago) * 100.0, 2) if sma150_20d_ago > 0 else 0.0
         default_res["slope_30wk_pct"] = slope_30wk_pct
 
         if slope_30wk_pct < -0.2:
-            default_res["rejection_reason"] = f"30-Week (200 SMA) slope is negative ({slope_30wk_pct:.2f}%)"
+            default_res["rejection_reason"] = f"30-Week (150 SMA) slope is negative ({slope_30wk_pct:.2f}%)"
             return default_res
 
         # Stage 2 Trend Template & Extension Check
@@ -3440,15 +3440,16 @@ def detect_undercut_and_rally(df: pd.DataFrame, rs_score: float = 0.0) -> dict:
             default_res["reason"] = f"Relative Strength (RS) score {rs_score:.1f} below 65 threshold"
             return default_res
 
-        # 200 SMA & 30-Week Slope Check
+        # 30-Week (150 SMA) Slope Check over 20 trading days
         sma50 = float(close_s.tail(min(50, n)).mean())
+        sma150 = float(close_s.tail(min(150, n)).mean())
         sma200 = float(close_s.tail(min(200, n)).mean())
-        sma200_20d_ago = float(close_s.iloc[:-20].tail(min(200, n)).mean()) if n >= 40 else sma200
-        slope_30wk_pct = round(((sma200 - sma200_20d_ago) / sma200_20d_ago) * 100.0, 2) if sma200_20d_ago > 0 else 0.0
+        sma150_20d_ago = float(close_s.iloc[:-20].tail(min(150, n)).mean()) if n >= 40 else sma150
+        slope_30wk_pct = round(((sma150 - sma150_20d_ago) / sma150_20d_ago) * 100.0, 2) if sma150_20d_ago > 0 else 0.0
         default_res["slope_30wk_pct"] = slope_30wk_pct
 
         if slope_30wk_pct < -0.2:
-            default_res["reason"] = f"Fails 30-Week (200 SMA) slope requirement ({slope_30wk_pct:.2f}%)"
+            default_res["reason"] = f"Fails 30-Week (150 SMA) slope requirement ({slope_30wk_pct:.2f}%)"
             return default_res
 
         high_52w = float(high_s.tail(min(252, n)).max())

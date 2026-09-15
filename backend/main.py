@@ -1,3 +1,4 @@
+TV_CHART_CACHE = {}
 import os
 from dotenv import load_dotenv
 load_dotenv(override=True)
@@ -4739,6 +4740,12 @@ async def get_tv_chart_data(
     pitchfork_dev: float = 5.0,
     pitchfork_depth: int = 34
 ):
+    cache_key = (ticker.upper(), period, interval, length, mult, pitchfork_type, pitchfork_dev, pitchfork_depth)
+    now_ts = time.time()
+    if cache_key in TV_CHART_CACHE:
+        cached_time, cached_data = TV_CHART_CACHE[cache_key]
+        if now_ts - cached_time < 600:
+            return cached_data
     """
     Exposes raw candlestick data, EMAs, volume, custom Trendlines with Breaks,
     and Mxwll Price Action Suite calculations for high-fidelity TradingView Lightweight Charts overlays.
@@ -4762,6 +4769,37 @@ async def get_tv_chart_data(
         df['EMA_200'] = df['Close'].ewm(span=200, adjust=False).mean()
         df['EMA_Custom'] = df['Close'].ewm(span=length, adjust=False).mean()
         
+        # Calculate 150-day SMA (30-Week MA Daily Proxy)
+        df['SMA_150'] = df['Close'].rolling(window=min(150, len(df)), min_periods=20).mean()
+        sma150_curr = float(df['SMA_150'].iloc[-1]) if not pd.isna(df['SMA_150'].iloc[-1]) else 0.0
+        sma150_past = float(df['SMA_150'].iloc[-20]) if len(df) >= 20 and not pd.isna(df['SMA_150'].iloc[-20]) else sma150_curr
+        ma30_slope_pct = round(((sma150_curr - sma150_past) / sma150_past) * 100.0, 2) if sma150_past > 0 else 0.0
+
+        # Calculate True Weekly 30 WMA & 4-Week Slope
+        try:
+            if len(df) >= 50:
+                w_closes = df['Close'].iloc[::-5].iloc[:35][::-1]
+                w_series = pd.Series(w_closes).rolling(window=30, min_periods=10).mean()
+                w_sma = float(w_series.iloc[-1]) if not pd.isna(w_series.iloc[-1]) else sma150_curr
+                w_sma_prev = float(w_series.iloc[-5]) if len(w_series) >= 5 and not pd.isna(w_series.iloc[-5]) else w_sma
+                weekly_slope_pct = round(((w_sma - w_sma_prev) / w_sma_prev) * 100.0, 2) if w_sma_prev > 0 else 0.0
+            else:
+                w_sma = sma150_curr
+                weekly_slope_pct = ma30_slope_pct
+        except Exception:
+            w_sma = sma150_curr
+            weekly_slope_pct = ma30_slope_pct
+
+        if ma30_slope_pct > 0.3:
+            stage_status = "STAGE_2_UPTREND"
+            stage_label = "Stage 2 Mark-Up 🚀"
+        elif ma30_slope_pct >= -0.2:
+            stage_status = "STAGE_1_3_NEUTRAL"
+            stage_label = "Stage 1/3 Base/Top 🟡"
+        else:
+            stage_status = "STAGE_4_DOWNTREND"
+            stage_label = "Stage 4 Downtrend 📉"
+
         from backend.swing_utils import (
             calculate_trendlines_with_breaks,
             calculate_mxwll_suite,
@@ -4814,6 +4852,7 @@ async def get_tv_chart_data(
                 "ema_20": round(float(df_sliced["EMA_20"].iloc[idx]), 2) if not pd.isna(df_sliced["EMA_20"].iloc[idx]) else None,
                 "ema_50": round(float(df_sliced["EMA_50"].iloc[idx]), 2) if not pd.isna(df_sliced["EMA_50"].iloc[idx]) else None,
                 "ema_100": round(float(df_sliced["EMA_100"].iloc[idx]), 2) if not pd.isna(df_sliced["EMA_100"].iloc[idx]) else None,
+                "ema_150": round(float(df_sliced["SMA_150"].iloc[idx]), 2) if not pd.isna(df_sliced["SMA_150"].iloc[idx]) else None,
                 "ema_200": round(float(df_sliced["EMA_200"].iloc[idx]), 2) if not pd.isna(df_sliced["EMA_200"].iloc[idx]) else None,
                 "ema_custom": round(float(df_sliced["EMA_Custom"].iloc[idx]), 2) if not pd.isna(df_sliced["EMA_Custom"].iloc[idx]) else None,
                 "resistance": round(float(df_sliced["Resistance"].iloc[idx]), 2) if not pd.isna(df_sliced["Resistance"].iloc[idx]) else None,
@@ -4873,7 +4912,16 @@ async def get_tv_chart_data(
             "mxwll": mxwll_data,
             "lux_smc": lux_smc_data,
             "lrtc_latest": lrtc_data["latest_channel"],
-            "pitchfork": filtered_pitchfork
+            "pitchfork": filtered_pitchfork,
+            "ma30_slope": {
+                "sma150_curr": round(sma150_curr, 2),
+                "sma150_past": round(sma150_past, 2),
+                "slope_pct": ma30_slope_pct,
+                "weekly_sma30": round(w_sma, 2),
+                "weekly_slope_pct": weekly_slope_pct,
+                "stage_status": stage_status,
+                "stage_label": stage_label
+            }
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"TradingView chart data calculation error: {str(e)}")
@@ -4897,6 +4945,10 @@ async def get_indicator_synthesis(
     """
     if not ticker:
         raise HTTPException(status_code=400, detail="Ticker parameter is required.")
+        
+    ticker = ticker.strip().upper()
+    if not ticker.endswith('.NS') and not ticker.endswith('.BO') and not ticker.startswith('^'):
+        ticker = ticker + '.NS'
         
     try:
         fetch_range = "2y"

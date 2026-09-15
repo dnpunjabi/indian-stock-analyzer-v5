@@ -29658,17 +29658,14 @@ body.light-theme .rs-kpi-sticky-col {
     overflow: hidden !important;
 }
 
-/* Force Chart.js and TradingView Lightweight Chart canvas elements to stretch 100% */
+/* Force Chart.js and container elements to stretch 100% */
 #stock-chart,
 #fibonacci-chart,
 .price-chart-container canvas,
 .fib-chart-container canvas,
-.tv-lightweight-charts,
-.tv-lightweight-charts canvas,
-.tv-lightweight-charts table {
+.tv-lightweight-charts {
     width: 100% !important;
     max-width: 100% !important;
-    display: block !important;
     box-sizing: border-box !important;
 }
 
@@ -29705,18 +29702,15 @@ body.light-theme .rs-kpi-sticky-col {
     overflow: hidden !important;
 }
 
-/* Force Chart.js and TradingView elements to stretch 100% */
+/* Force Chart.js and container elements to stretch 100% */
 #stock-chart,
 #fibonacci-chart,
 .price-chart-container canvas,
 .fib-chart-container canvas,
-.tv-lightweight-charts,
-.tv-lightweight-charts canvas,
-.tv-lightweight-charts table {
+.tv-lightweight-charts {
     width: 100% !important;
     min-width: 100% !important;
     max-width: 100% !important;
-    display: block !important;
     box-sizing: border-box !important;
 }
 
@@ -29841,8 +29835,6 @@ body.light-theme .rs-kpi-sticky-col {
 #tv-chart-card .card-header,
 #tv-chart-container,
 #tv-chart-container .tv-lightweight-charts,
-#tv-chart-container .tv-lightweight-charts canvas,
-#tv-chart-container .tv-lightweight-charts table,
 #tv-chart-legend-panel,
 #tv-chart-smc-hud-panel {
     width: 100% !important;
@@ -29852,11 +29844,10 @@ body.light-theme .rs-kpi-sticky-col {
 }
 
 #tv-chart-container {
-    height: 420px !important;
-    min-height: 420px !important;
-    display: block !important;
+    height: 480px;
+    min-height: 480px;
     position: relative !important;
-    overflow: hidden !important;
+    overflow: visible !important;
 }
 
 
@@ -29892,8 +29883,8 @@ body.light-theme .rs-kpi-sticky-col {
     width: 100% !important;
     min-width: 100% !important;
     max-width: 100% !important;
-    height: 440px !important;
-    min-height: 440px !important;
+    height: 480px;
+    min-height: 480px;
     margin: 6px 0 !important;
     border-left: none !important;
     border-right: none !important;
@@ -29902,16 +29893,87 @@ body.light-theme .rs-kpi-sticky-col {
     box-sizing: border-box !important;
 }
 
-#tv-chart-container .tv-lightweight-charts,
-#tv-chart-container .tv-lightweight-charts canvas,
-#tv-chart-container .tv-lightweight-charts table {
+#tv-chart-card.fullscreen-card-active #tv-chart-container {
+    height: calc(100vh - 220px) !important;
+    min-height: 520px !important;
+}
+
+#tv-chart-container .tv-lightweight-charts {
     width: 100% !important;
-    min-width: 100% !important;
-    max-width: 100% !important;
-    left: 0 !important;
+    height: 100% !important;
     margin: 0 !important;
     padding: 0 !important;
     box-sizing: border-box !important;
+}
+
+/* ==========================================================================
+   CRITICAL: Protect Lightweight Charts internal table/tr/td/canvas from
+   global CSS rules that break the chart's timeline (time-axis) row.
+   The library uses an internal <table> with <tr>/<td> elements for layout.
+   Global rules (e.g. table { min-width: 650px }, td { padding: 10px 14px },
+   td:first-child { position: sticky; width: 140px }) override the chart's
+   own inline styles, causing the timeline row to be invisible.
+
+   FIX: We use !important to beat the global !important rules, but we set
+   values that are compatible with what the library would set via inline styles.
+   The library's inline styles set explicit pixel widths/heights which we must
+   NOT interfere with, so we avoid setting width/height/display here.
+   Instead we only reset the PROBLEMATIC properties from the global rules.
+   ========================================================================== */
+
+/* Counter: global "table { min-width: 650px !important }" */
+#tv-chart-container table {
+    min-width: 0 !important;
+    border-collapse: separate !important;
+    border-spacing: 0 !important;
+    border: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: transparent !important;
+    box-shadow: none !important;
+}
+
+/* Counter: global "table th, table td { padding: 10px 14px !important; white-space: nowrap !important; display: table-cell !important; }" */
+#tv-chart-container table th,
+#tv-chart-container table td {
+    padding: 0 !important;
+    margin: 0 !important;
+    border: none !important;
+    white-space: normal !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    opacity: 1 !important;
+    backdrop-filter: none !important;
+}
+
+/* Counter: global "table tbody td:first-child { position: sticky !important; left: 0; z-index: 25; width: 140px; min-width: 140px; ... }" */
+#tv-chart-container table tbody td:first-child,
+#tv-chart-container table thead th:first-child {
+    position: static !important;
+    left: auto !important;
+    z-index: auto !important;
+    width: auto !important;
+    min-width: 0 !important;
+    max-width: none !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    border-right: none !important;
+}
+
+/* Counter: global "table tbody td:first-child div/span { max-width: 120px; overflow: hidden; text-overflow: ellipsis }" */
+#tv-chart-container table tbody td:first-child div,
+#tv-chart-container table tbody td:first-child span {
+    max-width: none !important;
+    overflow: visible !important;
+    text-overflow: clip !important;
+    white-space: normal !important;
+}
+
+#tv-chart-container canvas {
+    display: block;
+    padding: 0;
+    margin: 0;
+    border: none;
 }
 
 #tv-chart-legend-panel,
@@ -35749,3 +35811,488 @@ body.light-theme .confluence-btn-secondary {
 
 
 
+
+
+/* --- i-Chart Standalone Workspace Tab Light Theme Overrides --- */
+[data-mode="light"] #tab-interactive-chart .ichart-header-toolbar,
+[data-theme="light"] #tab-interactive-chart .ichart-header-toolbar,
+body.light-theme #tab-interactive-chart .ichart-header-toolbar {
+    background: #ffffff !important;
+    border: 1px solid #cbd5e1 !important;
+    color: #0f172a !important;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05) !important;
+}
+
+[data-mode="light"] #ichart-stepthrough-bar,
+[data-theme="light"] #ichart-stepthrough-bar,
+body.light-theme #ichart-stepthrough-bar {
+    background: #f1f5f9 !important;
+    border: 1px solid #cbd5e1 !important;
+}
+
+[data-mode="light"] #ichart-stock-counter,
+[data-theme="light"] #ichart-stock-counter,
+body.light-theme #ichart-stock-counter {
+    color: #2563eb !important;
+}
+
+[data-mode="light"] #ichart-breadcrumb-back-btn,
+[data-theme="light"] #ichart-breadcrumb-back-btn,
+body.light-theme #ichart-breadcrumb-back-btn {
+    background: #f1f5f9 !important;
+    border: 1px solid #cbd5e1 !important;
+    color: #0f172a !important;
+}
+
+[data-mode="light"] #ichart-30w-hud-badge,
+[data-theme="light"] #ichart-30w-hud-badge,
+body.light-theme #ichart-30w-hud-badge {
+    background: rgba(16, 185, 129, 0.1) !important;
+    border: 1px solid #10b981 !important;
+    color: #047857 !important;
+}
+
+[data-mode="light"] #ichart-hud-symbol,
+[data-theme="light"] #ichart-hud-symbol,
+body.light-theme #ichart-hud-symbol {
+    color: #0f172a !important;
+}
+
+[data-mode="light"] #ichart-hud-price-badge,
+[data-theme="light"] #ichart-hud-price-badge,
+body.light-theme #ichart-hud-price-badge {
+    color: #0284c7 !important;
+}
+
+[data-mode="light"] #ichart-hud-ma-val,
+[data-theme="light"] #ichart-hud-ma-val,
+body.light-theme #ichart-hud-ma-val {
+    color: #334155 !important;
+}
+
+[data-mode="light"] #ichart-hud-slope-val,
+[data-theme="light"] #ichart-hud-slope-val,
+body.light-theme #ichart-hud-slope-val {
+    background: #f1f5f9 !important;
+    border: 1px solid #cbd5e1 !important;
+    color: #0f172a !important;
+}
+
+
+
+/* ==========================================================================
+   ULTRA-PREMIUM RESPONSIVE 11-SCREENER QUALIFICATION CARDS GRID SYSTEM
+   ========================================================================== */
+.diag-screener-grid {
+    display: grid !important;
+    grid-template-columns: repeat(3, 1fr) !important;
+    gap: 14px !important;
+    margin-bottom: 24px !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+}
+
+@media (max-width: 1100px) {
+    .diag-screener-grid {
+        grid-template-columns: repeat(2, 1fr) !important;
+        gap: 12px !important;
+    }
+}
+
+@media (max-width: 680px) {
+    .diag-screener-grid {
+        grid-template-columns: 1fr !important;
+        gap: 10px !important;
+    }
+}
+
+.diag-screener-card {
+    border-radius: 12px !important;
+    padding: 14px 16px !important;
+    box-sizing: border-box !important;
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: space-between !important;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.12) !important;
+    position: relative !important;
+    overflow: hidden !important;
+}
+
+.diag-screener-card:hover {
+    transform: translateY(-2px) !important;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2) !important;
+}
+
+/* Dark Mode Grid Cards */
+.diag-screener-card.qualified-card,
+.diag-screener-card.qualified {
+    background: linear-gradient(180deg, rgba(16, 185, 129, 0.08) 0%, rgba(15, 23, 42, 0.85) 100%) !important;
+    border: 1px solid rgba(16, 185, 129, 0.35) !important;
+    border-top: 3px solid #10b981 !important;
+}
+
+.diag-screener-card.rejected-card,
+.diag-screener-card.rejected {
+    background: linear-gradient(180deg, rgba(239, 68, 68, 0.04) 0%, rgba(15, 23, 42, 0.65) 100%) !important;
+    border: 1px solid rgba(239, 68, 68, 0.2) !important;
+    border-top: 3px solid #ef4444 !important;
+}
+
+.diag-screener-card-header {
+    display: flex !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+    margin-bottom: 10px !important;
+    gap: 8px !important;
+    flex-wrap: nowrap !important;
+}
+
+.diag-screener-name {
+    font-size: 13px !important;
+    font-weight: 800 !important;
+    letter-spacing: -0.01em !important;
+    color: #f8fafc !important;
+    line-height: 1.35 !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 6px !important;
+}
+
+.diag-screener-badge {
+    font-size: 11px !important;
+    font-weight: 800 !important;
+    padding: 3px 9px !important;
+    border-radius: 6px !important;
+    letter-spacing: 0.03em !important;
+    white-space: nowrap !important;
+    display: inline-flex !important;
+    align-items: center !important;
+}
+
+.diag-screener-badge.qual {
+    background: rgba(16, 185, 129, 0.2) !important;
+    color: #34d399 !important;
+    border: 1px solid rgba(16, 185, 129, 0.4) !important;
+}
+
+.diag-screener-badge.rej {
+    background: rgba(239, 68, 68, 0.15) !important;
+    color: #f87171 !important;
+    border: 1px solid rgba(239, 68, 68, 0.3) !important;
+}
+
+.diag-screener-reason-body {
+    margin-top: 4px !important;
+    flex: 1 !important;
+}
+
+.diag-screener-reason {
+    font-size: 12px !important;
+    line-height: 1.55 !important;
+    color: #cbd5e1 !important;
+    margin: 0 !important;
+    font-weight: 500 !important;
+}
+
+/* Light Mode Overrides for 11-Screener Qualification Cards Grid */
+[data-mode="light"] .diag-screener-card,
+[data-theme="light"] .diag-screener-card,
+body.light-theme .diag-screener-card {
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.05) !important;
+}
+
+[data-mode="light"] .diag-screener-name,
+[data-theme="light"] .diag-screener-name,
+body.light-theme .diag-screener-name {
+    color: #0f172a !important;
+}
+
+[data-mode="light"] .diag-screener-reason,
+[data-theme="light"] .diag-screener-reason,
+body.light-theme .diag-screener-reason {
+    color: #334155 !important;
+}
+
+[data-mode="light"] .diag-screener-card.qualified-card,
+[data-theme="light"] .diag-screener-card.qualified-card,
+body.light-theme .diag-screener-card.qualified-card,
+[data-mode="light"] .diag-screener-card.qualified,
+[data-theme="light"] .diag-screener-card.qualified,
+body.light-theme .diag-screener-card.qualified {
+    background: linear-gradient(180deg, #f0fdf4 0%, #ffffff 100%) !important;
+    border: 1px solid #6ee7b7 !important;
+    border-top: 3px solid #10b981 !important;
+}
+
+[data-mode="light"] .diag-screener-card.rejected-card,
+[data-theme="light"] .diag-screener-card.rejected-card,
+body.light-theme .diag-screener-card.rejected-card,
+[data-mode="light"] .diag-screener-card.rejected,
+[data-theme="light"] .diag-screener-card.rejected,
+body.light-theme .diag-screener-card.rejected {
+    background: linear-gradient(180deg, #fef2f2 0%, #ffffff 100%) !important;
+    border: 1px solid #fca5a5 !important;
+    border-top: 3px solid #ef4444 !important;
+}
+
+[data-mode="light"] .diag-screener-badge.qual,
+[data-theme="light"] .diag-screener-badge.qual,
+body.light-theme .diag-screener-badge.qual {
+    background: #dcfce7 !important;
+    color: #15803d !important;
+    border: 1px solid #86efac !important;
+}
+
+[data-mode="light"] .diag-screener-badge.rej,
+[data-theme="light"] .diag-screener-badge.rej,
+body.light-theme .diag-screener-badge.rej {
+    background: #fee2e2 !important;
+    color: #b91c1c !important;
+    border: 1px solid #fca5a5 !important;
+}
+
+
+
+/* Standalone i-Chart Search Bar & Autocomplete Light/Dark Mode Enhancements */
+#ichart-standalone-search-input {
+    background: rgba(15, 23, 42, 0.6) !important;
+    border: 1px solid var(--border-glass, rgba(255, 255, 255, 0.2)) !important;
+    color: #ffffff !important;
+}
+
+[data-mode="light"] #ichart-standalone-search-input,
+[data-theme="light"] #ichart-standalone-search-input,
+body.light-theme #ichart-standalone-search-input {
+    background: #ffffff !important;
+    border: 1px solid #cbd5e1 !important;
+    color: #0f172a !important;
+    font-weight: 700 !important;
+}
+
+[data-mode="light"] #ichart-standalone-search-input::placeholder,
+[data-theme="light"] #ichart-standalone-search-input::placeholder,
+body.light-theme #ichart-standalone-search-input::placeholder {
+    color: #64748b !important;
+}
+
+#ichart-standalone-autocomplete {
+    background: rgba(15, 23, 42, 0.95) !important;
+    border: 1px solid #3b82f6 !important;
+    color: #f8fafc !important;
+}
+
+[data-mode="light"] #ichart-standalone-autocomplete,
+[data-theme="light"] #ichart-standalone-autocomplete,
+body.light-theme #ichart-standalone-autocomplete {
+    background: #ffffff !important;
+    border: 1px solid #3b82f6 !important;
+    color: #0f172a !important;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15) !important;
+}
+
+
+
+/* i-Chart Workstation Cyber Spinner & Loading Overlay */
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+.ichart-spinner {
+    width: 44px;
+    height: 44px;
+    border: 3.5px solid rgba(59, 130, 246, 0.2);
+    border-top: 3.5px solid #3b82f6;
+    border-right: 3.5px solid #10b981;
+    border-radius: 50%;
+    animation: spin 0.75s linear infinite;
+    box-shadow: 0 0 16px rgba(59, 130, 246, 0.3);
+}
+
+[data-mode="light"] .ichart-loading-overlay,
+[data-theme="light"] .ichart-loading-overlay,
+body.light-theme .ichart-loading-overlay {
+    background: #ffffff !important;
+    border: 1px solid #cbd5e1 !important;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05) !important;
+}
+
+/* ==========================================================================
+   INTERACTIVE CHART WORKSTATION BEAUTIFUL RESPONSIVE STYLING (DESKTOP & MOBILE)
+   ========================================================================== */
+
+.ichart-quick-pill {
+    padding: 5px 11px !important;
+    font-size: 11.5px !important;
+    font-weight: 700 !important;
+    border-radius: 8px !important;
+    background: rgba(255,255,255,0.06) !important;
+    border: 1px solid var(--border-glass, rgba(255,255,255,0.12)) !important;
+    color: var(--text-primary) !important;
+    cursor: pointer !important;
+    white-space: nowrap !important;
+    flex-shrink: 0 !important;
+    transition: all 0.2s ease !important;
+}
+
+.ichart-quick-pill:hover {
+    background: rgba(59, 130, 246, 0.2) !important;
+    border-color: #3b82f6 !important;
+    color: #60a5fa !important;
+}
+
+/* Light Theme Adaptive Styling for i-Chart Workstation */
+[data-mode="light"] .ichart-header-toolbar,
+[data-theme="light"] .ichart-header-toolbar,
+body.light-theme .ichart-header-toolbar {
+    background: #ffffff !important;
+    border-color: #cbd5e1 !important;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.06) !important;
+}
+
+[data-mode="light"] .ichart-quick-pill,
+[data-theme="light"] .ichart-quick-pill,
+body.light-theme .ichart-quick-pill {
+    background: #f1f5f9 !important;
+    border-color: #cbd5e1 !important;
+    color: #1e293b !important;
+}
+
+[data-mode="light"] #ichart-standalone-search-input,
+[data-theme="light"] #ichart-standalone-search-input,
+body.light-theme #ichart-standalone-search-input {
+    background: #f8fafc !important;
+    border-color: #cbd5e1 !important;
+    color: #0f172a !important;
+}
+
+[data-mode="light"] #ichart-30w-hud-badge,
+[data-theme="light"] #ichart-30w-hud-badge,
+body.light-theme #ichart-30w-hud-badge {
+    background: rgba(16, 185, 129, 0.08) !important;
+    border-color: #10b981 !important;
+    box-shadow: 0 4px 16px rgba(16, 185, 129, 0.08) !important;
+}
+
+[data-mode="light"] #ichart-hud-symbol,
+[data-theme="light"] #ichart-hud-symbol,
+body.light-theme #ichart-hud-symbol {
+    color: #0f172a !important;
+}
+
+[data-mode="light"] #ichart-hud-ma-val,
+[data-theme="light"] #ichart-hud-ma-val,
+body.light-theme #ichart-hud-ma-val {
+    color: #334155 !important;
+}
+
+[data-mode="light"] #ichart-hud-slope-val,
+[data-theme="light"] #ichart-hud-slope-val,
+body.light-theme #ichart-hud-slope-val {
+    background: rgba(15, 23, 42, 0.06) !important;
+    color: #0f172a !important;
+}
+
+[data-mode="light"] .ichart-hud-timeframe-switch,
+[data-theme="light"] .ichart-hud-timeframe-switch,
+body.light-theme .ichart-hud-timeframe-switch {
+    background: #f1f5f9 !important;
+    border-color: #cbd5e1 !important;
+}
+
+/* Mobile Responsive Optimization for i-Chart Workstation */
+@media (max-width: 768px) {
+    #tab-interactive-chart {
+        padding: 8px !important;
+        padding-bottom: 80px !important;
+    }
+
+    .ichart-header-toolbar {
+        padding: 12px 14px !important;
+        border-radius: 12px !important;
+        margin-bottom: 12px !important;
+    }
+
+    .ichart-top-row {
+        flex-direction: column !important;
+        align-items: flex-start !important;
+        gap: 8px !important;
+    }
+
+    #ichart-search-bar-container {
+        flex-direction: column !important;
+        align-items: stretch !important;
+        gap: 8px !important;
+        margin-top: 10px !important;
+        padding-top: 10px !important;
+    }
+
+    .ichart-search-wrapper {
+        min-width: 100% !important;
+        width: 100% !important;
+    }
+
+    #ichart-standalone-search-btn {
+        width: 100% !important;
+        justify-content: center !important;
+        padding: 11px !important;
+    }
+
+    #ichart-30w-hud-badge {
+        padding: 12px 14px !important;
+        flex-direction: column !important;
+        align-items: stretch !important;
+        gap: 10px !important;
+        margin-bottom: 12px !important;
+        border-radius: 12px !important;
+    }
+
+    .ichart-hud-metrics-group {
+        width: 100% !important;
+        justify-content: space-between !important;
+        gap: 8px !important;
+    }
+
+    #ichart-hud-symbol {
+        font-size: 16px !important;
+        width: 100% !important;
+    }
+
+    .ichart-hud-timeframe-switch {
+        width: 100% !important;
+        justify-content: space-between !important;
+    }
+
+    .ichart-hud-timeframe-switch button {
+        flex: 1 !important;
+        text-align: center !important;
+    }
+
+    #tv-chart-container {
+        height: 390px !important;
+        min-height: 390px !important;
+    }
+
+    #tv-chart-card {
+        padding: 8px 0 !important;
+        border-radius: 10px !important;
+    }
+
+    #tv-chart-card .card-header {
+        padding: 8px 12px !important;
+        flex-direction: column !important;
+        align-items: flex-start !important;
+        gap: 8px !important;
+    }
+
+    #tv-chart-card .chart-controls {
+        width: 100% !important;
+        overflow-x: auto !important;
+        white-space: nowrap !important;
+        display: flex !important;
+        padding-bottom: 6px !important;
+        -webkit-overflow-scrolling: touch !important;
+        scrollbar-width: none !important;
+    }
+}

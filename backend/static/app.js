@@ -1,3 +1,25 @@
+
+window.openExternalTVChart = function(symbol) {
+    if (!symbol) return;
+    const cleanSym = symbol.replace('.NS', '').replace('.BO', '').trim().toUpperCase();
+    const tvUrl = `https://in.tradingview.com/chart/?symbol=NSE:${encodeURIComponent(cleanSym)}`;
+    window.open(tvUrl, '_blank');
+};
+
+
+window.getActiveChartSymbol = function() {
+    if (typeof activeStockProfile !== 'undefined' && activeStockProfile && activeStockProfile.ticker) {
+        return activeStockProfile.ticker;
+    }
+    if (window.activeIChartState && window.activeIChartState.currentSymbol) {
+        return window.activeIChartState.currentSymbol;
+    }
+    if (window.currentIChartSymbol) {
+        return window.currentIChartSymbol;
+    }
+    return null;
+};
+
 /*
    Indian Stock Analysis AI Workstation v2.0
    Unified Client-side State Machine & Dashboard Controller
@@ -1586,7 +1608,8 @@ const tabs = {
     events: document.getElementById('tab-events'),
     trades: document.getElementById('tab-trades'),
     learning: document.getElementById('tab-learning'),
-    'technical-scans': document.getElementById('tab-technical-scans')
+    'technical-scans': document.getElementById('tab-technical-scans'),
+    'interactive-chart': document.getElementById('tab-interactive-chart')
 };
 
 const tabBtns = {
@@ -1603,6 +1626,7 @@ const tabBtns = {
     portfolio: document.getElementById('tab-portfolio-btn'),
     'swing-scan': document.getElementById('tab-swing-scan-btn'),
     swing: document.getElementById('tab-swing-btn'),
+    'interactive-chart': document.getElementById('tab-interactive-chart-btn') || document.getElementById('tab-interactive-chart-btn-desktop'),
     'sector-radar': document.getElementById('tab-sector-radar-btn'),
     movers: document.getElementById('tab-movers-btn'),
     'market-news': document.getElementById('tab-market-news-btn'),
@@ -19350,6 +19374,7 @@ async function loadPriceVolumeDynamics(symbol, generateAi = false) {
         });
 
         candleSeries.setData(candleData);
+        setupTfButtons(candleData);
         totalVolSeries.setData(totalVolData);
         delivVolSeries.setData(delivVolData);
 
@@ -22927,6 +22952,26 @@ async function executeHistoricalReturnCalculation() {
 }
 
 
+function restoreTVChartToAnalyzerSlot() {
+    const tvCard = document.getElementById('tv-chart-card');
+    const grid = document.querySelector('.dashboard-grid');
+    const tvAdv = document.getElementById('tv-advanced-card');
+    if (tvCard && grid) {
+        if (!grid.contains(tvCard)) {
+            if (tvAdv) {
+                grid.insertBefore(tvCard, tvAdv);
+            } else {
+                grid.appendChild(tvCard);
+            }
+        }
+        tvCard.classList.remove('card-hidden');
+        tvCard.style.display = 'block';
+        tvCard.style.visibility = 'visible';
+        tvCard.style.opacity = '1';
+    }
+}
+window.restoreTVChartToAnalyzerSlot = restoreTVChartToAnalyzerSlot;
+
 // 7b. Equity Research Terminal Sub-Tabs Controller
 function setupAnalyzerSubtabs() {
     const subtabButtons = document.querySelectorAll('.subtab-btn');
@@ -23065,6 +23110,7 @@ function setupAnalyzerSubtabs() {
             }
 
             if (activeSubtab === 'tv-chart') {
+                restoreTVChartToAnalyzerSlot();
                 if (activeStockProfile && activeStockProfile.ticker) {
                     renderTVWorkstationChart(activeStockProfile.ticker);
                 } else {
@@ -26694,7 +26740,12 @@ function renderBacktestChart(data) {
                 mode: LightweightCharts.CrosshairMode.Normal,
             },
             rightPriceScale: {
-                borderColor: isDarkTheme ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)',
+                borderColor: isDarkTheme ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.15)',
+                visible: true,
+                scaleMargins: {
+                    top: 0.08,
+                    bottom: 0.08,
+                },
             },
             timeScale: {
                 borderColor: isDarkTheme ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)',
@@ -32896,12 +32947,44 @@ function setupMetricHoverTooltips() {
     });
 }
 
+
 // ==================== INTERACTIVE WORKSTATION CHART CONTROLS & RENDERER ====================
-async function renderTVWorkstationChart(symbol) {
+async function renderTVWorkstationChart(symbol, forceRefresh = false) {
     if (!symbol) return;
 
-    const container = document.getElementById('tv-chart-container');
+    let formattedTicker = symbol.trim().toUpperCase();
+    if (!formattedTicker.endsWith('.NS') && !formattedTicker.endsWith('.BO') && !formattedTicker.startsWith('^')) {
+        formattedTicker = formattedTicker + '.NS';
+    }
+
+    const activeTab = window.activeTab || (location.hash ? location.hash.replace('#', '') : 'home');
+    if (activeTab === 'home' || activeTab === 'analyzer') {
+        if (typeof window.restoreTVChartToAnalyzerSlot === 'function') {
+            window.restoreTVChartToAnalyzerSlot();
+        }
+    }
+
+    let container = document.getElementById('tv-chart-container');
+    if (!container) {
+        if (typeof window.restoreTVChartToAnalyzerSlot === 'function') {
+            window.restoreTVChartToAnalyzerSlot();
+        }
+        container = document.getElementById('tv-chart-container');
+    }
     if (!container) return;
+
+    // Show Loading Overlay
+    const cleanDisplayTicker = formattedTicker.replace('.NS', '').replace('.BO', '');
+    const isLightMode = document.documentElement.getAttribute('data-mode') === 'light';
+    container.innerHTML = `
+        <div class="ichart-loading-overlay" style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 420px; width: 100%; background: ${isLightMode ? '#ffffff' : 'rgba(15, 23, 42, 0.75)'}; border-radius: 12px; border: 1px solid ${isLightMode ? '#cbd5e1' : 'rgba(255,255,255,0.08)'}; gap: 14px; backdrop-filter: blur(8px);">
+            <div class="ichart-spinner"></div>
+            <div style="text-align: center;">
+                <div style="font-size: 14px; font-weight: 800; color: ${isLightMode ? '#0f172a' : '#f8fafc'}; letter-spacing: 0.02em;">⚡ Loading i-Chart Workstation for <span style="color: #3b82f6;">${cleanDisplayTicker}</span>...</div>
+                <div style="font-size: 11.5px; color: ${isLightMode ? '#64748b' : '#94a3b8'}; margin-top: 4px;">Computing 30W MA Slope, EMAs & Technical Indicators</div>
+            </div>
+        </div>
+    `;
 
     // Reset AI Indicator Insights panel text on ticker changes
     const synthesisContent = document.getElementById('tv-ai-synthesis-content');
@@ -33035,11 +33118,24 @@ async function renderTVWorkstationChart(symbol) {
     pitchforkCtrls.forEach(el => el.style.display = showPitchfork ? 'flex' : 'none');
 
     try {
-        // Fetch data (ext_sens corresponds to the Length parameter selected)
-        const res = await fetch(`/api/chart/tv-chart-data?ticker=${encodeURIComponent(symbol)}&length=${length}&mult=${mult}&ext_sens=${length}&int_sens=5&pitchfork_type=${encodeURIComponent(pitchforkType)}&pitchfork_dev=5.0&pitchfork_depth=34`);
-        if (!res.ok) throw new Error("Failed to fetch interactive chart indicators.");
-        const data = await res.json();
+        // Fast Client-Side Memory Caching
+        window.tvChartMemoryCache = window.tvChartMemoryCache || {};
+        const cacheKey = `${formattedTicker}_${length}_${mult}_${pitchforkType}`;
+        let data = null;
+
+        if (!forceRefresh && window.tvChartMemoryCache[cacheKey]) {
+            data = window.tvChartMemoryCache[cacheKey];
+        } else {
+            const res = await fetch(`/api/chart/tv-chart-data?ticker=${encodeURIComponent(formattedTicker)}&length=${length}&mult=${mult}&ext_sens=${length}&int_sens=5&pitchfork_type=${encodeURIComponent(pitchforkType)}&pitchfork_dev=5.0&pitchfork_depth=34`);
+            if (!res.ok) throw new Error("Failed to fetch interactive chart indicators.");
+            data = await res.json();
+            window.tvChartMemoryCache[cacheKey] = data;
+        }
         window.latestTvChartData = data;
+
+        if (typeof window.updateIChartHudBadge === 'function') {
+            window.updateIChartHudBadge(data);
+        }
 
         // Clean up previous instance
         if (activeTVWorkstationChart) {
@@ -33054,7 +33150,7 @@ async function renderTVWorkstationChart(symbol) {
         // Create Chart
         const chart = LightweightCharts.createChart(container, {
             width: container.clientWidth || 600,
-            height: 420,
+            height: 480,
             layout: {
                 background: { type: 'solid', color: 'transparent' },
                 textColor: isDarkTheme ? '#94a3b8' : '#334155',
@@ -33068,13 +33164,116 @@ async function renderTVWorkstationChart(symbol) {
                 mode: LightweightCharts.CrosshairMode.Normal,
             },
             rightPriceScale: {
-                borderColor: isDarkTheme ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)',
+                borderColor: isDarkTheme ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.15)',
+                visible: true,
             },
             timeScale: {
-                borderColor: isDarkTheme ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)',
+                visible: true,
+                borderVisible: true,
+                borderColor: isDarkTheme ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.2)',
+                timeVisible: false,
+                secondsVisible: false,
             },
         });
         activeTVWorkstationChart = chart;
+
+        // Auto-ResizeObserver for container layout changes
+        if (window.tvChartResizeObserver) {
+            try { window.tvChartResizeObserver.disconnect(); } catch (e) {}
+        }
+        window.tvChartResizeObserver = new ResizeObserver(entries => {
+            for (let entry of entries) {
+                const w = entry.contentRect.width;
+                const h = entry.contentRect.height;
+                if (activeTVWorkstationChart && w > 50 && h > 50) {
+                    activeTVWorkstationChart.resize(w, h);
+                    try { activeTVWorkstationChart.timeScale().fitContent(); } catch (err) {}
+                }
+            }
+        });
+        window.tvChartResizeObserver.observe(container);
+
+        // Timeline timeframe quick range selection handler
+        const setupTfButtons = (candleDataArr) => {
+            const containerEl = document.getElementById('tv-chart-timeframe-bar');
+            if (!containerEl || !candleDataArr || !candleDataArr.length) return;
+            const btns = containerEl.querySelectorAll('.tv-tf-btn');
+            if (!btns.length) return;
+
+            const totalBars = candleDataArr.length;
+            const lastCandle = candleDataArr[totalBars - 1];
+
+            btns.forEach(btn => {
+                // Remove old listeners by replacing onclick / adding event listener
+                btn.onclick = null;
+                btn.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+
+                    btns.forEach(b => {
+                        b.classList.remove('active');
+                        b.style.background = 'transparent';
+                        b.style.color = 'var(--text-secondary)';
+                        b.style.borderColor = 'var(--border-glass)';
+                    });
+                    btn.classList.add('active');
+                    btn.style.background = '#3b82f6';
+                    btn.style.color = '#ffffff';
+                    btn.style.borderColor = '#3b82f6';
+
+                    const range = btn.getAttribute('data-range');
+                    if (range === 'ALL' || !totalBars) {
+                        chart.timeScale().fitContent();
+                        return;
+                    }
+
+                    let numBars = totalBars;
+                    if (range === '1M') numBars = 22;
+                    else if (range === '3M') numBars = 66;
+                    else if (range === '6M') numBars = 126;
+                    else if (range === '1Y') numBars = 252;
+                    else if (range === 'YTD') {
+                        const currentYear = new Date().getFullYear();
+                        const firstYtdIdx = candleDataArr.findIndex(c => {
+                            if (!c || !c.time) return false;
+                            const yr = parseInt(c.time.split('-')[0], 10);
+                            return yr === currentYear;
+                        });
+                        if (firstYtdIdx !== -1 && firstYtdIdx < totalBars) {
+                            numBars = totalBars - firstYtdIdx;
+                        } else {
+                            numBars = Math.min(180, totalBars);
+                        }
+                    }
+
+                    const fromIdx = Math.max(0, totalBars - numBars);
+                    const fromCandle = candleDataArr[fromIdx];
+
+                    try {
+                        if (fromCandle && fromCandle.time && lastCandle && lastCandle.time) {
+                            chart.timeScale().setVisibleRange({
+                                from: fromCandle.time,
+                                to: lastCandle.time
+                            });
+                        } else {
+                            chart.timeScale().setVisibleLogicalRange({
+                                from: fromIdx,
+                                to: totalBars - 1
+                            });
+                        }
+                    } catch (err) {
+                        try {
+                            chart.timeScale().setVisibleLogicalRange({
+                                from: fromIdx,
+                                to: totalBars - 1
+                            });
+                        } catch (e2) {
+                            chart.timeScale().fitContent();
+                        }
+                    }
+                });
+            });
+        };
 
         // Candlesticks Series
         const candleSeries = chart.addCandlestickSeries({
@@ -33086,14 +33285,40 @@ async function renderTVWorkstationChart(symbol) {
         });
         activeTVCandleSeries = candleSeries;
 
-        const candleData = data.candlesticks.map(c => ({
-            time: c.time,
-            open: c.open,
-            high: c.high,
-            low: c.low,
-            close: c.close
-        }));
+        // Use consistent YYYY-MM-DD string dates across ALL series for reliable timeline rendering
+        const rawCandles = (data.candlesticks || [])
+            .filter(c => c && c.time && typeof c.time === 'string')
+            .map(c => {
+                const tStr = c.time.trim();
+                return {
+                    time: tStr,
+                    open: Number(c.open),
+                    high: Number(c.high),
+                    low: Number(c.low),
+                    close: Number(c.close),
+                    volume: Number(c.volume || 0)
+                };
+            })
+            .filter(c => c.time && c.time.length >= 10)
+            .sort((a, b) => a.time.localeCompare(b.time));
+
+        const candleData = [];
+        const seenTimes = new Set();
+        for (const item of rawCandles) {
+            if (!seenTimes.has(item.time)) {
+                seenTimes.add(item.time);
+                candleData.push({
+                    time: item.time,
+                    open: item.open,
+                    high: item.high,
+                    low: item.low,
+                    close: item.close
+                });
+            }
+        }
+
         candleSeries.setData(candleData);
+        chart.timeScale().fitContent();
 
         // Volume Series (Optional overlay)
         if (showVolume) {
@@ -33106,23 +33331,58 @@ async function renderTVWorkstationChart(symbol) {
             });
             volumeSeries.priceScale().applyOptions({
                 scaleMargins: {
-                    top: 0.8, // highest point of the series will be 80% from top (bottom 20% of chart)
-                    bottom: 0,
+                    top: 0.8,
+                    bottom: 0.02,
                 },
             });
-            const volumeData = data.candlesticks.map(c => {
+            const volumeData = rawCandles.map(c => {
                 const isUp = c.close >= c.open;
                 return {
                     time: c.time,
-                    value: c.volume,
+                    value: c.volume || 0,
                     color: isUp ? 'rgba(16, 185, 129, 0.35)' : 'rgba(239, 68, 68, 0.35)',
                 };
-            }).filter(d => d.value !== undefined && d.value !== null);
+            });
             volumeSeries.setData(volumeData);
+
             activeTVVolumeSeries = volumeSeries;
         } else {
             activeTVVolumeSeries = null;
         }
+
+        // Calculate 30-Week MA (150-day SMA or 30-Week WMA) overlay line
+        const isWeeklyMode = window.activeIChartState?.timeframeMode === 'weekly';
+        const ma30Data = [];
+        const cList = data.candlesticks || [];
+        const periodWin = 150;
+        for (let i = 0; i < cList.length; i++) {
+            const slice = cList.slice(Math.max(0, i - periodWin + 1), i + 1);
+            if (slice.length >= 10) {
+                if (isWeeklyMode) {
+                    let weightSum = 0;
+                    let weightedVal = 0;
+                    for (let k = 0; k < slice.length; k++) {
+                        const weight = k + 1;
+                        weightSum += weight;
+                        weightedVal += slice[k].close * weight;
+                    }
+                    ma30Data.push({ time: cList[i].time, value: weightedVal / weightSum });
+                } else {
+                    const sum = slice.reduce((acc, curr) => acc + curr.close, 0);
+                    ma30Data.push({ time: cList[i].time, value: sum / slice.length });
+                }
+            }
+        }
+
+        // 30-Week / 150-Day Moving Average Line
+        const ma30Series = chart.addLineSeries({
+            color: isWeeklyMode ? '#3b82f6' : '#a855f7',
+            lineWidth: 2,
+            title: isWeeklyMode ? '30-Week WMA (Weekly)' : '30-Week MA (150D SMA)',
+            axisLabelVisible: true,
+            priceLineVisible: false
+        });
+        ma30Series.setData(ma30Data);
 
         // EMA 20
         if (showEma20) {
@@ -34304,8 +34564,9 @@ function setupTVWorkstationChartControls() {
                     if (indicatorPitchfork?.checked) activeList.push('pitchfork');
                     activeInd.value = activeList.length > 0 ? activeList.join(',') : 'none';
                 }
-                if (activeStockProfile && activeStockProfile.ticker) {
-                    renderTVWorkstationChart(activeStockProfile.ticker);
+                const activeSym = window.getActiveChartSymbol();
+                if (activeSym) {
+                    renderTVWorkstationChart(activeSym);
                 }
                 renderTvChartTemplates();
                 updateTvChartConsensusRating();
@@ -34318,8 +34579,9 @@ function setupTVWorkstationChartControls() {
         if (cb) {
             cb.addEventListener('change', () => {
                 updateEmaPillStyles();
-                if (activeStockProfile && activeStockProfile.ticker) {
-                    renderTVWorkstationChart(activeStockProfile.ticker);
+                const activeSym = window.getActiveChartSymbol();
+                if (activeSym) {
+                    renderTVWorkstationChart(activeSym);
                 }
             });
         }
@@ -34335,8 +34597,9 @@ function setupTVWorkstationChartControls() {
     elements.forEach(el => {
         if (el) {
             el.addEventListener('change', () => {
-                if (activeStockProfile && activeStockProfile.ticker) {
-                    renderTVWorkstationChart(activeStockProfile.ticker);
+                const activeSym = window.getActiveChartSymbol();
+                if (activeSym) {
+                    renderTVWorkstationChart(activeSym);
                 }
                 renderTvChartTemplates();
                 updateTvChartConsensusRating();
@@ -34560,7 +34823,10 @@ async function triggerTvChatQuery() {
         const mult = parseFloat(document.getElementById('tv-mult')?.value || '1.0');
         
         const payload = {
-            symbol: activeStockProfile ? activeStockProfile.ticker : 'STOCK',
+            symbol: (function(){
+                const s = window.getActiveChartSymbol() || 'RELIANCE';
+                return (s.endsWith('.NS') || s.endsWith('.BO') || s.startsWith('^')) ? s : s + '.NS';
+            })(),
             indicator: activeInd,
             length: length,
             mult: mult,
@@ -35338,12 +35604,15 @@ async function triggerTVIndicatorSynthesis() {
     const content = document.getElementById('tv-ai-synthesis-content');
     if (!btn || !content) return;
 
-    if (!activeStockProfile || !activeStockProfile.ticker) {
-        content.innerHTML = `<span style="color: var(--text-muted);">Please load a stock ticker profile first.</span>`;
+    const rawTicker = window.getActiveChartSymbol();
+    if (!rawTicker) {
+        content.innerHTML = `<span style="color: var(--text-muted);">Please load or search a stock ticker first.</span>`;
         return;
     }
-
-    const ticker = activeStockProfile.ticker;
+    let ticker = rawTicker.trim().toUpperCase();
+    if (!ticker.endsWith('.NS') && !ticker.endsWith('.BO') && !ticker.startsWith('^')) {
+        ticker = ticker + '.NS';
+    }
     const indicator = document.getElementById('tv-active-indicator')?.value || 'lux-algo';
     const length = parseInt(document.getElementById('tv-length')?.value || '14', 10);
     const mult = parseFloat(document.getElementById('tv-mult')?.value || '1.0');
@@ -35363,7 +35632,14 @@ async function triggerTVIndicatorSynthesis() {
     try {
         const url = `/api/chart/indicator-synthesis?ticker=${encodeURIComponent(ticker)}&indicator=${indicator}&length=${length}&mult=${mult}`;
         const res = await fetch(url);
-        if (!res.ok) throw new Error("Server returned error status.");
+        if (!res.ok) {
+            let errDetail = "Server returned error status.";
+            try {
+                const errJson = await res.json();
+                if (errJson && errJson.detail) errDetail = errJson.detail;
+            } catch(e) {}
+            throw new Error(errDetail);
+        }
         const data = await res.json();
 
         typewriteElement(content, formatMarkdownToHTML(data.synthesis), () => {
@@ -35499,38 +35775,58 @@ window.renderTVAdvancedChart = renderTVAdvancedChart;
             height: 100vh !important;
             z-index: 999999 !important;
             background: var(--bg-card, #0f172a) !important;
-            padding: 20px !important;
+            padding: 20px 24px !important;
             box-sizing: border-box !important;
             display: flex !important;
             flex-direction: column !important;
             gap: 15px !important;
+            overflow-y: auto !important;
+            overflow-x: hidden !important;
+            -webkit-overflow-scrolling: touch !important;
+        }
+        .fullscreen-card-active::-webkit-scrollbar {
+            width: 8px;
+        }
+        .fullscreen-card-active::-webkit-scrollbar-track {
+            background: rgba(15, 23, 42, 0.6);
+        }
+        .fullscreen-card-active::-webkit-scrollbar-thumb {
+            background: rgba(148, 163, 184, 0.4);
+            border-radius: 4px;
+        }
+        .fullscreen-card-active::-webkit-scrollbar-thumb:hover {
+            background: rgba(148, 163, 184, 0.7);
         }
         /* Stretch nested wrapper div of TV chart to remove empty bottom spacing */
         #tv-chart-card.fullscreen-card-active > div:nth-child(2) {
-            flex: 1 !important;
             display: flex !important;
             flex-direction: column !important;
-            min-height: 0 !important;
+            height: auto !important;
+            min-height: auto !important;
         }
         .fullscreen-card-active #tv-chart-container {
-            flex: 1 !important;
-            height: auto !important;
-            min-height: 0 !important;
+            width: 100% !important;
+            height: calc(100vh - 220px) !important;
+            min-height: 520px !important;
         }
         .fullscreen-card-active #fibonacci-chart-container {
-            flex: 1 !important;
-            height: auto !important;
-            min-height: 0 !important;
+            width: 100% !important;
+            height: calc(100vh - 220px) !important;
+            min-height: 500px !important;
         }
         .fullscreen-card-active .price-chart-container {
-            flex: 1 !important;
-            height: auto !important;
-            min-height: 0 !important;
+            width: 100% !important;
+            height: calc(100vh - 220px) !important;
+            min-height: 500px !important;
         }
         .fullscreen-card-active .card-header {
             margin-bottom: 0 !important;
             border-bottom: 1px solid var(--border-glass) !important;
             padding-bottom: 10px !important;
+            position: sticky !important;
+            top: 0 !important;
+            z-index: 10 !important;
+            background: var(--bg-card, #0f172a) !important;
         }
         @keyframes skeletonPulse {
             0% { opacity: 0.5; }
@@ -35572,7 +35868,7 @@ window.renderTVAdvancedChart = renderTVAdvancedChart;
                     card.classList.add('fullscreen-card-active');
                     container.style.cursor = 'zoom-out';
                     setTimeout(() => {
-                        const targetHeight = Math.max(container.clientHeight || 0, window.innerHeight - 320);
+                        const targetHeight = Math.max(Math.floor(window.innerHeight - 220), 520);
                         const targetWidth = container.clientWidth || (window.innerWidth - 40);
                         if (targetWidth > 50 && targetHeight > 50) {
                             resizeCallback(targetWidth, targetHeight);
@@ -35582,14 +35878,47 @@ window.renderTVAdvancedChart = renderTVAdvancedChart;
             }, true);
         }
 
-        // 1. TradingView Workstation Chart
-        setupFullscreenToggle('tv-chart-card', '#tv-chart-container', 420, (width, height) => {
+        // 1. TradingView Workstation Chart Full View Toggle Handler
+        setupFullscreenToggle('tv-chart-card', '#tv-chart-container', 460, (width, height) => {
             try {
                 if (activeTVWorkstationChart && width > 50 && height > 50) {
                     activeTVWorkstationChart.resize(width, height);
                 }
             } catch (e) {}
         });
+
+        const tvFsBtn = document.getElementById('tv-chart-fullscreen-btn');
+        if (tvFsBtn) {
+            tvFsBtn.onclick = (e) => {
+                e.stopPropagation();
+                const card = document.getElementById('tv-chart-card');
+                const tvContainer = document.getElementById('tv-chart-container');
+                if (!card || !tvContainer) return;
+                const isFullscreen = card.classList.contains('fullscreen-card-active');
+                if (isFullscreen) {
+                    card.classList.remove('fullscreen-card-active');
+                    tvFsBtn.innerHTML = '<span>⛶</span> Full View';
+                    setTimeout(() => {
+                        const targetWidth = tvContainer.clientWidth || 600;
+                        if (activeTVWorkstationChart) {
+                            activeTVWorkstationChart.resize(targetWidth, 480);
+                            try { activeTVWorkstationChart.timeScale().fitContent(); } catch (err) {}
+                        }
+                    }, 60);
+                } else {
+                    card.classList.add('fullscreen-card-active');
+                    tvFsBtn.innerHTML = '<span>✕</span> Exit Full View';
+                    setTimeout(() => {
+                        const targetHeight = Math.max(Math.floor(window.innerHeight - 220), 520);
+                        const targetWidth = tvContainer.clientWidth || (window.innerWidth - 40);
+                        if (activeTVWorkstationChart) {
+                            activeTVWorkstationChart.resize(targetWidth, targetHeight);
+                            try { activeTVWorkstationChart.timeScale().fitContent(); } catch (err) {}
+                        }
+                    }, 60);
+                }
+            };
+        }
 
         // 2. Fibonacci Retracements Chart
         setupFullscreenToggle('tech-fib-card', '#fibonacci-chart-container', 250, (width, height) => {
@@ -47474,7 +47803,10 @@ function renderFinancialHealthDashboard() {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
-                            symbol: activeStockProfile ? activeStockProfile.ticker : 'STOCK',
+                            symbol: (function(){
+                const s = window.getActiveChartSymbol() || 'RELIANCE';
+                return (s.endsWith('.NS') || s.endsWith('.BO') || s.startsWith('^')) ? s : s + '.NS';
+            })(),
                             view: activeFsView,
                             statement_type: activeFsStatement,
                             table_data: statementData,
@@ -50243,7 +50575,10 @@ async function triggerFsChatQuery() {
         })) : [];
 
         const payload = {
-            symbol: activeStockProfile ? activeStockProfile.ticker : 'STOCK',
+            symbol: (function(){
+                const s = window.getActiveChartSymbol() || 'RELIANCE';
+                return (s.endsWith('.NS') || s.endsWith('.BO') || s.startsWith('^')) ? s : s + '.NS';
+            })(),
             view: activeFsView,
             statement_type: activeFsStatement,
             table_data: activeTable,
@@ -55344,12 +55679,15 @@ window.renderVcpCards = function(stocks) {
                 </div>
 
                 <!-- Footer Action Buttons -->
-                <div style="display: flex; gap: 6px; margin-top: 12px;">
+                <div style="display: flex; gap: 6px; margin-top: 12px; flex-wrap: wrap;">
                     <button onclick="window.launchStageSimulator && window.launchStageSimulator('${sym}')" class="btn-secondary vcp-sim-btn" style="padding: 7px 10px; background: rgba(168, 85, 247, 0.15); border: 1px solid rgba(168, 85, 247, 0.4); border-radius: 8px; color: #c084fc; font-weight: 700; font-size: 11.5px; cursor: pointer; transition: all 0.2s;" title="Scan stock in 4-Stage Life Cycle Masterclass Simulator">
                         Simulate ⚙️
                     </button>
+                    <button onclick="event.stopPropagation(); window.openStandaloneInteractiveChart && window.openStandaloneInteractiveChart('${sym}', null, 'vcp', 'Minervini VCP Pattern')" class="btn-primary quant-ichart-btn" style="padding: 7px 10px; font-size: 11.5px; border-radius: 8px; cursor: pointer; white-space: nowrap; display: inline-flex; align-items: center; gap: 3px; font-weight: 700; background: rgba(59, 130, 246, 0.2); border: 1px solid #3b82f6; color: #60a5fa;" title="Open i-Chart Workstation & 30W MA Slope">
+                        📈 i-Chart
+                    </button>
                     <button onclick="window.openVcpAiDeepResearch && window.openVcpAiDeepResearch('${sym}')" class="btn-secondary vcp-research-btn" style="flex: 1; padding: 7px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; color: #f1f5f9; font-weight: 600; font-size: 11.5px; cursor: pointer; transition: all 0.2s;">
-                        📊 Deep Research
+                        📊 Thesis
                     </button>
                     <button onclick="window.openVcpChartModal && window.openVcpChartModal('${sym}')" class="btn-primary vcp-chart-btn" style="flex: 1; padding: 7px; background: linear-gradient(135deg, #f59e0b, #d97706); border: none; border-radius: 8px; color: #ffffff; font-weight: 700; font-size: 11.5px; cursor: pointer; transition: all 0.2s; box-shadow: 0 2px 8px rgba(245, 158, 11, 0.3);">
                         📈 Chart & Pivots
@@ -55365,6 +55703,286 @@ window.openTradingViewChart = function(symbol) {
     const cleanSym = symbol.replace('.NS', '').replace('.BO', '').trim().toUpperCase();
     const tvUrl = `https://in.tradingview.com/chart/?symbol=NSE:${cleanSym}`;
     window.open(tvUrl, '_blank');
+};
+
+window.activeIChartState = {
+    currentSymbol: null,
+    contextList: [],
+    currentIndex: 0,
+    screenerTabKey: null,
+    screenerLabel: 'Screener',
+    timeframeMode: 'daily',
+    lastData: null
+};
+
+window.openStandaloneInteractiveChart = async function(symbol, contextList, screenerTabKey, screenerLabel) {
+    if (!symbol) return;
+    const cleanSym = symbol.replace('.NS', '').replace('.BO', '').trim().toUpperCase();
+    
+    if (!contextList || !Array.isArray(contextList) || contextList.length === 0) {
+        if (screenerTabKey === 'vcp') contextList = window.allVcpStocks;
+        else if (screenerTabKey === 'weinstein') contextList = window.allWeinsteinStocks;
+        else if (screenerTabKey === 'htf') contextList = window.allHtfStocks;
+        else if (screenerTabKey === '3wt') contextList = window.all3wtStocks || window.allThreeWtStocks;
+        else if (screenerTabKey === 'flatbase') contextList = window.allFlatBaseStocks;
+        else if (screenerTabKey === 'episodic') contextList = window.allEpisodicStocks;
+        else if (screenerTabKey === 'pocket') contextList = window.allPocketStocks;
+        else if (screenerTabKey === 'oliverkell') contextList = window.allOliverKellStocks;
+        else if (screenerTabKey === 'cuphandle') contextList = window.allCupHandleStocks;
+        else if (screenerTabKey === 'rsnh') contextList = window.allRsnhStocks;
+        else if (screenerTabKey === 'undercut') contextList = window.allUndercutStocks;
+        else if (screenerTabKey === 'confluence') contextList = window.currentFilteredConfluenceStocks || window.allConfluenceCandidates;
+        else if (screenerTabKey === 'watchlist') contextList = window.activeWlQuantMatrixData;
+    }
+
+    let list = [];
+    if (Array.isArray(contextList) && contextList.length > 0) {
+        list = contextList.map(item => {
+            const raw = (typeof item === 'string' ? item : (item.symbol || item.ticker || item.stock || item.name));
+            return raw ? raw.replace('.NS', '').replace('.BO', '').trim().toUpperCase() : null;
+        }).filter(Boolean);
+    }
+    if (list.length === 0) list = [cleanSym];
+
+    let cIdx = list.indexOf(cleanSym);
+    if (cIdx < 0) {
+        // Fallback partial matching if exact string index was not found
+        cIdx = list.findIndex(sym => sym === cleanSym || cleanSym.includes(sym) || sym.includes(cleanSym));
+        if (cIdx < 0) cIdx = 0;
+    }
+    
+    window.currentIChartSymbol = cleanSym;
+    window.activeIChartState.currentSymbol = cleanSym;
+    window.activeIChartState.contextList = list;
+    window.activeIChartState.currentIndex = cIdx;
+    if (screenerTabKey) window.activeIChartState.screenerTabKey = screenerTabKey;
+    if (screenerLabel) window.activeIChartState.screenerLabel = screenerLabel;
+
+    // Update Header Toolbar (Back button & Stock Stepper)
+    const backBtn = document.getElementById('ichart-breadcrumb-back-btn');
+    const backLabel = document.getElementById('ichart-breadcrumb-label');
+    if (backBtn && backLabel) {
+        const isSearchMode = !window.activeIChartState.screenerTabKey || 
+                             window.activeIChartState.screenerTabKey === 'search' || 
+                             window.activeIChartState.screenerLabel === 'Search';
+        if (!isSearchMode && window.activeIChartState.screenerLabel) {
+            backLabel.innerText = `Back to ${window.activeIChartState.screenerLabel}`;
+            backBtn.style.display = 'inline-flex';
+        } else {
+            backBtn.style.display = 'none';
+        }
+    }
+
+    const stepBar = document.getElementById('ichart-stepthrough-bar');
+    const counterEl = document.getElementById('ichart-stock-counter');
+    if (stepBar && counterEl) {
+        if (list.length > 1) {
+            counterEl.innerText = `Stock ${cIdx + 1} of ${list.length}: ${cleanSym}`;
+            stepBar.style.display = 'inline-flex';
+        } else {
+            stepBar.style.display = 'none';
+        }
+    }
+
+    // Mount #tv-chart-card into #ichart-workspace-mount
+    const tvCard = document.getElementById('tv-chart-card');
+    const mount = document.getElementById('ichart-workspace-mount');
+    if (tvCard && mount) {
+        if (!mount.contains(tvCard)) {
+            mount.appendChild(tvCard);
+        }
+        tvCard.classList.remove('card-hidden');
+        tvCard.style.display = 'block';
+        tvCard.style.visibility = 'visible';
+        tvCard.style.opacity = '1';
+    }
+
+    // Switch main workspace tab to 'interactive-chart'
+    if (typeof window.switchTab === 'function') {
+        window.switchTab('interactive-chart');
+    }
+
+    // Set Pending Loading HUD metrics
+    const symEl = document.getElementById('ichart-hud-symbol');
+    const priceEl = document.getElementById('ichart-hud-price-badge');
+    const maValEl = document.getElementById('ichart-hud-ma-val');
+    const slopeValEl = document.getElementById('ichart-hud-slope-val');
+
+    if (symEl) symEl.innerText = cleanSym;
+    if (priceEl) priceEl.innerText = 'Price: Loading...';
+    if (maValEl) maValEl.innerText = '30W MA (150 SMA): Computing...';
+    if (slopeValEl) {
+        slopeValEl.innerText = 'Slope: Calculating...';
+        slopeValEl.style.color = '#94a3b8';
+    }
+
+    // Fetch and update HUD readout badge metrics
+    try {
+        const res = await fetch(`/api/stock/chart-ohlcv?symbol=${cleanSym}`);
+        const data = await res.json();
+        if (data && data.status === 'success') {
+            window.activeIChartState.lastData = data;
+            window.updateIChartHudBadge(data);
+        }
+    } catch(e) {
+        console.warn("i-Chart HUD fetch error:", e);
+    }
+
+    // Render TradingView / Lightweight Workstation Chart
+    if (typeof window.renderTVWorkstationChart === 'function') {
+        window.renderTVWorkstationChart(cleanSym);
+    }
+};
+
+window.updateIChartHudBadge = function(data) {
+    if (!data) return;
+    const symEl = document.getElementById('ichart-hud-symbol');
+    const priceEl = document.getElementById('ichart-hud-price-badge');
+    const maValEl = document.getElementById('ichart-hud-ma-val');
+    const slopeValEl = document.getElementById('ichart-hud-slope-val');
+    const stageStatusEl = document.getElementById('ichart-hud-stage-status');
+
+    if (symEl) symEl.innerText = data.symbol || window.activeIChartState.currentSymbol || '';
+    if (priceEl) priceEl.innerText = `Price: ₹${(data.current_price || 0).toLocaleString('en-IN')}`;
+    if (maValEl) maValEl.innerText = `30W MA (150 SMA): ₹${(data.ma_30wk || 0).toLocaleString('en-IN')}`;
+    
+    const slope = data.ma_30wk_slope_pct || 0;
+    const slopeColor = slope >= 0 ? '#34d399' : '#f87171';
+    const slopeSign = slope >= 0 ? '+' : '';
+    if (slopeValEl) {
+        slopeValEl.innerText = `Slope: ${slopeSign}${slope.toFixed(2)}% (20d)`;
+        slopeValEl.style.color = slopeColor;
+    }
+    if (stageStatusEl) {
+        stageStatusEl.innerText = data.stage_name || 'Stage 2 Mark-Up 🚀';
+    }
+};
+
+window.navigateIChartStock = function(direction) {
+    const state = window.activeIChartState;
+    if (!state.contextList || state.contextList.length <= 1) return;
+    let nextIdx = state.currentIndex + direction;
+    if (nextIdx < 0) nextIdx = state.contextList.length - 1;
+    if (nextIdx >= state.contextList.length) nextIdx = 0;
+    
+    const nextSymbol = state.contextList[nextIdx];
+    window.openStandaloneInteractiveChart(nextSymbol, state.contextList, state.screenerTabKey, state.screenerLabel);
+};
+
+window.returnToPreviousScreenerTab = function() {
+    const state = window.activeIChartState;
+    if (!state || !state.screenerTabKey) return;
+    
+    const key = state.screenerTabKey;
+    if (key === 'watchlist') {
+        if (typeof window.switchTab === 'function') {
+            window.switchTab('watchlist');
+        }
+    } else {
+        if (typeof window.switchTab === 'function') {
+            window.switchTab('vcp');
+        }
+        if (typeof window.switchQuantScannerSubtab === 'function') {
+            window.switchQuantScannerSubtab(key);
+        }
+    }
+};
+
+window.toggleIChartTimeframe = function(mode) {
+    window.activeIChartState.timeframeMode = mode;
+    const dailyBtn = document.getElementById('ichart-tf-daily-btn');
+    const weeklyBtn = document.getElementById('ichart-tf-weekly-btn');
+    if (dailyBtn && weeklyBtn) {
+        if (mode === 'daily') {
+            dailyBtn.classList.add('active');
+            dailyBtn.style.background = '#10b981';
+            dailyBtn.style.border = '1px solid #10b981';
+            dailyBtn.style.color = '#fff';
+            
+            weeklyBtn.classList.remove('active');
+            weeklyBtn.style.background = 'rgba(255,255,255,0.05)';
+            weeklyBtn.style.border = '1px solid rgba(255,255,255,0.2)';
+            weeklyBtn.style.color = 'var(--text-secondary)';
+        } else {
+            weeklyBtn.classList.add('active');
+            weeklyBtn.style.background = '#3b82f6';
+            weeklyBtn.style.border = '1px solid #3b82f6';
+            weeklyBtn.style.color = '#fff';
+            
+            dailyBtn.classList.remove('active');
+            dailyBtn.style.background = 'rgba(255,255,255,0.05)';
+            dailyBtn.style.border = '1px solid rgba(255,255,255,0.2)';
+            dailyBtn.style.color = 'var(--text-secondary)';
+        }
+    }
+    if (window.activeIChartState.lastData) {
+        window.updateIChartHudBadge(window.activeIChartState.lastData);
+    }
+    const activeTicker = window.getActiveChartSymbol();
+    if (activeTicker && typeof window.renderTVWorkstationChart === 'function') {
+        window.renderTVWorkstationChart(activeTicker);
+    }
+};
+
+window.updateIChartHudBadge = function(data) {
+    if (!data) return;
+    window.activeIChartState.lastData = data;
+    const symEl = document.getElementById('ichart-hud-symbol');
+    const priceEl = document.getElementById('ichart-hud-price-badge');
+    const maEl = document.getElementById('ichart-hud-ma-val');
+    const slopeEl = document.getElementById('ichart-hud-slope-val');
+    const stageEl = document.getElementById('ichart-hud-stage-status');
+    const badgeEl = document.getElementById('ichart-30w-hud-badge');
+
+    const symbol = data.symbol || 'STOCK';
+    const candles = data.candlesticks || [];
+    const lastPrice = candles.length > 0 ? candles[candles.length - 1].close : 0.0;
+    const maData = data.ma30_slope || {};
+
+    if (symEl) symEl.innerText = symbol;
+    if (priceEl) priceEl.innerText = `Price: ₹${lastPrice.toFixed(2)}`;
+
+    const isWeekly = window.activeIChartState.timeframeMode === 'weekly';
+    const maVal = isWeekly ? (maData.weekly_sma30 || 0.0) : (maData.sma150_curr || 0.0);
+    const slopePct = isWeekly ? (maData.weekly_slope_pct || 0.0) : (maData.slope_pct || 0.0);
+    const labelPrefix = isWeekly ? '30W WMA' : '30W MA (150 SMA)';
+    const periodLabel = isWeekly ? '4w' : '20d';
+
+    if (maEl) maEl.innerText = `${labelPrefix}: ₹${maVal.toFixed(2)}`;
+    if (slopeEl) slopeEl.innerText = `Slope: ${slopePct > 0 ? '+' : ''}${slopePct.toFixed(2)}% (${periodLabel})`;
+
+    let stageStatusText = "Stage 2 Mark-Up 🚀";
+    let glowBg = "rgba(16, 185, 129, 0.15)";
+    let glowBorder = "#10b981";
+    let glowColor = "#34d399";
+
+    if (slopePct > 0.3) {
+        stageStatusText = "Stage 2 Mark-Up 🚀";
+        glowBg = "rgba(16, 185, 129, 0.15)";
+        glowBorder = "#10b981";
+        glowColor = "#34d399";
+    } else if (slopePct >= -0.2) {
+        stageStatusText = "Stage 1/3 Base/Top 🟡";
+        glowBg = "rgba(245, 158, 11, 0.15)";
+        glowBorder = "#f59e0b";
+        glowColor = "#fbbf24";
+    } else {
+        stageStatusText = "Stage 4 Downtrend 📉";
+        glowBg = "rgba(239, 68, 68, 0.15)";
+        glowBorder = "#ef4444";
+        glowColor = "#f87171";
+    }
+
+    if (stageEl) {
+        stageEl.innerText = stageStatusText;
+        stageEl.style.background = glowBg;
+        stageEl.style.color = glowColor;
+    }
+    if (badgeEl) {
+        badgeEl.style.background = glowBg;
+        badgeEl.style.borderColor = glowBorder;
+        badgeEl.style.color = glowColor;
+    }
 };
 
 window.analyzeStock = function(symbol) {
@@ -55867,6 +56485,43 @@ window.openVcpChartModal = async function(symbol) {
 
             window.activeVcpModalChart = chart;
 
+            // Calculate 30-Week MA (150D SMA) and 4-week slope
+            const sma150Data = [];
+            let currentSlopePct = 0;
+            const maValues = [];
+
+            for (let i = 0; i < ohlcv.length; i++) {
+                const slice = ohlcv.slice(Math.max(0, i - 150 + 1), i + 1);
+                if (slice.length >= 30) {
+                    const sum = slice.reduce((acc, curr) => acc + curr.close, 0);
+                    const avg = sum / slice.length;
+                    sma150Data.push({ time: ohlcv[i].time, value: avg });
+                    maValues.push(avg);
+                }
+            }
+
+            if (maValues.length >= 21) {
+                const nowMA = maValues[maValues.length - 1];
+                const pastMA = maValues[maValues.length - 21];
+                if (pastMA > 0) {
+                    currentSlopePct = ((nowMA - pastMA) / pastMA) * 100;
+                }
+            }
+
+            const slopeColor = currentSlopePct >= 0 ? '#34d399' : '#f87171';
+            const slopeSign = currentSlopePct >= 0 ? '+' : '';
+            const levelsBar = document.getElementById('vcp-modal-levels-bar');
+            if (levelsBar) {
+                levelsBar.innerHTML = `
+                    <div style="color: #38bdf8; font-weight: 700;">🎯 Pivot Buy: ₹${vcp.pivot_price || '--'}</div>
+                    <div style="color: #f87171; font-weight: 700;">🛑 Stop Loss: ₹${vcp.stop_loss || '--'} (-${vcp.risk_percent || 0}%)</div>
+                    <div style="color: #10b981; font-weight: 700;">🚀 Target 1 (1:2): ₹${vcp.target_1 || '--'}</div>
+                    <div style="color: #a855f7; font-weight: 700;">🏆 Target 2 (1:4): ₹${vcp.target_2 || '--'}</div>
+                    <div style="color: #f59e0b; font-weight: 700;">📊 VDU Ratio: ${vcp.volume_dryup_ratio ? vcp.volume_dryup_ratio + 'x' : '--'}</div>
+                    <div style="color: ${slopeColor}; font-weight: 800; background: rgba(168, 85, 247, 0.15); border: 1px solid rgba(168, 85, 247, 0.4); padding: 2px 8px; border-radius: 6px;">📈 30W MA Slope: ${slopeSign}${currentSlopePct.toFixed(2)}% / 4W</div>
+                `;
+            }
+
             // Candlestick series
             const candleSeries = chart.addCandlestickSeries({
                 upColor: '#10b981',
@@ -56228,6 +56883,9 @@ window.renderWeinsteinTable = function(stocks) {
                     <button onclick="window.launchStageSimulator && window.launchStageSimulator('${s.symbol}')" class="btn-secondary quant-sim-btn" style="padding: 5px 10px; font-size: 11.5px; border-radius: 8px; cursor: pointer; white-space: nowrap; display: inline-flex; align-items: center; gap: 4px; font-weight: 700; background: rgba(168, 85, 247, 0.15); border: 1px solid rgba(168, 85, 247, 0.4); color: #c084fc; margin-right: 6px;" title="Scan stock in 4-Stage Life Cycle Masterclass Simulator">
                         Simulate ⚙️
                     </button>
+                    <button onclick="event.stopPropagation(); window.openStandaloneInteractiveChart && window.openStandaloneInteractiveChart('${s.symbol}', null, 'weinstein', 'Stan Weinstein Stage 2')" class="btn-primary quant-ichart-btn" style="padding: 5px 10px; font-size: 11.5px; border-radius: 8px; cursor: pointer; white-space: nowrap; display: inline-flex; align-items: center; gap: 3px; font-weight: 700; background: rgba(59, 130, 246, 0.2); border: 1px solid #3b82f6; color: #60a5fa; margin-right: 6px;" title="Open i-Chart Workstation & 30W MA Slope">
+                        📈 i-Chart
+                    </button>
                     <button onclick="window.openTradingViewChart && window.openTradingViewChart('${s.symbol}')" class="btn-secondary quant-chart-btn" style="padding: 5px 12px; font-size: 11.5px; border-radius: 8px; cursor: pointer; white-space: nowrap; display: inline-flex; align-items: center; gap: 3px; font-weight: 700;">
                         Chart ↗
                     </button>
@@ -56340,6 +56998,9 @@ window.renderHtfTable = function(stocks) {
                 <td style="text-align: center; white-space: nowrap;">
                     <button onclick="window.launchStageSimulator && window.launchStageSimulator('${s.symbol}')" class="btn-secondary quant-sim-btn" style="padding: 5px 10px; font-size: 11.5px; border-radius: 8px; cursor: pointer; white-space: nowrap; display: inline-flex; align-items: center; gap: 4px; font-weight: 700; background: rgba(168, 85, 247, 0.15); border: 1px solid rgba(168, 85, 247, 0.4); color: #c084fc; margin-right: 6px;" title="Scan stock in 4-Stage Life Cycle Masterclass Simulator">
                         Simulate ⚙️
+                    </button>
+                    <button onclick="event.stopPropagation(); window.openStandaloneInteractiveChart && window.openStandaloneInteractiveChart('${s.symbol}', null, 'htf', 'High-Tight Flag')" class="btn-primary quant-ichart-btn" style="padding: 5px 10px; font-size: 11.5px; border-radius: 8px; cursor: pointer; white-space: nowrap; display: inline-flex; align-items: center; gap: 3px; font-weight: 700; background: rgba(59, 130, 246, 0.2); border: 1px solid #3b82f6; color: #60a5fa; margin-right: 6px;" title="Open i-Chart Workstation & 30W MA Slope">
+                        📈 i-Chart
                     </button>
                     <button onclick="window.openTradingViewChart && window.openTradingViewChart('${s.symbol}')" class="btn-secondary quant-chart-btn" style="padding: 5px 12px; font-size: 11.5px; border-radius: 8px; cursor: pointer; white-space: nowrap; display: inline-flex; align-items: center; gap: 3px; font-weight: 700;">
                         Chart ↗
@@ -56465,6 +57126,9 @@ window.render3wtTable = function(stocks) {
                     <button onclick="window.launchStageSimulator && window.launchStageSimulator('${s.symbol}')" class="btn-secondary quant-sim-btn" style="padding: 5px 10px; font-size: 11.5px; border-radius: 8px; cursor: pointer; white-space: nowrap; display: inline-flex; align-items: center; gap: 4px; font-weight: 700; background: rgba(168, 85, 247, 0.15); border: 1px solid rgba(168, 85, 247, 0.4); color: #c084fc; margin-right: 6px;" title="Scan stock in 4-Stage Life Cycle Masterclass Simulator">
                         Simulate ⚙️
                     </button>
+                    <button onclick="event.stopPropagation(); window.openStandaloneInteractiveChart && window.openStandaloneInteractiveChart('${s.symbol}', window.all3wtStocks, '3wt', '3-Weeks Tight')" class="btn-primary quant-ichart-btn" style="padding: 5px 10px; font-size: 11.5px; border-radius: 8px; cursor: pointer; white-space: nowrap; display: inline-flex; align-items: center; gap: 3px; font-weight: 700; background: rgba(59, 130, 246, 0.2); border: 1px solid #3b82f6; color: #60a5fa; margin-right: 6px;" title="Open i-Chart Workstation & 30W MA Slope">
+                        📈 i-Chart
+                    </button>
                     <button onclick="window.openTradingViewChart && window.openTradingViewChart('${s.symbol}')" class="btn-secondary quant-chart-btn" style="padding: 5px 12px; font-size: 11.5px; border-radius: 8px; cursor: pointer; white-space: nowrap; display: inline-flex; align-items: center; gap: 3px; font-weight: 700;">
                         Chart ↗
                     </button>
@@ -56586,6 +57250,9 @@ window.renderFlatBaseTable = function(stocks) {
                 <td style="text-align: center; white-space: nowrap;">
                     <button onclick="window.launchStageSimulator && window.launchStageSimulator('${s.symbol}')" class="btn-secondary quant-sim-btn" style="padding: 5px 10px; font-size: 11.5px; border-radius: 8px; cursor: pointer; white-space: nowrap; display: inline-flex; align-items: center; gap: 4px; font-weight: 700; background: rgba(168, 85, 247, 0.15); border: 1px solid rgba(168, 85, 247, 0.4); color: #c084fc; margin-right: 6px;" title="Scan stock in 4-Stage Life Cycle Masterclass Simulator">
                         Simulate ⚙️
+                    </button>
+                    <button onclick="event.stopPropagation(); window.openStandaloneInteractiveChart && window.openStandaloneInteractiveChart('${s.symbol}', null, 'flatbase', 'Modern Flat Base')" class="btn-primary quant-ichart-btn" style="padding: 5px 10px; font-size: 11.5px; border-radius: 8px; cursor: pointer; white-space: nowrap; display: inline-flex; align-items: center; gap: 3px; font-weight: 700; background: rgba(59, 130, 246, 0.2); border: 1px solid #3b82f6; color: #60a5fa; margin-right: 6px;" title="Open i-Chart Workstation & 30W MA Slope">
+                        📈 i-Chart
                     </button>
                     <button onclick="window.openTradingViewChart && window.openTradingViewChart('${s.symbol}')" class="btn-secondary quant-chart-btn" style="padding: 5px 12px; font-size: 11.5px; border-radius: 8px; cursor: pointer; white-space: nowrap; display: inline-flex; align-items: center; gap: 3px; font-weight: 700;">
                         Chart ↗
@@ -56722,6 +57389,9 @@ window.renderEpisodicTable = function(stocks) {
                 <td style="padding: 12px; text-align: right; white-space: nowrap;">
                     <button onclick="window.launchStageSimulator && window.launchStageSimulator('${s.symbol}')" class="btn-secondary quant-sim-btn" style="padding: 5px 10px; font-size: 11.5px; border-radius: 8px; cursor: pointer; white-space: nowrap; display: inline-flex; align-items: center; gap: 4px; font-weight: 700; background: rgba(168, 85, 247, 0.15); border: 1px solid rgba(168, 85, 247, 0.4); color: #c084fc; margin-right: 6px;" title="Scan stock in 4-Stage Life Cycle Masterclass Simulator">
                         Simulate ⚙️
+                    </button>
+                    <button onclick="event.stopPropagation(); window.openStandaloneInteractiveChart && window.openStandaloneInteractiveChart('${s.symbol}', null, 'episodic', 'Episodic Pivot')" class="btn-primary quant-ichart-btn" style="padding: 5px 10px; font-size: 11.5px; border-radius: 8px; cursor: pointer; white-space: nowrap; display: inline-flex; align-items: center; gap: 3px; font-weight: 700; background: rgba(59, 130, 246, 0.2); border: 1px solid #3b82f6; color: #60a5fa; margin-right: 6px;" title="Open i-Chart Workstation & 30W MA Slope">
+                        📈 i-Chart
                     </button>
                     <button onclick="window.openTradingViewChart && window.openTradingViewChart('${s.symbol}')" class="btn-secondary quant-chart-btn" style="padding: 5px 12px; font-size: 11.5px; border-radius: 8px; cursor: pointer; white-space: nowrap; display: inline-flex; align-items: center; gap: 3px; font-weight: 700;">
                         Chart ↗
@@ -56860,6 +57530,9 @@ window.renderPocketTable = function(stocks) {
                     <button onclick="window.launchStageSimulator && window.launchStageSimulator('${s.symbol}')" class="btn-secondary quant-sim-btn" style="padding: 5px 10px; font-size: 11.5px; border-radius: 8px; cursor: pointer; white-space: nowrap; display: inline-flex; align-items: center; gap: 4px; font-weight: 700; background: rgba(168, 85, 247, 0.15); border: 1px solid rgba(168, 85, 247, 0.4); color: #c084fc; margin-right: 6px;" title="Scan stock in 4-Stage Life Cycle Masterclass Simulator">
                         Simulate ⚙️
                     </button>
+                    <button onclick="event.stopPropagation(); window.openStandaloneInteractiveChart && window.openStandaloneInteractiveChart('${s.symbol}', null, 'pocket', 'Pocket Pivot')" class="btn-primary quant-ichart-btn" style="padding: 5px 10px; font-size: 11.5px; border-radius: 8px; cursor: pointer; white-space: nowrap; display: inline-flex; align-items: center; gap: 3px; font-weight: 700; background: rgba(59, 130, 246, 0.2); border: 1px solid #3b82f6; color: #60a5fa; margin-right: 6px;" title="Open i-Chart Workstation & 30W MA Slope">
+                        📈 i-Chart
+                    </button>
                     <button onclick="window.openTradingViewChart && window.openTradingViewChart('${s.symbol}')" class="btn-secondary quant-chart-btn" style="padding: 5px 12px; font-size: 11.5px; border-radius: 8px; cursor: pointer; white-space: nowrap; display: inline-flex; align-items: center; gap: 3px; font-weight: 700;">
                         Chart ↗
                     </button>
@@ -56994,6 +57667,9 @@ window.renderOliverKellTable = function(stocks) {
                 <td style="padding: 12px; text-align: right; white-space: nowrap;">
                     <button onclick="window.launchStageSimulator && window.launchStageSimulator('${s.symbol}')" class="btn-secondary quant-sim-btn" style="padding: 5px 10px; font-size: 11.5px; border-radius: 8px; cursor: pointer; white-space: nowrap; display: inline-flex; align-items: center; gap: 4px; font-weight: 700; background: rgba(168, 85, 247, 0.15); border: 1px solid rgba(168, 85, 247, 0.4); color: #c084fc; margin-right: 6px;" title="Scan stock in 4-Stage Life Cycle Masterclass Simulator">
                         Simulate ⚙️
+                    </button>
+                    <button onclick="event.stopPropagation(); window.openStandaloneInteractiveChart && window.openStandaloneInteractiveChart('${s.symbol}', null, 'oliverkell', 'Oliver Kell Trend')" class="btn-primary quant-ichart-btn" style="padding: 5px 10px; font-size: 11.5px; border-radius: 8px; cursor: pointer; white-space: nowrap; display: inline-flex; align-items: center; gap: 3px; font-weight: 700; background: rgba(59, 130, 246, 0.2); border: 1px solid #3b82f6; color: #60a5fa; margin-right: 6px;" title="Open i-Chart Workstation & 30W MA Slope">
+                        📈 i-Chart
                     </button>
                     <button onclick="window.openTradingViewChart && window.openTradingViewChart('${s.symbol}')" class="btn-secondary quant-chart-btn" style="padding: 5px 12px; font-size: 11.5px; border-radius: 8px; cursor: pointer; white-space: nowrap; display: inline-flex; align-items: center; gap: 3px; font-weight: 700;">
                         Chart ↗
@@ -57158,6 +57834,9 @@ window.renderCupHandleTable = function(stocks) {
                     <button onclick="window.launchStageSimulator && window.launchStageSimulator('${s.symbol}')" class="btn-secondary quant-sim-btn" style="padding: 5px 10px; font-size: 11.5px; border-radius: 8px; cursor: pointer; white-space: nowrap; display: inline-flex; align-items: center; gap: 4px; font-weight: 700; background: rgba(245, 158, 11, 0.15); border: 1px solid rgba(245, 158, 11, 0.4); color: #f59e0b; margin-right: 6px;" title="Scan stock in 4-Stage Life Cycle Masterclass Simulator">
                         Simulate ⚙️
                     </button>
+                    <button onclick="event.stopPropagation(); window.openStandaloneInteractiveChart && window.openStandaloneInteractiveChart('${s.symbol}', null, 'cuphandle', 'Cup With Handle')" class="btn-primary quant-ichart-btn" style="padding: 5px 10px; font-size: 11.5px; border-radius: 8px; cursor: pointer; white-space: nowrap; display: inline-flex; align-items: center; gap: 3px; font-weight: 700; background: rgba(59, 130, 246, 0.2); border: 1px solid #3b82f6; color: #60a5fa; margin-right: 6px;" title="Open i-Chart Workstation & 30W MA Slope">
+                        📈 i-Chart
+                    </button>
                     <button onclick="window.openTradingViewChart && window.openTradingViewChart('${s.symbol}')" class="btn-secondary quant-chart-btn" style="padding: 5px 12px; font-size: 11.5px; border-radius: 8px; cursor: pointer; white-space: nowrap; display: inline-flex; align-items: center; gap: 3px; font-weight: 700;">
                         Chart ↗
                     </button>
@@ -57312,6 +57991,9 @@ window.renderRsnhTable = function(stocks) {
                     <button onclick="window.launchStageSimulator && window.launchStageSimulator('${s.symbol}')" class="btn-secondary quant-sim-btn" style="padding: 5px 10px; font-size: 11.5px; border-radius: 8px; cursor: pointer; white-space: nowrap; display: inline-flex; align-items: center; gap: 4px; font-weight: 700; background: rgba(192, 132, 252, 0.15); border: 1px solid rgba(192, 132, 252, 0.4); color: #c084fc; margin-right: 6px;" title="Scan stock in 4-Stage Life Cycle Masterclass Simulator">
                         Simulate ⚙️
                     </button>
+                    <button onclick="event.stopPropagation(); window.openStandaloneInteractiveChart && window.openStandaloneInteractiveChart('${s.symbol}', null, 'rsnh', 'RS Line New High')" class="btn-primary quant-ichart-btn" style="padding: 5px 10px; font-size: 11.5px; border-radius: 8px; cursor: pointer; white-space: nowrap; display: inline-flex; align-items: center; gap: 3px; font-weight: 700; background: rgba(59, 130, 246, 0.2); border: 1px solid #3b82f6; color: #60a5fa; margin-right: 6px;" title="Open i-Chart Workstation & 30W MA Slope">
+                        📈 i-Chart
+                    </button>
                     <button onclick="window.openTradingViewChart && window.openTradingViewChart('${s.symbol}')" class="btn-secondary quant-chart-btn" style="padding: 5px 12px; font-size: 11.5px; border-radius: 8px; cursor: pointer; white-space: nowrap; display: inline-flex; align-items: center; gap: 3px; font-weight: 700;">
                         Chart ↗
                     </button>
@@ -57461,6 +58143,9 @@ window.renderUndercutTable = function(stocks) {
                 <td style="padding: 12px; text-align: right; white-space: nowrap;">
                     <button onclick="window.launchStageSimulator && window.launchStageSimulator('${s.symbol}')" class="btn-secondary quant-sim-btn" style="padding: 5px 10px; font-size: 11.5px; border-radius: 8px; cursor: pointer; white-space: nowrap; display: inline-flex; align-items: center; gap: 4px; font-weight: 700; background: rgba(56, 189, 248, 0.15); border: 1px solid rgba(56, 189, 248, 0.4); color: #38bdf8; margin-right: 6px;" title="Scan stock in 4-Stage Life Cycle Masterclass Simulator">
                         Simulate ⚙️
+                    </button>
+                    <button onclick="event.stopPropagation(); window.openStandaloneInteractiveChart && window.openStandaloneInteractiveChart('${s.symbol}', null, 'undercut', 'Undercut & Rally')" class="btn-primary quant-ichart-btn" style="padding: 5px 10px; font-size: 11.5px; border-radius: 8px; cursor: pointer; white-space: nowrap; display: inline-flex; align-items: center; gap: 3px; font-weight: 700; background: rgba(59, 130, 246, 0.2); border: 1px solid #3b82f6; color: #60a5fa; margin-right: 6px;" title="Open i-Chart Workstation & 30W MA Slope">
+                        📈 i-Chart
                     </button>
                     <button onclick="window.openTradingViewChart && window.openTradingViewChart('${s.symbol}')" class="btn-secondary quant-chart-btn" style="padding: 5px 12px; font-size: 11.5px; border-radius: 8px; cursor: pointer; white-space: nowrap; display: inline-flex; align-items: center; gap: 3px; font-weight: 700;">
                         Chart ↗
@@ -57869,6 +58554,9 @@ window.renderMultiConfluenceLeaderboard = function(data) {
                             <button onclick="event.stopPropagation(); window.launchStageSimulator && window.launchStageSimulator('${cleanSym}')" class="btn-secondary quant-sim-btn" style="padding: 6px 11px; font-size: 11.5px; border-radius: 7px; cursor: pointer; white-space: nowrap; display: inline-flex; align-items: center; gap: 4px; font-weight: 700; background: rgba(168, 85, 247, 0.15); border: 1px solid rgba(168, 85, 247, 0.4); color: #c084fc;" title="Scan stock in 4-Stage Life Cycle Masterclass Simulator">
                                 Simulate ⚙️
                             </button>
+                            <button onclick="event.stopPropagation(); window.openStandaloneInteractiveChart && window.openStandaloneInteractiveChart('${cleanSym}', null, 'confluence', 'Apex Confluence Leaderboard')" class="btn-primary quant-ichart-btn" style="padding: 6px 11px; font-size: 11.5px; border-radius: 7px; cursor: pointer; white-space: nowrap; display: inline-flex; align-items: center; gap: 3px; font-weight: 700; background: rgba(59, 130, 246, 0.2); border: 1px solid #3b82f6; color: #60a5fa;" title="Open i-Chart Workstation & 30W MA Slope">
+                                📈 i-Chart
+                            </button>
                             <button onclick="event.stopPropagation(); window.openTradingViewChart && window.openTradingViewChart('${cleanSym}')" class="btn-secondary quant-chart-btn" style="padding: 6px 12px; font-size: 11.5px; border-radius: 7px; cursor: pointer; white-space: nowrap; display: inline-flex; align-items: center; gap: 3px; font-weight: 700; background: rgba(56, 189, 248, 0.15); border: 1px solid rgba(56, 189, 248, 0.4); color: #38bdf8;" title="View Interactive Technical Chart">
                                 Chart ↗
                             </button>
@@ -58193,9 +58881,25 @@ window.runStockStageSimulator = async function(symbolInput) {
                             </span>
                         </h4>
                     </div>
-                    <div class="stage-verdict-badge">
-                        <span>${verdictTitle}</span>
-                        <span class="stage-verdict-conf">(${data.stage_confidence}% Confidence)</span>
+                    <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+                        <div style="display: flex; align-items: center; gap: 6px;">
+                            <button class="btn-primary quant-ichart-btn" 
+                                    style="font-size: 12px; padding: 5px 12px; border-radius: 8px; font-weight: 800; cursor: pointer; background: linear-gradient(135deg, #10b981, #059669); border: none; color: #fff; display: inline-flex; align-items: center; gap: 6px; box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);"
+                                    onclick="event.stopPropagation(); window.openStandaloneInteractiveChart && window.openStandaloneInteractiveChart('${(data.symbol||'').replace('.NS','').replace('.BO','')}', ['${(data.symbol||'').replace('.NS','').replace('.BO','')}'], 'guide', 'Stage 1-4 Simulator');" 
+                                    title="Open Standalone i-Chart Workstation">
+                                <span>📈</span> i-Chart
+                            </button>
+                            <button class="btn-secondary quant-tv-btn" 
+                                    style="font-size: 12px; padding: 5px 12px; border-radius: 8px; font-weight: 800; cursor: pointer; background: rgba(255,255,255,0.08); border: 1px solid var(--border-glass, rgba(255,255,255,0.2)); color: var(--text-primary); display: inline-flex; align-items: center; gap: 6px;"
+                                    onclick="event.stopPropagation(); window.openExternalTVChart && window.openExternalTVChart('${(data.symbol||'').replace('.NS','').replace('.BO','')}');" 
+                                    title="Open TradingView External Chart">
+                                <span>Chart</span> ↗
+                            </button>
+                        </div>
+                        <div class="stage-verdict-badge">
+                            <span>${verdictTitle}</span>
+                            <span class="stage-verdict-conf">(${data.stage_confidence}% Confidence)</span>
+                        </div>
                     </div>
                 </div>
                 <div class="stage-verdict-summary">
@@ -58262,10 +58966,12 @@ window.runStockStageSimulator = async function(symbolInput) {
                             <div class="diag-screener-card-header">
                                 <strong class="diag-screener-name">${s.icon} ${s.name}</strong>
                                 <span class="diag-screener-badge ${isQual ? 'qual' : 'rej'}">
-                                    ${isQual ? '✅ QUALIFIED' : '❌ REJECTED'}
+                                    ${isQual ? '✓ QUALIFIED' : '✗ REJECTED'}
                                 </span>
                             </div>
-                            <p class="diag-screener-reason">${reasonText}</p>
+                            <div class="diag-screener-reason-body">
+                                <p class="diag-screener-reason">${reasonText}</p>
+                            </div>
                         </div>
                     `;
                 }).join('')}
@@ -58341,6 +59047,7 @@ window.runStockStageSimulator = async function(symbolInput) {
                                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; gap: 8px; flex-wrap: wrap;">
                                     <strong style="font-size: 13px; color: var(--text-color, #f8fafc); font-weight: 800;">${displayName}</strong>
                                     ${statusBadge}
+                                </div>
                                 </div>
                                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; font-size: 11px; background: rgba(15, 23, 42, 0.4); padding: 10px 14px; border-radius: 6px; margin-bottom: 10px;">
                                     <div>
@@ -59125,6 +59832,7 @@ window.renderWatchlistQuantMatrix = function(stocks) {
                 </td>
                 <td style="padding: 10px 14px; text-align: center; white-space: nowrap;">
                     <button class="btn-secondary quant-chart-btn" style="font-size: 11.5px; padding: 4px 8px; margin-right: 4px;" onclick="window.launchStageSimulator('${s.symbol}')" title="Launch Interactive Stage Simulator">Simulate ⚙️</button>
+                    <button class="btn-primary quant-ichart-btn" style="font-size: 11.5px; padding: 4px 8px; margin-right: 4px; background: rgba(59, 130, 246, 0.2); border: 1px solid #3b82f6; color: #60a5fa;" onclick="event.stopPropagation(); window.openStandaloneInteractiveChart && window.openStandaloneInteractiveChart('${s.symbol}', null, 'watchlist', 'Watchlist Quant Matrix')" title="Open i-Chart Workstation & 30W MA Slope">📈 i-Chart</button>
                     <button class="btn-secondary quant-chart-btn" style="font-size: 11.5px; padding: 4px 8px;" onclick="window.openTradingViewChart ? window.openTradingViewChart('${s.symbol}') : (window.analyzeStock && window.analyzeStock('${s.symbol}'))">Chart ↗</button>
                 </td>
             </tr>
@@ -59224,3 +59932,122 @@ if (typeof window !== 'undefined') {
 
 
 
+
+
+// Global Keyboard Shortcut for i-Chart Stock Stepper (ArrowLeft / ArrowRight)
+document.addEventListener('keydown', function(e) {
+    const ichartTab = document.getElementById('tab-interactive-chart');
+    if (!ichartTab || ichartTab.style.display === 'none') return;
+    
+    // Ignore when typing inside input fields, textareas, or select dropdowns
+    if (['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement?.tagName)) return;
+    
+    if (e.key === 'ArrowLeft') {
+        e.preventDefault();
+        if (typeof window.navigateIChartStock === 'function') window.navigateIChartStock(-1);
+    } else if (e.key === 'ArrowRight') {
+        e.preventDefault();
+        if (typeof window.navigateIChartStock === 'function') window.navigateIChartStock(1);
+    }
+});
+
+
+// Setup Standalone i-Chart Autocomplete Search
+document.addEventListener('DOMContentLoaded', function() {
+    const input = document.getElementById('ichart-standalone-search-input');
+    const box = document.getElementById('ichart-standalone-autocomplete');
+    if (!input || !box) return;
+
+    input.addEventListener('input', function() {
+        const query = input.value.trim().toLowerCase();
+        if (!query) {
+            box.style.display = 'none';
+            return;
+        }
+
+        const candidates = (window.allUniverseStocks || []).concat(window.allVcpStocks || []).concat(window.allWeinsteinStocks || []);
+        const matches = [];
+        const seen = new Set();
+
+        candidates.forEach(s => {
+            const sym = typeof s === 'string' ? s : (s.symbol || s.ticker || '');
+            const name = typeof s === 'object' ? (s.company_name || s.name || '') : '';
+            const clean = sym.replace('.NS','').replace('.BO','').trim();
+            if (clean && !seen.has(clean)) {
+                if (clean.toLowerCase().includes(query) || name.toLowerCase().includes(query)) {
+                    seen.add(clean);
+                    matches.push({ symbol: clean, name: name });
+                }
+            }
+        });
+
+        if (matches.length === 0) {
+            box.style.display = 'none';
+            return;
+        }
+
+        box.innerHTML = matches.slice(0, 10).map(m => `
+            <div class="autocomplete-item" onclick="document.getElementById('ichart-standalone-search-input').value='${m.symbol}'; document.getElementById('ichart-standalone-autocomplete').style.display='none'; window.openStandaloneInteractiveChart && window.openStandaloneInteractiveChart('${m.symbol}', ['${m.symbol}'], 'search', 'Search');" style="padding: 8px 12px; cursor: pointer; border-bottom: 1px solid rgba(255,255,255,0.05); display: flex; justify-content: space-between; font-size: 12.5px;">
+                <strong style="color: #60a5fa;">${m.symbol}</strong>
+                <span style="color: #94a3b8; font-size: 11px;">${m.name || 'NSE Stock'}</span>
+            </div>
+        `).join('');
+        box.style.display = 'block';
+    });
+
+    document.addEventListener('click', function(e) {
+        if (!input.contains(e.target) && !box.contains(e.target)) {
+            box.style.display = 'none';
+        }
+    });
+});
+
+
+// Global Standalone i-Chart Autocomplete Search Handler (Matching Stage Masterclass Engine)
+window.handleIChartSearchInput = function(inputEl) {
+    if (!inputEl) return;
+    const query = inputEl.value.trim().toUpperCase();
+    const box = document.getElementById('ichart-standalone-autocomplete');
+    if (!box) return;
+
+    clearTimeout(window._ichartSearchDebounce);
+
+    if (!query || query.length < 1) {
+        box.style.display = 'none';
+        return;
+    }
+
+    window._ichartSearchDebounce = setTimeout(async () => {
+        try {
+            const res = await fetch(`/api/search/suggestions?q=${encodeURIComponent(query)}`);
+            const suggestions = await res.json();
+
+            if (!Array.isArray(suggestions) || suggestions.length === 0) {
+                box.style.display = 'none';
+                return;
+            }
+
+            box.innerHTML = suggestions.slice(0, 8).map(s => {
+                const sym = typeof s === 'string' ? s : (s.symbol || s.ticker || '');
+                const baseSym = typeof s === 'object' ? (s.base_symbol || sym) : sym;
+                const cleanSym = baseSym.replace('.NS','').replace('.BO','').trim().toUpperCase();
+                const name = typeof s === 'object' ? (s.name || s.company_name || '') : '';
+                
+                return `
+                    <div class="watchlist-autocomplete-item" 
+                         onclick="document.getElementById('ichart-standalone-search-input').value='${cleanSym}'; document.getElementById('ichart-standalone-autocomplete').style.display='none'; window.openStandaloneInteractiveChart && window.openStandaloneInteractiveChart('${cleanSym}', ['${cleanSym}'], 'search', 'Search');" 
+                         style="padding: 10px 14px; cursor: pointer; border-bottom: 1px solid var(--border-glass, rgba(255,255,255,0.05)); display: flex; justify-content: space-between; align-items: center; transition: background 0.15s;">
+                        <div>
+                            <strong style="font-size: 13px; font-weight: 800;">${baseSym}</strong>
+                            <span style="font-size: 11px; margin-left: 6px;" class="ticker-pill">${sym}</span>
+                        </div>
+                        <span style="font-size: 11.5px; font-weight: 600;" class="sector-pill">${name}</span>
+                    </div>
+                `;
+            }).join('');
+            box.style.display = 'block';
+        } catch (err) {
+            console.error("i-Chart search autocomplete error:", err);
+        }
+    }, 120);
+};
