@@ -6728,11 +6728,11 @@
                     else if (fullscreenActiveScan === 'fib_500_support') { badgeClass = 'fib-500'; badgeText = '50.0% Fib'; }
 
                     return `
-                        <tr class="technical-scan-row fullscreen-scan-row" data-symbol="${cleanSym}" style="border-bottom: 1px solid var(--border-glass); height: 44px;">
+                        <tr class="technical-scan-row fullscreen-scan-row" data-index="${idx}" data-symbol="${cleanSym}" style="border-bottom: 1px solid var(--border-glass); height: 44px; cursor: pointer;">
                             <td class="col-hide-mobile" style="padding: 8px 12px; color: var(--text-secondary);">${startIndex + idx + 1}</td>
-                            <td style="padding: 8px 12px; font-weight: 700; color: var(--text-primary); display: flex; align-items: center; justify-content: space-between; gap: 4px; min-height: 44px; box-sizing: border-box;">
+                            <td style="padding: 8px 12px; font-weight: 700; color: var(--text-primary); display: flex; align-items: center; justify-content: space-between; gap: 6px; min-height: 44px; box-sizing: border-box;">
                                 <span>${cleanSym}</span>
-                                <button class="tech-scan-expand-btn" data-target="expand-row-${cleanSym}" title="Toggle Snapshot" style="background: transparent; border: none; color: var(--color-primary-light); cursor: pointer; font-size: 11px; padding: 2px 4px; font-weight: bold; flex-shrink: 0;">▼</button>
+                                <button class="open-prospectus-btn" data-index="${idx}" title="Open Technical Prospectus" style="background: rgba(56, 189, 248, 0.1); border: 1px solid rgba(56, 189, 248, 0.3); color: #38bdf8; cursor: pointer; font-size: 11px; padding: 2px 6px; font-weight: 700; flex-shrink: 0; border-radius: 4px; outline: none;">Prospectus ℹ️</button>
                             </td>
                             <td style="padding: 8px 12px; color: var(--text-secondary);">${compName}</td>
                             <td class="col-hide-mobile" style="padding: 8px 12px; color: var(--text-secondary);">${sector}</td>
@@ -6750,87 +6750,28 @@
                                 </div>
                             </td>
                         </tr>
-                        <tr class="tech-scan-expand-row" id="expand-row-${cleanSym}" style="display: none; border-bottom: 1px solid var(--border-glass);">
-                            <td colspan="8" style="padding: 10px 16px;">
-                                <div class="tech-snapshot-card">
-                                    <div class="tech-snapshot-item">
-                                        <span class="tech-snapshot-label">⚡ RSI (14)</span>
-                                        <span class="tech-snapshot-val" style="${rsiStyle}">${rsiValStr}</span>
-                                    </div>
-                                    <div class="tech-snapshot-item">
-                                        <span class="tech-snapshot-label">📈 50 MA / 200 MA</span>
-                                        <span class="tech-snapshot-val">${sma50Display} / ${sma200Display}</span>
-                                    </div>
-                                    <div class="tech-snapshot-item">
-                                        <span class="tech-snapshot-label">📏 52W High / Low</span>
-                                        <span class="tech-snapshot-val">${high52Display} / ${low52Display}</span>
-                                    </div>
-                                    <div class="tech-snapshot-item">
-                                        <span class="tech-snapshot-label">🔊 Volume Multiple</span>
-                                        <span class="tech-snapshot-val">${volMultDisplay}</span>
-                                    </div>
-                                    <div class="tech-snapshot-item">
-                                        <span class="tech-snapshot-label">🏢 Sector & Segment</span>
-                                        <span class="tech-snapshot-val" style="font-size: 13.5px; font-weight: 600;">${sector} • ${segment}</span>
-                                    </div>
-                                    ${item.deliv_pct !== undefined ? `
-                                    <div class="tech-snapshot-item" style="grid-column: span 2; background: rgba(16, 185, 129, 0.05); border: 1px solid rgba(16, 185, 129, 0.2); border-radius: 6px; padding: 8px 12px; margin-top: 4px;">
-                                        <span class="tech-snapshot-label" style="color: #10b981; font-weight: 700; font-size: 13px;">📦 Institutional Delivery Prospectus (${item.trade_date || 'EOD'})</span>
-                                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 6px; font-size: 12.5px; color: var(--text-primary);">
-                                            <div>• <strong>Delivery %:</strong> <span style="color:#10b981;">${item.deliv_pct}%</span> (vs ${item.avg_10d_pct}% 10D Avg)</div>
-                                            <div>• <strong>Surge Multiplier:</strong> <span style="color:#f59e0b;">${item.deliv_surge}x</span></div>
-                                            <div>• <strong>Volume Z-Score:</strong> <span style="color:#3b82f6;">${item.deliv_zscore > 0 ? '+' + item.deliv_zscore : item.deliv_zscore}</span></div>
-                                            <div>• <strong>Demat Quantity:</strong> ${item.deliv_qty ? Number(item.deliv_qty).toLocaleString('en-IN') : '--'} Shares</div>
-                                            <div style="grid-column: span 2;">• <strong>Total Traded Volume:</strong> ${item.traded_qty ? Number(item.traded_qty).toLocaleString('en-IN') : '--'} Shares</div>
-                                        </div>
-                                    </div>
-                                    ` : ''}
-                                </div>
-                            </td>
-                        </tr>
                     `;
                 }).join('');
 
-                // Row expand toggle & click handlers
-                tbody.querySelectorAll('.tech-scan-expand-btn').forEach(btn => {
-                    btn.onclick = (e) => {
-                        e.stopPropagation();
-                        const targetId = btn.getAttribute('data-target');
-                        const row = document.getElementById(targetId);
-                        if (row) {
-                            const isHidden = row.style.display === 'none';
-                            row.style.display = isHidden ? 'table-row' : 'none';
-                            btn.innerText = isHidden ? '▲' : '▼';
-                        }
-                    };
-                });
-
+                // Row click & Prospectus button handlers
                 tbody.querySelectorAll('.open-prospectus-btn').forEach(btn => {
                     btn.onclick = (e) => {
                         e.stopPropagation();
-                        const symbol = btn.getAttribute('data-symbol');
-                        const searchInput = document.getElementById('analyzer-search-input');
-                        const searchBtn = document.getElementById('analyzer-search-btn');
-                        if (searchInput) {
-                            searchInput.value = symbol;
-                            searchInput.focus();
-                            if (searchBtn) searchBtn.click();
-                            if (window.switchTab) window.switchTab('market-news');
+                        const idxStr = btn.getAttribute('data-index');
+                        const item = pageItems[parseInt(idxStr, 10)];
+                        if (item && window.openTechnicalScanProspectus) {
+                            window.openTechnicalScanProspectus(item);
                         }
                     };
                 });
 
-                // Row redirection clicks
                 tbody.querySelectorAll('.fullscreen-scan-row').forEach(row => {
-                    row.onclick = () => {
-                        const symbol = row.getAttribute('data-symbol');
-                        const searchInput = document.getElementById('analyzer-search-input');
-                        const searchBtn = document.getElementById('analyzer-search-btn');
-                        if (searchInput) {
-                            searchInput.value = symbol;
-                            searchInput.focus();
-                            if (searchBtn) searchBtn.click();
-                            if (window.switchTab) window.switchTab('market-news');
+                    row.onclick = (e) => {
+                        if (e.target.closest('.wl-quick-add-wrap') || e.target.closest('.open-prospectus-btn')) return;
+                        const idxStr = row.getAttribute('data-index');
+                        const item = pageItems[parseInt(idxStr, 10)];
+                        if (item && window.openTechnicalScanProspectus) {
+                            window.openTechnicalScanProspectus(item);
                         }
                     };
                 });
@@ -6901,6 +6842,136 @@
                         window.activeTechnicalScan = tab.getAttribute('data-scan');
                         renderTechnicalScansList();
                     });
+                }
+            });
+
+            // Global Prospectus Drawer Functions
+            window.openTechnicalScanProspectus = function(item) {
+                if (!item) return;
+                const drawer = document.getElementById('tech-prospectus-drawer');
+                if (!drawer) return;
+
+                const cleanSym = item.symbol || 'STOCK';
+                let compName = item.name || '';
+                compName = compName.replace(/(Limited|Ltd\.|\(India\)|\(I\))/gi, '').trim();
+
+                const changePct = parseFloat(item.change_pct || 0);
+                const chgColor = changePct >= 0 ? '#10b981' : '#ef4444';
+                const chgSign = changePct >= 0 ? '+' : '';
+
+                const rsiValStr = (item.rsi !== undefined && item.rsi !== null) ? `${item.rsi}` : '--';
+                const sma50Display = item.sma50 ? `₹${item.sma50}` : '--';
+                const sma200Display = item.sma200 ? `₹${item.sma200}` : '--';
+                const high52Display = item.high52 ? `₹${item.high52}` : '--';
+                const low52Display = item.low52 ? `₹${item.low52}` : '--';
+                const volMultDisplay = item.vol_mult ? `${item.vol_mult}x` : '1.0x';
+
+                // Format scan metric label & value
+                let metricLabel = 'Scan Detail';
+                let metricValDisplay = item.value !== undefined ? `${item.value}` : '--';
+                if (window.activeTechnicalScan === 'near_high') metricLabel = 'Dist to 52W High';
+                else if (window.activeTechnicalScan === 'near_low') metricLabel = 'Dist to 52W Low';
+                else if (window.activeTechnicalScan === 'gap_up' || window.activeTechnicalScan === 'gap_down') metricLabel = 'Opening Gap';
+                else if (window.activeTechnicalScan.includes('rsi')) metricLabel = 'RSI (14)';
+                else if (window.activeTechnicalScan.includes('volume')) metricLabel = 'Vol Multiplier';
+                else if (window.activeTechnicalScan.includes('delivery')) metricLabel = 'Delivery %';
+                else if (window.activeTechnicalScan.includes('pullback')) metricLabel = 'Dist to Moving Avg';
+
+                if (typeof item.value === 'number') {
+                    if (window.activeTechnicalScan.includes('near') || window.activeTechnicalScan.includes('gap') || window.activeTechnicalScan.includes('pullback')) {
+                        metricValDisplay = item.value.toFixed(2) + '%';
+                    } else if (window.activeTechnicalScan.includes('volume')) {
+                        metricValDisplay = item.value.toFixed(1) + 'x';
+                    }
+                }
+
+                // Populate drawer fields
+                const symEl = document.getElementById('drawer-stock-symbol');
+                const nameEl = document.getElementById('drawer-company-name');
+                const cmpEl = document.getElementById('drawer-cmp-val');
+                const chgEl = document.getElementById('drawer-chg-val');
+                const rsiEl = document.getElementById('drawer-rsi-val');
+                const maEl = document.getElementById('drawer-ma-val');
+                const rangeEl = document.getElementById('drawer-52w-val');
+                const volEl = document.getElementById('drawer-vol-val');
+                const sectorEl = document.getElementById('drawer-sector-val');
+                const metricLblEl = document.getElementById('drawer-metric-label');
+                const metricValEl = document.getElementById('drawer-metric-val');
+
+                if (symEl) symEl.innerText = cleanSym;
+                if (nameEl) nameEl.innerText = compName;
+                if (cmpEl) cmpEl.innerText = `₹${item.price || '--'}`;
+                if (chgEl) {
+                    chgEl.innerText = `${chgSign}${changePct.toFixed(2)}%`;
+                    chgEl.style.color = chgColor;
+                }
+                if (metricLblEl) metricLblEl.innerText = metricLabel;
+                if (metricValEl) metricValEl.innerText = metricValDisplay;
+
+                let rsiStatus = 'Neutral';
+                if (rsiValStr !== '--') {
+                    const rNum = Number(rsiValStr);
+                    if (rNum >= 65) rsiStatus = 'Overbought';
+                    else if (rNum <= 35) rsiStatus = 'Oversold';
+                    else if (rNum >= 55) rsiStatus = 'Bullish Momentum';
+                }
+
+                if (rsiEl) rsiEl.innerText = `${rsiValStr} (${rsiStatus})`;
+                if (maEl) maEl.innerText = `${sma50Display} / ${sma200Display}`;
+                if (rangeEl) rangeEl.innerText = `${high52Display} / ${low52Display}`;
+                if (volEl) volEl.innerText = `${volMultDisplay} Average`;
+                if (sectorEl) sectorEl.innerText = `${item.sector || sector || 'N/A'} • ${item.segment || segment || 'N/A'}`;
+
+                // Delivery stats box
+                const delivBox = document.getElementById('drawer-delivery-box');
+                if (delivBox) {
+                    if (item.deliv_pct !== undefined) {
+                        delivBox.style.display = 'block';
+                        const dateEl = document.getElementById('drawer-deliv-date');
+                        const pctEl = document.getElementById('drawer-deliv-pct');
+                        const avgEl = document.getElementById('drawer-deliv-avg');
+                        const surgeEl = document.getElementById('drawer-deliv-surge');
+                        const zscoreEl = document.getElementById('drawer-deliv-zscore');
+                        const qtyEl = document.getElementById('drawer-deliv-qty');
+                        const tradedEl = document.getElementById('drawer-traded-qty');
+
+                        if (dateEl) dateEl.innerText = item.trade_date || 'EOD';
+                        if (pctEl) pctEl.innerText = `${item.deliv_pct}%`;
+                        if (avgEl) avgEl.innerText = `${item.avg_10d_pct}%`;
+                        if (surgeEl) surgeEl.innerText = `${item.deliv_surge}x`;
+                        if (zscoreEl) zscoreEl.innerText = item.deliv_zscore > 0 ? `+${item.deliv_zscore}` : `${item.deliv_zscore}`;
+                        if (qtyEl) qtyEl.innerText = item.deliv_qty ? Number(item.deliv_qty).toLocaleString('en-IN') + ' Shares' : '--';
+                        if (tradedEl) tradedEl.innerText = item.traded_qty ? Number(item.traded_qty).toLocaleString('en-IN') + ' Shares' : '--';
+                    } else {
+                        delivBox.style.display = 'none';
+                    }
+                }
+
+                // Action button handlers
+                const analyzerBtn = document.getElementById('drawer-action-analyzer');
+                if (analyzerBtn) {
+                    analyzerBtn.onclick = () => {
+                        window.closeTechnicalScanProspectus();
+                        if (typeof window.loadStockAnalyzer === 'function') {
+                            window.loadStockAnalyzer(cleanSym);
+                        } else if (typeof window.switchTab === 'function') {
+                            window.switchTab('analyzer');
+                        }
+                    };
+                }
+
+                drawer.classList.add('open');
+            };
+
+            window.closeTechnicalScanProspectus = function() {
+                const drawer = document.getElementById('tech-prospectus-drawer');
+                if (drawer) drawer.classList.remove('open');
+            };
+
+            // Keyboard Escape listener
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape') {
+                    window.closeTechnicalScanProspectus();
                 }
             });
 
