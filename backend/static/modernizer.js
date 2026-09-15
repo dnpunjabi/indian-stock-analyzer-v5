@@ -6728,11 +6728,10 @@
                     else if (fullscreenActiveScan === 'fib_500_support') { badgeClass = 'fib-500'; badgeText = '50.0% Fib'; }
 
                     return `
-                        <tr class="technical-scan-row fullscreen-scan-row" data-index="${idx}" data-symbol="${cleanSym}" style="border-bottom: 1px solid var(--border-glass); height: 44px; cursor: pointer;">
+                        <tr class="technical-scan-row fullscreen-scan-row" data-index="${idx}" data-symbol="${cleanSym}" title="Click to view Technical Prospectus" style="border-bottom: 1px solid var(--border-glass); height: 44px; cursor: pointer;">
                             <td class="col-hide-mobile" style="padding: 8px 12px; color: var(--text-secondary);">${startIndex + idx + 1}</td>
-                            <td style="padding: 8px 12px; font-weight: 700; color: var(--text-primary); display: flex; align-items: center; justify-content: space-between; gap: 6px; min-height: 44px; box-sizing: border-box;">
+                            <td style="padding: 8px 12px; font-weight: 700; color: var(--text-primary); min-height: 44px; box-sizing: border-box;">
                                 <span>${cleanSym}</span>
-                                <button class="open-prospectus-btn" data-index="${idx}" title="Open Technical Prospectus" style="background: rgba(56, 189, 248, 0.1); border: 1px solid rgba(56, 189, 248, 0.3); color: #38bdf8; cursor: pointer; font-size: 11px; padding: 2px 6px; font-weight: 700; flex-shrink: 0; border-radius: 4px; outline: none;">Prospectus ℹ️</button>
                             </td>
                             <td style="padding: 8px 12px; color: var(--text-secondary);">${compName}</td>
                             <td class="col-hide-mobile" style="padding: 8px 12px; color: var(--text-secondary);">${sector}</td>
@@ -6753,23 +6752,12 @@
                     `;
                 }).join('');
 
-                // Row click & Prospectus button handlers
-                tbody.querySelectorAll('.open-prospectus-btn').forEach(btn => {
-                    btn.onclick = (e) => {
-                        e.stopPropagation();
-                        const idxStr = btn.getAttribute('data-index');
-                        const item = pageItems[parseInt(idxStr, 10)];
-                        if (item && window.openTechnicalScanProspectus) {
-                            window.openTechnicalScanProspectus(item);
-                        }
-                    };
-                });
-
+                // Row click handler to open Technical Prospectus
                 tbody.querySelectorAll('.fullscreen-scan-row').forEach(row => {
                     row.onclick = (e) => {
-                        if (e.target.closest('.wl-quick-add-wrap') || e.target.closest('.open-prospectus-btn')) return;
+                        if (e.target.closest('.wl-quick-add-wrap')) return;
                         const idxStr = row.getAttribute('data-index');
-                        const item = pageItems[parseInt(idxStr, 10)];
+                        const item = pageList[parseInt(idxStr, 10)];
                         if (item && window.openTechnicalScanProspectus) {
                             window.openTechnicalScanProspectus(item);
                         }
