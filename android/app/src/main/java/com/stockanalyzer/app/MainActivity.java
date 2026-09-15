@@ -40,6 +40,7 @@ public class MainActivity extends BridgeActivity {
         super.onStart();
         WebView webView = this.bridge.getWebView();
         if (webView != null) {
+            webView.clearCache(true);
             printInterface = new WebAppInterface(this, webView);
             speechInterface = new SpeechInterface(this, webView);
             ttsInterface = new TtsInterface(this, webView);
