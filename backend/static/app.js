@@ -33000,6 +33000,7 @@ async function renderTVWorkstationChart(symbol, forceRefresh = false) {
 
     // Show Loading Overlay
     const cleanDisplayTicker = formattedTicker.replace('.NS', '').replace('.BO', '');
+    const isLightMode = document.documentElement.getAttribute('data-mode') === 'light';
     const isMobileViewport = window.innerWidth <= 640;
     const overlayBg = isLightMode ? '#ffffff' : '#0f172a';
     container.innerHTML = `
