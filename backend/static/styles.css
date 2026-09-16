@@ -37046,6 +37046,5 @@ body.light-theme .tech-prospectus-close-btn {
     -webkit-backdrop-filter: none !important;
     transform-style: flat !important;
     transform: none !important;
-    contain: layout paint !important;
 }
 

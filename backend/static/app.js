@@ -33165,48 +33165,87 @@ async function renderTVWorkstationChart(symbol, forceRefresh = false) {
             window.updateIChartHudBadge(data);
         }
 
-        // Clean up previous chart canvases without wiping loading overlay
-        const oldCanvases = container.querySelectorAll('.tv-lightweight-charts, iframe, canvas');
-        oldCanvases.forEach(el => el.remove());
-        if (activeTVWorkstationChart) {
-            try { activeTVWorkstationChart.remove(); } catch (e) {}
-            activeTVWorkstationChart = null;
-        }
-
+        // Reuse persistent chart instance to eliminate DOM destruction & screen flickering
         const isDarkTheme = document.documentElement.getAttribute('data-mode') !== 'light';
         const isMobile = window.innerWidth <= 640;
         const chartHeight = isMobile ? 360 : 480;
         const chartBgColor = isDarkTheme ? '#0f172a' : '#ffffff';
 
-        // Create Chart
-        const chart = LightweightCharts.createChart(container, {
-            width: container.clientWidth || (isMobile ? (window.innerWidth - 32) : 600),
-            height: chartHeight,
-            layout: {
-                background: { type: 'solid', color: chartBgColor },
-                textColor: isDarkTheme ? '#94a3b8' : '#334155',
-                fontFamily: 'Inter, sans-serif',
-            },
-            grid: {
-                vertLines: { color: isDarkTheme ? 'rgba(255,255,255,0.02)' : 'rgba(0,0,0,0.03)' },
-                horzLines: { color: isDarkTheme ? 'rgba(255,255,255,0.02)' : 'rgba(0,0,0,0.03)' },
-            },
-            crosshair: {
-                mode: LightweightCharts.CrosshairMode.Normal,
-            },
-            rightPriceScale: {
-                borderColor: isDarkTheme ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.15)',
-                visible: true,
-            },
-            timeScale: {
-                visible: true,
-                borderVisible: true,
-                borderColor: isDarkTheme ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.2)',
-                timeVisible: false,
-                secondsVisible: false,
-            },
-        });
-        activeTVWorkstationChart = chart;
+        window.activeTVSeriesList = window.activeTVSeriesList || [];
+        let chart = activeTVWorkstationChart;
+        const canvasElement = container.querySelector('.tv-lightweight-charts') || container.querySelector('canvas');
+
+        if (!chart || !canvasElement) {
+            // Clean up any stale canvas elements if chart engine is uninitialized
+            container.querySelectorAll('.tv-lightweight-charts, iframe, canvas').forEach(el => el.remove());
+            chart = LightweightCharts.createChart(container, {
+                width: container.clientWidth || (isMobile ? (window.innerWidth - 32) : 600),
+                height: chartHeight,
+                layout: {
+                    background: { type: 'solid', color: chartBgColor },
+                    textColor: isDarkTheme ? '#94a3b8' : '#334155',
+                    fontFamily: 'Inter, sans-serif',
+                },
+                grid: {
+                    vertLines: { color: isDarkTheme ? 'rgba(255,255,255,0.02)' : 'rgba(0,0,0,0.03)' },
+                    horzLines: { color: isDarkTheme ? 'rgba(255,255,255,0.02)' : 'rgba(0,0,0,0.03)' },
+                },
+                crosshair: {
+                    mode: LightweightCharts.CrosshairMode.Normal,
+                },
+                rightPriceScale: {
+                    borderColor: isDarkTheme ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.15)',
+                    visible: true,
+                },
+                timeScale: {
+                    visible: true,
+                    borderVisible: true,
+                    borderColor: isDarkTheme ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.2)',
+                    timeVisible: false,
+                    secondsVisible: false,
+                },
+            });
+            activeTVWorkstationChart = chart;
+        } else {
+            // Update existing chart layout options without canvas destruction
+            try {
+                chart.applyOptions({
+                    layout: {
+                        background: { type: 'solid', color: chartBgColor },
+                        textColor: isDarkTheme ? '#94a3b8' : '#334155',
+                    }
+                });
+            } catch (e) {}
+
+            // Remove existing series cleanly from active chart instance
+            window.activeTVSeriesList.forEach(s => {
+                try { chart.removeSeries(s); } catch (e) {}
+            });
+        }
+        window.activeTVSeriesList = [];
+
+        // Wrap series creation methods to automatically capture created series for clean cleanup
+        if (!chart._seriesWrappersAttached) {
+            const origCandle = chart.addCandlestickSeries.bind(chart);
+            chart.addCandlestickSeries = function(...args) {
+                const s = origCandle(...args);
+                window.activeTVSeriesList.push(s);
+                return s;
+            };
+            const origHisto = chart.addHistogramSeries.bind(chart);
+            chart.addHistogramSeries = function(...args) {
+                const s = origHisto(...args);
+                window.activeTVSeriesList.push(s);
+                return s;
+            };
+            const origLine = chart.addLineSeries.bind(chart);
+            chart.addLineSeries = function(...args) {
+                const s = origLine(...args);
+                window.activeTVSeriesList.push(s);
+                return s;
+            };
+            chart._seriesWrappersAttached = true;
+        }
 
         // Auto-ResizeObserver for container layout changes
         if (window.tvChartResizeObserver) {
