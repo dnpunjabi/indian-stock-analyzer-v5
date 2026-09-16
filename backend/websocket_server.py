@@ -125,13 +125,16 @@ class AlertEvaluator:
         """Dynamically register a new alert (called when user creates one)."""
         if alert.get("condition_type") not in ("PRICE", "SMA"):
             return
+        if alert.get("triggered") or alert.get("status") == "Triggered":
+            return
         symbol = alert["ticker"].strip().upper()
         if symbol.endswith(".NS"):
             symbol = symbol[:-3]
         with self._lock:
             if symbol not in self._alerts:
                 self._alerts[symbol] = []
-            self._alerts[symbol].append(alert)
+            if not any(str(a.get("id")) == str(alert.get("id")) for a in self._alerts[symbol]):
+                self._alerts[symbol].append(alert)
         logger.info(f"AlertEvaluator: Registered new alert #{alert.get('id')} for {symbol}")
 
     def unregister_alert(self, alert_id: int):
@@ -156,18 +159,30 @@ class AlertEvaluator:
         """
         triggered = []
         with self._lock:
-            alerts = self._alerts.get(symbol, [])
+            sym_clean = symbol.strip().upper()
+            base_sym = sym_clean[:-3] if sym_clean.endswith(".NS") or sym_clean.endswith(".BO") else sym_clean
+            ns_sym = f"{base_sym}.NS"
+
+            raw_alerts = self._alerts.get(sym_clean, []) + self._alerts.get(base_sym, []) + self._alerts.get(ns_sym, [])
+            seen_ids = set()
+            alerts = []
+            for a in raw_alerts:
+                aid = str(a.get("id"))
+                if aid not in seen_ids:
+                    seen_ids.add(aid)
+                    alerts.append(a)
+
             remaining = []
             for alert in alerts:
                 fired = False
                 try:
                     threshold = float(alert["value"])
-                    operator = alert["operator"]
+                    operator = alert.get("operator", "")
 
                     if alert["condition_type"] == "PRICE":
-                        if operator == ">" and price > threshold:
+                        if operator in (">", ">=") and price >= threshold:
                             fired = True
-                        elif operator == "<" and price < threshold:
+                        elif operator in ("<", "<=") and price <= threshold:
                             fired = True
                 except (ValueError, KeyError):
                     pass
@@ -182,9 +197,12 @@ class AlertEvaluator:
                     remaining.append(alert)
 
             if triggered:
-                self._alerts[symbol] = remaining
-                if not remaining:
-                    del self._alerts[symbol]
+                triggered_ids = {str(a.get("id")) for a in triggered}
+                for s_key in (sym_clean, base_sym, ns_sym):
+                    if s_key in self._alerts:
+                        self._alerts[s_key] = [a for a in self._alerts[s_key] if str(a.get("id")) not in triggered_ids]
+                        if not self._alerts[s_key]:
+                            del self._alerts[s_key]
 
         return triggered
 
@@ -201,8 +219,14 @@ class AlertEvaluator:
             cursor.execute(
                 "UPDATE alerts SET triggered = 1, status = 'Triggered', "
                 "trigger_date = ?, ai_context = ? WHERE id = ?",
-                (trigger_date, ai_context, alert["id"])
+                (trigger_date, ai_context, str(alert["id"]))
             )
+            if cursor.rowcount == 0:
+                cursor.execute(
+                    "INSERT INTO alerts (id, ticker, condition_type, operator, value, status, triggered, trigger_date, ai_context) "
+                    "VALUES (?, ?, ?, ?, ?, 'Triggered', 1, ?, ?)",
+                    (str(alert["id"]), alert.get("ticker", ""), alert.get("condition_type", "PRICE"), alert.get("operator", "<="), str(alert.get("value", "")), trigger_date, ai_context)
+                )
             conn.commit()
             conn.close()
             logger.info(

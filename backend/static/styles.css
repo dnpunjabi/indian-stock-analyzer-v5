@@ -36051,13 +36051,19 @@ body.light-theme #ichart-hud-slope-val {
     border-radius: 12px !important;
     padding: 14px 16px !important;
     box-sizing: border-box !important;
-    display: flex !important;
+    display: flex;
     flex-direction: column !important;
     justify-content: space-between !important;
     transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1) !important;
     box-shadow: 0 4px 14px rgba(0, 0, 0, 0.12) !important;
     position: relative !important;
     overflow: hidden !important;
+}
+
+.diag-screener-card.hidden,
+.diag-screener-card.is-hidden,
+.diag-screener-card.d-none {
+    display: none !important;
 }
 
 .diag-screener-card:hover {

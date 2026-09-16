@@ -58933,12 +58933,21 @@ window.filterDiagScreenerGrid = function(mode) {
     const cards = grid.querySelectorAll('.diag-screener-card');
     cards.forEach(card => {
         const qual = card.getAttribute('data-qualified') === 'true';
+        let show = false;
         if (mode === 'all') {
-            card.style.display = 'block';
+            show = true;
         } else if (mode === 'qualified') {
-            card.style.display = qual ? 'block' : 'none';
+            show = qual;
         } else if (mode === 'rejected') {
-            card.style.display = !qual ? 'block' : 'none';
+            show = !qual;
+        }
+
+        if (show) {
+            card.classList.remove('hidden', 'd-none', 'is-hidden');
+            card.style.setProperty('display', 'flex', 'important');
+        } else {
+            card.classList.add('hidden', 'd-none', 'is-hidden');
+            card.style.setProperty('display', 'none', 'important');
         }
     });
 
