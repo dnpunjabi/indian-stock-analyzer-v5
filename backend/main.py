@@ -13672,9 +13672,6 @@ async def _run_full_quant_cron_sweep():
         ur_res = await get_undercut_and_rally_screener(force_refresh=True)
         summary["undercut_and_rally"] = len(ur_res.get("data", []))
 
-        mtf_res = await get_mtf_matrix_screener(force_refresh=True)
-        summary["mtf_matrix"] = len(mtf_res.get("data", []))
-
         duration = round(time.time() - t0, 2)
         details_json = json.dumps(summary)
         
@@ -19002,90 +18999,13 @@ async def get_undercut_and_rally_screener(force_refresh: bool = False):
     }
 
 
-_MTF_MATRIX_SCANNER_CACHE = {}
-
-async def _scan_single_stock_mtf_matrix(item, sem):
-    async with sem:
-        sym = item.get("symbol")
-        try:
-            df = load_stock_daily_df_from_sqlite(sym)
-            if df is None or len(df) < 50:
-                return None
-            res = calculate_mtf_matrix_alignment(df)
-            if not res.get("is_mtf_aligned") and res.get("score", 0) < 60:
-                return None
-            res["symbol"] = sym
-            res["company_name"] = item.get("company_name", sym)
-            res["sector"] = item.get("sector", "N/A")
-            return res
-        except Exception:
-            return None
-
-@app.get("/api/screener/mtf-matrix")
-async def get_mtf_matrix_screener(force_refresh: bool = False):
-    """
-    Returns Multi-Timeframe Matrix Alignment (Daily + Weekly + Monthly Tri-MAs) candidates.
-    Parallelized with asyncio 25x concurrency and backed by SQLite disk cache.
-    """
-    global _MTF_MATRIX_SCANNER_CACHE
-    if not force_refresh:
-        db_cache = _load_screener_db_cache("mtf_matrix")
-        if db_cache and db_cache.get("data"):
-            hydrated = _overlay_live_quotes_on_candidates(db_cache["data"])
-            _MTF_MATRIX_SCANNER_CACHE = {"data": hydrated, "last_updated": db_cache["last_updated"]}
-            return {
-                "status": "success",
-                "count": len(hydrated),
-                "last_updated": db_cache["last_updated"],
-                "data": hydrated
-            }
-        if _MTF_MATRIX_SCANNER_CACHE.get("data"):
-            hydrated = _overlay_live_quotes_on_candidates(_MTF_MATRIX_SCANNER_CACHE["data"])
-            return {
-                "status": "success",
-                "count": len(hydrated),
-                "last_updated": _MTF_MATRIX_SCANNER_CACHE.get("last_updated", ""),
-                "data": hydrated
-            }
-
-    results = []
-    try:
-        with get_db() as conn:
-            cursor = conn.cursor()
-            cursor.execute("SELECT symbol, company_name, sector, cap_type FROM screener_universe WHERE symbol NOT LIKE '%DUMMY%'")
-            stocks = [dict(r) for r in cursor.fetchall()]
-
-        sem = asyncio.Semaphore(25)
-        tasks = [_scan_single_stock_mtf_matrix(item, sem) for item in stocks]
-        raw_results = await asyncio.gather(*tasks, return_exceptions=True)
-
-        for r in raw_results:
-            if isinstance(r, dict) and r is not None:
-                results.append(r)
-
-        results.sort(key=lambda x: (x.get("is_mtf_aligned", False), x.get("score", 0), -x.get("atr_pct", 99)), reverse=True)
-
-        last_updated = _save_screener_db_cache("mtf_matrix", results)
-        _MTF_MATRIX_SCANNER_CACHE = {"data": results, "last_updated": last_updated}
-    except Exception as e:
-        print(f"Error executing MTF Matrix screener: {e}")
-
-    hydrated_results = _overlay_live_quotes_on_candidates(results)
-    return {
-        "status": "success",
-        "count": len(hydrated_results),
-        "last_updated": _MTF_MATRIX_SCANNER_CACHE.get("last_updated", ""),
-        "data": hydrated_results
-    }
-
-
 _MULTI_CONFLUENCE_CACHE = {}
 
 @app.get("/api/screener/multi-confluence-leaderboard")
 async def get_multi_confluence_leaderboard(force_refresh: bool = False):
     """
     Multi-Screener Confluence & Top High-Profit Stocks Engine.
-    Cross-indexes 12 screeners cached in SQLite, applies multi-dimensional category weighting,
+    Cross-indexes 11 screeners cached in SQLite, applies multi-dimensional category weighting,
     evaluates buy-zone actionability, sector clusters, and ranks top qualified setups.
     """
     global _MULTI_CONFLUENCE_CACHE
@@ -19101,17 +19021,16 @@ async def get_multi_confluence_leaderboard(force_refresh: bool = False):
         "cup_with_handle": {"label": "Cup With Handle", "badge": "badge-cwh", "category": "Base Structure"},
         "rs_line_new_high": {"label": "RS Line New High", "badge": "badge-rs", "category": "Market Leadership"},
         "undercut_and_rally": {"label": "Undercut & Rally (U&R)", "badge": "badge-ur", "category": "Base Structure"},
-        "mtf_matrix": {"label": "Multi-Timeframe Matrix", "badge": "badge-mtfmatrix", "category": "Trend Alignment"},
         "minervini_vcp": {"label": "Minervini VCP", "badge": "badge-vcp", "category": "Base Structure"}
     }
     
     stock_map = {}
     
-    # 1. Load the 11 screeners from screener_results_cache
+    # 1. Load the 10 screeners from screener_results_cache
     for s_key in [
         "weinstein_stage2", "htf", "3weeks_tight", "flat_base_breakout",
         "episodic_pivot", "pocket_pivot", "oliver_kell_reversal",
-        "cup_with_handle", "rs_line_new_high", "undercut_and_rally", "mtf_matrix"
+        "cup_with_handle", "rs_line_new_high", "undercut_and_rally"
     ]:
         cached = _load_screener_db_cache(s_key)
         if cached and cached.get("data"):
@@ -19497,12 +19416,6 @@ async def get_stage_diagnostic(symbol: str, force_refresh: bool = False):
         ch_qualified = bool(ch_res.get("is_cup_with_handle"))
         rsnh_qualified = bool(rsnh_res.get("is_rs_new_high"))
         ur_qualified = bool(ur_res.get("is_undercut_and_rally"))
-        mtf_res = calculate_mtf_matrix_alignment(df)
-        mtf_qualified = bool(mtf_res.get("is_mtf_aligned"))
-        
-        # Upgrade Stage 2 to Stage 2 Apex Confirmed if MTF Aligned
-        if stage_num == 2 and mtf_qualified:
-            stage_name = "Stage 2 Apex Confirmed 🚀"
         
         # Synchronized Trade Execution Levels (Strict Quantitative Values, Zero Fallbacks)
         if vcp_res and vcp_res.get("pivot_price", 0) > 0 and vcp_res.get("stop_loss", 0) > 0:
@@ -19642,10 +19555,6 @@ async def get_stage_diagnostic(symbol: str, force_refresh: bool = False):
                 "undercut_and_rally": {
                     "qualified": ur_qualified,
                     "reason": f"U&R Reclaim Active: {ur_res.get('reason', 'N/A')}" if ur_qualified else ur_res.get("reason", "No active Undercut & Rally setup")
-                },
-                "mtf_matrix": {
-                    "qualified": mtf_qualified,
-                    "reason": f"Multi-Timeframe Matrix Aligned: {mtf_res.get('reason', 'N/A')} (Score {mtf_res.get('score', 0)}/100)" if mtf_qualified else mtf_res.get("reason", "Timeframe alignment failed")
                 }
             },
             "screener_audit": {
@@ -19731,13 +19640,6 @@ async def get_stage_diagnostic(symbol: str, force_refresh: bool = False):
                     "actual": f"Prior Low: ₹{ur_res.get('prior_swing_low')}, Shakeout Low: ₹{ur_res.get('shakeout_low')}, Vol Ratio: {ur_res.get('reclaim_vol_ratio')}x, Risk: {ur_res.get('risk_pct')}%",
                     "qualified": ur_qualified,
                     "reason": ur_res.get("reason", "")
-                },
-                "mtf_matrix": {
-                    "name": "Multi-Timeframe Matrix Alignment (Tri-MAs)",
-                    "required": "Monthly (10>20 MMA) + Weekly (10>30 WMA & Slope>0) + Daily (10>21>50) + ATR% < 2.5%",
-                    "actual": f"Score: {mtf_res.get('score', 0)}/100, Daily: {mtf_res.get('daily_stack')}, Weekly Slope: +{mtf_res.get('weekly_slope')}%",
-                    "qualified": mtf_qualified,
-                    "reason": mtf_res.get("reason", "")
                 }
             },
             "action_guidance": action_text
@@ -19764,7 +19666,7 @@ class StageDiagnosticAIRequest(BaseModel):
 async def post_stage_diagnostic_ai(req: StageDiagnosticAIRequest):
     """
     On-Demand AI Masterclass Analysis for Stage 1-4 Life Cycle Diagnostic Simulator.
-    Feeds 12-screener metrics, Stage positioning, and MA slopes into call_llm (Gemini).
+    Feeds 8-screener metrics, Stage positioning, and MA slopes into call_llm (Gemini).
     """
     global _STAGE_AI_CACHE
     from backend.llm_config import call_llm, TASK_FAST, get_last_llm_meta
@@ -19772,30 +19674,34 @@ async def post_stage_diagnostic_ai(req: StageDiagnosticAIRequest):
     
     symbol = req.symbol.strip().upper()
     if not symbol.endswith(".NS") and not symbol.endswith(".BO") and "^" not in symbol:
-        symbol += ".NS"
+        symbol = f"{symbol}.NS"
         
-    cache_key = f"{symbol}_{req.custom_prompt or 'default'}"
+    custom_prompt = (req.custom_prompt or "").strip()
+    cache_key = f"{symbol}_{custom_prompt}"
+    
     if not req.force_refresh and cache_key in _STAGE_AI_CACHE:
-        c = _STAGE_AI_CACHE[cache_key]
-        if (datetime.now() - c["timestamp"]).total_seconds() < 3600:
-            return c["payload"]
+        entry = _STAGE_AI_CACHE[cache_key]
+        if (datetime.now() - entry["timestamp"]).total_seconds() < 900: # 15 min TTL
+            return entry["payload"]
             
-    diag_data = await get_stage_diagnostic(symbol=symbol)
+    # Fetch diagnostic data
+    diag_data = await get_stage_diagnostic(symbol, force_refresh=req.force_refresh)
     if diag_data.get("status") == "error":
-        return {"status": "error", "message": diag_data.get("message", "Failed to fetch diagnostic metrics")}
+        return {"status": "error", "message": diag_data.get("message", "Failed to fetch stage diagnostic metrics")}
         
     metrics = diag_data.get("metrics", {})
-    screener_audits = diag_data.get("screener_audit", {})
+    screener_audit = diag_data.get("screener_audit", {})
     stage_name = diag_data.get("stage_name", "Stage 2")
     stage_num = diag_data.get("stage_number", 2)
-    stage_conf = diag_data.get("stage_confidence", 85)
+    stage_conf = diag_data.get("stage_confidence", 90.0)
     
+    # Format Screener Audit text for prompt
     audit_summary = []
-    for k, v in screener_audits.items():
-        st = "✅ QUALIFIED" if v.get("qualified") else "❌ REJECTED"
+    for k, v in screener_audit.items():
+        status_str = "QUALIFIED 🟢" if v.get("qualified") else "REJECTED ❌"
         audit_summary.append(
-            f"- {v.get('name')} [{st}]:\n"
-            f"  * Criteria Required: {v.get('required')}\n"
+            f"- {v.get('name')}: {status_str}\n"
+            f"  * Textbook Requirement: {v.get('required')}\n"
             f"  * Actual Stock Metric: {v.get('actual')}\n"
             f"  * Diagnostic Reason: {v.get('reason')}"
         )
@@ -19820,11 +19726,11 @@ STRICT QUANTITATIVE STAGE DIAGNOSTIC DATA:
 - Volume Surge Ratio: {metrics.get('vol_ratio')}x 50-day average volume
 - Quantitative Trade Levels: Pivot Resistance = ₹{metrics.get('pivot_price')}, Stop Loss = ₹{metrics.get('stop_loss')}, Target 1 = ₹{metrics.get('target_1')}, Target 2 = ₹{metrics.get('target_2')}
 
-12-SCREENER ALGORITHMIC QUALIFICATION AUDIT:
+11-SCREENER ALGORITHMIC QUALIFICATION AUDIT:
 {audit_str}
 
 USER SPECIFIC MASTERCLASS QUERY:
-{req.custom_prompt if req.custom_prompt else 'Provide a complete institutional synthesis of Stage positioning, 12-screener confluence & rejection reasons, and tactical risk-reward execution plan.'}
+{custom_prompt if custom_prompt else 'Provide a complete institutional synthesis of Stage positioning, 11-screener confluence & rejection reasons, and tactical risk-reward execution plan.'}
 
 INSTRUCTIONS:
 1. Directly answer the user query with quantitative rigor and actionable guidance.

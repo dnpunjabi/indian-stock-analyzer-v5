@@ -1692,16 +1692,13 @@
                             <span class="btn-text">Quant Screeners</span>
                         </span>
                         <span style="display: flex; align-items: center; gap: 6px;">
-                            <span class="badge-count-pill" style="font-size: 10px; background: rgba(56, 189, 248, 0.15); color: #38bdf8; padding: 2px 7px; border-radius: 10px; font-weight: 800; border: 1px solid rgba(56, 189, 248, 0.3);">13</span>
+                            <span class="badge-count-pill" style="font-size: 10px; background: rgba(56, 189, 248, 0.15); color: #38bdf8; padding: 2px 7px; border-radius: 10px; font-weight: 800; border: 1px solid rgba(56, 189, 248, 0.3);">12</span>
                             <span class="accordion-arrow" id="quant-screeners-accordion-arrow" style="font-size: 10px; transition: transform 0.2s ease; display: inline-block;">▼</span>
                         </span>
                     </button>
                     <div class="sidebar-accordion-body" id="quant-screeners-accordion" style="display: none; padding-left: 10px; margin-left: 14px; border-left: 2px solid rgba(56, 189, 248, 0.25); margin-top: 2px; margin-bottom: 4px;">
                         <button class="nav-btn active" id="tab-confluence-btn" data-title="Apex Multi-Screener Confluence Leaderboard" onclick="window.switchTab && window.switchTab('vcp'); window.switchQuantScannerSubtab && window.switchQuantScannerSubtab('confluence');">
                             <span class="btn-icon">🏆</span> <span class="btn-text">Apex Confluence Leaderboard</span>
-                        </button>
-                        <button class="nav-btn" id="tab-mtfmatrix-btn" data-title="Multi-Timeframe Matrix Alignment" onclick="window.switchTab && window.switchTab('vcp'); window.switchQuantScannerSubtab && window.switchQuantScannerSubtab('mtfmatrix');">
-                            <span class="btn-icon">📐</span> <span class="btn-text">Multi-Timeframe Matrix</span>
                         </button>
                         <button class="nav-btn" id="tab-vcp-btn" data-title="Minervini VCP & CANSLIM Screener" onclick="window.switchTab && window.switchTab('vcp'); window.switchQuantScannerSubtab && window.switchQuantScannerSubtab('vcp');">
                             <span class="btn-icon">🔥</span> <span class="btn-text">Minervini VCP & CANSLIM</span>
@@ -2518,9 +2515,6 @@
                 <div class="quant-subtabs-bar no-print" style="display: flex; gap: 8px; overflow-x: auto; white-space: nowrap; padding: 6px 4px 12px 4px; margin-bottom: 20px; scrollbar-width: thin; border-bottom: 1px solid var(--border-glass, rgba(255,255,255,0.08)); flex-wrap: nowrap; -webkit-overflow-scrolling: touch;">
                     <button class="quant-subtab-btn active" id="quant-subtab-confluence" onclick="window.switchQuantScannerSubtab && window.switchQuantScannerSubtab('confluence')">
                         <span>🏆</span> Apex Confluence Leaderboard
-                    </button>
-                    <button class="quant-subtab-btn" id="quant-subtab-mtfmatrix" onclick="window.switchQuantScannerSubtab && window.switchQuantScannerSubtab('mtfmatrix')">
-                        <span>📐</span> Multi-Timeframe Matrix
                     </button>
                     <button class="quant-subtab-btn" id="quant-subtab-vcp" onclick="window.switchQuantScannerSubtab && window.switchQuantScannerSubtab('vcp')">
                         <span>🔥</span> Minervini VCP & CANSLIM
@@ -4134,115 +4128,6 @@
                             </thead>
                             <tbody id="undercut-table-body">
                                 <tr><td colspan="10" style="text-align:center; padding: 30px; color: #94a3b8;">Click 'Run U&R Scan' to load results.</td></tr>
-                            </tbody>
-                        </table>
-                </div>
-
-                <!-- SUBTAB VIEW: MULTI-TIMEFRAME MATRIX ALIGNMENT SCREENER -->
-                <div id="quant-view-mtfmatrix" style="display: none;">
-                    <div class="screener-hero-header no-print" style="margin-bottom: 24px; border-radius: 16px; background: linear-gradient(135deg, rgba(15, 23, 42, 0.95), rgba(30, 41, 59, 0.92), rgba(15, 23, 42, 0.95)); border: 1px solid rgba(168, 85, 247, 0.4); backdrop-filter: blur(20px); padding: 22px 28px; box-shadow: 0 12px 32px -4px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.1); position: relative; overflow: hidden; font-family: 'Outfit', 'Inter', sans-serif;">
-                        <div style="position: absolute; top: -50px; right: -50px; width: 250px; height: 250px; background: radial-gradient(circle, rgba(168, 85, 247, 0.25), transparent 70%); pointer-events: none; border-radius: 50%;"></div>
-                        <div style="position: absolute; bottom: -60px; left: -60px; width: 220px; height: 220px; background: radial-gradient(circle, rgba(56, 189, 248, 0.2), transparent 70%); pointer-events: none; border-radius: 50%;"></div>
-
-                        <div style="position: relative; z-index: 2; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px;">
-                            <div>
-                                <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px;">
-                                    <div style="background: rgba(168, 85, 247, 0.18); border: 1px solid rgba(168, 85, 247, 0.45); padding: 3px 8px; border-radius: 5px; display: inline-flex; align-items: center; gap: 6px;">
-                                        <span class="status-indicator" style="width: 7px; height: 7px; border-radius: 50%; background-color: #a855f7; box-shadow: 0 0 8px #a855f7;"></span>
-                                        <span style="font-size: 13px; font-weight: 800; color: #c084fc; letter-spacing: 0.08em; text-transform: uppercase;">MULTI-TIMEFRAME MATRIX ALIGNMENT</span>
-                                    </div>
-                                    <span style="font-size: 13.5px; color: rgba(255,255,255,0.45); font-weight: 600;">• Daily + Weekly + Monthly Tri-Alignment Engine</span>
-                                    <span id="mtfmatrix-timestamp" style="font-size: 12px; font-weight: 700; color: #c084fc; background: rgba(168, 85, 247, 0.12); padding: 3px 8px; border-radius: 6px; border: 1px solid rgba(168, 85, 247, 0.3); margin-left: 8px;">🟢 Synchronized</span>
-                                </div>
-                                <h2 style="margin: 0; font-size: 22px; font-weight: 800; color: #ffffff; letter-spacing: -0.02em; font-family: 'Outfit', sans-serif;">Multi-Timeframe Matrix Alignment Screener</h2>
-                                <p style="margin: 6px 0 0 0; font-size: 12.5px; color: #94a3b8; line-height: 1.5; max-width: 660px;">Scans for high-conviction institutional setups where Daily EMA Stack, Weekly Stage 2 30-week MA slope, and Monthly Macro Regime converge synchronously.</p>
-                            </div>
-
-                            <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
-                                <button onclick="const b=document.getElementById('mtfmatrix-guide-banner'); b.style.display = b.style.display === 'none' ? 'block' : 'none';" class="btn-secondary" style="padding: 10px 16px; background: rgba(168, 85, 247, 0.15); border: 1px solid #c084fc; border-radius: 10px; color: #c084fc; font-weight: 800; font-size: 13px; cursor: pointer;">
-                                    💡 Rules Guide
-                                </button>
-                                <button onclick="window.runMTFMatrixScan && window.runMTFMatrixScan(false, true)" class="btn-primary" style="padding: 10px 20px; background: linear-gradient(135deg, #a855f7, #7e22ce); border: none; border-radius: 10px; color: #fff; font-weight: 700; font-size: 13px; cursor: pointer; box-shadow: 0 4px 14px rgba(168, 85, 247, 0.35);">
-                                    ⚡ Run MTF Scan
-                                </button>
-                            </div>
-                        </div>
-
-                        <!-- KPI Summary Row -->
-                        <div class="screener-kpi-row" style="display: flex; gap: 16px; margin-top: 20px; flex-wrap: wrap; border-top: 1px solid rgba(255,255,255,0.08); padding-top: 16px;">
-                            <div class="screener-kpi-card" style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(255,255,255,0.08); border-radius: 10px; padding: 10px 16px; flex: 1; min-width: 140px;">
-                                <div style="font-size: 11px; color: #94a3b8; text-transform: uppercase; font-weight: 600;">Total Setups</div>
-                                <div id="mtfmatrix-card-total" style="font-size: 20px; font-weight: 800; color: #38bdf8; margin-top: 2px;">-</div>
-                            </div>
-                            <div class="screener-kpi-card" style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(255,255,255,0.08); border-radius: 10px; padding: 10px 16px; flex: 1; min-width: 140px;">
-                                <div style="font-size: 11px; color: #94a3b8; text-transform: uppercase; font-weight: 600;">Apex Confirmed 🚀</div>
-                                <div id="mtfmatrix-card-apex" style="font-size: 20px; font-weight: 800; color: #10b981; margin-top: 2px;">-</div>
-                            </div>
-                            <div class="screener-kpi-card" style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(255,255,255,0.08); border-radius: 10px; padding: 10px 16px; flex: 1; min-width: 140px;">
-                                <div style="font-size: 11px; color: #94a3b8; text-transform: uppercase; font-weight: 600;">Tri-MA Aligned 🎯</div>
-                                <div id="mtfmatrix-card-trima" style="font-size: 20px; font-weight: 800; color: #c084fc; margin-top: 2px;">-</div>
-                            </div>
-                            <div class="screener-kpi-card" style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(255,255,255,0.08); border-radius: 10px; padding: 10px 16px; flex: 1; min-width: 140px;">
-                                <div style="font-size: 11px; color: #94a3b8; text-transform: uppercase; font-weight: 600;">Tight Volatility (≤2.5%) ⚡</div>
-                                <div id="mtfmatrix-card-atr" style="font-size: 20px; font-weight: 800; color: #38bdf8; margin-top: 2px;">-</div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Educational Rules Banner -->
-                    <div id="mtfmatrix-guide-banner" class="vcp-guide-banner" style="display: none; margin-bottom: 20px; border-radius: 12px; padding: 16px 20px;">
-                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-                            <strong style="font-size: 14px; font-weight: 800; color: #c084fc;">📐 Multi-Timeframe Matrix (MTF) Alignment Rules</strong>
-                            <button onclick="document.getElementById('mtfmatrix-guide-banner').style.display='none'" style="background: none; border: none; cursor: pointer; font-size: 15px; color: #94a3b8;">✕</button>
-                        </div>
-                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 10px; font-size: 11.5px; line-height: 1.45;">
-                            <div style="background: rgba(30,41,59,0.5); padding: 10px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.06);">
-                                <strong style="color: #c084fc;">1. Daily Stack</strong>: Price > 10 EMA > 20 EMA > 50 SMA with positive momentum.
-                            </div>
-                            <div style="background: rgba(30,41,59,0.5); padding: 10px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.06);">
-                                <strong style="color: #c084fc;">2. Weekly Stage 2</strong>: Upward sloping 30-week Moving Average with price > 30W MA.
-                            </div>
-                            <div style="background: rgba(30,41,59,0.5); padding: 10px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.06);">
-                                <strong style="color: #c084fc;">3. Monthly Regime</strong>: Price above 10-month EMA maintaining long-term macro bull trend.
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Filter Controls -->
-                    <div style="display: flex; gap: 14px; margin-bottom: 20px; align-items: center; flex-wrap: wrap;">
-                        <input type="text" id="mtfmatrix-search-input" onkeyup="window.filterMTFMatrixTable && window.filterMTFMatrixTable()" placeholder="Search symbol or name..." style="background: rgba(30, 41, 59, 0.8); border: 1px solid rgba(255,255,255,0.12); color: #fff; padding: 8px 14px; border-radius: 8px; font-size: 13px; flex: 1; min-width: 200px; outline: none;"/>
-                        <select id="mtfmatrix-status-filter" onchange="window.filterMTFMatrixTable && window.filterMTFMatrixTable()" style="background: rgba(30, 41, 59, 0.8); border: 1px solid rgba(255, 255, 255, 0.12); color: #fff; padding: 8px 14px; border-radius: 8px; font-size: 13px; outline: none; cursor: pointer;">
-                            <option value="ALL">All MTF Setups</option>
-                            <option value="APEX_ALIGNED">🚀 APEX Confirmed</option>
-                            <option value="TRI_MA">🎯 Tri-MA Aligned</option>
-                        </select>
-                    </div>
-
-                    <div id="mtfmatrix-loading-container" style="display: none; text-align: center; padding: 60px 20px;">
-                        <div class="spinner" style="border: 4px solid rgba(168, 85, 247, 0.1); border-left-color: #a855f7; border-radius: 50%; width: 44px; height: 44px; animation: spin 1s linear infinite; margin: 0 auto 16px auto;"></div>
-                        <p style="color: #94a3b8; font-size: 14px; font-weight: 500;">Scanning Nifty Universe for Multi-Timeframe Matrix Alignments...</p>
-                    </div>
-
-                    <div class="quant-table-wrapper">
-                        <table class="quant-table" style="width: 100%; border-collapse: collapse; font-size: 13px;">
-                            <thead>
-                                <tr style="border-bottom: 1px solid rgba(255, 255, 255, 0.1); text-align: left; color: #94a3b8;">
-                                    <th>Symbol</th>
-                                    <th>Price</th>
-                                    <th>Day Chg %</th>
-                                    <th>Status Score</th>
-                                    <th>Timeframe Stack</th>
-                                    <th>ATR Volatility</th>
-                                    <th>30W MA Slope</th>
-                                    <th style="text-align: right;">Action</th>
-                                </tr>
-                            </thead>
-                            <tbody id="mtfmatrix-table-body">
-                                <tr>
-                                    <td colspan="8" style="text-align: center; padding: 40px; color: #64748b;">
-                                        Loading Multi-Timeframe Matrix Alignment stocks...
-                                    </td>
-                                </tr>
                             </tbody>
                         </table>
                     </div>
