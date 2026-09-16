@@ -33000,9 +33000,10 @@ async function renderTVWorkstationChart(symbol, forceRefresh = false) {
 
     // Show Loading Overlay
     const cleanDisplayTicker = formattedTicker.replace('.NS', '').replace('.BO', '');
-    const isLightMode = document.documentElement.getAttribute('data-mode') === 'light';
+    const isMobileViewport = window.innerWidth <= 640;
+    const overlayBg = isLightMode ? '#ffffff' : '#0f172a';
     container.innerHTML = `
-        <div class="ichart-loading-overlay" style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 420px; width: 100%; background: ${isLightMode ? '#ffffff' : 'rgba(15, 23, 42, 0.75)'}; border-radius: 12px; border: 1px solid ${isLightMode ? '#cbd5e1' : 'rgba(255,255,255,0.08)'}; gap: 14px; backdrop-filter: blur(8px);">
+        <div class="ichart-loading-overlay" style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: ${isMobileViewport ? '350px' : '420px'}; width: 100%; background: ${overlayBg}; border-radius: 12px; border: 1px solid ${isLightMode ? '#cbd5e1' : 'rgba(255,255,255,0.08)'}; gap: 14px; contain: layout paint; transform: translateZ(0);">
             <div class="ichart-spinner"></div>
             <div style="text-align: center;">
                 <div style="font-size: 14px; font-weight: 800; color: ${isLightMode ? '#0f172a' : '#f8fafc'}; letter-spacing: 0.02em;">⚡ Loading i-Chart Workstation for <span style="color: #3b82f6;">${cleanDisplayTicker}</span>...</div>
@@ -33209,14 +33210,20 @@ async function renderTVWorkstationChart(symbol, forceRefresh = false) {
         if (window.tvChartResizeObserver) {
             try { window.tvChartResizeObserver.disconnect(); } catch (e) {}
         }
+        let lastResW = 0, lastResH = 0;
         window.tvChartResizeObserver = new ResizeObserver(entries => {
             for (let entry of entries) {
-                const w = entry.contentRect.width;
+                const w = Math.floor(entry.contentRect.width);
                 const mob = window.innerWidth <= 640;
-                const h = mob ? 360 : (entry.contentRect.height || 480);
-                if (activeTVWorkstationChart && w > 50 && h > 50) {
-                    activeTVWorkstationChart.resize(w, h);
-                    try { activeTVWorkstationChart.timeScale().fitContent(); } catch (err) {}
+                const h = mob ? 360 : Math.floor(entry.contentRect.height || 480);
+                if (activeTVWorkstationChart && w > 50 && h > 50 && (Math.abs(w - lastResW) > 4 || Math.abs(h - lastResH) > 4)) {
+                    lastResW = w;
+                    lastResH = h;
+                    window.requestAnimationFrame(() => {
+                        if (activeTVWorkstationChart) {
+                            try { activeTVWorkstationChart.resize(w, h); } catch(err) {}
+                        }
+                    });
                 }
             }
         });
