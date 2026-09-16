@@ -25852,13 +25852,15 @@ async function renderTVWorkstationChart(symbol) {
         container.innerHTML = ''; // Clear contents
 
         const isDarkTheme = document.documentElement.getAttribute('data-mode') !== 'light';
+        const isMobile = window.innerWidth <= 640;
+        const chartBgColor = isDarkTheme ? '#0f172a' : '#ffffff';
 
         // Create Chart
         const chart = LightweightCharts.createChart(container, {
-            width: container.clientWidth || 600,
-            height: 420,
+            width: container.clientWidth || (isMobile ? (window.innerWidth - 32) : 600),
+            height: isMobile ? 360 : 420,
             layout: {
-                background: { type: 'solid', color: 'transparent' },
+                background: { type: 'solid', color: chartBgColor },
                 textColor: isDarkTheme ? '#94a3b8' : '#334155',
                 fontFamily: 'Inter, sans-serif',
             },

@@ -33171,13 +33171,16 @@ async function renderTVWorkstationChart(symbol, forceRefresh = false) {
         container.innerHTML = ''; // Clear contents
 
         const isDarkTheme = document.documentElement.getAttribute('data-mode') !== 'light';
+        const isMobile = window.innerWidth <= 640;
+        const chartHeight = isMobile ? 360 : 480;
+        const chartBgColor = isDarkTheme ? '#0f172a' : '#ffffff';
 
         // Create Chart
         const chart = LightweightCharts.createChart(container, {
-            width: container.clientWidth || 600,
-            height: 480,
+            width: container.clientWidth || (isMobile ? (window.innerWidth - 32) : 600),
+            height: chartHeight,
             layout: {
-                background: { type: 'solid', color: 'transparent' },
+                background: { type: 'solid', color: chartBgColor },
                 textColor: isDarkTheme ? '#94a3b8' : '#334155',
                 fontFamily: 'Inter, sans-serif',
             },
@@ -33209,7 +33212,8 @@ async function renderTVWorkstationChart(symbol, forceRefresh = false) {
         window.tvChartResizeObserver = new ResizeObserver(entries => {
             for (let entry of entries) {
                 const w = entry.contentRect.width;
-                const h = entry.contentRect.height;
+                const mob = window.innerWidth <= 640;
+                const h = mob ? 360 : (entry.contentRect.height || 480);
                 if (activeTVWorkstationChart && w > 50 && h > 50) {
                     activeTVWorkstationChart.resize(w, h);
                     try { activeTVWorkstationChart.timeScale().fitContent(); } catch (err) {}
