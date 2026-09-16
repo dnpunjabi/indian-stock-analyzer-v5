@@ -9561,6 +9561,23 @@ function renderAlertsPage(page) {
     const pagContainer = document.getElementById('alerts-log-pagination');
     if (!tbody) return;
 
+    // Check or create Option 2 Card Grid Container
+    let cardsGrid = document.getElementById('alerts-cards-container');
+    const tableScroll = tbody.closest('.table-scroll');
+    const tableElem = tbody.closest('table');
+
+    if (!cardsGrid && tableScroll) {
+        cardsGrid = document.createElement('div');
+        cardsGrid.id = 'alerts-cards-container';
+        cardsGrid.className = 'alerts-cards-grid';
+        tableScroll.insertBefore(cardsGrid, tableElem);
+    }
+
+    if (cardsGrid) {
+        cardsGrid.innerHTML = '';
+        if (tableElem) tableElem.style.display = 'none'; // Hide rigid table format
+    }
+
     tbody.innerHTML = '';
 
     let filteredList = lastAlertsList;
@@ -9589,14 +9606,15 @@ function renderAlertsPage(page) {
         }
     }
 
-    if (lastAlertsList.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="6" class="center-text text-muted">No alert rules configured. Create one on the left.</td></tr>';
-        if (pagContainer) pagContainer.style.display = 'none';
-        return;
-    }
+    const emptyMsg = lastAlertsList.length === 0 
+        ? 'No alert rules configured. Create one on the left.' 
+        : 'No matching alert rules found. Try adjusting your query.';
 
     if (filteredList.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="6" class="center-text text-muted">No matching alert rules found. Try adjusting your query.</td></tr>';
+        if (cardsGrid) {
+            cardsGrid.innerHTML = `<div style="text-align: center; color: var(--text-muted); font-size: 13.5px; padding: 24px; width: 100%; font-weight: 600;">${emptyMsg}</div>`;
+        }
+        tbody.innerHTML = `<tr><td colspan="6" class="center-text text-muted">${emptyMsg}</td></tr>`;
         if (pagContainer) pagContainer.style.display = 'none';
         return;
     }
@@ -9611,8 +9629,6 @@ function renderAlertsPage(page) {
     const pageSlice = filteredList.slice(startIndex, endIndex);
 
     pageSlice.forEach(item => {
-        const tr = document.createElement('tr');
-
         let statusBadge = '';
         if (item.status === 'Triggered') {
             statusBadge = `<span class="alert-status-badge triggered">🚨 Triggered</span>`;
@@ -9623,7 +9639,7 @@ function renderAlertsPage(page) {
         let operatorCellContent = '';
         let condBadgeStyle = '';
         if (item.condition_type === 'COMPOUND') {
-            condBadgeStyle = 'background: rgba(168, 85, 247, 0.2); color: #c084fc; border: 1px solid rgba(168, 85, 247, 0.4); font-size:13.5px; cursor: default; position: relative;';
+            condBadgeStyle = 'background: rgba(168, 85, 247, 0.2); color: #c084fc; border: 1px solid rgba(168, 85, 247, 0.4); font-size:12.5px; padding: 2px 6px; border-radius: 4px;';
             try {
                 const condList = JSON.parse(item.value);
                 const parts = condList.map(c => {
@@ -9637,69 +9653,78 @@ function renderAlertsPage(page) {
                 operatorCellContent = item.value;
             }
         } else {
-            condBadgeStyle = 'font-size:13.5px; cursor: default; position: relative;';
+            condBadgeStyle = 'font-size:12.5px; padding: 2px 6px; border-radius: 4px; background: rgba(56, 189, 248, 0.1); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.2);';
             operatorCellContent = `${item.operator} ${item.value}`;
         }
 
-        tr.innerHTML = `
-            <td><a href="#" class="alert-stock-link" data-ticker="${item.ticker}" title="Open in Equity Research Terminal" style="color: var(--color-primary-light); text-decoration: none; font-weight: 700; cursor: pointer; border-bottom: 1px dashed rgba(59,130,246,0.3); transition: all 0.2s ease;">${item.ticker}</a></td>
-            <td><span class="badge-ticker alert-condition-badge" style="${condBadgeStyle}" title="${item.condition_type}">${item.condition_type}</span></td>
-            <td style="font-family: monospace; font-size:12px; font-weight:600;">${operatorCellContent}</td>
-            <td>${statusBadge}</td>
-            <td class="rs-hide-mobile"><span class="text-muted" style="font-size:11px;">${item.trigger_date || 'Active scan...'}</span></td>
-            <td>
-                <button class="btn-translucent-delete" data-id="${item.id}">Delete 🗑️</button>
-            </td>
-        `;
-
-        // Make stock ticker clickable → navigate to Equity Research Terminal
-        const stockLink = tr.querySelector('.alert-stock-link');
-        if (stockLink) {
-            stockLink.addEventListener('click', (e) => {
-                e.preventDefault();
-                const ticker = stockLink.getAttribute('data-ticker');
-                loadStockAnalyzer(ticker);
-            });
-            stockLink.addEventListener('mouseenter', () => {
-                stockLink.style.color = '#60a5fa';
-                stockLink.style.borderBottomColor = 'rgba(96,165,250,0.6)';
-            });
-            stockLink.addEventListener('mouseleave', () => {
-                stockLink.style.color = 'var(--color-primary-light)';
-                stockLink.style.borderBottomColor = 'rgba(59,130,246,0.3)';
-            });
-        }
-
-        tr.querySelector('.btn-translucent-delete').addEventListener('click', async () => {
-            if (confirm(`Are you sure you want to delete alert #${item.id}?`)) {
-                try {
-                    const response = await fetch(`/api/alerts/${item.id}`, { method: 'DELETE' });
-                    if (!response.ok) throw new Error("Failed to delete alert.");
-                    showToast("Alert successfully deleted.", "success");
-                    fetchAlertsList();
-                } catch (e) {
-                    showToast("Failed to delete alert: " + e.message, "error");
-                }
-            }
-        });
-
-        tbody.appendChild(tr);
-
-        if (item.ai_context) {
-            const trWarning = document.createElement('tr');
-            trWarning.className = 'ai-warning-row';
-            trWarning.innerHTML = `
-                <td colspan="6" style="padding: 6px 12px; background: rgba(239, 68, 68, 0.04); border-top: none;">
-                    <div style="display: flex; align-items: flex-start; gap: 8px; font-size: 11px; line-height: 1.45; color: var(--text-primary);">
-                        <span style="color: #ef4444; font-size: 12px; margin-top: 1px;">🤖</span>
-                        <div>
-                            <strong style="color: #ef4444; text-transform: uppercase; font-size: 9px; letter-spacing: 0.05em; display: block; margin-bottom: 2px;">AI Copilot Analysis</strong>
-                            ${item.ai_context}
-                        </div>
+        // Render Option 2 Alert Card
+        if (cardsGrid) {
+            const card = document.createElement('div');
+            card.className = 'apex-alert-card';
+            card.setAttribute('data-id', item.id);
+            card.innerHTML = `
+                <div class="alert-card-top">
+                    <div class="alert-card-stock">
+                        <a href="#" class="alert-stock-link" data-ticker="${item.ticker}" title="Open in Equity Research Terminal">${item.ticker}</a>
+                        <span class="badge-ticker alert-condition-badge" style="${condBadgeStyle}" title="${item.condition_type}">${item.condition_type}</span>
                     </div>
-                </td>
+                    <div class="alert-card-actions">
+                        ${statusBadge}
+                        <button class="btn-translucent-delete" data-id="${item.id}" title="Delete Alert">Delete 🗑️</button>
+                    </div>
+                </div>
+                <div class="alert-card-details">
+                    <div class="alert-detail-item">
+                        <span class="detail-label">🎯 Target:</span>
+                        <span class="detail-value">${operatorCellContent}</span>
+                    </div>
+                    <div class="alert-detail-item">
+                        <span class="detail-label">🕒 Triggered:</span>
+                        <span class="detail-value">${item.trigger_date || 'Active scan...'}</span>
+                    </div>
+                </div>
+                ${item.ai_context ? `
+                <div class="ai-copilot-banner-box">
+                    <div class="ai-copilot-banner-header">
+                        <span style="font-size: 13px;">🤖</span>
+                        <span>AI COPILOT ANALYSIS</span>
+                    </div>
+                    <div class="ai-copilot-banner-body">
+                        ${item.ai_context}
+                    </div>
+                </div>
+                ` : ''}
             `;
-            tbody.appendChild(trWarning);
+
+            // Stock Ticker Link Listener
+            const stockLink = card.querySelector('.alert-stock-link');
+            if (stockLink) {
+                stockLink.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    const ticker = stockLink.getAttribute('data-ticker');
+                    if (typeof loadStockAnalyzer === 'function') {
+                        loadStockAnalyzer(ticker);
+                    }
+                });
+            }
+
+            // Delete Listener
+            card.querySelector('.btn-translucent-delete').addEventListener('click', async () => {
+                if (confirm(`Are you sure you want to delete alert #${item.id}?`)) {
+                    try {
+                        const response = await fetch(`/api/alerts/${item.id}`, { method: 'DELETE' });
+                        if (!response.ok) throw new Error("Failed to delete alert.");
+                        showToast("Alert successfully deleted.", "success");
+                        if (typeof fetchAlertsList === 'function') {
+                            fetchAlertsList();
+                        }
+                    } catch (e) {
+                        showToast("Failed to delete alert: " + e.message, "error");
+                    }
+                }
+            });
+
+            cardsGrid.appendChild(card);
         }
     });
 

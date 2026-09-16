@@ -36884,3 +36884,148 @@ body.light-theme .tech-prospectus-close-btn {
     border-color: #cbd5e1 !important;
     color: #475569 !important;
 }
+
+/* ==========================================================================
+   OPTION 2: INTEGRATED AI BANNER CARDS LOG (RESPONSIVE DESKTOP & MOBILE)
+   ========================================================================== */
+.alerts-cards-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(420px, 1fr));
+    gap: 16px;
+    width: 100%;
+    box-sizing: border-box;
+    padding: 8px 0;
+}
+
+@media (max-width: 768px) {
+    .alerts-cards-grid {
+        grid-template-columns: 1fr;
+        gap: 12px;
+    }
+}
+
+.apex-alert-card {
+    background: rgba(15, 23, 42, 0.75);
+    border: 1px solid var(--border-glass);
+    border-radius: 10px;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    transition: all 0.2s ease;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.18);
+    position: relative;
+}
+
+.apex-alert-card:hover {
+    border-color: rgba(56, 189, 248, 0.45);
+    box-shadow: 0 6px 20px rgba(56, 189, 248, 0.12);
+}
+
+.alert-card-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.alert-card-stock {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.alert-card-stock .alert-stock-link {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--color-primary-light);
+    text-decoration: none;
+    font-family: 'Outfit', sans-serif;
+    border-bottom: 1px dashed rgba(59, 130, 246, 0.3);
+    transition: all 0.2s ease;
+}
+
+.alert-card-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.alert-card-details {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 10px;
+    background: rgba(0, 0, 0, 0.22);
+    padding: 10px 12px;
+    border-radius: 6px;
+    border: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.alert-detail-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12.5px;
+}
+
+.alert-detail-item .detail-label {
+    color: var(--text-secondary);
+    font-weight: 500;
+}
+
+.alert-detail-item .detail-value {
+    color: var(--text-primary);
+    font-weight: 600;
+    font-family: monospace;
+}
+
+/* AI Copilot Banner Box */
+.ai-copilot-banner-box {
+    background: linear-gradient(135deg, rgba(168, 85, 247, 0.09), rgba(6, 182, 212, 0.09));
+    border: 1px solid rgba(168, 85, 247, 0.35);
+    border-radius: 8px;
+    padding: 12px 14px;
+    margin-top: 4px;
+}
+
+.ai-copilot-banner-header {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+    font-weight: 700;
+    color: #c084fc;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 6px;
+}
+
+.ai-copilot-banner-body {
+    font-size: 13px;
+    line-height: 1.5;
+    color: var(--text-primary);
+}
+
+/* Light Mode Overrides */
+[data-mode="light"] .apex-alert-card,
+[data-theme="light"] .apex-alert-card {
+    background: #ffffff !important;
+    border-color: #cbd5e1 !important;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.06) !important;
+}
+
+[data-mode="light"] .alert-card-details,
+[data-theme="light"] .alert-card-details {
+    background: #f8fafc !important;
+    border-color: #e2e8f0 !important;
+}
+
+[data-mode="light"] .ai-copilot-banner-box,
+[data-theme="light"] .ai-copilot-banner-box {
+    background: rgba(168, 85, 247, 0.06) !important;
+    border-color: rgba(168, 85, 247, 0.25) !important;
+}
+
