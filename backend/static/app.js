@@ -58179,6 +58179,154 @@ window.filterUndercutTable = function() {
     window.renderUndercutTable(filtered);
 };
 
+window.runMTFMatrixScan = async function(isSilent = false, forceRefresh = false) {
+    const loadingEl = document.getElementById('mtfmatrix-loading-container');
+    
+    // SWR Hydration from Local Storage
+    let hasHydrated = false;
+    try {
+        const cached = localStorage.getItem('cache_mtfmatrix_screener');
+        if (cached && !forceRefresh) {
+            const parsed = JSON.parse(cached);
+            const list = parsed.data || parsed.matches || [];
+            if (parsed && list.length) {
+                window.allMTFMatrixStocks = list;
+                window.renderMTFMatrixTable(list);
+                const badge = document.getElementById('mtfmatrix-count-badge');
+                if (badge) badge.innerText = `${list.length} Matches`;
+                const ts = document.getElementById('mtfmatrix-timestamp');
+                if (ts && (parsed.last_updated || parsed.timestamp)) ts.innerText = `Cached: ${parsed.last_updated || parsed.timestamp}`;
+                hasHydrated = true;
+                if (loadingEl) loadingEl.style.display = 'none';
+            }
+        }
+    } catch(e) {}
+
+    if (!isSilent && !hasHydrated && loadingEl) loadingEl.style.display = 'block';
+
+    try {
+        const url = `/api/screener/mtf-matrix${forceRefresh ? '?force_refresh=true' : ''}`;
+        const response = await fetch(url);
+        const data = await response.json();
+
+        if (data.status === 'success') {
+            window.allMTFMatrixStocks = data.data || data.matches || [];
+            localStorage.setItem('cache_mtfmatrix_screener', JSON.stringify(data));
+            window.renderMTFMatrixTable(window.allMTFMatrixStocks);
+
+            const badge = document.getElementById('mtfmatrix-count-badge');
+            const cnt = data.count !== undefined ? data.count : window.allMTFMatrixStocks.length;
+            if (badge) badge.innerText = `${cnt} Matches`;
+            const ts = document.getElementById('mtfmatrix-timestamp');
+            if (ts) ts.innerText = `Last Updated: ${data.last_updated || data.timestamp || 'Just Now'}`;
+        }
+    } catch (err) {
+        console.error('Error running MTF Matrix scan:', err);
+    } finally {
+        if (loadingEl) loadingEl.style.display = 'none';
+    }
+};
+
+window.renderMTFMatrixTable = function(stocks) {
+    const tbody = document.getElementById('mtfmatrix-table-body');
+    if (!tbody) return;
+
+    const list = stocks || [];
+    const allStocks = (window.allMTFMatrixStocks && window.allMTFMatrixStocks.length) ? window.allMTFMatrixStocks : list;
+
+    const totalEl = document.getElementById('mtfmatrix-card-total');
+    const apexEl = document.getElementById('mtfmatrix-card-apex');
+    const triEl = document.getElementById('mtfmatrix-card-trima');
+    const atrEl = document.getElementById('mtfmatrix-card-atr');
+
+    if (totalEl) totalEl.innerText = allStocks.length;
+    if (apexEl) apexEl.innerText = allStocks.filter(s => (s.status || '').includes('APEX')).length;
+    if (triEl) triEl.innerText = allStocks.filter(s => s.is_mtf_aligned).length;
+    if (atrEl) atrEl.innerText = allStocks.filter(s => (s.atr_pct || 99) <= 2.5).length;
+
+    if (list.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="10" style="text-align: center; padding: 40px; color: #64748b;">No Multi-Timeframe Matrix Alignment setups match the active filter criteria.</td></tr>`;
+        return;
+    }
+
+    tbody.innerHTML = list.map(s => {
+        const currPrice = s.current_price || s.price || s.close || 0;
+        const dayChg = s.day_change_pct !== undefined ? s.day_change_pct : (s.change_pct || 0);
+        const score = s.score || 0;
+        const atrPct = s.atr_pct !== undefined ? s.atr_pct : 0;
+        const wSlope = s.weekly_slope !== undefined ? s.weekly_slope : 0;
+        const compName = s.company_name || s.name || '';
+        const cleanSym = (s.symbol || '').replace('.NS','').replace('.BO','');
+
+        const chgClass = dayChg >= 0 ? 'color: #34d399;' : 'color: #f87171;';
+        const chgSign = dayChg >= 0 ? '+' : '';
+
+        const dPill = s.daily_stack ? `<span style="background: rgba(16, 185, 129, 0.15); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.3); padding: 2px 6px; border-radius: 4px; font-size: 11px; font-weight: 700;">Daily 🟢</span>` : `<span style="background: rgba(244, 63, 94, 0.15); color: #f87171; border: 1px solid rgba(244, 63, 94, 0.3); padding: 2px 6px; border-radius: 4px; font-size: 11px; font-weight: 700;">Daily 🔴</span>`;
+        const wPill = s.weekly_stage2 ? `<span style="background: rgba(16, 185, 129, 0.15); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.3); padding: 2px 6px; border-radius: 4px; font-size: 11px; font-weight: 700;">Weekly 🟢</span>` : `<span style="background: rgba(244, 63, 94, 0.15); color: #f87171; border: 1px solid rgba(244, 63, 94, 0.3); padding: 2px 6px; border-radius: 4px; font-size: 11px; font-weight: 700;">Weekly 🔴</span>`;
+        const mPill = (s.monthly_regime === 'BULLISH') ? `<span style="background: rgba(16, 185, 129, 0.15); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.3); padding: 2px 6px; border-radius: 4px; font-size: 11px; font-weight: 700;">Monthly 🟢</span>` : `<span style="background: rgba(244, 63, 94, 0.15); color: #f87171; border: 1px solid rgba(244, 63, 94, 0.3); padding: 2px 6px; border-radius: 4px; font-size: 11px; font-weight: 700;">Monthly 🔴</span>`;
+
+        let scoreBadge = `<span style="background: rgba(56, 189, 248, 0.18); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.4); font-weight: 800; padding: 4px 8px; border-radius: 6px; font-size: 11.5px;">Score: ${score}/100</span>`;
+        if (s.status === 'APEX_ALIGNED') {
+            scoreBadge = `<span style="background: rgba(16, 185, 129, 0.18); color: #10b981; border: 1px solid rgba(16, 185, 129, 0.4); font-weight: 800; padding: 4px 8px; border-radius: 6px; font-size: 11.5px;">🚀 APEX CONFIRMED</span>`;
+        } else if (s.is_mtf_aligned) {
+            scoreBadge = `<span style="background: rgba(168, 85, 247, 0.18); color: #c084fc; border: 1px solid rgba(168, 85, 247, 0.4); font-weight: 800; padding: 4px 8px; border-radius: 6px; font-size: 11.5px;">🎯 TRI-MA ALIGNED</span>`;
+        }
+
+        const atrBadge = atrPct <= 2.5 ? `<span style="color:#10b981; font-weight:700;">${atrPct.toFixed(2)}% (Tight)</span>` : `<span style="color:#94a3b8;">${atrPct.toFixed(2)}%</span>`;
+
+        return `
+            <tr onclick="window.openTechnicalProspectusDrawer && window.openTechnicalProspectusDrawer('${s.symbol}')" style="border-bottom: 1px solid rgba(255,255,255,0.05); cursor: pointer;" class="hover-highlight-row">
+                <td style="padding: 12px;">
+                    <div style="font-weight: 700; font-size: 14px; color: #38bdf8;">${cleanSym}</div>
+                    <div style="font-size: 11px; color: #94a3b8;">${compName}</div>
+                </td>
+                <td style="padding: 12px; color: #f8fafc; font-weight: 700;">₹${currPrice.toLocaleString('en-IN', {minimumFractionDigits: 2})}</td>
+                <td style="padding: 12px; font-weight: 700; ${chgClass}">${chgSign}${dayChg.toFixed(2)}%</td>
+                <td style="padding: 12px;">${scoreBadge}</td>
+                <td style="padding: 12px;">
+                    <div style="display: flex; gap: 4px; flex-wrap: wrap;">${dPill} ${wPill} ${mPill}</div>
+                </td>
+                <td style="padding: 12px; font-weight: 700; color: #cbd5e1;">${atrBadge}</td>
+                <td style="padding: 12px; font-weight: 700; color: #34d399;">+${wSlope.toFixed(2)}%</td>
+                <td style="padding: 12px; text-align: right; white-space: nowrap;">
+                    <button onclick="event.stopPropagation(); window.launchStageSimulator && window.launchStageSimulator('${s.symbol}')" class="btn-secondary quant-sim-btn" style="padding: 5px 10px; font-size: 11.5px; border-radius: 8px; cursor: pointer; white-space: nowrap; display: inline-flex; align-items: center; gap: 4px; font-weight: 700; background: rgba(56, 189, 248, 0.15); border: 1px solid rgba(56, 189, 248, 0.4); color: #38bdf8; margin-right: 6px;" title="Scan stock in 4-Stage Life Cycle Masterclass Simulator">
+                        Simulate ⚙️
+                    </button>
+                    <button onclick="event.stopPropagation(); window.openStandaloneInteractiveChart && window.openStandaloneInteractiveChart('${s.symbol}', null, 'mtfmatrix', 'Multi-Timeframe Matrix')" class="btn-primary quant-ichart-btn" style="padding: 5px 10px; font-size: 11.5px; border-radius: 8px; cursor: pointer; white-space: nowrap; display: inline-flex; align-items: center; gap: 3px; font-weight: 700; background: rgba(59, 130, 246, 0.2); border: 1px solid #3b82f6; color: #60a5fa; margin-right: 6px;" title="Open i-Chart Workstation & 30W MA Slope">
+                        📈 i-Chart
+                    </button>
+                    <button onclick="event.stopPropagation(); window.openTechnicalProspectusDrawer && window.openTechnicalProspectusDrawer('${s.symbol}')" class="btn-secondary quant-chart-btn" style="padding: 5px 12px; font-size: 11.5px; border-radius: 8px; cursor: pointer; white-space: nowrap; display: inline-flex; align-items: center; gap: 3px; font-weight: 700;">
+                        📋 Prospectus
+                    </button>
+                </td>
+            </tr>
+        `;
+    }).join('');
+};
+
+window.filterMTFMatrixTable = function() {
+    const q = (document.getElementById('mtfmatrix-search-input')?.value || '').toLowerCase().trim();
+    const statusFilter = document.getElementById('mtfmatrix-status-filter')?.value || 'ALL';
+
+    let filtered = (window.allMTFMatrixStocks || []).filter(s => {
+        const matchesQ = !q || s.symbol.toLowerCase().includes(q) || (s.company_name || s.name || '').toLowerCase().includes(q);
+        if (!matchesQ) return false;
+
+        if (statusFilter === 'ALL') return true;
+
+        const pStatus = (s.status || '').toUpperCase();
+        if (statusFilter === 'APEX_ALIGNED') {
+            return pStatus.includes('APEX');
+        }
+        if (statusFilter === 'TRI_MA') {
+            return s.is_mtf_aligned;
+        }
+        return pStatus === statusFilter;
+    });
+
+    window.renderMTFMatrixTable(filtered);
+};
+
 // 4. INTERACTIVE STAGE 1-4 STOCK DIAGNOSTIC SIMULATOR & HELPER UTILITIES
 window.simplifyDiagnosticReason = function(key, rawReason, isQualified) {
     if (!rawReason) rawReason = '';
