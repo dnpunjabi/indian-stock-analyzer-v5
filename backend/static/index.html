@@ -10761,7 +10761,13 @@
                             <div class="tv-chart-body-wrapper" style="padding: 10px 0; display: flex; flex-direction: column; gap: 10px; width: 100%;">
                                 <!-- Chart Canvas Container -->
                                 <div id="tv-chart-container" style="width: 100%; min-height: 350px; height: 480px; border-radius: 6px; overflow: hidden; border: 1px solid var(--border-glass); background: var(--bg-card, #0f172a); position: relative;">
-                                    <!-- Loaded dynamically via Lightweight Charts -->
+                                    <div id="tv-chart-loading-overlay" style="display: none; position: absolute; inset: 0; z-index: 20; background: var(--bg-card, #0f172a); flex-direction: column; align-items: center; justify-content: center; gap: 14px;">
+                                        <div class="ichart-spinner"></div>
+                                        <div style="text-align: center;">
+                                            <div id="tv-chart-loading-text" style="font-size: 14px; font-weight: 800; color: var(--text-primary, #f8fafc); letter-spacing: 0.02em;">⚡ Loading i-Chart Workstation...</div>
+                                            <div style="font-size: 11.5px; color: var(--text-muted, #94a3b8); margin-top: 4px;">Computing Technical Indicators</div>
+                                        </div>
+                                    </div>
                                 </div>
                                 <!-- Legend & Indicators Panel -->
                                 <div id="tv-chart-legend-panel" style="display: flex; gap: 15px; flex-wrap: wrap; justify-content: space-between; align-items: center; background: var(--bg-card-sub); padding: 10px 15px; border-radius: 6px; border: 1px solid var(--border-glass); font-size: 13.5px;">
@@ -15903,7 +15909,7 @@
     <script src="academy_prompts.js"></script>
     <script src="layman_details.js"></script>
     <script src="export_manager.js?v=5.0.1"></script>
-    <script src="app.js?v=5.1.4"></script>
+    <script src="app.js?v=5.1.5"></script>
 
     <!-- Modernization CDNs -->
     <script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js"></script>

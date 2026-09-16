@@ -32998,20 +32998,21 @@ async function renderTVWorkstationChart(symbol, forceRefresh = false) {
     }
     if (!container) return;
 
-    // Show Loading Overlay
+    // Show Non-Destructive Loading Overlay with 5s Timeout Safeguard
     const cleanDisplayTicker = formattedTicker.replace('.NS', '').replace('.BO', '');
-    const isLightMode = document.documentElement.getAttribute('data-mode') === 'light';
-    const isMobileViewport = window.innerWidth <= 640;
-    const overlayBg = isLightMode ? '#ffffff' : '#0f172a';
-    container.innerHTML = `
-        <div class="ichart-loading-overlay" style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: ${isMobileViewport ? '350px' : '420px'}; width: 100%; background: ${overlayBg}; border-radius: 12px; border: 1px solid ${isLightMode ? '#cbd5e1' : 'rgba(255,255,255,0.08)'}; gap: 14px; contain: layout paint; transform: translateZ(0);">
-            <div class="ichart-spinner"></div>
-            <div style="text-align: center;">
-                <div style="font-size: 14px; font-weight: 800; color: ${isLightMode ? '#0f172a' : '#f8fafc'}; letter-spacing: 0.02em;">⚡ Loading i-Chart Workstation for <span style="color: #3b82f6;">${cleanDisplayTicker}</span>...</div>
-                <div style="font-size: 11.5px; color: ${isLightMode ? '#64748b' : '#94a3b8'}; margin-top: 4px;">Computing 30W MA Slope, EMAs & Technical Indicators</div>
-            </div>
-        </div>
-    `;
+    const loadingOverlay = document.getElementById('tv-chart-loading-overlay');
+    const loadingText = document.getElementById('tv-chart-loading-text');
+
+    if (loadingOverlay) {
+        if (loadingText) loadingText.innerHTML = `⚡ Loading i-Chart Workstation for <span style="color: #3b82f6;">${cleanDisplayTicker}</span>...`;
+        loadingOverlay.style.display = 'flex';
+    }
+
+    if (window.tvChartLoadingTimeout) clearTimeout(window.tvChartLoadingTimeout);
+    window.tvChartLoadingTimeout = setTimeout(() => {
+        const overlay = document.getElementById('tv-chart-loading-overlay');
+        if (overlay) overlay.style.display = 'none';
+    }, 5000);
 
     // Reset AI Indicator Insights panel text on ticker changes
     const synthesisContent = document.getElementById('tv-ai-synthesis-content');
@@ -33164,13 +33165,13 @@ async function renderTVWorkstationChart(symbol, forceRefresh = false) {
             window.updateIChartHudBadge(data);
         }
 
-        // Clean up previous instance
+        // Clean up previous chart canvases without wiping loading overlay
+        const oldCanvases = container.querySelectorAll('.tv-lightweight-charts, iframe, canvas');
+        oldCanvases.forEach(el => el.remove());
         if (activeTVWorkstationChart) {
-            activeTVWorkstationChart.remove();
+            try { activeTVWorkstationChart.remove(); } catch (e) {}
             activeTVWorkstationChart = null;
         }
-
-        container.innerHTML = ''; // Clear contents
 
         const isDarkTheme = document.documentElement.getAttribute('data-mode') !== 'light';
         const isMobile = window.innerWidth <= 640;
@@ -34462,9 +34463,15 @@ async function renderTVWorkstationChart(symbol, forceRefresh = false) {
         // Recalculate consensus rating and confluence levels for the new stock data
         updateTvChartConsensusRating();
 
+        // Hide loading overlay once chart finishes rendering
+        if (window.tvChartLoadingTimeout) clearTimeout(window.tvChartLoadingTimeout);
+        if (loadingOverlay) loadingOverlay.style.display = 'none';
+
     } catch (err) {
         console.error("Error drawing Interactive Chart Terminal: ", err);
-        container.innerHTML = `<div style="padding: 20px; text-align: center; color: var(--text-muted);">Failed to load and calculate indicators for ${symbol}. Please try again.</div>`;
+        if (window.tvChartLoadingTimeout) clearTimeout(window.tvChartLoadingTimeout);
+        if (loadingOverlay) loadingOverlay.style.display = 'none';
+        alert(`Could not load chart data for ${symbol}. Please check your connection.`);
     }
 }
 
