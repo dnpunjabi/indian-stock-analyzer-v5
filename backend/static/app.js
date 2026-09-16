@@ -56662,9 +56662,10 @@ window.switchQuantScannerSubtab = function(tabName) {
         window.openQuantAccordion();
     }
 
-    const subtabs = ['confluence', 'vcp', 'weinstein', 'htf', '3wt', 'flatbase', 'episodic', 'pocket', 'oliverkell', 'cuphandle', 'rsnh', 'undercut', 'guide'];
+    const subtabs = ['confluence', 'mtfmatrix', 'vcp', 'weinstein', 'htf', '3wt', 'flatbase', 'episodic', 'pocket', 'oliverkell', 'cuphandle', 'rsnh', 'undercut', 'guide'];
     const navBtnMap = {
         'confluence': 'tab-confluence-btn',
+        'mtfmatrix': 'tab-mtfmatrix-btn',
         'vcp': 'tab-vcp-btn',
         'weinstein': 'tab-weinstein-btn',
         'htf': 'tab-htf-btn',
@@ -56694,7 +56695,7 @@ window.switchQuantScannerSubtab = function(tabName) {
     });
 
     // 2. Synchronize Sidebar Navigation Highlighted Button
-    const allQuantNavBtns = ['tab-confluence-btn', 'tab-vcp-btn', 'tab-weinstein-btn', 'tab-htf-btn', 'tab-3wt-btn', 'tab-flatbase-btn', 'tab-episodic-btn', 'tab-pocket-btn', 'tab-oliverkell-btn', 'tab-cuphandle-btn', 'tab-rsnh-btn', 'tab-undercut-btn', 'tab-quant-guide-btn'];
+    const allQuantNavBtns = ['tab-confluence-btn', 'tab-mtfmatrix-btn', 'tab-vcp-btn', 'tab-weinstein-btn', 'tab-htf-btn', 'tab-3wt-btn', 'tab-flatbase-btn', 'tab-episodic-btn', 'tab-pocket-btn', 'tab-oliverkell-btn', 'tab-cuphandle-btn', 'tab-rsnh-btn', 'tab-undercut-btn', 'tab-quant-guide-btn'];
     const targetNavId = navBtnMap[tabName] || 'tab-confluence-btn';
     allQuantNavBtns.forEach(id => {
         const navBtn = document.getElementById(id);
@@ -56714,6 +56715,13 @@ window.switchQuantScannerSubtab = function(tabName) {
     if (tabName === 'confluence') {
         if (window.loadMultiConfluenceLeaderboard) {
             window.loadMultiConfluenceLeaderboard();
+        }
+    } else if (tabName === 'mtfmatrix') {
+        if (window.allMTFMatrixStocks && window.allMTFMatrixStocks.length > 0) {
+            window.renderMTFMatrixTable(window.allMTFMatrixStocks);
+            window.runMTFMatrixScan(true, false);
+        } else {
+            window.runMTFMatrixScan(false, false);
         }
     } else if (tabName === 'weinstein') {
         if (window.allWeinsteinStocks && window.allWeinsteinStocks.length > 0) {
