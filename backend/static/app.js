@@ -57579,8 +57579,8 @@ window.renderPocketTable = function(stocks) {
         const compName = s.company_name || s.name || '';
         const pivotPrice = s.pivot_price || s.buy_pivot || currPrice;
         const stopLoss = s.stop_loss || (currPrice * 0.95);
-        const upVol = (s.up_volume || s.volume || 1000000).toLocaleString('en-IN');
-        const maxDownVol = (s.max_down_vol_10d || s.max_down_volume || 600000).toLocaleString('en-IN');
+        const upVol = (s.up_day_vol || s.up_volume || s.volume || 0).toLocaleString('en-IN');
+        const maxDownVol = (s.max_down_vol_10d || s.max_down_vol || s.max_down_volume || 0).toLocaleString('en-IN');
         const pStatus = s.pocket_status || s.status || 'POCKET_PIVOT_LIVE';
 
         const chgClass = dayChg >= 0 ? 'color: #34d399;' : 'color: #f87171;';

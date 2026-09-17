@@ -2769,6 +2769,10 @@ def detect_pocket_pivot(df: pd.DataFrame, rs_score: float = 0.0) -> dict:
         "is_pocket_pivot": False,
         "pocket_status": "NONE",
         "vol_ratio_vs_max_down": 0.0,
+        "up_day_vol": 0,
+        "up_volume": 0,
+        "max_down_vol_10d": 0,
+        "max_down_vol": 0,
         "ma_support_line": "50 SMA",
         "pivot_price": 0.0,
         "stop_loss": 0.0,
@@ -2859,8 +2863,10 @@ def detect_pocket_pivot(df: pd.DataFrame, rs_score: float = 0.0) -> dict:
         # Check Pocket Pivot Volume Signature over last 2 bars (today or yesterday)
         pocket_found = False
         ratio_max_down = 0.0
-        up_day_vol_val = 0
-        max_down_vol_val = 0
+        up_day_vol_val = int(volumes[-1]) if n > 0 else 0
+        start_look_init = max(0, n - 10)
+        down_vols_init = [volumes[k] for k in range(start_look_init, n) if closes[k] < (closes[k-1] if k > 0 else closes[k])]
+        max_down_vol_val = int(np.max(down_vols_init)) if down_vols_init else (int(vol50_avg) if vol50_avg > 0 else 1)
 
         for i in range(1, 3):
             b_idx = n - i
@@ -2910,7 +2916,9 @@ def detect_pocket_pivot(df: pd.DataFrame, rs_score: float = 0.0) -> dict:
             "pocket_status": str(pocket_status),
             "vol_ratio_vs_max_down": clean_float(ratio_max_down if ratio_max_down > 0 else 1.1),
             "up_day_vol": int(up_day_vol_val),
+            "up_volume": int(up_day_vol_val),
             "max_down_vol_10d": int(max_down_vol_val),
+            "max_down_vol": int(max_down_vol_val),
             "ma_support_line": str(ma_line),
             "pivot_price": clean_float(pivot_price),
             "stop_loss": clean_float(stop_loss),
