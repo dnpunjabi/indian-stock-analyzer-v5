@@ -18209,6 +18209,19 @@ def _overlay_live_quotes_on_candidates(candidates: list) -> list:
         if p_price > 0 and final_price > 0:
             st["dist_to_pivot_pct"] = round(((final_price - p_price) / p_price) * 100.0, 2)
 
+        # Dynamically recalculate dist_to_10ema_pct & dist_to_20ema_pct if MAs are present
+        e10 = st.get("ema10") or st.get("ema_10") or 0.0
+        if e10 > 0 and final_price > 0:
+            d10 = round(abs(final_price - e10) / e10 * 100.0, 2)
+            st["dist_to_10ema_pct"] = d10
+            st["dist_to_10ema"] = d10
+
+        e20 = st.get("ema20") or st.get("ema_20") or 0.0
+        if e20 > 0 and final_price > 0:
+            d20 = round(abs(final_price - e20) / e20 * 100.0, 2)
+            st["dist_to_20ema_pct"] = d20
+            st["dist_to_20ema"] = d20
+
         updated_candidates.append(st)
 
     return updated_candidates

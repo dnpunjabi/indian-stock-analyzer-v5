@@ -57714,9 +57714,10 @@ window.renderOliverKellTable = function(stocks) {
     tbody.innerHTML = list.map(s => {
         const currPrice = s.current_price || s.close || 0;
         const dayChg = s.day_change_pct || 0;
-        const ema10 = s.ema_10 || (currPrice * 0.98);
-        const ema20 = s.ema_20 || (currPrice * 0.96);
-        const dist10 = s.dist_to_10ema !== undefined ? s.dist_to_10ema.toFixed(2) : (currPrice > 0 ? (((currPrice - ema10) / currPrice) * 100).toFixed(2) : '0.00');
+        const ema10 = s.ema10 || s.ema_10 || 0;
+        const ema20 = s.ema20 || s.ema_20 || 0;
+        const rawDist10 = (s.dist_to_10ema_pct !== undefined) ? s.dist_to_10ema_pct : ((s.dist_to_10ema !== undefined) ? s.dist_to_10ema : (ema10 > 0 ? (Math.abs(currPrice - ema10) / ema10 * 100) : 0));
+        const dist10 = Number(rawDist10).toFixed(2);
         const kStatus = s.kell_status || s.status || 'KELL_REVERSAL_LIVE';
         const testedMa = s.tested_ma || '10 EMA';
         const compName = s.company_name || s.name || '';
