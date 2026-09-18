@@ -37048,3 +37048,226 @@ body.light-theme .tech-prospectus-close-btn {
     transform: none !important;
 }
 
+/* Screener Strategy Guide 3-Column Institutional Upgrade Styles */
+.screener-guide-banner-v5 {
+    background: linear-gradient(145deg, rgba(11, 19, 41, 0.95), rgba(15, 23, 42, 0.98));
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 16px;
+    padding: 24px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+    position: relative;
+    overflow: hidden;
+    margin-bottom: 24px;
+}
+
+.screener-guide-banner-v5::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 4px;
+    height: 100%;
+    background: var(--guide-accent-gradient, linear-gradient(180deg, #38bdf8, #c084fc));
+}
+
+.guide-v5-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 20px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    padding-bottom: 16px;
+}
+
+.guide-v5-title-group {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.guide-v5-icon {
+    font-size: 24px;
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    width: 44px;
+    height: 44px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.guide-v5-title {
+    font-family: var(--font-heading);
+    font-size: 18px;
+    font-weight: 800;
+    color: #ffffff;
+    margin: 0;
+}
+
+.guide-v5-subtitle {
+    font-size: 12.5px;
+    color: var(--text-muted);
+    margin-top: 2px;
+}
+
+.guide-v5-grid {
+    display: grid;
+    grid-template-columns: 1.4fr 1fr 1fr;
+    gap: 20px;
+}
+
+@media (max-width: 1100px) {
+    .guide-v5-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+.guide-v5-card {
+    background: rgba(15, 23, 42, 0.6);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 12px;
+    padding: 16px 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.guide-v5-card-header {
+    font-family: var(--font-heading);
+    font-size: 13.5px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.guide-v5-svg-container {
+    background: #030712;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 8px;
+    padding: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.guide-v5-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 14px;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text-secondary);
+}
+
+.guide-v5-legend-item {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.guide-v5-legend-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+}
+
+.guide-v5-metric-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 7px 10px;
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: 6px;
+    font-size: 12px;
+}
+
+.guide-v5-metric-label {
+    color: var(--text-muted);
+    font-weight: 500;
+}
+
+.guide-v5-metric-val {
+    font-weight: 700;
+    font-family: var(--font-heading);
+}
+
+.guide-v5-rules-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    font-size: 12px;
+    color: #cbd5e1;
+    padding: 0;
+    margin: 0;
+    list-style: none;
+}
+
+.guide-v5-rules-list li {
+    position: relative;
+    padding-left: 18px;
+    line-height: 1.4;
+}
+
+.guide-v5-rules-list li::before {
+    content: '⚡';
+    position: absolute;
+    left: 0;
+    top: 0;
+    font-size: 11px;
+}
+
+.guide-v5-close-btn {
+    background: transparent;
+    border: none;
+    color: var(--text-muted);
+    font-size: 18px;
+    cursor: pointer;
+    padding: 4px 8px;
+    border-radius: 6px;
+    transition: all 0.2s ease;
+}
+
+.guide-v5-close-btn:hover {
+    color: #ffffff;
+    background: rgba(255, 255, 255, 0.1);
+}
+
+/* Light Theme Overrides */
+[data-mode="light"] .screener-guide-banner-v5,
+[data-theme="light"] .screener-guide-banner-v5 {
+    background: #ffffff !important;
+    border-color: #cbd5e1 !important;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08) !important;
+}
+
+[data-mode="light"] .guide-v5-title,
+[data-theme="light"] .guide-v5-title {
+    color: #0f172a !important;
+}
+
+[data-mode="light"] .guide-v5-card,
+[data-theme="light"] .guide-v5-card {
+    background: #f8fafc !important;
+    border-color: #e2e8f0 !important;
+}
+
+[data-mode="light"] .guide-v5-svg-container,
+[data-theme="light"] .guide-v5-svg-container {
+    background: #0f172a !important;
+}
+
+[data-mode="light"] .guide-v5-metric-row,
+[data-theme="light"] .guide-v5-metric-row {
+    background: #f1f5f9 !important;
+}
+
+[data-mode="light"] .guide-v5-rules-list,
+[data-theme="light"] .guide-v5-rules-list {
+    color: #334155 !important;
+}
+
+

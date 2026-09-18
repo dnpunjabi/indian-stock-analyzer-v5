@@ -42,6 +42,113 @@
             color: #0f172a !important;
         }
 
+        /* Enhanced Guide Banner 3-Column Layout */
+        .vcp-guide-banner {
+            position: relative !important;
+            overflow: hidden !important;
+            background: linear-gradient(145deg, rgba(11, 19, 41, 0.95), rgba(15, 23, 42, 0.98)) !important;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5) !important;
+        }
+        .vcp-guide-banner::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 4px;
+            height: 100%;
+            background: linear-gradient(180deg, #38bdf8, #c084fc);
+        }
+        .guide-banner-grid {
+            display: grid;
+            grid-template-columns: 1.4fr 1fr 1fr;
+            gap: 20px;
+        }
+        @media (max-width: 1100px) {
+            .guide-banner-grid {
+                grid-template-columns: 1fr !important;
+            }
+        }
+        .guide-grid-card {
+            background: rgba(15, 23, 42, 0.6);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            border-radius: 12px;
+            padding: 16px 18px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        .guide-rules-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            font-size: 12px;
+            color: #cbd5e1;
+            padding: 0;
+            margin: 0;
+            list-style: none;
+        }
+        .guide-rules-list li {
+            position: relative;
+            padding-left: 18px;
+            line-height: 1.4;
+        }
+        .guide-rules-list li::before {
+            content: '⚡';
+            position: absolute;
+            left: 0;
+            top: 0;
+            font-size: 11px;
+        }
+        .guide-metric-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 7px 10px;
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 6px;
+            font-size: 12px;
+        }
+        .guide-chart-container {
+            background: #060a14;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 8px;
+            padding: 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .guide-chart-legend {
+            display: flex;
+            gap: 14px;
+            font-size: 11px;
+            font-weight: 600;
+            flex-wrap: wrap;
+        }
+        [data-mode="light"] .vcp-guide-banner,
+        [data-theme="light"] .vcp-guide-banner {
+            background: linear-gradient(145deg, rgba(241, 245, 249, 0.98), rgba(248, 250, 252, 0.98)) !important;
+            border-color: rgba(0, 0, 0, 0.12) !important;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08) !important;
+        }
+        [data-mode="light"] .vcp-guide-banner .guide-grid-card,
+        [data-theme="light"] .vcp-guide-banner .guide-grid-card {
+            background: rgba(241, 245, 249, 0.8);
+            border-color: rgba(0, 0, 0, 0.08);
+        }
+        [data-mode="light"] .vcp-guide-banner .guide-metric-row,
+        [data-theme="light"] .vcp-guide-banner .guide-metric-row {
+            background: rgba(0, 0, 0, 0.04);
+        }
+        [data-mode="light"] .vcp-guide-banner .guide-rules-list,
+        [data-theme="light"] .vcp-guide-banner .guide-rules-list {
+            color: #334155;
+        }
+        [data-mode="light"] .guide-chart-container,
+        [data-theme="light"] .guide-chart-container {
+            background: #f8fafc;
+            border-color: rgba(0,0,0,0.1);
+        }
+
         /* Light mode tooltip and bottom sheet overrides */
         [data-mode="light"] .rs-tooltip,
         [data-theme="light"] .rs-tooltip {
@@ -2606,50 +2713,142 @@
                     </div>
 
                     <!-- Collapsible Confluence Masterclass & Attributes Guide Banner -->
-                    <div id="confluence-guide-banner" class="vcp-guide-banner" style="display: none; margin-bottom: 20px; border-radius: 12px; padding: 18px 22px;">
-                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
-                            <strong style="font-size: 15px; font-weight: 800; color: #f59e0b; display: flex; align-items: center; gap: 8px;">
-                                📘 Masterclass Strategy Guide: Confluence Metrics, Tiers, Buy Zones & Sector Tailwinds
-                            </strong>
-                            <button onclick="document.getElementById('confluence-guide-banner').style.display='none'" style="background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.12); cursor: pointer; font-size: 13px; color: #94a3b8; padding: 3px 10px; border-radius: 6px;">✕ Close</button>
-                        </div>
-                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px; font-size: 12px; line-height: 1.5;">
-                            <div style="background: rgba(30,41,59,0.6); padding: 14px; border-radius: 10px; border: 1px solid rgba(245,158,11,0.25);">
-                                <div style="font-weight: 800; color: #f59e0b; font-size: 13px; margin-bottom: 6px;">1. 🏆 Screeners Triggered (Raw Algorithm Alignment)</div>
-                                Out of all 11 quantitative scanning algorithms (VCP, Stage 2, Cup & Handle, Kell EMAs, HTF, EP, RSNH, 3WT, Flat Base, Pocket Pivot, U&R), this measures how many independent algorithms triggered simultaneously. More triggers = higher win probability.
+                    <div id="confluence-guide-banner" class="screener-guide-banner-v5" style="display: none; --guide-accent-gradient: linear-gradient(180deg, #f59e0b, #d97706); border-color: rgba(245, 158, 11, 0.3);">
+                        <div class="guide-v5-header">
+                            <div class="guide-v5-title-group">
+                                <div class="guide-v5-icon" style="background: rgba(245, 158, 11, 0.12); border-color: rgba(245, 158, 11, 0.3);">🏆</div>
+                                <div>
+                                    <h3 class="guide-v5-title">Multi-Screener Confluence Strategy Guide</h3>
+                                    <div class="guide-v5-subtitle">Cross-Algorithm Institutional Momentum Consensus Ranking</div>
+                                </div>
                             </div>
-                            <div style="background: rgba(30,41,59,0.6); padding: 14px; border-radius: 10px; border: 1px solid rgba(56,189,248,0.25);">
-                                <div style="font-weight: 800; color: #38bdf8; font-size: 13px; margin-bottom: 6px;">2. ⚡ Categories Passed (Multi-Dimensional Quality)</div>
-                                Screeners are grouped into 4 non-redundant categories to avoid double counting:
-                                <ul style="margin: 4px 0 0 0; padding-left: 16px;">
-                                    <li><strong>Base Structure:</strong> VCP, Cup & Handle, Flat Base, HTF, 3WT, U&R</li>
-                                    <li><strong>Trend Alignment:</strong> Weinstein Stage 2, Oliver Kell EMAs</li>
-                                    <li><strong>Volume Catalysts:</strong> Pocket Pivot, Episodic Pivot (EP)</li>
-                                    <li><strong>RS Leadership:</strong> RS Line New High vs Nifty 500</li>
-                                </ul>
-                            </div>
-                            <div style="background: rgba(30,41,59,0.6); padding: 14px; border-radius: 10px; border: 1px solid rgba(16,185,129,0.25);">
-                                <div style="font-weight: 800; color: #10b981; font-size: 13px; margin-bottom: 6px;">3. Confluence Quality Tiers (What to Buy)</div>
-                                <ul style="margin: 4px 0 0 0; padding-left: 16px; line-height: 1.5;">
-                                    <li>👑 <strong>Tier 1 Apex:</strong> ≥4 screeners across ≥3 distinct categories (Market Leaders).</li>
-                                    <li>⭐ <strong>Tier 2 High:</strong> 3-4 screeners across ≥2 categories (High Quality).</li>
-                                    <li>⚡ <strong>Tier 3 Catalyst:</strong> Driven by High-Tight Flag (HTF) or Episodic Pivot.</li>
-                                    <li>🔍 <strong>Tier 4 Solid:</strong> 2 screeners passed (Solid setups).</li>
-                                </ul>
-                            </div>
-                            <div style="background: rgba(30,41,59,0.6); padding: 14px; border-radius: 10px; border: 1px solid rgba(168,85,247,0.25);">
-                                <div style="font-weight: 800; color: #c084fc; font-size: 13px; margin-bottom: 6px;">4. Action Entry Statuses (When to Buy)</div>
-                                <ul style="margin: 4px 0 0 0; padding-left: 16px; line-height: 1.5;">
-                                    <li>🎯 <strong>IN BUY ZONE:</strong> Price within <strong>0% to +5%</strong> of pivot point (Actionable entry right now).</li>
-                                    <li>⏳ <strong>FORMING BASE:</strong> Price consolidating near pivot level preparing for breakout.</li>
-                                    <li>⚠️ <strong>EXTENDED:</strong> Price &gt; 5% past pivot point — do not chase, wait for 10/20 EMA pullback.</li>
-                                </ul>
-                            </div>
-                            <div style="background: rgba(30,41,59,0.6); padding: 14px; border-radius: 10px; border: 1px solid rgba(239,68,68,0.25); grid-column: 1 / -1;">
-                                <div style="font-weight: 800; color: #f87171; font-size: 13px; margin-bottom: 6px;">5. 🔥 Hot Group Sector Tailwinds (Institutional Group Buying)</div>
-                                When <strong>≥ 3 stocks</strong> in the same industry group trigger high-confluence setups simultaneously, that sector is flagged as a <strong>Hot Group</strong>. All stocks in the group automatically receive a <strong>+10 Point Leaderboard Ranking Bonus</strong> for institutional sector tailwind (O'Neil & Minervini rule: 37% of price gain is driven by group strength).
+                            <div style="display: flex; align-items: center; gap: 12px;">
+                                <div style="font-size: 11.5px; color: #f59e0b; background: rgba(245, 158, 11, 0.1); border: 1px solid rgba(245, 158, 11, 0.25); padding: 4px 12px; border-radius: 20px; font-weight: 700;">
+                                    Multi-Screener Consensus Engine
+                                </div>
+                                <button class="guide-v5-close-btn" onclick="document.getElementById('confluence-guide-banner').style.display='none'">✕</button>
                             </div>
                         </div>
+
+                        <div class="guide-v5-grid">
+                            <!-- COLUMN 1: SVG DIAGRAM -->
+                            <div class="guide-v5-card">
+                                <div class="guide-v5-card-header" style="color: #f59e0b;">
+                                    <span>📈 4-Category Confluence Radar</span>
+                                </div>
+                                <div class="guide-v5-svg-container">
+                                    <div class="guide-v5-legend">
+                                        <div class="guide-v5-legend-item"><div class="guide-v5-legend-dot" style="background: #f59e0b;"></div> Base Structure</div>
+                                        <div class="guide-v5-legend-item"><div class="guide-v5-legend-dot" style="background: #38bdf8;"></div> Trend Stack</div>
+                                        <div class="guide-v5-legend-item"><div class="guide-v5-legend-dot" style="background: #34d399;"></div> Vol Catalyst</div>
+                                        <div class="guide-v5-legend-item"><div class="guide-v5-legend-dot" style="background: #c084fc;"></div> RS Line</div>
+                                    </div>
+                                    <svg viewBox="0 0 440 200" width="100%" height="180" style="background: #030712; border-radius: 6px;">
+                                        <line x1="20" y1="160" x2="420" y2="160" stroke="rgba(255,255,255,0.1)" stroke-width="1" />
+                                        <line x1="20" y1="120" x2="420" y2="120" stroke="rgba(255,255,255,0.04)" stroke-dasharray="3,3" />
+                                        <line x1="20" y1="80" x2="420" y2="80" stroke="rgba(255,255,255,0.04)" stroke-dasharray="3,3" />
+                                        <line x1="20" y1="40" x2="420" y2="40" stroke="rgba(255,255,255,0.04)" stroke-dasharray="3,3" />
+
+                                        <!-- Bar 1: Base Structure (Amber) -->
+                                        <rect x="40" y="55" width="45" height="105" fill="#f59e0b" rx="4" opacity="0.9"/>
+                                        <text x="62" y="48" fill="#f59e0b" font-size="10" font-weight="800" text-anchor="middle">3/3</text>
+                                        <text x="62" y="176" fill="#94a3b8" font-size="9" font-weight="600" text-anchor="middle">Base</text>
+
+                                        <!-- Bar 2: Trend Alignment (Blue) -->
+                                        <rect x="130" y="45" width="45" height="115" fill="#38bdf8" rx="4" opacity="0.9"/>
+                                        <text x="152" y="38" fill="#38bdf8" font-size="10" font-weight="800" text-anchor="middle">2/2</text>
+                                        <text x="152" y="176" fill="#94a3b8" font-size="9" font-weight="600" text-anchor="middle">Trend</text>
+
+                                        <!-- Bar 3: Vol Catalysts (Green) -->
+                                        <rect x="220" y="70" width="45" height="90" fill="#34d399" rx="4" opacity="0.9"/>
+                                        <text x="242" y="63" fill="#34d399" font-size="10" font-weight="800" text-anchor="middle">1/2</text>
+                                        <text x="242" y="176" fill="#94a3b8" font-size="9" font-weight="600" text-anchor="middle">Volume</text>
+
+                                        <!-- Bar 4: RS Leadership (Purple) -->
+                                        <rect x="310" y="45" width="45" height="115" fill="#c084fc" rx="4" opacity="0.9"/>
+                                        <text x="332" y="38" fill="#c084fc" font-size="10" font-weight="800" text-anchor="middle">1/1</text>
+                                        <text x="332" y="176" fill="#94a3b8" font-size="9" font-weight="600" text-anchor="middle">RS Line</text>
+
+                                        <!-- Score Overlay Gauge Badge -->
+                                        <rect x="365" y="15" width="65" height="30" fill="rgba(245, 158, 11, 0.15)" stroke="#f59e0b" stroke-width="1" rx="6"/>
+                                        <text x="397" y="34" fill="#f59e0b" font-size="12" font-weight="900" text-anchor="middle">94/100</text>
+                                    </svg>
+                                </div>
+                            </div>
+
+                            <!-- COLUMN 2: CASE STUDY -->
+                            <div class="guide-v5-card">
+                                <div class="guide-v5-card-header" style="color: #34d399;">
+                                    <span>🇮🇳 Real NSE Stock Case Study</span>
+                                </div>
+                                <div style="font-size: 13px; font-weight: 800; color: #ffffff; display: flex; align-items: center; justify-content: space-between;">
+                                    <span>PERSISTENT.NS <span style="font-size: 11px; color: var(--text-muted); font-weight: 500;">Persistent Systems</span></span>
+                                    <span style="background: rgba(245, 158, 11, 0.15); color: #f59e0b; border: 1px solid rgba(245, 158, 11, 0.3); padding: 2px 7px; border-radius: 4px; font-size: 10px; font-weight: 800;">👑 APEX TIER 1</span>
+                                </div>
+                                <div class="guide-v5-metric-row">
+                                    <span class="guide-v5-metric-label">Current Price</span>
+                                    <span class="guide-v5-metric-val" style="color: #38bdf8;">₹5,420 (+2.15%)</span>
+                                </div>
+                                <div class="guide-v5-metric-row">
+                                    <span class="guide-v5-metric-label">Confluence Score</span>
+                                    <span class="guide-v5-metric-val" style="color: #f59e0b;">94 / 100</span>
+                                </div>
+                                <div class="guide-v5-metric-row">
+                                    <span class="guide-v5-metric-label">Screeners Passed</span>
+                                    <span class="guide-v5-metric-val" style="color: #34d399;">7 / 11 Algorithms</span>
+                                </div>
+                                <div class="guide-v5-metric-row">
+                                    <span class="guide-v5-metric-label">Category Diversity</span>
+                                    <span class="guide-v5-metric-val" style="color: #c084fc;">4 / 4 Categories</span>
+                                </div>
+                                <div class="guide-v5-metric-row">
+                                    <span class="guide-v5-metric-label">RS Rating</span>
+                                    <span class="guide-v5-metric-val" style="color: #34d399;">88 vs Nifty 500</span>
+                                </div>
+                                <div class="guide-v5-metric-row">
+                                    <span class="guide-v5-metric-label">Action Entry Status</span>
+                                    <span class="guide-v5-metric-val" style="background: rgba(52, 211, 153, 0.15); color: #34d399; padding: 2px 6px; border-radius: 4px;">🎯 IN BUY ZONE</span>
+                                </div>
+                            </div>
+
+                            <!-- COLUMN 3: HARD QUANT CRITERIA -->
+                            <div class="guide-v5-card">
+                                <div class="guide-v5-card-header" style="color: #f59e0b;">
+                                    <span>⚙️ Hard Institutional Quant Criteria</span>
+                                </div>
+                                <ul class="guide-v5-rules-list">
+                                    <li><strong>Confluence Score:</strong> Calculated via Screeners Passed × Category Diversity × RS Rating weight.</li>
+                                    <li><strong>Tier 1 Apex Standard:</strong> Minimum 4 screeners triggered across ≥3 distinct categories.</li>
+                                    <li><strong>Tier 2 High Standard:</strong> 3-4 screeners triggered across ≥2 distinct categories.</li>
+                                    <li><strong>Hot Group Bonus:</strong> +10 Pts bonus when ≥3 stocks in same industry group trigger concurrently.</li>
+                                    <li><strong>Buy Zone Radius:</strong> Price strictly within 0% to +5% of pivot point for low-risk entry.</li>
+                                    <li><strong>Extended Warning:</strong> >5% past pivot = DO NOT CHASE, wait for 10/20 EMA pullback test.</li>
+                                </ul>
+                            </div>
+                        </div>
+
+                        <!-- Deep Dive Accordion (Preserving Existing Masterclass Content) -->
+                        <details style="margin-top: 16px; border-top: 1px solid rgba(255,255,255,0.08); padding-top: 12px;">
+                            <summary style="font-size: 13px; font-weight: 700; color: #f59e0b; cursor: pointer;">📘 Deep Dive: Confluence Categories, Quality Tiers & Sector Tailwinds</summary>
+                            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; margin-top: 12px; font-size: 12px; line-height: 1.5;">
+                                <div style="background: rgba(30,41,59,0.6); padding: 12px; border-radius: 8px; border: 1px solid rgba(245,158,11,0.25);">
+                                    <div style="font-weight: 800; color: #f59e0b; margin-bottom: 4px;">1. 🏆 Screeners Triggered</div>
+                                    Out of 11 algorithms (VCP, Stage 2, Cup & Handle, Kell EMAs, HTF, EP, RSNH, 3WT, Flat Base, Pocket Pivot, U&R), measures how many algorithms triggered simultaneously.
+                                </div>
+                                <div style="background: rgba(30,41,59,0.6); padding: 12px; border-radius: 8px; border: 1px solid rgba(56,189,248,0.25);">
+                                    <div style="font-weight: 800; color: #38bdf8; margin-bottom: 4px;">2. ⚡ 4 Core Categories</div>
+                                    Grouped into non-redundant categories: <strong>Base Structure</strong>, <strong>Trend Alignment</strong>, <strong>Volume Catalysts</strong>, and <strong>RS Leadership</strong>.
+                                </div>
+                                <div style="background: rgba(30,41,59,0.6); padding: 12px; border-radius: 8px; border: 1px solid rgba(16,185,129,0.25);">
+                                    <div style="font-weight: 800; color: #10b981; margin-bottom: 4px;">3. Quality Tiers</div>
+                                    👑 Tier 1 Apex (≥4 screeners / ≥3 cats), ⭐ Tier 2 High (3-4 screeners / ≥2 cats), ⚡ Tier 3 Catalyst (HTF/EP), 🔍 Tier 4 Solid.
+                                </div>
+                                <div style="background: rgba(30,41,59,0.6); padding: 12px; border-radius: 8px; border: 1px solid rgba(239,68,68,0.25);">
+                                    <div style="font-weight: 800; color: #f87171; margin-bottom: 4px;">4. Sector Group Tailwind</div>
+                                    ≥3 stocks triggering in same industry = Hot Group status +10 Pts bonus (37% of price move driven by group strength).
+                                </div>
+                            </div>
+                        </details>
                     </div>
 
                     <!-- Hot Industry Group Clusters Banner Container -->
@@ -2733,117 +2932,246 @@
                     </div>
 
                     <!-- Collapsible VCP Screener Classification Legend Banner -->
-                    <div id="vcp-page-classification-legend-banner" class="vcp-guide-banner" style="display: none; margin-bottom: 20px; border-radius: 12px; padding: 16px 20px; font-family: 'Inter', sans-serif;">
-                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
-                            <div style="display: flex; align-items: center; gap: 8px;">
-                                <span style="font-size: 16px;">💡</span>
-                                <strong class="vcp-guide-main-title" style="font-size: 14px; font-weight: 800;">Minervini VCP & SEPA Classification Definitions Guide</strong>
+                    <div id="vcp-page-classification-legend-banner" class="screener-guide-banner-v5" style="display: none; --guide-accent-gradient: linear-gradient(180deg, #fbbf24, #d97706); border-color: rgba(251, 191, 36, 0.3);">
+                        <div class="guide-v5-header">
+                            <div class="guide-v5-title-group">
+                                <div class="guide-v5-icon" style="background: rgba(251, 191, 36, 0.12); border-color: rgba(251, 191, 36, 0.3);">🔬</div>
+                                <div>
+                                    <h3 class="guide-v5-title">Mark Minervini VCP & CANSLIM Strategy Guide</h3>
+                                    <div class="guide-v5-subtitle">Volatility Contraction Pattern — Institutional Superperformance Base</div>
+                                </div>
                             </div>
-                            <button onclick="document.getElementById('vcp-page-classification-legend-banner').style.display='none'" class="vcp-guide-close-btn" style="background: none; border: none; cursor: pointer; font-size: 15px; padding: 2px 6px;">✕</button>
-                        </div>
-
-                        <!-- Primary Status Definitions -->
-                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 10px; font-size: 11.5px; line-height: 1.45; margin-bottom: 14px;">
-                            <div class="vcp-status-card status-ready">
-                                <strong class="status-title-ready">🎯 READY AT PIVOT</strong>: Stock completed all contraction stages (T3/T4) with volume dry-up (VDU &le; 1.0x) and is within 4% of pivot buy price.
-                            </div>
-                            <div class="vcp-status-card status-breakout">
-                                <strong class="status-title-breakout">🚀 LIVE BREAKOUT</strong>: Stock crossed pivot buy price on heavy institutional volume (&gt;125% of 20-day average).
-                            </div>
-                            <div class="vcp-status-card status-below-ema">
-                                <strong class="status-title-below-ema">📉 BELOW 50 EMA</strong>: Stock is consolidating below its 50 EMA. Minervini SEPA Trend Template requires price above 50 & 200 EMA.
-                            </div>
-                            <div class="vcp-status-card status-wide-swings">
-                                <strong class="status-title-wide-swings">⏳ WIDE SWINGS</strong>: Stock is base-building, but price volatility swings exceed strict Minervini contraction thresholds.
-                            </div>
-                            <div class="vcp-status-card status-base-building">
-                                <strong class="status-title-base-building">🧱 BASE BUILDING</strong>: Stock is in early Stage 1 accumulation or constructing a cup/flat base prior to VCP contractions.
+                            <div style="display: flex; align-items: center; gap: 12px;">
+                                <div style="font-size: 11.5px; color: #fbbf24; background: rgba(251, 191, 36, 0.1); border: 1px solid rgba(251, 191, 36, 0.25); padding: 4px 12px; border-radius: 20px; font-weight: 700;">
+                                    SEPA Trend Template Standard
+                                </div>
+                                <button class="guide-v5-close-btn" onclick="document.getElementById('vcp-page-classification-legend-banner').style.display='none'">✕</button>
                             </div>
                         </div>
 
-                        <!-- Mark Minervini VCP Superperformance Statistics & TraderLion Reference -->
-                        <div class="vcp-guide-sub-divider" style="border-top: 1px solid var(--border-glass, rgba(255, 255, 255, 0.08)); padding-top: 12px; margin-bottom: 14px;">
-                            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; margin-bottom: 10px;">
-                                <div class="vcp-stat-header" style="font-size: 11.5px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; color: #38bdf8;">
-                                    🔥 MARK MINERVINI VCP SUPERPERFORMANCE STATISTICS & BREAKOUT RULES
+                        <div class="guide-v5-grid">
+                            <!-- COLUMN 1: SVG DIAGRAM -->
+                            <div class="guide-v5-card">
+                                <div class="guide-v5-card-header" style="color: #fbbf24;">
+                                    <span>📈 Volatility Contraction Structure (T1→T3)</span>
                                 </div>
-                                <a href="https://traderlion.com/technical-analysis/volatility-contraction-pattern/" target="_blank" rel="noopener noreferrer" class="vcp-stat-ref-link" style="color: #38bdf8; font-size: 11.5px; font-weight: 700; text-decoration: underline; display: inline-flex; align-items: center; gap: 4px;">
-                                    📖 Reference: TraderLion VCP Masterclass Guide ↗
-                                </a>
+                                <div class="guide-v5-svg-container">
+                                    <div class="guide-v5-legend">
+                                        <div class="guide-v5-legend-item"><div class="guide-v5-legend-dot" style="background: #38bdf8;"></div> Price Action</div>
+                                        <div class="guide-v5-legend-item"><div class="guide-v5-legend-dot" style="background: #fbbf24;"></div> 50 EMA</div>
+                                        <div class="guide-v5-legend-item"><div class="guide-v5-legend-dot" style="background: #34d399;"></div> Pivot Breakout</div>
+                                    </div>
+                                    <svg viewBox="0 0 440 200" width="100%" height="180" style="background: #030712; border-radius: 6px;">
+                                        <line x1="0" y1="50" x2="440" y2="50" stroke="rgba(255,255,255,0.03)" stroke-dasharray="3,3" />
+                                        <line x1="0" y1="100" x2="440" y2="100" stroke="rgba(255,255,255,0.03)" stroke-dasharray="3,3" />
+
+                                        <!-- 50 EMA Line (Amber) -->
+                                        <path d="M 10,140 Q 120,135 240,120 T 360,90 T 430,75" fill="none" stroke="#fbbf24" stroke-width="2" stroke-dasharray="4,2" />
+
+                                        <!-- Buy Pivot Line (Green Dashed) -->
+                                        <line x1="240" y1="65" x2="430" y2="65" stroke="#34d399" stroke-width="1.5" stroke-dasharray="4,4" />
+                                        <text x="310" y="58" fill="#34d399" font-size="9" font-weight="700">PIVOT BUY: ₹14,750</text>
+
+                                        <!-- Stop Loss Line (Red Dashed) -->
+                                        <line x1="240" y1="110" x2="430" y2="110" stroke="#f87171" stroke-width="1.5" stroke-dasharray="4,4" />
+                                        <text x="310" y="122" fill="#f87171" font-size="9" font-weight="700">STOP LOSS: ₹13,600 (-7.8%)</text>
+
+                                        <!-- Prior Advance & Contractions (T1 -> T2 -> T3) -->
+                                        <!-- Prior Uptrend -->
+                                        <path d="M 10,120 L 60,50" fill="none" stroke="#38bdf8" stroke-width="2" />
+                                        <!-- T1 Wave (-22%) -->
+                                        <path d="M 60,50 L 110,115 L 150,60" fill="none" stroke="#38bdf8" stroke-width="1.8" />
+                                        <text x="85" y="90" fill="#f87171" font-size="8.5" font-weight="700">T1 (-22%)</text>
+                                        <!-- T2 Wave (-14%) -->
+                                        <path d="M 150,60 L 190,95 L 240,65" fill="none" stroke="#38bdf8" stroke-width="1.8" />
+                                        <text x="170" y="82" fill="#f87171" font-size="8.5" font-weight="700">T2 (-14%)</text>
+                                        <!-- T3 Wave (-8%) -->
+                                        <path d="M 240,65 L 270,82 L 300,65" fill="none" stroke="#38bdf8" stroke-width="2" />
+                                        <text x="270" y="77" fill="#fbbf24" font-size="8.5" font-weight="700">T3 (-8%)</text>
+
+                                        <!-- Breakout Bar (Green Surge) -->
+                                        <path d="M 300,65 L 340,35" fill="none" stroke="#34d399" stroke-width="3.5" />
+                                        <path d="M 340,35 L 420,20" fill="none" stroke="#34d399" stroke-width="2" />
+                                        <circle cx="300" cy="65" r="4" fill="#34d399" />
+
+                                        <!-- Volume Bars -->
+                                        <rect x="20" y="170" width="8" height="15" fill="rgba(56, 189, 248, 0.4)" />
+                                        <rect x="50" y="155" width="8" height="30" fill="rgba(248, 113, 113, 0.4)" />
+                                        <rect x="100" y="172" width="8" height="13" fill="rgba(248, 113, 113, 0.3)" />
+                                        <rect x="140" y="165" width="8" height="20" fill="rgba(56, 189, 248, 0.4)" />
+                                        <rect x="180" y="175" width="8" height="10" fill="rgba(248, 113, 113, 0.3)" />
+                                        <!-- VDU Zone -->
+                                        <rect x="240" y="181" width="8" height="4" fill="rgba(248, 113, 113, 0.2)" />
+                                        <rect x="260" y="182" width="8" height="3" fill="rgba(248, 113, 113, 0.2)" />
+                                        <rect x="280" y="183" width="8" height="2" fill="rgba(248, 113, 113, 0.2)" />
+                                        <text x="245" y="172" fill="#fbbf24" font-size="8" font-weight="700">VDU Dry-Up</text>
+
+                                        <!-- Breakout Vol Surge -->
+                                        <rect x="296" y="140" width="10" height="45" fill="#34d399" />
+                                    </svg>
+                                </div>
                             </div>
-                            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 10px; font-size: 11px; line-height: 1.45;">
-                                <div class="vcp-stat-card vcp-stat-blue" style="padding: 10px 12px; border-radius: 8px;">
-                                    <strong class="vcp-stat-title-blue" style="font-weight: 800;">🎯 60%–70% Breakout Win Rate</strong><br/>
-                                    <span class="vcp-stat-desc">60% to 70% of volume-confirmed VCP breakouts result in powerful price rallies in Stage 2 bull markets.</span>
+
+                            <!-- COLUMN 2: CASE STUDY -->
+                            <div class="guide-v5-card">
+                                <div class="guide-v5-card-header" style="color: #34d399;">
+                                    <span>🇮🇳 Real NSE Stock Case Study</span>
                                 </div>
-                                <div class="vcp-stat-card vcp-stat-green" style="padding: 10px 12px; border-radius: 8px;">
-                                    <strong class="vcp-stat-title-green" style="font-weight: 800;">⚖️ 3:1+ Asymmetrical Risk-to-Reward</strong><br/>
-                                    <span class="vcp-stat-desc">Tight pivot entries limit risk to <strong>5%–8% stop-loss</strong> while targeting <strong>15% to 100%+ upside</strong>.</span>
+                                <div style="font-size: 13px; font-weight: 800; color: #ffffff; display: flex; align-items: center; justify-content: space-between;">
+                                    <span>DIXON.NS <span style="font-size: 11px; color: var(--text-muted); font-weight: 500;">Dixon Tech</span></span>
+                                    <span style="background: rgba(251, 191, 36, 0.15); color: #fbbf24; border: 1px solid rgba(251, 191, 36, 0.3); padding: 2px 7px; border-radius: 4px; font-size: 10px; font-weight: 800;">🎯 T3 CONTRACTION</span>
                                 </div>
-                                <div class="vcp-stat-card vcp-stat-purple" style="padding: 10px 12px; border-radius: 8px;">
-                                    <strong class="vcp-stat-title-purple" style="font-weight: 800;">🔥 50%+ Superperformance Footprint</strong><br/>
-                                    <span class="vcp-stat-desc">Over 50% of annual 100%+ superperformance stocks form VCP bases prior to explosive moves.</span>
+                                <div class="guide-v5-metric-row">
+                                    <span class="guide-v5-metric-label">Current Stock Price</span>
+                                    <span class="guide-v5-metric-val" style="color: #38bdf8;">₹14,580 (+2.85%)</span>
                                 </div>
+                                <div class="guide-v5-metric-row">
+                                    <span class="guide-v5-metric-label">Contractions (Stages)</span>
+                                    <span class="guide-v5-metric-val" style="color: #fbbf24;">3 Contractions (T3)</span>
+                                </div>
+                                <div class="guide-v5-metric-row">
+                                    <span class="guide-v5-metric-label">Depth Sequence</span>
+                                    <span class="guide-v5-metric-val" style="color: #34d399;">-22% → -14% → -8%</span>
+                                </div>
+                                <div class="guide-v5-metric-row">
+                                    <span class="guide-v5-metric-label">Base Duration</span>
+                                    <span class="guide-v5-metric-val" style="color: var(--text-muted);">11 Weeks</span>
+                                </div>
+                                <div class="guide-v5-metric-row">
+                                    <span class="guide-v5-metric-label">Volume Dry-Up (VDU)</span>
+                                    <span class="guide-v5-metric-val" style="color: #34d399;">0.62x vs 50d avg</span>
+                                </div>
+                                <div class="guide-v5-metric-row">
+                                    <span class="guide-v5-metric-label">Pivot Buy Entry</span>
+                                    <span class="guide-v5-metric-val" style="color: #38bdf8;">₹14,750 (T3 High)</span>
+                                </div>
+                                <div class="guide-v5-metric-row">
+                                    <span class="guide-v5-metric-label">Stop-Loss Placement</span>
+                                    <span class="guide-v5-metric-val" style="color: #f87171;">₹13,600 (-7.8%)</span>
+                                </div>
+                            </div>
+
+                            <!-- COLUMN 3: HARD QUANT CRITERIA -->
+                            <div class="guide-v5-card">
+                                <div class="guide-v5-card-header" style="color: #fbbf24;">
+                                    <span>⚙️ Hard Institutional Quant Criteria</span>
+                                </div>
+                                <ul class="guide-v5-rules-list">
+                                    <li><strong>SEPA Trend Template:</strong> Price &gt; 50 EMA &gt; 150 SMA &ge; 200 SMA; 200-day SMA slope positive &ge;30d.</li>
+                                    <li><strong>52W Range Proximity:</strong> Price within 25% of 52-Week High and &ge;30% above 52-Week Low.</li>
+                                    <li><strong>RS Rating:</strong> RS score &ge; 70 relative to Nifty 500 benchmark index.</li>
+                                    <li><strong>Contraction Progression:</strong> Each wave must strictly contract tighter than the prior wave (T1 &gt; T2 &gt; T3).</li>
+                                    <li><strong>Volume Dry-Up (VDU):</strong> Volume at pivot contracts to &le; 0.85x 50-day average.</li>
+                                    <li><strong>Breakout Confirmation:</strong> Single-day breakout volume strictly &ge; 1.4x 50-day SMA.</li>
+                                </ul>
                             </div>
                         </div>
 
-                        <!-- Contraction Stages Breakdown (T1 to T6) -->
-                        <div class="vcp-guide-sub-divider" style="border-top: 1px solid var(--border-glass, rgba(255, 255, 255, 0.08)); padding-top: 12px; margin-bottom: 14px;">
-                            <div class="vcp-stage-header" style="font-size: 11.5px; font-weight: 800; text-transform: uppercase; margin-bottom: 10px; letter-spacing: 0.5px;">📈 VCP CONTRACTION STAGES BREAKDOWN (T1 &rarr; T6)</div>
-                            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px; font-size: 11px; line-height: 1.4;">
-                                <div class="vcp-stage-card">
-                                    <strong class="stage-title">⏳ FORMING T1</strong> (1 Wave)<br/>
-                                    <span class="stage-desc">Initial wide contraction off peak (e.g. -25% pullback). VCP is just starting.</span>
+                        <!-- Deep Dive Accordion (Preserving Existing VCP Definitions, Stages, CANSLIM) -->
+                        <details style="margin-top: 16px; border-top: 1px solid rgba(255,255,255,0.08); padding-top: 12px;">
+                            <summary style="font-size: 13px; font-weight: 700; color: #fbbf24; cursor: pointer;">📘 Deep Dive: Full Minervini VCP Definitions, T1-T6 Contraction Stages & CANSLIM System</summary>
+                            <div style="margin-top: 14px;">
+                                <!-- Primary Status Definitions -->
+                                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 10px; font-size: 11.5px; line-height: 1.45; margin-bottom: 14px;">
+                                    <div class="vcp-status-card status-ready">
+                                        <strong class="status-title-ready">🎯 READY AT PIVOT</strong>: Stock completed all contraction stages (T3/T4) with volume dry-up (VDU &le; 1.0x) and is within 4% of pivot buy price.
+                                    </div>
+                                    <div class="vcp-status-card status-breakout">
+                                        <strong class="status-title-breakout">🚀 LIVE BREAKOUT</strong>: Stock crossed pivot buy price on heavy institutional volume (&gt;125% of 20-day average).
+                                    </div>
+                                    <div class="vcp-status-card status-below-ema">
+                                        <strong class="status-title-below-ema">📉 BELOW 50 EMA</strong>: Stock is consolidating below its 50 EMA. Minervini SEPA Trend Template requires price above 50 & 200 EMA.
+                                    </div>
+                                    <div class="vcp-status-card status-wide-swings">
+                                        <strong class="status-title-wide-swings">⏳ WIDE SWINGS</strong>: Stock is base-building, but price volatility swings exceed strict Minervini contraction thresholds.
+                                    </div>
+                                    <div class="vcp-status-card status-base-building">
+                                        <strong class="status-title-base-building">🧱 BASE BUILDING</strong>: Stock is in early Stage 1 accumulation or constructing a cup/flat base prior to VCP contractions.
+                                    </div>
                                 </div>
-                                <div class="vcp-stage-card">
-                                    <strong class="stage-title">⏳ FORMING T2</strong> (2 Waves)<br/>
-                                    <span class="stage-desc">Secondary contraction tightening (e.g. -25% &rarr; -12%). Volatility shrinking.</span>
-                                </div>
-                                <div class="vcp-stage-card stage-highlight">
-                                    <strong class="stage-title">🎯 T3 CONTRACTION</strong> (3 Waves)<br/>
-                                    <span class="stage-desc">Optimal Minervini setup (-25% &rarr; -12% &rarr; -5%). Supply absorbed, ready for breakout.</span>
-                                </div>
-                                <div class="vcp-stage-card stage-highlight">
-                                    <strong class="stage-title-green">🚀 T4 / T5 / T6 ULTRA TIGHT</strong><br/>
-                                    <span class="stage-desc">Extreme supply lockup. Multi-stage contractions producing explosive breakout velocity.</span>
-                                </div>
-                            </div>
-                        </div>
 
-                        <!-- William O'Neil 7-Factor CANSLIM Breakdown -->
-                        <div class="vcp-guide-sub-divider" style="border-top: 1px solid var(--border-glass, rgba(255, 255, 255, 0.08)); padding-top: 12px;">
-                            <div class="canslim-header" style="font-size: 11.5px; font-weight: 800; text-transform: uppercase; margin-bottom: 10px; letter-spacing: 0.5px;">⭐ WILLIAM O'NEIL 7-FACTOR CANSLIM SYSTEM BREAKDOWN</div>
-                            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 10px; font-size: 11px; line-height: 1.45;">
-                                <div class="canslim-guide-card">
-                                    <strong class="canslim-char-title">C &mdash; Current Quarterly Earnings</strong><br/>
-                                    <span class="canslim-char-desc">Requires EPS growth of &ge; 25% in the most recent quarter vs the same quarter prior year. Acceleration is key.</span>
+                                <!-- Mark Minervini VCP Superperformance Statistics -->
+                                <div class="vcp-guide-sub-divider" style="border-top: 1px solid var(--border-glass, rgba(255, 255, 255, 0.08)); padding-top: 12px; margin-bottom: 14px;">
+                                    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; margin-bottom: 10px;">
+                                        <div class="vcp-stat-header" style="font-size: 11.5px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; color: #38bdf8;">
+                                            🔥 MARK MINERVINI VCP SUPERPERFORMANCE STATISTICS & BREAKOUT RULES
+                                        </div>
+                                    </div>
+                                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 10px; font-size: 11px; line-height: 1.45;">
+                                        <div class="vcp-stat-card vcp-stat-blue" style="padding: 10px 12px; border-radius: 8px;">
+                                            <strong class="vcp-stat-title-blue" style="font-weight: 800;">🎯 60%–70% Breakout Win Rate</strong><br/>
+                                            <span class="vcp-stat-desc">60% to 70% of volume-confirmed VCP breakouts result in powerful price rallies in Stage 2 bull markets.</span>
+                                        </div>
+                                        <div class="vcp-stat-card vcp-stat-green" style="padding: 10px 12px; border-radius: 8px;">
+                                            <strong class="vcp-stat-title-green" style="font-weight: 800;">⚖️ 3:1+ Asymmetrical Risk-to-Reward</strong><br/>
+                                            <span class="vcp-stat-desc">Tight pivot entries limit risk to <strong>5%–8% stop-loss</strong> while targeting <strong>15% to 100%+ upside</strong>.</span>
+                                        </div>
+                                        <div class="vcp-stat-card vcp-stat-purple" style="padding: 10px 12px; border-radius: 8px;">
+                                            <strong class="vcp-stat-title-purple" style="font-weight: 800;">🔥 50%+ Superperformance Footprint</strong><br/>
+                                            <span class="vcp-stat-desc">Over 50% of annual 100%+ superperformance stocks form VCP bases prior to explosive moves.</span>
+                                        </div>
+                                    </div>
                                 </div>
-                                <div class="canslim-guide-card">
-                                    <strong class="canslim-char-title">A &mdash; Annual Earnings Growth</strong><br/>
-                                    <span class="canslim-char-desc">Requires compound annual earnings growth of &ge; 25% over the past 3 to 5 years, with ROE &ge; 17%.</span>
+
+                                <!-- Contraction Stages Breakdown (T1 to T6) -->
+                                <div class="vcp-guide-sub-divider" style="border-top: 1px solid var(--border-glass, rgba(255, 255, 255, 0.08)); padding-top: 12px; margin-bottom: 14px;">
+                                    <div class="vcp-stage-header" style="font-size: 11.5px; font-weight: 800; text-transform: uppercase; margin-bottom: 10px; letter-spacing: 0.5px;">📈 VCP CONTRACTION STAGES BREAKDOWN (T1 &rarr; T6)</div>
+                                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px; font-size: 11px; line-height: 1.4;">
+                                        <div class="vcp-stage-card">
+                                            <strong class="stage-title">⏳ FORMING T1</strong> (1 Wave)<br/>
+                                            <span class="stage-desc">Initial wide contraction off peak (e.g. -25% pullback). VCP is just starting.</span>
+                                        </div>
+                                        <div class="vcp-stage-card">
+                                            <strong class="stage-title">⏳ FORMING T2</strong> (2 Waves)<br/>
+                                            <span class="stage-desc">Secondary contraction tightening (e.g. -25% &rarr; -12%). Volatility shrinking.</span>
+                                        </div>
+                                        <div class="vcp-stage-card stage-highlight">
+                                            <strong class="stage-title">🎯 T3 CONTRACTION</strong> (3 Waves)<br/>
+                                            <span class="stage-desc">Optimal Minervini setup (-25% &rarr; -12% &rarr; -5%). Supply absorbed, ready for breakout.</span>
+                                        </div>
+                                        <div class="vcp-stage-card stage-highlight">
+                                            <strong class="stage-title-green">🚀 T4 / T5 / T6 ULTRA TIGHT</strong><br/>
+                                            <span class="stage-desc">Extreme supply lockup. Multi-stage contractions producing explosive breakout velocity.</span>
+                                        </div>
+                                    </div>
                                 </div>
-                                <div class="canslim-guide-card">
-                                    <strong class="canslim-char-title">N &mdash; New Products, Management, Highs</strong><br/>
-                                    <span class="canslim-char-desc">Demands a catalyst: new innovative products/services, new leadership, or stock breaking out to new 52-week high price levels.</span>
-                                </div>
-                                <div class="canslim-guide-card">
-                                    <strong class="canslim-char-title">S &mdash; Supply & Demand (Volume)</strong><br/>
-                                    <span class="canslim-char-desc">High volume demand on breakout days (&gt;125% to 200%+ of 50-day average volume) paired with low floating supply.</span>
-                                </div>
-                                <div class="canslim-guide-card">
-                                    <strong class="canslim-char-title">L &mdash; Leader vs Laggard (Relative Strength)</strong><br/>
-                                    <span class="canslim-char-desc">Stock must be a market leader with Relative Strength (RS) rating &ge; 80 (outperforming 80% of all stocks).</span>
-                                </div>
-                                <div class="canslim-guide-card">
-                                    <strong class="canslim-char-title">I &mdash; Institutional Sponsorship</strong><br/>
-                                    <span class="canslim-char-desc">Increasing ownership by top-performing mutual funds, FIIs, and DIIs over recent consecutive quarters.</span>
-                                </div>
-                                <div class="canslim-guide-card" style="grid-column: 1 / -1;">
-                                    <strong class="canslim-char-title">M &mdash; Market Direction</strong><br/>
-                                    <span class="canslim-char-desc">Investing in direction of confirmed market trend (Nifty 500 in confirmed rally / Stage 2 uptrend). 3 out of 4 stocks follow market direction.</span>
+
+                                <!-- William O'Neil 7-Factor CANSLIM Breakdown -->
+                                <div class="vcp-guide-sub-divider" style="border-top: 1px solid var(--border-glass, rgba(255, 255, 255, 0.08)); padding-top: 12px;">
+                                    <div class="canslim-header" style="font-size: 11.5px; font-weight: 800; text-transform: uppercase; margin-bottom: 10px; letter-spacing: 0.5px;">⭐ WILLIAM O'NEIL 7-FACTOR CANSLIM SYSTEM BREAKDOWN</div>
+                                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 10px; font-size: 11px; line-height: 1.45;">
+                                        <div class="canslim-guide-card">
+                                            <strong class="canslim-char-title">C &mdash; Current Quarterly Earnings</strong><br/>
+                                            <span class="canslim-char-desc">Requires EPS growth of &ge; 25% in the most recent quarter vs the same quarter prior year.</span>
+                                        </div>
+                                        <div class="canslim-guide-card">
+                                            <strong class="canslim-char-title">A &mdash; Annual Earnings Growth</strong><br/>
+                                            <span class="canslim-char-desc">Requires compound annual earnings growth of &ge; 25% over the past 3 to 5 years, with ROE &ge; 17%.</span>
+                                        </div>
+                                        <div class="canslim-guide-card">
+                                            <strong class="canslim-char-title">N &mdash; New Products, Management, Highs</strong><br/>
+                                            <span class="canslim-char-desc">Demands a catalyst: new innovative products/services, new leadership, or stock breaking out to new 52-week high price levels.</span>
+                                        </div>
+                                        <div class="canslim-guide-card">
+                                            <strong class="canslim-char-title">S &mdash; Supply & Demand (Volume)</strong><br/>
+                                            <span class="canslim-char-desc">High volume demand on breakout days (&gt;125% to 200%+ of 50-day average volume) paired with low floating supply.</span>
+                                        </div>
+                                        <div class="canslim-guide-card">
+                                            <strong class="canslim-char-title">L &mdash; Leader vs Laggard (Relative Strength)</strong><br/>
+                                            <span class="canslim-char-desc">Stock must be a market leader with Relative Strength (RS) rating &ge; 80 (outperforming 80% of all stocks).</span>
+                                        </div>
+                                        <div class="canslim-guide-card">
+                                            <strong class="canslim-char-title">I &mdash; Institutional Sponsorship</strong><br/>
+                                            <span class="canslim-char-desc">Increasing ownership by top-performing mutual funds, FIIs, and DIIs over recent consecutive quarters.</span>
+                                        </div>
+                                        <div class="canslim-guide-card" style="grid-column: 1 / -1;">
+                                            <strong class="canslim-char-title">M &mdash; Market Direction</strong><br/>
+                                            <span class="canslim-char-desc">Investing in direction of confirmed market trend (Nifty 500 in confirmed rally / Stage 2 uptrend). 3 out of 4 stocks follow market direction.</span>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
-                        </div>
+                        </details>
                     </div>
 
                     <!-- Search Controls Bar -->
@@ -2953,23 +3281,123 @@
                     </div>
 
                     <!-- Collapsible Weinstein Strategy & Attributes Guide Banner -->
-                    <div id="weinstein-guide-banner" class="vcp-guide-banner" style="display: none; margin-bottom: 20px; border-radius: 12px; padding: 16px 20px;">
-                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-                            <strong style="font-size: 14px; font-weight: 800; color: #38bdf8;">📈 Stan Weinstein Stage 2 Strategy & Attribute Definitions</strong>
-                            <button onclick="document.getElementById('weinstein-guide-banner').style.display='none'" style="background: none; border: none; cursor: pointer; font-size: 15px; color: #94a3b8;">✕</button>
+                    <div id="weinstein-guide-banner" class="screener-guide-banner-v5" style="display: none; --guide-accent-gradient: linear-gradient(180deg, #38bdf8, #0284c7); border-color: rgba(56, 189, 248, 0.3);">
+                        <div class="guide-v5-header">
+                            <div class="guide-v5-title-group">
+                                <div class="guide-v5-icon" style="background: rgba(56, 189, 248, 0.12); border-color: rgba(56, 189, 248, 0.3);">📈</div>
+                                <div>
+                                    <h3 class="guide-v5-title">Stan Weinstein Stage 2 Breakout Strategy Guide</h3>
+                                    <div class="guide-v5-subtitle">30-Week Moving Average Structural Trend Analysis System</div>
+                                </div>
+                            </div>
+                            <div style="display: flex; align-items: center; gap: 12px;">
+                                <div style="font-size: 11.5px; color: #38bdf8; background: rgba(56, 189, 248, 0.1); border: 1px solid rgba(56, 189, 248, 0.25); padding: 4px 12px; border-radius: 20px; font-weight: 700;">
+                                    Stage Analysis Framework
+                                </div>
+                                <button class="guide-v5-close-btn" onclick="document.getElementById('weinstein-guide-banner').style.display='none'">✕</button>
+                            </div>
                         </div>
-                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 10px; font-size: 11.5px; line-height: 1.45;">
-                            <div style="background: rgba(30,41,59,0.5); padding: 10px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.06);">
-                                <strong style="color: #38bdf8;">Price &gt; 150-Day SMA</strong>: Price must trade strictly above its 30-week (150-day) moving average.
+
+                        <div class="guide-v5-grid">
+                            <!-- COLUMN 1: SVG DIAGRAM -->
+                            <div class="guide-v5-card">
+                                <div class="guide-v5-card-header" style="color: #38bdf8;">
+                                    <span>📈 4-Stage Lifecycle & 30W SMA Structure</span>
+                                </div>
+                                <div class="guide-v5-svg-container">
+                                    <div class="guide-v5-legend">
+                                        <div class="guide-v5-legend-item"><div class="guide-v5-legend-dot" style="background: #38bdf8;"></div> Price Curve</div>
+                                        <div class="guide-v5-legend-item"><div class="guide-v5-legend-dot" style="background: #c084fc;"></div> 30W (150D) SMA</div>
+                                        <div class="guide-v5-legend-item"><div class="guide-v5-legend-dot" style="background: #34d399;"></div> Stage 2 Breakout</div>
+                                    </div>
+                                    <svg viewBox="0 0 440 200" width="100%" height="180" style="background: #030712; border-radius: 6px;">
+                                        <line x1="0" y1="60" x2="440" y2="60" stroke="rgba(255,255,255,0.03)" stroke-dasharray="3,3" />
+                                        <line x1="0" y1="120" x2="440" y2="120" stroke="rgba(255,255,255,0.03)" stroke-dasharray="3,3" />
+
+                                        <!-- 30-Week SMA Line (Purple) -->
+                                        <path d="M 10,135 L 120,135 Q 200,130 280,95 T 430,45" fill="none" stroke="#c084fc" stroke-width="2" stroke-dasharray="4,2" />
+                                        <text x="360" y="72" fill="#c084fc" font-size="8.5" font-weight="700">30-WEEK SMA</text>
+
+                                        <!-- Stage 1 Base Construction (Gray/Flat) -->
+                                        <path d="M 10,140 L 40,128 L 70,142 L 100,130 L 130,138 L 160,126" fill="none" stroke="#94a3b8" stroke-width="1.8" />
+                                        <text x="60" y="155" fill="#94a3b8" font-size="9" font-weight="700">STAGE 1 BASE</text>
+
+                                        <!-- Resistance Line (Green Dashed) -->
+                                        <line x1="100" y1="125" x2="220" y2="125" stroke="#34d399" stroke-width="1.5" stroke-dasharray="4,4" />
+                                        <text x="130" y="118" fill="#34d399" font-size="8.5" font-weight="700">RESISTANCE</text>
+
+                                        <!-- Stage 2 Breakout Surge (Green & Blue) -->
+                                        <path d="M 160,126 L 190,100 L 220,105 L 260,70 L 300,75 L 350,45 L 420,30" fill="none" stroke="#38bdf8" stroke-width="2.5" />
+                                        <circle cx="190" cy="100" r="5" fill="#34d399" />
+                                        <text x="200" y="94" fill="#34d399" font-size="9.5" font-weight="800">STAGE 2 BREAKOUT 🚀</text>
+
+                                        <!-- Volume Bars -->
+                                        <rect x="20" y="175" width="8" height="10" fill="rgba(148, 163, 184, 0.3)" />
+                                        <rect x="50" y="172" width="8" height="13" fill="rgba(148, 163, 184, 0.3)" />
+                                        <rect x="80" y="176" width="8" height="9" fill="rgba(148, 163, 184, 0.3)" />
+                                        <rect x="110" y="174" width="8" height="11" fill="rgba(148, 163, 184, 0.3)" />
+                                        <rect x="140" y="178" width="8" height="7" fill="rgba(148, 163, 184, 0.2)" />
+                                        
+                                        <!-- Massive Breakout Vol Surge Bar -->
+                                        <rect x="184" y="135" width="12" height="50" fill="#34d399" />
+                                        <text x="202" y="146" fill="#34d399" font-size="8.5" font-weight="800">1.5x+ Vol Surge</text>
+
+                                        <!-- Follow through Volume -->
+                                        <rect x="220" y="155" width="8" height="30" fill="rgba(52, 211, 153, 0.5)" />
+                                        <rect x="260" y="160" width="8" height="25" fill="rgba(52, 211, 153, 0.5)" />
+                                        <rect x="300" y="150" width="8" height="35" fill="rgba(52, 211, 153, 0.6)" />
+                                    </svg>
+                                </div>
                             </div>
-                            <div style="background: rgba(30,41,59,0.5); padding: 10px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.06);">
-                                <strong style="color: #38bdf8;">30-Week SMA Slope &gt; 0</strong>: Moving average slope must be positive over the past 20 sessions (upward angle).
+
+                            <!-- COLUMN 2: CASE STUDY -->
+                            <div class="guide-v5-card">
+                                <div class="guide-v5-card-header" style="color: #34d399;">
+                                    <span>🇮🇳 Real NSE Stock Case Study</span>
+                                </div>
+                                <div style="font-size: 13px; font-weight: 800; color: #ffffff; display: flex; align-items: center; justify-content: space-between;">
+                                    <span>TRENT.NS <span style="font-size: 11px; color: var(--text-muted); font-weight: 500;">Trent Ltd.</span></span>
+                                    <span style="background: rgba(56, 189, 248, 0.15); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.3); padding: 2px 7px; border-radius: 4px; font-size: 10px; font-weight: 800;">🚀 STAGE 2 BREAKOUT</span>
+                                </div>
+                                <div class="guide-v5-metric-row">
+                                    <span class="guide-v5-metric-label">Current Stock Price</span>
+                                    <span class="guide-v5-metric-val" style="color: #38bdf8;">₹6,420 (+1.52%)</span>
+                                </div>
+                                <div class="guide-v5-metric-row">
+                                    <span class="guide-v5-metric-label">150-Day (30W) SMA</span>
+                                    <span class="guide-v5-metric-val" style="color: #c084fc;">₹5,880</span>
+                                </div>
+                                <div class="guide-v5-metric-row">
+                                    <span class="guide-v5-metric-label">Dist from 30W SMA %</span>
+                                    <span class="guide-v5-metric-val" style="color: #34d399;">+9.18% Above SMA</span>
+                                </div>
+                                <div class="guide-v5-metric-row">
+                                    <span class="guide-v5-metric-label">30W SMA Slope Angle</span>
+                                    <span class="guide-v5-metric-val" style="color: #34d399;">+1.8% / week (Upward)</span>
+                                </div>
+                                <div class="guide-v5-metric-row">
+                                    <span class="guide-v5-metric-label">Mansfield Relative Strength</span>
+                                    <span class="guide-v5-metric-val" style="color: #38bdf8;">+0.45 (Above Zero)</span>
+                                </div>
+                                <div class="guide-v5-metric-row">
+                                    <span class="guide-v5-metric-label">RS Rating vs Nifty 500</span>
+                                    <span class="guide-v5-metric-val" style="color: #34d399;">85 (Top 15%)</span>
+                                </div>
                             </div>
-                            <div style="background: rgba(30,41,59,0.5); padding: 10px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.06);">
-                                <strong style="color: #38bdf8;">Relative Strength (RS) &ge; 70</strong>: Stock's 12-month performance relative to Nifty 500 benchmark must be in top 30 percentile.
-                            </div>
-                            <div style="background: rgba(30,41,59,0.5); padding: 10px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.06);">
-                                <strong style="color: #38bdf8;">Volume Surge</strong>: Breakouts require &gt;1.5x average volume expansion on breakout bar.
+
+                            <!-- COLUMN 3: HARD QUANT CRITERIA -->
+                            <div class="guide-v5-card">
+                                <div class="guide-v5-card-header" style="color: #38bdf8;">
+                                    <span>⚙️ Hard Institutional Quant Criteria</span>
+                                </div>
+                                <ul class="guide-v5-rules-list">
+                                    <li><strong>Price Above 30W SMA:</strong> Price strictly above 150-day (30-week) simple moving average.</li>
+                                    <li><strong>Positive SMA Slope:</strong> 30-week SMA slope &gt; 0 over prior 20 sessions (active upward trend).</li>
+                                    <li><strong>Relative Strength Threshold:</strong> RS Rating &ge; 70 outperforming top 30% of Nifty 500.</li>
+                                    <li><strong>Breakout Volume Surge:</strong> Volume expansion &ge; 1.5x 50-day average volume on breakout bar.</li>
+                                    <li><strong>Mansfield RS Alignment:</strong> Mansfield Relative Strength &gt; 0 (outperforming market index).</li>
+                                    <li><strong>Stage 3 Exit Signal:</strong> Slope flattening with distribution days signals Stage 3 top.</li>
+                                </ul>
                             </div>
                         </div>
                     </div>
@@ -3085,23 +3513,136 @@
                     </div>
 
                     <!-- Collapsible HTF Strategy & Attributes Guide Banner -->
-                    <div id="htf-guide-banner" class="vcp-guide-banner" style="display: none; margin-bottom: 20px; border-radius: 12px; padding: 16px 20px;">
-                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-                            <strong style="font-size: 14px; font-weight: 800; color: #c084fc;">🚀 High-Tight Flag Strategy & Attribute Definitions</strong>
-                            <button onclick="document.getElementById('htf-guide-banner').style.display='none'" style="background: none; border: none; cursor: pointer; font-size: 15px; color: #94a3b8;">✕</button>
+                    <div id="htf-guide-banner" class="screener-guide-banner-v5" style="display: none; --guide-accent-gradient: linear-gradient(180deg, #c084fc, #9333ea); border-color: rgba(192, 132, 252, 0.3);">
+                        <div class="guide-v5-header">
+                            <div class="guide-v5-title-group">
+                                <div class="guide-v5-icon" style="background: rgba(192, 132, 252, 0.12); border-color: rgba(192, 132, 252, 0.3);">🚩</div>
+                                <div>
+                                    <h3 class="guide-v5-title">David Ryan High-Tight Flag Strategy Guide</h3>
+                                    <div class="guide-v5-subtitle">Explosive Momentum Continuation — Rare Superperformance Pattern</div>
+                                </div>
+                            </div>
+                            <div style="display: flex; align-items: center; gap: 12px;">
+                                <div style="font-size: 11.5px; color: #c084fc; background: rgba(192, 132, 252, 0.1); border: 1px solid rgba(192, 132, 252, 0.25); padding: 4px 12px; border-radius: 20px; font-weight: 700;">
+                                    Rare High-Power Pattern
+                                </div>
+                                <button class="guide-v5-close-btn" onclick="document.getElementById('htf-guide-banner').style.display='none'">✕</button>
+                            </div>
                         </div>
-                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 10px; font-size: 11.5px; line-height: 1.45;">
-                            <div style="background: rgba(30,41,59,0.5); padding: 10px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.06);">
-                                <strong style="color: #c084fc;">Power Pole Gain (+100%+)</strong>: Explosive price advance doubling in price within 4 to 8 weeks.
+
+                        <div class="guide-v5-grid">
+                            <!-- COLUMN 1: SVG DIAGRAM -->
+                            <div class="guide-v5-card">
+                                <div class="guide-v5-card-header" style="color: #c084fc;">
+                                    <span>📈 High-Tight Flag Structure (+100%+ Pole & Flag)</span>
+                                </div>
+                                <div class="guide-v5-svg-container">
+                                    <div class="guide-v5-legend">
+                                        <div class="guide-v5-legend-item"><div class="guide-v5-legend-dot" style="background: #38bdf8;"></div> Flagpole Surge</div>
+                                        <div class="guide-v5-legend-item"><div class="guide-v5-legend-dot" style="background: #c084fc;"></div> Tight Flag Base</div>
+                                        <div class="guide-v5-legend-item"><div class="guide-v5-legend-dot" style="background: #34d399;"></div> Flag Breakout</div>
+                                    </div>
+                                    <svg viewBox="0 0 440 200" width="100%" height="180" style="background: #030712; border-radius: 6px;">
+                                        <line x1="0" y1="50" x2="440" y2="50" stroke="rgba(255,255,255,0.03)" stroke-dasharray="3,3" />
+                                        <line x1="0" y1="120" x2="440" y2="120" stroke="rgba(255,255,255,0.03)" stroke-dasharray="3,3" />
+
+                                        <!-- Steep Flagpole Surge (+100%+ in 4-8 weeks) -->
+                                        <path d="M 10,165 L 140,40" fill="none" stroke="#38bdf8" stroke-width="3" />
+                                        <text x="45" y="90" fill="#38bdf8" font-size="9.5" font-weight="900" transform="rotate(-40, 45, 90)">FLAGPOLE (+115% SURGE)</text>
+
+                                        <!-- Flag Channel Box (Purple Dashed Lines) -->
+                                        <line x1="140" y1="40" x2="280" y2="60" stroke="#c084fc" stroke-width="1.5" stroke-dasharray="3,3" />
+                                        <line x1="140" y1="65" x2="280" y2="85" stroke="#c084fc" stroke-width="1.5" stroke-dasharray="3,3" />
+
+                                        <!-- Price Action Inside Flag Base (-18% depth) -->
+                                        <path d="M 140,40 L 170,62 L 200,48 L 230,65 L 260,52 L 280,58" fill="none" stroke="#c084fc" stroke-width="2" />
+                                        <text x="180" y="76" fill="#c084fc" font-size="8.5" font-weight="700">Flag Depth: -18% (Tight)</text>
+
+                                        <!-- Buy Pivot Line (Green Dashed) -->
+                                        <line x1="260" y1="40" x2="430" y2="40" stroke="#34d399" stroke-width="1.5" stroke-dasharray="4,4" />
+                                        <text x="320" y="34" fill="#34d399" font-size="9" font-weight="700">PIVOT BUY: ₹8,450</text>
+
+                                        <!-- Stop Loss Line (Red Dashed) -->
+                                        <line x1="260" y1="85" x2="430" y2="85" stroke="#f87171" stroke-width="1.5" stroke-dasharray="4,4" />
+                                        <text x="320" y="97" fill="#f87171" font-size="9" font-weight="700">STOP LOSS: ₹7,380 (-12.7%)</text>
+
+                                        <!-- Flag Breakout Candle Surge -->
+                                        <path d="M 280,58 L 310,30" fill="none" stroke="#34d399" stroke-width="3.5" />
+                                        <path d="M 310,30 L 370,20 L 430,15" fill="none" stroke="#34d399" stroke-width="2" />
+                                        <circle cx="280" cy="58" r="4" fill="#34d399" />
+
+                                        <!-- Volume Bars -->
+                                        <!-- Massive Flagpole Volume -->
+                                        <rect x="30" y="140" width="10" height="45" fill="rgba(56, 189, 248, 0.7)" />
+                                        <rect x="60" y="130" width="10" height="55" fill="rgba(56, 189, 248, 0.8)" />
+                                        <rect x="90" y="135" width="10" height="50" fill="rgba(56, 189, 248, 0.8)" />
+                                        <rect x="120" y="125" width="10" height="60" fill="rgba(56, 189, 248, 0.9)" />
+
+                                        <!-- Flag Volume Contraction (VDU) -->
+                                        <rect x="160" y="180" width="8" height="5" fill="rgba(248, 113, 113, 0.3)" />
+                                        <rect x="190" y="182" width="8" height="3" fill="rgba(248, 113, 113, 0.2)" />
+                                        <rect x="220" y="181" width="8" height="4" fill="rgba(248, 113, 113, 0.2)" />
+                                        <rect x="250" y="183" width="8" height="2" fill="rgba(248, 113, 113, 0.2)" />
+                                        <text x="180" y="172" fill="#c084fc" font-size="8" font-weight="700">Flag VDU (0.55x)</text>
+
+                                        <!-- Breakout Volume Surge (Green) -->
+                                        <rect x="276" y="130" width="12" height="55" fill="#34d399" />
+                                    </svg>
+                                </div>
                             </div>
-                            <div style="background: rgba(30,41,59,0.5); padding: 10px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.06);">
-                                <strong style="color: #c084fc;">Flag Pullback Depth (&le; 25%)</strong>: Tight consolidation depth from peak level without giving up major gains.
+
+                            <!-- COLUMN 2: CASE STUDY -->
+                            <div class="guide-v5-card">
+                                <div class="guide-v5-card-header" style="color: #34d399;">
+                                    <span>🇮🇳 Real NSE Stock Case Study</span>
+                                </div>
+                                <div style="font-size: 13px; font-weight: 800; color: #ffffff; display: flex; align-items: center; justify-content: space-between;">
+                                    <span>TATAELXSI.NS <span style="font-size: 11px; color: var(--text-muted); font-weight: 500;">Tata Elxsi</span></span>
+                                    <span style="background: rgba(192, 132, 252, 0.15); color: #c084fc; border: 1px solid rgba(192, 132, 252, 0.3); padding: 2px 7px; border-radius: 4px; font-size: 10px; font-weight: 800;">🚩 HTF POWER FLAG</span>
+                                </div>
+                                <div class="guide-v5-metric-row">
+                                    <span class="guide-v5-metric-label">Current Stock Price</span>
+                                    <span class="guide-v5-metric-val" style="color: #38bdf8;">₹8,240 (+4.15%)</span>
+                                </div>
+                                <div class="guide-v5-metric-row">
+                                    <span class="guide-v5-metric-label">Pole Advance Gain</span>
+                                    <span class="guide-v5-metric-val" style="color: #34d399;">+115% in 6 Weeks</span>
+                                </div>
+                                <div class="guide-v5-metric-row">
+                                    <span class="guide-v5-metric-label">Flag Pullback Depth</span>
+                                    <span class="guide-v5-metric-val" style="color: #c084fc;">-18% (Tight Consolidation)</span>
+                                </div>
+                                <div class="guide-v5-metric-row">
+                                    <span class="guide-v5-metric-label">Flag Consolidation Duration</span>
+                                    <span class="guide-v5-metric-val" style="color: var(--text-muted);">3 Weeks</span>
+                                </div>
+                                <div class="guide-v5-metric-row">
+                                    <span class="guide-v5-metric-label">Volume Contraction (VDU)</span>
+                                    <span class="guide-v5-metric-val" style="color: #34d399;">0.55x in Flag Base</span>
+                                </div>
+                                <div class="guide-v5-metric-row">
+                                    <span class="guide-v5-metric-label">Pivot Buy Entry</span>
+                                    <span class="guide-v5-metric-val" style="color: #38bdf8;">₹8,450 (Flag High)</span>
+                                </div>
+                                <div class="guide-v5-metric-row">
+                                    <span class="guide-v5-metric-label">Stop-Loss Placement</span>
+                                    <span class="guide-v5-metric-val" style="color: #f87171;">₹7,380 (-12.7%)</span>
+                                </div>
                             </div>
-                            <div style="background: rgba(30,41,59,0.5); padding: 10px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.06);">
-                                <strong style="color: #c084fc;">Flag Duration (3 - 5 Weeks)</strong>: Consolidation period lasting 15 to 25 trading sessions.
-                            </div>
-                            <div style="background: rgba(30,41,59,0.5); padding: 10px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.06);">
-                                <strong style="color: #c084fc;">Volume Dry-Up (VDU &le; 0.8x)</strong>: Trading volume shrinks dramatically during flag base creation.
+
+                            <!-- COLUMN 3: HARD QUANT CRITERIA -->
+                            <div class="guide-v5-card">
+                                <div class="guide-v5-card-header" style="color: #c084fc;">
+                                    <span>⚙️ Hard Institutional Quant Criteria</span>
+                                </div>
+                                <ul class="guide-v5-rules-list">
+                                    <li><strong>Flagpole Surge:</strong> Minimum +100% price advance within &le;8 weeks (2 months).</li>
+                                    <li><strong>Flag Pullback Depth:</strong> Tight consolidation strictly -10% to -25% max from pole peak.</li>
+                                    <li><strong>Flag Duration:</strong> 3-5 weeks of tight horizontal price consolidation.</li>
+                                    <li><strong>Volume Contraction:</strong> Volume dries up during flag (VDU &le; 0.6x 50d avg), expands &ge;2x on breakout.</li>
+                                    <li><strong>Relative Strength Leadership:</strong> RS Rating &ge; 85 (top 15% market outperformance).</li>
+                                    <li><strong>Rare Superperformance Pattern:</strong> Found in only 1-2% of stocks, producing fastest upside velocity.</li>
+                                </ul>
                             </div>
                         </div>
                     </div>
@@ -3219,23 +3760,141 @@
                     </div>
 
                     <!-- Collapsible 3WT Strategy & Attributes Guide Banner -->
-                    <div id="three-wt-guide-banner" class="vcp-guide-banner" style="display: none; margin-bottom: 20px; border-radius: 12px; padding: 16px 20px;">
-                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-                            <strong style="font-size: 14px; font-weight: 800; color: #2dd4bf;">🎯 3-Weeks Tight Strategy & Attribute Definitions</strong>
-                            <button onclick="document.getElementById('three-wt-guide-banner').style.display='none'" style="background: none; border: none; cursor: pointer; font-size: 15px; color: #94a3b8;">✕</button>
+                    <div id="three-wt-guide-banner" class="screener-guide-banner-v5" style="display: none; --guide-accent-gradient: linear-gradient(180deg, #2dd4bf, #0d9488); border-color: rgba(45, 212, 191, 0.3);">
+                        <div class="guide-v5-header">
+                            <div class="guide-v5-title-group">
+                                <div class="guide-v5-icon" style="background: rgba(45, 212, 191, 0.12); border-color: rgba(45, 212, 191, 0.3);">🔒</div>
+                                <div>
+                                    <h3 class="guide-v5-title">William O'Neil 3-Weeks Tight Strategy Guide</h3>
+                                    <div class="guide-v5-subtitle">Institutional Accumulation Consolidation — Tight Weekly Close Pattern</div>
+                                </div>
+                            </div>
+                            <div style="display: flex; align-items: center; gap: 12px;">
+                                <div style="font-size: 11.5px; color: #2dd4bf; background: rgba(45, 212, 191, 0.1); border: 1px solid rgba(45, 212, 191, 0.25); padding: 4px 12px; border-radius: 20px; font-weight: 700;">
+                                    Tight Base Continuation
+                                </div>
+                                <button class="guide-v5-close-btn" onclick="document.getElementById('three-wt-guide-banner').style.display='none'">✕</button>
+                            </div>
                         </div>
-                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 10px; font-size: 11.5px; line-height: 1.45;">
-                            <div style="background: rgba(30,41,59,0.5); padding: 10px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.06);">
-                                <strong style="color: #2dd4bf;">3 Consecutive Weekly Closes</strong>: Close price variation over 3 consecutive weeks is &le; 2.0%.
+
+                        <div class="guide-v5-grid">
+                            <!-- COLUMN 1: SVG DIAGRAM -->
+                            <div class="guide-v5-card">
+                                <div class="guide-v5-card-header" style="color: #2dd4bf;">
+                                    <span>📈 3-Weeks Tight Closing Compression</span>
+                                </div>
+                                <div class="guide-v5-svg-container">
+                                    <div class="guide-v5-legend">
+                                        <div class="guide-v5-legend-item"><div class="guide-v5-legend-dot" style="background: #38bdf8;"></div> Weekly Closes</div>
+                                        <div class="guide-v5-legend-item"><div class="guide-v5-legend-dot" style="background: #2dd4bf;"></div> Tight Close Band</div>
+                                        <div class="guide-v5-legend-item"><div class="guide-v5-legend-dot" style="background: #34d399;"></div> Breakout Candle</div>
+                                    </div>
+                                    <svg viewBox="0 0 440 200" width="100%" height="180" style="background: #030712; border-radius: 6px;">
+                                        <line x1="0" y1="50" x2="440" y2="50" stroke="rgba(255,255,255,0.03)" stroke-dasharray="3,3" />
+                                        <line x1="0" y1="120" x2="440" y2="120" stroke="rgba(255,255,255,0.03)" stroke-dasharray="3,3" />
+
+                                        <!-- Prior Advance (+20%+) -->
+                                        <path d="M 10,150 L 100,70" fill="none" stroke="#38bdf8" stroke-width="2.5" />
+
+                                        <!-- Tight Weekly Closing Compression Band (Teal Shaded Zone) -->
+                                        <rect x="100" y="65" width="180" height="15" fill="rgba(45, 212, 191, 0.15)" stroke="#2dd4bf" stroke-dasharray="3,3" rx="4" />
+                                        <text x="190" y="58" fill="#2dd4bf" font-size="8.5" font-weight="800" text-anchor="middle">1.16% Tight Weekly Close Band</text>
+
+                                        <!-- Week 1 Candle & Close Dot -->
+                                        <line x1="130" y1="58" x2="130" y2="82" stroke="#cbd5e1" stroke-width="1.5" />
+                                        <circle cx="130" cy="72" r="4" fill="#2dd4bf" />
+                                        <text x="130" y="94" fill="#94a3b8" font-size="8" text-anchor="middle">W1: ₹291.5</text>
+
+                                        <!-- Week 2 Candle & Close Dot -->
+                                        <line x1="180" y1="60" x2="180" y2="80" stroke="#cbd5e1" stroke-width="1.5" />
+                                        <circle cx="180" cy="70" r="4" fill="#2dd4bf" />
+                                        <text x="180" y="94" fill="#94a3b8" font-size="8" text-anchor="middle">W2: ₹293.2</text>
+
+                                        <!-- Week 3 Candle & Close Dot -->
+                                        <line x1="230" y1="62" x2="230" y2="78" stroke="#cbd5e1" stroke-width="1.5" />
+                                        <circle cx="230" cy="71" r="4" fill="#2dd4bf" />
+                                        <text x="230" y="94" fill="#94a3b8" font-size="8" text-anchor="middle">W3: ₹292.8</text>
+
+                                        <!-- Buy Pivot Line (Green Dashed) -->
+                                        <line x1="240" y1="65" x2="430" y2="65" stroke="#34d399" stroke-width="1.5" stroke-dasharray="4,4" />
+                                        <text x="320" y="58" fill="#34d399" font-size="9" font-weight="700">PIVOT BUY: ₹298.00</text>
+
+                                        <!-- Stop Loss Line (Red Dashed) -->
+                                        <line x1="240" y1="110" x2="430" y2="110" stroke="#f87171" stroke-width="1.5" stroke-dasharray="4,4" />
+                                        <text x="320" y="122" fill="#f87171" font-size="9" font-weight="700">STOP LOSS: ₹280.50 (-5.9%)</text>
+
+                                        <!-- Breakout Candle -->
+                                        <path d="M 280,70 L 320,40" fill="none" stroke="#34d399" stroke-width="3.5" />
+                                        <path d="M 320,40 L 420,25" fill="none" stroke="#34d399" stroke-width="2" />
+                                        <circle cx="280" cy="70" r="4" fill="#34d399" />
+
+                                        <!-- Volume Bars -->
+                                        <rect x="20" y="165" width="8" height="20" fill="rgba(56, 189, 248, 0.4)" />
+                                        <rect x="60" y="150" width="8" height="35" fill="rgba(56, 189, 248, 0.5)" />
+                                        <!-- 3WT VDU -->
+                                        <rect x="126" y="178" width="8" height="7" fill="rgba(45, 212, 191, 0.3)" />
+                                        <rect x="176" y="180" width="8" height="5" fill="rgba(45, 212, 191, 0.3)" />
+                                        <rect x="226" y="181" width="8" height="4" fill="rgba(45, 212, 191, 0.3)" />
+                                        <text x="180" y="168" fill="#2dd4bf" font-size="8" font-weight="700">3WT VDU Dry-Up</text>
+
+                                        <!-- Breakout Volume Surge -->
+                                        <rect x="276" y="135" width="10" height="50" fill="#34d399" />
+                                    </svg>
+                                </div>
                             </div>
-                            <div style="background: rgba(30,41,59,0.5); padding: 10px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.06);">
-                                <strong style="color: #2dd4bf;">Stage 2 Trend Context</strong>: Price must sit cleanly above 50 EMA and 200 EMA.
+
+                            <!-- COLUMN 2: CASE STUDY -->
+                            <div class="guide-v5-card">
+                                <div class="guide-v5-card-header" style="color: #34d399;">
+                                    <span>🇮🇳 Real NSE Stock Case Study</span>
+                                </div>
+                                <div style="font-size: 13px; font-weight: 800; color: #ffffff; display: flex; align-items: center; justify-content: space-between;">
+                                    <span>BEL.NS <span style="font-size: 11px; color: var(--text-muted); font-weight: 500;">Bharat Electronics</span></span>
+                                    <span style="background: rgba(45, 212, 191, 0.15); color: #2dd4bf; border: 1px solid rgba(45, 212, 191, 0.3); padding: 2px 7px; border-radius: 4px; font-size: 10px; font-weight: 800;">🔒 3-WEEKS TIGHT</span>
+                                </div>
+                                <div class="guide-v5-metric-row">
+                                    <span class="guide-v5-metric-label">Current Stock Price</span>
+                                    <span class="guide-v5-metric-val" style="color: #38bdf8;">₹295.40 (+1.22%)</span>
+                                </div>
+                                <div class="guide-v5-metric-row">
+                                    <span class="guide-v5-metric-label">Week 1 Close Price</span>
+                                    <span class="guide-v5-metric-val" style="color: var(--text-muted);">₹291.50</span>
+                                </div>
+                                <div class="guide-v5-metric-row">
+                                    <span class="guide-v5-metric-label">Week 2 Close Price</span>
+                                    <span class="guide-v5-metric-val" style="color: var(--text-muted);">₹293.20</span>
+                                </div>
+                                <div class="guide-v5-metric-row">
+                                    <span class="guide-v5-metric-label">Week 3 Close Price</span>
+                                    <span class="guide-v5-metric-val" style="color: var(--text-muted);">₹292.80</span>
+                                </div>
+                                <div class="guide-v5-metric-row">
+                                    <span class="guide-v5-metric-label">Weekly Range Spread %</span>
+                                    <span class="guide-v5-metric-val" style="color: #2dd4bf;">1.16% (Ultra-Tight)</span>
+                                </div>
+                                <div class="guide-v5-metric-row">
+                                    <span class="guide-v5-metric-label">Pivot Buy Entry</span>
+                                    <span class="guide-v5-metric-val" style="color: #38bdf8;">₹298.00 (3WT High)</span>
+                                </div>
+                                <div class="guide-v5-metric-row">
+                                    <span class="guide-v5-metric-label">Stop-Loss Placement</span>
+                                    <span class="guide-v5-metric-val" style="color: #f87171;">₹280.50 (-5.9%)</span>
+                                </div>
                             </div>
-                            <div style="background: rgba(30,41,59,0.5); padding: 10px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.06);">
-                                <strong style="color: #2dd4bf;">Institutional Hold</strong>: Institutional buyers refuse to sell below the tight range.
-                            </div>
-                            <div style="background: rgba(30,41,59,0.5); padding: 10px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.06);">
-                                <strong style="color: #2dd4bf;">Breakout Buy Pivot</strong>: Buy trigger level set above the highest price of the 3-week tight range.
+
+                            <!-- COLUMN 3: HARD QUANT CRITERIA -->
+                            <div class="guide-v5-card">
+                                <div class="guide-v5-card-header" style="color: #2dd4bf;">
+                                    <span>⚙️ Hard Institutional Quant Criteria</span>
+                                </div>
+                                <ul class="guide-v5-rules-list">
+                                    <li><strong>3 Tight Weekly Closes:</strong> 3 consecutive weekly closes within 1.0%–1.5% of each other.</li>
+                                    <li><strong>Maximum Close Spread:</strong> Close price variation across all 3 weeks must not exceed 1.5%.</li>
+                                    <li><strong>Volume Dry-Up:</strong> Volume must contract (dry up) during the 3-week consolidation base.</li>
+                                    <li><strong>Prior Advance Context:</strong> Minimum +20% move prior to entering the 3WT consolidation.</li>
+                                    <li><strong>Moving Average Stack:</strong> Price &gt; 10 EMA &gt; 20 EMA &gt; 50 SMA (bullish trend stack).</li>
+                                    <li><strong>Breakout Confirmation:</strong> Single-day breakout volume strictly &ge; 1.4x 50-day average.</li>
+                                </ul>
                             </div>
                         </div>
                     </div>
@@ -3346,26 +4005,132 @@
                     </div>
 
                     <!-- Collapsible Flat Base Strategy & Attributes Guide Banner -->
-                    <div id="flatbase-guide-banner" class="vcp-guide-banner" style="display: none; margin-bottom: 20px; border-radius: 12px; padding: 16px 20px;">
-                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-                            <strong style="font-size: 14px; font-weight: 800; color: #34d399;">📦 William O'Neil & Dan Zanger Flat Base Strategy & Rules</strong>
-                            <button onclick="document.getElementById('flatbase-guide-banner').style.display='none'" style="background: none; border: none; cursor: pointer; font-size: 15px; color: #94a3b8;">✕</button>
+                    <div id="flatbase-guide-banner" class="screener-guide-banner-v5" style="display: none; --guide-accent-gradient: linear-gradient(180deg, #60a5fa, #2563eb); border-color: rgba(96, 165, 250, 0.3);">
+                        <div class="guide-v5-header">
+                            <div class="guide-v5-title-group">
+                                <div class="guide-v5-icon" style="background: rgba(96, 165, 250, 0.12); border-color: rgba(96, 165, 250, 0.3);">📏</div>
+                                <div>
+                                    <h3 class="guide-v5-title">Modern Flat Base Breakout Strategy Guide</h3>
+                                    <div class="guide-v5-subtitle">Low-Volatility Horizontal Consolidation — Institutional Supply Absorption</div>
+                                </div>
+                            </div>
+                            <div style="display: flex; align-items: center; gap: 12px;">
+                                <div style="font-size: 11.5px; color: #60a5fa; background: rgba(96, 165, 250, 0.1); border: 1px solid rgba(96, 165, 250, 0.25); padding: 4px 12px; border-radius: 20px; font-weight: 700;">
+                                    Horizontal Base Pattern
+                                </div>
+                                <button class="guide-v5-close-btn" onclick="document.getElementById('flatbase-guide-banner').style.display='none'">✕</button>
+                            </div>
                         </div>
-                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 10px; font-size: 11.5px; line-height: 1.45;">
-                            <div style="background: rgba(30,41,59,0.5); padding: 10px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.06);">
-                                <strong style="color: #34d399;">Base Length (4–15 Weeks)</strong>: 20 to 75 trading days of horizontal sideways price consolidation after a Stage 2 uptrend.
+
+                        <div class="guide-v5-grid">
+                            <!-- COLUMN 1: SVG DIAGRAM -->
+                            <div class="guide-v5-card">
+                                <div class="guide-v5-card-header" style="color: #60a5fa;">
+                                    <span>📈 Horizontal Flat Base Channel (5-15 Wks)</span>
+                                </div>
+                                <div class="guide-v5-svg-container">
+                                    <div class="guide-v5-legend">
+                                        <div class="guide-v5-legend-item"><div class="guide-v5-legend-dot" style="background: #38bdf8;"></div> Price Action</div>
+                                        <div class="guide-v5-legend-item"><div class="guide-v5-legend-dot" style="background: #60a5fa;"></div> Channel Ceiling/Floor</div>
+                                        <div class="guide-v5-legend-item"><div class="guide-v5-legend-dot" style="background: #34d399;"></div> Flat Base Breakout</div>
+                                    </div>
+                                    <svg viewBox="0 0 440 200" width="100%" height="180" style="background: #030712; border-radius: 6px;">
+                                        <!-- Flat Base Resistance Line (Blue Upper Ceiling) -->
+                                        <line x1="80" y1="50" x2="280" y2="50" stroke="#60a5fa" stroke-width="1.8" stroke-dasharray="4,2" />
+                                        <text x="180" y="42" fill="#60a5fa" font-size="8.5" font-weight="700" text-anchor="middle">RESISTANCE CEILING: ₹492.00</text>
+
+                                        <!-- Flat Base Support Line (Blue Lower Floor) -->
+                                        <line x1="80" y1="110" x2="280" y2="110" stroke="#60a5fa" stroke-width="1.8" stroke-dasharray="4,2" />
+                                        <text x="180" y="122" fill="#60a5fa" font-size="8.5" font-weight="700" text-anchor="middle">SUPPORT FLOOR: ₹437.00 (-11.2% Depth)</text>
+
+                                        <!-- Prior Advance -->
+                                        <path d="M 10,140 L 80,50" fill="none" stroke="#38bdf8" stroke-width="2.5" />
+
+                                        <!-- Horizontal Oscillation Inside Flat Base -->
+                                        <path d="M 80,50 L 120,105 L 160,55 L 200,98 L 240,60 L 280,75" fill="none" stroke="#38bdf8" stroke-width="1.8" />
+
+                                        <!-- Buy Pivot Line (Green Dashed) -->
+                                        <line x1="260" y1="45" x2="430" y2="45" stroke="#34d399" stroke-width="1.5" stroke-dasharray="4,4" />
+                                        <text x="340" y="38" fill="#34d399" font-size="9" font-weight="700">PIVOT BUY: ₹494.00</text>
+
+                                        <!-- Stop Loss Line (Red Dashed) -->
+                                        <line x1="260" y1="95" x2="430" y2="95" stroke="#f87171" stroke-width="1.5" stroke-dasharray="4,4" />
+                                        <text x="340" y="107" fill="#f87171" font-size="9" font-weight="700">STOP LOSS: ₹455.00 (-7.9%)</text>
+
+                                        <!-- Breakout Candle Surge -->
+                                        <path d="M 280,75 L 310,42" fill="none" stroke="#34d399" stroke-width="3.5" />
+                                        <path d="M 310,42 L 370,28 L 430,20" fill="none" stroke="#34d399" stroke-width="2" />
+                                        <circle cx="280" cy="75" r="4" fill="#34d399" />
+
+                                        <!-- Volume Bars -->
+                                        <rect x="20" y="155" width="8" height="30" fill="rgba(56, 189, 248, 0.5)" />
+                                        <rect x="60" y="145" width="8" height="40" fill="rgba(56, 189, 248, 0.6)" />
+                                        <!-- Flat Base Extreme VDU -->
+                                        <rect x="100" y="180" width="8" height="5" fill="rgba(248, 113, 113, 0.3)" />
+                                        <rect x="140" y="182" width="8" height="3" fill="rgba(248, 113, 113, 0.2)" />
+                                        <rect x="180" y="181" width="8" height="4" fill="rgba(248, 113, 113, 0.2)" />
+                                        <rect x="220" y="183" width="8" height="2" fill="rgba(248, 113, 113, 0.2)" />
+                                        <rect x="260" y="182" width="8" height="3" fill="rgba(248, 113, 113, 0.2)" />
+                                        <text x="180" y="170" fill="#60a5fa" font-size="8" font-weight="700">Extreme VDU (0.45x)</text>
+
+                                        <!-- Breakout Volume Expansion -->
+                                        <rect x="276" y="135" width="10" height="50" fill="#34d399" />
+                                    </svg>
+                                </div>
                             </div>
-                            <div style="background: rgba(30,41,59,0.5); padding: 10px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.06);">
-                                <strong style="color: #34d399;">Shallow Depth (&le; 15%)</strong>: Tight consolidation depth (5% to 15%) showing strong institutional support and zero panic selling.
+
+                            <!-- COLUMN 2: CASE STUDY -->
+                            <div class="guide-v5-card">
+                                <div class="guide-v5-card-header" style="color: #34d399;">
+                                    <span>🇮🇳 Real NSE Stock Case Study</span>
+                                </div>
+                                <div style="font-size: 13px; font-weight: 800; color: #ffffff; display: flex; align-items: center; justify-content: space-between;">
+                                    <span>KALYANKJIL.NS <span style="font-size: 11px; color: var(--text-muted); font-weight: 500;">Kalyan Jewellers</span></span>
+                                    <span style="background: rgba(96, 165, 250, 0.15); color: #60a5fa; border: 1px solid rgba(96, 165, 250, 0.3); padding: 2px 7px; border-radius: 4px; font-size: 10px; font-weight: 800;">📏 FLAT BASE FORMING</span>
+                                </div>
+                                <div class="guide-v5-metric-row">
+                                    <span class="guide-v5-metric-label">Current Stock Price</span>
+                                    <span class="guide-v5-metric-val" style="color: #38bdf8;">₹485.60 (+0.85%)</span>
+                                </div>
+                                <div class="guide-v5-metric-row">
+                                    <span class="guide-v5-metric-label">Base Duration</span>
+                                    <span class="guide-v5-metric-val" style="color: var(--text-muted);">5 Weeks</span>
+                                </div>
+                                <div class="guide-v5-metric-row">
+                                    <span class="guide-v5-metric-label">Base Pullback Depth</span>
+                                    <span class="guide-v5-metric-val" style="color: #34d399;">-11.2% (Shallow Horizontal)</span>
+                                </div>
+                                <div class="guide-v5-metric-row">
+                                    <span class="guide-v5-metric-label">Resistance / Support</span>
+                                    <span class="guide-v5-metric-val" style="color: #60a5fa;">₹492.00 / ₹437.00</span>
+                                </div>
+                                <div class="guide-v5-metric-row">
+                                    <span class="guide-v5-metric-label">Volume Dry-Up (VDU)</span>
+                                    <span class="guide-v5-metric-val" style="color: #34d399;">0.45x (Extreme Dry-Up)</span>
+                                </div>
+                                <div class="guide-v5-metric-row">
+                                    <span class="guide-v5-metric-label">Pivot Buy Entry</span>
+                                    <span class="guide-v5-metric-val" style="color: #38bdf8;">₹494.00</span>
+                                </div>
+                                <div class="guide-v5-metric-row">
+                                    <span class="guide-v5-metric-label">Stop-Loss Placement</span>
+                                    <span class="guide-v5-metric-val" style="color: #f87171;">₹455.00 (-7.9%)</span>
+                                </div>
                             </div>
-                            <div style="background: rgba(30,41,59,0.5); padding: 10px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.06);">
-                                <strong style="color: #34d399;">Prior Uptrend (&ge; 20%)</strong>: Confirms stock has experienced a prior advancing stage before forming the base.
-                            </div>
-                            <div style="background: rgba(30,41,59,0.5); padding: 10px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.06);">
-                                <strong style="color: #34d399;">Volume Dry-Up (VDU &le; 0.85x)</strong>: Daily volume contracts dramatically below average prior to breakout.
-                            </div>
-                            <div style="background: rgba(30,41,59,0.5); padding: 10px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.06);">
-                                <strong style="color: #34d399;">Stacked Boxes (Darvas Box)</strong>: Consolidation bound inside tight price boxes with high pivot line ceiling & floor.
+
+                            <!-- COLUMN 3: HARD QUANT CRITERIA -->
+                            <div class="guide-v5-card">
+                                <div class="guide-v5-card-header" style="color: #60a5fa;">
+                                    <span>⚙️ Hard Institutional Quant Criteria</span>
+                                </div>
+                                <ul class="guide-v5-rules-list">
+                                    <li><strong>Shallow Base Depth:</strong> Depth -5% to -15% maximum (shallow horizontal range, zero selling).</li>
+                                    <li><strong>Base Duration:</strong> 5-65 weeks (minimum 5 weeks of sideways consolidation).</li>
+                                    <li><strong>Volume Dry-Up (VDU):</strong> Volume &le; 0.85x 50d average during base building.</li>
+                                    <li><strong>Tight Closing Spreads:</strong> Narrow daily closing range in final 2 weeks before breakout.</li>
+                                    <li><strong>Price Above 150-Day SMA:</strong> Price strictly above 150d SMA (Stage 2 structural context).</li>
+                                    <li><strong>Breakout Confirmation:</strong> Clears resistance ceiling on &ge;1.4x average volume expansion.</li>
+                                </ul>
                             </div>
                         </div>
                     </div>
@@ -3478,23 +4243,128 @@
                         </div>
                     </div>
 
-                    <div id="episodic-guide-banner" class="vcp-guide-banner" style="display: none; margin-bottom: 20px; border-radius: 12px; padding: 16px 20px;">
-                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-                            <strong style="font-size: 14px; font-weight: 800; color: #f472b6;">⚡ Pradeep Bonde Episodic Pivot (EP) Rules</strong>
-                            <button onclick="document.getElementById('episodic-guide-banner').style.display='none'" style="background: none; border: none; cursor: pointer; font-size: 15px; color: #94a3b8;">✕</button>
+                    <!-- Collapsible Episodic Pivot Strategy Guide Banner -->
+                    <div id="episodic-guide-banner" class="screener-guide-banner-v5" style="display: none; --guide-accent-gradient: linear-gradient(180deg, #f43f5e, #e11d48); border-color: rgba(244, 63, 94, 0.3);">
+                        <div class="guide-v5-header">
+                            <div class="guide-v5-title-group">
+                                <div class="guide-v5-icon" style="background: rgba(244, 63, 94, 0.12); border-color: rgba(244, 63, 94, 0.3);">⚡</div>
+                                <div>
+                                    <h3 class="guide-v5-title">Kristjan Qullamaggie Episodic Pivot Strategy Guide</h3>
+                                    <div class="guide-v5-subtitle">Catalyst-Driven Gap-Up Momentum — Earnings/News Surge Entry</div>
+                                </div>
+                            </div>
+                            <div style="display: flex; align-items: center; gap: 12px;">
+                                <div style="font-size: 11.5px; color: #f43f5e; background: rgba(244, 63, 94, 0.1); border: 1px solid rgba(244, 63, 94, 0.25); padding: 4px 12px; border-radius: 20px; font-weight: 700;">
+                                    Catalyst Momentum Entry
+                                </div>
+                                <button class="guide-v5-close-btn" onclick="document.getElementById('episodic-guide-banner').style.display='none'">✕</button>
+                            </div>
                         </div>
-                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 10px; font-size: 11.5px; line-height: 1.45;">
-                            <div style="background: rgba(30,41,59,0.5); padding: 10px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.06);">
-                                <strong style="color: #f472b6;">Fundamental Catalyst</strong>: Earnings surprise, FDA approval, major contract, or structural industry shift.
+
+                        <div class="guide-v5-grid">
+                            <!-- COLUMN 1: SVG DIAGRAM -->
+                            <div class="guide-v5-card">
+                                <div class="guide-v5-card-header" style="color: #f43f5e;">
+                                    <span>📈 Catalyst Gap-Up & Opening Range Breakout</span>
+                                </div>
+                                <div class="guide-v5-svg-container">
+                                    <div class="guide-v5-legend">
+                                        <div class="guide-v5-legend-item"><div class="guide-v5-legend-dot" style="background: #94a3b8;"></div> Prior Base</div>
+                                        <div class="guide-v5-legend-item"><div class="guide-v5-legend-dot" style="background: #f43f5e;"></div> Gap-Up Candle</div>
+                                        <div class="guide-v5-legend-item"><div class="guide-v5-legend-dot" style="background: #34d399;"></div> ORB Breakout</div>
+                                    </div>
+                                    <svg viewBox="0 0 440 200" width="100%" height="180" style="background: #030712; border-radius: 6px;">
+                                        <line x1="0" y1="50" x2="440" y2="50" stroke="rgba(255,255,255,0.03)" stroke-dasharray="3,3" />
+                                        <line x1="0" y1="120" x2="440" y2="120" stroke="rgba(255,255,255,0.03)" stroke-dasharray="3,3" />
+
+                                        <!-- Prior Consolidation Base -->
+                                        <path d="M 10,130 L 40,125 L 70,135 L 100,128 L 140,132" fill="none" stroke="#94a3b8" stroke-width="2" />
+                                        <text x="70" y="148" fill="#94a3b8" font-size="8.5">Prior Base (6 Wks)</text>
+
+                                        <!-- Gap-Up Void Shaded Box -->
+                                        <rect x="140" y="70" width="40" height="60" fill="rgba(244, 63, 94, 0.12)" stroke="#f43f5e" stroke-dasharray="2,2" />
+                                        <text x="160" y="105" fill="#f43f5e" font-size="9" font-weight="900" text-anchor="middle">+12.5% GAP</text>
+
+                                        <!-- Gap Day Candle (Rose Green) -->
+                                        <line x1="180" y1="40" x2="180" y2="70" stroke="#34d399" stroke-width="1.5" />
+                                        <rect x="175" y="45" width="10" height="22" fill="#34d399" />
+                                        <circle cx="180" cy="45" r="4" fill="#34d399" />
+
+                                        <!-- ORB Buy Pivot Line (Green Dashed) -->
+                                        <line x1="180" y1="45" x2="430" y2="45" stroke="#34d399" stroke-width="1.5" stroke-dasharray="4,4" />
+                                        <text x="310" y="38" fill="#34d399" font-size="9" font-weight="700">ORB PIVOT BUY: ₹2,380</text>
+
+                                        <!-- Stop Loss Line (Gap Fill - Red Dashed) -->
+                                        <line x1="180" y1="110" x2="430" y2="110" stroke="#f87171" stroke-width="1.5" stroke-dasharray="4,4" />
+                                        <text x="310" y="122" fill="#f87171" font-size="9" font-weight="700">GAP FILL STOP: ₹2,100 (-10.3%)</text>
+
+                                        <!-- Follow through Continuation Curve -->
+                                        <path d="M 180,45 L 220,35 L 260,38 L 320,25 L 380,20 L 430,15" fill="none" stroke="#34d399" stroke-width="2.5" />
+
+                                        <!-- Volume Bars -->
+                                        <rect x="20" y="178" width="8" height="7" fill="rgba(148, 163, 184, 0.3)" />
+                                        <rect x="60" y="180" width="8" height="5" fill="rgba(148, 163, 184, 0.3)" />
+                                        <rect x="100" y="179" width="8" height="6" fill="rgba(148, 163, 184, 0.3)" />
+
+                                        <!-- MASSIVE CATALYST RVOL SURGE BAR (4.2x) -->
+                                        <rect x="174" y="125" width="12" height="60" fill="#f43f5e" />
+                                        <text x="192" y="136" fill="#f43f5e" font-size="8.5" font-weight="900">4.2x RVOL Catalyst Vol</text>
+                                    </svg>
+                                </div>
                             </div>
-                            <div style="background: rgba(30,41,59,0.5); padding: 10px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.06);">
-                                <strong style="color: #f472b6;">Gap Size (&ge; +7.5%)</strong>: Massive opening gap demonstrating institutional urgency to buy at any price.
+
+                            <!-- COLUMN 2: CASE STUDY -->
+                            <div class="guide-v5-card">
+                                <div class="guide-v5-card-header" style="color: #34d399;">
+                                    <span>🇮🇳 Real NSE Stock Case Study</span>
+                                </div>
+                                <div style="font-size: 13px; font-weight: 800; color: #ffffff; display: flex; align-items: center; justify-content: space-between;">
+                                    <span>COCHINSHIP.NS <span style="font-size: 11px; color: var(--text-muted); font-weight: 500;">Cochin Shipyard</span></span>
+                                    <span style="background: rgba(244, 63, 94, 0.15); color: #f43f5e; border: 1px solid rgba(244, 63, 94, 0.3); padding: 2px 7px; border-radius: 4px; font-size: 10px; font-weight: 800;">⚡ EPISODIC PIVOT</span>
+                                </div>
+                                <div class="guide-v5-metric-row">
+                                    <span class="guide-v5-metric-label">Current Stock Price</span>
+                                    <span class="guide-v5-metric-val" style="color: #38bdf8;">₹2,340 (+12.50%)</span>
+                                </div>
+                                <div class="guide-v5-metric-row">
+                                    <span class="guide-v5-metric-label">Gap-Up Magnitude %</span>
+                                    <span class="guide-v5-metric-val" style="color: #f43f5e;">+12.5% Opening Gap</span>
+                                </div>
+                                <div class="guide-v5-metric-row">
+                                    <span class="guide-v5-metric-label">Relative Volume (RVOL)</span>
+                                    <span class="guide-v5-metric-val" style="color: #34d399;">4.2x vs 50d avg</span>
+                                </div>
+                                <div class="guide-v5-metric-row">
+                                    <span class="guide-v5-metric-label">Prior Base Consolidation</span>
+                                    <span class="guide-v5-metric-val" style="color: var(--text-muted);">6 Weeks Flat</span>
+                                </div>
+                                <div class="guide-v5-metric-row">
+                                    <span class="guide-v5-metric-label">Opening Range (ORB) High</span>
+                                    <span class="guide-v5-metric-val" style="color: #38bdf8;">₹2,380</span>
+                                </div>
+                                <div class="guide-v5-metric-row">
+                                    <span class="guide-v5-metric-label">Gap-Fill Stop Loss</span>
+                                    <span class="guide-v5-metric-val" style="color: #f87171;">₹2,100 (-10.3%)</span>
+                                </div>
+                                <div class="guide-v5-metric-row">
+                                    <span class="guide-v5-metric-label">Fundamental Catalyst</span>
+                                    <span class="guide-v5-metric-val" style="color: #fbbf24;">Defense Order Win ₹6,200 Cr</span>
+                                </div>
                             </div>
-                            <div style="background: rgba(30,41,59,0.5); padding: 10px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.06);">
-                                <strong style="color: #f472b6;">Relative Volume (&ge; 2.5x)</strong>: Daily volume expands to multi-month high (3x to 10x 50D average volume).
-                            </div>
-                            <div style="background: rgba(30,41,59,0.5); padding: 10px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.06);">
-                                <strong style="color: #f472b6;">Tight Base Consolidation</strong>: Stock was previously neglected or consolidating tightly before the catalyst event.
+
+                            <!-- COLUMN 3: HARD QUANT CRITERIA -->
+                            <div class="guide-v5-card">
+                                <div class="guide-v5-card-header" style="color: #f43f5e;">
+                                    <span>⚙️ Hard Institutional Quant Criteria</span>
+                                </div>
+                                <ul class="guide-v5-rules-list">
+                                    <li><strong>Gap-Up Magnitude:</strong> Opening Gap &ge; +4% driven by earnings or major news.</li>
+                                    <li><strong>Relative Volume (RVOL):</strong> RVOL &ge; 2.5x vs 50-day average volume.</li>
+                                    <li><strong>Upper Range Close:</strong> Close in upper 60% of day's range (institutional demand).</li>
+                                    <li><strong>Base Origin:</strong> Must emerge from a tight base consolidation (not extended).</li>
+                                    <li><strong>Opening Range Breakout (ORB):</strong> Trigger entry above first 30-60 min high.</li>
+                                    <li><strong>Stop-Loss Placement:</strong> Stop placed strictly below gap fill level or day's low.</li>
+                                </ul>
                             </div>
                         </div>
                     </div>
@@ -3603,20 +4473,146 @@
                         </div>
                     </div>
 
-                    <div id="pocket-guide-banner" class="vcp-guide-banner" style="display: none; margin-bottom: 20px; border-radius: 12px; padding: 16px 20px;">
-                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-                            <strong style="font-size: 14px; font-weight: 800; color: #38bdf8;">🎯 Dr. Chris Kacher Pocket Pivot Rules</strong>
-                            <button onclick="document.getElementById('pocket-guide-banner').style.display='none'" style="background: none; border: none; cursor: pointer; font-size: 15px; color: #94a3b8;">✕</button>
+                    <!-- Collapsible Pocket Pivot Strategy Guide Banner -->
+                    <div id="pocket-guide-banner" class="screener-guide-banner-v5" style="display: none; --guide-accent-gradient: linear-gradient(180deg, #38bdf8, #0284c7); border-color: rgba(56, 189, 248, 0.3);">
+                        <div class="guide-v5-header">
+                            <div class="guide-v5-title-group">
+                                <div class="guide-v5-icon" style="background: rgba(56, 189, 248, 0.12); border-color: rgba(56, 189, 248, 0.3);">🎯</div>
+                                <div>
+                                    <h3 class="guide-v5-title">Dr. Chris Kacher Pocket Pivot Strategy Guide</h3>
+                                    <div class="guide-v5-subtitle">Institutional Pre-Breakout Accumulation inside a Consolidation Base</div>
+                                </div>
+                            </div>
+                            <div style="display: flex; align-items: center; gap: 12px;">
+                                <div style="font-size: 11.5px; color: #38bdf8; background: rgba(56, 189, 248, 0.1); border: 1px solid rgba(56, 189, 248, 0.25); padding: 4px 12px; border-radius: 20px; font-weight: 700;">
+                                    Institutional Pre-Entry Standard
+                                </div>
+                                <button class="guide-v5-close-btn" onclick="document.getElementById('pocket-guide-banner').style.display='none'">✕</button>
+                            </div>
                         </div>
-                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 10px; font-size: 11.5px; line-height: 1.45;">
-                            <div style="background: rgba(30,41,59,0.5); padding: 10px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.06);">
-                                <strong style="color: #38bdf8;">Up-Volume Expansion</strong>: Single-day up volume must be larger than the highest down-day volume over the prior 10 trading days.
+
+                        <div class="guide-v5-grid">
+                            <!-- COLUMN 1: SVG DIAGRAM -->
+                            <div class="guide-v5-card">
+                                <div class="guide-v5-card-header" style="color: #38bdf8;">
+                                    <span>📈 Annotated Pattern Chart Structure</span>
+                                </div>
+                                <div class="guide-v5-svg-container">
+                                    <div class="guide-v5-legend">
+                                        <div class="guide-v5-legend-item"><div class="guide-v5-legend-dot" style="background: #38bdf8;"></div> Price Action</div>
+                                        <div class="guide-v5-legend-item"><div class="guide-v5-legend-dot" style="background: #fbbf24;"></div> 10 EMA</div>
+                                        <div class="guide-v5-legend-item"><div class="guide-v5-legend-dot" style="background: #c084fc;"></div> 20 EMA</div>
+                                        <div class="guide-v5-legend-item"><div class="guide-v5-legend-dot" style="background: #34d399;"></div> Pocket Vol Spike</div>
+                                    </div>
+                                    <svg viewBox="0 0 440 200" width="100%" height="180" style="background: #030712; border-radius: 6px;">
+                                        <!-- Gridlines -->
+                                        <line x1="0" y1="40" x2="440" y2="40" stroke="rgba(255,255,255,0.03)" stroke-dasharray="3,3" />
+                                        <line x1="0" y1="80" x2="440" y2="80" stroke="rgba(255,255,255,0.03)" stroke-dasharray="3,3" />
+                                        <line x1="0" y1="120" x2="440" y2="120" stroke="rgba(255,255,255,0.03)" stroke-dasharray="3,3" />
+
+                                        <!-- 20 EMA Line (Purple) -->
+                                        <path d="M 10,130 Q 100,125 200,115 T 320,95 T 430,70" fill="none" stroke="#c084fc" stroke-width="1.8" stroke-dasharray="4,2" />
+                                        
+                                        <!-- 10 EMA Line (Amber) -->
+                                        <path d="M 10,120 Q 100,115 200,105 T 320,85 T 430,55" fill="none" stroke="#fbbf24" stroke-width="2" />
+
+                                        <!-- Buy Pivot Entry Line (Green Dashed) -->
+                                        <line x1="280" y1="70" x2="430" y2="70" stroke="#34d399" stroke-width="1.5" stroke-dasharray="4,4" />
+                                        <text x="340" y="62" fill="#34d399" font-size="9" font-weight="700">BUY PIVOT ENTRY: ₹23.95</text>
+
+                                        <!-- Stop Loss Line (Red Dashed) -->
+                                        <line x1="280" y1="110" x2="430" y2="110" stroke="#f87171" stroke-width="1.5" stroke-dasharray="4,4" />
+                                        <text x="340" y="122" fill="#f87171" font-size="9" font-weight="700">STOP LOSS: ₹22.39 (-6.5%)</text>
+
+                                        <!-- Base Consolidation -->
+                                        <path d="M 10,110 L 40,125 L 70,118 L 100,130 L 130,110 L 160,115 L 190,102 L 220,108 L 250,98 L 280,105" fill="none" stroke="#38bdf8" stroke-width="2" />
+                                        <!-- Pocket Pivot Breakout Bar (Green) -->
+                                        <path d="M 280,105 L 320,68" fill="none" stroke="#34d399" stroke-width="3.5" />
+                                        <!-- Post Pivot Follow-through -->
+                                        <path d="M 320,68 L 360,55 L 400,45 L 430,35" fill="none" stroke="#34d399" stroke-width="2" />
+
+                                        <!-- Pocket Pivot Annotation Circle -->
+                                        <circle cx="320" cy="68" r="4" fill="#34d399" />
+                                        <text x="240" y="152" fill="#34d399" font-size="10" font-weight="800">⚡ POCKET PIVOT VOL SURGE</text>
+
+                                        <!-- Prior Down Volume Bars -->
+                                        <rect x="20" y="170" width="8" height="15" fill="rgba(248, 113, 113, 0.4)" />
+                                        <rect x="40" y="165" width="8" height="20" fill="rgba(248, 113, 113, 0.4)" />
+                                        <rect x="60" y="175" width="8" height="10" fill="rgba(248, 113, 113, 0.3)" />
+                                        <rect x="80" y="160" width="8" height="25" fill="rgba(248, 113, 113, 0.5)" />
+                                        <rect x="100" y="172" width="8" height="13" fill="rgba(248, 113, 113, 0.3)" />
+                                        <rect x="120" y="176" width="8" height="9" fill="rgba(248, 113, 113, 0.3)" />
+                                        <rect x="140" y="170" width="8" height="15" fill="rgba(248, 113, 113, 0.4)" />
+                                        <rect x="160" y="174" width="8" height="11" fill="rgba(248, 113, 113, 0.3)" />
+                                        <rect x="180" y="178" width="8" height="7" fill="rgba(248, 113, 113, 0.2)" />
+                                        <rect x="200" y="175" width="8" height="10" fill="rgba(248, 113, 113, 0.3)" />
+                                        <rect x="220" y="179" width="8" height="6" fill="rgba(248, 113, 113, 0.2)" />
+                                        <rect x="240" y="181" width="8" height="4" fill="rgba(248, 113, 113, 0.2)" />
+                                        <rect x="260" y="180" width="8" height="5" fill="rgba(248, 113, 113, 0.2)" />
+                                        
+                                        <!-- Max Down Volume Reference Line -->
+                                        <line x1="80" y1="160" x2="330" y2="160" stroke="rgba(248, 113, 113, 0.6)" stroke-dasharray="2,2" />
+                                        <text x="130" y="156" fill="#f87171" font-size="8.5" font-weight="600">10-Day Max Down Vol: 9.54 Cr</text>
+
+                                        <!-- POCKET PIVOT UP VOLUME SURGE BAR -->
+                                        <rect x="314" y="135" width="12" height="50" fill="#34d399" />
+                                        <text x="330" y="142" fill="#34d399" font-size="9" font-weight="800">20.54 Cr (3.68x Down Vol)</text>
+                                    </svg>
+                                </div>
                             </div>
-                            <div style="background: rgba(30,41,59,0.5); padding: 10px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.06);">
-                                <strong style="color: #38bdf8;">Moving Average Support</strong>: Price must break out while touching or sitting near the 10 EMA or 20 EMA line inside a base.
+
+                            <!-- COLUMN 2: CASE STUDY -->
+                            <div class="guide-v5-card">
+                                <div class="guide-v5-card-header" style="color: #34d399;">
+                                    <span>🇮🇳 Real NSE Stock Case Study</span>
+                                </div>
+                                <div style="font-size: 13px; font-weight: 800; color: #ffffff; display: flex; align-items: center; justify-content: space-between;">
+                                    <span>YESBANK.NS <span style="font-size: 11px; color: var(--text-muted); font-weight: 500;">Yes Bank Ltd.</span></span>
+                                    <span style="background: rgba(56, 189, 248, 0.15); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.3); padding: 2px 7px; border-radius: 4px; font-size: 10px; font-weight: 800;">🎯 POCKET PIVOT LIVE</span>
+                                </div>
+                                <div class="guide-v5-metric-row">
+                                    <span class="guide-v5-metric-label">Current Stock Price</span>
+                                    <span class="guide-v5-metric-val" style="color: #38bdf8;">₹23.59 (+2.25%)</span>
+                                </div>
+                                <div class="guide-v5-metric-row">
+                                    <span class="guide-v5-metric-label">Up-Day Volume</span>
+                                    <span class="guide-v5-metric-val" style="color: #34d399;">20,54,10,106</span>
+                                </div>
+                                <div class="guide-v5-metric-row">
+                                    <span class="guide-v5-metric-label">Max 10-Day Down Vol</span>
+                                    <span class="guide-v5-metric-val" style="color: var(--text-muted);">9,54,13,759</span>
+                                </div>
+                                <div class="guide-v5-metric-row">
+                                    <span class="guide-v5-metric-label">Volume Expansion Ratio</span>
+                                    <span class="guide-v5-metric-val" style="color: #34d399;">3.68x vs 10D Down Max</span>
+                                </div>
+                                <div class="guide-v5-metric-row">
+                                    <span class="guide-v5-metric-label">Buy Pivot Entry Level</span>
+                                    <span class="guide-v5-metric-val" style="color: #38bdf8;">₹23.95</span>
+                                </div>
+                                <div class="guide-v5-metric-row">
+                                    <span class="guide-v5-metric-label">Stop-Loss Placement</span>
+                                    <span class="guide-v5-metric-val" style="color: #f87171;">₹22.39 (-6.5%)</span>
+                                </div>
+                                <div class="guide-v5-metric-row">
+                                    <span class="guide-v5-metric-label">Moving Average Support</span>
+                                    <span class="guide-v5-metric-val" style="color: #c084fc;">50-Day SMA Support</span>
+                                </div>
                             </div>
-                            <div style="background: rgba(30,41,59,0.5); padding: 10px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.06);">
-                                <strong style="color: #38bdf8;">Uptrend Context</strong>: Stock must be in Stage 2 advancing phase above its 50-day and 200-day moving averages.
+
+                            <!-- COLUMN 3: HARD QUANT CRITERIA -->
+                            <div class="guide-v5-card">
+                                <div class="guide-v5-card-header" style="color: #38bdf8;">
+                                    <span>⚙️ Hard Institutional Quant Criteria</span>
+                                </div>
+                                <ul class="guide-v5-rules-list">
+                                    <li><strong>Up-Volume Exceedance:</strong> Single-day up volume must strictly exceed highest down volume of prior 10d.</li>
+                                    <li><strong>Base Proximity:</strong> Entry must occur within or emerging from base (not extended &gt;10% above 50d SMA).</li>
+                                    <li><strong>MA Support Touch:</strong> Price must be resting near or touching 10 EMA, 20 EMA, or 50 SMA.</li>
+                                    <li><strong>Trend Template:</strong> 30-Week (150-day) SMA slope must be flat to positive (&gt; -0.2%/wk).</li>
+                                    <li><strong>Relative Strength:</strong> RS score &ge; 65 relative to Nifty 50 benchmark.</li>
+                                    <li><strong>Risk/Reward:</strong> Target 1 set at 2.0x Risk, Target 2 set at 4.0x Risk.</li>
+                                </ul>
                             </div>
                         </div>
                     </div>
@@ -3726,20 +4722,126 @@
                         </div>
                     </div>
 
-                    <div id="oliverkell-guide-banner" class="vcp-guide-banner" style="display: none; margin-bottom: 20px; border-radius: 12px; padding: 16px 20px;">
-                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-                            <strong style="font-size: 14px; font-weight: 800; color: #c084fc;">📈 Oliver Kell EMA Trend Rules</strong>
-                            <button onclick="document.getElementById('oliverkell-guide-banner').style.display='none'" style="background: none; border: none; cursor: pointer; font-size: 15px; color: #94a3b8;">✕</button>
+                    <!-- Collapsible Oliver Kell Strategy Guide Banner -->
+                    <div id="oliverkell-guide-banner" class="screener-guide-banner-v5" style="display: none; --guide-accent-gradient: linear-gradient(180deg, #c084fc, #9333ea); border-color: rgba(192, 132, 252, 0.3);">
+                        <div class="guide-v5-header">
+                            <div class="guide-v5-title-group">
+                                <div class="guide-v5-icon" style="background: rgba(192, 132, 252, 0.12); border-color: rgba(192, 132, 252, 0.3);">🌊</div>
+                                <div>
+                                    <h3 class="guide-v5-title">Oliver Kell 10/20 EMA Reversal Strategy Guide</h3>
+                                    <div class="guide-v5-subtitle">US Investing Champion Structural Momentum & EMA Wedge Pop System</div>
+                                </div>
+                            </div>
+                            <div style="display: flex; align-items: center; gap: 12px;">
+                                <div style="font-size: 11.5px; color: #c084fc; background: rgba(192, 132, 252, 0.1); border: 1px solid rgba(192, 132, 252, 0.25); padding: 4px 12px; border-radius: 20px; font-weight: 700;">
+                                    US Investing Champion Strategy
+                                </div>
+                                <button class="guide-v5-close-btn" onclick="document.getElementById('oliverkell-guide-banner').style.display='none'">✕</button>
+                            </div>
                         </div>
-                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 10px; font-size: 11.5px; line-height: 1.45;">
-                            <div style="background: rgba(30,41,59,0.5); padding: 10px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.06);">
-                                <strong style="color: #c084fc;">10/20 EMA Support</strong>: Stock rides fast 10 EMA and 20 EMA trend lines without closing below key structural levels.
+
+                        <div class="guide-v5-grid">
+                            <!-- COLUMN 1: SVG DIAGRAM -->
+                            <div class="guide-v5-card">
+                                <div class="guide-v5-card-header" style="color: #c084fc;">
+                                    <span>📈 Annotated Pattern Chart Structure</span>
+                                </div>
+                                <div class="guide-v5-svg-container">
+                                    <div class="guide-v5-legend">
+                                        <div class="guide-v5-legend-item"><div class="guide-v5-legend-dot" style="background: #38bdf8;"></div> Price Action</div>
+                                        <div class="guide-v5-legend-item"><div class="guide-v5-legend-dot" style="background: #fbbf24;"></div> 10 EMA</div>
+                                        <div class="guide-v5-legend-item"><div class="guide-v5-legend-dot" style="background: #c084fc;"></div> 20 EMA</div>
+                                        <div class="guide-v5-legend-item"><div class="guide-v5-legend-dot" style="background: #34d399;"></div> Wedge Pop Reversal</div>
+                                    </div>
+                                    <svg viewBox="0 0 440 200" width="100%" height="180" style="background: #030712; border-radius: 6px;">
+                                        <line x1="0" y1="40" x2="440" y2="40" stroke="rgba(255,255,255,0.03)" stroke-dasharray="3,3" />
+                                        <line x1="0" y1="90" x2="440" y2="90" stroke="rgba(255,255,255,0.03)" stroke-dasharray="3,3" />
+
+                                        <!-- 20 EMA (Purple) -->
+                                        <path d="M 10,140 Q 120,130 220,110 T 340,80 T 430,60" fill="none" stroke="#c084fc" stroke-width="2" />
+                                        <!-- 10 EMA (Amber) -->
+                                        <path d="M 10,125 Q 120,115 220,95 T 340,65 T 430,45" fill="none" stroke="#fbbf24" stroke-width="2" />
+
+                                        <!-- Buy Pivot Entry -->
+                                        <line x1="260" y1="65" x2="430" y2="65" stroke="#34d399" stroke-width="1.5" stroke-dasharray="4,4" />
+                                        <text x="320" y="58" fill="#34d399" font-size="9" font-weight="700">WEDGE POP PIVOT: ₹1,840.00</text>
+
+                                        <!-- Stop Loss Line -->
+                                        <line x1="260" y1="105" x2="430" y2="105" stroke="#f87171" stroke-width="1.5" stroke-dasharray="4,4" />
+                                        <text x="320" y="117" fill="#f87171" font-size="9" font-weight="700">STOP LOSS: ₹1,634.55 (20 EMA)</text>
+
+                                        <!-- Pullback & Reversal Candle -->
+                                        <path d="M 10,95 L 80,60 L 140,85 L 200,50 L 260,98" fill="none" stroke="#38bdf8" stroke-width="2" />
+                                        <!-- Reversal Bar (Bullish Green) -->
+                                        <path d="M 260,98 L 300,60" fill="none" stroke="#34d399" stroke-width="3.5" />
+                                        <path d="M 300,60 L 360,45 L 430,30" fill="none" stroke="#34d399" stroke-width="2" />
+
+                                        <circle cx="260" cy="98" r="5" fill="#fbbf24" />
+                                        <text x="170" y="125" fill="#fbbf24" font-size="9.5" font-weight="700">10/20 EMA Pullback Test</text>
+                                        <line x1="230" y1="120" x2="255" y2="102" stroke="#fbbf24" stroke-width="1" />
+
+                                        <!-- Volume Histogram -->
+                                        <rect x="20" y="170" width="8" height="15" fill="rgba(56, 189, 248, 0.4)" />
+                                        <rect x="60" y="160" width="8" height="25" fill="rgba(56, 189, 248, 0.5)" />
+                                        <rect x="140" y="175" width="8" height="10" fill="rgba(248, 113, 113, 0.3)" />
+                                        <rect x="200" y="165" width="8" height="20" fill="rgba(56, 189, 248, 0.5)" />
+                                        <!-- Low Volume Pullback (VDU) -->
+                                        <rect x="240" y="180" width="8" height="5" fill="rgba(248, 113, 113, 0.3)" />
+                                        <rect x="260" y="182" width="8" height="3" fill="rgba(248, 113, 113, 0.2)" />
+                                        <text x="210" y="168" fill="#94a3b8" font-size="8.5">VDU (Vol Contraction)</text>
+                                        <!-- Reversal Vol Surge -->
+                                        <rect x="296" y="145" width="10" height="40" fill="#34d399" />
+                                    </svg>
+                                </div>
                             </div>
-                            <div style="background: rgba(30,41,59,0.5); padding: 10px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.06);">
-                                <strong style="color: #c084fc;">Base Recovery (&ge; 35%)</strong>: Stock has recovered at least 35% from its 52-week low.
+
+                            <!-- COLUMN 2: CASE STUDY -->
+                            <div class="guide-v5-card">
+                                <div class="guide-v5-card-header" style="color: #34d399;">
+                                    <span>🇮🇳 Real NSE Stock Case Study</span>
+                                </div>
+                                <div style="font-size: 13px; font-weight: 800; color: #ffffff; display: flex; align-items: center; justify-content: space-between;">
+                                    <span>PAYTM.NS <span style="font-size: 11px; color: var(--text-muted); font-weight: 500;">One97 Comm.</span></span>
+                                    <span style="background: rgba(192, 132, 252, 0.15); color: #c084fc; border: 1px solid rgba(192, 132, 252, 0.3); padding: 2px 7px; border-radius: 4px; font-size: 10px; font-weight: 800;">🌊 REVERSAL (10 EMA)</span>
+                                </div>
+                                <div class="guide-v5-metric-row">
+                                    <span class="guide-v5-metric-label">Current Stock Price</span>
+                                    <span class="guide-v5-metric-val" style="color: #38bdf8;">₹1,790.00 (+3.47%)</span>
+                                </div>
+                                <div class="guide-v5-metric-row">
+                                    <span class="guide-v5-metric-label">10-Day EMA Support</span>
+                                    <span class="guide-v5-metric-val" style="color: #fbbf24;">₹1,754.20</span>
+                                </div>
+                                <div class="guide-v5-metric-row">
+                                    <span class="guide-v5-metric-label">20-Day EMA Support</span>
+                                    <span class="guide-v5-metric-val" style="color: #c084fc;">₹1,718.40</span>
+                                </div>
+                                <div class="guide-v5-metric-row">
+                                    <span class="guide-v5-metric-label">Distance to 10 EMA %</span>
+                                    <span class="guide-v5-metric-val" style="color: #38bdf8;">2.04% (Ideal Zone)</span>
+                                </div>
+                                <div class="guide-v5-metric-row">
+                                    <span class="guide-v5-metric-label">Wedge Pop Buy Pivot</span>
+                                    <span class="guide-v5-metric-val" style="color: #38bdf8;">₹1,840.00</span>
+                                </div>
+                                <div class="guide-v5-metric-row">
+                                    <span class="guide-v5-metric-label">Stop-Loss Placement</span>
+                                    <span class="guide-v5-metric-val" style="color: #f87171;">₹1,634.55 (20 EMA -1.5%)</span>
+                                </div>
                             </div>
-                            <div style="background: rgba(30,41,59,0.5); padding: 10px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.06);">
-                                <strong style="color: #c084fc;">Wedge Pop / Reversal</strong>: Immediate expansion back above 10 EMA line after a tight pullback.
+
+                            <!-- COLUMN 3: HARD QUANT CRITERIA -->
+                            <div class="guide-v5-card">
+                                <div class="guide-v5-card-header" style="color: #c084fc;">
+                                    <span>⚙️ Hard Institutional Quant Criteria</span>
+                                </div>
+                                <ul class="guide-v5-rules-list">
+                                    <li><strong>EMA Stack Order:</strong> Price &gt; 10 EMA &gt; 20 EMA &gt; 50 SMA &gt; 200 SMA (perfect bullish alignment).</li>
+                                    <li><strong>EMA Slopes:</strong> 10 EMA and 20 EMA must be actively sloping upward over prior 10 days.</li>
+                                    <li><strong>Low-Volume Pullback:</strong> Price tests 10/20 EMA on low volume (VDU &le; 0.85x 50d avg).</li>
+                                    <li><strong>Reversal Candle:</strong> Bullish close in top 35% of daily range or wedge pop breakout.</li>
+                                    <li><strong>52W High Leadership:</strong> Within 15% of 52W High and &ge; +35% above 52W Low.</li>
+                                </ul>
                             </div>
                         </div>
                     </div>
@@ -3842,23 +4944,135 @@
                     </div>
 
                     <!-- Educational Rules Banner -->
-                    <div id="cuphandle-guide-banner" class="vcp-guide-banner" style="display: none; margin-bottom: 20px; border-radius: 12px; padding: 16px 20px;">
-                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-                            <strong style="font-size: 14px; font-weight: 800; color: #f59e0b;">☕ CANSLIM Cup With Handle Standard Identification Rules</strong>
-                            <button onclick="document.getElementById('cuphandle-guide-banner').style.display='none'" style="background: none; border: none; cursor: pointer; font-size: 15px; color: #94a3b8;">✕</button>
+                    <!-- Educational Rules Banner -->
+                    <div id="cuphandle-guide-banner" class="screener-guide-banner-v5" style="display: none; --guide-accent-gradient: linear-gradient(180deg, #10b981, #059669); border-color: rgba(16, 185, 129, 0.3);">
+                        <div class="guide-v5-header">
+                            <div class="guide-v5-title-group">
+                                <div class="guide-v5-icon" style="background: rgba(16, 185, 129, 0.12); border-color: rgba(16, 185, 129, 0.3);">☕</div>
+                                <div>
+                                    <h3 class="guide-v5-title">William O'Neil Cup with Handle Strategy Guide</h3>
+                                    <div class="guide-v5-subtitle">CANSLIM Primary Base Continuation — Rounded U-Shape Recovery Pattern</div>
+                                </div>
+                            </div>
+                            <div style="display: flex; align-items: center; gap: 12px;">
+                                <div style="font-size: 11.5px; color: #10b981; background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.25); padding: 4px 12px; border-radius: 20px; font-weight: 700;">
+                                    CANSLIM Base Continuation
+                                </div>
+                                <button class="guide-v5-close-btn" onclick="document.getElementById('cuphandle-guide-banner').style.display='none'">✕</button>
+                            </div>
                         </div>
-                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 10px; font-size: 11.5px; line-height: 1.45;">
-                            <div style="background: rgba(30,41,59,0.5); padding: 10px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.06);">
-                                <strong style="color: #f59e0b;">1. Stage 2 Uptrend & RS</strong>: Stock must be in Stage 2 (Price > 50 SMA > 150 SMA >= 200 SMA, 200 SMA rising, near 52W High) with RS Rating >= 70.
+
+                        <div class="guide-v5-grid">
+                            <!-- COLUMN 1: SVG DIAGRAM -->
+                            <div class="guide-v5-card">
+                                <div class="guide-v5-card-header" style="color: #10b981;">
+                                    <span>📈 Cup with Handle Structure (U-Shape & Upper Handle)</span>
+                                </div>
+                                <div class="guide-v5-svg-container">
+                                    <div class="guide-v5-legend">
+                                        <div class="guide-v5-legend-item"><div class="guide-v5-legend-dot" style="background: #38bdf8;"></div> U-Shape Cup</div>
+                                        <div class="guide-v5-legend-item"><div class="guide-v5-legend-dot" style="background: #fbbf24;"></div> Upper Handle</div>
+                                        <div class="guide-v5-legend-item"><div class="guide-v5-legend-dot" style="background: #34d399;"></div> Lip Breakout</div>
+                                    </div>
+                                    <svg viewBox="0 0 440 200" width="100%" height="180" style="background: #030712; border-radius: 6px;">
+                                        <line x1="0" y1="45" x2="440" y2="45" stroke="rgba(255,255,255,0.03)" stroke-dasharray="3,3" />
+                                        
+                                        <!-- Cup Midpoint Line (Upper Half Reference) -->
+                                        <line x1="40" y1="85" x2="300" y2="85" stroke="rgba(251, 191, 36, 0.4)" stroke-dasharray="2,2" />
+                                        <text x="120" y="96" fill="#fbbf24" font-size="8">Cup Midpoint (Handle must stay above)</text>
+
+                                        <!-- Prior Uptrend -->
+                                        <path d="M 10,120 L 50,45" fill="none" stroke="#38bdf8" stroke-width="2" />
+
+                                        <!-- U-Shape Cup Contour (-24% Depth, 18 Wks) -->
+                                        <path d="M 50,45 C 70,140, 210,140, 230,45" fill="none" stroke="#38bdf8" stroke-width="2.5" />
+                                        <text x="140" y="115" fill="#38bdf8" font-size="9" font-weight="700">U-Shape Cup (-24% Depth)</text>
+
+                                        <!-- Upper Handle Pullback (-8.5% Depth in Upper Half) -->
+                                        <path d="M 230,45 Q 250,70 270,55" fill="none" stroke="#fbbf24" stroke-width="2" />
+                                        <text x="250" y="78" fill="#fbbf24" font-size="8.5" font-weight="700">Handle (-8.5%)</text>
+
+                                        <!-- Right Lip Buy Pivot Line (Green Dashed) -->
+                                        <line x1="220" y1="45" x2="430" y2="45" stroke="#34d399" stroke-width="1.5" stroke-dasharray="4,4" />
+                                        <text x="320" y="38" fill="#34d399" font-size="9" font-weight="700">RIGHT LIP PIVOT: ₹2,250</text>
+
+                                        <!-- Stop Loss Line (Red Dashed) -->
+                                        <line x1="240" y1="75" x2="430" y2="75" stroke="#f87171" stroke-width="1.5" stroke-dasharray="4,4" />
+                                        <text x="320" y="87" fill="#f87171" font-size="9" font-weight="700">STOP LOSS: ₹2,060 (-8.4%)</text>
+
+                                        <!-- Breakout Candle Surge -->
+                                        <path d="M 270,55 L 300,32" fill="none" stroke="#34d399" stroke-width="3.5" />
+                                        <path d="M 300,32 L 360,22 L 430,15" fill="none" stroke="#34d399" stroke-width="2" />
+                                        <circle cx="270" cy="55" r="4" fill="#34d399" />
+
+                                        <!-- Volume Bars -->
+                                        <rect x="20" y="160" width="8" height="25" fill="rgba(56, 189, 248, 0.4)" />
+                                        <rect x="60" y="150" width="8" height="35" fill="rgba(248, 113, 113, 0.4)" />
+                                        <rect x="140" y="178" width="8" height="7" fill="rgba(56, 189, 248, 0.3)" />
+                                        <rect x="210" y="155" width="8" height="30" fill="rgba(56, 189, 248, 0.5)" />
+                                        <!-- Handle VDU -->
+                                        <rect x="245" y="181" width="8" height="4" fill="rgba(248, 113, 113, 0.2)" />
+                                        <rect x="260" y="182" width="8" height="3" fill="rgba(248, 113, 113, 0.2)" />
+                                        <text x="215" y="172" fill="#fbbf24" font-size="8" font-weight="700">Handle VDU (0.68x)</text>
+
+                                        <!-- Breakout Vol Surge -->
+                                        <rect x="296" y="135" width="10" height="50" fill="#34d399" />
+                                    </svg>
+                                </div>
                             </div>
-                            <div style="background: rgba(30,41,59,0.5); padding: 10px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.06);">
-                                <strong style="color: #f59e0b;">2. Cup Depth & Duration</strong>: Cup must be 7 to 65 weeks long (35-325 trading days) with depth of -12% to -35% (-50% max in severe bear markets).
+
+                            <!-- COLUMN 2: CASE STUDY -->
+                            <div class="guide-v5-card">
+                                <div class="guide-v5-card-header" style="color: #34d399;">
+                                    <span>🇮🇳 Real NSE Stock Case Study</span>
+                                </div>
+                                <div style="font-size: 13px; font-weight: 800; color: #ffffff; display: flex; align-items: center; justify-content: space-between;">
+                                    <span>CDSL.NS <span style="font-size: 11px; color: var(--text-muted); font-weight: 500;">Central Depository</span></span>
+                                    <span style="background: rgba(16, 185, 129, 0.15); color: #10b981; border: 1px solid rgba(16, 185, 129, 0.3); padding: 2px 7px; border-radius: 4px; font-size: 10px; font-weight: 800;">☕ CUP WITH HANDLE</span>
+                                </div>
+                                <div class="guide-v5-metric-row">
+                                    <span class="guide-v5-metric-label">Current Stock Price</span>
+                                    <span class="guide-v5-metric-val" style="color: #38bdf8;">₹2,180 (+1.85%)</span>
+                                </div>
+                                <div class="guide-v5-metric-row">
+                                    <span class="guide-v5-metric-label">Cup Depth & Duration</span>
+                                    <span class="guide-v5-metric-val" style="color: #38bdf8;">-24% Depth (18 Weeks)</span>
+                                </div>
+                                <div class="guide-v5-metric-row">
+                                    <span class="guide-v5-metric-label">Handle Depth & Duration</span>
+                                    <span class="guide-v5-metric-val" style="color: #fbbf24;">-8.5% Depth (2.5 Weeks)</span>
+                                </div>
+                                <div class="guide-v5-metric-row">
+                                    <span class="guide-v5-metric-label">Upper-Half Placement</span>
+                                    <span class="guide-v5-metric-val" style="color: #34d399;">✅ PASS (Upper 50% Cup)</span>
+                                </div>
+                                <div class="guide-v5-metric-row">
+                                    <span class="guide-v5-metric-label">Handle Volume Dry-Up</span>
+                                    <span class="guide-v5-metric-val" style="color: #34d399;">0.68x vs 50d avg</span>
+                                </div>
+                                <div class="guide-v5-metric-row">
+                                    <span class="guide-v5-metric-label">Right Lip Buy Pivot</span>
+                                    <span class="guide-v5-metric-val" style="color: #38bdf8;">₹2,250</span>
+                                </div>
+                                <div class="guide-v5-metric-row">
+                                    <span class="guide-v5-metric-label">Stop-Loss Placement</span>
+                                    <span class="guide-v5-metric-val" style="color: #f87171;">₹2,060 (-8.4%)</span>
+                                </div>
                             </div>
-                            <div style="background: rgba(30,41,59,0.5); padding: 10px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.06);">
-                                <strong style="color: #f59e0b;">3. Handle Formation</strong>: Handle forms in 1 to 4 weeks (5-20 trading days) with depth <= 12% (-15% max). Handle low MUST stay in the upper half of the cup.
-                            </div>
-                            <div style="background: rgba(30,41,59,0.5); padding: 10px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.06);">
-                                <strong style="color: #f59e0b;">4. Volume Dry-Up (VDU)</strong>: Handle volume must contract strongly (VDU <= 0.85x 50-day average volume) showing institutional absorption before breakout.
+
+                            <!-- COLUMN 3: HARD QUANT CRITERIA -->
+                            <div class="guide-v5-card">
+                                <div class="guide-v5-card-header" style="color: #10b981;">
+                                    <span>⚙️ Hard Institutional Quant Criteria</span>
+                                </div>
+                                <ul class="guide-v5-rules-list">
+                                    <li><strong>Cup Depth:</strong> -12% to -33% (rounded U-shape bottom, not sharp V-crash).</li>
+                                    <li><strong>Cup Duration:</strong> 7-65 weeks (35-300 trading days of structural consolidation).</li>
+                                    <li><strong>Upper Half Handle:</strong> Handle MUST form in upper half of cup (Handle Low &ge; Cup Midpoint).</li>
+                                    <li><strong>Handle Depth:</strong> Shallow pullback of -5% to -12% (max -15%).</li>
+                                    <li><strong>Volume Dry-Up:</strong> Handle volume contracts to &le; 0.85x 50-day average volume.</li>
+                                    <li><strong>Breakout Confirmation:</strong> Volume expansion &ge; 1.4x 50d SMA at right lip pivot.</li>
+                                </ul>
                             </div>
                         </div>
                     </div>
@@ -3962,20 +5176,114 @@
                     </div>
 
                     <!-- Educational Rules Banner -->
-                    <div id="rsnh-guide-banner" class="vcp-guide-banner" style="display: none; margin-bottom: 20px; border-radius: 12px; padding: 16px 20px;">
-                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-                            <strong style="font-size: 14px; font-weight: 800; color: #c084fc;">🚀 RS Line New High (RSNH) Identification Rules</strong>
-                            <button onclick="document.getElementById('rsnh-guide-banner').style.display='none'" style="background: none; border: none; cursor: pointer; font-size: 15px; color: #94a3b8;">✕</button>
+                    <div id="rsnh-guide-banner" class="screener-guide-banner-v5" style="display: none; border-color: rgba(34, 211, 238, 0.4);">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+                            <div style="display: flex; align-items: center; gap: 10px;">
+                                <div style="background: rgba(34, 211, 238, 0.15); border: 1px solid rgba(34, 211, 238, 0.4); padding: 4px 10px; border-radius: 6px; font-size: 11px; font-weight: 800; color: #22d3ee; text-transform: uppercase;">
+                                    William O'Neil RS Leadership
+                                </div>
+                                <h3 style="margin: 0; font-size: 16px; font-weight: 800; color: #ffffff;">🚀 RS Line New High (RSNH) Strategy & Visual Masterclass</h3>
+                            </div>
+                            <button onclick="document.getElementById('rsnh-guide-banner').style.display='none'" style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); color: #94a3b8; width: 28px; height: 28px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 14px; transition: all 0.2s;">✕</button>
                         </div>
-                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 10px; font-size: 11.5px; line-height: 1.45;">
-                            <div style="background: rgba(30,41,59,0.5); padding: 10px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.06);">
-                                <strong style="color: #c084fc;">1. RS Ratio 52-Week High</strong>: Stock Price / Nifty 50 Index Ratio reaches a 252-trading-day peak.
+
+                        <div class="guide-v5-grid">
+                            <!-- COLUMN 1: ANNOTATED SVG DIAGRAM -->
+                            <div class="guide-v5-card">
+                                <div class="guide-v5-card-header" style="color: #22d3ee;">
+                                    <span>📈 RS Line Lead Breakout Mechanics</span>
+                                    <span class="guide-v5-badge" style="background: rgba(34, 211, 238, 0.15); color: #22d3ee; border-color: rgba(34, 211, 238, 0.3);">RS Peak &gt; Price Peak</span>
+                                </div>
+                                <div class="guide-v5-svg-container">
+                                    <svg viewBox="0 0 400 190" style="width: 100%; height: 100%;">
+                                        <!-- Grid & Reference Lines -->
+                                        <line x1="30" y1="45" x2="370" y2="45" stroke="rgba(255,255,255,0.08)" stroke-dasharray="3,3"/>
+                                        <line x1="30" y1="115" x2="370" y2="115" stroke="rgba(255,255,255,0.08)" stroke-dasharray="3,3"/>
+                                        
+                                        <!-- Price 52W High Resistance -->
+                                        <line x1="40" y1="65" x2="340" y2="65" stroke="rgba(248, 113, 113, 0.5)" stroke-dasharray="4,4" stroke-width="1.5"/>
+                                        <text x="45" y="60" fill="#f87171" font-size="9" font-weight="700">Price 52-Week High Resistance</text>
+                                        
+                                        <!-- RS Line 52W High Level -->
+                                        <line x1="40" y1="135" x2="340" y2="135" stroke="rgba(34, 211, 238, 0.5)" stroke-dasharray="4,4" stroke-width="1.5"/>
+                                        <text x="45" y="130" fill="#22d3ee" font-size="9" font-weight="700">RS Line 52-Week High Level</text>
+
+                                        <!-- Stock Price Curve -->
+                                        <path d="M 40 100 Q 90 65 140 85 T 230 70 T 300 65 L 350 45" fill="none" stroke="#e2e8f0" stroke-width="2.5"/>
+                                        <text x="355" y="45" fill="#e2e8f0" font-size="9" font-weight="700">Price Curve</text>
+
+                                        <!-- RS Line Curve (Breaks out BEFORE Price) -->
+                                        <path d="M 40 160 Q 90 145 140 150 T 230 135 T 280 115 L 350 95" fill="none" stroke="#22d3ee" stroke-width="2.5"/>
+                                        <text x="355" y="95" fill="#22d3ee" font-size="9" font-weight="700">RS Line</text>
+
+                                        <!-- RS Breakout Dot (Early Lead) -->
+                                        <circle cx="280" cy="115" r="5" fill="#22d3ee"/>
+                                        <text x="240" y="105" fill="#22d3ee" font-size="9" font-weight="800">🔥 RS Line 52W NEW HIGH!</text>
+
+                                        <!-- Price Breakout Dot -->
+                                        <circle cx="340" cy="50" r="5" fill="#34d399"/>
+                                        <text x="270" y="38" fill="#34d399" font-size="9" font-weight="800">Price Breakout</text>
+                                    </svg>
+                                </div>
+                                <div class="guide-v5-legend">
+                                    <div class="guide-v5-legend-item"><span class="guide-v5-legend-dot" style="background: #22d3ee;"></span>RS Line (Price/Nifty)</div>
+                                    <div class="guide-v5-legend-item"><span class="guide-v5-legend-dot" style="background: #e2e8f0;"></span>Stock Price</div>
+                                    <div class="guide-v5-legend-item"><span class="guide-v5-legend-dot" style="background: #34d399;"></span>Pivot Buy Point</div>
+                                </div>
                             </div>
-                            <div style="background: rgba(30,41,59,0.5); padding: 10px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.06);">
-                                <strong style="color: #c084fc;">2. Price Positioning</strong>: Stock trades within <= 20% of its own 52-week price high.
+
+                            <!-- COLUMN 2: REAL NSE CASE STUDY -->
+                            <div class="guide-v5-card">
+                                <div class="guide-v5-card-header" style="color: #22d3ee;">
+                                    <span>🏢 Real NSE Stock Case Study</span>
+                                    <span class="guide-v5-badge" style="background: rgba(34, 211, 238, 0.15); color: #22d3ee; border-color: rgba(34, 211, 238, 0.3);">Defense Leader</span>
+                                </div>
+                                <div style="font-size: 15px; font-weight: 800; color: #ffffff; margin-bottom: 4px;">HAL.NS (Hindustan Aeronautics)</div>
+                                <div style="font-size: 11px; color: #94a3b8; margin-bottom: 12px;">RS Line hits 52W New High 12 days prior to price breakout.</div>
+
+                                <div class="guide-v5-metric-row">
+                                    <span class="guide-v5-metric-label">Current Stock Price</span>
+                                    <span class="guide-v5-metric-val" style="color: #ffffff;">₹4,850 <span style="font-size: 10px; color: #34d399;">(+1.92%)</span></span>
+                                </div>
+                                <div class="guide-v5-metric-row">
+                                    <span class="guide-v5-metric-label">52-Week High Level</span>
+                                    <span class="guide-v5-metric-val" style="color: #94a3b8;">₹5,070 (-4.34%)</span>
+                                </div>
+                                <div class="guide-v5-metric-row">
+                                    <span class="guide-v5-metric-label">RS Line Status</span>
+                                    <span class="guide-v5-metric-val" style="color: #22d3ee;">52W NEW HIGH ✅</span>
+                                </div>
+                                <div class="guide-v5-metric-row">
+                                    <span class="guide-v5-metric-label">Mansfield RS Score</span>
+                                    <span class="guide-v5-metric-val" style="color: #34d399;">+0.72 (Outperforming)</span>
+                                </div>
+                                <div class="guide-v5-metric-row">
+                                    <span class="guide-v5-metric-label">O'Neil RS Rating</span>
+                                    <span class="guide-v5-metric-val" style="color: #fbbf24;">92 / 99</span>
+                                </div>
+                                <div class="guide-v5-metric-row">
+                                    <span class="guide-v5-metric-label">Pivot Buy Trigger</span>
+                                    <span class="guide-v5-metric-val" style="color: #38bdf8;">₹5,100</span>
+                                </div>
+                                <div class="guide-v5-metric-row">
+                                    <span class="guide-v5-metric-label">Stop-Loss Placement</span>
+                                    <span class="guide-v5-metric-val" style="color: #f87171;">₹4,650 (-8.8%)</span>
+                                </div>
                             </div>
-                            <div style="background: rgba(30,41,59,0.5); padding: 10px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.06);">
-                                <strong style="color: #c084fc;">3. Leading Indicator</strong>: RS line hitting a new high before price is the single most reliable sign of institutional accumulation.
+
+                            <!-- COLUMN 3: HARD QUANT CRITERIA -->
+                            <div class="guide-v5-card">
+                                <div class="guide-v5-card-header" style="color: #22d3ee;">
+                                    <span>⚙️ Hard Institutional Quant Criteria</span>
+                                </div>
+                                <ul class="guide-v5-rules-list">
+                                    <li><strong>RS Line Lead:</strong> RS Ratio (Price / Nifty 500) hits 52W high BEFORE or WITH price.</li>
+                                    <li><strong>Mansfield RS Positive:</strong> Mansfield RS &gt; 0, confirming sustained benchmark outperformance.</li>
+                                    <li><strong>High RS Rating:</strong> O'Neil RS Rating &ge; 75 (stock outperforms 75%+ of market).</li>
+                                    <li><strong>Proximity to High:</strong> Price within 15% of 52-week high (structural uptrend intact).</li>
+                                    <li><strong>Breakout Volume:</strong> Volume surge &ge; 1.3x 50-day SMA on breakout candle.</li>
+                                    <li><strong>Risk Management:</strong> Stop-loss placed strictly below key EMA or recent consolidation low.</li>
+                                </ul>
                             </div>
                         </div>
                     </div>
@@ -4077,20 +5385,110 @@
                     </div>
 
                     <!-- Educational Rules Banner -->
-                    <div id="undercut-guide-banner" class="vcp-guide-banner" style="display: none; margin-bottom: 20px; border-radius: 12px; padding: 16px 20px;">
-                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-                            <strong style="font-size: 14px; font-weight: 800; color: #38bdf8;">⚡ Undercut & Rally (U&R) Identification Rules</strong>
-                            <button onclick="document.getElementById('undercut-guide-banner').style.display='none'" style="background: none; border: none; cursor: pointer; font-size: 15px; color: #94a3b8;">✕</button>
+                    <div id="undercut-guide-banner" class="screener-guide-banner-v5" style="display: none; border-color: rgba(251, 146, 60, 0.4);">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+                            <div style="display: flex; align-items: center; gap: 10px;">
+                                <div style="background: rgba(251, 146, 60, 0.15); border: 1px solid rgba(251, 146, 60, 0.4); padding: 4px 10px; border-radius: 6px; font-size: 11px; font-weight: 800; color: #fb923c; text-transform: uppercase;">
+                                    Minervini & Morales U&R Reclaim
+                                </div>
+                                <h3 style="margin: 0; font-size: 16px; font-weight: 800; color: #ffffff;">⚡ Undercut & Rally (U&R) Strategy & Visual Masterclass</h3>
+                            </div>
+                            <button onclick="document.getElementById('undercut-guide-banner').style.display='none'" style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); color: #94a3b8; width: 28px; height: 28px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 14px; transition: all 0.2s;">✕</button>
                         </div>
-                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 10px; font-size: 11.5px; line-height: 1.45;">
-                            <div style="background: rgba(30,41,59,0.5); padding: 10px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.06);">
-                                <strong style="color: #38bdf8;">1. Prior Swing Low</strong>: Key support low established 15 to 45 trading days prior in a Stage 2 stock.
+
+                        <div class="guide-v5-grid">
+                            <!-- COLUMN 1: ANNOTATED SVG DIAGRAM -->
+                            <div class="guide-v5-card">
+                                <div class="guide-v5-card-header" style="color: #fb923c;">
+                                    <span>📉 Prior Swing Low Shakeout Mechanics</span>
+                                    <span class="guide-v5-badge" style="background: rgba(251, 146, 60, 0.15); color: #fb923c; border-color: rgba(251, 146, 60, 0.3);">False Breakdown</span>
+                                </div>
+                                <div class="guide-v5-svg-container">
+                                    <svg viewBox="0 0 400 190" style="width: 100%; height: 100%;">
+                                        <!-- Grid & Support Line -->
+                                        <line x1="30" y1="95" x2="370" y2="95" stroke="rgba(251, 146, 60, 0.6)" stroke-dasharray="4,4" stroke-width="1.5"/>
+                                        <text x="35" y="90" fill="#fb923c" font-size="9" font-weight="700">Prior Swing Low Support (₹895)</text>
+
+                                        <!-- Price Path: Prior Swing Low -> Shakeout Undercut -> V-Reclaim Rally -->
+                                        <path d="M 40 50 L 100 95 L 160 65 L 230 95 L 260 135 L 290 80 L 350 45" fill="none" stroke="#38bdf8" stroke-width="2.5"/>
+
+                                        <!-- Prior Low Dot -->
+                                        <circle cx="100" cy="95" r="4" fill="#fb923c"/>
+                                        <text x="75" y="110" fill="#94a3b8" font-size="9">Prior Low 1</text>
+
+                                        <!-- Undercut Shakeout Dip Dot -->
+                                        <circle cx="260" cy="135" r="5" fill="#f87171"/>
+                                        <text x="210" y="150" fill="#f87171" font-size="9" font-weight="800">🔴 Shakeout Dip (-1.9%)</text>
+
+                                        <!-- Reclaim Pivot Dot -->
+                                        <circle cx="290" cy="80" r="5" fill="#34d399"/>
+                                        <text x="300" y="75" fill="#34d399" font-size="9" font-weight="800">🟢 Reclaim Close!</text>
+
+                                        <!-- Volume Surge Bar below SVG -->
+                                        <rect x="250" y="165" width="20" height="20" fill="rgba(248, 113, 113, 0.4)"/>
+                                        <rect x="280" y="150" width="20" height="35" fill="rgba(52, 211, 153, 0.9)"/>
+                                        <text x="308" y="172" fill="#34d399" font-size="9" font-weight="700">2.8x Vol Surge</text>
+                                    </svg>
+                                </div>
+                                <div class="guide-v5-legend">
+                                    <div class="guide-v5-legend-item"><span class="guide-v5-legend-dot" style="background: #fb923c;"></span>Prior Swing Low</div>
+                                    <div class="guide-v5-legend-item"><span class="guide-v5-legend-dot" style="background: #f87171;"></span>Undercut Low</div>
+                                    <div class="guide-v5-legend-item"><span class="guide-v5-legend-dot" style="background: #34d399;"></span>Heavy Vol Reclaim</div>
+                                </div>
                             </div>
-                            <div style="background: rgba(30,41,59,0.5); padding: 10px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.06);">
-                                <strong style="color: #38bdf8;">2. Controlled Undercut</strong>: Price dips 0.5% to 4.0% below the prior low to trigger stop orders.
+
+                            <!-- COLUMN 2: REAL NSE CASE STUDY -->
+                            <div class="guide-v5-card">
+                                <div class="guide-v5-card-header" style="color: #fb923c;">
+                                    <span>🏢 Real NSE Stock Case Study</span>
+                                    <span class="guide-v5-badge" style="background: rgba(251, 146, 60, 0.15); color: #fb923c; border-color: rgba(251, 146, 60, 0.3);">Monopoly Rail</span>
+                                </div>
+                                <div style="font-size: 15px; font-weight: 800; color: #ffffff; margin-bottom: 4px;">IRCTC.NS (IRCTC Ltd)</div>
+                                <div style="font-size: 11px; color: #94a3b8; margin-bottom: 12px;">Undercuts 4-week low by -1.9% and closes above support on 2.8x volume.</div>
+
+                                <div class="guide-v5-metric-row">
+                                    <span class="guide-v5-metric-label">Current Stock Price</span>
+                                    <span class="guide-v5-metric-val" style="color: #ffffff;">₹920.50 <span style="font-size: 10px; color: #34d399;">(+3.85%)</span></span>
+                                </div>
+                                <div class="guide-v5-metric-row">
+                                    <span class="guide-v5-metric-label">Prior Swing Low Support</span>
+                                    <span class="guide-v5-metric-val" style="color: #fb923c;">₹895.00</span>
+                                </div>
+                                <div class="guide-v5-metric-row">
+                                    <span class="guide-v5-metric-label">Undercut Low Hit</span>
+                                    <span class="guide-v5-metric-val" style="color: #f87171;">₹878.00 (-1.9% dip)</span>
+                                </div>
+                                <div class="guide-v5-metric-row">
+                                    <span class="guide-v5-metric-label">Rally Reclaim Close</span>
+                                    <span class="guide-v5-metric-val" style="color: #34d399;">₹920.50 (Above support)</span>
+                                </div>
+                                <div class="guide-v5-metric-row">
+                                    <span class="guide-v5-metric-label">Reclaim Volume Surge</span>
+                                    <span class="guide-v5-metric-val" style="color: #38bdf8;">2.8x 50d average</span>
+                                </div>
+                                <div class="guide-v5-metric-row">
+                                    <span class="guide-v5-metric-label">Pivot Buy Trigger</span>
+                                    <span class="guide-v5-metric-val" style="color: #38bdf8;">₹925.00</span>
+                                </div>
+                                <div class="guide-v5-metric-row">
+                                    <span class="guide-v5-metric-label">Stop-Loss Placement</span>
+                                    <span class="guide-v5-metric-val" style="color: #f87171;">₹870.00 (-5.9%)</span>
+                                </div>
                             </div>
-                            <div style="background: rgba(30,41,59,0.5); padding: 10px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.06);">
-                                <strong style="color: #38bdf8;">3. High Volume Reclaim</strong>: Close returns above the swing low on >= 1.3x 50-day average volume, setting tight stop loss at intraday low.
+
+                            <!-- COLUMN 3: HARD QUANT CRITERIA -->
+                            <div class="guide-v5-card">
+                                <div class="guide-v5-card-header" style="color: #fb923c;">
+                                    <span>⚙️ Hard Institutional Quant Criteria</span>
+                                </div>
+                                <ul class="guide-v5-rules-list">
+                                    <li><strong>Controlled Undercut:</strong> Price dips 1% to 3% below a prior established 15-45 day swing low.</li>
+                                    <li><strong>Immediate Reclaim:</strong> Reversal closes ABOVE the undercut support level on the same day or within 2 days.</li>
+                                    <li><strong>Volume Acceleration:</strong> Recovery volume &ge; 1.5x (ideally &ge; 2.0x) 50-day average volume.</li>
+                                    <li><strong>Base Context:</strong> Undercut occurs within a valid Stage 2 base structure (not a breakdown).</li>
+                                    <li><strong>Trend Alignment:</strong> 150-day SMA slope &ge; 0 (long-term uptrend structurally intact).</li>
+                                    <li><strong>Tight Risk/Reward:</strong> Stop loss placed strictly below undercut low (risking 3-6% for 20%+ target).</li>
+                                </ul>
                             </div>
                         </div>
                     </div>
