@@ -55508,6 +55508,7 @@ window.runVcpScan = async function(isSilent = false, forceRefresh = false) {
             const cachedStocks = JSON.parse(cachedRaw);
             if (Array.isArray(cachedStocks) && cachedStocks.length > 0 && cachedStocks.length <= 100) {
                 updateVcpUI(cachedStocks);
+                window.renderUnifiedScreenerBadge('vcp-header-status-badge', cachedStocks.length, new Date(), false);
                 hasHydrated = true;
                 if (loadingEl) loadingEl.style.display = 'none';
                 if (gridEl) gridEl.style.display = 'grid';
@@ -55532,6 +55533,7 @@ window.runVcpScan = async function(isSilent = false, forceRefresh = false) {
         const stocksList = Array.isArray(data) ? data : (data && Array.isArray(data.stocks) ? data.stocks : null);
         if (stocksList && stocksList.length > 0) {
             updateVcpUI(stocksList);
+            window.renderUnifiedScreenerBadge('vcp-header-status-badge', stocksList.length, (data && (data.last_updated || data.timestamp)) || new Date(), forceRefresh);
             try {
                 localStorage.setItem('cached_vcp_screener_stocks', JSON.stringify(stocksList));
             } catch (e) {}
@@ -56888,6 +56890,7 @@ window.runWeinsteinScan = async function(isSilent = false, forceRefresh = false)
             if (Array.isArray(parsed) && parsed.length > 0 && parsed.length <= 150) {
                 window.allWeinsteinStocks = parsed;
                 window.renderWeinsteinTable(parsed);
+                window.renderUnifiedScreenerBadge('weinstein-header-status-badge', parsed.length, new Date(), false);
                 hasHydrated = true;
                 if (loadingEl) loadingEl.style.display = 'none';
             }
@@ -56904,6 +56907,7 @@ window.runWeinsteinScan = async function(isSilent = false, forceRefresh = false)
             window.allWeinsteinStocks = stocksList;
             try { localStorage.setItem('cached_weinstein_stocks', JSON.stringify(stocksList)); } catch(e){}
             window.renderWeinsteinTable(stocksList);
+            window.renderUnifiedScreenerBadge('weinstein-header-status-badge', stocksList.length, (data && (data.last_updated || data.timestamp)) || new Date(), forceRefresh);
             if (typeof wsSubscribeSymbols === 'function') wsSubscribeSymbols(stocksList.map(s => s.symbol));
         }
     } catch(err) {
@@ -57005,6 +57009,7 @@ window.runHtfScan = async function(isSilent = false, forceRefresh = false) {
             if (Array.isArray(parsed) && parsed.length > 0) {
                 window.allHtfStocks = parsed;
                 window.renderHtfTable(parsed);
+                window.renderUnifiedScreenerBadge('htf-header-status-badge', parsed.length, new Date(), false);
                 hasHydrated = true;
                 if (loadingEl) loadingEl.style.display = 'none';
             }
@@ -57021,6 +57026,7 @@ window.runHtfScan = async function(isSilent = false, forceRefresh = false) {
             window.allHtfStocks = stocksList;
             try { localStorage.setItem('cached_htf_stocks', JSON.stringify(stocksList)); } catch(e){}
             window.renderHtfTable(stocksList);
+            window.renderUnifiedScreenerBadge('htf-header-status-badge', stocksList.length, (data && (data.last_updated || data.timestamp)) || new Date(), forceRefresh);
             if (typeof wsSubscribeSymbols === 'function') wsSubscribeSymbols(stocksList.map(s => s.symbol));
         }
     } catch(err) {
@@ -57132,6 +57138,7 @@ window.run3wtScan = async function(isSilent = false, forceRefresh = false) {
             if (Array.isArray(parsed) && parsed.length > 0) {
                 window.all3wtStocks = parsed;
                 window.render3wtTable(parsed);
+                window.renderUnifiedScreenerBadge('3wt-header-status-badge', parsed.length, new Date(), false);
                 hasHydrated = true;
                 if (loadingEl) loadingEl.style.display = 'none';
             }
@@ -57148,6 +57155,7 @@ window.run3wtScan = async function(isSilent = false, forceRefresh = false) {
             window.all3wtStocks = stocksList;
             try { localStorage.setItem('cached_3wt_stocks', JSON.stringify(stocksList)); } catch(e){}
             window.render3wtTable(stocksList);
+            window.renderUnifiedScreenerBadge('3wt-header-status-badge', stocksList.length, (data && (data.last_updated || data.timestamp)) || new Date(), forceRefresh);
             if (typeof wsSubscribeSymbols === 'function') wsSubscribeSymbols(stocksList.map(s => s.symbol));
         }
     } catch(err) {
@@ -57249,6 +57257,7 @@ window.runFlatBaseScan = async function(isSilent = false, forceRefresh = false) 
             if (Array.isArray(parsed) && parsed.length > 0) {
                 window.allFlatBaseStocks = parsed;
                 window.renderFlatBaseTable(parsed);
+                window.renderUnifiedScreenerBadge('flatbase-header-status-badge', parsed.length, new Date(), false);
                 hasHydrated = true;
                 if (loadingEl) loadingEl.style.display = 'none';
             }
@@ -57265,6 +57274,7 @@ window.runFlatBaseScan = async function(isSilent = false, forceRefresh = false) 
             window.allFlatBaseStocks = stocksList;
             try { localStorage.setItem('cached_flatbase_stocks', JSON.stringify(stocksList)); } catch(e){}
             window.renderFlatBaseTable(stocksList);
+            window.renderUnifiedScreenerBadge('flatbase-header-status-badge', stocksList.length, (data && (data.last_updated || data.timestamp)) || new Date(), forceRefresh);
             if (typeof wsSubscribeSymbols === 'function') wsSubscribeSymbols(stocksList.map(s => s.symbol));
         }
     } catch(err) {
@@ -57377,8 +57387,7 @@ window.runEpisodicScan = async function(isSilent = false, forceRefresh = false) 
                 window.renderEpisodicTable(list);
                 const badge = document.getElementById('episodic-count-badge');
                 if (badge) badge.innerText = `${list.length} Matches`;
-                const ts = document.getElementById('episodic-timestamp');
-                if (ts && (parsed.last_updated || parsed.timestamp)) ts.innerText = `Cached: ${parsed.last_updated || parsed.timestamp}`;
+                window.renderUnifiedScreenerBadge('episodic-timestamp', list.length, parsed.last_updated || parsed.timestamp, false);
             }
         } catch(e) {}
     }
@@ -57398,8 +57407,7 @@ window.runEpisodicScan = async function(isSilent = false, forceRefresh = false) 
             const badge = document.getElementById('episodic-count-badge');
             const cnt = data.count !== undefined ? data.count : (data.total_matches !== undefined ? data.total_matches : window.allEpisodicStocks.length);
             if (badge) badge.innerText = `${cnt} Matches`;
-            const ts = document.getElementById('episodic-timestamp');
-            if (ts) ts.innerText = `Last Updated: ${data.last_updated || data.timestamp || 'Just Now'}`;
+            window.renderUnifiedScreenerBadge('episodic-timestamp', cnt, data.last_updated || data.timestamp, forceRefresh);
         }
     } catch (err) {
         console.error('Error running Episodic Pivot scan:', err);
@@ -57517,8 +57525,7 @@ window.runPocketScan = async function(isSilent = false, forceRefresh = false) {
                 window.renderPocketTable(list);
                 const badge = document.getElementById('pocket-count-badge');
                 if (badge) badge.innerText = `${list.length} Matches`;
-                const ts = document.getElementById('pocket-timestamp');
-                if (ts && (parsed.last_updated || parsed.timestamp)) ts.innerText = `Cached: ${parsed.last_updated || parsed.timestamp}`;
+                window.renderUnifiedScreenerBadge('pocket-timestamp', list.length, parsed.last_updated || parsed.timestamp, false);
             }
         } catch(e) {}
     }
@@ -57538,8 +57545,7 @@ window.runPocketScan = async function(isSilent = false, forceRefresh = false) {
             const badge = document.getElementById('pocket-count-badge');
             const cnt = data.count !== undefined ? data.count : (data.total_matches !== undefined ? data.total_matches : window.allPocketStocks.length);
             if (badge) badge.innerText = `${cnt} Matches`;
-            const ts = document.getElementById('pocket-timestamp');
-            if (ts) ts.innerText = `Last Updated: ${data.last_updated || data.timestamp || 'Just Now'}`;
+            window.renderUnifiedScreenerBadge('pocket-timestamp', cnt, data.last_updated || data.timestamp, forceRefresh);
         }
     } catch (err) {
         console.error('Error running Pocket Pivot scan:', err);
@@ -57657,8 +57663,7 @@ window.runOliverKellScan = async function(isSilent = false, forceRefresh = false
                 window.renderOliverKellTable(list);
                 const badge = document.getElementById('oliverkell-count-badge');
                 if (badge) badge.innerText = `${list.length} Matches`;
-                const ts = document.getElementById('oliverkell-timestamp');
-                if (ts && (parsed.last_updated || parsed.timestamp)) ts.innerText = `Cached: ${parsed.last_updated || parsed.timestamp}`;
+                window.renderUnifiedScreenerBadge('oliverkell-timestamp', list.length, parsed.last_updated || parsed.timestamp, false);
             }
         } catch(e) {}
     }
@@ -57678,8 +57683,7 @@ window.runOliverKellScan = async function(isSilent = false, forceRefresh = false
             const badge = document.getElementById('oliverkell-count-badge');
             const cnt = data.count !== undefined ? data.count : (data.total_matches !== undefined ? data.total_matches : window.allOliverKellStocks.length);
             if (badge) badge.innerText = `${cnt} Matches`;
-            const ts = document.getElementById('oliverkell-timestamp');
-            if (ts) ts.innerText = `Last Updated: ${data.last_updated || data.timestamp || 'Just Now'}`;
+            window.renderUnifiedScreenerBadge('oliverkell-timestamp', cnt, data.last_updated || data.timestamp, forceRefresh);
         }
     } catch (err) {
         console.error('Error running Oliver Kell scan:', err);
@@ -57809,8 +57813,7 @@ window.runCupHandleScan = async function(isSilent = false, forceRefresh = false)
                 window.renderCupHandleTable(list);
                 const badge = document.getElementById('cuphandle-count-badge');
                 if (badge) badge.innerText = `${list.length} Matches`;
-                const ts = document.getElementById('cuphandle-timestamp');
-                if (ts && (parsed.last_updated || parsed.timestamp)) ts.innerText = `Cached: ${parsed.last_updated || parsed.timestamp}`;
+                window.renderUnifiedScreenerBadge('cuphandle-timestamp', list.length, parsed.last_updated || parsed.timestamp, false);
             }
         } catch(e) {}
     }
@@ -57830,8 +57833,7 @@ window.runCupHandleScan = async function(isSilent = false, forceRefresh = false)
             const badge = document.getElementById('cuphandle-count-badge');
             const cnt = data.count !== undefined ? data.count : (data.total_matches !== undefined ? data.total_matches : window.allCupHandleStocks.length);
             if (badge) badge.innerText = `${cnt} Matches`;
-            const ts = document.getElementById('cuphandle-timestamp');
-            if (ts) ts.innerText = `Last Updated: ${data.last_updated || data.timestamp || 'Just Now'}`;
+            window.renderUnifiedScreenerBadge('cuphandle-timestamp', cnt, data.last_updated || data.timestamp, forceRefresh);
         }
     } catch (err) {
         console.error('Error running Cup & Handle scan:', err);
@@ -57972,8 +57974,7 @@ window.runRsnhScan = async function(isSilent = false, forceRefresh = false) {
                 window.renderRsnhTable(list);
                 const badge = document.getElementById('rsnh-count-badge');
                 if (badge) badge.innerText = `${list.length} Matches`;
-                const ts = document.getElementById('rsnh-timestamp');
-                if (ts && (parsed.last_updated || parsed.timestamp)) ts.innerText = `Cached: ${parsed.last_updated || parsed.timestamp}`;
+                window.renderUnifiedScreenerBadge('rsnh-timestamp', list.length, parsed.last_updated || parsed.timestamp, false);
                 hasHydrated = true;
                 if (loadingEl) loadingEl.style.display = 'none';
             }
@@ -57995,8 +57996,7 @@ window.runRsnhScan = async function(isSilent = false, forceRefresh = false) {
             const badge = document.getElementById('rsnh-count-badge');
             const cnt = data.count !== undefined ? data.count : window.allRsnhStocks.length;
             if (badge) badge.innerText = `${cnt} Matches`;
-            const ts = document.getElementById('rsnh-timestamp');
-            if (ts) ts.innerText = `Last Updated: ${data.last_updated || data.timestamp || 'Just Now'}`;
+            window.renderUnifiedScreenerBadge('rsnh-timestamp', cnt, data.last_updated || data.timestamp, forceRefresh);
         }
     } catch (err) {
         console.error('Error running RS Line New High scan:', err);
@@ -58126,8 +58126,7 @@ window.runUndercutScan = async function(isSilent = false, forceRefresh = false) 
                 window.renderUndercutTable(list);
                 const badge = document.getElementById('undercut-count-badge');
                 if (badge) badge.innerText = `${list.length} Matches`;
-                const ts = document.getElementById('undercut-timestamp');
-                if (ts && (parsed.last_updated || parsed.timestamp)) ts.innerText = `Cached: ${parsed.last_updated || parsed.timestamp}`;
+                window.renderUnifiedScreenerBadge('undercut-timestamp', list.length, parsed.last_updated || parsed.timestamp, false);
                 hasHydrated = true;
                 if (loadingEl) loadingEl.style.display = 'none';
             }
@@ -58149,8 +58148,7 @@ window.runUndercutScan = async function(isSilent = false, forceRefresh = false) 
             const badge = document.getElementById('undercut-count-badge');
             const cnt = data.count !== undefined ? data.count : window.allUndercutStocks.length;
             if (badge) badge.innerText = `${cnt} Matches`;
-            const ts = document.getElementById('undercut-timestamp');
-            if (ts) ts.innerText = `Last Updated: ${data.last_updated || data.timestamp || 'Just Now'}`;
+            window.renderUnifiedScreenerBadge('undercut-timestamp', cnt, data.last_updated || data.timestamp, forceRefresh);
         }
     } catch (err) {
         console.error('Error running Undercut & Rally scan:', err);
@@ -59973,55 +59971,54 @@ window.toggleQuantGuideMap = function() {
 };
 
 window.formatScreenerBadgeTime = function(rawTimestamp) {
-    if (!rawTimestamp) return "Today 1:30 AM";
+    if (!rawTimestamp) return "Today 1:30 AM IST";
     try {
+        let dateObj;
         if (rawTimestamp instanceof Date) {
-            const d = rawTimestamp;
-            const now = new Date();
-            const isToday = d.getDate() === now.getDate() && 
-                            d.getMonth() === now.getMonth() && 
-                            d.getFullYear() === now.getFullYear();
-            const hours = d.getHours();
-            const minutes = d.getMinutes();
-            const ampm = hours >= 12 ? 'PM' : 'AM';
-            const formattedHours = hours % 12 || 12;
-            const formattedMinutes = minutes < 10 ? '0' + minutes : minutes;
-            const timePart = `${formattedHours}:${formattedMinutes} ${ampm}`;
-            return isToday ? `Today ${timePart}` : `${d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}, ${timePart}`;
+            dateObj = rawTimestamp;
+        } else {
+            let dateStr = String(rawTimestamp).trim();
+            // Check if format is "YYYY-MM-DD HH:MM:SS" or "YYYY-MM-DDTHH:MM:SS" without timezone offset
+            const localMatch = dateStr.match(/^(\d{4})[-/](\d{1,2})[-/](\d{1,2})[T ](\d{1,2}):(\d{1,2})(?::(\d{1,2}))?/);
+            if (localMatch && !dateStr.includes("+") && !dateStr.endsWith("Z")) {
+                const year = parseInt(localMatch[1], 10);
+                const month = parseInt(localMatch[2], 10) - 1;
+                const day = parseInt(localMatch[3], 10);
+                const hour = parseInt(localMatch[4], 10);
+                const minute = parseInt(localMatch[5], 10);
+                const second = parseInt(localMatch[6] || "0", 10);
+                dateObj = new Date(year, month, day, hour, minute, second);
+            } else {
+                dateObj = new Date(dateStr);
+            }
         }
 
-        let dateStr = String(rawTimestamp).trim();
-        // Handle SQLite UTC timestamp format like "2026-09-18 14:42:00" -> convert to ISO UTC string
-        if (!dateStr.includes("T") && dateStr.includes(" ")) {
-            dateStr = dateStr.replace(" ", "T") + "Z";
-        } else if (!dateStr.endsWith("Z") && !dateStr.includes("+")) {
-            dateStr += "Z";
-        }
-        const d = new Date(dateStr);
-        if (isNaN(d.getTime())) {
-            return String(rawTimestamp);
+        if (!dateObj || isNaN(dateObj.getTime())) {
+            const rawStr = String(rawTimestamp).trim();
+            return rawStr.includes("IST") ? rawStr : `${rawStr} IST`;
         }
         
         const now = new Date();
-        const isToday = d.getDate() === now.getDate() && 
-                        d.getMonth() === now.getMonth() && 
-                        d.getFullYear() === now.getFullYear();
+        const isToday = dateObj.getDate() === now.getDate() && 
+                        dateObj.getMonth() === now.getMonth() && 
+                        dateObj.getFullYear() === now.getFullYear();
                         
-        const hours = d.getHours();
-        const minutes = d.getMinutes();
+        const hours = dateObj.getHours();
+        const minutes = dateObj.getMinutes();
         const ampm = hours >= 12 ? 'PM' : 'AM';
         const formattedHours = hours % 12 || 12;
         const formattedMinutes = minutes < 10 ? '0' + minutes : minutes;
-        const timePart = `${formattedHours}:${formattedMinutes} ${ampm}`;
+        const timePart = `${formattedHours}:${formattedMinutes} ${ampm} IST`;
         
         if (isToday) {
             return `Today ${timePart}`;
         } else {
             const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-            return `${months[d.getMonth()]} ${d.getDate()}, ${timePart}`;
+            return `${months[dateObj.getMonth()]} ${dateObj.getDate()}, ${timePart}`;
         }
     } catch(e) {
-        return String(rawTimestamp);
+        const rawStr = String(rawTimestamp).trim();
+        return rawStr.includes("IST") ? rawStr : `${rawStr} IST`;
     }
 };
 

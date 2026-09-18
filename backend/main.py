@@ -13778,8 +13778,6 @@ async def get_cron_status():
             ts_str = str(ts).strip()
             if "T" not in ts_str:
                 ts_str = ts_str.replace(" ", "T")
-            if not ts_str.endswith("Z") and "+00:00" not in ts_str:
-                ts_str += "Z"
             return ts_str
 
         def parse_screener_info(screener_name):
