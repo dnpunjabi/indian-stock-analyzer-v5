@@ -13759,7 +13759,7 @@ except Exception as cron_start_err:
 
 @app.get("/api/system/cron-status")
 async def get_cron_status():
-    """Returns status, timestamps, and execution logs for all 11 Quant Suite screeners."""
+    """Returns status, timestamps, and execution logs for all 12 Quant Suite screeners."""
     try:
         with get_db() as conn:
             cursor = conn.cursor()
@@ -13772,22 +13772,66 @@ async def get_cron_status():
             cursor.execute("SELECT screener_name, cache_json, updated_at FROM screener_results_cache")
             screener_rows = {r["screener_name"]: r for r in cursor.fetchall()}
 
+        def format_utc_iso(ts):
+            if not ts:
+                return None
+            ts_str = str(ts).strip()
+            if "T" not in ts_str:
+                ts_str = ts_str.replace(" ", "T")
+            if not ts_str.endswith("Z") and "+00:00" not in ts_str:
+                ts_str += "Z"
+            return ts_str
+
         def parse_screener_info(screener_name):
             row = screener_rows.get(screener_name)
             if row and row["cache_json"]:
                 try:
                     data = json.loads(row["cache_json"])
-                    return {"status": "SUCCESS", "last_updated": row["updated_at"], "qualifying_count": len(data) if isinstance(data, list) else 0}
+                    return {
+                        "status": "SUCCESS",
+                        "last_updated": format_utc_iso(row["updated_at"]),
+                        "qualifying_count": len(data) if isinstance(data, list) else 0
+                    }
                 except Exception:
                     pass
             return {"status": "NOT_RUN", "last_updated": None, "qualifying_count": 0}
 
+        # Calculate unique confluence symbols across all cached screeners
+        confluence_symbols = set()
+        max_screener_updated = format_utc_iso(vcp_row["last_updated"]) if (vcp_row and vcp_row["last_updated"]) else None
+        
+        for r_name, row in screener_rows.items():
+            if row and row.get("cache_json"):
+                row_ts = format_utc_iso(row.get("updated_at"))
+                if row_ts and (not max_screener_updated or row_ts > max_screener_updated):
+                    max_screener_updated = row_ts
+                try:
+                    items = json.loads(row["cache_json"])
+                    if isinstance(items, list):
+                        for item in items:
+                            if isinstance(item, dict) and item.get("symbol"):
+                                confluence_symbols.add(item["symbol"])
+                except Exception:
+                    pass
+
+        conf_info = parse_screener_info("confluence")
+        if not conf_info.get("qualifying_count"):
+            conf_info = {
+                "status": "SUCCESS" if confluence_symbols else "NOT_RUN",
+                "last_updated": max_screener_updated,
+                "qualifying_count": len(confluence_symbols) if confluence_symbols else (vcp_row["count"] if vcp_row else 0)
+            }
+
         return {
             "status": "healthy",
-            "last_nightly_run": log_rows[0]["run_time"] if log_rows else None,
+            "last_nightly_run": format_utc_iso(log_rows[0]["run_time"]) if log_rows else None,
             "screeners": {
-                "confluence": parse_screener_info("confluence") if screener_rows.get("confluence") else {"status": "SUCCESS" if (vcp_row and vcp_row["last_updated"]) else "NOT_RUN", "last_updated": vcp_row["last_updated"] if vcp_row else None, "qualifying_count": vcp_row["count"] if (vcp_row and vcp_row["count"]) else 0},
-                "vcp": {"status": "SUCCESS" if (vcp_row and vcp_row["last_updated"]) else "NOT_RUN", "last_updated": vcp_row["last_updated"] if vcp_row else None, "qualifying_count": vcp_row["count"] if (vcp_row and vcp_row["count"]) else 0},
+                "confluence": conf_info,
+                "vcp": {
+                    "status": "SUCCESS" if (vcp_row and vcp_row["last_updated"]) else "NOT_RUN",
+                    "last_updated": format_utc_iso(vcp_row["last_updated"]) if vcp_row else None,
+                    "qualifying_count": vcp_row["count"] if (vcp_row and vcp_row["count"]) else 0
+                },
                 "stage2": parse_screener_info("weinstein_stage2"),
                 "3wt": parse_screener_info("3weeks_tight"),
                 "htf": parse_screener_info("htf"),

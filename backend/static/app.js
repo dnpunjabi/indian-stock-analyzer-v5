@@ -58401,6 +58401,7 @@ window.loadMultiConfluenceLeaderboard = async function(forceRefresh = false) {
         if (tsText && data.last_updated) tsText.innerText = `Live Sync: ${data.last_updated}`;
 
         window.renderMultiConfluenceLeaderboard(data);
+        window.renderUnifiedScreenerBadge('confluence-prewarmed-tag', window.allConfluenceCandidates.length, data.last_updated || new Date(), forceRefresh);
     } catch (err) {
         console.error("Error loading confluence leaderboard:", err);
         container.innerHTML = `
@@ -58433,6 +58434,7 @@ window.renderMultiConfluenceLeaderboard = function(data) {
     if (!container) return;
 
     const candidates = window.allConfluenceCandidates || [];
+    window.renderUnifiedScreenerBadge('confluence-prewarmed-tag', candidates.length, data ? data.last_updated : new Date(), false);
     const tierCounts = data.tier_counts || { tier_1: 0, tier_2: 0, tier_3: 0, tier_4: 0 };
     const hotClusters = data.hot_industry_clusters || [];
     const inBuyZoneCount = candidates.filter(c => c.buy_zone_status === 'IN_BUY_ZONE').length;
@@ -59970,6 +59972,87 @@ window.toggleQuantGuideMap = function() {
     }
 };
 
+window.formatScreenerBadgeTime = function(rawTimestamp) {
+    if (!rawTimestamp) return "Today 1:30 AM";
+    try {
+        if (rawTimestamp instanceof Date) {
+            const d = rawTimestamp;
+            const now = new Date();
+            const isToday = d.getDate() === now.getDate() && 
+                            d.getMonth() === now.getMonth() && 
+                            d.getFullYear() === now.getFullYear();
+            const hours = d.getHours();
+            const minutes = d.getMinutes();
+            const ampm = hours >= 12 ? 'PM' : 'AM';
+            const formattedHours = hours % 12 || 12;
+            const formattedMinutes = minutes < 10 ? '0' + minutes : minutes;
+            const timePart = `${formattedHours}:${formattedMinutes} ${ampm}`;
+            return isToday ? `Today ${timePart}` : `${d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}, ${timePart}`;
+        }
+
+        let dateStr = String(rawTimestamp).trim();
+        // Handle SQLite UTC timestamp format like "2026-09-18 14:42:00" -> convert to ISO UTC string
+        if (!dateStr.includes("T") && dateStr.includes(" ")) {
+            dateStr = dateStr.replace(" ", "T") + "Z";
+        } else if (!dateStr.endsWith("Z") && !dateStr.includes("+")) {
+            dateStr += "Z";
+        }
+        const d = new Date(dateStr);
+        if (isNaN(d.getTime())) {
+            return String(rawTimestamp);
+        }
+        
+        const now = new Date();
+        const isToday = d.getDate() === now.getDate() && 
+                        d.getMonth() === now.getMonth() && 
+                        d.getFullYear() === now.getFullYear();
+                        
+        const hours = d.getHours();
+        const minutes = d.getMinutes();
+        const ampm = hours >= 12 ? 'PM' : 'AM';
+        const formattedHours = hours % 12 || 12;
+        const formattedMinutes = minutes < 10 ? '0' + minutes : minutes;
+        const timePart = `${formattedHours}:${formattedMinutes} ${ampm}`;
+        
+        if (isToday) {
+            return `Today ${timePart}`;
+        } else {
+            const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+            return `${months[d.getMonth()]} ${d.getDate()}, ${timePart}`;
+        }
+    } catch(e) {
+        return String(rawTimestamp);
+    }
+};
+
+window.renderUnifiedScreenerBadge = function(elementId, count, rawTimestamp, isLiveScan = false) {
+    const badgeEl = document.getElementById(elementId);
+    if (!badgeEl) return;
+    
+    if (!isLiveScan && badgeEl.dataset.isLiveScan === "true") {
+        return; // Retain active live scan status badge
+    }
+    
+    if (isLiveScan) {
+        badgeEl.dataset.isLiveScan = "true";
+    }
+
+    const timeStr = window.formatScreenerBadgeTime(rawTimestamp);
+    const cnt = count !== undefined ? count : 0;
+    
+    if (isLiveScan) {
+        badgeEl.innerHTML = `🟢 Live Scanned: ${timeStr} (${cnt} leaders)`;
+        badgeEl.style.color = `#34d399`;
+        badgeEl.style.borderColor = `rgba(52, 211, 153, 0.35)`;
+        badgeEl.style.background = `rgba(52, 211, 153, 0.14)`;
+    } else {
+        badgeEl.innerHTML = `🟢 Last Pre-Warmed: ${timeStr} (${cnt} leaders cached)`;
+        badgeEl.style.color = `#10b981`;
+        badgeEl.style.borderColor = `rgba(16, 185, 129, 0.3)`;
+        badgeEl.style.background = `rgba(16, 185, 129, 0.12)`;
+    }
+};
+
 window.updateScreenerHeaderBadges = async function() {
     try {
         const res = await fetch('/api/system/cron-status');
@@ -60005,25 +60088,7 @@ window.updateScreenerHeaderBadges = async function() {
                 badgeEl.style.borderColor = `rgba(245, 158, 11, 0.3)`;
                 badgeEl.style.background = `rgba(245, 158, 11, 0.12)`;
             } else if (info.status === 'SUCCESS' || (info.qualifying_count !== undefined && info.qualifying_count >= 0)) {
-                const cnt = info.qualifying_count || 0;
-                let displayTime = "Today 1:30 AM";
-                if (info.last_updated) {
-                    try {
-                        const d = new Date(info.last_updated);
-                        if (!isNaN(d.getTime())) {
-                            const hours = d.getHours();
-                            const minutes = d.getMinutes();
-                            const ampm = hours >= 12 ? 'PM' : 'AM';
-                            const formattedHours = hours % 12 || 12;
-                            const formattedMinutes = minutes < 10 ? '0' + minutes : minutes;
-                            displayTime = `Today ${formattedHours}:${formattedMinutes} ${ampm}`;
-                        }
-                    } catch (err) {}
-                }
-                badgeEl.innerHTML = `🟢 Last Pre-Warmed: ${displayTime} (${cnt} leaders cached)`;
-                badgeEl.style.color = `#10b981`;
-                badgeEl.style.borderColor = `rgba(16, 185, 129, 0.3)`;
-                badgeEl.style.background = `rgba(16, 185, 129, 0.12)`;
+                window.renderUnifiedScreenerBadge(elementId, info.qualifying_count, info.last_updated, false);
             } else {
                 badgeEl.innerHTML = `🟢 Pre-Warmed (SQLite Single Source of Truth)`;
                 badgeEl.style.color = `#38bdf8`;
