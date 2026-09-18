@@ -19313,7 +19313,7 @@ async def get_multi_confluence_leaderboard(force_refresh: bool = False):
         "tier_counts": tier_counts,
         "sector_tailwinds": top_sectors,
         "hot_industry_clusters": list(hot_sectors),
-        "last_updated": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        "last_updated": datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"),
         "candidates": hydrated
     }
 
