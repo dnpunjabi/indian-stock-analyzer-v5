@@ -13786,6 +13786,7 @@ async def get_cron_status():
             "status": "healthy",
             "last_nightly_run": log_rows[0]["run_time"] if log_rows else None,
             "screeners": {
+                "confluence": parse_screener_info("confluence") if screener_rows.get("confluence") else {"status": "SUCCESS" if (vcp_row and vcp_row["last_updated"]) else "NOT_RUN", "last_updated": vcp_row["last_updated"] if vcp_row else None, "qualifying_count": vcp_row["count"] if (vcp_row and vcp_row["count"]) else 0},
                 "vcp": {"status": "SUCCESS" if (vcp_row and vcp_row["last_updated"]) else "NOT_RUN", "last_updated": vcp_row["last_updated"] if vcp_row else None, "qualifying_count": vcp_row["count"] if (vcp_row and vcp_row["count"]) else 0},
                 "stage2": parse_screener_info("weinstein_stage2"),
                 "3wt": parse_screener_info("3weeks_tight"),

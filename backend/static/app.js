@@ -59978,11 +59978,18 @@ window.updateScreenerHeaderBadges = async function() {
         
         const screeners = statusData.screeners;
         const badgeMap = {
+            'confluence': 'confluence-prewarmed-tag',
             'vcp': 'vcp-header-status-badge',
             'stage2': 'weinstein-header-status-badge',
             '3wt': '3wt-header-status-badge',
             'htf': 'htf-header-status-badge',
-            'flat_base': 'flatbase-header-status-badge'
+            'flat_base': 'flatbase-header-status-badge',
+            'episodic_pivot': 'episodic-timestamp',
+            'pocket_pivot': 'pocket-timestamp',
+            'oliver_kell': 'oliverkell-timestamp',
+            'cup_with_handle': 'cuphandle-timestamp',
+            'rs_line_new_high': 'rsnh-timestamp',
+            'undercut_and_rally': 'undercut-timestamp'
         };
         
         for (const [key, elementId] of Object.entries(badgeMap)) {
@@ -59997,9 +60004,23 @@ window.updateScreenerHeaderBadges = async function() {
                 badgeEl.style.color = `#f59e0b`;
                 badgeEl.style.borderColor = `rgba(245, 158, 11, 0.3)`;
                 badgeEl.style.background = `rgba(245, 158, 11, 0.12)`;
-            } else if (info.status === 'SUCCESS' || info.qualifying_count >= 0) {
+            } else if (info.status === 'SUCCESS' || (info.qualifying_count !== undefined && info.qualifying_count >= 0)) {
                 const cnt = info.qualifying_count || 0;
-                badgeEl.innerHTML = `🟢 Last Pre-Warmed: Today 1:30 AM (${cnt} leaders cached)`;
+                let displayTime = "Today 1:30 AM";
+                if (info.last_updated) {
+                    try {
+                        const d = new Date(info.last_updated);
+                        if (!isNaN(d.getTime())) {
+                            const hours = d.getHours();
+                            const minutes = d.getMinutes();
+                            const ampm = hours >= 12 ? 'PM' : 'AM';
+                            const formattedHours = hours % 12 || 12;
+                            const formattedMinutes = minutes < 10 ? '0' + minutes : minutes;
+                            displayTime = `Today ${formattedHours}:${formattedMinutes} ${ampm}`;
+                        }
+                    } catch (err) {}
+                }
+                badgeEl.innerHTML = `🟢 Last Pre-Warmed: ${displayTime} (${cnt} leaders cached)`;
                 badgeEl.style.color = `#10b981`;
                 badgeEl.style.borderColor = `rgba(16, 185, 129, 0.3)`;
                 badgeEl.style.background = `rgba(16, 185, 129, 0.12)`;
