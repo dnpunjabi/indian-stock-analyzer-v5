@@ -19189,6 +19189,11 @@ async def _scan_single_stock_index_divergence(item: dict, sem: asyncio.Semaphore
 
             stock_norm = [round(((float(v) / stock_start - 1.0) * 100.0), 2) for v in s_sub['Close']]
             
+            # Calculate Up-Volume / Down-Volume Absorption Ratio over lookback window
+            green_vol = float(s_sub[s_sub['Close'] > s_sub['Close'].shift(1)]['Volume'].sum()) if len(s_sub) >= 2 else 0.0
+            red_vol = float(s_sub[s_sub['Close'] < s_sub['Close'].shift(1)]['Volume'].sum()) if len(s_sub) >= 2 else 0.0
+            ud_vol_ratio = round(green_vol / red_vol, 2) if red_vol > 0 else (5.0 if green_vol > 0 else 1.0)
+            
             return {
                 "symbol": sym,
                 "company_name": item.get("company_name", sym),
@@ -19208,6 +19213,7 @@ async def _scan_single_stock_index_divergence(item: dict, sem: asyncio.Semaphore
                 "is_ultra_elite": is_ultra_elite,
                 "conviction_tier": conviction_tier,
                 "prox_to_52w_high_pct": round(prox_52w_pct, 1),
+                "up_down_vol_ratio": ud_vol_ratio,
                 "chart_dates": nifty_info["date_strings"],
                 "nifty_norm": nifty_info["norm"],
                 "stock_norm": stock_norm
@@ -19230,8 +19236,51 @@ def _get_all_timeframe_confluence_symbols():
     return set()
 
 
+def _attach_tf_breakdowns(item_list):
+    caches = {}
+    for w in [5, 10, 20, 50, 65]:
+        key = f"divergence_radar_{w}d"
+        c = _load_screener_db_cache(key)
+        if not (c and c.get("data")):
+            c = _INDEX_DIVERGENCE_SCANNER_CACHE.get(key, {})
+        if c and c.get("data"):
+            caches[w] = {s["symbol"]: s for s in c["data"]}
+        else:
+            caches[w] = {}
+
+    for s in item_list:
+        sym = s.get("symbol")
+        breakdown = {}
+        for w in [5, 10, 20, 50, 65]:
+            w_dict = caches[w].get(sym)
+            if w_dict:
+                breakdown[str(w)] = {
+                    "stock_ret": w_dict.get("stock_return_pct", 0),
+                    "nifty_ret": w_dict.get("nifty_return_pct", 0),
+                    "delta": w_dict.get("divergence_delta_pct", 0),
+                    "score": w_dict.get("resilience_score", 0),
+                    "status": w_dict.get("divergence_status", "PASS"),
+                    "structure": w_dict.get("trough_structure", "Held Support"),
+                    "ud_vol": w_dict.get("up_down_vol_ratio", 1.0),
+                    "is_match": True
+                }
+            else:
+                breakdown[str(w)] = {
+                    "stock_ret": None,
+                    "nifty_ret": None,
+                    "delta": None,
+                    "score": None,
+                    "status": "NON_DIVERGENT",
+                    "structure": "Below Index",
+                    "ud_vol": None,
+                    "is_match": False
+                }
+        s["tf_breakdown"] = breakdown
+    return item_list
+
+
 @app.get("/api/screener/index-divergence-radar")
-async def get_index_divergence_radar(window: int = 10, force_refresh: bool = False):
+async def get_index_divergence_radar(window: int = 10, force_refresh: bool = False, ref_window: int = 10):
     """
     Standalone Market Correction & Index Divergence Radar.
     Detects stocks showing structural higher lows and positive relative divergence
@@ -19246,22 +19295,23 @@ async def get_index_divergence_radar(window: int = 10, force_refresh: bool = Fal
             s["is_all_tf"] = s.get("symbol") in all_tf_syms
             if s["is_all_tf"]:
                 s["tf_count"] = 5
-        return item_list
+        return _attach_tf_breakdowns(item_list)
 
     if window == 0 or str(window).upper() in ["0", "ALL"]:
-        ref_res = await get_index_divergence_radar(window=10, force_refresh=False)
+        valid_ref = ref_window if ref_window in [5, 10, 20, 50, 65] else 10
+        ref_res = await get_index_divergence_radar(window=valid_ref, force_refresh=False)
         ref_data = ref_res.get("data", [])
         confluence_data = [dict(s) for s in ref_data if s.get("symbol") in all_tf_syms]
         for s in confluence_data:
             s["is_all_tf"] = True
             s["tf_count"] = 5
-            s["ref_window"] = 10
+            s["ref_window"] = valid_ref
         return {
             "status": "success",
             "count": len(confluence_data),
             "window": 0,
-            "ref_window": 10,
-            "ref_window_label": "10-Session Benchmark",
+            "ref_window": valid_ref,
+            "ref_window_label": f"{valid_ref}-Session Benchmark",
             "last_updated": ref_res.get("last_updated", ""),
             "data": confluence_data
         }

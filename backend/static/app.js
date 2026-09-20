@@ -58271,11 +58271,191 @@ window.filterUndercutTable = function() {
 
 // 3. MARKET CORRECTION & INDEX DIVERGENCE RADAR SCREENER
 window._currentDivergenceWindow = 10;
+window._currentDivergenceRefBenchmark = 10;
+window._currentDivergenceSector = 'ALL';
 window._divergenceRadarData = [];
+window._divergenceRadarFilteredData = [];
+
+window.switchDivergenceRefBenchmark = function(val) {
+    const refWin = parseInt(val, 10) || 10;
+    window._currentDivergenceRefBenchmark = refWin;
+    window.runIndexDivergenceScan(false, false);
+};
+
+window.filterDivergenceBySector = function(sector) {
+    window._currentDivergenceSector = sector;
+    const container = document.getElementById('divergence-sector-pills');
+    if (container) {
+        const pills = container.querySelectorAll('.div-sector-pill');
+        pills.forEach(p => {
+            if (p.getAttribute('data-sector') === sector) {
+                p.classList.add('active');
+            } else {
+                p.classList.remove('active');
+            }
+        });
+    }
+    window.filterDivergenceTable();
+};
+
+function renderDivergenceSectorPills(dataset) {
+    const container = document.getElementById('divergence-sector-pills');
+    if (!container) return;
+    const list = dataset || [];
+    const counts = {};
+    list.forEach(s => {
+        const sec = s.sector || 'N/A';
+        if (sec && sec !== 'N/A') {
+            counts[sec] = (counts[sec] || 0) + 1;
+        }
+    });
+    const sorted = Object.entries(counts).sort((a, b) => b[1] - a[1]).slice(0, 8);
+    if (sorted.length === 0) {
+        container.style.display = 'none';
+        return;
+    }
+    container.style.display = 'flex';
+    const activeSec = window._currentDivergenceSector || 'ALL';
+    let html = `<div onclick="window.filterDivergenceBySector('ALL')" class="div-sector-pill ${activeSec === 'ALL' ? 'active' : ''}" data-sector="ALL">🌐 All Sectors (${list.length})</div>`;
+    sorted.forEach(([sec, cnt]) => {
+        const cleanSec = sec.replace(/'/g, "\\'");
+        html += `<div onclick="window.filterDivergenceBySector('${cleanSec}')" class="div-sector-pill ${activeSec === sec ? 'active' : ''}" data-sector="${sec}">🛡️ ${sec} (${cnt})</div>`;
+    });
+    container.innerHTML = html;
+}
+
+window.exportDivergenceToCSV = function() {
+    const dataset = window._divergenceRadarFilteredData || window._divergenceRadarData || [];
+    if (!dataset.length) {
+        alert('No data available to export.');
+        return;
+    }
+    const headers = ["Symbol", "Company Name", "Sector", "Price", "Day Change %", "Stock Return %", "Nifty Return %", "Divergence Delta %", "U/D Vol Ratio", "Trough Structure", "Resilience Score", "Pattern Status", "Stage 2 Leader", "Ultra Elite", "5/5 Confluence"];
+    const rows = dataset.map(s => [
+        `"${s.symbol}"`,
+        `"${(s.company_name || '').replace(/"/g, '""')}"`,
+        `"${(s.sector || '').replace(/"/g, '""')}"`,
+        s.current_price || 0,
+        s.day_change_pct || 0,
+        s.stock_return_pct || 0,
+        s.nifty_return_pct || 0,
+        s.divergence_delta_pct || 0,
+        s.up_down_vol_ratio || 1.0,
+        `"${s.trough_structure || ''}"`,
+        s.resilience_score || 0,
+        `"${s.divergence_status || ''}"`,
+        s.is_stage2_leader ? "YES" : "NO",
+        s.is_ultra_elite ? "YES" : "NO",
+        s.is_all_tf ? "YES" : "NO"
+    ]);
+    const csvContent = "data:text/csv;charset=utf-8," + [headers.join(","), ...rows.map(e => e.join(","))].join("\n");
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", `index_divergence_radar_${window._currentDivergenceWindow || 10}d_${new Date().toISOString().slice(0,10)}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+};
+
+window.openDivergenceTFMatrix = function(symbol) {
+    const full = window._divergenceRadarData || [];
+    const item = full.find(s => s.symbol === symbol);
+    if (!item) return;
+
+    const modal = document.getElementById('div-tf-matrix-modal');
+    if (!modal) return;
+
+    document.getElementById('div-modal-sym').innerText = item.symbol;
+    document.getElementById('div-modal-score').innerText = `Score ${Math.round(item.resilience_score || 0)}/100`;
+    document.getElementById('div-modal-sub').innerText = `${item.company_name || ''} | ${item.sector || 'N/A'}`;
+
+    // Render Dual Line SVG Sparkline
+    const sparkContainer = document.getElementById('div-modal-sparkline-container');
+    if (sparkContainer) {
+        const sNorm = item.stock_norm || [0];
+        const nNorm = item.nifty_norm || [0];
+        const minVal = Math.min(...sNorm, ...nNorm, -2);
+        const maxVal = Math.max(...sNorm, ...nNorm, 2);
+        const range = (maxVal - minVal) || 1;
+
+        const w = 500, h = 80;
+        const getSvgPoints = (arr) => arr.map((v, i) => {
+            const x = (i / Math.max(1, arr.length - 1)) * w;
+            const y = h - ((v - minVal) / range) * (h - 10) - 5;
+            return `${x.toFixed(1)},${y.toFixed(1)}`;
+        }).join(' ');
+
+        const stockPts = getSvgPoints(sNorm);
+        const niftyPts = getSvgPoints(nNorm);
+
+        sparkContainer.innerHTML = `
+            <svg viewBox="0 0 ${w} ${h}" style="width: 100%; height: 100%; overflow: visible;">
+                <line x1="0" y1="${h - ((0 - minVal) / range) * (h - 10) - 5}" x2="${w}" y2="${h - ((0 - minVal) / range) * (h - 10) - 5}" stroke="rgba(255,255,255,0.15)" stroke-dasharray="4,4" />
+                <polyline points="${niftyPts}" fill="none" stroke="#f87171" stroke-width="2" stroke-dasharray="3,3" />
+                <polyline points="${stockPts}" fill="none" stroke="#10b981" stroke-width="3" />
+            </svg>
+        `;
+    }
+
+    // Render 5 Timeframe Matrix Table
+    const matrixBody = document.getElementById('div-modal-matrix-body');
+    if (matrixBody) {
+        const tfData = item.tf_breakdown || {};
+        const windows = [5, 10, 20, 50, 65];
+        matrixBody.innerHTML = windows.map(w => {
+            const row = tfData[String(w)] || tfData[w];
+            if (row && row.is_match) {
+                const sRet = row.stock_ret !== null && row.stock_ret !== undefined ? `${row.stock_ret >= 0 ? '+' : ''}${row.stock_ret.toFixed(2)}%` : '-';
+                const nRet = row.nifty_ret !== null && row.nifty_ret !== undefined ? `${row.nifty_ret >= 0 ? '+' : ''}${row.nifty_ret.toFixed(2)}%` : '-';
+                const delta = row.delta !== null && row.delta !== undefined ? `+${row.delta.toFixed(2)}%` : '-';
+                
+                const rawS = (row.structure || '').toUpperCase();
+                let structBadge = `<span style="color: #10b981; font-weight: 800;">Divergent Higher Low 🎯</span>`;
+                if (rawS.includes('DIVERGENT')) {
+                    structBadge = `<span style="color: #10b981; font-weight: 800;">Divergent Higher Low 🎯</span>`;
+                } else if (rawS.includes('HIGHER_LOW')) {
+                    structBadge = `<span style="color: #38bdf8; font-weight: 800;">Higher Low ✅</span>`;
+                } else if (rawS.includes('SUPPORT') || rawS.includes('HELD')) {
+                    structBadge = `<span style="color: #f59e0b; font-weight: 800;">Held Support 🛡️</span>`;
+                } else {
+                    structBadge = `<span style="color: #fbbf24; font-weight: 700;">${row.structure || 'Held Support'}</span>`;
+                }
+
+                return `
+                    <tr style="border-bottom: 1px solid rgba(255,255,255,0.05);">
+                        <td style="padding: 10px 12px; font-weight: 700; color: #38bdf8; white-space: nowrap;">${w}D Lookback</td>
+                        <td style="padding: 10px 12px; font-weight: 700; color: ${(row.stock_ret || 0) >= 0 ? '#34d399' : '#f87171'};">${sRet}</td>
+                        <td style="padding: 10px 12px; color: ${(row.nifty_ret || 0) >= 0 ? '#34d399' : '#f87171'};">${nRet}</td>
+                        <td style="padding: 10px 12px; font-weight: 800; color: #10b981;">${delta}</td>
+                        <td style="padding: 10px 12px; white-space: nowrap;">${structBadge}</td>
+                        <td style="padding: 10px 12px;"><span style="background: rgba(16, 185, 129, 0.2); color: #10b981; padding: 2px 8px; border-radius: 4px; font-weight: 800;">PASS ✅</span></td>
+                    </tr>
+                `;
+            } else {
+                return `
+                    <tr style="border-bottom: 1px solid rgba(255,255,255,0.05); opacity: 0.6;">
+                        <td style="padding: 10px 12px; font-weight: 700; color: #94a3b8;">${w}D Lookback</td>
+                        <td style="padding: 10px 12px; color: #94a3b8;">-</td>
+                        <td style="padding: 10px 12px; color: #94a3b8;">-</td>
+                        <td style="padding: 10px 12px; color: #94a3b8;">-</td>
+                        <td style="padding: 10px 12px; color: #94a3b8;">Below Index / Filtered</td>
+                        <td style="padding: 10px 12px;"><span style="background: rgba(239, 68, 68, 0.15); color: #f87171; padding: 2px 8px; border-radius: 4px; font-weight: 700;">FAIL ❌</span></td>
+                    </tr>
+                `;
+            }
+        }).join('');
+    }
+
+    modal.style.display = 'flex';
+};
 
 window.switchDivergenceWindow = function(win) {
     window._currentDivergenceWindow = win;
     
+    const benchSelectEl = document.getElementById('divergence-benchmark-select-container');
+    if (benchSelectEl) benchSelectEl.style.display = win === 0 ? 'inline-flex' : 'none';
+
     // Highlight active window button
     const btns = document.querySelectorAll('.div-window-btn');
     btns.forEach(b => {
@@ -58296,10 +58476,8 @@ window.switchDivergenceWindow = function(win) {
         }
     });
 
-    // Clear active dataset to avoid showing stale data from previous window during fetch
     window._divergenceRadarData = [];
     
-    // Reset search & filters to default when switching lookback windows
     const searchInput = document.getElementById('divergence-search-input');
     const tierFilter = document.getElementById('divergence-tier-filter');
     const statusFilter = document.getElementById('divergence-status-filter');
@@ -58313,9 +58491,9 @@ window.switchDivergenceWindow = function(win) {
 window.runIndexDivergenceScan = async function(isSilent = false, forceRefresh = false) {
     const loadingEl = document.getElementById('divergence-loading-container');
     const win = window._currentDivergenceWindow !== undefined ? window._currentDivergenceWindow : 10;
-    const cacheKey = `cache_divergence_radar_${win}d`;
+    const refWin = window._currentDivergenceRefBenchmark || 10;
+    const cacheKey = `cache_divergence_radar_${win}d_${refWin}`;
 
-    // Instant SWR Hydration
     let hasHydrated = false;
     const cached = localStorage.getItem(cacheKey);
     if (cached && !forceRefresh) {
@@ -58339,7 +58517,7 @@ window.runIndexDivergenceScan = async function(isSilent = false, forceRefresh = 
     }
 
     try {
-        const url = `/api/screener/index-divergence-radar?window=${win}&force_refresh=${forceRefresh ? 'true' : 'false'}`;
+        const url = `/api/screener/index-divergence-radar?window=${win}&ref_window=${refWin}&force_refresh=${forceRefresh ? 'true' : 'false'}`;
         const res = await fetch(url);
         const data = await res.json();
 
@@ -58366,6 +58544,9 @@ window.renderDivergenceTable = function(stocks) {
 
     const list = stocks || [];
     const fullDataset = window._divergenceRadarData || [];
+    window._divergenceRadarFilteredData = list;
+
+    renderDivergenceSectorPills(fullDataset);
 
     // 1. Update KPI Card Metrics
     const totalEl = document.getElementById('divergence-kpi-total');
@@ -58375,7 +58556,6 @@ window.renderDivergenceTable = function(stocks) {
     const resilienceEl = document.getElementById('divergence-kpi-resilience');
     const stableEl = document.getElementById('divergence-kpi-stable');
 
-    // KPI Total shows total leaders for active window
     if (totalEl) totalEl.innerText = fullDataset.length;
 
     const sample = fullDataset[0] || list[0];
@@ -58390,10 +58570,11 @@ window.renderDivergenceTable = function(stocks) {
     }
 
     const activeWin = window._currentDivergenceWindow || 10;
+    const refWin = window._currentDivergenceRefBenchmark || 10;
     const niftySubtextEl = document.getElementById('divergence-kpi-nifty-subtext');
     if (niftySubtextEl) {
         if (activeWin === 0) {
-            niftySubtextEl.innerText = '10D Ref Benchmark';
+            niftySubtextEl.innerText = `${refWin}D Ref Benchmark`;
             niftySubtextEl.style.background = 'rgba(251, 191, 36, 0.18)';
             niftySubtextEl.style.color = '#fbbf24';
         } else {
@@ -58419,8 +58600,8 @@ window.renderDivergenceTable = function(stocks) {
         const optUltra = tierSelect.querySelector('option[value="ULTRA_ELITE"]');
 
         if (optAll) optAll.innerText = `🌐 All Resilient Leaders (${fullDataset.length})`;
-        if (optStage2) optStage2.innerText = `⚡ Option A: Stage 2 Uptrends (${stage2Cnt})`;
-        if (optUltra) optUltra.innerText = `🌟 Option B: Ultra-Elite Minervini (${ultraCnt})`;
+        if (optStage2) optStage2.innerText = `⚡ Stage 2 Uptrends (${stage2Cnt})`;
+        if (optUltra) optUltra.innerText = `🌟 Ultra-Elite Minervini (${ultraCnt})`;
     }
 
     // 3. Render Table Rows
@@ -58434,6 +58615,7 @@ window.renderDivergenceTable = function(stocks) {
         const dayChg = s.day_change_pct !== undefined ? s.day_change_pct : (s.change_pct || 0);
         const stockRet = s.stock_return_pct !== undefined ? s.stock_return_pct : 0;
         const divDelta = s.divergence_delta_pct !== undefined ? s.divergence_delta_pct : 0;
+        const udVol = s.up_down_vol_ratio !== undefined ? s.up_down_vol_ratio : 1.0;
         const displayScore = Math.round(s.resilience_score || 0);
         const pStatus = (s.divergence_status || 'HIGH_RESILIENCE').toUpperCase();
         const compName = s.company_name || s.name || '';
@@ -58485,6 +58667,10 @@ window.renderDivergenceTable = function(stocks) {
             tierPill = `<span class="div-badge div-badge-resilient">🔵 Resilient</span>`;
         }
 
+        const udBadge = udVol >= 1.5 
+            ? `<span style="color: #10b981; font-weight: 800; background: rgba(16, 185, 129, 0.15); padding: 2px 6px; border-radius: 4px;" title="Institutional Up-Volume / Down-Volume Absorption Ratio">${udVol.toFixed(1)}x ⚡</span>`
+            : `<span style="color: #94a3b8; font-weight: 600;">${udVol.toFixed(1)}x</span>`;
+
         return `
             <tr style="border-bottom: 1px solid rgba(255,255,255,0.05);">
                 <td style="padding: 12px;">
@@ -58499,16 +58685,20 @@ window.renderDivergenceTable = function(stocks) {
                 <td style="padding: 12px; font-weight: 700; ${chgClass}">${chgSign}${dayChg.toFixed(2)}%</td>
                 <td style="padding: 12px; font-weight: 700; ${retClass}">${retSign}${stockRet.toFixed(2)}%</td>
                 <td style="padding: 12px; font-weight: 800; color: #10b981;">+${divDelta.toFixed(2)}%</td>
+                <td style="padding: 12px;">${udBadge}</td>
                 <td style="padding: 12px;">${hlBadge}</td>
                 <td style="padding: 12px;">
                     <span style="padding: 3px 8px; border-radius: 6px; font-size: 11px; font-weight: 800; ${scoreBg}">${displayScore} / 100</span>
                 </td>
                 <td style="padding: 12px;">${statusBadge}</td>
                 <td style="padding: 12px; text-align: right; white-space: nowrap;">
-                    <button onclick="window.launchStageSimulator && window.launchStageSimulator('${s.symbol}')" class="btn-secondary quant-sim-btn" style="padding: 5px 10px; font-size: 11.5px; border-radius: 8px; cursor: pointer; white-space: nowrap; display: inline-flex; align-items: center; gap: 4px; font-weight: 700; background: rgba(16, 185, 129, 0.15); border: 1px solid rgba(16, 185, 129, 0.4); color: #10b981; margin-right: 6px;" title="Scan stock in 4-Stage Life Cycle Masterclass Simulator">
+                    <button onclick="window.openDivergenceTFMatrix('${s.symbol}')" class="btn-secondary" style="padding: 5px 9px; font-size: 11.5px; border-radius: 8px; cursor: pointer; white-space: nowrap; display: inline-flex; align-items: center; gap: 3px; font-weight: 700; background: rgba(168, 85, 247, 0.15); border: 1px solid rgba(168, 85, 247, 0.4); color: #c084fc; margin-right: 6px;" title="Open Multi-Timeframe Matrix & Trajectory Overlay">
+                        📊 Matrix
+                    </button>
+                    <button onclick="window.launchStageSimulator && window.launchStageSimulator('${s.symbol}')" class="btn-secondary quant-sim-btn" style="padding: 5px 9px; font-size: 11.5px; border-radius: 8px; cursor: pointer; white-space: nowrap; display: inline-flex; align-items: center; gap: 4px; font-weight: 700; background: rgba(16, 185, 129, 0.15); border: 1px solid rgba(16, 185, 129, 0.4); color: #10b981; margin-right: 6px;" title="Scan stock in 4-Stage Life Cycle Masterclass Simulator">
                         Simulate ⚙️
                     </button>
-                    <button onclick="event.stopPropagation(); window.openStandaloneInteractiveChart && window.openStandaloneInteractiveChart('${s.symbol}', null, 'divergence', 'Market Correction Radar')" class="btn-primary quant-ichart-btn" style="padding: 5px 10px; font-size: 11.5px; border-radius: 8px; cursor: pointer; white-space: nowrap; display: inline-flex; align-items: center; gap: 3px; font-weight: 700; background: rgba(59, 130, 246, 0.2); border: 1px solid #3b82f6; color: #60a5fa; margin-right: 6px;" title="Open i-Chart Workstation & 30W MA Slope">
+                    <button onclick="event.stopPropagation(); window.openStandaloneInteractiveChart && window.openStandaloneInteractiveChart('${s.symbol}', null, 'divergence', 'Market Correction Radar')" class="btn-primary quant-ichart-btn" style="padding: 5px 9px; font-size: 11.5px; border-radius: 8px; cursor: pointer; white-space: nowrap; display: inline-flex; align-items: center; gap: 3px; font-weight: 700; background: rgba(59, 130, 246, 0.2); border: 1px solid #3b82f6; color: #60a5fa; margin-right: 6px;" title="Open i-Chart Workstation & 30W MA Slope">
                         📈 i-Chart
                     </button>
                     <button onclick="window.openTradingViewChart && window.openTradingViewChart('${s.symbol}')" class="btn-secondary quant-chart-btn" style="padding: 5px 12px; font-size: 11.5px; border-radius: 8px; cursor: pointer; white-space: nowrap; display: inline-flex; align-items: center; gap: 3px; font-weight: 700;">
@@ -58524,10 +58714,13 @@ window.filterDivergenceTable = function() {
     const q = (document.getElementById('divergence-search-input')?.value || '').toLowerCase().trim();
     const tierFilter = document.getElementById('divergence-tier-filter')?.value || 'ALL';
     const statusFilter = document.getElementById('divergence-status-filter')?.value || 'ALL';
+    const activeSec = window._currentDivergenceSector || 'ALL';
 
     let filtered = (window._divergenceRadarData || []).filter(s => {
-        const matchesQ = !q || s.symbol.toLowerCase().includes(q) || (s.company_name || s.name || '').toLowerCase().includes(q);
+        const matchesQ = !q || s.symbol.toLowerCase().includes(q) || (s.company_name || s.name || '').toLowerCase().includes(q) || (s.sector || '').toLowerCase().includes(q);
         if (!matchesQ) return false;
+
+        if (activeSec !== 'ALL' && (s.sector || 'N/A') !== activeSec) return false;
 
         if (tierFilter !== 'ALL') {
             if (tierFilter === 'STAGE2_LEADER' && !s.is_stage2_leader) return false;
@@ -58539,6 +58732,7 @@ window.filterDivergenceTable = function() {
             const pStatus = (s.divergence_status || '').toUpperCase();
             if (statusFilter === 'BREAKOUT_READY' && !pStatus.includes('BREAKOUT')) return false;
             if (statusFilter === 'HEAVY_ACCUMULATION' && !pStatus.includes('ACCUMULATION')) return false;
+            if (statusFilter === 'UD_ACCUMULATION' && (s.up_down_vol_ratio || 1.0) < 1.5) return false;
             if (statusFilter === 'HIGH_RESILIENCE' && !pStatus.includes('RESILIENCE')) return false;
             if (statusFilter === 'STABLE_DIVERGENCE' && !pStatus.includes('STABLE')) return false;
             if (statusFilter === 'EARLY_RECOVERY' && !pStatus.includes('RECOVERY')) return false;

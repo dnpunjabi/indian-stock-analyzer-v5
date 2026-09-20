@@ -37470,4 +37470,73 @@ body.light-theme .tech-prospectus-close-btn {
     border-bottom: 1px solid #e2e8f0 !important;
 }
 
+/* Market Correction Radar Enhancements & Mobile / Light Theme Rules */
+.div-sector-pill {
+    background: rgba(30, 41, 59, 0.7);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    color: #94a3b8;
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: all 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+}
+.div-sector-pill:hover,
+.div-sector-pill.active {
+    background: rgba(16, 185, 129, 0.2);
+    border-color: rgba(16, 185, 129, 0.5);
+    color: #10b981;
+}
+
+[data-mode="light"] .div-sector-pill,
+[data-theme="light"] .div-sector-pill {
+    background: #f1f5f9 !important;
+    border-color: #cbd5e1 !important;
+    color: #475569 !important;
+}
+[data-mode="light"] .div-sector-pill.active,
+[data-theme="light"] .div-sector-pill.active {
+    background: #d1fae5 !important;
+    border-color: #10b981 !important;
+    color: #065f46 !important;
+}
+
+[data-mode="light"] #div-tf-matrix-modal .div-matrix-modal-content,
+[data-theme="light"] #div-tf-matrix-modal .div-matrix-modal-content {
+    background: #ffffff !important;
+    border-color: #cbd5e1 !important;
+    color: #0f172a !important;
+    box-shadow: 0 20px 40px rgba(0,0,0,0.2) !important;
+}
+
+[data-mode="light"] #div-tf-matrix-modal h3,
+[data-theme="light"] #div-tf-matrix-modal h3 {
+    color: #0284c7 !important;
+}
+
+[data-mode="light"] #div-tf-matrix-modal table tr,
+[data-theme="light"] #div-tf-matrix-modal table tr {
+    border-bottom: 1px solid #e2e8f0 !important;
+    color: #334155 !important;
+}
+
+@media (max-width: 768px) {
+    #div-tf-matrix-modal .div-matrix-modal-content {
+        padding: 16px !important;
+        max-width: 95vw !important;
+    }
+    #divergence-sector-pills {
+        padding-bottom: 8px;
+    }
+    .div-window-btn {
+        padding: 4px 6px !important;
+        font-size: 11px !important;
+    }
+}
+
 

@@ -5711,11 +5711,16 @@
                         </div>
                     </div>
 
+                    <!-- Sector Concentration & Rotation Bar -->
+                    <div id="divergence-sector-pills" style="display: flex; gap: 8px; margin-bottom: 14px; overflow-x: auto; padding-bottom: 6px; scrollbar-width: thin; -webkit-overflow-scrolling: touch;">
+                        <!-- Dynamically populated by JS -->
+                    </div>
+
                     <!-- Filter Controls & Session Window Selectors -->
-                    <div style="display: flex; gap: 14px; margin-bottom: 20px; align-items: center; flex-wrap: wrap;">
-                        <input type="text" id="divergence-search-input" onkeyup="window.filterDivergenceTable && window.filterDivergenceTable()" placeholder="Search symbol or name..." style="background: rgba(30, 41, 59, 0.8); border: 1px solid rgba(255,255,255,0.12); color: #fff; padding: 8px 14px; border-radius: 8px; font-size: 13px; flex: 1; min-width: 200px; outline: none;"/>
+                    <div style="display: flex; gap: 12px; margin-bottom: 20px; align-items: center; flex-wrap: wrap;">
+                        <input type="text" id="divergence-search-input" onkeyup="window.filterDivergenceTable && window.filterDivergenceTable()" placeholder="Search symbol or sector..." style="background: rgba(30, 41, 59, 0.8); border: 1px solid rgba(255,255,255,0.12); color: #fff; padding: 8px 14px; border-radius: 8px; font-size: 13px; flex: 1; min-width: 180px; outline: none;"/>
                         
-                        <div style="display: flex; align-items: center; gap: 6px; background: rgba(30, 41, 59, 0.8); border: 1px solid rgba(255,255,255,0.12); padding: 4px; border-radius: 8px;">
+                        <div style="display: flex; align-items: center; gap: 6px; background: rgba(30, 41, 59, 0.8); border: 1px solid rgba(255,255,255,0.12); padding: 4px; border-radius: 8px; flex-wrap: wrap;">
                             <span style="font-size: 11px; font-weight: 700; color: #94a3b8; padding: 0 6px;">WINDOW:</span>
                             <button onclick="window.switchDivergenceWindow && window.switchDivergenceWindow(5)" class="div-window-btn" data-window="5" style="padding: 4px 10px; border-radius: 6px; border: none; font-size: 12px; font-weight: 700; cursor: pointer; background: transparent; color: #94a3b8;">5D</button>
                             <button onclick="window.switchDivergenceWindow && window.switchDivergenceWindow(10)" class="div-window-btn active" data-window="10" style="padding: 4px 10px; border-radius: 6px; border: none; font-size: 12px; font-weight: 700; cursor: pointer; background: #10b981; color: #fff;">10D</button>
@@ -5725,20 +5730,37 @@
                             <button onclick="window.switchDivergenceWindow && window.switchDivergenceWindow(0)" class="div-window-btn" data-window="0" style="padding: 4px 10px; border-radius: 6px; border: 1px solid rgba(245, 158, 11, 0.4); font-size: 12px; font-weight: 700; cursor: pointer; background: transparent; color: #fbbf24;" title="Universal Leaders eligible across ALL 5 lookback timeframes">🌟 ALL 5/5</button>
                         </div>
 
+                        <!-- Confluence Benchmark Selector (Visible when Window = 0) -->
+                        <div id="divergence-benchmark-select-container" style="display: none; align-items: center; gap: 6px; background: rgba(245, 158, 11, 0.12); border: 1px solid rgba(245, 158, 11, 0.3); padding: 4px 10px; border-radius: 8px;">
+                            <span style="font-size: 11px; font-weight: 700; color: #fbbf24;">BENCHMARK:</span>
+                            <select id="divergence-ref-benchmark-select" onchange="window.switchDivergenceRefBenchmark && window.switchDivergenceRefBenchmark(this.value)" style="background: transparent; border: none; color: #fbbf24; font-size: 12px; font-weight: 700; outline: none; cursor: pointer;">
+                                <option value="5" style="background: #0f172a; color: #fff;">5D Baseline</option>
+                                <option value="10" selected style="background: #0f172a; color: #fff;">10D Baseline (Default)</option>
+                                <option value="20" style="background: #0f172a; color: #fff;">20D Baseline</option>
+                                <option value="50" style="background: #0f172a; color: #fff;">50D Baseline</option>
+                                <option value="65" style="background: #0f172a; color: #fff;">65D Baseline</option>
+                            </select>
+                        </div>
+
                         <select id="divergence-tier-filter" onchange="window.filterDivergenceTable && window.filterDivergenceTable()" style="background: rgba(30, 41, 59, 0.8); border: 1px solid rgba(16, 185, 129, 0.4); color: #fff; padding: 8px 14px; border-radius: 8px; font-size: 13px; outline: none; cursor: pointer; font-weight: 700;">
-                            <option value="ALL">🌐 All Resilient Leaders (89)</option>
-                            <option value="STAGE2_LEADER">⚡ Option A: Stage 2 Uptrends (51)</option>
-                            <option value="ULTRA_ELITE">🌟 Option B: Ultra-Elite Minervini (39)</option>
+                            <option value="ALL">🌐 All Resilient Leaders</option>
+                            <option value="STAGE2_LEADER">⚡ Stage 2 Uptrends</option>
+                            <option value="ULTRA_ELITE">🌟 Ultra-Elite Minervini</option>
                         </select>
 
                         <select id="divergence-status-filter" onchange="window.filterDivergenceTable && window.filterDivergenceTable()" style="background: rgba(30, 41, 59, 0.8); border: 1px solid rgba(255,255,255,0.12); color: #fff; padding: 8px 14px; border-radius: 8px; font-size: 13px; outline: none; cursor: pointer;">
-                            <option value="ALL">All Divergent Leaders</option>
+                            <option value="ALL">All Statuses</option>
                             <option value="BREAKOUT_READY">🚀 Breakout Ready</option>
                             <option value="HEAVY_ACCUMULATION">⚡ Heavy Accumulation</option>
+                            <option value="UD_ACCUMULATION">📊 U/D Vol ≥ 1.5x</option>
                             <option value="HIGH_RESILIENCE">🔥 High Resilience</option>
                             <option value="STABLE_DIVERGENCE">🔵 Stable Divergence</option>
                             <option value="EARLY_RECOVERY">🌱 Early Recovery</option>
                         </select>
+
+                        <button onclick="window.exportDivergenceToCSV && window.exportDivergenceToCSV()" class="btn-secondary" style="padding: 8px 14px; background: rgba(30, 41, 59, 0.9); border: 1px solid rgba(255,255,255,0.15); border-radius: 8px; color: #38bdf8; font-weight: 700; font-size: 12px; cursor: pointer; display: flex; align-items: center; gap: 6px; transition: all 0.2s;" title="Export current radar results to CSV">
+                            📥 Export CSV
+                        </button>
                     </div>
 
                     <div id="divergence-loading-container" style="display: none; text-align: center; padding: 60px 20px;">
@@ -5746,7 +5768,7 @@
                         <p style="color: #94a3b8; font-size: 14px; font-weight: 500;">Scanning Nifty Universe for Market Correction Divergence Leaders...</p>
                     </div>
 
-                    <div class="quant-table-wrapper">
+                    <div class="quant-table-wrapper" style="overflow-x: auto;">
                         <table class="quant-table" style="width: 100%; border-collapse: collapse; font-size: 13px;">
                             <thead>
                                 <tr style="border-bottom: 1px solid rgba(255, 255, 255, 0.1); text-align: left; color: #94a3b8;">
@@ -5754,9 +5776,10 @@
                                     <th>Price</th>
                                     <th>Day Chg %</th>
                                     <th>Stock Ret %</th>
-                                    <th>Divergence Delta</th>
+                                    <th>Div Delta</th>
+                                    <th>U/D Vol</th>
                                     <th>Trough Structure</th>
-                                    <th>Resilience Score</th>
+                                    <th>Score</th>
                                     <th>Pattern Status</th>
                                     <th>Action</th>
                                 </tr>
@@ -5765,6 +5788,56 @@
                                 <tr><td colspan="10" style="text-align:center; padding: 30px; color: #94a3b8;">Click 'Run Divergence Radar' to load results.</td></tr>
                             </tbody>
                         </table>
+                    </div>
+
+                    <!-- Multi-Timeframe Matrix & Sparkline Overlay Modal -->
+                    <div id="div-tf-matrix-modal" style="display: none; position: fixed; inset: 0; background: rgba(2, 6, 23, 0.85); backdrop-filter: blur(12px); z-index: 99999; align-items: center; justify-content: center; padding: 16px;">
+                        <div style="background: rgba(15, 23, 42, 0.95); border: 1px solid rgba(16, 185, 129, 0.4); border-radius: 16px; width: 100%; max-width: 680px; max-height: 90vh; overflow-y: auto; padding: 24px; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7); position: relative; color: #f8fafc;" class="div-matrix-modal-content">
+                            <div style="display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 14px; margin-bottom: 16px;">
+                                <div>
+                                    <div style="display: flex; align-items: center; gap: 10px;">
+                                        <h3 id="div-modal-sym" style="margin: 0; font-size: 20px; font-weight: 800; color: #38bdf8;">SYMBOL</h3>
+                                        <span id="div-modal-score" style="background: rgba(16, 185, 129, 0.15); border: 1px solid rgba(16, 185, 129, 0.4); color: #10b981; font-weight: 800; font-size: 11px; padding: 2px 8px; border-radius: 6px;">Score 85</span>
+                                    </div>
+                                    <p id="div-modal-sub" style="margin: 4px 0 0 0; font-size: 12px; color: #94a3b8;">Company Name | Sector</p>
+                                </div>
+                                <button onclick="document.getElementById('div-tf-matrix-modal').style.display='none'" style="background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15); color: #94a3b8; width: 32px; height: 32px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 16px; transition: all 0.2s;">✕</button>
+                            </div>
+
+                            <!-- Normalized Sparkline Dual-Line Chart -->
+                            <div style="background: rgba(30, 41, 59, 0.6); border: 1px solid rgba(255,255,255,0.08); border-radius: 12px; padding: 14px; margin-bottom: 18px;">
+                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                                    <span style="font-size: 11px; font-weight: 700; color: #94a3b8; text-transform: uppercase;">📈 Trajectory Overlay (Stock vs Nifty 50)</span>
+                                    <div style="display: flex; gap: 12px; font-size: 11px; font-weight: 700;">
+                                        <span style="color: #10b981;">🟢 Stock Line</span>
+                                        <span style="color: #f87171;">🔴 Nifty 50</span>
+                                    </div>
+                                </div>
+                                <div id="div-modal-sparkline-container" style="height: 90px; width: 100%;"></div>
+                            </div>
+
+                            <!-- 5-Timeframe Matrix Breakdown Table -->
+                            <div style="margin-bottom: 10px;">
+                                <span style="font-size: 12px; font-weight: 800; color: #f1f5f9; text-transform: uppercase; letter-spacing: 0.5px; display: block; margin-bottom: 10px;">📊 5-Timeframe Confluence Matrix</span>
+                                <div style="overflow-x: auto; border: 1px solid rgba(255,255,255,0.08); border-radius: 10px;">
+                                    <table style="width: 100%; border-collapse: collapse; font-size: 12px; text-align: left;">
+                                        <thead>
+                                            <tr style="background: rgba(30, 41, 59, 0.8); color: #94a3b8; border-bottom: 1px solid rgba(255,255,255,0.1);">
+                                                <th style="padding: 10px 12px;">Lookback</th>
+                                                <th style="padding: 10px 12px;">Stock Ret %</th>
+                                                <th style="padding: 10px 12px;">Nifty Ret %</th>
+                                                <th style="padding: 10px 12px;">Div Delta</th>
+                                                <th style="padding: 10px 12px;">Trough Structure</th>
+                                                <th style="padding: 10px 12px;">Match</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="div-modal-matrix-body">
+                                            <!-- Dynamically filled -->
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
