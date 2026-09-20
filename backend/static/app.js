@@ -58389,6 +58389,20 @@ window.renderDivergenceTable = function(stocks) {
         }
     }
 
+    const activeWin = window._currentDivergenceWindow || 10;
+    const niftySubtextEl = document.getElementById('divergence-kpi-nifty-subtext');
+    if (niftySubtextEl) {
+        if (activeWin === 0) {
+            niftySubtextEl.innerText = '10D Ref Benchmark';
+            niftySubtextEl.style.background = 'rgba(251, 191, 36, 0.18)';
+            niftySubtextEl.style.color = '#fbbf24';
+        } else {
+            niftySubtextEl.innerText = `${activeWin}D Window`;
+            niftySubtextEl.style.background = 'rgba(56, 189, 248, 0.12)';
+            niftySubtextEl.style.color = '#38bdf8';
+        }
+    }
+
     if (breakoutEl) breakoutEl.innerText = fullDataset.filter(s => (s.divergence_status || '').toUpperCase().includes('BREAKOUT')).length;
     if (volEl) volEl.innerText = fullDataset.filter(s => (s.divergence_status || '').toUpperCase().includes('ACCUMULATION')).length;
     if (resilienceEl) resilienceEl.innerText = fullDataset.filter(s => (s.divergence_status || '').toUpperCase().includes('RESILIENCE')).length;

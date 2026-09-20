@@ -19255,10 +19255,13 @@ async def get_index_divergence_radar(window: int = 10, force_refresh: bool = Fal
         for s in confluence_data:
             s["is_all_tf"] = True
             s["tf_count"] = 5
+            s["ref_window"] = 10
         return {
             "status": "success",
             "count": len(confluence_data),
             "window": 0,
+            "ref_window": 10,
+            "ref_window_label": "10-Session Benchmark",
             "last_updated": ref_res.get("last_updated", ""),
             "data": confluence_data
         }
