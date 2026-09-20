@@ -58296,12 +58296,23 @@ window.switchDivergenceWindow = function(win) {
         }
     });
 
+    // Clear active dataset to avoid showing stale data from previous window during fetch
+    window._divergenceRadarData = [];
+    
+    // Reset search & filters to default when switching lookback windows
+    const searchInput = document.getElementById('divergence-search-input');
+    const tierFilter = document.getElementById('divergence-tier-filter');
+    const statusFilter = document.getElementById('divergence-status-filter');
+    if (searchInput) searchInput.value = '';
+    if (tierFilter) tierFilter.value = 'ALL';
+    if (statusFilter) statusFilter.value = 'ALL';
+
     window.runIndexDivergenceScan(false, false);
 };
 
 window.runIndexDivergenceScan = async function(isSilent = false, forceRefresh = false) {
     const loadingEl = document.getElementById('divergence-loading-container');
-    const win = window._currentDivergenceWindow || 10;
+    const win = window._currentDivergenceWindow !== undefined ? window._currentDivergenceWindow : 10;
     const cacheKey = `cache_divergence_radar_${win}d`;
 
     // Instant SWR Hydration
@@ -58310,12 +58321,12 @@ window.runIndexDivergenceScan = async function(isSilent = false, forceRefresh = 
     if (cached && !forceRefresh) {
         try {
             const parsed = JSON.parse(cached);
-            if (parsed && parsed.data && parsed.data.length > 0) {
-                window._divergenceRadarData = parsed.data;
-                window.renderDivergenceTable(window._divergenceRadarData);
+            if (parsed && parsed.data && parsed.data.length >= 0) {
+                window._divergenceRadarData = parsed.data || [];
+                window.filterDivergenceTable();
                 const badge = document.getElementById('divergence-count-badge');
-                if (badge) badge.innerText = `${parsed.count || parsed.data.length} Matches`;
-                window.renderUnifiedScreenerBadge('divergence-header-status-badge', parsed.count || parsed.data.length, parsed.last_updated, false);
+                if (badge) badge.innerText = `${parsed.count !== undefined ? parsed.count : parsed.data.length} Matches`;
+                window.renderUnifiedScreenerBadge('divergence-header-status-badge', parsed.count !== undefined ? parsed.count : parsed.data.length, parsed.last_updated, false);
                 hasHydrated = true;
             }
         } catch (e) {
@@ -58335,7 +58346,7 @@ window.runIndexDivergenceScan = async function(isSilent = false, forceRefresh = 
         if (data.status === 'success') {
             window._divergenceRadarData = data.data || [];
             localStorage.setItem(cacheKey, JSON.stringify(data));
-            window.renderDivergenceTable(window._divergenceRadarData);
+            window.filterDivergenceTable();
 
             const badge = document.getElementById('divergence-count-badge');
             const cnt = data.count !== undefined ? data.count : window._divergenceRadarData.length;
@@ -58354,8 +58365,9 @@ window.renderDivergenceTable = function(stocks) {
     if (!tbody) return;
 
     const list = stocks || [];
-    const allStocks = (window._divergenceRadarData && window._divergenceRadarData.length) ? window._divergenceRadarData : list;
+    const fullDataset = window._divergenceRadarData || [];
 
+    // 1. Update KPI Card Metrics
     const totalEl = document.getElementById('divergence-kpi-total');
     const niftyRetEl = document.getElementById('divergence-kpi-nifty-ret');
     const breakoutEl = document.getElementById('divergence-kpi-breakout');
@@ -58363,20 +58375,41 @@ window.renderDivergenceTable = function(stocks) {
     const resilienceEl = document.getElementById('divergence-kpi-resilience');
     const stableEl = document.getElementById('divergence-kpi-stable');
 
-    if (totalEl) totalEl.innerText = allStocks.length;
+    // KPI Total shows total leaders for active window
+    if (totalEl) totalEl.innerText = fullDataset.length;
 
-    const sample = allStocks[0];
-    if (niftyRetEl && sample) {
-        const nRet = sample.nifty_return_pct || 0;
-        niftyRetEl.innerText = `${nRet >= 0 ? '+' : ''}${nRet.toFixed(2)}%`;
-        niftyRetEl.style.color = nRet >= 0 ? '#34d399' : '#f87171';
+    const sample = fullDataset[0] || list[0];
+    if (niftyRetEl) {
+        if (sample) {
+            const nRet = sample.nifty_return_pct || 0;
+            niftyRetEl.innerText = `${nRet >= 0 ? '+' : ''}${nRet.toFixed(2)}%`;
+            niftyRetEl.style.color = nRet >= 0 ? '#34d399' : '#f87171';
+        } else {
+            niftyRetEl.innerText = '-';
+        }
     }
 
-    if (breakoutEl) breakoutEl.innerText = allStocks.filter(s => (s.divergence_status || '').toUpperCase().includes('BREAKOUT')).length;
-    if (volEl) volEl.innerText = allStocks.filter(s => (s.divergence_status || '').toUpperCase().includes('ACCUMULATION')).length;
-    if (resilienceEl) resilienceEl.innerText = allStocks.filter(s => (s.divergence_status || '').toUpperCase().includes('RESILIENCE')).length;
-    if (stableEl) stableEl.innerText = allStocks.filter(s => (s.divergence_status || '').toUpperCase().includes('STABLE')).length;
+    if (breakoutEl) breakoutEl.innerText = fullDataset.filter(s => (s.divergence_status || '').toUpperCase().includes('BREAKOUT')).length;
+    if (volEl) volEl.innerText = fullDataset.filter(s => (s.divergence_status || '').toUpperCase().includes('ACCUMULATION')).length;
+    if (resilienceEl) resilienceEl.innerText = fullDataset.filter(s => (s.divergence_status || '').toUpperCase().includes('RESILIENCE')).length;
+    if (stableEl) stableEl.innerText = fullDataset.filter(s => (s.divergence_status || '').toUpperCase().includes('STABLE')).length;
 
+    // 2. Dynamically Update Tier Dropdown Options
+    const tierSelect = document.getElementById('divergence-tier-filter');
+    if (tierSelect) {
+        const stage2Cnt = fullDataset.filter(s => s.is_stage2_leader).length;
+        const ultraCnt = fullDataset.filter(s => s.is_ultra_elite).length;
+        
+        const optAll = tierSelect.querySelector('option[value="ALL"]');
+        const optStage2 = tierSelect.querySelector('option[value="STAGE2_LEADER"]');
+        const optUltra = tierSelect.querySelector('option[value="ULTRA_ELITE"]');
+
+        if (optAll) optAll.innerText = `🌐 All Resilient Leaders (${fullDataset.length})`;
+        if (optStage2) optStage2.innerText = `⚡ Option A: Stage 2 Uptrends (${stage2Cnt})`;
+        if (optUltra) optUltra.innerText = `🌟 Option B: Ultra-Elite Minervini (${ultraCnt})`;
+    }
+
+    // 3. Render Table Rows
     if (list.length === 0) {
         tbody.innerHTML = `<tr><td colspan="10" style="text-align: center; padding: 40px; color: #64748b;">No Market Correction Divergence setups match the active filter criteria.</td></tr>`;
         return;
@@ -58483,8 +58516,8 @@ window.filterDivergenceTable = function() {
         if (!matchesQ) return false;
 
         if (tierFilter !== 'ALL') {
+            if (tierFilter === 'STAGE2_LEADER' && !s.is_stage2_leader) return false;
             if (tierFilter === 'ULTRA_ELITE' && !s.is_ultra_elite) return false;
-            if (tierFilter === 'STAGE2' && !s.is_stage2_leader) return false;
             if (tierFilter === 'ALL_TF' && !s.is_all_tf && s.tf_count !== 5) return false;
         }
 
@@ -58494,6 +58527,7 @@ window.filterDivergenceTable = function() {
             if (statusFilter === 'HEAVY_ACCUMULATION' && !pStatus.includes('ACCUMULATION')) return false;
             if (statusFilter === 'HIGH_RESILIENCE' && !pStatus.includes('RESILIENCE')) return false;
             if (statusFilter === 'STABLE_DIVERGENCE' && !pStatus.includes('STABLE')) return false;
+            if (statusFilter === 'EARLY_RECOVERY' && !pStatus.includes('RECOVERY')) return false;
         }
 
         return true;
