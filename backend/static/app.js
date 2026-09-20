@@ -56747,7 +56747,7 @@ window.switchQuantScannerSubtab = function(tabName) {
         window.openQuantAccordion();
     }
 
-    const subtabs = ['confluence', 'vcp', 'weinstein', 'htf', '3wt', 'flatbase', 'episodic', 'pocket', 'oliverkell', 'cuphandle', 'rsnh', 'undercut', 'guide'];
+    const subtabs = ['confluence', 'vcp', 'weinstein', 'htf', '3wt', 'flatbase', 'episodic', 'pocket', 'oliverkell', 'cuphandle', 'rsnh', 'undercut', 'divergence', 'guide'];
     const navBtnMap = {
         'confluence': 'tab-confluence-btn',
         'vcp': 'tab-vcp-btn',
@@ -56761,6 +56761,7 @@ window.switchQuantScannerSubtab = function(tabName) {
         'cuphandle': 'tab-cuphandle-btn',
         'rsnh': 'tab-rsnh-btn',
         'undercut': 'tab-undercut-btn',
+        'divergence': 'tab-divergence-btn',
         'guide': 'tab-quant-guide-btn'
     };
 
@@ -56779,7 +56780,7 @@ window.switchQuantScannerSubtab = function(tabName) {
     });
 
     // 2. Synchronize Sidebar Navigation Highlighted Button
-    const allQuantNavBtns = ['tab-confluence-btn', 'tab-vcp-btn', 'tab-weinstein-btn', 'tab-htf-btn', 'tab-3wt-btn', 'tab-flatbase-btn', 'tab-episodic-btn', 'tab-pocket-btn', 'tab-oliverkell-btn', 'tab-cuphandle-btn', 'tab-rsnh-btn', 'tab-undercut-btn', 'tab-quant-guide-btn'];
+    const allQuantNavBtns = ['tab-confluence-btn', 'tab-vcp-btn', 'tab-weinstein-btn', 'tab-htf-btn', 'tab-3wt-btn', 'tab-flatbase-btn', 'tab-episodic-btn', 'tab-pocket-btn', 'tab-oliverkell-btn', 'tab-cuphandle-btn', 'tab-rsnh-btn', 'tab-undercut-btn', 'tab-divergence-btn', 'tab-quant-guide-btn'];
     const targetNavId = navBtnMap[tabName] || 'tab-confluence-btn';
     allQuantNavBtns.forEach(id => {
         const navBtn = document.getElementById(id);
@@ -56869,6 +56870,13 @@ window.switchQuantScannerSubtab = function(tabName) {
             window.runUndercutScan(true, false);
         } else {
             window.runUndercutScan(false, false);
+        }
+    } else if (tabName === 'divergence') {
+        if (window._divergenceRadarData && window._divergenceRadarData.length > 0) {
+            if (typeof window.renderDivergenceTable === 'function') window.renderDivergenceTable(window._divergenceRadarData);
+            if (typeof window.runIndexDivergenceScan === 'function') window.runIndexDivergenceScan(true, false);
+        } else {
+            if (typeof window.runIndexDivergenceScan === 'function') window.runIndexDivergenceScan(false, false);
         }
     } else if (tabName === 'guide') {
         if (typeof window.initStageSimAutocomplete === 'function') {
@@ -58259,6 +58267,239 @@ window.filterUndercutTable = function() {
     });
 
     window.renderUndercutTable(filtered);
+};
+
+// 3. MARKET CORRECTION & INDEX DIVERGENCE RADAR SCREENER
+window._currentDivergenceWindow = 10;
+window._divergenceRadarData = [];
+
+window.switchDivergenceWindow = function(win) {
+    window._currentDivergenceWindow = win;
+    
+    // Highlight active window button
+    const btns = document.querySelectorAll('.div-window-btn');
+    btns.forEach(b => {
+        const wVal = parseInt(b.getAttribute('data-window') || '10');
+        if (wVal === win) {
+            b.classList.add('active');
+            if (win === 0) {
+                b.style.background = '#fbbf24';
+                b.style.color = '#000';
+            } else {
+                b.style.background = '#10b981';
+                b.style.color = '#fff';
+            }
+        } else {
+            b.classList.remove('active');
+            b.style.background = 'transparent';
+            b.style.color = win === 0 ? '#fbbf24' : '#94a3b8';
+        }
+    });
+
+    window.runIndexDivergenceScan(false, false);
+};
+
+window.runIndexDivergenceScan = async function(isSilent = false, forceRefresh = false) {
+    const loadingEl = document.getElementById('divergence-loading-container');
+    const win = window._currentDivergenceWindow || 10;
+    const cacheKey = `cache_divergence_radar_${win}d`;
+
+    // Instant SWR Hydration
+    let hasHydrated = false;
+    const cached = localStorage.getItem(cacheKey);
+    if (cached && !forceRefresh) {
+        try {
+            const parsed = JSON.parse(cached);
+            if (parsed && parsed.data && parsed.data.length > 0) {
+                window._divergenceRadarData = parsed.data;
+                window.renderDivergenceTable(window._divergenceRadarData);
+                const badge = document.getElementById('divergence-count-badge');
+                if (badge) badge.innerText = `${parsed.count || parsed.data.length} Matches`;
+                window.renderUnifiedScreenerBadge('divergence-header-status-badge', parsed.count || parsed.data.length, parsed.last_updated, false);
+                hasHydrated = true;
+            }
+        } catch (e) {
+            console.error('Divergence SWR parse error:', e);
+        }
+    }
+
+    if (!isSilent && !hasHydrated && loadingEl) {
+        loadingEl.style.display = 'block';
+    }
+
+    try {
+        const url = `/api/screener/index-divergence-radar?window=${win}&force_refresh=${forceRefresh ? 'true' : 'false'}`;
+        const res = await fetch(url);
+        const data = await res.json();
+
+        if (data.status === 'success') {
+            window._divergenceRadarData = data.data || [];
+            localStorage.setItem(cacheKey, JSON.stringify(data));
+            window.renderDivergenceTable(window._divergenceRadarData);
+
+            const badge = document.getElementById('divergence-count-badge');
+            const cnt = data.count !== undefined ? data.count : window._divergenceRadarData.length;
+            if (badge) badge.innerText = `${cnt} Matches`;
+            window.renderUnifiedScreenerBadge('divergence-header-status-badge', cnt, data.last_updated || data.timestamp, forceRefresh);
+        }
+    } catch (err) {
+        console.error('Error running Index Divergence Radar scan:', err);
+    } finally {
+        if (loadingEl) loadingEl.style.display = 'none';
+    }
+};
+
+window.renderDivergenceTable = function(stocks) {
+    const tbody = document.getElementById('divergence-table-body');
+    if (!tbody) return;
+
+    const list = stocks || [];
+    const allStocks = (window._divergenceRadarData && window._divergenceRadarData.length) ? window._divergenceRadarData : list;
+
+    const totalEl = document.getElementById('divergence-kpi-total');
+    const niftyRetEl = document.getElementById('divergence-kpi-nifty-ret');
+    const breakoutEl = document.getElementById('divergence-kpi-breakout');
+    const volEl = document.getElementById('divergence-kpi-vol');
+    const resilienceEl = document.getElementById('divergence-kpi-resilience');
+    const stableEl = document.getElementById('divergence-kpi-stable');
+
+    if (totalEl) totalEl.innerText = allStocks.length;
+
+    const sample = allStocks[0];
+    if (niftyRetEl && sample) {
+        const nRet = sample.nifty_return_pct || 0;
+        niftyRetEl.innerText = `${nRet >= 0 ? '+' : ''}${nRet.toFixed(2)}%`;
+        niftyRetEl.style.color = nRet >= 0 ? '#34d399' : '#f87171';
+    }
+
+    if (breakoutEl) breakoutEl.innerText = allStocks.filter(s => (s.divergence_status || '').toUpperCase().includes('BREAKOUT')).length;
+    if (volEl) volEl.innerText = allStocks.filter(s => (s.divergence_status || '').toUpperCase().includes('ACCUMULATION')).length;
+    if (resilienceEl) resilienceEl.innerText = allStocks.filter(s => (s.divergence_status || '').toUpperCase().includes('RESILIENCE')).length;
+    if (stableEl) stableEl.innerText = allStocks.filter(s => (s.divergence_status || '').toUpperCase().includes('STABLE')).length;
+
+    if (list.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="10" style="text-align: center; padding: 40px; color: #64748b;">No Market Correction Divergence setups match the active filter criteria.</td></tr>`;
+        return;
+    }
+
+    tbody.innerHTML = list.map(s => {
+        const currPrice = s.current_price || s.price || s.close || 0;
+        const dayChg = s.day_change_pct !== undefined ? s.day_change_pct : (s.change_pct || 0);
+        const stockRet = s.stock_return_pct !== undefined ? s.stock_return_pct : 0;
+        const divDelta = s.divergence_delta_pct !== undefined ? s.divergence_delta_pct : 0;
+        const displayScore = Math.round(s.resilience_score || 0);
+        const pStatus = (s.divergence_status || 'HIGH_RESILIENCE').toUpperCase();
+        const compName = s.company_name || s.name || '';
+
+        const chgClass = dayChg >= 0 ? 'color: #34d399;' : 'color: #f87171;';
+        const chgSign = dayChg >= 0 ? '+' : '';
+        const retClass = stockRet >= 0 ? 'color: #34d399;' : 'color: #f87171;';
+        const retSign = stockRet >= 0 ? '+' : '';
+
+        let statusBadge = `<span class="div-status-badge div-status-resilience">🔥 HIGH RESILIENCE</span>`;
+        if (pStatus.includes('BREAKOUT')) {
+            statusBadge = `<span class="div-status-badge div-status-breakout">🚀 BREAKOUT READY</span>`;
+        } else if (pStatus.includes('ACCUMULATION')) {
+            statusBadge = `<span class="div-status-badge div-status-accumulation">⚡ HEAVY ACCUMULATION</span>`;
+        } else if (pStatus.includes('RESILIENCE')) {
+            statusBadge = `<span class="div-status-badge div-status-resilience">🔥 HIGH RESILIENCE</span>`;
+        } else if (pStatus.includes('STABLE')) {
+            statusBadge = `<span class="div-status-badge div-status-stable">🔵 STABLE DIVERGENCE</span>`;
+        } else if (pStatus.includes('RECOVERY')) {
+            statusBadge = `<span class="div-status-badge div-status-recovery">🌱 EARLY RECOVERY</span>`;
+        }
+
+        const troughType = s.trough_structure || (s.has_higher_low ? (s.is_divergent_trough ? 'DIVERGENT_HIGHER_LOW' : 'HIGHER_LOW') : 'LOWER_LOW');
+
+        let hlBadge = `<span style="color: #10b981; font-weight: 800;">Divergent Higher Low 🎯</span>`;
+        if (troughType === 'DIVERGENT_HIGHER_LOW') {
+            hlBadge = `<span style="color: #10b981; font-weight: 800;">Divergent Higher Low 🎯</span>`;
+        } else if (troughType === 'HIGHER_LOW') {
+            hlBadge = `<span style="color: #38bdf8; font-weight: 800;">Higher Low ✅</span>`;
+        } else if (troughType === 'HELD_SUPPORT') {
+            hlBadge = `<span style="color: #f59e0b; font-weight: 800;">Held Support 🛡️</span>`;
+        } else {
+            hlBadge = `<span style="color: #94a3b8; font-weight: 600;">Lower Low ⚠️</span>`;
+        }
+
+        const scoreBg = displayScore >= 80 ? 'background: #10b981; color: #fff;' : (displayScore >= 60 ? 'background: #38bdf8; color: #0f172a;' : 'background: #f59e0b; color: #0f172a;');
+
+        let tfBadge = '';
+        if (s.is_all_tf || s.tf_count === 5) {
+            tfBadge = `<span class="div-badge div-badge-5tf" title="Eligible across ALL 5 lookback timeframes (5D, 10D, 20D, 50D, 65D)">🔥 5/5 TF</span>`;
+        }
+
+        let tierPill = '';
+        if (s.is_ultra_elite) {
+            tierPill = `<span class="div-badge div-badge-ultra-elite">🌟 Ultra Elite</span>`;
+        } else if (s.is_stage2_leader) {
+            tierPill = `<span class="div-badge div-badge-stage2">⚡ Stage 2</span>`;
+        } else {
+            tierPill = `<span class="div-badge div-badge-resilient">🔵 Resilient</span>`;
+        }
+
+        return `
+            <tr style="border-bottom: 1px solid rgba(255,255,255,0.05);">
+                <td style="padding: 12px;">
+                    <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                        <span class="div-symbol-title">${s.symbol}</span>
+                        ${tfBadge}
+                        ${tierPill}
+                    </div>
+                    <div class="div-company-subtext">${compName}</div>
+                </td>
+                <td style="padding: 12px; color: #38bdf8; font-weight: 700;">₹${currPrice.toLocaleString('en-IN', {minimumFractionDigits: 2})}</td>
+                <td style="padding: 12px; font-weight: 700; ${chgClass}">${chgSign}${dayChg.toFixed(2)}%</td>
+                <td style="padding: 12px; font-weight: 700; ${retClass}">${retSign}${stockRet.toFixed(2)}%</td>
+                <td style="padding: 12px; font-weight: 800; color: #10b981;">+${divDelta.toFixed(2)}%</td>
+                <td style="padding: 12px;">${hlBadge}</td>
+                <td style="padding: 12px;">
+                    <span style="padding: 3px 8px; border-radius: 6px; font-size: 11px; font-weight: 800; ${scoreBg}">${displayScore} / 100</span>
+                </td>
+                <td style="padding: 12px;">${statusBadge}</td>
+                <td style="padding: 12px; text-align: right; white-space: nowrap;">
+                    <button onclick="window.launchStageSimulator && window.launchStageSimulator('${s.symbol}')" class="btn-secondary quant-sim-btn" style="padding: 5px 10px; font-size: 11.5px; border-radius: 8px; cursor: pointer; white-space: nowrap; display: inline-flex; align-items: center; gap: 4px; font-weight: 700; background: rgba(16, 185, 129, 0.15); border: 1px solid rgba(16, 185, 129, 0.4); color: #10b981; margin-right: 6px;" title="Scan stock in 4-Stage Life Cycle Masterclass Simulator">
+                        Simulate ⚙️
+                    </button>
+                    <button onclick="event.stopPropagation(); window.openStandaloneInteractiveChart && window.openStandaloneInteractiveChart('${s.symbol}', null, 'divergence', 'Market Correction Radar')" class="btn-primary quant-ichart-btn" style="padding: 5px 10px; font-size: 11.5px; border-radius: 8px; cursor: pointer; white-space: nowrap; display: inline-flex; align-items: center; gap: 3px; font-weight: 700; background: rgba(59, 130, 246, 0.2); border: 1px solid #3b82f6; color: #60a5fa; margin-right: 6px;" title="Open i-Chart Workstation & 30W MA Slope">
+                        📈 i-Chart
+                    </button>
+                    <button onclick="window.openTradingViewChart && window.openTradingViewChart('${s.symbol}')" class="btn-secondary quant-chart-btn" style="padding: 5px 12px; font-size: 11.5px; border-radius: 8px; cursor: pointer; white-space: nowrap; display: inline-flex; align-items: center; gap: 3px; font-weight: 700;">
+                        Chart ↗
+                    </button>
+                </td>
+            </tr>
+        `;
+    }).join('');
+};
+
+window.filterDivergenceTable = function() {
+    const q = (document.getElementById('divergence-search-input')?.value || '').toLowerCase().trim();
+    const tierFilter = document.getElementById('divergence-tier-filter')?.value || 'ALL';
+    const statusFilter = document.getElementById('divergence-status-filter')?.value || 'ALL';
+
+    let filtered = (window._divergenceRadarData || []).filter(s => {
+        const matchesQ = !q || s.symbol.toLowerCase().includes(q) || (s.company_name || s.name || '').toLowerCase().includes(q);
+        if (!matchesQ) return false;
+
+        if (tierFilter !== 'ALL') {
+            if (tierFilter === 'ULTRA_ELITE' && !s.is_ultra_elite) return false;
+            if (tierFilter === 'STAGE2' && !s.is_stage2_leader) return false;
+            if (tierFilter === 'ALL_TF' && !s.is_all_tf && s.tf_count !== 5) return false;
+        }
+
+        if (statusFilter !== 'ALL') {
+            const pStatus = (s.divergence_status || '').toUpperCase();
+            if (statusFilter === 'BREAKOUT_READY' && !pStatus.includes('BREAKOUT')) return false;
+            if (statusFilter === 'HEAVY_ACCUMULATION' && !pStatus.includes('ACCUMULATION')) return false;
+            if (statusFilter === 'HIGH_RESILIENCE' && !pStatus.includes('RESILIENCE')) return false;
+            if (statusFilter === 'STABLE_DIVERGENCE' && !pStatus.includes('STABLE')) return false;
+        }
+
+        return true;
+    });
+
+    window.renderDivergenceTable(filtered);
 };
 
 // 4. INTERACTIVE STAGE 1-4 STOCK DIAGNOSTIC SIMULATOR & HELPER UTILITIES

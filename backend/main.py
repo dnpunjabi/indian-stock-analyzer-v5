@@ -13605,8 +13605,9 @@ async def send_quant_cron_whatsapp_summary(summary_dict: dict, duration_sec: flo
         f"• *Oliver Kell 10/20 EMA*: {summary_dict.get('oliver_kell', 0)} reversals\n"
         f"• *Cup with Handle (CANSLIM)*: {summary_dict.get('cup_with_handle', 0)} setups\n"
         f"• *RS Line New High (RSNH)*: {summary_dict.get('rs_line_new_high', 0)} leaders\n"
-        f"• *Undercut & Rally (U&R)*: {summary_dict.get('undercut_and_rally', 0)} reclaims\n\n"
-        f"⚡ *All 11 screener caches updated in SQLite in {duration_sec:.1f}s.*"
+        f"• *Undercut & Rally (U&R)*: {summary_dict.get('undercut_and_rally', 0)} reclaims\n"
+        f"• *Index Divergence Radar*: {summary_dict.get('index_divergence_radar', 0)} resilient leaders\n\n"
+        f"⚡ *All 12 quant screener & radar caches updated in SQLite in {duration_sec:.1f}s.*"
     )
     
     try:
@@ -13634,11 +13635,11 @@ async def send_quant_cron_whatsapp_summary(summary_dict: dict, duration_sec: flo
     return False
 
 async def _run_full_quant_cron_sweep():
-    """Runs full recalculation sweep across all 11 screeners and records execution logs."""
+    """Runs full recalculation sweep across all screeners & divergence radar and records execution logs."""
     t0 = time.time()
     summary = {}
     try:
-        print("[CRON] Starting full 11-screener universe recalculation sweep...")
+        print("[CRON] Starting full quant & divergence radar universe recalculation sweep...")
         vcp_candidates = await _recalculate_vcp_universe()
         summary["vcp"] = len(vcp_candidates)
 
@@ -13672,6 +13673,9 @@ async def _run_full_quant_cron_sweep():
         ur_res = await get_undercut_and_rally_screener(force_refresh=True)
         summary["undercut_and_rally"] = len(ur_res.get("data", []))
 
+        div_res = await get_index_divergence_radar_screener(window=10, force_refresh=True)
+        summary["index_divergence_radar"] = len(div_res.get("data", []))
+
         duration = round(time.time() - t0, 2)
         details_json = json.dumps(summary)
         
@@ -13684,7 +13688,7 @@ async def _run_full_quant_cron_sweep():
             )
             conn.commit()
             
-        print(f"[CRON SUCCESS] 11-screener sweep complete in {duration}s! Summary: {summary}")
+        print(f"[CRON SUCCESS] Screener sweep complete in {duration}s! Summary: {summary}")
         await send_quant_cron_whatsapp_summary(summary, duration)
     except Exception as err:
         duration = round(time.time() - t0, 2)
@@ -19051,6 +19055,297 @@ async def get_undercut_and_rally_screener(force_refresh: bool = False):
         "status": "success",
         "count": len(hydrated_results),
         "last_updated": _UNDERCUT_RALLY_SCANNER_CACHE.get("last_updated", ""),
+        "data": hydrated_results
+    }
+
+
+_INDEX_DIVERGENCE_SCANNER_CACHE = {}
+
+async def _scan_single_stock_index_divergence(item: dict, sem: asyncio.Semaphore, nifty_df: pd.DataFrame, nifty_info: dict, window: int = 10):
+    async with sem:
+        sym = item["symbol"].strip().upper()
+        sym_yf = f"{sym}.NS" if not sym.endswith(".NS") else sym
+        try:
+            df = await fetch_history_df(sym_yf, period="1y", interval="1d")
+            if df is None or df.empty or len(df) < (window + 5):
+                return None
+            
+            # Align stock dataframe to exact Master Nifty trading dates
+            master_dates = nifty_info["dates"]
+            s_sub = df.reindex(master_dates).ffill().bfill()
+            if len(s_sub) < window or s_sub['Close'].isnull().any():
+                return None
+            
+            stock_start = float(s_sub['Close'].iloc[0])
+            stock_end = float(s_sub['Close'].iloc[-1])
+            if stock_start <= 0:
+                return None
+            stock_ret = ((stock_end - stock_start) / stock_start) * 100.0
+            
+            # Master Nifty return is 100% CONSTANT & UNIFORM for all stocks in this window!
+            nifty_ret = nifty_info["ret"]
+            divergence_delta = stock_ret - nifty_ret
+            
+            mid = max(1, window // 2)
+            s_low1 = float(s_sub['Low'].iloc[:mid].min())
+            s_low2 = float(s_sub['Low'].iloc[mid:].min())
+            
+            has_higher_low = s_low2 > s_low1
+            is_divergent_trough = has_higher_low and nifty_info["has_lower_low"]
+            is_held_support = not has_higher_low and (s_low1 > 0) and (abs(s_low2 - s_low1) / s_low1 <= 0.015)
+            
+            if is_divergent_trough:
+                trough_structure = "DIVERGENT_HIGHER_LOW"
+            elif has_higher_low:
+                trough_structure = "HIGHER_LOW"
+            elif is_held_support:
+                trough_structure = "HELD_SUPPORT"
+            else:
+                trough_structure = "LOWER_LOW"
+            
+            common_idx = df.index.intersection(nifty_df.index)
+            if len(common_idx) >= 20:
+                full_common = df.loc[common_idx]
+                full_nifty = nifty_df.loc[common_idx]
+                rs_ratio = full_common['Close'] / full_nifty['Close']
+                rolling_rs = rs_ratio.rolling(50, min_periods=10).mean()
+                mansfield = ((rs_ratio / rolling_rs) - 1.0) * 100.0
+                cur_mansfield = float(mansfield.iloc[-1]) if not mansfield.empty and not pd.isna(mansfield.iloc[-1]) else 0.0
+                rs_slope_positive = len(mansfield) >= 5 and float(mansfield.iloc[-1]) > float(mansfield.iloc[-5])
+            else:
+                cur_mansfield = 0.0
+                rs_slope_positive = False
+            
+            vol_50 = float(df['Volume'].tail(50).mean()) if len(df) >= 50 else float(df['Volume'].mean())
+            max_vol = float(s_sub['Volume'].max())
+            has_volume_surge = max_vol >= (1.2 * vol_50) if vol_50 > 0 else False
+            
+            # Smart Money Up-Day Volume Surge
+            up_days = s_sub[s_sub['Close'] >= s_sub['Close'].shift(1).fillna(s_sub['Close'])]
+            max_up_vol = float(up_days['Volume'].max()) if not up_days.empty else 0.0
+            has_up_vol_surge = (max_up_vol >= 1.25 * vol_50) if vol_50 > 0 else False
+            
+            # Proximity to Window High (tight consolidation near peak)
+            s_max_high = float(s_sub['High'].max())
+            prox_to_high_pct = ((s_max_high - stock_end) / s_max_high) * 100.0 if s_max_high > 0 else 999.0
+            
+            score = 50.0 + (divergence_delta * 2.5) if divergence_delta > 0 else 15.0
+            if has_higher_low:
+                score += 20.0
+            elif is_held_support:
+                score += 12.0
+            if is_divergent_trough:
+                score += 10.0
+            if rs_slope_positive or cur_mansfield > 0:
+                score += 10.0
+            if has_up_vol_surge or has_volume_surge:
+                score += 10.0
+            
+            score = max(0, min(100, int(round(score))))
+            
+            # Institutional Noise & False Signal Elimination Rules:
+            # 1. Must form a Structural Trough (Higher Low or Held Support; no Lower Low downtrend drift)
+            # 2. Must display Positive Relative Strength (Mansfield RS >= 0.0)
+            # 3. Must significantly outperform Nifty 50 (Divergence Delta >= +2.5%)
+            # 4. Must achieve an Institutional Resilience Score >= 65
+            if not (has_higher_low or is_held_support) or cur_mansfield < 0.0 or divergence_delta < 2.5 or score < 65:
+                return None
+                
+            last_day_chg = float(((s_sub['Close'].iloc[-1] - s_sub['Close'].iloc[-2]) / s_sub['Close'].iloc[-2]) * 100.0) if len(s_sub) >= 2 else 0.0
+            
+            # Rigorous Institutional Pattern Status Classification
+            if prox_to_high_pct <= 3.0 and stock_ret > 0 and (has_higher_low or is_held_support) and (has_up_vol_surge or divergence_delta >= 3.0):
+                status_label = "BREAKOUT_READY"
+            elif has_up_vol_surge and (cur_mansfield > 0 or rs_slope_positive or divergence_delta >= 2.0):
+                status_label = "HEAVY_ACCUMULATION"
+            elif is_divergent_trough or divergence_delta >= 5.0 or score >= 75:
+                status_label = "HIGH_RESILIENCE"
+            elif has_higher_low or is_held_support or divergence_delta >= 1.0:
+                status_label = "STABLE_DIVERGENCE"
+            else:
+                status_label = "EARLY_RECOVERY"
+                
+            # Moving Average & Institutional Conviction Tier Calculations
+            sma50 = float(df['Close'].tail(50).mean()) if len(df) >= 50 else stock_end
+            sma150 = float(df['Close'].tail(150).mean()) if len(df) >= 150 else stock_end
+            sma150_20d_ago = float(df['Close'].iloc[-170:-20].mean()) if len(df) >= 170 else sma150
+            sma150_rising = sma150 >= sma150_20d_ago
+
+            high52 = float(df['High'].tail(252).max()) if len(df) >= 252 else float(df['High'].max())
+            prox_52w_pct = ((high52 - stock_end) / high52) * 100.0 if high52 > 0 else 999.0
+
+            # Option A: Stan Weinstein Stage 2 Alignment (Close > 30WMA & 30WMA Slope >= 0)
+            is_stage2_leader = (stock_end > sma150) and sma150_rising
+
+            # Option B: Full Minervini Trend Template (Close > 50SMA > 150SMA & 30WMA Rising & Within 25% of 52W High)
+            is_ultra_elite = is_stage2_leader and (stock_end > sma50) and (sma50 > sma150) and (prox_52w_pct <= 25.0)
+
+            if is_ultra_elite:
+                conviction_tier = "ULTRA_ELITE"
+            elif is_stage2_leader:
+                conviction_tier = "STAGE2_LEADER"
+            else:
+                conviction_tier = "RESILIENT_LEADER"
+
+            stock_norm = [round(((float(v) / stock_start - 1.0) * 100.0), 2) for v in s_sub['Close']]
+            
+            return {
+                "symbol": sym,
+                "company_name": item.get("company_name", sym),
+                "sector": item.get("sector", "N/A"),
+                "current_price": round(stock_end, 2),
+                "day_change_pct": round(last_day_chg, 2),
+                "stock_return_pct": round(stock_ret, 2),
+                "nifty_return_pct": round(nifty_ret, 2),
+                "divergence_delta_pct": round(divergence_delta, 2),
+                "resilience_score": score,
+                "has_higher_low": has_higher_low,
+                "is_divergent_trough": is_divergent_trough,
+                "trough_structure": trough_structure,
+                "mansfield_rs": round(cur_mansfield, 2),
+                "divergence_status": status_label,
+                "is_stage2_leader": is_stage2_leader,
+                "is_ultra_elite": is_ultra_elite,
+                "conviction_tier": conviction_tier,
+                "prox_to_52w_high_pct": round(prox_52w_pct, 1),
+                "chart_dates": nifty_info["date_strings"],
+                "nifty_norm": nifty_info["norm"],
+                "stock_norm": stock_norm
+            }
+        except Exception as e:
+            return None
+
+
+def _get_all_timeframe_confluence_symbols():
+    sets = []
+    for w in [5, 10, 20, 50, 65]:
+        key = f"divergence_radar_{w}d"
+        cached = _load_screener_db_cache(key)
+        if cached and cached.get("data"):
+            sets.append({s["symbol"] for s in cached["data"]})
+        elif _INDEX_DIVERGENCE_SCANNER_CACHE.get(key, {}).get("data"):
+            sets.append({s["symbol"] for s in _INDEX_DIVERGENCE_SCANNER_CACHE[key]["data"]})
+    if len(sets) == 5:
+        return set.intersection(*sets)
+    return set()
+
+
+@app.get("/api/screener/index-divergence-radar")
+async def get_index_divergence_radar(window: int = 10, force_refresh: bool = False):
+    """
+    Standalone Market Correction & Index Divergence Radar.
+    Detects stocks showing structural higher lows and positive relative divergence
+    against Nifty 50 during index pullbacks (supported windows: 5, 10, 20, 50, 65 sessions, or 0 for ALL 5/5 Confluence).
+    """
+    global _INDEX_DIVERGENCE_SCANNER_CACHE
+
+    all_tf_syms = _get_all_timeframe_confluence_symbols()
+
+    def _annotate_all_tf(item_list):
+        for s in item_list:
+            s["is_all_tf"] = s.get("symbol") in all_tf_syms
+            if s["is_all_tf"]:
+                s["tf_count"] = 5
+        return item_list
+
+    if window == 0 or str(window).upper() in ["0", "ALL"]:
+        ref_res = await get_index_divergence_radar(window=10, force_refresh=False)
+        ref_data = ref_res.get("data", [])
+        confluence_data = [dict(s) for s in ref_data if s.get("symbol") in all_tf_syms]
+        for s in confluence_data:
+            s["is_all_tf"] = True
+            s["tf_count"] = 5
+        return {
+            "status": "success",
+            "count": len(confluence_data),
+            "window": 0,
+            "last_updated": ref_res.get("last_updated", ""),
+            "data": confluence_data
+        }
+
+    if window not in [5, 10, 20, 50, 65]:
+        window = 10
+        
+    cache_key = f"divergence_radar_{window}d"
+    if not force_refresh:
+        db_cache = _load_screener_db_cache(cache_key)
+        if db_cache and db_cache.get("data"):
+            hydrated = _annotate_all_tf(_overlay_live_quotes_on_candidates(db_cache["data"]))
+            _INDEX_DIVERGENCE_SCANNER_CACHE[cache_key] = {"data": hydrated, "last_updated": db_cache["last_updated"]}
+            return {
+                "status": "success",
+                "count": len(hydrated),
+                "window": window,
+                "last_updated": db_cache["last_updated"],
+                "data": hydrated
+            }
+        if _INDEX_DIVERGENCE_SCANNER_CACHE.get(cache_key, {}).get("data"):
+            hydrated = _annotate_all_tf(_overlay_live_quotes_on_candidates(_INDEX_DIVERGENCE_SCANNER_CACHE[cache_key]["data"]))
+            return {
+                "status": "success",
+                "count": len(hydrated),
+                "window": window,
+                "last_updated": _INDEX_DIVERGENCE_SCANNER_CACHE[cache_key].get("last_updated", ""),
+                "data": hydrated
+            }
+
+    results = []
+    try:
+        nifty_df = await _get_nifty_index_df()
+        if nifty_df is None or len(nifty_df) < (window + 5):
+            return {"status": "error", "message": "Nifty 50 data unavailable", "data": []}
+
+        # Master Nifty 50 metrics for exact window alignment
+        nifty_sub_master = nifty_df.tail(window)
+        nifty_master_dates = nifty_sub_master.index
+        nifty_start = float(nifty_sub_master['Close'].iloc[0])
+        nifty_end = float(nifty_sub_master['Close'].iloc[-1])
+        nifty_master_ret = ((nifty_end - nifty_start) / nifty_start) * 100.0 if nifty_start > 0 else 0.0
+        nifty_norm_master = [round(((float(v) / nifty_start - 1.0) * 100.0), 2) for v in nifty_sub_master['Close']]
+        nifty_dates_master = [d.strftime("%Y-%m-%d") if hasattr(d, "strftime") else str(d)[:10] for d in nifty_sub_master.index]
+
+        mid = max(1, window // 2)
+        n_low1 = float(nifty_sub_master['Low'].iloc[:mid].min())
+        n_low2 = float(nifty_sub_master['Low'].iloc[mid:].min())
+        nifty_has_lower_low = n_low2 <= n_low1
+
+        nifty_info = {
+            "sub": nifty_sub_master,
+            "dates": nifty_master_dates,
+            "start": nifty_start,
+            "end": nifty_end,
+            "ret": nifty_master_ret,
+            "norm": nifty_norm_master,
+            "date_strings": nifty_dates_master,
+            "has_lower_low": nifty_has_lower_low
+        }
+
+        with get_db() as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT symbol, company_name, sector, cap_type FROM screener_universe WHERE symbol NOT LIKE '%DUMMY%'")
+            stocks = [dict(r) for r in cursor.fetchall()]
+
+        sem = asyncio.Semaphore(25)
+        tasks = [_scan_single_stock_index_divergence(item, sem, nifty_df, nifty_info, window=window) for item in stocks]
+        raw_results = await asyncio.gather(*tasks, return_exceptions=True)
+
+        for r in raw_results:
+            if isinstance(r, dict) and r is not None:
+                results.append(r)
+
+        results.sort(key=lambda x: (x.get("resilience_score", 0), x.get("divergence_delta_pct", 0)), reverse=True)
+
+        last_updated = _save_screener_db_cache(cache_key, results)
+        _INDEX_DIVERGENCE_SCANNER_CACHE[cache_key] = {"data": results, "last_updated": last_updated}
+    except Exception as e:
+        print(f"Error executing Index Divergence Radar ({window}d): {e}")
+
+    hydrated_results = _annotate_all_tf(_overlay_live_quotes_on_candidates(results))
+    return {
+        "status": "success",
+        "count": len(hydrated_results),
+        "window": window,
+        "last_updated": _INDEX_DIVERGENCE_SCANNER_CACHE.get(cache_key, {}).get("last_updated", datetime.now().isoformat()),
         "data": hydrated_results
     }
 
