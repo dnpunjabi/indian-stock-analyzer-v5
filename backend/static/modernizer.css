@@ -2233,6 +2233,13 @@ body.light-theme #weinstein-playbook-card div[style*="background: rgba(15, 23, 4
     box-shadow: 0 4px 16px rgba(56, 189, 248, 0.35);
 }
 
+.quant-subtab-btn.active#quant-subtab-divergence {
+    color: #10b981;
+    background: rgba(16, 185, 129, 0.22);
+    border-color: #10b981;
+    box-shadow: 0 4px 16px rgba(16, 185, 129, 0.35);
+}
+
 /* Custom Table Controls & Styles */
 .quant-table-wrapper {
     width: 100%;
@@ -2446,6 +2453,14 @@ body.light-theme .quant-subtab-btn.active#quant-subtab-undercut,
     background: #e0f2fe !important;
     border: 2px solid #0284c7 !important;
     color: #075985 !important;
+}
+
+body.light-theme .quant-subtab-btn.active#quant-subtab-divergence,
+[data-theme="light"] .quant-subtab-btn.active#quant-subtab-divergence,
+[data-mode="light"] .quant-subtab-btn.active#quant-subtab-divergence {
+    background: #d1fae5 !important;
+    border: 2px solid #059669 !important;
+    color: #065f46 !important;
 }
 
 body.light-theme .quant-table-wrapper,
