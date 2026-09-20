@@ -13565,6 +13565,7 @@ async def _recalculate_vcp_universe():
 
             global _VCP_CANSLIM_GLOBAL_CACHE
             _VCP_CANSLIM_GLOBAL_CACHE = {"timestamp": now, "stocks": all_candidates}
+            _save_screener_db_cache("vcp", all_candidates)
             print(f"[VCP CRON] VCP Recalculation complete. {len(all_candidates)} candidates cached in SQLite & RAM (stale records purged).")
             
             # Pre-compute and warm up Stage 2, HTF, 3WT, and Flat Base screeners in RAM cache
@@ -13583,33 +13584,142 @@ async def _recalculate_vcp_universe():
         print(f"[VCP CRON] Universe Recalculation Error: {e}")
         return []
 
-async def send_quant_cron_whatsapp_summary(summary_dict: dict, duration_sec: float):
-    """Sends a formatted WhatsApp summary alert after nightly 1:30 AM pre-warm."""
+async def send_quant_cron_whatsapp_summary(summary_dict: dict, duration_sec: float, force_send: bool = False, persona: str = "quant"):
+    """Sends a rich 13-screener WhatsApp digest report with top stock candidates and persona-specific commentary."""
     wa_token = os.environ.get("WHATSAPP_TOKEN", "")
     wa_phone_id = os.environ.get("WHATSAPP_PHONE_ID", "")
     wa_recipient = os.environ.get("WHATSAPP_RECIPIENT", "")
     
-    if not (wa_token and wa_phone_id and wa_recipient):
+    if not (wa_token and wa_phone_id and wa_recipient) and not force_send:
         print("[CRON WHATSAPP] WhatsApp credentials not configured. Skipping WhatsApp alert summary.")
         return False
         
+    date_str = datetime.now().strftime("%Y-%m-%d %H:%M IST")
+
+    # Define Executive Summary Header and Synthesis Badge
+    persona_title = "🏛️ 13-SCREENER QUANT SUITE & DIVERGENCE DIGEST"
+    persona_badge = "🎯 *QUANT SYNTHESIS*: Unified 13-Screener matrix aggregating Quant Alpha, CANSLIM Growth, Momentum Swing, and Index Divergence Leaders."
+
+    # Helper function to extract top N stocks summary
+    def format_top_stocks(screen_key: str, max_items: int = 2):
+        try:
+            db_key_map = {
+                "confluence": "confluence",
+                "vcp": "vcp",
+                "stage2": "weinstein_stage2",
+                "htf": "htf",
+                "3wt": "3weeks_tight",
+                "flat_base": "flat_base_breakout",
+                "episodic_pivot": "episodic_pivot",
+                "pocket_pivot": "pocket_pivot",
+                "oliver_kell": "oliver_kell_reversal",
+                "cup_with_handle": "cup_with_handle",
+                "rs_line_new_high": "rs_line_new_high",
+                "undercut_and_rally": "undercut_and_rally",
+                "index_divergence_radar": "divergence_radar_10d"
+            }
+            db_k = db_key_map.get(screen_key, screen_key)
+            cached = _load_screener_db_cache(db_k)
+            items = cached.get("data", []) if (cached and isinstance(cached, dict)) else []
+
+            if not items:
+                return "   • _No active setups detected_\n"
+            
+            # Overlay live quotes & normalize price/change fields
+            items = _overlay_live_quotes_on_candidates(items)
+            lines = []
+            for s in items[:max_items]:
+                sym = s.get("symbol", "")
+                if not sym:
+                    continue
+
+                price = s.get("current_price") or s.get("price") or s.get("close") or s.get("cmp") or 0.0
+                chg = s.get("day_change_pct") if s.get("day_change_pct") is not None else (s.get("change_pct") if s.get("change_pct") is not None else s.get("change_percent", 0.0))
+                
+                try:
+                    price = float(price or 0.0)
+                except Exception:
+                    price = 0.0
+                try:
+                    chg = float(chg or 0.0)
+                except Exception:
+                    chg = 0.0
+
+                p_str = f"₹{price:,.1f}" if price > 0 else ""
+                chg_str = f"{'+' if chg >= 0 else ''}{chg:.1f}%" if price > 0 or chg != 0 else ""
+
+                if screen_key == "confluence":
+                    conf_cnt = s.get("confluence_count") or len(s.get("screeners_passed", [])) or 0
+                    rs = s.get("rs_rating", 80)
+                    lines.append(f"   • *{sym}* ({p_str} {chg_str} | RS {rs} | Confluence: {conf_cnt} Strategies 🔥)".strip())
+                elif screen_key == "vcp":
+                    waves = s.get("vcp_waves", 3)
+                    pivot = s.get("pivot_buy_price") or s.get("pivot_price") or 0.0
+                    piv_str = f" | Pivot ₹{float(pivot):,.1f}" if pivot else ""
+                    lines.append(f"   • *{sym}* ({p_str} {chg_str} | {waves}-Wave VCP{piv_str})")
+                elif screen_key == "index_divergence_radar":
+                    delta = float(s.get("divergence_delta_pct") or 0.0)
+                    score = int(round(float(s.get("resilience_score") or 0.0)))
+                    ud = float(s.get("up_down_vol_ratio") or 1.0)
+                    lines.append(f"   • *{sym}* ({p_str} {chg_str} | Delta +{delta:.1f}% | U/D {ud:.1f}x ⚡)")
+                elif screen_key == "episodic_pivot":
+                    gap = float(s.get("gap_pct") or 0.0)
+                    vol = float(s.get("rvol") or 1.0)
+                    lines.append(f"   • *{sym}* ({p_str} {chg_str} | Gap +{gap:.1f}% | Vol {vol:.1f}x ⚡)")
+                elif screen_key == "undercut_and_rally":
+                    sup = s.get("prior_support") or s.get("prior_low") or s.get("support_level") or s.get("support") or s.get("pivot_price") or 0.0
+                    try:
+                        sup = float(sup or 0.0)
+                    except Exception:
+                        sup = 0.0
+                    sup_str = f"Reclaimed ₹{sup:,.1f} Support 🚀" if sup > 0 else "Reclaimed Support 🚀"
+                    lines.append(f"   • *{sym}* ({p_str} {chg_str} | {sup_str})")
+                elif screen_key == "oliver_kell":
+                    rev = s.get("reversal_ema", "10D EMA")
+                    lines.append(f"   • *{sym}* ({p_str} {chg_str} | {rev} Reversal 🎯)")
+                else:
+                    lines.append(f"   • *{sym}* ({p_str} {chg_str})")
+            return "\n".join(lines) + "\n" if lines else "   • _No active setups detected_\n"
+        except Exception:
+            return "   • _Error loading setups_\n"
+
     msg = (
-        "📊 *Quant Suite Nightly Pre-Warm Completed (1:30 AM)*\n\n"
-        f"• *Minervini VCP*: {summary_dict.get('vcp', 0)} setups\n"
-        f"• *Weinstein Stage 2*: {summary_dict.get('stage2', 0)} leaders\n"
-        f"• *David Ryan 3WT*: {summary_dict.get('3wt', 0)} setups\n"
-        f"• *Flat Base*: {summary_dict.get('flat_base', 0)} setups\n"
-        f"• *David Ryan HTF*: {summary_dict.get('htf', 0)} setups\n"
-        f"• *Episodic Pivot (EP)*: {summary_dict.get('episodic_pivot', 0)} gap setups\n"
-        f"• *Pocket Pivot*: {summary_dict.get('pocket_pivot', 0)} accumulation setups\n"
-        f"• *Oliver Kell 10/20 EMA*: {summary_dict.get('oliver_kell', 0)} reversals\n"
-        f"• *Cup with Handle (CANSLIM)*: {summary_dict.get('cup_with_handle', 0)} setups\n"
-        f"• *RS Line New High (RSNH)*: {summary_dict.get('rs_line_new_high', 0)} leaders\n"
-        f"• *Undercut & Rally (U&R)*: {summary_dict.get('undercut_and_rally', 0)} reclaims\n"
-        f"• *Index Divergence Radar*: {summary_dict.get('index_divergence_radar', 0)} resilient leaders\n\n"
-        f"⚡ *All 12 quant screener & radar caches updated in SQLite in {duration_sec:.1f}s.*"
+        f"📊 *{persona_title}* 📊\n"
+        f"🗓️ *Date*: {date_str} | ⚡ *Sweep*: {duration_sec:.1f}s\n"
+        f"{persona_badge}\n\n"
+        f"👑 *1. CONFLUENCE LEADERBOARD* ({summary_dict.get('confluence', 0)} Setups)\n"
+        f"{format_top_stocks('confluence')}\n"
+        f"🔥 *2. MINERVINI VCP & CANSLIM* ({summary_dict.get('vcp', 0)} Setups)\n"
+        f"{format_top_stocks('vcp')}\n"
+        f"📈 *3. STAN WEINSTEIN STAGE 2* ({summary_dict.get('stage2', 0)} Leaders)\n"
+        f"{format_top_stocks('stage2')}\n"
+        f"🚀 *4. HIGH-TIGHT FLAG (HTF)* ({summary_dict.get('htf', 0)} Setups)\n"
+        f"{format_top_stocks('htf')}\n"
+        f"📦 *5. 3-WEEKS TIGHT (3WT)* ({summary_dict.get('3wt', 0)} Setups)\n"
+        f"{format_top_stocks('3wt')}\n"
+        f"📐 *6. MODERN FLAT BASE* ({summary_dict.get('flat_base', 0)} Setups)\n"
+        f"{format_top_stocks('flat_base')}\n"
+        f"⚡ *7. EPISODIC PIVOT (PEP)* ({summary_dict.get('episodic_pivot', 0)} Gaps)\n"
+        f"{format_top_stocks('episodic_pivot')}\n"
+        f"🎯 *8. POCKET PIVOT* ({summary_dict.get('pocket_pivot', 0)} Accumulations)\n"
+        f"{format_top_stocks('pocket_pivot')}\n"
+        f"🌀 *9. OLIVER KELL EMA REVERSAL* ({summary_dict.get('oliver_kell', 0)} Reversals)\n"
+        f"{format_top_stocks('oliver_kell')}\n"
+        f"☕ *10. CUP WITH HANDLE* ({summary_dict.get('cup_with_handle', 0)} Setups)\n"
+        f"{format_top_stocks('cup_with_handle')}\n"
+        f"📈 *11. RS LINE NEW HIGH (RSNH)* ({summary_dict.get('rs_line_new_high', 0)} Leaders)\n"
+        f"{format_top_stocks('rs_line_new_high')}\n"
+        f"🔄 *12. UNDERCUT & RALLY (U&R)* ({summary_dict.get('undercut_and_rally', 0)} Reclaims)\n"
+        f"{format_top_stocks('undercut_and_rally')}\n"
+        f"🛡️ *13. INDEX DIVERGENCE RADAR (10D Window)* ({summary_dict.get('index_divergence_radar', 0)} Leaders)\n"
+        f"{format_top_stocks('index_divergence_radar')}\n"
+        f"⚡ *All 13 quant screener & radar caches updated in SQLite.*"
     )
     
+    if not (wa_token and wa_phone_id and wa_recipient):
+        print("[CRON WHATSAPP] Credentials missing. Logged alert preview to console:\n" + msg)
+        return True
+
     try:
         import httpx
         url = f"https://graph.facebook.com/v18.0/{wa_phone_id}/messages"
@@ -13617,19 +13727,24 @@ async def send_quant_cron_whatsapp_summary(summary_dict: dict, duration_sec: flo
             "Authorization": f"Bearer {wa_token}",
             "Content-Type": "application/json"
         }
-        payload = {
-            "messaging_product": "whatsapp",
-            "to": wa_recipient,
-            "type": "text",
-            "text": {"preview_url": False, "body": msg}
-        }
-        async with httpx.AsyncClient(timeout=10.0) as client:
-            resp = await client.post(url, json=payload, headers=headers)
-            if resp.status_code == 200:
-                print("[CRON WHATSAPP] Successfully sent nightly summary WhatsApp alert!")
-                return True
-            else:
-                print(f"[CRON WHATSAPP] WhatsApp API returned HTTP {resp.status_code}: {resp.text}")
+        
+        # Split message if length exceeds 3800 chars for WhatsApp safety
+        chunks = [msg] if len(msg) <= 3800 else [msg[:3500] + "\n\n*(Continued in Part 2...)*", "📊 *PART 2: CONTINUED QUANT DIGEST*\n\n" + msg[3500:]]
+        
+        for chunk in chunks:
+            payload = {
+                "messaging_product": "whatsapp",
+                "to": wa_recipient,
+                "type": "text",
+                "text": {"preview_url": False, "body": chunk}
+            }
+            async with httpx.AsyncClient(timeout=10.0) as client:
+                resp = await client.post(url, json=payload, headers=headers)
+                if resp.status_code == 200:
+                    print("[CRON WHATSAPP] Successfully sent WhatsApp 13-Screener Digest chunk!")
+                else:
+                    print(f"[CRON WHATSAPP] WhatsApp API returned HTTP {resp.status_code}: {resp.text}")
+        return True
     except Exception as e:
         print(f"[CRON WHATSAPP] Failed to send WhatsApp summary: {e}")
     return False
@@ -19279,6 +19394,54 @@ def _attach_tf_breakdowns(item_list):
     return item_list
 
 
+@app.post("/api/screener/whatsapp-digest-alert")
+async def trigger_whatsapp_digest_alert(payload: dict = None):
+    """
+    On-Demand WhatsApp Dispatch Endpoint for 13 Quant Screeners.
+    Triggers immediate broadcast to WhatsApp and returns execution status.
+    """
+    try:
+        # Calculate confluence & vcp if not cached
+        if not _load_screener_db_cache("confluence"):
+            await get_multi_confluence_leaderboard()
+        if not _load_screener_db_cache("vcp"):
+            await _recalculate_vcp_universe()
+
+        screener_keys = [
+            "confluence", "vcp", "stage2", "htf", "3wt", "flat_base",
+            "episodic_pivot", "pocket_pivot", "oliver_kell", "cup_with_handle",
+            "rs_line_new_high", "undercut_and_rally", "index_divergence_radar"
+        ]
+        db_key_map = {
+            "confluence": "confluence",
+            "vcp": "vcp",
+            "stage2": "weinstein_stage2",
+            "htf": "htf",
+            "3wt": "3weeks_tight",
+            "flat_base": "flat_base_breakout",
+            "episodic_pivot": "episodic_pivot",
+            "pocket_pivot": "pocket_pivot",
+            "oliver_kell": "oliver_kell_reversal",
+            "cup_with_handle": "cup_with_handle",
+            "rs_line_new_high": "rs_line_new_high",
+            "undercut_and_rally": "undercut_and_rally",
+            "index_divergence_radar": "divergence_radar_10d"
+        }
+        
+        summary_counts = {}
+        for k in screener_keys:
+            db_k = db_key_map.get(k, k)
+            cached = _load_screener_db_cache(db_k)
+            items = cached.get("data", []) if (cached and isinstance(cached, dict)) else []
+            summary_counts[k] = len(items)
+
+        persona_val = payload.get("persona", "quant") if payload else "quant"
+        res = await send_quant_cron_whatsapp_summary(summary_counts, duration_sec=0.0, force_send=True, persona=persona_val)
+        return {"status": "success" if res else "warning", "message": "13-Screener WhatsApp Digest sent successfully!" if res else "WhatsApp notification dispatched (console log mode if token missing).", "counts": summary_counts}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to dispatch WhatsApp alert: {str(e)}")
+
+
 @app.get("/api/screener/index-divergence-radar")
 async def get_index_divergence_radar(window: int = 10, force_refresh: bool = False, ref_window: int = 10):
     """
@@ -19649,6 +19812,7 @@ async def get_multi_confluence_leaderboard(force_refresh: bool = False):
     
     # Hydrate with live quotes if available
     hydrated = _overlay_live_quotes_on_candidates(candidates)
+    _save_screener_db_cache("confluence", hydrated)
 
     # Sort sector tailwinds by count desc
     top_sectors = sorted([{"sector": k, "count": v, "is_hot": (k in hot_sectors)} for k, v in sector_counts.items()], key=lambda x: x["count"], reverse=True)[:6]

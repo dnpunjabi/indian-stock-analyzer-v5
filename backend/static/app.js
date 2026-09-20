@@ -14142,6 +14142,36 @@ function updateAlertsAnalyticsChart(list) {
         return;
     }
 
+window.triggerOnDemandQuantWhatsAppAlert = async function() {
+    const btn = document.getElementById('trigger-quant-wrapup-now-btn');
+    const lbl = document.getElementById('quant-wrapup-last-sent-lbl');
+    const origText = btn ? btn.innerHTML : '';
+    if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = `⌛ Generating & Broadcasting 13-Screener Digest...`;
+    }
+    try {
+        const resp = await fetch('/api/screener/whatsapp-digest-alert', { 
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' }
+        });
+        const data = await resp.json();
+        if (resp.ok && data.status === 'success') {
+            if (lbl) lbl.textContent = `Last dispatched: Today at ${new Date().toLocaleTimeString()}`;
+            alert("🚀 13-Screener Quant WhatsApp Digest sent successfully to your registered WhatsApp number!");
+        } else {
+            alert(data.message || "WhatsApp notification dispatched (console log mode if credentials missing).");
+        }
+    } catch (err) {
+        alert("⚠️ Failed to dispatch WhatsApp digest: " + err.message);
+    } finally {
+        if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = origText;
+        }
+    }
+};
+
     if (emptyMsg) emptyMsg.style.display = 'none';
     canvas.style.display = 'block';
 
