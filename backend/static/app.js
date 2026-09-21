@@ -60582,7 +60582,8 @@ window.updateScreenerHeaderBadges = async function() {
             'oliver_kell': 'oliverkell-timestamp',
             'cup_with_handle': 'cuphandle-timestamp',
             'rs_line_new_high': 'rsnh-timestamp',
-            'undercut_and_rally': 'undercut-timestamp'
+            'undercut_and_rally': 'undercut-timestamp',
+            'index_divergence_radar': 'divergence-header-status-badge'
         };
         
         for (const [key, elementId] of Object.entries(badgeMap)) {

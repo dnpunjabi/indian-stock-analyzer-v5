@@ -13755,41 +13755,90 @@ async def _run_full_quant_cron_sweep():
     summary = {}
     try:
         print("[CRON] Starting full quant & divergence radar universe recalculation sweep...")
-        vcp_candidates = await _recalculate_vcp_universe()
-        summary["vcp"] = len(vcp_candidates)
+        
+        try:
+            vcp_candidates = await _recalculate_vcp_universe()
+            summary["vcp"] = len(vcp_candidates)
+        except Exception as e:
+            print(f"[CRON WARN] VCP recalculation error: {e}")
+            summary["vcp"] = 0
 
-        fb_res = await get_flat_base_screener(force_refresh=True)
-        summary["flat_base"] = len(fb_res.get("data", []))
+        try:
+            fb_res = await get_flat_base_screener(force_refresh=True)
+            summary["flat_base"] = len(fb_res.get("data", []))
+        except Exception as e:
+            print(f"[CRON WARN] Flat Base recalculation error: {e}")
+            summary["flat_base"] = 0
 
-        stg2_res = await get_weinstein_stage2_screener(force_refresh=True)
-        summary["stage2"] = len(stg2_res.get("data", []))
+        try:
+            stg2_res = await get_weinstein_stage2_screener(force_refresh=True)
+            summary["stage2"] = len(stg2_res.get("data", []))
+        except Exception as e:
+            print(f"[CRON WARN] Stage 2 recalculation error: {e}")
+            summary["stage2"] = 0
 
-        htf_res = await get_high_tight_flag_screener(force_refresh=True)
-        summary["htf"] = len(htf_res.get("data", []))
+        try:
+            htf_res = await get_high_tight_flag_screener(force_refresh=True)
+            summary["htf"] = len(htf_res.get("data", []))
+        except Exception as e:
+            print(f"[CRON WARN] HTF recalculation error: {e}")
+            summary["htf"] = 0
 
-        twt_res = await get_3weeks_tight_screener(force_refresh=True)
-        summary["3wt"] = len(twt_res.get("data", []))
+        try:
+            twt_res = await get_3weeks_tight_screener(force_refresh=True)
+            summary["3wt"] = len(twt_res.get("data", []))
+        except Exception as e:
+            print(f"[CRON WARN] 3WT recalculation error: {e}")
+            summary["3wt"] = 0
 
-        ep_res = await get_episodic_pivot_screener(force_refresh=True)
-        summary["episodic_pivot"] = len(ep_res.get("data", []))
+        try:
+            ep_res = await get_episodic_pivot_screener(force_refresh=True)
+            summary["episodic_pivot"] = len(ep_res.get("data", []))
+        except Exception as e:
+            print(f"[CRON WARN] Episodic Pivot recalculation error: {e}")
+            summary["episodic_pivot"] = 0
 
-        pocket_res = await get_pocket_pivot_screener(force_refresh=True)
-        summary["pocket_pivot"] = len(pocket_res.get("data", []))
+        try:
+            pocket_res = await get_pocket_pivot_screener(force_refresh=True)
+            summary["pocket_pivot"] = len(pocket_res.get("data", []))
+        except Exception as e:
+            print(f"[CRON WARN] Pocket Pivot recalculation error: {e}")
+            summary["pocket_pivot"] = 0
 
-        kell_res = await get_oliver_kell_screener(force_refresh=True)
-        summary["oliver_kell"] = len(kell_res.get("data", []))
+        try:
+            kell_res = await get_oliver_kell_screener(force_refresh=True)
+            summary["oliver_kell"] = len(kell_res.get("data", []))
+        except Exception as e:
+            print(f"[CRON WARN] Oliver Kell recalculation error: {e}")
+            summary["oliver_kell"] = 0
 
-        ch_res = await get_cup_with_handle_screener(force_refresh=True)
-        summary["cup_with_handle"] = len(ch_res.get("data", []))
+        try:
+            ch_res = await get_cup_with_handle_screener(force_refresh=True)
+            summary["cup_with_handle"] = len(ch_res.get("data", []))
+        except Exception as e:
+            print(f"[CRON WARN] Cup with Handle recalculation error: {e}")
+            summary["cup_with_handle"] = 0
 
-        rsnh_res = await get_rs_line_new_high_screener(force_refresh=True)
-        summary["rs_line_new_high"] = len(rsnh_res.get("data", []))
+        try:
+            rsnh_res = await get_rs_line_new_high_screener(force_refresh=True)
+            summary["rs_line_new_high"] = len(rsnh_res.get("data", []))
+        except Exception as e:
+            print(f"[CRON WARN] RSNH recalculation error: {e}")
+            summary["rs_line_new_high"] = 0
 
-        ur_res = await get_undercut_and_rally_screener(force_refresh=True)
-        summary["undercut_and_rally"] = len(ur_res.get("data", []))
+        try:
+            ur_res = await get_undercut_and_rally_screener(force_refresh=True)
+            summary["undercut_and_rally"] = len(ur_res.get("data", []))
+        except Exception as e:
+            print(f"[CRON WARN] Undercut & Rally recalculation error: {e}")
+            summary["undercut_and_rally"] = 0
 
-        div_res = await get_index_divergence_radar_screener(window=10, force_refresh=True)
-        summary["index_divergence_radar"] = len(div_res.get("data", []))
+        try:
+            div_res = await get_index_divergence_radar(window=10, force_refresh=True)
+            summary["index_divergence_radar"] = len(div_res.get("data", []))
+        except Exception as e:
+            print(f"[CRON WARN] Index Divergence Radar recalculation error: {e}")
+            summary["index_divergence_radar"] = 0
 
         duration = round(time.time() - t0, 2)
         details_json = json.dumps(summary)
@@ -13853,7 +13902,7 @@ def _start_daily_vcp_cron():
                 print(f"[VCP CRON] Next daily 1:30 AM recalculation scheduled in {seconds_until_target / 3600:.2f} hours (at {target_time.strftime('%Y-%m-%d %H:%M:%S')}).")
                 time.sleep(max(seconds_until_target, 10.0))
 
-                print("[VCP CRON] 1:30 AM reached! Triggering full 11-screener universe recalculations...")
+                print("[VCP CRON] 1:30 AM reached! Triggering full 13-screener universe recalculations...")
                 loop = asyncio.new_event_loop()
                 asyncio.set_event_loop(loop)
                 try:
@@ -13861,7 +13910,7 @@ def _start_daily_vcp_cron():
                 finally:
                     loop.close()
 
-                print("[VCP CRON] 1:30 AM recalculation tasks complete across all 11 screeners.")
+                print("[VCP CRON] 1:30 AM recalculation tasks complete across all 13 screeners.")
                 time.sleep(60)
             except Exception as e:
                 print(f"[VCP CRON ERROR] {e}")
@@ -13958,7 +14007,8 @@ async def get_cron_status():
                 "oliver_kell": parse_screener_info("oliver_kell_reversal"),
                 "cup_with_handle": parse_screener_info("cup_with_handle"),
                 "rs_line_new_high": parse_screener_info("rs_line_new_high"),
-                "undercut_and_rally": parse_screener_info("undercut_and_rally")
+                "undercut_and_rally": parse_screener_info("undercut_and_rally"),
+                "index_divergence_radar": parse_screener_info("divergence_radar_10d")
             },
             "recent_logs": log_rows
         }
