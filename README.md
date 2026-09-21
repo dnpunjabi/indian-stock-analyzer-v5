@@ -150,6 +150,17 @@ Calculates and updates stock profiles incrementally without triggering third-par
 *   **Refreshes**: Only targets entries older than **24 hours**.
 *   **Throttling Delay**: Waits **4 seconds** between each stock update (and **10 seconds** on failure fallbacks) to respect rate limits.
 
+### ⚡ Nightly 13-Screener Quant Prewarm Job
+The background daemon automatically runs the 13-screener prewarm sweep every night at **01:30 AM IST**. To manually trigger or inspect the sweep status:
+*   **Trigger Full Prewarm Sweep On-Demand**:
+    ```bash
+    curl -X POST http://127.0.0.1:8000/api/system/trigger-prewarm-sweep
+    ```
+*   **Check Prewarm Status & Caching Timestamps**:
+    ```bash
+    curl -s http://127.0.0.1:8000/api/system/cron-status
+    ```
+
 ---
 
 ## 🚀 Setup & Execution
@@ -195,6 +206,8 @@ The backend exposes a highly optimized, environment-gated REST API built on Fast
 | **POST** | `/api/admin/rebalance` | Manually triggers fresh official NSE index downloads. | None |
 | **POST** | `/api/alerts/set` | Registers a persistent condition-based indicator alert. | `ticker`, `condition_type` (PRICE/RSI/SMA), `operator`, `value` |
 | **GET** | `/api/alerts/check` | Runs manual background sweeping check of active alerts. | None |
+| **GET** | `/api/system/cron-status` | Returns 13-screener prewarm status, timestamps, and leader counts. | None |
+| **POST** | `/api/system/trigger-prewarm-sweep` | Triggers background 13-screener prewarm recalculation sweep on-demand. | None |
 | **GET** | `/api/watchlists` | Lists all user watchlists and constituent items. | None |
 
 ---
