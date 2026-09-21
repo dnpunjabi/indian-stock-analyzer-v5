@@ -13884,20 +13884,40 @@ def _start_daily_vcp_cron():
     import asyncio
 
     def cron_worker():
-        # Cold startup check: If DB cache is empty, run initial recalculation immediately in background!
+        # Cold startup & Missed-Run Catch-Up Check:
+        # If DB cache is empty OR today's 1:30 AM run was missed due to a server restart, trigger catch-up sweep!
         try:
+            today_str = datetime.datetime.now().strftime("%Y-%m-%d")
             with get_db() as conn:
+                cursor = conn.cursor()
                 db_stocks = get_vcp_canslim_universe_from_db(conn)
-                if not db_stocks:
-                    print("[VCP CRON] Cold startup detected! SQLite cache is empty. Running initial universe recalculation in background...")
-                    loop = asyncio.new_event_loop()
-                    asyncio.set_event_loop(loop)
-                    try:
-                        loop.run_until_complete(_run_full_quant_cron_sweep())
-                    finally:
-                        loop.close()
+                
+                cursor.execute(
+                    "SELECT COUNT(*) as cnt FROM cron_execution_logs WHERE job_name = 'nightly_quant_prewarm' AND status = 'SUCCESS' AND date(run_time) = ?",
+                    (today_str,)
+                )
+                row = cursor.fetchone()
+                ran_today = (row["cnt"] if row else 0) > 0
+                
+            now_time = datetime.datetime.now().time()
+            if not db_stocks:
+                print("[VCP CRON] Cold startup detected! SQLite cache is empty. Running initial universe recalculation in background...")
+                loop = asyncio.new_event_loop()
+                asyncio.set_event_loop(loop)
+                try:
+                    loop.run_until_complete(_run_full_quant_cron_sweep())
+                finally:
+                    loop.close()
+            elif not ran_today and now_time >= datetime.time(1, 30, 0):
+                print(f"[VCP CRON] Catch-Up Trigger: Server boot detected after 01:30 AM IST without a successful run today ({today_str}). Running catch-up sweep now...")
+                loop = asyncio.new_event_loop()
+                asyncio.set_event_loop(loop)
+                try:
+                    loop.run_until_complete(_run_full_quant_cron_sweep())
+                finally:
+                    loop.close()
         except Exception as cold_err:
-            print(f"[VCP CRON] Cold startup check notice: {cold_err}")
+            print(f"[VCP CRON] Boot check notice: {cold_err}")
 
         while True:
             try:
