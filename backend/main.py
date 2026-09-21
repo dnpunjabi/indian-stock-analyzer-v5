@@ -13596,6 +13596,14 @@ async def send_quant_cron_whatsapp_summary(summary_dict: dict, duration_sec: flo
         
     date_str = datetime.now().strftime("%Y-%m-%d %H:%M IST")
 
+    if not summary_dict.get("confluence"):
+        try:
+            conf_cached = _load_screener_db_cache("confluence")
+            if conf_cached and isinstance(conf_cached, dict) and conf_cached.get("data"):
+                summary_dict["confluence"] = len(conf_cached["data"])
+        except Exception:
+            pass
+
     # Define Executive Summary Header and Synthesis Badge
     persona_title = "🏛️ 13-SCREENER QUANT SUITE & DIVERGENCE DIGEST"
     persona_badge = "🎯 *QUANT SYNTHESIS*: Unified 13-Screener matrix aggregating Quant Alpha, CANSLIM Growth, Momentum Swing, and Index Divergence Leaders."
