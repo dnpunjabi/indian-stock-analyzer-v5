@@ -60612,11 +60612,16 @@ window.updateScreenerHeaderBadges = async function() {
     }
 };
 
-// Initial badge update on boot
+// Initial badge update on boot & 60-second periodic auto-refresh
 if (typeof window !== 'undefined') {
     setTimeout(() => {
         if (typeof window.updateScreenerHeaderBadges === 'function') window.updateScreenerHeaderBadges();
     }, 1000);
+
+    // Auto-poll cron status every 60 seconds to keep pre-warmed badges live without F5
+    setInterval(() => {
+        if (typeof window.updateScreenerHeaderBadges === 'function') window.updateScreenerHeaderBadges();
+    }, 60000);
 }
 
 
