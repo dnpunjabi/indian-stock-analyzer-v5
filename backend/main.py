@@ -13946,7 +13946,7 @@ async def get_cron_status():
             vcp_row = cursor.fetchone()
             
             cursor.execute("SELECT screener_name, cache_json, updated_at FROM screener_results_cache")
-            screener_rows = {r["screener_name"]: r for r in cursor.fetchall()}
+            screener_rows = {r["screener_name"]: dict(r) for r in cursor.fetchall()}
 
         def format_utc_iso(ts):
             if not ts:
@@ -14022,6 +14022,17 @@ async def get_cron_status():
         }
     except Exception as e:
         return {"status": "error", "error": str(e)}
+
+
+@app.post("/api/system/trigger-prewarm-sweep")
+async def trigger_prewarm_sweep_api():
+    """Trigger the 13-screener prewarm recalculation sweep immediately in background."""
+    asyncio.create_task(_run_full_quant_cron_sweep())
+    return {
+        "status": "success",
+        "message": "Full 13-screener quant prewarm sweep triggered in background. Monitor status at /api/system/cron-status."
+    }
+
 
 
 @app.get("/api/vcp-canslim-screener")
