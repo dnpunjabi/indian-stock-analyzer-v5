@@ -18314,7 +18314,9 @@ async def _scan_single_stock_3wt(item, sem):
                         "pivot_price": t_res["pivot_price"],
                         "stop_loss_price": t_res["stop_loss_price"],
                         "current_price": t_res["current_price"],
-                        "day_change_pct": t_res.get("day_change_pct", 0.0)
+                        "day_change_pct": t_res.get("day_change_pct", 0.0),
+                        "vdu_ratio": t_res.get("vdu_ratio", 1.0),
+                        "rs_rating": t_res.get("rs_rating", 80.0)
                     }
         except Exception:
             pass

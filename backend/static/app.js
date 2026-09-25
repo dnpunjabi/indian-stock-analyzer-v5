@@ -57220,7 +57220,7 @@ window.render3wtTable = function(stocks) {
     const avgTight = stocks.length > 0 ? (stocks.reduce((a, b) => a + (b.close_variance_pct || b.tightness_range_pct || 0), 0) / stocks.length).toFixed(2) : '0';
     if (avgTightEl) avgTightEl.innerText = `${avgTight}%`;
 
-    if (highRsEl) highRsEl.innerText = stocks.filter(s => (s.distance_to_50ema_pct || s.rs_rating || 0) >= 0).length;
+    if (highRsEl) highRsEl.innerText = stocks.filter(s => (s.rs_rating || 0) >= 80).length;
 
     if (stocks.length === 0) {
         tbody.innerHTML = `<tr><td colspan="10" style="text-align:center; padding: 30px; color: #94a3b8;">No 3-Weeks Tight setups detected currently.</td></tr>`;

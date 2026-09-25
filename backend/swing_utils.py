@@ -2380,7 +2380,8 @@ def detect_3weeks_tight(df):
 
         # Resample last 15 trading days into 3 5-day weekly bars
         if n >= 15:
-            w3_closes = [clean_float(closes[-15]), clean_float(closes[-10]), clean_float(closes[-1])]
+            # End of Week 1 (-11), End of Week 2 (-6), End of Week 3 (-1)
+            w3_closes = [clean_float(closes[-11]), clean_float(closes[-6]), clean_float(closes[-1])]
             w3_highs = [clean_float(np.max(highs[-15:-10])), clean_float(np.max(highs[-10:-5])), clean_float(np.max(highs[-5:]))]
             w3_lows = [clean_float(np.min(lows[-15:-10])), clean_float(np.min(lows[-10:-5])), clean_float(np.min(lows[-5:]))]
         else:
@@ -2409,6 +2410,10 @@ def detect_3weeks_tight(df):
         not_stage3 = not (s3_res.get("is_stage3") or s3_res.get("stage_status") in ["STAGE_3_DISTRIBUTION", "STAGE_3_TOPPING"])
         rs_leadership = (mansfield_rs >= 0.0 or near_52w_high) and not_stage3
 
+        p_1yr_ago = clean_float(closes[-min(252, n)]) if n >= 5 else curr_price
+        yr_ret = ((curr_price - p_1yr_ago) / p_1yr_ago * 100.0) if p_1yr_ago > 0 else 0.0
+        rs_rating = round(min(99.0, max(50.0, 70.0 + (yr_ret * 0.25))), 1)
+
         # High-RS Momentum Alignment & Ultra-Tight Closes
         is_uptrend = (curr_price >= ema50_curr) and (ema50_curr >= ema200_curr) and near_52w_high
         is_tight = variance_pct <= 2.0
@@ -2436,7 +2441,9 @@ def detect_3weeks_tight(df):
             "pivot_price": round(pivot_price, 2),
             "stop_loss_price": stop_loss_price,
             "current_price": round(curr_price, 2),
-            "day_change_pct": day_change_pct
+            "day_change_pct": day_change_pct,
+            "vdu_ratio": vdu_ratio,
+            "rs_rating": rs_rating
         }
     except Exception as e:
         print(f"Error in detect_3weeks_tight: {e}")
