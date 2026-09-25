@@ -3095,21 +3095,22 @@ def detect_oliver_kell_reversal(df: pd.DataFrame) -> dict:
         return default_res
 
 
-def detect_cup_with_handle(df: pd.DataFrame, rs_score: float = 0.0) -> dict:
+def detect_cup_with_handle(df: pd.DataFrame, nifty_df: pd.DataFrame = None, rs_score: float = 0.0) -> dict:
     """
     Identifies William O'Neil / CANSLIM Cup with Handle (C&H) Pattern:
     1. SEPA Stage 2 Trend Template: Price > EMA50 > SMA150 >= SMA200; 200 SMA rising over 30 days.
     2. 52W Proximity: Price within 25.0% of 52W High; >= 30.0% above 52W Low.
     3. Liquidity Filter: 50-day average volume >= 50,000 shares/day.
-    4. Prior Advance: Minimum +30.0% prior uptrend before left lip.
-    5. Cup Base: 35 to 300 trading days (7 to 65 weeks); depth -12.0% to -33.0%.
-    6. Right Lip Recovery: Price recovers to within 5.0% of left lip high.
+    4. Prior Advance: Minimum +25.0% prior uptrend before left lip.
+    5. Cup Base: 25 to 300 trading days (5 to 60 weeks); depth -10.0% to -35.0%.
+    6. Right Lip Recovery: Price recovers to within 10.0% of left lip high.
     7. Upper-Half Handle Rule: Handle low >= Cup Midpoint (cup_low + 0.5 * (left_lip - cup_low)).
-    8. Handle Base: Duration 5 to 20 trading days (1 to 4 weeks); depth -5.0% to -12.0% (max -15.0%).
+    8. Handle Base: Duration 5 to 25 trading days (1 to 5 weeks); depth -2.0% to -16.0%.
     9. Volume Dry-Up (VDU): Handle 5-day average volume <= 0.85x 50-day average volume.
-    10. Relative Strength: RS Score >= 70.0.
+    10. Relative Strength: RS Score >= 70.0 (or outperforming benchmark index).
     """
     default_res = {
+        "is_cup_with_handle": False,
         "is_cup_handle": False,
         "ch_status": "NONE",
         "cup_depth_pct": 0.0,
@@ -3184,16 +3185,28 @@ def detect_cup_with_handle(df: pd.DataFrame, rs_score: float = 0.0) -> dict:
             default_res["rejection_reason"] = "Failed Stage 2 Trend Template (Price >= EMA50 >= SMA150 >= SMA200 rising)"
             return default_res
 
-        # 3. RS Rating check
+        # 3. RS Rating check (using benchmark index if available)
         calc_rs = clean_float(rs_score)
-        if calc_rs <= 0 and n >= 65:
-            past_close = clean_float(closes[-min(252, n)])
-            calc_rs = round(((curr_price - past_close) / past_close) * 100.0, 1) if past_close > 0 else 50.0
+        if calc_rs <= 0 and n >= 50:
+            if nifty_df is not None and not nifty_df.empty and 'Close' in nifty_df:
+                stock_closes = df[['Close']].copy()
+                stock_closes.index = pd.to_datetime(stock_closes.index)
+                nifty_closes = nifty_df[['Close']].copy()
+                nifty_closes.index = pd.to_datetime(nifty_closes.index)
+                merged = pd.merge_asof(stock_closes.sort_index(), nifty_closes.sort_index(), left_index=True, right_index=True, suffixes=('_stock', '_nifty'))
+                if len(merged) >= 50:
+                    stock_chg = (merged['Close_stock'].iloc[-1] - merged['Close_stock'].iloc[0]) / merged['Close_stock'].iloc[0] * 100.0
+                    nifty_chg = (merged['Close_nifty'].iloc[-1] - merged['Close_nifty'].iloc[0]) / merged['Close_nifty'].iloc[0] * 100.0
+                    rs_diff = stock_chg - nifty_chg
+                    calc_rs = round(min(99.0, max(1.0, 50.0 + (rs_diff * 0.8))), 1)
+            if calc_rs <= 0:
+                past_close = clean_float(closes[-min(252, n)])
+                calc_rs = round(((curr_price - past_close) / past_close) * 100.0, 1) if past_close > 0 else 50.0
         default_res["rs_rating"] = calc_rs
 
         # 4. Locate Cup Geometry (Left Lip, Cup Low, Right Lip, Handle Low)
-        # Search for Left Lip peak in window [n-300:n-15]
-        min_lookback = min(300, n)
+        # Search for Left Lip peak in recent lookback window [n-180:n-15]
+        min_lookback = min(180, n)
         search_start = max(0, n - min_lookback)
         search_end = max(search_start + 20, n - 15)
 
@@ -3235,6 +3248,14 @@ def detect_cup_with_handle(df: pd.DataFrame, rs_score: float = 0.0) -> dict:
         right_lip_idx = right_lip_search_start + right_lip_rel_idx
         right_lip_price = clean_float(highs[right_lip_idx])
 
+        # Validate Minimum Cup Base Length (>= 5 weeks / 25 trading days)
+        cup_length_weeks = round((right_lip_idx - left_lip_idx) / 5.0, 1)
+        default_res["cup_length_weeks"] = cup_length_weeks
+
+        if cup_length_weeks < 5.0 or (right_lip_idx - left_lip_idx) < 25:
+            default_res["rejection_reason"] = f"Cup base length is too short ({cup_length_weeks} weeks; requires >= 5 weeks / 25 trading days)"
+            return default_res
+
         # Right Lip must recover to within 10% of Left Lip
         right_lip_diff_pct = round(((right_lip_price - left_lip_price) / left_lip_price) * 100.0, 2)
         if right_lip_diff_pct < -10.0:
@@ -3244,7 +3265,11 @@ def detect_cup_with_handle(df: pd.DataFrame, rs_score: float = 0.0) -> dict:
         # 5. Handle Base Geometry (from Right Lip to Current Bar)
         handle_days = max(1, n - right_lip_idx)
         default_res["handle_length_days"] = handle_days
-        default_res["cup_length_weeks"] = round((right_lip_idx - left_lip_idx) / 5.0, 1)
+
+        # Validate Minimum Handle Duration (>= 5 trading days / 1 week)
+        if handle_days < 5:
+            default_res["rejection_reason"] = f"Handle duration is too short ({handle_days} days; requires >= 5 trading days / 1 week)"
+            return default_res
 
         handle_low_price = clean_float(np.min(lows[right_lip_idx:n]))
         handle_depth_pct = round(((handle_low_price - right_lip_price) / right_lip_price) * 100.0, 2)
@@ -3269,8 +3294,8 @@ def detect_cup_with_handle(df: pd.DataFrame, rs_score: float = 0.0) -> dict:
         default_res["vdu_ratio"] = vdu_ratio
         default_res["is_vdu"] = bool(vdu_ratio <= 0.85)
 
-        # 7. Pivot Price, Stop Loss, Risk-Reward Targets
-        pivot_price = round(clean_float(max(right_lip_price, highs[-1])), 2)
+        # 7. Pivot Price (Resistance Line of Handle), Stop Loss, Risk-Reward Targets
+        pivot_price = round(clean_float(right_lip_price), 2)
         stop_loss = round(clean_float(max(handle_low_price, c_ema50 * 0.98)), 2)
         risk_per_share = pivot_price - stop_loss
         if risk_per_share <= 0:
@@ -3333,10 +3358,12 @@ def detect_rs_line_new_high(df: pd.DataFrame, nifty_df: pd.DataFrame = None, rs_
     Detects William O'Neil RS Line New High (RSNH).
     Calculates the ratio time-series: RS_Line = Stock_Close / Nifty_Close.
     Returns qualified if RS_Line hits a 52-week (252 trading day) high while stock is near/below 52W high.
+    Identifies 'RS Line Leading (Blue-Dot)' setups where RS Line hits 52W High BEFORE the stock price.
     """
     default_res = {
         "is_rs_new_high": False,
         "is_rsnh": False,
+        "is_rs_leading": False,
         "rsnh_status": "NONE",
         "rs_line_52w_high": False,
         "rs_ratio_current": 0.0,
@@ -3356,6 +3383,14 @@ def detect_rs_line_new_high(df: pd.DataFrame, nifty_df: pd.DataFrame = None, rs_
         if high_52w <= 0:
             return default_res
 
+        # Liquidity Filter (50-day Average Volume >= 50,000)
+        volumes = df['Volume'].values if 'Volume' in df.columns else np.ones(len(df))
+        vol_sma50 = pd.Series(volumes).rolling(window=min(50, len(df)), min_periods=20).mean().values
+        c_vol50 = clean_float(vol_sma50[-1])
+        if c_vol50 < 50000:
+            default_res["reason"] = f"Low liquidity (50d avg vol {c_vol50:,.0f} < 50,000)"
+            return default_res
+
         dist_from_52w_pct = ((high_52w - curr_price) / high_52w) * 100.0
 
         if nifty_df is not None and not nifty_df.empty and 'Close' in nifty_df:
@@ -3371,7 +3406,8 @@ def detect_rs_line_new_high(df: pd.DataFrame, nifty_df: pd.DataFrame = None, rs_
             if len(merged) >= 20:
                 rs_series = merged['rs_ratio']
                 curr_rs_ratio = float(rs_series.iloc[-1])
-                max_rs_252d = float(rs_series.tail(252).max())
+                prior_rs_series = rs_series.iloc[:-1].tail(252) if len(rs_series) > 1 else rs_series
+                max_rs_252d = float(prior_rs_series.max()) if len(prior_rs_series) > 0 else curr_rs_ratio
                 
                 prev_rs_20d = float(rs_series.iloc[-20]) if len(rs_series) >= 20 else curr_rs_ratio
                 rs_trend_pct = ((curr_rs_ratio - prev_rs_20d) / prev_rs_20d) * 100.0 if prev_rs_20d > 0 else 0.0
@@ -3390,13 +3426,15 @@ def detect_rs_line_new_high(df: pd.DataFrame, nifty_df: pd.DataFrame = None, rs_
             rs_trend = "RISING" if rs_score >= 80 else "FLAT"
 
         is_qualified = is_rs_high and (dist_from_52w_pct <= 20.0)
+        is_rs_leading = bool(is_qualified and dist_from_52w_pct > 3.0)
         
         if is_qualified:
             if dist_from_52w_pct <= 3.0:
                 status = "RSNH_BREAKOUT_READY"
+                reason = f"RS Line & Stock Price at 52-week High! (Stock price is {dist_from_52w_pct:.1f}% below peak)."
             else:
-                status = "RSNH_LEADERSHIP_QUALIFIED"
-            reason = f"RS Line at 52-week High! Stock price is {dist_from_52w_pct:.1f}% below peak."
+                status = "RSNH_LINE_LEADING"
+                reason = f"🔵 RS Line at 52-week High (Leading Price)! Stock price is {dist_from_52w_pct:.1f}% below peak."
         else:
             status = "NONE"
             reason = f"RS Line not at 52W max or stock >20% below high ({dist_from_52w_pct:.1f}%)."
@@ -3404,6 +3442,7 @@ def detect_rs_line_new_high(df: pd.DataFrame, nifty_df: pd.DataFrame = None, rs_
         return {
             "is_rs_new_high": bool(is_qualified),
             "is_rsnh": bool(is_qualified),
+            "is_rs_leading": bool(is_rs_leading),
             "rsnh_status": str(status),
             "rs_line_52w_high": bool(is_rs_high),
             "rs_ratio_current": round(curr_rs_ratio, 6),

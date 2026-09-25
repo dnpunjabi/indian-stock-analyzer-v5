@@ -5143,7 +5143,7 @@
                                         <span class="status-indicator" style="width: 7px; height: 7px; border-radius: 50%; background-color: #c084fc; box-shadow: 0 0 8px #c084fc;"></span>
                                         <span style="font-size: 13px; font-weight: 800; color: #c084fc; letter-spacing: 0.08em; text-transform: uppercase;">WILLIAM O'NEIL RS LEADERSHIP ENGINE</span>
                                     </div>
-                                    <span style="font-size: 13.5px; color: rgba(255,255,255,0.45); font-weight: 600;">• Relative Strength Ratio at 52-Week High System</span>
+                                    <span id="rsnh-benchmark-subtitle" style="font-size: 13.5px; color: rgba(255,255,255,0.45); font-weight: 600;">• Benchmark: Nifty 50 Index</span>
                                     <span id="rsnh-timestamp" style="font-size: 12px; font-weight: 700; color: #c084fc; background: rgba(192, 132, 252, 0.12); padding: 3px 8px; border-radius: 6px; border: 1px solid rgba(192, 132, 252, 0.3); margin-left: 8px;">🟢 Pre-Warmed</span>
                                 </div>
                                 <h2 style="margin: 0; font-size: 22px; font-weight: 800; color: #ffffff; letter-spacing: -0.02em; font-family: 'Outfit', sans-serif;">William O'Neil RS Line New High (RSNH) Screener</h2>
@@ -5171,7 +5171,7 @@
                                 <div id="rsnh-card-ready" style="font-size: 20px; font-weight: 800; color: #10b981; margin-top: 2px;">-</div>
                             </div>
                             <div class="screener-kpi-card" style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(255,255,255,0.08); border-radius: 10px; padding: 10px 16px; flex: 1; min-width: 140px;">
-                                <div style="font-size: 11px; color: #94a3b8; text-transform: uppercase; font-weight: 600;">Leadership Qualified 🔵</div>
+                                <div style="font-size: 11px; color: #94a3b8; text-transform: uppercase; font-weight: 600;">RS Line Leading 🔵</div>
                                 <div id="rsnh-card-qualified" style="font-size: 20px; font-weight: 800; color: #38bdf8; margin-top: 2px;">-</div>
                             </div>
                             <div class="screener-kpi-card" style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(255,255,255,0.08); border-radius: 10px; padding: 10px 16px; flex: 1; min-width: 140px;">
@@ -5297,10 +5297,14 @@
                     <!-- Filter Controls -->
                     <div style="display: flex; gap: 14px; margin-bottom: 20px; align-items: center; flex-wrap: wrap;">
                         <input type="text" id="rsnh-search-input" onkeyup="window.filterRsnhTable && window.filterRsnhTable()" placeholder="Search symbol or name..." style="background: rgba(30, 41, 59, 0.8); border: 1px solid rgba(255,255,255,0.12); color: #fff; padding: 8px 14px; border-radius: 8px; font-size: 13px; flex: 1; min-width: 200px; outline: none;"/>
+                        <select id="rsnh-benchmark-select" onchange="window.onRsnhBenchmarkChange && window.onRsnhBenchmarkChange()" style="background: rgba(30, 41, 59, 0.8); border: 1px solid rgba(192, 132, 252, 0.4); color: #c084fc; padding: 8px 14px; border-radius: 8px; font-size: 13px; font-weight: 700; outline: none; cursor: pointer;">
+                            <option value="NIFTY50">📊 Benchmark: Nifty 50</option>
+                            <option value="NIFTY500">📈 Benchmark: Nifty 500</option>
+                        </select>
                         <select id="rsnh-status-filter" onchange="window.filterRsnhTable && window.filterRsnhTable()" style="background: rgba(30, 41, 59, 0.8); border: 1px solid rgba(255,255,255,0.12); color: #fff; padding: 8px 14px; border-radius: 8px; font-size: 13px; outline: none; cursor: pointer;">
                             <option value="ALL">All RSNH Setups</option>
                             <option value="RSNH_BREAKOUT_READY">🎯 Breakout Ready (RS New High)</option>
-                            <option value="RSNH_LEADERSHIP_QUALIFIED">🔵 Leadership Qualified</option>
+                            <option value="RSNH_LEADERSHIP_QUALIFIED">🔵 RS Line Leading (Blue-Dot)</option>
                         </select>
                     </div>
 
@@ -5316,8 +5320,8 @@
                                     <th>Symbol</th>
                                     <th>Price</th>
                                     <th>Day Chg %</th>
-                                    <th>Current RS Ratio</th>
-                                    <th>52W Max RS Ratio</th>
+                                    <th id="th-rsnh-curr-rs">Current RS Ratio</th>
+                                    <th id="th-rsnh-max-rs">52W Max RS Ratio</th>
                                     <th>20D RS Trend</th>
                                     <th>% From 52W High</th>
                                     <th>Pattern Status</th>

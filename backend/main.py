@@ -13828,8 +13828,10 @@ async def _run_full_quant_cron_sweep():
             summary["cup_with_handle"] = 0
 
         try:
-            rsnh_res = await get_rs_line_new_high_screener(force_refresh=True)
+            rsnh_res = await get_rs_line_new_high_screener(force_refresh=True, benchmark="NIFTY50")
+            rsnh_res500 = await get_rs_line_new_high_screener(force_refresh=True, benchmark="NIFTY500")
             summary["rs_line_new_high"] = len(rsnh_res.get("data", []))
+            summary["rs_line_new_high_nifty500"] = len(rsnh_res500.get("data", []))
         except Exception as e:
             print(f"[CRON WARN] RSNH recalculation error: {e}")
             summary["rs_line_new_high"] = 0
@@ -18977,7 +18979,7 @@ async def get_oliver_kell_screener(force_refresh: bool = False):
 
 _CUP_HANDLE_SCANNER_CACHE = {"data": [], "last_updated": ""}
 
-async def _scan_single_stock_cup_handle(item: dict, sem: asyncio.Semaphore):
+async def _scan_single_stock_cup_handle(item: dict, sem: asyncio.Semaphore, nifty_df: pd.DataFrame = None):
     async with sem:
         sym = item["symbol"].strip().upper()
         sym_yf = f"{sym}.NS" if not sym.endswith(".NS") else sym
@@ -18986,7 +18988,7 @@ async def _scan_single_stock_cup_handle(item: dict, sem: asyncio.Semaphore):
             if df is None or df.empty or len(df) < 50:
                 return None
             from backend.swing_utils import detect_cup_with_handle
-            res = detect_cup_with_handle(df)
+            res = detect_cup_with_handle(df, nifty_df=nifty_df)
             if not res.get("is_cup_handle"):
                 return None
             res["symbol"] = sym
@@ -19025,13 +19027,14 @@ async def get_cup_with_handle_screener(force_refresh: bool = False):
 
     results = []
     try:
+        nifty_df = await _get_nifty_index_df()
         with get_db() as conn:
             cursor = conn.cursor()
             cursor.execute("SELECT symbol, company_name, sector, cap_type FROM screener_universe WHERE symbol NOT LIKE '%DUMMY%'")
             stocks = [dict(r) for r in cursor.fetchall()]
 
         sem = asyncio.Semaphore(25)
-        tasks = [_scan_single_stock_cup_handle(item, sem) for item in stocks]
+        tasks = [_scan_single_stock_cup_handle(item, sem, nifty_df) for item in stocks]
         raw_results = await asyncio.gather(*tasks, return_exceptions=True)
 
         for r in raw_results:
@@ -19055,25 +19058,31 @@ async def get_cup_with_handle_screener(force_refresh: bool = False):
     }
 
 
-_NIFTY_DF_CACHE = {"df": None, "timestamp": None}
+_INDEX_DF_CACHE = {}
 
-async def _get_nifty_index_df():
-    global _NIFTY_DF_CACHE
+async def _get_nifty_index_df(benchmark: str = "NIFTY50"):
+    global _INDEX_DF_CACHE
     now = datetime.now()
-    if _NIFTY_DF_CACHE["df"] is not None and _NIFTY_DF_CACHE["timestamp"] is not None:
-        if (now - _NIFTY_DF_CACHE["timestamp"]).total_seconds() < 3600:
-            return _NIFTY_DF_CACHE["df"]
+    bm_key = (benchmark or "NIFTY50").strip().upper()
+    ticker = "^CRSLDX" if bm_key in ["NIFTY500", "^CRSLDX", "500"] else "^NSEI"
+
+    cache_item = _INDEX_DF_CACHE.get(ticker)
+    if cache_item and cache_item.get("df") is not None and cache_item.get("timestamp") is not None:
+        if (now - cache_item["timestamp"]).total_seconds() < 3600:
+            return cache_item["df"]
     try:
-        df = await fetch_history_df("^NSEI", period="1y", interval="1d")
+        df = await fetch_history_df(ticker, period="1y", interval="1d")
         if df is not None and not df.empty:
-            _NIFTY_DF_CACHE = {"df": df, "timestamp": now}
+            _INDEX_DF_CACHE[ticker] = {"df": df, "timestamp": now}
             return df
     except Exception as e:
-        print(f"Error fetching Nifty 50 index data: {e}")
+        print(f"Error fetching index data for {ticker}: {e}")
+    if ticker != "^NSEI":
+        return await _get_nifty_index_df("NIFTY50")
     return None
 
 
-_RS_LINE_NEW_HIGH_SCANNER_CACHE = {"data": [], "last_updated": ""}
+_RS_LINE_NEW_HIGH_SCANNER_CACHE = {}
 
 async def _scan_single_stock_rs_line_new_high(item: dict, sem: asyncio.Semaphore, nifty_df: pd.DataFrame):
     async with sem:
@@ -19095,35 +19104,43 @@ async def _scan_single_stock_rs_line_new_high(item: dict, sem: asyncio.Semaphore
             return None
 
 @app.get("/api/screener/rs-line-new-high")
-async def get_rs_line_new_high_screener(force_refresh: bool = False):
+async def get_rs_line_new_high_screener(force_refresh: bool = False, benchmark: str = "NIFTY50"):
     """
     Returns William O'Neil RS Line New High (RSNH) candidates.
+    Supports benchmark selection: NIFTY50 (^NSEI) or NIFTY500 (^CRSLDX).
     Parallelized with asyncio 25x concurrency and backed by SQLite disk cache.
     """
     global _RS_LINE_NEW_HIGH_SCANNER_CACHE
+    bm_clean = "NIFTY500" if benchmark.upper() in ["NIFTY500", "500", "^CRSLDX"] else "NIFTY50"
+    cache_key = f"rs_line_new_high_{bm_clean}"
+
     if not force_refresh:
-        db_cache = _load_screener_db_cache("rs_line_new_high")
+        db_cache = _load_screener_db_cache(cache_key)
         if db_cache and db_cache.get("data"):
             hydrated = _overlay_live_quotes_on_candidates(db_cache["data"])
-            _RS_LINE_NEW_HIGH_SCANNER_CACHE = {"data": hydrated, "last_updated": db_cache["last_updated"]}
+            _RS_LINE_NEW_HIGH_SCANNER_CACHE[bm_clean] = {"data": hydrated, "last_updated": db_cache["last_updated"]}
             return {
                 "status": "success",
                 "count": len(hydrated),
+                "benchmark": bm_clean,
+                "benchmark_name": "Nifty 500" if bm_clean == "NIFTY500" else "Nifty 50",
                 "last_updated": db_cache["last_updated"],
                 "data": hydrated
             }
-        if _RS_LINE_NEW_HIGH_SCANNER_CACHE.get("data"):
-            hydrated = _overlay_live_quotes_on_candidates(_RS_LINE_NEW_HIGH_SCANNER_CACHE["data"])
+        if _RS_LINE_NEW_HIGH_SCANNER_CACHE.get(bm_clean, {}).get("data"):
+            hydrated = _overlay_live_quotes_on_candidates(_RS_LINE_NEW_HIGH_SCANNER_CACHE[bm_clean]["data"])
             return {
                 "status": "success",
                 "count": len(hydrated),
-                "last_updated": _RS_LINE_NEW_HIGH_SCANNER_CACHE.get("last_updated", ""),
+                "benchmark": bm_clean,
+                "benchmark_name": "Nifty 500" if bm_clean == "NIFTY500" else "Nifty 50",
+                "last_updated": _RS_LINE_NEW_HIGH_SCANNER_CACHE[bm_clean].get("last_updated", ""),
                 "data": hydrated
             }
 
     results = []
     try:
-        nifty_df = await _get_nifty_index_df()
+        nifty_df = await _get_nifty_index_df(bm_clean)
         with get_db() as conn:
             cursor = conn.cursor()
             cursor.execute("SELECT symbol, company_name, sector, cap_type FROM screener_universe WHERE symbol NOT LIKE '%DUMMY%'")
@@ -19137,11 +19154,11 @@ async def get_rs_line_new_high_screener(force_refresh: bool = False):
             if isinstance(r, dict) and r is not None:
                 results.append(r)
 
-        status_rank = {"RSNH_BREAKOUT_READY": 2, "RSNH_LEADERSHIP_QUALIFIED": 1, "NONE": 0}
+        status_rank = {"RSNH_BREAKOUT_READY": 2, "RSNH_LINE_LEADING": 1, "RSNH_LEADERSHIP_QUALIFIED": 1, "NONE": 0}
         results.sort(key=lambda x: (status_rank.get(x.get("rsnh_status"), 0), x.get("day_change_pct", 0)), reverse=True)
 
-        last_updated = _save_screener_db_cache("rs_line_new_high", results)
-        _RS_LINE_NEW_HIGH_SCANNER_CACHE = {"data": results, "last_updated": last_updated}
+        last_updated = _save_screener_db_cache(cache_key, results)
+        _RS_LINE_NEW_HIGH_SCANNER_CACHE[bm_clean] = {"data": results, "last_updated": last_updated}
     except Exception as e:
         print(f"Error executing RS Line New High screener: {e}")
 
@@ -19149,7 +19166,9 @@ async def get_rs_line_new_high_screener(force_refresh: bool = False):
     return {
         "status": "success",
         "count": len(hydrated_results),
-        "last_updated": _RS_LINE_NEW_HIGH_SCANNER_CACHE.get("last_updated", ""),
+        "benchmark": bm_clean,
+        "benchmark_name": "Nifty 500" if bm_clean == "NIFTY500" else "Nifty 50",
+        "last_updated": _RS_LINE_NEW_HIGH_SCANNER_CACHE.get(bm_clean, {}).get("last_updated", ""),
         "data": hydrated_results
     }
 

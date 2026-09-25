@@ -57997,13 +57997,31 @@ window.filterCupHandleTable = function() {
 };
 
 // RS LINE NEW HIGH (RSNH) SCREENER
+window.activeRsnhBenchmark = localStorage.getItem('pref_rsnh_benchmark') || 'NIFTY50';
+
+window.onRsnhBenchmarkChange = function() {
+    const sel = document.getElementById('rsnh-benchmark-select');
+    if (sel) {
+        window.activeRsnhBenchmark = sel.value;
+        localStorage.setItem('pref_rsnh_benchmark', sel.value);
+        window.allRsnhStocks = [];
+        window.runRsnhScan(false, false);
+    }
+};
+
 window.runRsnhScan = async function(isSilent = false, forceRefresh = false) {
     const loadingEl = document.getElementById('rsnh-loading-container');
+    const bmSelect = document.getElementById('rsnh-benchmark-select');
+    if (bmSelect && window.activeRsnhBenchmark) {
+        bmSelect.value = window.activeRsnhBenchmark;
+    }
+    const bm = window.activeRsnhBenchmark || 'NIFTY50';
+    const cacheStorageKey = `cache_rsnh_screener_${bm}`;
     
     // SWR Hydration from Local Storage
     let hasHydrated = false;
     try {
-        const cached = localStorage.getItem('cache_rsnh_screener');
+        const cached = localStorage.getItem(cacheStorageKey);
         if (cached && !forceRefresh) {
             const parsed = JSON.parse(cached);
             const list = parsed.data || parsed.matches || [];
@@ -58022,13 +58040,13 @@ window.runRsnhScan = async function(isSilent = false, forceRefresh = false) {
     if (!isSilent && !hasHydrated && loadingEl) loadingEl.style.display = 'block';
 
     try {
-        const url = `/api/screener/rs-line-new-high${forceRefresh ? '?force_refresh=true' : ''}`;
+        const url = `/api/screener/rs-line-new-high?benchmark=${bm}${forceRefresh ? '&force_refresh=true' : ''}`;
         const response = await fetch(url);
         const data = await response.json();
 
         if (data.status === 'success') {
             window.allRsnhStocks = data.data || data.matches || [];
-            localStorage.setItem('cache_rsnh_screener', JSON.stringify(data));
+            localStorage.setItem(cacheStorageKey, JSON.stringify(data));
             window.renderRsnhTable(window.allRsnhStocks);
 
             const badge = document.getElementById('rsnh-count-badge');
@@ -58047,6 +58065,17 @@ window.renderRsnhTable = function(stocks) {
     const tbody = document.getElementById('rsnh-table-body');
     if (!tbody) return;
 
+    // Dynamic benchmark header updates
+    const activeBm = window.activeRsnhBenchmark === 'NIFTY500' ? 'Nifty 500' : 'Nifty 50';
+    const subTitleEl = document.getElementById('rsnh-benchmark-subtitle');
+    if (subTitleEl) subTitleEl.innerText = `• Benchmark: ${activeBm} Index`;
+
+    const thCurr = document.getElementById('th-rsnh-curr-rs');
+    if (thCurr) thCurr.innerText = `Current RS Ratio (${activeBm})`;
+
+    const thMax = document.getElementById('th-rsnh-max-rs');
+    if (thMax) thMax.innerText = `52W Max RS Ratio (${activeBm})`;
+
     const list = stocks || [];
     const allStocks = (window.allRsnhStocks && window.allRsnhStocks.length) ? window.allRsnhStocks : list;
 
@@ -58062,7 +58091,7 @@ window.renderRsnhTable = function(stocks) {
     }).length;
     if (qualifiedEl) qualifiedEl.innerText = allStocks.filter(s => {
         const st = (s.rsnh_status || s.status || '').toUpperCase();
-        return st.includes('LEADERSHIP') || st.includes('QUALIFIED');
+        return st.includes('LEADING') || st.includes('LEADERSHIP') || st.includes('QUALIFIED') || s.is_rs_leading;
     }).length;
     if (surgeEl) surgeEl.innerText = allStocks.filter(s => {
         const dist = Math.abs(s.price_pct_from_52w_high !== undefined ? s.price_pct_from_52w_high : 0);
@@ -58084,12 +58113,19 @@ window.renderRsnhTable = function(stocks) {
         const pStatus = (s.rsnh_status || s.status || 'RSNH_LEADERSHIP_QUALIFIED').toUpperCase();
         const compName = s.company_name || s.name || '';
 
+        const fmtRatio = (val) => {
+            if (!val) return 'N/A';
+            return val.toFixed(6);
+        };
+
         const chgClass = dayChg >= 0 ? 'color: #34d399;' : 'color: #f87171;';
         const chgSign = dayChg >= 0 ? '+' : '';
 
         let statusBadge = `<span style="background: rgba(192, 132, 252, 0.18); color: #c084fc; border: 1px solid rgba(192, 132, 252, 0.4); font-weight: 800; padding: 4px 8px; border-radius: 6px; font-size: 11.5px;">🚀 RSNH 52W HIGH</span>`;
         if (pStatus.includes('BREAKOUT') || pStatus.includes('READY')) {
             statusBadge = `<span style="background: rgba(16, 185, 129, 0.18); color: #10b981; border: 1px solid rgba(16, 185, 129, 0.4); font-weight: 800; padding: 4px 8px; border-radius: 6px; font-size: 11.5px;">🎯 BREAKOUT READY</span>`;
+        } else if (pStatus.includes('LEADING') || pStatus.includes('LEADERSHIP') || pStatus.includes('QUALIFIED') || s.is_rs_leading || dist52w > 3.0) {
+            statusBadge = `<span style="background: rgba(59, 130, 246, 0.18); color: #60a5fa; border: 1px solid rgba(59, 130, 246, 0.4); font-weight: 800; padding: 4px 8px; border-radius: 6px; font-size: 11.5px;">🔵 RS LINE LEADING</span>`;
         }
 
         const trendBadge = rsTrend === 'RISING' 
@@ -58104,8 +58140,8 @@ window.renderRsnhTable = function(stocks) {
                 </td>
                 <td style="padding: 12px; color: #38bdf8; font-weight: 700;">₹${currPrice.toLocaleString('en-IN', {minimumFractionDigits: 2})}</td>
                 <td style="padding: 12px; font-weight: 700; ${chgClass}">${chgSign}${dayChg.toFixed(2)}%</td>
-                <td style="padding: 12px; font-weight: 700; color: #c084fc; font-family: monospace;">${currRs ? currRs.toFixed(4) : 'N/A'}</td>
-                <td style="padding: 12px; font-weight: 700; color: #38bdf8; font-family: monospace;">${maxRs ? maxRs.toFixed(4) : 'N/A'}</td>
+                <td style="padding: 12px; font-weight: 700; color: #c084fc; font-family: monospace;">${fmtRatio(currRs)}</td>
+                <td style="padding: 12px; font-weight: 700; color: #38bdf8; font-family: monospace;">${fmtRatio(maxRs)}</td>
                 <td style="padding: 12px;">${trendBadge}</td>
                 <td style="padding: 12px; font-weight: 700; color: #fbbf24;">-${dist52w.toFixed(1)}%</td>
                 <td style="padding: 12px;">${statusBadge}</td>
@@ -58136,11 +58172,12 @@ window.filterRsnhTable = function() {
         if (statusFilter === 'ALL') return true;
 
         const pStatus = (s.rsnh_status || s.status || '').toUpperCase();
+        const dist52w = Math.abs(s.price_pct_from_52w_high !== undefined ? s.price_pct_from_52w_high : (s.dist_52wk_high_pct || 0));
         if (statusFilter === 'RSNH_BREAKOUT_READY') {
-            return pStatus.includes('BREAKOUT') || pStatus.includes('READY');
+            return pStatus.includes('BREAKOUT') || pStatus.includes('READY') || dist52w <= 3.0;
         }
-        if (statusFilter === 'RSNH_LEADERSHIP_QUALIFIED') {
-            return pStatus.includes('LEADERSHIP') || pStatus.includes('QUALIFIED');
+        if (statusFilter === 'RSNH_LEADERSHIP_QUALIFIED' || statusFilter === 'RSNH_LINE_LEADING') {
+            return pStatus.includes('LEADERSHIP') || pStatus.includes('QUALIFIED') || pStatus.includes('LEADING') || s.is_rs_leading || dist52w > 3.0;
         }
         return pStatus === statusFilter;
     });
