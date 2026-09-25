@@ -18300,7 +18300,7 @@ async def _scan_single_stock_3wt(item, sem):
             df = await fetch_history_df(sym, period="6mo", interval="1d")
             if df is not None and not df.empty:
                 t_res = detect_3weeks_tight(df)
-                if t_res.get("is_3wt") or t_res.get("tight_status") in ["3WT_PIVOT_READY", "3WT_FORMING", "3WT_QUALIFIED"]:
+                if t_res.get("is_3wt") or t_res.get("tight_status") in ["3WT_PIVOT_READY", "3WT_FORMING", "3WT_QUALIFIED", "3WT_BREAKOUT"]:
                     return {
                         "symbol": sym,
                         "base_symbol": sym.replace(".NS", "").replace(".BO", ""),

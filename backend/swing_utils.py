@@ -2420,7 +2420,9 @@ def detect_3weeks_tight(df):
 
         is_3wt = is_uptrend and is_tight and is_vdu and rs_leadership
         
-        if is_3wt and curr_price >= (pivot_price * 0.985):
+        if is_3wt and curr_price >= pivot_price:
+            tight_status = "3WT_BREAKOUT"
+        elif is_3wt and curr_price >= (pivot_price * 0.96):
             tight_status = "3WT_PIVOT_READY"
         elif is_3wt:
             tight_status = "3WT_FORMING"

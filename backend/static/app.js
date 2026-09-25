@@ -57234,7 +57234,7 @@ window.render3wtTable = function(stocks) {
     }).length;
 
     if (stocks.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="10" style="text-align:center; padding: 30px; color: #94a3b8;">No 3-Weeks Tight setups detected currently.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="11" style="text-align:center; padding: 30px; color: #94a3b8;">No 3-Weeks Tight setups detected currently.</td></tr>`;
         return;
     }
 
@@ -57249,6 +57249,16 @@ window.render3wtTable = function(stocks) {
         const rsVal = (typeof s.rs_rating === 'number' && s.rs_rating > 0) 
             ? Math.round(s.rs_rating) 
             : ((typeof s.distance_to_50ema_pct === 'number') ? Math.min(99, Math.max(60, Math.round(75 + s.distance_to_50ema_pct * 1.5))) : 82);
+
+        const st = s.tight_status || s.three_wt_status || '';
+        let statusBadge = '';
+        if (st === '3WT_BREAKOUT' || (pivot > 0 && price >= pivot)) {
+            statusBadge = `<span style="background: rgba(52, 211, 153, 0.2); color: #34d399; border: 1px solid rgba(52, 211, 153, 0.4); font-size: 11px; font-weight: 800; padding: 3px 8px; border-radius: 6px; display: inline-flex; align-items: center; gap: 4px;">🚀 BREAKOUT</span>`;
+        } else if (st === '3WT_PIVOT_READY' || st === '3WT_READY' || (pivot > 0 && price >= pivot * 0.96)) {
+            statusBadge = `<span style="background: rgba(45, 212, 191, 0.15); color: #2dd4bf; border: 1px solid rgba(45, 212, 191, 0.4); font-size: 11px; font-weight: 800; padding: 3px 8px; border-radius: 6px; display: inline-flex; align-items: center; gap: 4px;">🎯 READY AT PIVOT</span>`;
+        } else {
+            statusBadge = `<span style="background: rgba(192, 132, 252, 0.15); color: #c084fc; border: 1px solid rgba(192, 132, 252, 0.3); font-size: 11px; font-weight: 700; padding: 3px 8px; border-radius: 6px; display: inline-flex; align-items: center; gap: 4px;">⏳ 3WT FORMING</span>`;
+        }
 
         return `
             <tr>
@@ -57266,6 +57276,7 @@ window.render3wtTable = function(stocks) {
                     <span style="background: rgba(192, 132, 252, 0.15); color: #c084fc; border: 1px solid rgba(192, 132, 252, 0.3); padding: 2px 8px; border-radius: 6px;">${rsVal}</span>
                 </td>
                 <td style="font-weight: 800; color: #34d399;">₹${pivot.toFixed(2)}</td>
+                <td style="text-align: center; white-space: nowrap;">${statusBadge}</td>
                 <td style="text-align: center; white-space: nowrap;">
                     <button onclick="window.launchStageSimulator && window.launchStageSimulator('${s.symbol}')" class="btn-secondary quant-sim-btn" style="padding: 5px 10px; font-size: 11.5px; border-radius: 8px; cursor: pointer; white-space: nowrap; display: inline-flex; align-items: center; gap: 4px; font-weight: 700; background: rgba(168, 85, 247, 0.15); border: 1px solid rgba(168, 85, 247, 0.4); color: #c084fc; margin-right: 6px;" title="Scan stock in 4-Stage Life Cycle Masterclass Simulator">
                         Simulate ⚙️
@@ -57288,8 +57299,20 @@ window.filter3wtTable = function() {
 
     let filtered = window.all3wtStocks.filter(s => {
         const matchesQ = s.symbol.toLowerCase().includes(q) || (s.company_name || s.name || '').toLowerCase().includes(q);
-        const st = s.tight_status || s.three_wt_status;
-        const matchesStatus = status === 'ALL' || st === status || (status === '3WT_READY' && st === '3WT_PIVOT_READY');
+        const st = s.tight_status || s.three_wt_status || '';
+        const price = s.current_price || s.price || 0;
+        const pivot = s.pivot_price || s.buy_pivot || 0;
+
+        let matchesStatus = false;
+        if (status === 'ALL') {
+            matchesStatus = true;
+        } else if (status === '3WT_READY') {
+            matchesStatus = (st === '3WT_PIVOT_READY' || st === '3WT_READY' || (pivot > 0 && price >= pivot * 0.96));
+        } else if (status === '3WT_BREAKOUT') {
+            matchesStatus = (st === '3WT_BREAKOUT' || (pivot > 0 && price >= pivot));
+        } else {
+            matchesStatus = (st === status);
+        }
         return matchesQ && matchesStatus;
     });
 
