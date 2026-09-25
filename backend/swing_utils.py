@@ -1658,11 +1658,17 @@ def detect_vcp_pattern(df, benchmark_df=None):
         # 2. Extract contraction waves (High -> Low drop sequence)
         sorted_pivots = sorted(recent_highs + recent_lows, key=lambda x: x["index"])
         
+        # Base peak H0 must be the highest high in recent 90 days
+        h0_pivot = max(recent_highs, key=lambda x: x["price"])
+        h0_idx = h0_pivot["index"]
+
+        post_h0_pivots = [p for p in sorted_pivots if p["index"] >= h0_idx]
+
         raw_contractions = []
         i = 0
-        while i < len(sorted_pivots) - 1:
-            p1 = sorted_pivots[i]
-            p2 = sorted_pivots[i+1]
+        while i < len(post_h0_pivots) - 1:
+            p1 = post_h0_pivots[i]
+            p2 = post_h0_pivots[i+1]
             
             # High to Low drop
             if p1 in recent_highs and p2 in recent_lows:
@@ -1671,8 +1677,8 @@ def detect_vcp_pattern(df, benchmark_df=None):
                 depth_pct = round(((l_price - h_price) / h_price) * 100.0, 1)
                 days = p2["index"] - p1["index"]
                 
-                # Check valid contraction depth (-40% to -1.0%) and min 2 trading days
-                if -40.0 <= depth_pct <= -1.0 and days >= 2:
+                # Check valid contraction depth (-35% to -1.0%) and min 2 trading days
+                if -35.0 <= depth_pct <= -1.0 and days >= 2:
                     raw_contractions.append({
                         "high_price": round(h_price, 2),
                         "low_price": round(l_price, 2),
@@ -1681,34 +1687,12 @@ def detect_vcp_pattern(df, benchmark_df=None):
                     })
             i += 1
 
-        # Locate valid sub-sequence of 2 to 4 contractions where wave depths are tightening (|T1| > |T2| > |T3|)
-        def extract_valid_vcp_subsequence(raw_list):
-            if len(raw_list) < 2:
-                return None
-            m = len(raw_list)
-            for length in [4, 3, 2]:
-                for end_i in range(m, max(0, length - 1), -1):
-                    start_i = end_i - length
-                    if start_i < 0: continue
-                    sub = raw_list[start_i:end_i]
-                    sub_depths = [abs(c["depth_percent"]) for c in sub]
-                    if sub_depths[0] < 6.0: continue
-                    if sub_depths[-1] > 10.0: continue
-                    tight = True
-                    for k in range(len(sub_depths) - 1):
-                        if sub_depths[k+1] > sub_depths[k] + 1.5:
-                            tight = False
-                            break
-                    if tight:
-                        return sub
-            return None
-
-        vcp_sub = extract_valid_vcp_subsequence(raw_contractions)
-        if not vcp_sub:
+        # Enforce 2 <= wave contractions <= 4
+        if len(raw_contractions) < 2 or len(raw_contractions) > 4:
             return default_res
 
         contractions = []
-        for idx, c in enumerate(vcp_sub):
+        for idx, c in enumerate(raw_contractions):
             contractions.append({
                 "stage": f"T{idx + 1}",
                 "high_price": c["high_price"],
@@ -1717,12 +1701,23 @@ def detect_vcp_pattern(df, benchmark_df=None):
                 "days": c["days"]
             })
 
+        # Strict Volatility Contraction Rule: |T1| > |T2| > |T3| > |T4|
+        depths = [abs(c["depth_percent"]) for c in contractions]
         is_contracting = True
+        for k in range(len(depths) - 1):
+            if depths[k+1] >= depths[k]: # Strictly tighter
+                is_contracting = False
+                break
+
+        # T1 must be a genuine base shakeout (Depth >= 7.5%)
+        # Final contraction must be tight (Depth <= 8.5%)
+        tight_final_contraction = depths[-1] <= 8.5
+        valid_t1_shakeout = depths[0] >= 7.5
 
         # 4. Volume Dry-Up (VDU) Ratio
         vol_5d_avg = float(np.mean(volumes[-5:])) if n >= 5 else curr_vol
         vdu_ratio = round(vol_5d_avg / vol_20d_avg, 2) if vol_20d_avg > 0 else 1.0
-        is_vdu = vdu_ratio <= 0.75
+        is_vdu = vdu_ratio <= 0.80
 
         # 5. Determine Pivot Buy Price & Stop Loss
         last_contraction = contractions[-1]
@@ -1766,10 +1761,10 @@ def detect_vcp_pattern(df, benchmark_df=None):
         # 1. 200-day SMA higher than 30 days ago
         sma200_rising_30d = sma200_curr > sma200_30d_ago
         
-        # 2. Moving Average Hierarchy: Price >= 150 SMA & 200 SMA, 50 SMA >= 150/200 SMA, price within 5% of 50 SMA
-        price_above_smas = (curr_price >= sma150_curr) and (curr_price >= sma200_curr) and (curr_price >= sma50_curr * 0.95)
-        sma50_above_all = (sma50_curr >= sma150_curr * 0.98) and (sma50_curr >= sma200_curr * 0.98)
-        sma150_above_200 = sma150_curr >= sma200_curr * 0.98
+        # 2. Moving Average Hierarchy: Price > 50 SMA > 150 SMA > 200 SMA
+        price_above_smas = (curr_price >= sma50_curr * 0.98) and (curr_price > sma150_curr) and (curr_price > sma200_curr)
+        sma50_above_all = (sma50_curr > sma150_curr) and (sma50_curr > sma200_curr)
+        sma150_above_200 = sma150_curr > sma200_curr
 
         # 3. 52-Week High Proximity (Within 25% of 52W High) & 52-Week Low Distance (At least 30% above 52W Low)
         lookback_52w = min(252, n)
@@ -1791,6 +1786,7 @@ def detect_vcp_pattern(df, benchmark_df=None):
             price_above_smas and
             sma50_above_all and
             sma150_above_200 and
+            sma200_rising_30d and
             near_52w_high and
             above_52w_low and
             not_stage3 and
@@ -1805,7 +1801,7 @@ def detect_vcp_pattern(df, benchmark_df=None):
         is_vcp = False
         vcp_reason = "CONSOLIDATING"
         
-        if is_contracting and in_stage_2 and (2 <= len(contractions) <= 4) and tight_final_contraction:
+        if is_contracting and in_stage_2 and (2 <= len(contractions) <= 4) and tight_final_contraction and valid_t1_shakeout:
             is_vcp = True
             vcp_reason = "VCP PATTERN"
             if curr_price >= pivot_price:
@@ -1817,6 +1813,8 @@ def detect_vcp_pattern(df, benchmark_df=None):
         else:
             if not in_stage_2:
                 vcp_reason = "TREND NOT ALIGNED"
+            elif not valid_t1_shakeout:
+                vcp_reason = "SHALLOW BASE"
             elif not tight_final_contraction:
                 vcp_reason = "WIDE FINAL CONTRACTION"
             elif not is_contracting:
