@@ -1597,7 +1597,7 @@ def calculate_pitchfork_indicators(df, deviation=5.0, depth=34, type_pf='Origina
         return empty_result
 
 
-def detect_vcp_pattern(df):
+def detect_vcp_pattern(df, benchmark_df=None):
     """
     Identifies Mark Minervini Volatility Contraction Pattern (VCP) in historical OHLCV data.
     Measures progressive contraction depths (T1 -> T2 -> T3 -> T4), Volume Dry-Up (VDU),
@@ -1628,7 +1628,7 @@ def detect_vcp_pattern(df):
         closes = df_calc['Close'].values
         highs = df_calc['High'].values
         lows = df_calc['Low'].values
-        volumes = df_calc['Volume'].values
+        volumes = df_calc['Volume'].values if 'Volume' in df_calc.columns else np.ones(len(df_calc))
         n = len(df_calc)
         
         curr_price = float(closes[-1])
@@ -1688,8 +1688,7 @@ def detect_vcp_pattern(df):
                     })
             i += 1
 
-        # STRICT CONTRACTION RULES: No hardcoded fallback!
-        # T1 must represent a major shakeout wave (Depth <= -9.5% and Days >= 6)
+        # STRICT CONTRACTION RULES: T1 must represent a major shakeout wave (Depth <= -9.5% and Days >= 6)
         while raw_contractions and (raw_contractions[0]["depth_percent"] > -9.5 or raw_contractions[0]["days"] < 6):
             raw_contractions.pop(0)
 
@@ -1710,11 +1709,11 @@ def detect_vcp_pattern(df):
         if not contractions:
             return default_res
 
-        # 3. Verify Volatility Contraction Rule (|T1| > |T2| > |T3|)
+        # 3. Verify Volatility Contraction Rule (|T1| > |T2| > |T3|) - Strict tightening hierarchy
         depths = [abs(c["depth_percent"]) for c in contractions]
         is_contracting = True
         for k in range(len(depths) - 1):
-            if depths[k+1] > depths[k] + 1.5: # Allow small margin
+            if depths[k+1] >= depths[k]: # Each subsequent contraction MUST be strictly tighter
                 is_contracting = False
                 break
 
@@ -1745,6 +1744,9 @@ def detect_vcp_pattern(df):
         target_1 = round(pivot_price + (2.0 * risk_per_share), 2)
         target_2 = round(pivot_price + (4.0 * risk_per_share), 2)
 
+        rr_ratio_val = round((target_2 - pivot_price) / risk_per_share, 1) if risk_per_share > 0 else 4.0
+        risk_reward_str = f"1 : {rr_ratio_val}"
+
         # 6. Mark Minervini 7-Point SEPA Trend Template & Stage 2 Alignment
         window_50 = min(50, n)
         sma50_series = pd.Series(closes).rolling(window=window_50, min_periods=10).mean().values
@@ -1774,11 +1776,11 @@ def detect_vcp_pattern(df):
         near_52w_high = curr_price >= (high_52w * 0.75)
         above_52w_low = curr_price >= (low_52w * 1.30)
 
-        # 4. Stage 3 Distribution Exclusion
-        s3_res = detect_weinstein_stage3(df)
+        # 4. Stage 3 Distribution Exclusion with optional benchmark_df
+        s3_res = detect_weinstein_stage3(df, benchmark_df=benchmark_df)
         not_stage3 = not (s3_res.get("is_stage3") or s3_res.get("stage_status") in ["STAGE_3_DISTRIBUTION", "STAGE_3_TOPPING"])
 
-        # 5. Relative Strength Leadership (RS Rating >= 70 or Mansfield RS > 0)
+        # 5. Relative Strength Leadership (Mansfield RS >= 0 or Near 52W High)
         mansfield_rs = s3_res.get("mansfield_rs", 0.0)
         rs_leadership = mansfield_rs >= 0.0 or near_52w_high
 
@@ -1805,7 +1807,7 @@ def detect_vcp_pattern(df):
         if is_contracting and in_stage_2 and (2 <= len(contractions) <= 4) and tight_final_contraction:
             is_vcp = True
             vcp_reason = "VCP PATTERN"
-            if curr_price >= pivot_price and (curr_vol / vol_20d_avg) >= 1.20:
+            if curr_price >= pivot_price:
                 vcp_status = "LIVE_BREAKOUT"
             elif curr_price >= (pivot_price * 0.96) and is_vdu:
                 vcp_status = "READY_PIVOT"
@@ -1840,7 +1842,7 @@ def detect_vcp_pattern(df):
             "target_1": target_1,
             "target_2": target_2,
             "risk_percent": risk_pct,
-            "risk_reward_ratio": "1 : 3.8",
+            "risk_reward_ratio": risk_reward_str,
             "volume_dryup_ratio": vdu_ratio,
             "contractions": contractions,
             "tightness_score": tightness_score
@@ -1857,12 +1859,11 @@ def calculate_canslim_score(symbol: str, db_conn=None, df=None) -> dict:
     """
     symbol_norm = symbol.strip().upper().replace(".NS", "").replace(".BO", "")
     
-    # 1. Deterministic baseline based on symbol hash for un-cached metrics
-    sym_hash = sum(ord(c) for c in symbol_norm)
-    pat_g = 10.0 + (sym_hash % 31)   # 10% to 41%
-    roe = 8.0 + ((sym_hash * 3) % 18)  # 8% to 26%
-    fii_dii = 12.0 + ((sym_hash * 7) % 25) # 12% to 37%
-    del_pct = 30.0 + ((sym_hash * 11) % 35)
+    # 1. Fact-based baseline for un-cached fundamental metrics
+    pat_g = 0.0
+    roe = 0.0
+    fii_dii = 0.0
+    del_pct = 0.0
 
     if db_conn is not None:
         try:

@@ -13478,6 +13478,8 @@ async def _recalculate_vcp_universe():
         now = time.time()
         print("[VCP CRON] Starting VCP & CANSLIM Universe Recalculation...")
         
+        b_df = await fetch_history_df("^NSEI", period="1y", interval="1d")
+
         with get_db() as conn:
             cursor = conn.cursor()
             cursor.execute("SELECT symbol, company_name, sector, cap_type FROM screener_universe")
@@ -13494,7 +13496,7 @@ async def _recalculate_vcp_universe():
                         if df is None or df.empty or len(df) < 40:
                             return None
                             
-                        vcp_res = detect_vcp_pattern(df)
+                        vcp_res = detect_vcp_pattern(df, benchmark_df=b_df)
                         canslim_res = calculate_canslim_score(sym, conn, df=df)
                         
                         c_score = canslim_res["canslim_score"]
