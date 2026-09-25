@@ -2516,8 +2516,8 @@ def detect_flat_base_breakout(df: pd.DataFrame, rs_score: float = 0.0) -> dict:
         peak_offset = max_lookback - 1 - np.argmax(recent_highs) # Days since highest high
         base_days = int(peak_offset)
 
-        if base_days < 20:
-            default_res["rejection_reason"] = f"Base peak occurred only {base_days} days ago (<20 days / 4 weeks minimum duration required)"
+        if base_days < 25:
+            default_res["rejection_reason"] = f"Base peak occurred only {base_days} days ago (<25 days / 5 weeks minimum duration required by William O'Neil)"
             return default_res
         if base_days > 75:
             default_res["rejection_reason"] = f"Base peak occurred {base_days} days ago (>75 days / 15 weeks maximum duration limit)"
@@ -2566,17 +2566,17 @@ def detect_flat_base_breakout(df: pd.DataFrame, rs_score: float = 0.0) -> dict:
 
         # 8. Stacked Darvas Boxes Calculation
         stacked_boxes_count = 1
-        lookback_step = 40
+        lookback_step = 30
         prev_ceiling = base_floor
-        for b_idx in range(max(0, ceiling_idx - lookback_step), max(0, ceiling_idx - 160), -30):
-            if b_idx + 20 < len(df):
-                sub_high = np.max(highs[b_idx:b_idx+20])
-                sub_low = np.min(lows[b_idx:b_idx+20])
-                if sub_high < prev_ceiling and ((sub_high - sub_low) / sub_high) <= 0.16:
+        for b_idx in range(max(0, ceiling_idx - lookback_step), max(0, ceiling_idx - 150), -20):
+            if b_idx + 15 < len(df):
+                sub_high = np.max(highs[b_idx:b_idx+15])
+                sub_low = np.min(lows[b_idx:b_idx+15])
+                if sub_high < prev_ceiling and ((sub_high - sub_low) / sub_high) <= 0.15:
                     stacked_boxes_count += 1
                     prev_ceiling = sub_low
 
-        # 9. Breakout Status Determination
+        # 9. Breakout Status & Extension Guardrail Determination
         pivot_price = round(base_ceiling, 2)
         stop_loss = round(base_floor * 0.99, 2)
         target_1 = round(pivot_price * (1.0 + (base_depth_pct / 100.0) * 1.5), 2)
@@ -2584,8 +2584,12 @@ def detect_flat_base_breakout(df: pd.DataFrame, rs_score: float = 0.0) -> dict:
 
         prev_vol = clean_float(volumes[-1])
         vol_surge_ratio = round(prev_vol / vol50_avg, 2) if vol50_avg > 0 else 1.0
+        dist_from_pivot_pct = round(((curr_price - pivot_price) / pivot_price) * 100.0, 2) if pivot_price > 0 else 0.0
 
-        if curr_price >= pivot_price and vol_surge_ratio >= 1.30:
+        if dist_from_pivot_pct > 5.0:
+            default_res["rejection_reason"] = f"Price is extended +{dist_from_pivot_pct:.1f}% above pivot price (max +5.0% allowed for breakout entry)"
+            return default_res
+        elif curr_price >= pivot_price and vol_surge_ratio >= 1.25:
             base_status = "LIVE_BREAKOUT"
         elif curr_price >= (pivot_price * 0.975) and is_vdu:
             base_status = "READY_PIVOT"
