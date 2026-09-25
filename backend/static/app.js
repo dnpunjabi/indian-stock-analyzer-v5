@@ -57080,17 +57080,8 @@ window.renderHtfTable = function(stocks) {
     const tbody = document.getElementById('htf-table-body');
     if (!tbody) return;
 
-    const fullList = (window.allHtfStocks && window.allHtfStocks.length > 0) ? window.allHtfStocks : (stocks || []);
-    let displayList = Array.isArray(stocks) && stocks.length > 0 ? stocks : fullList;
-
-    // Safety fallback: if displayList is empty but fullList has stocks and no active user query, render fullList
-    const qVal = (document.getElementById('htf-search-input')?.value || '').toLowerCase().trim();
-    const isSearchActive = qVal && !qVal.startsWith('search');
-    const statusVal = document.getElementById('htf-status-filter')?.value || 'ALL';
-
-    if (displayList.length === 0 && fullList.length > 0 && !isSearchActive && statusVal === 'ALL') {
-        displayList = fullList;
-    }
+    const fullList = (window.allHtfStocks && window.allHtfStocks.length > 0) ? window.allHtfStocks : [];
+    let displayList = Array.isArray(stocks) ? stocks : fullList;
 
     // Update KPIs using full dataset
     const totalEl = document.getElementById('htf-kpi-total');
