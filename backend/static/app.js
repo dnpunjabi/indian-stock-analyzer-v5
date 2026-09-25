@@ -57250,11 +57250,11 @@ window.render3wtTable = function(stocks) {
             ? Math.round(s.rs_rating) 
             : ((typeof s.distance_to_50ema_pct === 'number') ? Math.min(99, Math.max(60, Math.round(75 + s.distance_to_50ema_pct * 1.5))) : 82);
 
-        const st = s.tight_status || s.three_wt_status || '';
+        const category = window.get3wtStatusCategory(s);
         let statusBadge = '';
-        if (st === '3WT_BREAKOUT' || (pivot > 0 && price >= pivot)) {
+        if (category === '3WT_BREAKOUT') {
             statusBadge = `<span style="background: rgba(52, 211, 153, 0.2); color: #34d399; border: 1px solid rgba(52, 211, 153, 0.4); font-size: 11px; font-weight: 800; padding: 3px 8px; border-radius: 6px; display: inline-flex; align-items: center; gap: 4px;">🚀 BREAKOUT</span>`;
-        } else if (st === '3WT_PIVOT_READY' || st === '3WT_READY' || (pivot > 0 && price >= pivot * 0.96)) {
+        } else if (category === '3WT_READY') {
             statusBadge = `<span style="background: rgba(45, 212, 191, 0.15); color: #2dd4bf; border: 1px solid rgba(45, 212, 191, 0.4); font-size: 11px; font-weight: 800; padding: 3px 8px; border-radius: 6px; display: inline-flex; align-items: center; gap: 4px;">🎯 READY AT PIVOT</span>`;
         } else {
             statusBadge = `<span style="background: rgba(192, 132, 252, 0.15); color: #c084fc; border: 1px solid rgba(192, 132, 252, 0.3); font-size: 11px; font-weight: 700; padding: 3px 8px; border-radius: 6px; display: inline-flex; align-items: center; gap: 4px;">⏳ 3WT FORMING</span>`;
@@ -57299,19 +57299,17 @@ window.filter3wtTable = function() {
 
     let filtered = window.all3wtStocks.filter(s => {
         const matchesQ = s.symbol.toLowerCase().includes(q) || (s.company_name || s.name || '').toLowerCase().includes(q);
-        const st = s.tight_status || s.three_wt_status || '';
-        const price = s.current_price || s.price || 0;
-        const pivot = s.pivot_price || s.buy_pivot || 0;
+        const category = window.get3wtStatusCategory(s);
 
         let matchesStatus = false;
         if (status === 'ALL') {
             matchesStatus = true;
         } else if (status === '3WT_READY') {
-            matchesStatus = (st === '3WT_PIVOT_READY' || st === '3WT_READY' || (pivot > 0 && price >= pivot * 0.96));
+            matchesStatus = (category === '3WT_READY');
         } else if (status === '3WT_BREAKOUT') {
-            matchesStatus = (st === '3WT_BREAKOUT' || (pivot > 0 && price >= pivot));
+            matchesStatus = (category === '3WT_BREAKOUT');
         } else {
-            matchesStatus = (st === status);
+            matchesStatus = (category === status || s.tight_status === status || s.three_wt_status === status);
         }
         return matchesQ && matchesStatus;
     });
