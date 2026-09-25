@@ -2828,14 +2828,19 @@ def detect_pocket_pivot(df: pd.DataFrame, rs_score: float = 0.0) -> dict:
             default_res["rejection_reason"] = f"30-Week (150 SMA) slope is negative ({slope_30wk_pct:.2f}%)"
             return default_res
 
-        # Stage 2 Trend Template & Extension Check
+        # Stage 2 Trend Template & 10 EMA Extension Check
         if not (curr_price >= c_sma50 * 0.98 and c_sma50 >= c_sma150 * 0.99 and c_sma150 >= c_sma200 * 0.99):
             default_res["rejection_reason"] = "Fails Stage 2 trend alignment (Price > 50d >= 150d >= 200d SMA)"
             return default_res
 
         ext_pct = round(((curr_price - c_sma50) / c_sma50) * 100.0, 2)
-        if ext_pct > 10.0:
-            default_res["rejection_reason"] = f"Price is extended {ext_pct:.1f}% above 50d SMA (max 10% allowed)"
+        dist_10ema_signed = round(((curr_price - c_ema10) / c_ema10) * 100.0, 2) if c_ema10 > 0 else 0.0
+
+        if dist_10ema_signed > 5.0:
+            default_res["rejection_reason"] = f"Price is extended {dist_10ema_signed:.1f}% above 10 EMA (max 5.0% allowed for Pocket Pivot entry)"
+            return default_res
+        elif ext_pct > 10.0:
+            default_res["rejection_reason"] = f"Price is extended {ext_pct:.1f}% above 50d SMA (max 10.0% allowed)"
             return default_res
 
         # 52-Week High Proximity
@@ -2845,16 +2850,18 @@ def detect_pocket_pivot(df: pd.DataFrame, rs_score: float = 0.0) -> dict:
             default_res["rejection_reason"] = f"Price is {dist_52w:.1f}% below 52W High (exceeds 20% cap)"
             return default_res
 
-        # Moving Average Support Line Touch / Reclaim (within 2.5% of 10 EMA, 21 EMA, or 50 SMA)
+        # Moving Average Support Line Touch / Reclaim (must be within <= 2.5% AND holding at/above MA line)
         d10 = abs(curr_price - c_ema10) / c_ema10 * 100.0
         d21 = abs(curr_price - c_ema21) / c_ema21 * 100.0
         d50 = abs(curr_price - c_sma50) / c_sma50 * 100.0
 
         min_ma_dist = min(d10, d21, d50)
+        ma_val = c_ema10 if min_ma_dist == d10 else (c_ema21 if min_ma_dist == d21 else c_sma50)
         ma_line = "10 EMA" if min_ma_dist == d10 else ("21 EMA" if min_ma_dist == d21 else "50 SMA")
 
-        if min_ma_dist > 2.5:
-            default_res["rejection_reason"] = f"Price is not resting near key MA support (closest is {ma_line} at {min_ma_dist:.1f}% distance)"
+        # Must be resting near MA support AND holding above 0.8% below the MA line
+        if min_ma_dist > 2.5 or curr_price < (ma_val * 0.992):
+            default_res["rejection_reason"] = f"Price is not holding key MA support (closest is {ma_line} at {min_ma_dist:.1f}% distance)"
             return default_res
 
         vol50_avg = clean_float(pd.Series(volumes).rolling(window=min(50, n), min_periods=20).mean().iloc[-1])
@@ -2868,6 +2875,8 @@ def detect_pocket_pivot(df: pd.DataFrame, rs_score: float = 0.0) -> dict:
         down_vols_init = [volumes[k] for k in range(start_look_init, n) if closes[k] < (closes[k-1] if k > 0 else closes[k])]
         max_down_vol_val = int(np.max(down_vols_init)) if down_vols_init else (int(vol50_avg) if vol50_avg > 0 else 1)
 
+        pocket_bar_low = clean_float(lows[-1])
+
         for i in range(1, 3):
             b_idx = n - i
             b_close = clean_float(closes[b_idx])
@@ -2880,7 +2889,7 @@ def detect_pocket_pivot(df: pd.DataFrame, rs_score: float = 0.0) -> dict:
                 # Find max down-day volume in previous 10 trading days before b_idx
                 start_look = max(0, b_idx - 10)
                 down_vols = [volumes[k] for k in range(start_look, b_idx) if closes[k] < (closes[k-1] if k > 0 else closes[k])]
-                max_down_vol = float(np.max(down_vols)) if down_vols else 1.0
+                max_down_vol = float(np.max(down_vols)) if down_vols else float(vol50_avg if vol50_avg > 0 else 1.0)
 
                 # Volume must strictly exceed max down volume AND be at least 1.0x 50d average volume
                 if b_vol > max_down_vol and b_vol >= vol50_avg * 1.0:
@@ -2888,13 +2897,14 @@ def detect_pocket_pivot(df: pd.DataFrame, rs_score: float = 0.0) -> dict:
                     ratio_max_down = round(b_vol / max_down_vol, 2) if max_down_vol > 0 else 1.5
                     up_day_vol_val = int(b_vol)
                     max_down_vol_val = int(max_down_vol)
+                    pocket_bar_low = b_low
                     break
 
-        pivot_price = round(h52 if dist_52w <= 8.0 else max(curr_price * 1.02, c_ema10 * 1.03), 2)
-        stop_loss = round(min(c_ema21, c_sma50) * 0.99, 2)
+        pivot_price = round(h52 if dist_52w <= 8.0 else max(curr_price * 1.02, c_ema10 * 1.025), 2)
+        stop_loss = round(min(curr_price * 0.97, max(pocket_bar_low * 0.99, min(c_ema10, c_ema21) * 0.985)), 2)
         risk_per_share = pivot_price - stop_loss
         if risk_per_share <= 0:
-            risk_per_share = pivot_price * 0.035
+            risk_per_share = pivot_price * 0.03
             stop_loss = round(pivot_price - risk_per_share, 2)
 
         target_1 = round(pivot_price + (2.0 * risk_per_share), 2)

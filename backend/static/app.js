@@ -57605,7 +57605,10 @@ window.renderPocketTable = function(stocks) {
     const avgVolEl = document.getElementById('pocket-kpi-avg-vol');
 
     if (totalEl) totalEl.innerText = list.length;
-    if (liveEl) liveEl.innerText = list.filter(s => (s.vol_ratio_vs_max_down || 0) >= 1.5).length;
+    if (liveEl) liveEl.innerText = list.filter(s => {
+        const st = (s.pocket_status || s.status || '').toUpperCase();
+        return st.includes('LIVE') || st === 'POCKET_PIVOT_LIVE';
+    }).length;
     if (formingEl) formingEl.innerText = list.filter(s => (s.pocket_status || '').includes('FORMING')).length;
     const avgVol = list.length > 0 ? (list.reduce((a, b) => a + (b.vol_ratio_vs_max_down || 1.0), 0) / list.length).toFixed(2) : '1.00';
     if (avgVolEl) avgVolEl.innerText = `${avgVol}x`;
