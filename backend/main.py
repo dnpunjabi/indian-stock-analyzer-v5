@@ -18661,8 +18661,15 @@ async def _scan_single_stock_flat_base(item: dict, sem: asyncio.Semaphore):
             df = await fetch_history_df(sym_yf, period="1y", interval="1d")
             if df is None or df.empty or len(df) < 50:
                 return None
+            curr_p = float(df['Close'].iloc[-1])
+            e50 = float(df['Close'].ewm(span=50).mean().iloc[-1])
+            e200 = float(df['Close'].ewm(span=200).mean().iloc[-1])
+            s200 = df['Close'].rolling(200).mean()
+            s200_30d = float(s200.iloc[-30]) if len(df) >= 230 else (float(s200.iloc[0]) if len(s200.dropna()) > 0 else curr_p)
+            rs_rating = 85.0 if (curr_p > e50 > e200 and (curr_p - s200_30d) > 0) else (65.0 if curr_p > e200 else 40.0)
+
             from backend.swing_utils import detect_flat_base_breakout
-            res = detect_flat_base_breakout(df)
+            res = detect_flat_base_breakout(df, rs_score=rs_rating)
             if not res.get("is_flat_base"):
                 return None
             res["symbol"] = sym

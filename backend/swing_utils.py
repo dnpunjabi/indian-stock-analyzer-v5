@@ -2538,10 +2538,10 @@ def detect_flat_base_breakout(df: pd.DataFrame, rs_score: float = 0.0) -> dict:
 
         # 3. Dynamic Base Window Identification (No artificial fallbacks!)
         max_lookback = min(85, n - 20)
-        recent_highs = highs[-max_lookback:]
-
-        base_ceiling = clean_float(np.max(recent_highs))
-        peak_offset = max_lookback - 1 - np.argmax(recent_highs) # Days since highest high
+        # Exclude current bar if it's breaking out to avoid base_days collapsing to 0 on breakout day
+        hist_highs = highs[-max_lookback:-1] if max_lookback > 1 else highs[-max_lookback:]
+        base_ceiling = clean_float(np.max(hist_highs))
+        peak_offset = len(hist_highs) - 1 - np.argmax(hist_highs) + 1  # Days since base peak
         base_days = int(peak_offset)
 
         if base_days < 25:
@@ -2594,15 +2594,14 @@ def detect_flat_base_breakout(df: pd.DataFrame, rs_score: float = 0.0) -> dict:
 
         # 8. Stacked Darvas Boxes Calculation
         stacked_boxes_count = 1
-        lookback_step = 30
-        prev_ceiling = base_floor
-        for b_idx in range(max(0, ceiling_idx - lookback_step), max(0, ceiling_idx - 150), -20):
-            if b_idx + 15 < len(df):
-                sub_high = np.max(highs[b_idx:b_idx+15])
-                sub_low = np.min(lows[b_idx:b_idx+15])
-                if sub_high < prev_ceiling and ((sub_high - sub_low) / sub_high) <= 0.15:
+        prev_box_ceiling = base_ceiling
+        for b_idx in range(max(0, ceiling_idx - 20), max(0, ceiling_idx - 150), -20):
+            if b_idx + 15 < ceiling_idx:
+                sub_high = clean_float(np.max(highs[b_idx:b_idx+15]))
+                sub_low = clean_float(np.min(lows[b_idx:b_idx+15]))
+                if sub_high < prev_box_ceiling * 0.98 and ((sub_high - sub_low) / sub_high) <= 0.18:
                     stacked_boxes_count += 1
-                    prev_ceiling = sub_low
+                    prev_box_ceiling = sub_high
 
         # 9. Breakout Status & Extension Guardrail Determination
         pivot_price = round(base_ceiling, 2)
