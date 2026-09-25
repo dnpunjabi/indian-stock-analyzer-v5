@@ -2689,12 +2689,12 @@ def detect_episodic_pivot(df: pd.DataFrame) -> dict:
             default_res["rejection_reason"] = f"Price is {dist_52w_high_pct:.1f}% below 52W High (exceeds 35% cap)"
             return default_res
 
-        # Check recent gap over past 5 bars
+        # Check recent gap over past 10 bars (2-week lookback window)
         recent_gap_found = False
         gap_bar_idx = -1
         gap_val = 0.0
 
-        for i in range(1, min(6, n)):
+        for i in range(1, min(11, n)):
             b_idx = n - i
             b_open = clean_float(opens[b_idx])
             b_close = clean_float(closes[b_idx])
@@ -2726,7 +2726,7 @@ def detect_episodic_pivot(df: pd.DataFrame) -> dict:
                 break
 
         if not recent_gap_found:
-            default_res["rejection_reason"] = "No recent catalyst gap-up (>= +7.5% gap with RVOL >= 2.5x in last 5 days)"
+            default_res["rejection_reason"] = "No recent catalyst gap-up (>= +7.5% gap with RVOL >= 2.5x in last 10 days)"
             return default_res
 
         gap_day_low = clean_float(lows[gap_bar_idx])
