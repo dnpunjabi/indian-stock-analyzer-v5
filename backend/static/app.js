@@ -57736,15 +57736,21 @@ window.renderOliverKellTable = function(stocks) {
 
     const list = stocks || [];
 
-    // Populate KPI summary cards
+    // Populate KPI summary cards based on actual Oliver Kell status codes
     const totalEl = document.getElementById('oliverkell-kpi-total');
     const liveEl = document.getElementById('oliverkell-kpi-live');
     const pullbackEl = document.getElementById('oliverkell-kpi-pullback');
     const avgGainEl = document.getElementById('oliverkell-kpi-avg-gain');
 
     if (totalEl) totalEl.innerText = list.length;
-    if (liveEl) liveEl.innerText = list.filter(s => (s.day_change_pct || 0) > 0).length;
-    if (pullbackEl) pullbackEl.innerText = list.filter(s => (s.day_change_pct || 0) <= 0).length;
+    if (liveEl) liveEl.innerText = list.filter(s => {
+        const st = (s.kell_status || s.status || '').toUpperCase();
+        return st.includes('REVERSAL') || st.includes('LIVE');
+    }).length;
+    if (pullbackEl) pullbackEl.innerText = list.filter(s => {
+        const st = (s.kell_status || s.status || '').toUpperCase();
+        return st.includes('PULLBACK') || st.includes('TEST');
+    }).length;
     const avgGain = list.length > 0 ? (list.reduce((a, b) => a + (b.day_change_pct || 0), 0) / list.length).toFixed(2) : '0.00';
     if (avgGainEl) avgGainEl.innerText = `${avgGain}%`;
 
@@ -57758,9 +57764,9 @@ window.renderOliverKellTable = function(stocks) {
         const dayChg = s.day_change_pct || 0;
         const ema10 = s.ema10 || s.ema_10 || 0;
         const ema20 = s.ema20 || s.ema_20 || 0;
-        const rawDist10 = (s.dist_to_10ema_pct !== undefined) ? s.dist_to_10ema_pct : ((s.dist_to_10ema !== undefined) ? s.dist_to_10ema : (ema10 > 0 ? (Math.abs(currPrice - ema10) / ema10 * 100) : 0));
+        const rawDist10 = (s.dist_to_10ema_pct !== undefined) ? s.dist_to_10ema_pct : ((s.dist_to_10ema !== undefined) ? s.dist_to_10ema : (ema10 > 0 ? ((currPrice - ema10) / ema10 * 100) : 0));
         const dist10 = Number(rawDist10).toFixed(2);
-        const kStatus = s.kell_status || s.status || 'KELL_REVERSAL_LIVE';
+        const kStatus = (s.kell_status || s.status || 'KELL_REVERSAL_LIVE').toUpperCase();
         const testedMa = s.tested_ma || '10 EMA';
         const compName = s.company_name || s.name || '';
         const pivotPrice = s.pivot_price || s.buy_pivot || currPrice;
@@ -57770,9 +57776,13 @@ window.renderOliverKellTable = function(stocks) {
         const chgSign = dayChg >= 0 ? '+' : '';
 
         let kellStatusBadge = `<span style="background: rgba(192, 132, 252, 0.18); color: #c084fc; border: 1px solid rgba(192, 132, 252, 0.4); font-weight: 800; padding: 4px 8px; border-radius: 6px; font-size: 11.5px;">🚀 REVERSAL (${testedMa})</span>`;
-        if (kStatus.includes('PULLBACK')) {
+        if (kStatus.includes('EXTENDED')) {
+            kellStatusBadge = `<span style="background: rgba(239, 68, 68, 0.18); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.4); font-weight: 800; padding: 4px 8px; border-radius: 6px; font-size: 11.5px;">⚠️ EXTENDED (>5% >10EMA)</span>`;
+        } else if (kStatus.includes('PULLBACK') || kStatus.includes('TEST')) {
             kellStatusBadge = `<span style="background: rgba(56, 189, 248, 0.18); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.4); font-weight: 800; padding: 4px 8px; border-radius: 6px; font-size: 11.5px;">📉 PULLBACK TEST (${testedMa})</span>`;
         }
+
+        const distColor = parseFloat(dist10) > 5.0 ? '#f87171' : (parseFloat(dist10) >= 0 ? '#34d399' : '#fbbf24');
 
         return `
             <tr style="border-bottom: 1px solid rgba(255,255,255,0.05);">
@@ -57784,7 +57794,7 @@ window.renderOliverKellTable = function(stocks) {
                 <td style="padding: 12px; font-weight: 700; ${chgClass}">${chgSign}${dayChg.toFixed(2)}%</td>
                 <td style="padding: 12px; font-weight: 700; color: #38bdf8;">₹${ema10.toFixed(2)}</td>
                 <td style="padding: 12px; font-weight: 700; color: #c084fc;">₹${ema20.toFixed(2)}</td>
-                <td style="padding: 12px; font-weight: 800; color: ${parseFloat(dist10) >= 0 ? '#34d399' : '#fbbf24'};">${dist10}%</td>
+                <td style="padding: 12px; font-weight: 800; color: ${distColor};">${dist10 > 0 ? '+' : ''}${dist10}%</td>
                 <td style="padding: 12px; font-weight: 800; color: #34d399;">₹${pivotPrice.toFixed(2)}</td>
                 <td style="padding: 12px; font-weight: 700; color: #f87171;">₹${stopLoss.toFixed(2)}</td>
                 <td style="padding: 12px;">
@@ -57824,6 +57834,9 @@ window.filterOliverKellTable = function() {
         }
         if (status === 'KELL_PULLBACK_TEST') {
             return kStatus.includes('PULLBACK') || kStatus.includes('TEST');
+        }
+        if (status === 'KELL_EXTENDED') {
+            return kStatus.includes('EXTENDED');
         }
         if (status === '10 EMA') {
             return tMA.includes('10');

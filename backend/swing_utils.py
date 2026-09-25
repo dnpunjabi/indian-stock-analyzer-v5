@@ -3000,15 +3000,15 @@ def detect_oliver_kell_reversal(df: pd.DataFrame) -> dict:
         default_res["current_price"] = round(curr_price, 2)
         default_res["day_change_pct"] = day_change_pct
 
-        # 1. MA Stack Alignment
-        if not (curr_price >= c_ema10 * 0.97 and c_ema10 >= c_ema20 * 0.98 and c_ema20 >= c_sma50 * 0.98 and c_sma50 >= c_sma200 * 0.98):
-            default_res["rejection_reason"] = "Fails Oliver Kell MA Stack (Price > 10 EMA > 20 EMA > 50 SMA > 200 SMA)"
+        # 1. MA Stack Alignment (Strict Oliver Kell Uptrend Hierarchy)
+        if not (curr_price >= c_ema10 * 0.985 and c_ema10 >= c_ema20 * 0.995 and c_ema20 >= c_sma50 * 0.985 and c_sma50 >= c_sma200 * 0.985):
+            default_res["rejection_reason"] = "Fails Oliver Kell MA Stack (Price >= 10 EMA >= 20 EMA >= 50 SMA >= 200 SMA)"
             return default_res
 
         # 2. MA Slopes (10 EMA & 20 EMA rising over 10 days)
         ema10_10d_ago = clean_float(ema10[-10]) if n >= 10 else c_ema10
         ema20_10d_ago = clean_float(ema20[-10]) if n >= 10 else c_ema20
-        if not (c_ema10 >= ema10_10d_ago and c_ema20 >= ema20_10d_ago):
+        if not (c_ema10 >= ema10_10d_ago * 0.995 and c_ema20 >= ema20_10d_ago * 0.995):
             default_res["rejection_reason"] = "10 EMA or 20 EMA slope is declining (requires upward sloping MAs)"
             return default_res
 
@@ -3025,27 +3025,43 @@ def detect_oliver_kell_reversal(df: pd.DataFrame) -> dict:
             default_res["rejection_reason"] = f"Price is < 35% above 52W Low (requires strong base recovery)"
             return default_res
 
-        # 4. Pullback Touch to 10 EMA or 20 EMA (within last 3 bars)
+        # 4. Extension Zone & Pullback Touch Check
+        dist_10ema_signed = round(((curr_price - c_ema10) / c_ema10) * 100.0, 2) if c_ema10 > 0 else 0.0
+        dist_20ema_signed = round(((curr_price - c_ema20) / c_ema20) * 100.0, 2) if c_ema20 > 0 else 0.0
+        dist_10ema = abs(dist_10ema_signed)
+        dist_20ema = abs(dist_20ema_signed)
+
         recent_low = clean_float(np.min(lows[-3:]))
+
+        # Capped lower bound: Price must not crash >2.5% below 20 EMA (structure breakdown)
+        if recent_low < (c_ema20 * 0.975):
+            default_res["rejection_reason"] = f"Price broke >2.5% below 20 EMA support (structure damaged)"
+            return default_res
+
         tested_20ema = recent_low <= (c_ema20 * 1.015)
         tested_10ema = recent_low <= (c_ema10 * 1.015)
 
-        if not (tested_10ema or tested_20ema):
-            default_res["rejection_reason"] = "Price has not touched or undercut 10 EMA or 20 EMA support line recently"
+        if not (tested_10ema or tested_20ema or dist_10ema <= 3.0):
+            default_res["rejection_reason"] = "Price has not touched or ridden 10 EMA or 20 EMA support line recently"
             return default_res
 
-        tested_ma = "20 EMA" if tested_20ema else "10 EMA"
+        tested_ma = "20 EMA" if (tested_20ema and recent_low <= c_ema20 * 1.01) else "10 EMA"
 
-        # 5. Volume Dry-Up (VDU) & Reversal Candle Check
+        # 5. Volume Dry-Up (VDU), Reversal Candle & Wedge Pop Check
         vol50_avg = clean_float(pd.Series(volumes).rolling(window=min(50, n), min_periods=20).mean().iloc[-1])
         curr_vdu = round(clean_float(volumes[-1]) / vol50_avg, 2) if vol50_avg > 0 else 1.0
 
         bar_range = curr_high - curr_low
         close_pos = ((curr_price - curr_low) / bar_range) if bar_range > 0 else 0.5
-        is_bullish_reversal = (close_pos >= 0.65 and day_change_pct >= 0.0) or day_change_pct >= 1.5
+
+        # Check for Wedge Pop Breakout (breaking out of 3-day pullback high)
+        three_day_high = clean_float(np.max(highs[-4:-1])) if n >= 4 else curr_high
+        is_wedge_pop = bool(curr_price > three_day_high and day_change_pct >= 0.5)
+
+        is_bullish_reversal = (close_pos >= 0.55 and day_change_pct >= 0.0) or day_change_pct >= 1.2 or is_wedge_pop
 
         pivot_price = round(clean_float(np.max(highs[-5:])), 2)
-        stop_loss = round(min(recent_low, c_ema20 * 0.99), 2)
+        stop_loss = round(clean_float(max(recent_low * 0.995, c_ema20 * 0.98)), 2)
         risk_per_share = pivot_price - stop_loss
         if risk_per_share <= 0:
             risk_per_share = pivot_price * 0.03
@@ -3055,32 +3071,38 @@ def detect_oliver_kell_reversal(df: pd.DataFrame) -> dict:
         target_2 = round(pivot_price + (4.0 * risk_per_share), 2)
 
         is_kell_reversal = False
-        if is_bullish_reversal:
+        kell_status = "NONE"
+
+        # Oliver Kell Extension Zone Check (> 5.0% above 10 EMA)
+        if dist_10ema_signed > 5.0:
+            kell_status = "KELL_EXTENDED"
+            is_kell_reversal = False
+        elif is_bullish_reversal:
             kell_status = "KELL_REVERSAL_LIVE"
             is_kell_reversal = True
-        elif curr_vdu <= 0.90:
+        elif curr_vdu <= 0.85 and curr_price >= (c_ema20 * 0.99):
             kell_status = "KELL_PULLBACK_TEST"
             is_kell_reversal = True
         else:
             kell_status = "NONE"
 
-        dist_10ema = round(abs(curr_price - c_ema10) / c_ema10 * 100.0, 2) if c_ema10 > 0 else 0.0
-        dist_20ema = round(abs(curr_price - c_ema20) / c_ema20 * 100.0, 2) if c_ema20 > 0 else 0.0
+        if is_wedge_pop and is_kell_reversal:
+            tested_ma += " (Wedge Pop ⚡)"
 
         return {
             "is_kell_reversal": bool(is_kell_reversal),
             "kell_status": str(kell_status),
             "tested_ma": str(tested_ma),
-            "reversal_quality": "HIGH" if close_pos >= 0.70 else "MEDIUM",
+            "reversal_quality": "HIGH" if (close_pos >= 0.70 or is_wedge_pop) else "MEDIUM",
             "ema10": round(clean_float(c_ema10), 2),
             "ema20": round(clean_float(c_ema20), 2),
             "ema_10": round(clean_float(c_ema10), 2),
             "ema_20": round(clean_float(c_ema20), 2),
             "dist_52w_high": clean_float(dist_52w_high),
-            "dist_to_10ema_pct": clean_float(dist_10ema),
-            "dist_to_20ema_pct": clean_float(dist_20ema),
-            "dist_to_10ema": clean_float(dist_10ema),
-            "dist_to_20ema": clean_float(dist_20ema),
+            "dist_to_10ema_pct": clean_float(dist_10ema_signed),
+            "dist_to_20ema_pct": clean_float(dist_20ema_signed),
+            "dist_to_10ema": clean_float(dist_10ema_signed),
+            "dist_to_20ema": clean_float(dist_20ema_signed),
             "pivot_price": clean_float(pivot_price),
             "stop_loss": clean_float(stop_loss),
             "target_1": clean_float(target_1),
