@@ -57080,27 +57080,29 @@ window.renderHtfTable = function(stocks) {
     const tbody = document.getElementById('htf-table-body');
     if (!tbody) return;
 
+    const fullList = (window.allHtfStocks && window.allHtfStocks.length > 0) ? window.allHtfStocks : (stocks || []);
+    const displayList = Array.isArray(stocks) ? stocks : fullList;
+
     // Update KPIs using full dataset
     const totalEl = document.getElementById('htf-kpi-total');
     const readyEl = document.getElementById('htf-kpi-ready');
     const breakoutEl = document.getElementById('htf-kpi-breakout');
     const avgPoleEl = document.getElementById('htf-kpi-avg-pole');
 
-    const fullList = (window.allHtfStocks && window.allHtfStocks.length > 0) ? window.allHtfStocks : stocks;
     const fullCount = fullList.length;
-    if (totalEl) totalEl.innerText = stocks.length < fullCount ? `${stocks.length} of ${fullCount}` : fullCount;
+    if (totalEl) totalEl.innerText = displayList.length < fullCount ? `${displayList.length} of ${fullCount}` : fullCount;
     if (readyEl) readyEl.innerText = fullList.filter(s => ['HTF_BREAKOUT_READY', 'HTF_READY'].includes(s.htf_status)).length;
     if (breakoutEl) breakoutEl.innerText = fullList.filter(s => s.htf_status === 'HTF_BREAKOUT').length;
 
     const avgPole = fullList.length > 0 ? (fullList.reduce((a, b) => a + (b.pole_gain_pct || 0), 0) / fullList.length).toFixed(1) : '0';
     if (avgPoleEl) avgPoleEl.innerText = `+${avgPole}%`;
 
-    if (stocks.length === 0) {
+    if (displayList.length === 0) {
         tbody.innerHTML = `<tr><td colspan="10" style="text-align:center; padding: 30px; color: #94a3b8;">No High-Tight Flag setups detected currently.</td></tr>`;
         return;
     }
 
-    tbody.innerHTML = stocks.map(s => {
+    tbody.innerHTML = displayList.map(s => {
         const price = s.current_price || s.price || 0;
         const dayChg = s.day_change_pct || 0;
         const chgClass = dayChg >= 0 ? 'text-emerald-400' : 'text-rose-400';
@@ -57143,14 +57145,25 @@ window.renderHtfTable = function(stocks) {
 };
 
 window.filterHtfTable = function() {
-    const q = (document.getElementById('htf-search-input')?.value || '').toLowerCase().trim();
-    const status = document.getElementById('htf-status-filter')?.value || 'ALL';
+    let q = (document.getElementById('htf-search-input')?.value || '').toLowerCase().trim();
+    if (q === 'search symbol or name...') q = '';
+    
+    const statusEl = document.getElementById('htf-status-filter');
+    const status = (statusEl ? statusEl.value : 'ALL') || 'ALL';
 
     const list = window.allHtfStocks || [];
+    if (!Array.isArray(list) || list.length === 0) {
+        window.renderHtfTable([]);
+        return;
+    }
+
     let filtered = list.filter(s => {
-        const matchesQ = !q || s.symbol.toLowerCase().includes(q) || (s.company_name || s.name || '').toLowerCase().includes(q);
-        const sStatus = s.htf_status || 'HTF_FLAG_FORMING';
+        if (!s) return false;
+        const sym = (s.symbol || '').toLowerCase();
+        const cName = (s.company_name || s.name || '').toLowerCase();
+        const matchesQ = !q || sym.includes(q) || cName.includes(q);
         
+        const sStatus = s.htf_status || 'HTF_FLAG_FORMING';
         let matchesStatus = (status === 'ALL');
         if (status === 'HTF_READY') {
             matchesStatus = ['HTF_READY', 'HTF_BREAKOUT_READY'].includes(sStatus);
