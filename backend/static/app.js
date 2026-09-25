@@ -57064,8 +57064,8 @@ window.runHtfScan = async function(isSilent = false, forceRefresh = false) {
         if (data.status === 'success' && Array.isArray(stocksList)) {
             window.allHtfStocks = stocksList;
             try { localStorage.setItem('cached_htf_stocks', JSON.stringify(stocksList)); } catch(e){}
+            window.renderHtfTable(stocksList);
             if (typeof window.filterHtfTable === 'function') window.filterHtfTable();
-            else window.renderHtfTable(stocksList);
             window.renderUnifiedScreenerBadge('htf-header-status-badge', stocksList.length, (data && (data.last_updated || data.timestamp)) || new Date(), forceRefresh);
             if (typeof wsSubscribeSymbols === 'function') wsSubscribeSymbols(stocksList.map(s => s.symbol));
         }
@@ -57081,7 +57081,16 @@ window.renderHtfTable = function(stocks) {
     if (!tbody) return;
 
     const fullList = (window.allHtfStocks && window.allHtfStocks.length > 0) ? window.allHtfStocks : (stocks || []);
-    const displayList = Array.isArray(stocks) ? stocks : fullList;
+    let displayList = Array.isArray(stocks) && stocks.length > 0 ? stocks : fullList;
+
+    // Safety fallback: if displayList is empty but fullList has stocks and no active user query, render fullList
+    const qVal = (document.getElementById('htf-search-input')?.value || '').toLowerCase().trim();
+    const isSearchActive = qVal && !qVal.startsWith('search');
+    const statusVal = document.getElementById('htf-status-filter')?.value || 'ALL';
+
+    if (displayList.length === 0 && fullList.length > 0 && !isSearchActive && statusVal === 'ALL') {
+        displayList = fullList;
+    }
 
     // Update KPIs using full dataset
     const totalEl = document.getElementById('htf-kpi-total');
@@ -57145,8 +57154,9 @@ window.renderHtfTable = function(stocks) {
 };
 
 window.filterHtfTable = function() {
-    let q = (document.getElementById('htf-search-input')?.value || '').toLowerCase().trim();
-    if (q === 'search symbol or name...') q = '';
+    let rawQ = document.getElementById('htf-search-input')?.value || '';
+    if (rawQ.toLowerCase().startsWith('search')) rawQ = '';
+    const q = rawQ.toLowerCase().trim();
     
     const statusEl = document.getElementById('htf-status-filter');
     const status = (statusEl ? statusEl.value : 'ALL') || 'ALL';
@@ -57154,6 +57164,11 @@ window.filterHtfTable = function() {
     const list = window.allHtfStocks || [];
     if (!Array.isArray(list) || list.length === 0) {
         window.renderHtfTable([]);
+        return;
+    }
+
+    if (!q && (status === 'ALL' || !status)) {
+        window.renderHtfTable(list);
         return;
     }
 
