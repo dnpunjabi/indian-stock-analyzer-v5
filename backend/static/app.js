@@ -57103,8 +57103,9 @@ window.renderHtfTable = function(stocks) {
         const chgClass = dayChg >= 0 ? 'text-emerald-400' : 'text-rose-400';
         const chgSign = dayChg >= 0 ? '+' : '';
         const isReady = ['HTF_BREAKOUT_READY', 'HTF_READY'].includes(s.htf_status);
-        const badgeClass = s.htf_status === 'HTF_BREAKOUT' ? 'badge-quant-green' : (isReady ? 'badge-quant-teal' : 'badge-quant-purple');
-        const badgeLabel = s.htf_status === 'HTF_BREAKOUT' ? '🚀 BREAKOUT' : (isReady ? '🎯 READY' : '⏳ FORMING');
+        const isExtended = s.htf_status === 'HTF_EXTENDED';
+        const badgeClass = s.htf_status === 'HTF_BREAKOUT' ? 'badge-quant-green' : (isReady ? 'badge-quant-teal' : (isExtended ? 'badge-quant-amber' : 'badge-quant-purple'));
+        const badgeLabel = s.htf_status === 'HTF_BREAKOUT' ? '🚀 BREAKOUT' : (isReady ? '🎯 READY' : (isExtended ? '⚠️ EXTENDED' : '⏳ FORMING'));
         const flagWks = s.flag_days ? (s.flag_days / 5).toFixed(1) : (s.flag_duration_weeks || '--');
         const pivot = s.pivot_price || s.flag_pivot || 0;
 

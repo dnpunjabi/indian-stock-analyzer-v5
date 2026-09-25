@@ -2258,12 +2258,13 @@ def detect_weinstein_stage3(df, benchmark_df=None):
 
 def detect_high_tight_flag(df):
     """
-    Identifies David Ryan High-Tight Flag (HTF) candidates.
+    Identifies David Ryan High-Tight Flag (HTF) and Power Flag candidates.
     Criteria:
-    1. The Pole: Stock surged >= +100% (or >= +75%) in the past 4 to 8 weeks (20-40 trading days).
-    2. The Flag: Pullback depth from peak <= 25% (or max 28%).
-    3. Flag Duration: Horizontal consolidation for 10 to 25 trading days.
-    4. Volume Dry-Up (VDU): Volume drops during flag formation (Volume ratio <= 0.85x).
+    1. The Pole: Stock surged >= +50% (Power Flag) or >= +75% (Classic HTF) over a lookback window up to 90 trading days.
+    2. The Flag: Pullback depth from peak <= 26.0%.
+    3. Flag Duration: Horizontal consolidation for 4 to 35 trading days (1 to 7 weeks).
+    4. Volume Dry-Up (VDU): Volume contracts during flag formation (Volume ratio <= 1.20x).
+    5. Moving Average Trend: Current price >= 50 SMA * 0.94 (Healthy Stage 2 uptrend).
     """
     default_res = {
         "is_htf": False,
@@ -2273,6 +2274,7 @@ def detect_high_tight_flag(df):
         "flag_days": 0,
         "vdu_ratio": 0.0,
         "pivot_price": 0.0,
+        "stop_loss_price": 0.0,
         "current_price": 0.0,
         "day_change_pct": 0.0
     }
@@ -2287,17 +2289,18 @@ def detect_high_tight_flag(df):
         n = len(closes)
         curr_price = clean_float(closes[-1])
 
-        # 1. Pole Gain Check: Look back 40 to 60 days
-        lookback_pole = min(60, n)
-        min_low_pole = clean_float(np.min(lows[-lookback_pole:]))
-        max_high_pole = clean_float(np.max(highs[-lookback_pole:]))
-        
+        # 1. Pole & Flag Window (Look back 90 trading days / 18 weeks)
+        lookback = min(90, n)
+        peak_idx = int(np.argmax(highs[-lookback:]))
+        flag_days = lookback - 1 - peak_idx
+
+        max_high_pole = clean_float(highs[-lookback + peak_idx])
+        pole_slice_lows = lows[-lookback : max(1, lookback - flag_days)] if flag_days > 0 else lows[-lookback:]
+        min_low_pole = clean_float(np.min(pole_slice_lows)) if len(pole_slice_lows) > 0 else curr_price
+
         pole_gain_pct = round(((max_high_pole - min_low_pole) / min_low_pole) * 100.0, 1) if min_low_pole > 0 else 0.0
 
         # 2. Flag Consolidation Depth
-        peak_idx = int(np.argmax(highs[-lookback_pole:]))
-        flag_days = lookback_pole - 1 - peak_idx
-        
         flag_low = clean_float(np.min(lows[-max(1, flag_days):])) if flag_days > 0 else curr_price
         flag_depth_pct = round(((max_high_pole - flag_low) / max_high_pole) * 100.0, 1) if max_high_pole > 0 else 0.0
 
@@ -2306,17 +2309,30 @@ def detect_high_tight_flag(df):
         flag_vol_avg = clean_float(np.mean(volumes[-max(1, flag_days):])) if flag_days > 0 else clean_float(volumes[-1])
         vdu_ratio = round(flag_vol_avg / vol20_avg, 2) if vol20_avg > 0 else 1.0
 
-        # HTF Qualification Rules (David Ryan Standard: Pole >= +80%, Flag Depth <= 25%)
-        has_pole = pole_gain_pct >= 80.0
-        shallow_flag = flag_depth_pct <= 25.0
-        valid_duration = 8 <= flag_days <= 30
+        # 4. Moving Average Trend Guardrail (50 SMA)
+        sma50 = clean_float(pd.Series(closes).rolling(window=min(50, n), min_periods=10).mean().iloc[-1])
+        trend_ok = curr_price >= (sma50 * 0.94)
 
-        is_htf = has_pole and shallow_flag and valid_duration
-        
-        if is_htf and curr_price >= (max_high_pole * 0.98):
-            htf_status = "HTF_BREAKOUT_READY"
-        elif is_htf:
-            htf_status = "HTF_FLAG_FORMING"
+        # HTF Qualification Rules
+        has_pole = pole_gain_pct >= 48.0  # Accepts Power Flags (>=48%) and Classic HTFs (>=75%)
+        shallow_flag = flag_depth_pct <= 26.0  # Depth max 26%
+        valid_duration = 4 <= flag_days <= 35  # 1 to 7 weeks flag duration
+        valid_vdu = vdu_ratio <= 1.20  # Volume contraction during flag
+
+        is_htf = has_pole and shallow_flag and valid_duration and valid_vdu and trend_ok
+
+        pivot_price = round(max_high_pole, 2)
+        stop_loss_price = round(flag_low, 2)
+
+        if is_htf:
+            if curr_price >= pivot_price and curr_price <= (pivot_price * 1.05):
+                htf_status = "HTF_BREAKOUT"
+            elif curr_price > (pivot_price * 1.05):
+                htf_status = "HTF_EXTENDED"
+            elif curr_price >= (pivot_price * 0.96):
+                htf_status = "HTF_BREAKOUT_READY"
+            else:
+                htf_status = "HTF_FLAG_FORMING"
         else:
             htf_status = "NONE"
 
@@ -2331,13 +2347,15 @@ def detect_high_tight_flag(df):
             "flag_depth_pct": flag_depth_pct,
             "flag_days": flag_days,
             "vdu_ratio": vdu_ratio,
-            "pivot_price": round(max_high_pole, 2),
+            "pivot_price": pivot_price,
+            "stop_loss_price": stop_loss_price,
             "current_price": round(curr_price, 2),
             "day_change_pct": day_change_pct
         }
     except Exception as e:
         print(f"Error in detect_high_tight_flag: {e}")
         return default_res
+
 
 
 def detect_3weeks_tight(df):

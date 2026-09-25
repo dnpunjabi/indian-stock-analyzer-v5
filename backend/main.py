@@ -18271,7 +18271,7 @@ async def _scan_single_stock_htf(item, sem):
             df = await fetch_history_df(sym, period="6mo", interval="1d")
             if df is not None and not df.empty:
                 h_res = detect_high_tight_flag(df)
-                if h_res.get("is_htf") or h_res.get("htf_status") in ["HTF_BREAKOUT_READY", "HTF_FLAG_FORMING", "HTF_QUALIFIED"]:
+                if h_res.get("is_htf") or h_res.get("htf_status") in ["HTF_BREAKOUT", "HTF_BREAKOUT_READY", "HTF_FLAG_FORMING", "HTF_EXTENDED", "HTF_QUALIFIED"]:
                     return {
                         "symbol": sym,
                         "base_symbol": sym.replace(".NS", "").replace(".BO", ""),
@@ -18284,6 +18284,7 @@ async def _scan_single_stock_htf(item, sem):
                         "flag_days": h_res["flag_days"],
                         "vdu_ratio": h_res["vdu_ratio"],
                         "pivot_price": h_res["pivot_price"],
+                        "stop_loss_price": h_res.get("stop_loss_price", 0.0),
                         "current_price": h_res["current_price"],
                         "day_change_pct": h_res.get("day_change_pct", 0.0)
                     }
