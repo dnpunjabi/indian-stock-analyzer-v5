@@ -57203,6 +57203,20 @@ window.run3wtScan = async function(isSilent = false, forceRefresh = false) {
     }
 };
 
+window.get3wtStatusCategory = function(s) {
+    const st = s.tight_status || s.three_wt_status || '';
+    const price = s.current_price || s.price || 0;
+    const pivot = s.pivot_price || s.buy_pivot || 0;
+
+    if (st === '3WT_BREAKOUT' || (pivot > 0 && price >= pivot)) {
+        return '3WT_BREAKOUT';
+    }
+    if (st === '3WT_PIVOT_READY' || st === '3WT_READY' || (pivot > 0 && price >= pivot * 0.96 && price < pivot)) {
+        return '3WT_READY';
+    }
+    return '3WT_FORMING';
+};
+
 window.render3wtTable = function(stocks) {
     const tbody = document.getElementById('three-wt-table-body');
     if (!tbody) return;
