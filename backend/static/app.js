@@ -57046,7 +57046,8 @@ window.runHtfScan = async function(isSilent = false, forceRefresh = false) {
             const parsed = JSON.parse(cached);
             if (Array.isArray(parsed) && parsed.length > 0) {
                 window.allHtfStocks = parsed;
-                window.renderHtfTable(parsed);
+                if (typeof window.filterHtfTable === 'function') window.filterHtfTable();
+                else window.renderHtfTable(parsed);
                 window.renderUnifiedScreenerBadge('htf-header-status-badge', parsed.length, new Date(), false);
                 hasHydrated = true;
                 if (loadingEl) loadingEl.style.display = 'none';
@@ -57063,7 +57064,8 @@ window.runHtfScan = async function(isSilent = false, forceRefresh = false) {
         if (data.status === 'success' && Array.isArray(stocksList)) {
             window.allHtfStocks = stocksList;
             try { localStorage.setItem('cached_htf_stocks', JSON.stringify(stocksList)); } catch(e){}
-            window.renderHtfTable(stocksList);
+            if (typeof window.filterHtfTable === 'function') window.filterHtfTable();
+            else window.renderHtfTable(stocksList);
             window.renderUnifiedScreenerBadge('htf-header-status-badge', stocksList.length, (data && (data.last_updated || data.timestamp)) || new Date(), forceRefresh);
             if (typeof wsSubscribeSymbols === 'function') wsSubscribeSymbols(stocksList.map(s => s.symbol));
         }
@@ -57078,18 +57080,19 @@ window.renderHtfTable = function(stocks) {
     const tbody = document.getElementById('htf-table-body');
     if (!tbody) return;
 
-    // Update KPIs
+    // Update KPIs using full dataset
     const totalEl = document.getElementById('htf-kpi-total');
     const readyEl = document.getElementById('htf-kpi-ready');
     const breakoutEl = document.getElementById('htf-kpi-breakout');
     const avgPoleEl = document.getElementById('htf-kpi-avg-pole');
 
-    const fullCount = (window.allHtfStocks && window.allHtfStocks.length > 0) ? window.allHtfStocks.length : stocks.length;
+    const fullList = (window.allHtfStocks && window.allHtfStocks.length > 0) ? window.allHtfStocks : stocks;
+    const fullCount = fullList.length;
     if (totalEl) totalEl.innerText = stocks.length < fullCount ? `${stocks.length} of ${fullCount}` : fullCount;
-    if (readyEl) readyEl.innerText = stocks.filter(s => ['HTF_BREAKOUT_READY', 'HTF_READY'].includes(s.htf_status)).length;
-    if (breakoutEl) breakoutEl.innerText = stocks.filter(s => s.htf_status === 'HTF_BREAKOUT').length;
+    if (readyEl) readyEl.innerText = fullList.filter(s => ['HTF_BREAKOUT_READY', 'HTF_READY'].includes(s.htf_status)).length;
+    if (breakoutEl) breakoutEl.innerText = fullList.filter(s => s.htf_status === 'HTF_BREAKOUT').length;
 
-    const avgPole = stocks.length > 0 ? (stocks.reduce((a, b) => a + (b.pole_gain_pct || 0), 0) / stocks.length).toFixed(1) : '0';
+    const avgPole = fullList.length > 0 ? (fullList.reduce((a, b) => a + (b.pole_gain_pct || 0), 0) / fullList.length).toFixed(1) : '0';
     if (avgPoleEl) avgPoleEl.innerText = `+${avgPole}%`;
 
     if (stocks.length === 0) {
@@ -57140,11 +57143,12 @@ window.renderHtfTable = function(stocks) {
 };
 
 window.filterHtfTable = function() {
-    const q = (document.getElementById('htf-search-input')?.value || '').toLowerCase();
+    const q = (document.getElementById('htf-search-input')?.value || '').toLowerCase().trim();
     const status = document.getElementById('htf-status-filter')?.value || 'ALL';
 
-    let filtered = window.allHtfStocks.filter(s => {
-        const matchesQ = s.symbol.toLowerCase().includes(q) || (s.company_name || s.name || '').toLowerCase().includes(q);
+    const list = window.allHtfStocks || [];
+    let filtered = list.filter(s => {
+        const matchesQ = !q || s.symbol.toLowerCase().includes(q) || (s.company_name || s.name || '').toLowerCase().includes(q);
         const sStatus = s.htf_status || 'HTF_FLAG_FORMING';
         
         let matchesStatus = (status === 'ALL');
