@@ -19915,6 +19915,49 @@ async def get_multi_confluence_leaderboard(force_refresh: bool = False):
     
     # Hydrate with live quotes if available
     hydrated = _overlay_live_quotes_on_candidates(candidates)
+
+    # Re-synchronize buy-zone status, tactical recommendations, and rank_score with final live quotes
+    for c in hydrated:
+        price = float(c.get("current_price") or 0.0)
+        pivot = float(c.get("tactical_levels", {}).get("pivot_price") or price)
+        sl = float(c.get("tactical_levels", {}).get("stop_loss") or (pivot * 0.93))
+        target_1 = float(c.get("tactical_levels", {}).get("target_1") or (pivot * 1.15))
+        
+        if price > 0 and pivot > 0:
+            dist_pct = ((price - pivot) / pivot) * 100.0
+            if -3.0 <= dist_pct <= 5.0:
+                c["buy_zone_status"] = "IN_BUY_ZONE"
+                c["buy_zone_label"] = "🎯 IN BUY ZONE"
+                buy_zone_bonus = 15
+            elif dist_pct > 5.0:
+                c["buy_zone_status"] = "EXTENDED"
+                c["buy_zone_label"] = "⚠️ EXTENDED (>5%)"
+                buy_zone_bonus = 0
+            else:
+                c["buy_zone_status"] = "FORMING_BASE"
+                c["buy_zone_label"] = "⏳ FORMING BASE"
+                buy_zone_bonus = 5
+        else:
+            c["buy_zone_status"] = "IN_BUY_ZONE"
+            c["buy_zone_label"] = "🎯 IN BUY ZONE"
+            buy_zone_bonus = 10
+
+        hot_sector_bonus = 10 if c.get("is_hot_sector") else 0
+        c["rank_score"] = (c["dimensions_count"] * 20) + (c["confluence_count"] * 5) + buy_zone_bonus + hot_sector_bonus
+
+        risk_pct = round(((pivot - sl) / pivot) * 100.0, 1) if pivot > 0 else 7.0
+        gain_pct = round(((target_1 - pivot) / pivot) * 100.0, 1) if pivot > 0 else 15.0
+        rr_ratio = round(gain_pct / risk_pct, 1) if risk_pct > 0 else 2.1
+
+        if c["buy_zone_status"] == "IN_BUY_ZONE":
+            c["tactical_action"] = f"🟢 Actionable Buy Zone near ₹{pivot:,.2f}. Suggested SL ₹{sl:,.2f} (-{risk_pct}%), Target ₹{target_1:,.2f} (R:R {rr_ratio}:1)."
+        elif c["buy_zone_status"] == "EXTENDED":
+            c["tactical_action"] = f"⚠️ Stock is extended +{dist_pct:.1f}% past pivot ₹{pivot:,.2f}. Wait for pull-back to 10/20 EMA before fresh entry."
+        else:
+            c["tactical_action"] = f"⏳ Stock is consolidating near ₹{pivot:,.2f}. Track for volume expansion & breakout above pivot."
+
+    # Re-sort hydrated candidates by live rank_score (desc) then tier_code (asc) then change_percent (desc)
+    hydrated.sort(key=lambda x: (-x["rank_score"], x["tier_code"], -x["change_percent"]))
     _save_screener_db_cache("confluence", hydrated)
 
     # Sort sector tailwinds by count desc
