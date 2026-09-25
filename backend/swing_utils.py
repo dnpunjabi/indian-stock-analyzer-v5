@@ -2289,13 +2289,14 @@ def detect_high_tight_flag(df):
         n = len(closes)
         curr_price = clean_float(closes[-1])
 
-        # 1. Pole & Flag Window (Look back 90 trading days / 18 weeks)
-        lookback = min(90, n)
+        # 1. Pole & Flag Window (Look back 100 trading days / 20 weeks to capture full prior advance)
+        lookback = min(100, n)
         peak_idx = int(np.argmax(highs[-lookback:]))
         flag_days = lookback - 1 - peak_idx
 
         max_high_pole = clean_float(highs[-lookback + peak_idx])
-        pole_slice_lows = lows[-lookback : max(1, lookback - flag_days)] if flag_days > 0 else lows[-lookback:]
+        pole_slice_end = max(1, lookback - flag_days)
+        pole_slice_lows = lows[-lookback : pole_slice_end]
         min_low_pole = clean_float(np.min(pole_slice_lows)) if len(pole_slice_lows) > 0 else curr_price
 
         pole_gain_pct = round(((max_high_pole - min_low_pole) / min_low_pole) * 100.0, 1) if min_low_pole > 0 else 0.0
@@ -2311,12 +2312,12 @@ def detect_high_tight_flag(df):
 
         # 4. Moving Average Trend Guardrail (50 SMA)
         sma50 = clean_float(pd.Series(closes).rolling(window=min(50, n), min_periods=10).mean().iloc[-1])
-        trend_ok = curr_price >= (sma50 * 0.94)
+        trend_ok = curr_price >= (sma50 * 0.96)
 
-        # HTF Qualification Rules
-        has_pole = pole_gain_pct >= 48.0  # Accepts Power Flags (>=48%) and Classic HTFs (>=75%)
-        shallow_flag = flag_depth_pct <= 26.0  # Depth max 26%
-        valid_duration = 4 <= flag_days <= 35  # 1 to 7 weeks flag duration
+        # Institutional HTF Qualification Rules
+        has_pole = pole_gain_pct >= 60.0  # Accepts elite institutional HTFs & Power Flags (>=60.0%)
+        shallow_flag = flag_depth_pct <= 25.0  # Strict depth ceiling max 25.0%
+        valid_duration = 4 <= flag_days <= 30  # 1 to 6 weeks flag duration
         valid_vdu = vdu_ratio <= 1.20  # Volume contraction during flag
 
         is_htf = has_pole and shallow_flag and valid_duration and valid_vdu and trend_ok
