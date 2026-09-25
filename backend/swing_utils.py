@@ -2697,15 +2697,32 @@ def detect_episodic_pivot(df: pd.DataFrame) -> dict:
         for i in range(1, min(6, n)):
             b_idx = n - i
             b_open = clean_float(opens[b_idx])
+            b_close = clean_float(closes[b_idx])
+            b_high = clean_float(highs[b_idx])
+            b_low = clean_float(lows[b_idx])
             b_prev_close = clean_float(closes[b_idx - 1]) if b_idx > 0 else b_open
             b_vol = clean_float(volumes[b_idx])
-            b_gap = round(((b_open - b_prev_close) / b_prev_close) * 100.0, 2) if b_prev_close > 0 else 0.0
-            b_rvol = round(b_vol / vol20_avg, 2) if vol20_avg > 0 else 1.0
 
-            if (b_gap >= 7.5 or ((clean_float(highs[b_idx]) - b_prev_close)/b_prev_close*100.0 >= 8.5)) and b_rvol >= 2.5:
+            # Calculate 20-day baseline average volume PRIOR to the gap bar
+            prior_start = max(0, b_idx - 20)
+            prior_vol20 = clean_float(np.mean(volumes[prior_start:b_idx])) if b_idx > prior_start else vol20_avg
+            if prior_vol20 <= 0:
+                prior_vol20 = vol20_avg if vol20_avg > 0 else 1.0
+
+            b_gap = round(((b_open - b_prev_close) / b_prev_close) * 100.0, 2) if b_prev_close > 0 else 0.0
+            b_surge_pct = round(((b_high - b_prev_close) / b_prev_close) * 100.0, 2) if b_prev_close > 0 else 0.0
+            b_rvol = round(b_vol / prior_vol20, 2)
+
+            # Check for Gap & Crap fade: gap bar must not crash down and close at the daily low
+            bar_range = b_high - b_low
+            close_pos = (b_close - b_low) / bar_range if bar_range > 0 else 0.5
+            is_valid_holding_bar = (b_close >= b_open * 0.985) or (close_pos >= 0.35)
+
+            if (b_gap >= 7.5 or b_surge_pct >= 8.5) and b_rvol >= 2.5 and is_valid_holding_bar:
                 recent_gap_found = True
                 gap_bar_idx = b_idx
-                gap_val = b_gap
+                gap_val = b_gap if b_gap >= 7.5 else b_surge_pct
+                rvol = b_rvol
                 break
 
         if not recent_gap_found:
@@ -2724,7 +2741,8 @@ def detect_episodic_pivot(df: pd.DataFrame) -> dict:
         target_1 = round(pivot_price + (2.0 * risk_per_share), 2)
         target_2 = round(pivot_price + (4.0 * risk_per_share), 2)
 
-        if gap_bar_idx == n - 1:
+        # Ensure EP_GAP_LIVE is only assigned if the gap bar was truly today AND opening gap was >= 3.0%
+        if gap_bar_idx == n - 1 and (gap_pct >= 3.0 or day_change_pct >= 6.0):
             ep_status = "EP_GAP_LIVE"
         elif curr_price >= pivot_price:
             ep_status = "EP_ORB_BREAKOUT"

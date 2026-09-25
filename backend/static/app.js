@@ -57467,8 +57467,11 @@ window.renderEpisodicTable = function(stocks) {
     const avgGapEl = document.getElementById('episodic-kpi-avg-gap');
 
     if (totalEl) totalEl.innerText = list.length;
-    if (liveEl) liveEl.innerText = list.filter(s => (s.gap_pct || 0) >= 4.0).length;
-    if (rvolEl) rvolEl.innerText = list.filter(s => (s.rvol || 0) >= 3.0).length;
+    if (liveEl) liveEl.innerText = list.filter(s => {
+        const st = (s.ep_status || s.status || '').toUpperCase();
+        return st.includes('LIVE') || st.includes('BREAKOUT') || st === 'EP_GAP_LIVE';
+    }).length;
+    if (rvolEl) rvolEl.innerText = list.filter(s => (s.rvol || 0) >= 2.5).length;
     const avgGap = list.length > 0 ? (list.reduce((a, b) => a + (b.gap_pct || 0), 0) / list.length).toFixed(2) : '0.00';
     if (avgGapEl) avgGapEl.innerText = `${avgGap}%`;
 
@@ -57485,7 +57488,7 @@ window.renderEpisodicTable = function(stocks) {
         const compName = s.company_name || s.name || '';
         const pivotPrice = s.pivot_price || s.buy_pivot || currPrice;
         const stopLoss = s.stop_loss || (currPrice * 0.95);
-        const epStatus = s.ep_status || s.status || 'EP_GAP_LIVE';
+        const epStatus = (s.ep_status || s.status || 'EP_GAP_LIVE').toUpperCase();
         const chgClass = dayChg >= 0 ? 'color: #34d399;' : 'color: #f87171;';
         const chgSign = dayChg >= 0 ? '+' : '';
 
@@ -57508,12 +57511,12 @@ window.renderEpisodicTable = function(stocks) {
                 </td>
                 <td style="padding: 12px; font-weight: 800; color: #34d399;">₹${pivotPrice.toFixed(2)}</td>
                 <td style="padding: 12px; font-weight: 700; color: #f87171;">₹${stopLoss.toFixed(2)}</td>
-                <td style="padding: 12px; font-weight: 800; color: #34d399;">₹${pivotPrice.toFixed(2)}</td>
-                <td style="padding: 12px; font-weight: 700; color: #f87171;">₹${stopLoss.toFixed(2)}</td>
                 <td style="padding: 12px;">
                     ${(epStatus.includes('LIVE') || epStatus === 'EP_GAP_LIVE') ? 
                         `<span style="background: rgba(236, 72, 153, 0.18); color: #f472b6; border: 1px solid rgba(236, 72, 153, 0.4); font-weight: 800; padding: 4px 8px; border-radius: 6px; font-size: 11.5px;">🚀 GAP & GO LIVE</span>` : 
-                        `<span style="background: rgba(245, 158, 11, 0.18); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.4); font-weight: 800; padding: 4px 8px; border-radius: 6px; font-size: 11.5px;">⌛ FORMING BASE</span>`}
+                        (epStatus.includes('BREAKOUT') ?
+                        `<span style="background: rgba(56, 189, 248, 0.18); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.4); font-weight: 800; padding: 4px 8px; border-radius: 6px; font-size: 11.5px;">⚡ ORB BREAKOUT</span>` :
+                        `<span style="background: rgba(245, 158, 11, 0.18); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.4); font-weight: 800; padding: 4px 8px; border-radius: 6px; font-size: 11.5px;">⌛ FORMING BASE</span>`)}
                 </td>
                 <td style="padding: 12px; text-align: right; white-space: nowrap;">
                     <button onclick="window.launchStageSimulator && window.launchStageSimulator('${s.symbol}')" class="btn-secondary quant-sim-btn" style="padding: 5px 10px; font-size: 11.5px; border-radius: 8px; cursor: pointer; white-space: nowrap; display: inline-flex; align-items: center; gap: 4px; font-weight: 700; background: rgba(168, 85, 247, 0.15); border: 1px solid rgba(168, 85, 247, 0.4); color: #c084fc; margin-right: 6px;" title="Scan stock in 4-Stage Life Cycle Masterclass Simulator">
