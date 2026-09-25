@@ -3598,9 +3598,9 @@ def detect_undercut_and_rally(df: pd.DataFrame, rs_score: float = 0.0) -> dict:
             default_res["reason"] = f"Stock not in Stage 2 health (Below MAs or {dist_from_high:.1f}% below 52W High)"
             return default_res
 
-        # Find local pivot swing lows in lookback window (-45 to -5 bars)
+        # Find local pivot swing lows in lookback window (-45 to -2 bars)
         window_start = max(0, n - 45)
-        window_end = max(1, n - 5)
+        window_end = max(1, n - 2)
         
         swing_low_candidates = []
         low_vals = low_s.values
@@ -3622,25 +3622,28 @@ def detect_undercut_and_rally(df: pd.DataFrame, rs_score: float = 0.0) -> dict:
         reclaim_vol_ratio = 0.0
         undercut_pct = 0.0
         avg_vol_20 = float(vol_s.tail(20).mean())
+        curr_vol = float(vol_s.iloc[-1])
 
-        # Check recent 3 bars for an undercut & reclaim of any candidate swing low
+        # Check recent 5 bars for an undercut & reclaim of any candidate swing low
         for prior_low in sorted(swing_low_candidates, reverse=True):
-            for offset in range(1, 4):
+            # Strict Reclaim Guardrail: Current price MUST be back at or above prior low (0.2% tolerance)
+            if curr_price < prior_low * 0.998:
+                continue
+
+            for offset in range(1, 6):
                 idx = -offset
                 check_low = float(low_s.iloc[idx])
-                check_vol = float(vol_s.iloc[idx])
 
                 if check_low < prior_low:
                     u_pct = ((prior_low - check_low) / prior_low) * 100.0
-                    # Strict Minervini undercut depth: 0.4% to 3.8% max
-                    if 0.4 <= u_pct <= 3.8:
-                        if curr_price >= prior_low * 0.998:
-                            is_ur_found = True
-                            target_prior_low = prior_low
-                            shakeout_low = check_low
-                            undercut_pct = u_pct
-                            reclaim_vol_ratio = round(check_vol / avg_vol_20, 2) if avg_vol_20 > 0 else 1.0
-                            break
+                    # Strict Minervini undercut depth: 0.4% to 4.0% max
+                    if 0.4 <= u_pct <= 4.0:
+                        is_ur_found = True
+                        target_prior_low = prior_low
+                        shakeout_low = check_low
+                        undercut_pct = u_pct
+                        reclaim_vol_ratio = round(curr_vol / avg_vol_20, 2) if avg_vol_20 > 0 else 1.0
+                        break
             if is_ur_found:
                 break
 

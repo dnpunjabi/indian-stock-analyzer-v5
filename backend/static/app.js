@@ -58346,7 +58346,7 @@ window.renderUndercutTable = function(stocks) {
         const st = (s.ur_status || s.status || '').toUpperCase();
         return st.includes('FORMING');
     }).length;
-    if (volEl) volEl.innerText = allStocks.filter(s => (s.reclaim_vol_ratio || 0) >= 1.3).length;
+    if (volEl) volEl.innerText = allStocks.filter(s => (s.reclaim_vol_ratio || 0) >= 1.35).length;
 
     if (list.length === 0) {
         tbody.innerHTML = `<tr><td colspan="9" style="text-align: center; padding: 40px; color: #64748b;">No Mark Minervini Undercut & Rally setups match the active filter criteria.</td></tr>`;
