@@ -2330,7 +2330,7 @@ def detect_high_tight_flag(df):
                 htf_status = "HTF_BREAKOUT"
             elif curr_price > (pivot_price * 1.05):
                 htf_status = "HTF_EXTENDED"
-            elif curr_price >= (pivot_price * 0.96):
+            elif curr_price >= (pivot_price * 0.95):
                 htf_status = "HTF_BREAKOUT_READY"
             else:
                 htf_status = "HTF_FLAG_FORMING"
