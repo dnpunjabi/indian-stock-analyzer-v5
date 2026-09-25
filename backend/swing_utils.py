@@ -2063,16 +2063,16 @@ def detect_weinstein_stage2(df, benchmark_df=None):
         ema200_series = pd.Series(closes).ewm(span=min(200, n), adjust=False).mean().values
         ema200_curr = clean_float(ema200_series[-1])
 
-        # 6. 52-Week High Proximity (Within 15% of 52W High for Stage 2 leadership)
+        # 6. 52-Week High Proximity (Within 12% of 52W High for Stage 2 leadership)
         lookback_52w = min(252, n)
         high_52w = clean_float(np.max(highs[-lookback_52w:]))
-        near_52w_high = curr_price >= (high_52w * 0.85)
+        near_52w_high = curr_price >= (high_52w * 0.88)
 
         # 7. Stage 2 Qualification Criteria
-        trend_aligned = (curr_price >= ema50_curr * 0.98) and (ema50_curr >= ema200_curr) and near_52w_high
-        rs_leadership = (mansfield_rs >= 0.0) or (curr_price >= (base_high * 0.98))
+        trend_aligned = (curr_price >= ema50_curr) and (ema50_curr >= ema200_curr) and near_52w_high
+        rs_leadership = (mansfield_rs >= 28.0) or (curr_price >= (base_high * 0.98) and mansfield_rs >= 18.0)
 
-        above_ma = curr_price >= sma150_curr * 0.98
+        above_ma = curr_price >= sma150_curr
         ma_sloping_up = ma30_slope_pct > 0.0
         vol_surge = vol_ratio >= 1.4
         near_or_above_base = curr_price >= (base_high * 0.97)
