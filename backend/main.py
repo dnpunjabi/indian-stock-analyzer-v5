@@ -18255,6 +18255,9 @@ async def _scan_single_stock_stage2(item, sem, b_df):
                         "breakout_vol_ratio": w_res["breakout_vol_ratio"],
                         "mansfield_rs": w_res["mansfield_rs"],
                         "pivot_price": w_res["pivot_price"],
+                        "stop_loss": w_res.get("stop_loss", 0.0),
+                        "target_1": w_res.get("target_1", 0.0),
+                        "target_2": w_res.get("target_2", 0.0),
                         "current_price": w_res["current_price"],
                         "day_change_pct": w_res.get("day_change_pct", 0.0)
                     }

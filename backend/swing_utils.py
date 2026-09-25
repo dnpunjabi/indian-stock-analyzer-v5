@@ -1984,13 +1984,15 @@ def calculate_canslim_score(symbol: str, db_conn=None, df=None) -> dict:
 
 def detect_weinstein_stage2(df, benchmark_df=None):
     """
-    Identifies Stan Weinstein Stage 2 Breakout candidates.
+    Identifies Stan Weinstein Stage 2 Breakout candidates according to Secrets for Profiting in Bull and Bear Markets.
     Criteria:
-    1. 30-Week (150-day) SMA calculation & positive slope over 20 days.
-    2. Price > 150-day SMA & 200-day SMA.
-    3. Multi-month Stage 1 horizontal base resistance breakout (40 to 120 days).
-    4. Institutional Volume Surge (Volume >= 1.5x to 2.0x of 20-day SMA).
-    5. Mansfield Relative Strength vs Benchmark Index (> 0).
+    1. 30-Week (150-day) SMA calculation & positive 20-day slope.
+    2. Price > 150-day SMA & 50 EMA >= 200 EMA.
+    3. Multi-month Stage 1 horizontal base resistance breakout (100 to 252 days).
+    4. Institutional Volume Surge (Volume >= 1.4x 20-day SMA average volume).
+    5. Mansfield Relative Strength vs Benchmark Index (Nifty 50) >= 0.0 using 52-week rolling RP baseline.
+    6. Proximity to 52-Week High (within 15% of 52W High for primary Stage 2 leaders).
+    7. Stage 3 Distribution Mutual Exclusion.
     """
     default_res = {
         "is_stage2": False,
@@ -2000,82 +2002,95 @@ def detect_weinstein_stage2(df, benchmark_df=None):
         "breakout_vol_ratio": 0.0,
         "mansfield_rs": 0.0,
         "pivot_price": 0.0,
+        "stop_loss": 0.0,
+        "target_1": 0.0,
+        "target_2": 0.0,
         "current_price": 0.0
     }
     if df is None or df.empty or len(df) < 40:
         return default_res
 
     try:
+        df = df.sort_index(ascending=True)
         closes = df['Close'].values
         highs = df['High'].values
         lows = df['Low'].values
-        volumes = df['Volume'].values
+        volumes = df['Volume'].values if 'Volume' in df.columns else np.ones(len(df))
         n = len(closes)
         curr_price = clean_float(closes[-1])
 
-        # Calculate 150-day SMA (30 weeks)
+        # 1. Calculate 150-day SMA (30 weeks) & 30-week MA Slope over last 20 days
         window_150 = min(150, n)
         sma150_series = pd.Series(closes).rolling(window=window_150, min_periods=20).mean().values
         sma150_curr = clean_float(sma150_series[-1])
-        
-        # 30-week MA Slope over last 20 days
         sma150_past = clean_float(sma150_series[-20] if n >= 20 else sma150_series[0])
         ma30_slope_pct = round(((sma150_curr - sma150_past) / sma150_past) * 100.0, 2) if sma150_past > 0 else 0.0
 
-        # Calculate 20-day volume average
+        # 2. Institutional Volume Surge (Volume >= 1.4x 20-day SMA average volume)
         vol20_avg = clean_float(pd.Series(volumes).rolling(window=min(20, n), min_periods=5).mean().iloc[-1])
         curr_vol = clean_float(volumes[-1])
         vol_ratio = round(curr_vol / vol20_avg, 2) if vol20_avg > 0 else 1.0
 
-        # Base resistance calculation (Highest High of 40 to 120 days excluding last 3 days)
-        lookback_base = min(100, n - 3)
-        if lookback_base > 10:
-            base_high = clean_float(np.max(highs[-lookback_base:-3]))
+        # 3. Stage 1 Base Resistance Peak (Highest High of 20 to 52 weeks excluding current bar if breaking out)
+        lookback_base = min(252, n - 2) if n > 20 else n
+        if lookback_base > 15:
+            base_high = clean_float(np.max(highs[-lookback_base:-2]))
+            base_floor = clean_float(np.min(lows[-lookback_base:]))
             base_length_weeks = round(lookback_base / 5.0, 1)
         else:
             base_high = clean_float(np.max(highs[:-1]))
+            base_floor = clean_float(np.min(lows))
             base_length_weeks = 4.0
 
-        # Mansfield Relative Strength calculation
+        # 4. Canonical Mansfield Relative Strength calculation (RP relative to 52-week rolling RP SMA)
         mansfield_rs = 0.0
         if benchmark_df is not None and not benchmark_df.empty and 'Close' in benchmark_df.columns:
             try:
                 b_closes = benchmark_df['Close'].values
-                if len(b_closes) >= min(60, n):
+                if len(b_closes) >= 20:
                     min_len = min(len(closes), len(b_closes))
                     rel_ratio = closes[-min_len:] / b_closes[-min_len:]
-                    mean_rel = np.mean(rel_ratio)
-                    mansfield_rs = round(((rel_ratio[-1] / mean_rel) - 1.0) * 100.0, 2) if mean_rel > 0 else 0.0
+                    rp_series = pd.Series(rel_ratio)
+                    rp_ma = rp_series.rolling(window=min(252, min_len), min_periods=20).mean().values
+                    rp_ma_curr = clean_float(rp_ma[-1])
+                    mansfield_rs = round(((rel_ratio[-1] / rp_ma_curr) - 1.0) * 100.0, 2) if rp_ma_curr > 0 else 0.0
             except Exception:
                 mansfield_rs = 0.0
 
-        # Calculate 50 EMA & 200 EMA for trend alignment
+        # 5. Trend Alignment: 50 EMA & 200 EMA
         ema50_series = pd.Series(closes).ewm(span=min(50, n), adjust=False).mean().values
         ema50_curr = clean_float(ema50_series[-1])
         ema200_series = pd.Series(closes).ewm(span=min(200, n), adjust=False).mean().values
         ema200_curr = clean_float(ema200_series[-1])
 
-        # 52-Week High Proximity (Must be within 12% of 52W High for top leaders)
+        # 6. 52-Week High Proximity (Within 15% of 52W High for Stage 2 leadership)
         lookback_52w = min(252, n)
         high_52w = clean_float(np.max(highs[-lookback_52w:]))
-        near_52w_high = curr_price >= (high_52w * 0.88)
+        near_52w_high = curr_price >= (high_52w * 0.85)
 
-        # Stage 2 Criteria: Price > 150 SMA & 30-W MA Sloping Up & Price > 50 EMA >= 200 EMA & Mansfield RS >= 30 & Within 12% 52W High
-        trend_aligned = (curr_price >= ema50_curr) and (ema50_curr >= ema200_curr) and near_52w_high
-        rs_leadership = (mansfield_rs >= 30.0) or (curr_price >= (base_high * 0.98))
+        # 7. Stage 2 Qualification Criteria
+        trend_aligned = (curr_price >= ema50_curr * 0.98) and (ema50_curr >= ema200_curr) and near_52w_high
+        rs_leadership = (mansfield_rs >= 0.0) or (curr_price >= (base_high * 0.98))
 
-        above_ma = curr_price >= sma150_curr
+        above_ma = curr_price >= sma150_curr * 0.98
         ma_sloping_up = ma30_slope_pct > 0.0
         vol_surge = vol_ratio >= 1.4
         near_or_above_base = curr_price >= (base_high * 0.97)
 
-        # Stage 3 Distribution Mutual Exclusion
+        # 8. Stage 3 Distribution Mutual Exclusion
         s3_res = detect_weinstein_stage3(df, benchmark_df=benchmark_df)
         is_stage3_dist = s3_res.get("is_stage3") or s3_res.get("stage_status") in ["STAGE_3_DISTRIBUTION", "STAGE_3_TOPPING"]
 
         is_stage2 = above_ma and ma_sloping_up and trend_aligned and rs_leadership and (not is_stage3_dist)
 
-        if is_stage2 and near_or_above_base and vol_surge:
+        pivot_price = round(base_high, 2)
+        stop_loss = round(min(sma150_curr, base_floor) * 0.99, 2)
+        target_1 = round(pivot_price * 1.20, 2)
+        target_2 = round(pivot_price * 1.40, 2)
+
+        dist_from_pivot_pct = round(((curr_price - pivot_price) / pivot_price) * 100.0, 2) if pivot_price > 0 else 0.0
+
+        if is_stage2 and near_or_above_base and vol_surge and dist_from_pivot_pct <= 8.0:
             stage_status = "STAGE_2_LAUNCH"
         elif is_stage2:
             stage_status = "STAGE_2_ADVANCING"
@@ -2084,20 +2099,22 @@ def detect_weinstein_stage2(df, benchmark_df=None):
         else:
             stage_status = "NONE"
 
-        # Calculate day_change_pct
         prev_close = clean_float(closes[-2]) if n >= 2 else curr_price
         day_change_pct = round(((curr_price - prev_close) / prev_close) * 100.0, 2) if prev_close > 0 else 0.0
 
         return {
-            "is_stage2": is_stage2,
-            "stage_status": stage_status,
-            "ma30_slope_pct": ma30_slope_pct,
-            "base_length_weeks": base_length_weeks,
-            "breakout_vol_ratio": vol_ratio,
-            "mansfield_rs": mansfield_rs,
-            "pivot_price": round(base_high, 2),
-            "current_price": round(curr_price, 2),
-            "day_change_pct": day_change_pct
+            "is_stage2": bool(is_stage2),
+            "stage_status": str(stage_status),
+            "ma30_slope_pct": clean_float(ma30_slope_pct),
+            "base_length_weeks": clean_float(base_length_weeks),
+            "breakout_vol_ratio": clean_float(vol_ratio),
+            "mansfield_rs": clean_float(mansfield_rs),
+            "pivot_price": clean_float(pivot_price),
+            "stop_loss": clean_float(stop_loss),
+            "target_1": clean_float(target_1),
+            "target_2": clean_float(target_2),
+            "current_price": clean_float(curr_price),
+            "day_change_pct": clean_float(day_change_pct)
         }
     except Exception as e:
         print(f"Error in detect_weinstein_stage2: {e}")
