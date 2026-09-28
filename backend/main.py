@@ -4933,7 +4933,9 @@ async def get_tv_chart_data(
         df['EMA_Custom'] = df['Close'].ewm(span=length, adjust=False).mean()
         
         # Calculate 150-day SMA (30-Week MA Daily Proxy)
-        df['SMA_150'] = df['Close'].rolling(window=min(150, len(df)), min_periods=20).mean()
+        win_size = min(150, len(df))
+        min_p = min(20, win_size)
+        df['SMA_150'] = df['Close'].rolling(window=win_size, min_periods=min_p).mean()
         sma150_curr = float(df['SMA_150'].iloc[-1]) if not pd.isna(df['SMA_150'].iloc[-1]) else 0.0
         sma150_past = float(df['SMA_150'].iloc[-20]) if len(df) >= 20 and not pd.isna(df['SMA_150'].iloc[-20]) else sma150_curr
         ma30_slope_pct = round(((sma150_curr - sma150_past) / sma150_past) * 100.0, 2) if sma150_past > 0 else 0.0
@@ -5086,6 +5088,8 @@ async def get_tv_chart_data(
                 "stage_label": stage_label
             }
         }
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"TradingView chart data calculation error: {str(e)}")
 
