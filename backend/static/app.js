@@ -61228,10 +61228,18 @@ window.renderIpoTrackerUI = function(data) {
                                 Score ${item.opportunity_score} • ${item.signal_badge}
                             </span>
                         </td>
-                        <td style="padding: 14px; text-align: right;">
-                            <button onclick="window.analyzeStock && window.analyzeStock('${item.symbol}')" class="btn-primary" style="padding: 5px 12px; font-size: 11.5px; border-radius: 6px; cursor: pointer;">
-                                Analyze Chart 📈
-                            </button>
+                        <td style="padding: 12px 14px; text-align: right; white-space: nowrap;">
+                            <div style="display: inline-flex; align-items: center; justify-content: flex-end; gap: 5px;">
+                                <button onclick="event.stopPropagation(); window.analyzeStock && window.analyzeStock('${item.symbol}')" class="btn-secondary" style="padding: 4px 8px; font-size: 11px; border-radius: 6px; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 3px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.12); color: var(--text-primary);" title="Equity Research Analysis">
+                                    🔬 Research
+                                </button>
+                                <button onclick="event.stopPropagation(); window.openStandaloneInteractiveChart && window.openStandaloneInteractiveChart('${item.symbol}', null, 'ipo', 'Listed IPO Radar')" class="btn-primary quant-ichart-btn" style="padding: 4px 8px; font-size: 11px; border-radius: 6px; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; gap: 3px; background: rgba(59, 130, 246, 0.2); border: 1px solid #3b82f6; color: #60a5fa;" title="Interactive Workstation i-Chart">
+                                    📈 i-Chart
+                                </button>
+                                <button onclick="event.stopPropagation(); window.openTradingViewChart && window.openTradingViewChart('${item.symbol}')" class="btn-secondary quant-chart-btn" style="padding: 4px 8px; font-size: 11px; border-radius: 6px; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; gap: 3px; background: rgba(16, 185, 129, 0.15); border: 1px solid rgba(16, 185, 129, 0.4); color: #34d399;" title="TradingView Chart (NSE)">
+                                    💹 TradingView ↗
+                                </button>
+                            </div>
                         </td>
                     </tr>
                 `;
@@ -61281,9 +61289,22 @@ window.renderIpoTrackerUI = function(data) {
                             </div>
                         </div>
                         
-                        <div style="display: flex; justify-content: space-between; align-items: center; font-size: 11.5px; color: var(--text-secondary);">
-                            <span>Setup: <strong style="color: #38bdf8;">${item.setup_type}</strong></span>
-                            <button onclick="window.analyzeStock && window.analyzeStock('${item.symbol}')" class="btn-secondary" style="padding: 4px 10px; font-size: 11px; border-radius: 6px;">Analyze 📈</button>
+                        <div style="display: flex; flex-direction: column; gap: 8px; font-size: 11.5px; color: var(--text-secondary);">
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <span>Setup: <strong style="color: #38bdf8;">${item.setup_type}</strong></span>
+                                <span style="font-size: 11px; color: var(--text-muted);">Listed: ${item.listing_date || 'N/A'}</span>
+                            </div>
+                            <div style="display: flex; gap: 6px; width: 100%; margin-top: 2px;">
+                                <button onclick="event.stopPropagation(); window.analyzeStock && window.analyzeStock('${item.symbol}')" class="btn-secondary" style="flex: 1; padding: 6px 4px; font-size: 11px; border-radius: 6px; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 3px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.12); color: var(--text-primary);" title="Equity Research Analysis">
+                                    🔬 Research
+                                </button>
+                                <button onclick="event.stopPropagation(); window.openStandaloneInteractiveChart && window.openStandaloneInteractiveChart('${item.symbol}', null, 'ipo', 'Listed IPO Radar')" class="btn-primary" style="flex: 1; padding: 6px 4px; font-size: 11px; border-radius: 6px; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 3px; background: rgba(59, 130, 246, 0.2); border: 1px solid #3b82f6; color: #60a5fa;" title="Interactive i-Chart Workstation">
+                                    📈 i-Chart
+                                </button>
+                                <button onclick="event.stopPropagation(); window.openTradingViewChart && window.openTradingViewChart('${item.symbol}')" class="btn-secondary" style="flex: 1; padding: 6px 4px; font-size: 11px; border-radius: 6px; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 3px; background: rgba(16, 185, 129, 0.15); border: 1px solid rgba(16, 185, 129, 0.4); color: #34d399;" title="TradingView Chart (NSE)">
+                                    💹 TradingView ↗
+                                </button>
+                            </div>
                         </div>
                     </div>
                 `;
