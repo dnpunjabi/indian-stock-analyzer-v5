@@ -8145,12 +8145,117 @@
                             <div style="display: flex; align-items: center; gap: 12px;">
                                 <div style="background: rgba(15, 23, 42, 0.7); border: 1px solid rgba(255, 255, 255, 0.08); padding: 8px 14px; border-radius: 8px; font-size: 11px; color: #64748b; display: flex; flex-direction: column; gap: 2px;">
                                     <span style="text-transform: uppercase; letter-spacing: 0.5px; font-size: 9.5px; color: #94a3b8;">FEED ENGINE</span>
-                                    <span style="color: #34d399; font-weight: 700;">Active Scraper Sync</span>
+                                    <span id="ipo-last-cron-badge" style="color: #34d399; font-weight: 700;">🟢 Last Cron Sync: Today 00:30 IST</span>
                                 </div>
+                                  <button id="ipo-guide-toggle-btn" onclick="window.toggleIpoGuide && window.toggleIpoGuide()" class="btn-secondary" style="background: rgba(99, 102, 241, 0.15); border: 1px solid rgba(99, 102, 241, 0.4); padding: 9px 16px; border-radius: 6px; color: #a5b4fc; font-weight: 700; font-size: 12.5px; cursor: pointer; display: flex; align-items: center; gap: 6px; transition: all 0.2s ease;">
+                                    💡 Guide
+                                </button>
                                 <button id="ipo-refresh-btn" onclick="window.refreshIpoTrackerData && window.refreshIpoTrackerData(true)" class="btn-primary" style="background: linear-gradient(135deg, #10b981, #059669); border: none; padding: 9px 16px; border-radius: 6px; color: white; font-weight: 700; font-size: 12.5px; cursor: pointer; display: flex; align-items: center; gap: 6px; box-shadow: 0 4px 14px rgba(16, 185, 129, 0.25);">
                                     🔄 Refresh Scrapers
                                 </button>
+                                <button id="ipo-cron-btn" onclick="window.triggerIpoCron && window.triggerIpoCron()" class="btn-primary" style="background: linear-gradient(135deg, #6366f1, #4f46e5); border: none; padding: 9px 16px; border-radius: 6px; color: white; font-weight: 700; font-size: 12.5px; cursor: pointer; display: flex; align-items: center; gap: 6px; box-shadow: 0 4px 14px rgba(99, 102, 241, 0.25);">
+                                    ⚡ Run Cron & Alert
+                                </button>
+                                <button id="ipo-wa-test-btn" onclick="window.testIpoWhatsApp && window.testIpoWhatsApp()" class="btn-primary" style="background: linear-gradient(135deg, #25d366, #128c7e); border: none; padding: 9px 16px; border-radius: 6px; color: white; font-weight: 700; font-size: 12.5px; cursor: pointer; display: flex; align-items: center; gap: 6px; box-shadow: 0 4px 14px rgba(37, 211, 102, 0.25);">
+                                    📱 Test WhatsApp Alert
+                                </button>
                             </div>
+                        </div>
+                    </div>
+
+                    <!-- EXPANDABLE IPO STRATEGY GUIDE CONTAINER -->
+                    <div id="ipo-strategy-guide-card" class="card no-print ipo-guide-card" style="display: none; margin-bottom: 24px; background: var(--bg-card); border: 1px solid var(--border-glass); border-radius: 14px; padding: 22px 26px; font-family: 'Inter', sans-serif; box-shadow: var(--shadow-lg, 0 10px 30px -5px rgba(0,0,0,0.15)); backdrop-filter: blur(16px); position: relative;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px; border-bottom: 1px solid var(--border-glass); padding-bottom: 12px;">
+                            <div style="display: flex; align-items: center; gap: 10px;">
+                                <span style="font-size: 22px;">🚀</span>
+                                <div>
+                                    <h3 style="margin: 0; font-size: 16px; font-weight: 800; color: var(--text-primary); font-family: 'Outfit', sans-serif;">Minervini IPO Base & Setup Classification Guide</h3>
+                                    <span style="font-size: 12px; color: var(--text-muted);">Algorithmic Rules, Stage Definitions & Institutional Execution Criteria</span>
+                                </div>
+                            </div>
+                            <div style="display: flex; align-items: center; gap: 10px;">
+                                <span class="ipo-guide-badge" style="background: rgba(99, 102, 241, 0.15); border: 1px solid rgba(99, 102, 241, 0.3); color: #6366f1; font-size: 11px; font-weight: 700; padding: 3px 10px; border-radius: 6px;">Institutional Quant Framework</span>
+                                <button onclick="window.toggleIpoGuide && window.toggleIpoGuide()" style="background: transparent; border: none; color: var(--text-muted); font-size: 18px; cursor: pointer; padding: 0 6px;">✕</button>
+                            </div>
+                        </div>
+
+                        <!-- 3-Column Layout Matching Screener Guide Style -->
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(310px, 1fr)); gap: 20px;">
+                            
+                            <!-- Column 1: Setup Stages -->
+                            <div class="ipo-guide-col" style="background: var(--bg-glass-input, rgba(0, 0, 0, 0.04)); border: 1px solid var(--border-glass); border-radius: 10px; padding: 16px;">
+                                <div style="font-size: 12px; font-weight: 800; color: #0284c7; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 12px; display: flex; align-items: center; gap: 6px;">
+                                    🎯 SETUP STAGES & CLASSIFICATION
+                                </div>
+                                <div style="display: flex; flex-direction: column; gap: 10px; font-size: 12px; line-height: 1.5;">
+                                    <div class="ipo-stage-box" style="border-left: 3px solid #10b981; padding: 8px 12px; background: rgba(16, 185, 129, 0.08); border-radius: 0 6px 6px 0;">
+                                        <div style="font-weight: 700; color: #059669;">🚀 IPO Base Breakout</div>
+                                        <div style="color: var(--text-secondary); font-size: 11.5px;">Trading within <strong>≤4% of ATH</strong>. Prime momentum buy zone as institutional expansion drives price discovery.</div>
+                                    </div>
+                                    <div class="ipo-stage-box" style="border-left: 3px solid #f59e0b; padding: 8px 12px; background: rgba(245, 158, 11, 0.08); border-radius: 0 6px 6px 0;">
+                                        <div style="font-weight: 700; color: #d97706;">📦 IPO Base Consolidation</div>
+                                        <div style="color: var(--text-secondary); font-size: 11.5px;">Resting in tight range within <strong>4%–10% of ATH</strong>. Institutions accumulating before next breakout.</div>
+                                    </div>
+                                    <div class="ipo-stage-box" style="border-left: 3px solid #0284c7; padding: 8px 12px; background: rgba(2, 132, 199, 0.08); border-radius: 0 6px 6px 0;">
+                                        <div style="font-weight: 700; color: #0284c7;">📉 Pullback to 20 EMA</div>
+                                        <div style="color: var(--text-secondary); font-size: 11.5px;">Price resting within <strong>2.5% of 20 EMA</strong> on low volume. High R:R swing buy entry in an active uptrend.</div>
+                                    </div>
+                                    <div class="ipo-stage-box" style="border-left: 3px solid #6366f1; padding: 8px 12px; background: rgba(99, 102, 241, 0.08); border-radius: 0 6px 6px 0;">
+                                        <div style="font-weight: 700; color: #4f46e5;">🔓 Post-Lockin Reversal</div>
+                                        <div style="color: var(--text-secondary); font-size: 11.5px;">30–90d Anchor lock-in expired. Price holding firm proves market absorption of institutional supply.</div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Column 2: Hard Criteria & Scoring -->
+                            <div class="ipo-guide-col" style="background: var(--bg-glass-input, rgba(0, 0, 0, 0.04)); border: 1px solid var(--border-glass); border-radius: 10px; padding: 16px;">
+                                <div style="font-size: 12px; font-weight: 800; color: #059669; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 12px; display: flex; align-items: center; gap: 6px;">
+                                    ⚙️ HARD QUANTITATIVE CRITERIA
+                                </div>
+                                <div style="display: flex; flex-direction: column; gap: 10px; font-size: 12px; color: var(--text-primary);">
+                                    <div style="display: flex; gap: 8px;">
+                                        <span style="color: #10b981;">✦</span>
+                                        <div><strong style="color: var(--text-primary);">Rolling 12M Window:</strong> <span style="color: var(--text-secondary);">Strictly filters equities listed within last 365 trading days.</span></div>
+                                    </div>
+                                    <div style="display: flex; gap: 8px;">
+                                        <span style="color: #10b981;">✦</span>
+                                        <div><strong style="color: var(--text-primary);">Volume Contraction (VDU):</strong> <span style="color: var(--text-secondary);">Identifies setups where 5d avg volume is ≤0.65x of 20d avg volume.</span></div>
+                                    </div>
+                                    <div style="display: flex; gap: 8px;">
+                                        <span style="color: #10b981;">✦</span>
+                                        <div><strong style="color: var(--text-primary);">Opportunity Score (0–100):</strong>
+                                            <ul style="margin: 4px 0 0 14px; padding: 0; color: var(--text-secondary); font-size: 11.5px; line-height: 1.6;">
+                                                <li><strong style="color: #059669;">Score 80–100:</strong> Strong Buy Opportunity</li>
+                                                <li><strong style="color: #d97706;">Score 60–79:</strong> Watchlist / Building Base</li>
+                                                <li><strong style="color: #ea580c;">Score 40–59:</strong> Overextended / Wait</li>
+                                                <li><strong style="color: #dc2626;">Score &lt;40:</strong> Avoid / Weak Trend</li>
+                                            </ul>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Column 3: Pipeline & Risk Rules -->
+                            <div class="ipo-guide-col" style="background: var(--bg-glass-input, rgba(0, 0, 0, 0.04)); border: 1px solid var(--border-glass); border-radius: 10px; padding: 16px;">
+                                <div style="font-size: 12px; font-weight: 800; color: #db2777; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 12px; display: flex; align-items: center; gap: 6px;">
+                                    🛡️ PIPELINE WATCH & RISK RULES
+                                </div>
+                                <div style="display: flex; flex-direction: column; gap: 10px; font-size: 12px; color: var(--text-primary);">
+                                    <div style="display: flex; gap: 8px;">
+                                        <span style="color: #db2777;">✦</span>
+                                        <div><strong style="color: var(--text-primary);">Upcoming Pipeline Sub-Tab:</strong> <span style="color: var(--text-secondary);">Tracks unlisted, active bidding, and allotment pending IPOs with estimated GMP premium % and subscription demand.</span></div>
+                                    </div>
+                                    <div style="display: flex; gap: 8px;">
+                                        <span style="color: #db2777;">✦</span>
+                                        <div><strong style="color: var(--text-primary);">Stop-Loss Placement:</strong> <span style="color: var(--text-secondary);">For IPO Base Breakouts, place stops 4%–5% below consolidation pivot or 20 EMA line.</span></div>
+                                    </div>
+                                    <div style="display: flex; gap: 8px;">
+                                        <span style="color: #db2777;">✦</span>
+                                        <div><strong style="color: var(--text-primary);">Automated Daily Alerts:</strong> <span style="color: var(--text-secondary);">Midnight cron job dispatches WhatsApp digests for top breakouts & high GMP pipeline IPOs.</span></div>
+                                    </div>
+                                </div>
+                            </div>
+
                         </div>
                     </div>
 

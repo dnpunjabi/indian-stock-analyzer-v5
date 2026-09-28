@@ -14,9 +14,35 @@ import yfinance as yf
 DB_DIR = os.environ.get("DATABASE_DIR", os.path.join(os.path.dirname(__file__), "data"))
 os.makedirs(DB_DIR, exist_ok=True)
 IPO_DB_PATH = os.path.join(DB_DIR, "ipo_cache.db")
+IPO_PROCESSED_CACHE_PATH = os.path.join(DB_DIR, "ipo_processed_cache.json")
+
+def save_processed_ipo_cache(data: dict):
+    """Save processed IPO dataset with timestamp to disk JSON cache."""
+    try:
+        data["last_cron_run_at"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        with open(IPO_PROCESSED_CACHE_PATH, "w", encoding="utf-8") as f:
+            json.dump(clean_nans(data), f, indent=2)
+    except Exception as e:
+        print(f"[IPO Engine] Failed to write cache: {e}")
+
+def load_processed_ipo_cache() -> dict:
+    """Load cached IPO dataset from disk if present."""
+    if os.path.exists(IPO_PROCESSED_CACHE_PATH):
+        try:
+            with open(IPO_PROCESSED_CACHE_PATH, "r", encoding="utf-8") as f:
+                data = json.load(f)
+                if data and isinstance(data, dict) and "ipos" in data:
+                    return data
+        except Exception as e:
+            print(f"[IPO Engine] Failed to read cache: {e}")
+    return None
 
 # Known Name-to-NSE Ticker Mapping for recent mainboard IPOs
 KNOWN_SYMBOL_MAP = {
+    "national stock exchange": "NSE",
+    "nse of india": "NSE",
+    "behari lal engineering": "BLEL",
+    "behari lal": "BLEL",
     "bajaj housing finance": "BAJAJHFL",
     "hyundai motor": "HYUNDAI",
     "swiggy": "SWIGGY",
@@ -75,8 +101,8 @@ def derive_ticker_from_name(name: str) -> str:
         if key in clean_name:
             return sym
     
-    # Generic extraction: remove suffixes like IPO, Limited, Ltd, Pvt, India
-    cleaned = re.sub(r'\b(ipo|limited|ltd|pvt|private|india|industries|corp|corporation)\b', '', clean_name, flags=re.IGNORECASE)
+    # Generic extraction: remove suffixes like IPO, Limited, Ltd, Pvt, India & scraped noise words
+    cleaned = re.sub(r'\b(ipo|limited|ltd|pvt|private|india|industries|corp|corporation|listed|mainboard|upcoming|ongoing|closed|bidding|equity|services)\b', '', clean_name, flags=re.IGNORECASE)
     words = [w.upper() for w in re.findall(r'[A-Za-z0-9]+', cleaned) if len(w) >= 2]
     if not words:
         return "UNKNOWN"
@@ -622,7 +648,51 @@ def sync_ipo_master_db(force_refresh: bool = False) -> list:
         rows = cursor.execute("SELECT * FROM ipo_master WHERE listing_date <= ? ORDER BY listing_date DESC", (today_str,)).fetchall()
         return [dict(r) for r in rows]
 
-def get_ipo_technical_analysis(symbol: str, listing_date: str, issue_price: float, listing_price: float, current_price_scraped: float = 0.0) -> dict:
+def resolve_true_ticker_symbol(company_name: str, fallback_symbol: str) -> str:
+    """
+    Automatically verifies and resolves the official NSE ticker symbol for an IPO company name
+    using Screener API if the fallback derived symbol fails yfinance lookup.
+    Result is cached in KNOWN_SYMBOL_MAP for ultra-fast future resolution.
+    """
+    if not company_name:
+        return fallback_symbol
+        
+    import urllib.parse
+    clean_name = clean_str(company_name).lower()
+    for k, sym in KNOWN_SYMBOL_MAP.items():
+        if k in clean_name:
+            return sym
+
+    try:
+        url = f"https://www.screener.in/api/company/search/?q={urllib.parse.quote(company_name)}"
+        headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'}
+        resp = requests.get(url, headers=headers, timeout=3)
+        if resp.status_code == 200:
+            results = resp.json()
+            if results and isinstance(results, list) and len(results) > 0:
+                match_url = results[0].get("url", "")
+                m = re.search(r'/company/([A-Z0-9]+)', match_url)
+                if m:
+                    actual_ticker = m.group(1).upper()
+                    KNOWN_SYMBOL_MAP[clean_name] = actual_ticker
+                    KNOWN_SYMBOL_MAP[fallback_symbol.lower()] = actual_ticker
+                    print(f"[IPO Engine] Auto-resolved symbol for '{company_name}': {fallback_symbol} -> {actual_ticker}")
+                    
+                    # Persist back to SQLite DB
+                    try:
+                        with sqlite3.connect(IPO_DB_PATH) as conn:
+                            conn.execute("UPDATE ipo_master SET symbol=? WHERE company_name=? OR symbol=?", (actual_ticker, company_name, fallback_symbol))
+                            conn.commit()
+                    except Exception:
+                        pass
+                        
+                    return actual_ticker
+    except Exception as e:
+        pass
+        
+    return fallback_symbol
+
+def get_ipo_technical_analysis(symbol: str, listing_date: str, issue_price: float, listing_price: float, current_price_scraped: float = 0.0, company_name: str = "") -> dict:
     """Fetch daily OHLCV candles via yfinance and compute technical setup & metrics."""
     today_str = datetime.now().strftime("%Y-%m-%d")
     if listing_date and listing_date > today_str:
@@ -665,16 +735,45 @@ def get_ipo_technical_analysis(symbol: str, listing_date: str, issue_price: floa
         "sparkline_prices": []
     }
     
+    actual_sym = symbol
     try:
         tk = yf.Ticker(ticker_ns)
         df = tk.history(period="1y")
         if df.empty or len(df) < 1:
-            return res
+            if company_name:
+                resolved_sym = resolve_true_ticker_symbol(company_name, symbol)
+                if resolved_sym and resolved_sym != symbol:
+                    actual_sym = resolved_sym
+                    retry_ns = f"{resolved_sym}.NS"
+                    tk = yf.Ticker(retry_ns)
+                    df = tk.history(period="1y")
+                    if df.empty or len(df) < 1:
+                        res["resolved_symbol"] = symbol
+                        return res
+                else:
+                    res["resolved_symbol"] = symbol
+                    return res
+            else:
+                res["resolved_symbol"] = symbol
+                return res
             
         prices = df['Close'].tolist()
         volumes = df['Volume'].tolist()
         curr_px = float(prices[-1])
-        ath_px = float(df['High'].max())
+        
+        # Check if Angel One SmartWebSocket live tick_store has a real-time CMP tick
+        try:
+            from backend.websocket_server import tick_store
+            clean_sym = symbol.replace('.NS', '').replace('.BO', '').strip().upper()
+            live_tick = tick_store.get(clean_sym) or tick_store.get(f"{clean_sym}.NS")
+            if live_tick:
+                ltp = live_tick.get("last_price") or live_tick.get("ltp") or live_tick.get("c") or live_tick.get("price")
+                if ltp and float(ltp) > 0:
+                    curr_px = float(ltp)
+        except Exception as ws_err:
+            pass
+
+        ath_px = max(float(df['High'].max()), curr_px)
         atl_px = float(df['Low'].min())
         
         # Calculate returns
@@ -723,7 +822,8 @@ def get_ipo_technical_analysis(symbol: str, listing_date: str, issue_price: floa
             "rsi_14": round(rsi, 1),
             "vol_20_sma": int(vol_20) if pd.notna(vol_20) else 100000,
             "volume_dryup_ratio": vol_dryup,
-            "sparkline_prices": sparkline
+            "sparkline_prices": sparkline,
+            "resolved_symbol": actual_sym
         })
     except Exception as e:
         print(f"[IPO Engine] YFinance analysis failed for {symbol}: {e}")
@@ -913,7 +1013,13 @@ def get_ipo_tracker_dataset(force_refresh: bool = False, sector_filter: str = No
     """
     Main Entrypoint: Returns complete 12-Month IPO dataset with technical metrics,
     opportunity scores, and summary KPI analytics. Parallelized for speed.
+    Uses disk JSON caching by default unless force_refresh=True.
     """
+    if not force_refresh and not sector_filter and not signal_filter:
+        cached = load_processed_ipo_cache()
+        if cached:
+            return cached
+
     master_list = sync_ipo_master_db(force_refresh=force_refresh)
     
     dataset = []
@@ -934,14 +1040,14 @@ def get_ipo_tracker_dataset(force_refresh: bool = False, sector_filter: str = No
             return None
             
         cur_px = ipo.get("current_price", 0.0)
-        tech = get_ipo_technical_analysis(symbol, listing_date, issue_px, list_px, cur_px)
+        tech = get_ipo_technical_analysis(symbol, listing_date, issue_px, list_px, cur_px, company_name=company)
         if not tech.get("is_valid_listed", False):
             return None
             
         opportunity = evaluate_ipo_buy_opportunity(ipo, tech)
         
         item = {
-            "symbol": symbol,
+            "symbol": tech.get("resolved_symbol", symbol),
             "company_name": company,
             "sector": sector,
             "issue_price": issue_px,
@@ -1048,6 +1154,7 @@ def get_ipo_tracker_dataset(force_refresh: bool = False, sector_filter: str = No
     below_issue_count = losers
     near_ath_count = len([i for i in dataset if i.get("has_historical_candles") and i.get("drawdown_from_ath_pct") is not None and abs(i.get("drawdown_from_ath_pct")) <= 5.0 and i.get("days_since_listing", 0) >= 15])
     
+    now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     raw_res = {
         "summary": {
             "total_ipos_12m": len(dataset),
@@ -1063,13 +1170,113 @@ def get_ipo_tracker_dataset(force_refresh: bool = False, sector_filter: str = No
             "near_ath_count": near_ath_count,
             "top_sector": top_sector,
             "top_sector_avg_gain": top_sector_avg,
-            "last_updated": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            "last_updated": now_str,
+            "last_cron_run_at": now_str
         },
         "ipos": dataset,
         "upcoming_pipeline": upcoming_pipeline
     }
     
-    return clean_nans(raw_res)
+    cleaned = clean_nans(raw_res)
+    if not sector_filter and not signal_filter:
+        save_processed_ipo_cache(cleaned)
+    return cleaned
+
+def generate_ipo_whatsapp_summary(dataset: list, upcoming_pipeline: list) -> str:
+    """
+    Generates a publication-grade WhatsApp alert payload summarizing top 2-3 listed IPO opportunities
+    and top 2-3 high-demand upcoming/unlisted pipeline IPOs.
+    """
+    today_str = datetime.now().strftime("%d %b %Y")
+    
+    # Filter & rank top listed IPO opportunities
+    listed_candidates = [
+        item for item in dataset 
+        if item.get("opportunity_score", 0) >= 60 and item.get("current_gain_from_issue_pct") is not None
+    ]
+    listed_candidates.sort(key=lambda x: (x.get("opportunity_score", 0), x.get("current_gain_from_issue_pct", 0)), reverse=True)
+    top_listed = listed_candidates[:3]
+
+    # Filter & rank top upcoming / pipeline IPOs
+    def pipeline_score(item):
+        gmp_pct = float(item.get("gmp_pct", 0.0) or 0.0)
+        sub_times = float(item.get("subscription_times", 0.0) or 0.0)
+        status = (item.get("status") or "").lower()
+        # Active bidding or allotment pending gets priority
+        status_boost = 1.2 if any(s in status for s in ["ongoing", "closed", "bidding open", "allotment"]) else 1.0
+        return ((gmp_pct * 2.0) + (sub_times * 0.8)) * status_boost
+
+    pipeline_candidates = sorted(upcoming_pipeline or [], key=pipeline_score, reverse=True)
+    top_pipeline = pipeline_candidates[:3]
+
+    lines = [
+        f"🚀 *DAILY IPO RADAR SUMMARY* ({today_str})",
+        "=====================================",
+        "",
+        "📈 *TOP LISTED IPO OPPORTUNITIES*",
+    ]
+
+    if top_listed:
+        for idx, item in enumerate(top_listed, 1):
+            sym = item.get("symbol", "IPO")
+            score = item.get("opportunity_score", 0)
+            setup = item.get("setup_type", "Consolidating")
+            issue_px = item.get("issue_price", 0)
+            cur_px = item.get("current_price", 0)
+            gain = item.get("current_gain_from_issue_pct", 0.0)
+            gain_str = f"+{gain:.1f}%" if gain >= 0 else f"{gain:.1f}%"
+            reasons = item.get("key_reasons", [])
+            lead_reason = reasons[0] if reasons else "Strong relative strength"
+
+            lines.append(f"{idx}. *{sym}* - Score {score}/100 ({setup})")
+            lines.append(f"   • Issue: ₹{issue_px:.0f} | CMP: ₹{cur_px:.1f} ({gain_str})")
+            lines.append(f"   • Key Factor: {lead_reason}")
+            lines.append("")
+    else:
+        lines.append("• No high-conviction breakout setups detected today.")
+        lines.append("")
+
+    lines.append("🔥 *HIGH DEMAND UNLISTED / PIPELINE IPOs*")
+    if top_pipeline:
+        for idx, item in enumerate(top_pipeline, 1):
+            company = item.get("company_name", "Upcoming IPO")
+            low_p = item.get("min_price", 0)
+            high_p = item.get("max_price", 0)
+            price_band = item.get("price_band_str") or (f"₹{int(low_p)} - ₹{int(high_p)}" if low_p > 0 else "TBD")
+            
+            gmp_pct = float(item.get("gmp_pct", 0.0) or 0.0)
+            gmp_rs = float(item.get("gmp_rs", 0.0) or 0.0)
+            if gmp_pct > 0 or gmp_rs > 0:
+                gmp_str = f"+{gmp_pct:.1f}% (+₹{int(gmp_rs)})"
+            else:
+                gmp_str = "N/A"
+
+            status = item.get("status_badge") or item.get("status") or "Upcoming"
+            sub_times = item.get("subscription_times")
+            sub_str = f" | Sub: {sub_times:.2f}x" if sub_times and float(sub_times) > 0 else ""
+
+            lines.append(f"{idx}. *{company}* ({status})")
+            lines.append(f"   • Price Band: {price_band} | Est. GMP: {gmp_str}{sub_str}")
+            lines.append("")
+    else:
+        lines.append("• No active pipeline IPOs matching criteria.")
+        lines.append("")
+
+    lines.append("=====================================")
+    lines.append("🔗 *APEX AI Workstation Client Portal*")
+
+    return "\n".join(lines)
+
+async def dispatch_ipo_whatsapp_summary(dataset: list, upcoming_pipeline: list) -> dict:
+    """Dispatches WhatsApp alert using Meta WhatsApp Cloud API."""
+    try:
+        from backend.daily_wrapup import send_whatsapp_wrapup
+        msg = generate_ipo_whatsapp_summary(dataset, upcoming_pipeline)
+        res = await send_whatsapp_wrapup(msg)
+        return res
+    except Exception as e:
+        print(f"[IPO Engine] Failed to dispatch WhatsApp summary: {e}")
+        return {"status": "error", "message": str(e)}
 
 def clean_nans(obj):
     import math

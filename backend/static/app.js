@@ -60994,6 +60994,73 @@ window.switchIpoSubTab = function(subtab) {
     }
 };
 
+window.triggerIpoCron = async function() {
+    const cronBtn = document.getElementById('ipo-cron-btn');
+    if (cronBtn) cronBtn.innerHTML = '⚡ Running Cron...';
+    try {
+        const res = await fetch('/api/ipo/trigger-cron', { method: 'POST' });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.detail || `HTTP Error ${res.status}`);
+        
+        let msg = `✅ ${data.message || 'IPO Cron executed!'}\n• Synced ${data.listed_count} Listed & ${data.upcoming_count} Upcoming IPOs.`;
+        if (data.whatsapp_dispatch && data.whatsapp_dispatch.status === 'success') {
+            msg += `\n📱 WhatsApp Alert dispatched successfully!`;
+        } else if (data.whatsapp_dispatch && data.whatsapp_dispatch.message) {
+            msg += `\n⚠️ WhatsApp Alert: ${data.whatsapp_dispatch.message}`;
+        }
+        showToast(msg, 'success');
+        if (window.refreshIpoTrackerData) window.refreshIpoTrackerData(false);
+    } catch (err) {
+        console.error("Error triggering IPO cron:", err);
+        showToast(`❌ Cron trigger failed: ${err.message}`, 'error');
+    } finally {
+        if (cronBtn) cronBtn.innerHTML = '⚡ Run Cron & Alert';
+    }
+};
+
+window.testIpoWhatsApp = async function() {
+    const waBtn = document.getElementById('ipo-wa-test-btn');
+    if (waBtn) waBtn.innerHTML = '📱 Sending Alert...';
+    try {
+        const res = await fetch('/api/ipo/test-whatsapp', { method: 'POST' });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.detail || `HTTP Error ${res.status}`);
+        
+        if (data.whatsapp_result && data.whatsapp_result.status === 'success') {
+            showToast(`📱 WhatsApp IPO Radar digest sent successfully! (ID: ${data.whatsapp_result.message_id})`, 'success');
+        } else {
+            const errDetail = data.whatsapp_result ? data.whatsapp_result.message : 'Credentials missing';
+            showToast(`⚠️ WhatsApp alert preview generated, but dispatch returned: ${errDetail}`, 'warning');
+        }
+    } catch (err) {
+        console.error("Error testing WhatsApp alert:", err);
+        showToast(`❌ WhatsApp test failed: ${err.message}`, 'error');
+    } finally {
+        if (waBtn) waBtn.innerHTML = '📱 Test WhatsApp Alert';
+    }
+};
+
+window.toggleIpoGuide = function() {
+    const card = document.getElementById('ipo-strategy-guide-card');
+    const btn = document.getElementById('ipo-guide-toggle-btn');
+    if (!card) return;
+    if (card.style.display === 'none' || !card.style.display) {
+        card.style.display = 'block';
+        if (btn) {
+            btn.style.background = 'linear-gradient(135deg, #6366f1, #4f46e5)';
+            btn.style.color = '#ffffff';
+            btn.style.borderColor = '#6366f1';
+        }
+    } else {
+        card.style.display = 'none';
+        if (btn) {
+            btn.style.background = 'rgba(99, 102, 241, 0.15)';
+            btn.style.color = '#a5b4fc';
+            btn.style.borderColor = 'rgba(99, 102, 241, 0.4)';
+        }
+    }
+};
+
 window.refreshIpoTrackerData = async function(force = false) {
     const tableBody = document.getElementById('ipo-table-body');
     const upcomingBody = document.getElementById('ipo-upcoming-table-body');
@@ -61051,6 +61118,12 @@ window.renderIpoTrackerUI = function(data) {
     
     if (topSectorEl) topSectorEl.textContent = summary.top_sector || 'Mainboard';
     if (sectorSubEl) sectorSubEl.textContent = summary.top_sector_avg_gain !== undefined ? `Avg +${summary.top_sector_avg_gain}% return from issue` : 'Leading sector returns';
+    
+    // Update Cron Run Timestamp Badge
+    const cronBadge = document.getElementById('ipo-last-cron-badge');
+    if (cronBadge && summary.last_cron_run_at) {
+        cronBadge.textContent = `🟢 Last Cron Sync: ${summary.last_cron_run_at}`;
+    }
     
     // Apply filters
     let filtered = ipos.filter(item => {

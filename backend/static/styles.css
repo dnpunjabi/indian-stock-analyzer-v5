@@ -37676,4 +37676,45 @@ body.light-theme .tech-prospectus-close-btn {
     color: #0f172a !important;
 }
 
+/* IPO Strategy Guide Light Theme Visibility Overrides */
+[data-mode="light"] #ipo-strategy-guide-card,
+[data-theme="light"] #ipo-strategy-guide-card {
+    background: #ffffff !important;
+    border: 1px solid #cbd5e1 !important;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06) !important;
+}
+
+[data-mode="light"] #ipo-strategy-guide-card h3,
+[data-theme="light"] #ipo-strategy-guide-card h3 {
+    color: #0f172a !important;
+}
+
+[data-mode="light"] .ipo-guide-col,
+[data-theme="light"] .ipo-guide-col {
+    background: #f8fafc !important;
+    border: 1px solid #cbd5e1 !important;
+}
+
+[data-mode="light"] .ipo-guide-col strong,
+[data-theme="light"] .ipo-guide-col strong {
+    color: #0f172a !important;
+}
+
+[data-mode="light"] .ipo-guide-col span,
+[data-theme="light"] .ipo-guide-col span,
+[data-mode="light"] .ipo-guide-col li,
+[data-theme="light"] .ipo-guide-col li {
+    color: #334155 !important;
+}
+
+[data-mode="light"] .ipo-guide-badge,
+[data-theme="light"] .ipo-guide-badge,
+[data-mode="light"] #ipo-guide-toggle-btn,
+[data-theme="light"] #ipo-guide-toggle-btn {
+    background: rgba(99, 102, 241, 0.1) !important;
+    border: 1px solid rgba(99, 102, 241, 0.3) !important;
+    color: #4f46e5 !important;
+}
+
+
 

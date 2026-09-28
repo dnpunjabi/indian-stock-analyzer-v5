@@ -2291,6 +2291,9 @@ async def startup_warm_caching():
     from backend.events_scraper import run_background_events_scheduler
     asyncio.create_task(run_background_events_scheduler())
 
+    # 5.6 Fire background 12:30 AM IST IPO cron scheduler & WhatsApp alert
+    asyncio.create_task(run_background_ipo_cron_scheduler())
+
     # 5. Initialize Angel One real-time WebSocket feed asynchronously in background
     angel_api_key = os.environ.get("ANGEL_API_KEY", "")
     angel_client_code = os.environ.get("ANGEL_CLIENT_CODE", "")
@@ -2341,7 +2344,45 @@ async def get_llm_configuration():
     return get_llm_config()
 
 # --- IPO Radar & Buy Opportunities API Endpoints ---
-from backend.ipo_engine import get_ipo_tracker_dataset, scrape_upcoming_pipeline
+from backend.ipo_engine import (
+    get_ipo_tracker_dataset, 
+    scrape_upcoming_pipeline,
+    dispatch_ipo_whatsapp_summary
+)
+
+async def run_background_ipo_cron_scheduler():
+    """
+    Runs background IPO sync task automatically every night at 12:30 AM IST (00:30 AM).
+    Scrapes IPORise, updates cache, and dispatches nightly WhatsApp summary alert.
+    """
+    logger.info("[IPO Cron] Background 12:30 AM IST IPO scheduler initialized.")
+    while True:
+        try:
+            now = datetime.now()
+            # Calculate target time: next occurrence of 00:30 IST (12:30 AM)
+            target = now.replace(hour=0, minute=30, second=0, microsecond=0)
+            if now >= target:
+                target += timedelta(days=1)
+                
+            sleep_seconds = (target - now).total_seconds()
+            logger.info(f"[IPO Cron] Next 12:30 AM IST IPO sync scheduled in {sleep_seconds/3600:.2f} hours (at {target.strftime('%Y-%m-%d %H:%M:%S')}).")
+            await asyncio.sleep(sleep_seconds)
+            
+            logger.info("[IPO Cron] Executing automated 12:30 AM IST IPO sync and technical calculation...")
+            data = await asyncio.to_thread(get_ipo_tracker_dataset, force_refresh=True)
+            
+            # Dispatch WhatsApp Summary Alert
+            dataset = data.get("ipos", [])
+            upcoming_pipeline = data.get("upcoming_pipeline", [])
+            res = await dispatch_ipo_whatsapp_summary(dataset, upcoming_pipeline)
+            logger.info(f"[IPO Cron] 12:30 AM IPO Sync complete. WhatsApp dispatch result: {res}")
+            
+        except asyncio.CancelledError:
+            logger.info("[IPO Cron] IPO cron scheduler background task cancelled.")
+            break
+        except Exception as e:
+            logger.error(f"[IPO Cron] Error in 12:30 AM IPO cron scheduler: {e}")
+            await asyncio.sleep(300)
 
 @app.get("/api/ipo/tracker")
 async def get_ipo_tracker_data(
@@ -2369,7 +2410,7 @@ async def get_upcoming_ipo_pipeline():
     """Returns active upcoming, bidding-open, and allotment-pending IPO pipeline."""
     try:
         data = await asyncio.to_thread(scrape_upcoming_pipeline)
-        return JSONResponse(content={"pipeline": data})
+        return JSONResponse(content={"upcoming_pipeline": data, "pipeline": data})
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to fetch upcoming IPO pipeline: {str(e)}")
 
@@ -2387,6 +2428,65 @@ async def get_ipo_detail_profile(symbol: str):
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error retrieving IPO profile for {symbol}: {str(e)}")
+
+@app.post("/api/ipo/trigger-cron")
+async def trigger_manual_ipo_cron():
+    """
+    Manually triggers the nightly IPO cron job on demand:
+    1. Scrapes IPORise & updates cache.
+    2. Recalculates technical setups for Listed & Upcoming IPOs.
+    3. Dispatches WhatsApp summary alert.
+    4. Updates feed engine timestamp.
+    """
+    try:
+        data = await asyncio.to_thread(get_ipo_tracker_dataset, force_refresh=True)
+        dataset = data.get("ipos", [])
+        upcoming_pipeline = data.get("upcoming_pipeline", [])
+        wa_res = await dispatch_ipo_whatsapp_summary(dataset, upcoming_pipeline)
+        
+        try:
+            with get_db() as conn:
+                cursor = conn.cursor()
+                cursor.execute(
+                    "INSERT INTO cron_execution_logs (job_name, run_time, duration_seconds, status, details_json) VALUES (?, CURRENT_TIMESTAMP, ?, ?, ?)",
+                    ("ipo_nightly_radar_cron", 0.0, "SUCCESS", json.dumps({"listed_count": len(dataset), "upcoming_count": len(upcoming_pipeline), "whatsapp": wa_res}))
+                )
+                conn.commit()
+        except Exception as db_err:
+            logger.warning(f"Could not log IPO cron execution to DB: {db_err}")
+            
+        return JSONResponse(content={
+            "status": "success",
+            "message": "IPO cron job executed successfully!",
+            "listed_count": len(dataset),
+            "upcoming_count": len(upcoming_pipeline),
+            "last_cron_run_at": data.get("summary", {}).get("last_cron_run_at"),
+            "whatsapp_dispatch": wa_res
+        })
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"IPO cron trigger failed: {str(e)}")
+
+@app.post("/api/ipo/test-whatsapp")
+async def test_ipo_whatsapp_alert():
+    """
+    Test endpoint to generate and dispatch the WhatsApp IPO Radar Digest using active dataset.
+    Returns preview message and Meta API response status.
+    """
+    try:
+        data = await asyncio.to_thread(get_ipo_tracker_dataset, force_refresh=False)
+        dataset = data.get("ipos", [])
+        upcoming_pipeline = data.get("upcoming_pipeline", [])
+        from backend.ipo_engine import generate_ipo_whatsapp_summary
+        msg_preview = generate_ipo_whatsapp_summary(dataset, upcoming_pipeline)
+        wa_res = await dispatch_ipo_whatsapp_summary(dataset, upcoming_pipeline)
+        
+        return JSONResponse(content={
+            "status": "success" if wa_res.get("status") != "error" else "warning",
+            "message_preview": msg_preview,
+            "whatsapp_result": wa_res
+        })
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"WhatsApp test alert failed: {str(e)}")
 
 @app.post("/api/admin/rebalance")
 async def trigger_index_rebalance():
