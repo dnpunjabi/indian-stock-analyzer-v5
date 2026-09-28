@@ -60920,6 +60920,15 @@ function populateIpoSectorDropdown(selectElemId, sectorArray, currentSelectedVal
     }
 }
 
+window.openIpoAccordion = function() {
+    const body = document.getElementById('ipo-radar-accordion');
+    const arrow = document.getElementById('ipo-radar-accordion-arrow');
+    if (body) {
+        body.style.display = 'block';
+        if (arrow) arrow.style.transform = 'rotate(180deg)';
+    }
+};
+
 window.switchIpoSubTab = function(subtab) {
     currentIpoSubTab = subtab;
     const btnListed = document.getElementById('ipo-subtab-btn-listed');
@@ -60927,14 +60936,51 @@ window.switchIpoSubTab = function(subtab) {
     const containerListed = document.getElementById('ipo-listed-view-container');
     const containerUpcoming = document.getElementById('ipo-upcoming-view-container');
     
+    // Sidebar nested buttons
+    const subListedSidebarBtn = document.getElementById('tab-ipo-sub-listed-btn');
+    const subUpcomingSidebarBtn = document.getElementById('tab-ipo-sub-upcoming-btn');
+    
+    // Auto-open sidebar accordion if user switches subtabs
+    window.openIpoAccordion();
+    
     if (subtab === 'listed') {
-        if (btnListed) btnListed.className = 'subtab-pill active';
-        if (btnUpcoming) btnUpcoming.className = 'subtab-pill';
+        if (btnListed) {
+            btnListed.className = 'ipo-chip active';
+            btnListed.style.background = 'linear-gradient(135deg, rgba(16, 185, 129, 0.25), rgba(5, 150, 105, 0.35))';
+            btnListed.style.border = '1px solid #10b981';
+            btnListed.style.color = '#ffffff';
+            btnListed.style.boxShadow = '0 4px 14px rgba(16, 185, 129, 0.3)';
+        }
+        if (btnUpcoming) {
+            btnUpcoming.className = 'ipo-chip';
+            btnUpcoming.style.background = 'rgba(30, 41, 59, 0.5)';
+            btnUpcoming.style.border = '1px solid rgba(255, 255, 255, 0.1)';
+            btnUpcoming.style.color = '#94a3b8';
+            btnUpcoming.style.boxShadow = 'none';
+        }
+        if (subListedSidebarBtn) subListedSidebarBtn.classList.add('active');
+        if (subUpcomingSidebarBtn) subUpcomingSidebarBtn.classList.remove('active');
+
         if (containerListed) containerListed.style.display = 'block';
         if (containerUpcoming) containerUpcoming.style.display = 'none';
     } else {
-        if (btnListed) btnListed.className = 'subtab-pill';
-        if (btnUpcoming) btnUpcoming.className = 'subtab-pill active';
+        if (btnListed) {
+            btnListed.className = 'ipo-chip';
+            btnListed.style.background = 'rgba(30, 41, 59, 0.5)';
+            btnListed.style.border = '1px solid rgba(255, 255, 255, 0.1)';
+            btnListed.style.color = '#94a3b8';
+            btnListed.style.boxShadow = 'none';
+        }
+        if (btnUpcoming) {
+            btnUpcoming.className = 'ipo-chip active';
+            btnUpcoming.style.background = 'linear-gradient(135deg, rgba(56, 189, 248, 0.25), rgba(14, 165, 233, 0.35))';
+            btnUpcoming.style.border = '1px solid #38bdf8';
+            btnUpcoming.style.color = '#ffffff';
+            btnUpcoming.style.boxShadow = '0 4px 14px rgba(56, 189, 248, 0.3)';
+        }
+        if (subListedSidebarBtn) subListedSidebarBtn.classList.remove('active');
+        if (subUpcomingSidebarBtn) subUpcomingSidebarBtn.classList.add('active');
+
         if (containerListed) containerListed.style.display = 'none';
         if (containerUpcoming) containerUpcoming.style.display = 'block';
     }
@@ -60955,7 +61001,7 @@ window.refreshIpoTrackerData = async function(force = false) {
     
     if (refreshBtn) refreshBtn.innerHTML = '🔄 Syncing Scrapers...';
     if (tableBody) tableBody.innerHTML = '<tr><td colspan="8" style="text-align: center; padding: 40px; color: var(--text-muted);">Fetching 12-Month IPO listings & live technical setups...</td></tr>';
-    if (upcomingBody) upcomingBody.innerHTML = '<tr><td colspan="8" style="text-align: center; padding: 40px; color: var(--text-muted);">Fetching upcoming IPO pipeline & live GMP data...</td></tr>';
+    if (upcomingBody) upcomingBody.innerHTML = '<tr><td colspan="9" style="text-align: center; padding: 40px; color: var(--text-muted);">Fetching upcoming IPO pipeline & live GMP data...</td></tr>';
     
     try {
         const url = `/api/ipo/tracker${force ? '?force_refresh=true' : ''}`;
@@ -60969,7 +61015,7 @@ window.refreshIpoTrackerData = async function(force = false) {
     } catch (err) {
         console.error('Error loading IPO tracker dataset:', err);
         if (tableBody) tableBody.innerHTML = `<tr><td colspan="8" style="text-align: center; padding: 40px; color: #ef4444;">Failed to load IPO data: ${err.message}</td></tr>`;
-        if (upcomingBody) upcomingBody.innerHTML = `<tr><td colspan="8" style="text-align: center; padding: 40px; color: #ef4444;">Failed to load upcoming IPO data: ${err.message}</td></tr>`;
+        if (upcomingBody) upcomingBody.innerHTML = `<tr><td colspan="9" style="text-align: center; padding: 40px; color: #ef4444;">Failed to load upcoming IPO data: ${err.message}</td></tr>`;
     } finally {
         if (refreshBtn) refreshBtn.innerHTML = '🔄 Refresh Scrapers';
     }
@@ -61197,6 +61243,11 @@ window.renderUpcomingPipelineUI = function(pipelineList) {
         }
     });
     
+    let totalCapitalCr = 0;
+    pipelineList.forEach(i => {
+        totalCapitalCr += (parseFloat(i.issue_size_cr) || 0);
+    });
+    
     if (totalCountEl) totalCountEl.textContent = totalCount;
     if (biddingCountEl) biddingCountEl.textContent = biddingCount;
     if (topGmpEl) {
@@ -61208,16 +61259,22 @@ window.renderUpcomingPipelineUI = function(pipelineList) {
             topGmpEl.textContent = 'N/A';
         }
     }
-    if (capitalEl) capitalEl.textContent = `${totalCount} Active Issues`;
+    if (capitalEl) {
+        if (totalCapitalCr > 0) {
+            capitalEl.textContent = `₹${Math.round(totalCapitalCr).toLocaleString('en-IN')} Cr`;
+        } else {
+            capitalEl.textContent = 'N/A';
+        }
+    }
     
     // Populate Sector Filter Dropdown
-    populateIpoSectorDropdown('ipo-sector-filter-select', pipelineList.map(i => i.sector), currentIpoSectorFilter);
+    populateIpoSectorDropdown('ipo-upcoming-sector-filter-select', pipelineList.map(i => i.sector), currentUpcomingSectorFilter);
     
     // Filter pipeline list
     let filtered = pipelineList.filter(item => {
         // Sector Filter
-        if (currentIpoSectorFilter && currentIpoSectorFilter !== 'all') {
-            if ((item.sector || '').toLowerCase() !== currentIpoSectorFilter.toLowerCase()) return false;
+        if (currentUpcomingSectorFilter && currentUpcomingSectorFilter !== 'all') {
+            if ((item.sector || '').toLowerCase() !== currentUpcomingSectorFilter.toLowerCase()) return false;
         }
 
         const st = (item.status || item.status_badge || '').toLowerCase();
@@ -61244,11 +61301,11 @@ window.renderUpcomingPipelineUI = function(pipelineList) {
         }
     }
     
-    // Render Desktop Table
+    // Render Desktop Table (9 columns)
     const tableBody = document.getElementById('ipo-upcoming-table-body');
     if (tableBody) {
         if (filtered.length === 0) {
-            tableBody.innerHTML = '<tr><td colspan="8" style="text-align: center; padding: 40px; color: var(--text-muted);">No upcoming or active IPOs match the selected filter.</td></tr>';
+            tableBody.innerHTML = '<tr><td colspan="9" style="text-align: center; padding: 40px; color: var(--text-muted);">No upcoming or active IPOs match the selected filter.</td></tr>';
         } else {
             tableBody.innerHTML = filtered.map(item => {
                 let statusBadgeColor = '#38bdf8'; // blue default
@@ -61269,40 +61326,77 @@ window.renderUpcomingPipelineUI = function(pipelineList) {
                 const issueSzStr = item.issue_size || (item.issue_size_cr ? `₹${item.issue_size_cr} Cr` : 'N/A');
                 const subStr = item.subscription_times ? (typeof item.subscription_times === 'number' ? `${item.subscription_times}x` : item.subscription_times) : 'N/A';
                 const displayStatus = item.status_badge || item.status || 'Active';
+                const sectorName = item.sector || 'Mainboard';
 
                 return `
                     <tr style="border-bottom: 1px solid var(--border-glass); transition: background 0.15s;" onmouseover="this.style.background='rgba(255,255,255,0.02)'" onmouseout="this.style.background='transparent'">
+                        <!-- 1. Company / Symbol -->
                         <td style="padding: 14px;">
                             <div style="font-weight: 800; font-family: 'Outfit', sans-serif; color: var(--text-primary); font-size: 14px;">${item.company_name}</div>
                             <div style="font-size: 11.5px; color: var(--text-muted); font-weight: 500;">${item.symbol || 'Mainboard IPO'}</div>
                         </td>
+                        
+                        <!-- 2. Sector -->
                         <td style="padding: 14px;">
-                            <span style="background: ${statusBadgeColor}20; color: ${statusBadgeColor}; border: 1px solid ${statusBadgeColor}50; padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: 700;">
+                            <span style="background: rgba(56, 189, 248, 0.08); border: 1px solid rgba(56, 189, 248, 0.2); color: #38bdf8; padding: 3px 8px; border-radius: 6px; font-size: 11px; font-weight: 600; white-space: nowrap;">
+                                🏢 ${sectorName}
+                            </span>
+                        </td>
+
+                        <!-- 3. Status -->
+                        <td style="padding: 14px;">
+                            <span style="background: ${statusBadgeColor}20; color: ${statusBadgeColor}; border: 1px solid ${statusBadgeColor}50; padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: 700; white-space: nowrap;">
                                 ${displayStatus}
                             </span>
                         </td>
-                        <td style="padding: 14px; font-size: 13px; font-weight: 700; font-family: 'JetBrains Mono', monospace; color: var(--text-primary);">
+
+                        <!-- 4. Offer Price Band -->
+                        <td style="padding: 14px; font-size: 13px; font-weight: 700; font-family: 'JetBrains Mono', monospace; color: var(--text-primary); white-space: nowrap;">
                             ${priceBandStr}
                         </td>
-                        <td style="padding: 14px; font-weight: 700; font-family: 'JetBrains Mono', monospace; color: ${gmpColor};">
+
+                        <!-- 5. GMP (₹ / %) -->
+                        <td style="padding: 14px; font-weight: 700; font-family: 'JetBrains Mono', monospace; color: ${gmpColor}; white-space: nowrap;">
                             ${gmpStr}
                         </td>
-                        <td style="padding: 14px; font-size: 12px; color: var(--text-secondary); font-family: 'JetBrains Mono', monospace;">
-                            ${item.open_date || 'TBA'} - ${item.close_date || 'TBA'}
+
+                        <!-- 6. Sub. Demand -->
+                        <td style="padding: 14px; font-weight: 700; color: #a855f7; font-family: 'JetBrains Mono', monospace; white-space: nowrap;">
+                            ${subStr}
                         </td>
-                        <td style="padding: 14px; font-size: 12px; color: var(--text-secondary); font-family: 'JetBrains Mono', monospace;">
-                            ${item.listing_date || 'TBA'}
-                        </td>
-                        <td style="padding: 14px; font-size: 12px; font-family: 'JetBrains Mono', monospace; color: var(--text-muted);">
+
+                        <!-- 7. Issue Size (Cr) -->
+                        <td style="padding: 14px; font-size: 12px; font-family: 'JetBrains Mono', monospace; color: var(--text-muted); white-space: nowrap;">
                             ${issueSzStr}
                         </td>
-                        <td style="padding: 14px; text-align: right; font-weight: 700; color: #a855f7; font-family: 'JetBrains Mono', monospace;">
-                            ${subStr}
+
+                        <!-- 8. Bidding Window -->
+                        <td style="padding: 14px; font-size: 12px; color: var(--text-secondary); font-family: 'JetBrains Mono', monospace; white-space: nowrap;">
+                            ${item.open_date || 'TBA'} - ${item.close_date || 'TBA'}
+                        </td>
+
+                        <!-- 9. Listing Date -->
+                        <td style="padding: 14px; font-size: 12px; color: var(--text-secondary); font-family: 'JetBrains Mono', monospace; white-space: nowrap;">
+                            ${item.listing_date || 'TBA'}
                         </td>
                     </tr>
                 `;
             }).join('');
         }
+    }
+};
+
+window.setIpoSectorFilter = function(sector) {
+    currentIpoSectorFilter = sector || 'all';
+    if (rawIpoTrackerData) {
+        renderIpoTrackerUI(rawIpoTrackerData);
+    }
+};
+
+window.setUpcomingSectorFilter = function(sector) {
+    currentUpcomingSectorFilter = sector || 'all';
+    if (rawIpoTrackerData) {
+        renderUpcomingPipelineUI(rawIpoTrackerData.upcoming_pipeline || []);
     }
 };
 

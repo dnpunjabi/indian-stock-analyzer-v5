@@ -398,9 +398,18 @@ def scrape_upcoming_pipeline() -> list:
                 table_0 = tables[0]
                 rows = table_0.find_all('tr')
                 for row in rows[1:]:
-                    cols = [clean_str(td.get_text(separator=' ', strip=True)) for td in row.find_all(['td', 'th'])]
+                    tds = row.find_all(['td', 'th'])
+                    cols = [clean_str(td.get_text(separator=' ', strip=True)) for td in tds]
                     if len(cols) >= 8:
-                        raw_name_cell = cols[0]
+                        # Extract cell 0 strings to get company name & raw sector subtitle
+                        cell0_strings = [clean_str(s) for s in tds[0].stripped_strings if clean_str(s)]
+                        raw_name_cell = cell0_strings[0] if cell0_strings else cols[0]
+                        raw_sector = ""
+                        if len(cell0_strings) > 1:
+                            potential = cell0_strings[1]
+                            if potential.lower() not in ['upcoming', 'ongoing', 'closed', 'listed', 'mainboard', 'sme']:
+                                raw_sector = potential
+
                         gmp_cell = cols[1]
                         issue_price_cell = cols[2]
                         issue_size_cell = cols[3]
@@ -410,8 +419,8 @@ def scrape_upcoming_pipeline() -> list:
                         close_cell = cols[7]
                         listing_cell = cols[8] if len(cols) > 8 else ""
                         
-                        row_lower = raw_name_cell.lower()
-                        if 'listed' in row_lower:
+                        row_lower = clean_str(row.get_text()).lower()
+                        if 'listed' in row_lower and not any(k in row_lower for k in ['upcoming', 'ongoing', 'closed']):
                             continue
                             
                         if 'upcoming' in row_lower:
@@ -435,9 +444,18 @@ def scrape_upcoming_pipeline() -> list:
                         clean_name = re.sub(r'\b(Upcoming|Ongoing|Closed|Listed|MAINBOARD)\b', '', clean_name, flags=re.IGNORECASE).strip()
                         
                         low_p, high_p = parse_price_band(issue_price_cell)
-                        issue_sz = float(re.search(r'\d+\.?\d*', issue_size_cell).group(0)) if re.search(r'\d+\.?\d*', issue_size_cell) else 0.0
+                        
+                        # Fix comma in issue size (e.g. "₹1,092 Cr" -> 1092.0)
+                        size_clean = issue_size_cell.replace(',', '')
+                        size_match = re.search(r'([\d\.]+)', size_clean)
+                        issue_sz = float(size_match.group(1)) if size_match else 0.0
+                        
                         lot_sz = int(re.search(r'\d+', lot_size_cell).group(0)) if re.search(r'\d+', lot_size_cell) else 0
-                        sub_times = float(re.search(r'\d+\.?\d*', sub_cell).group(0)) if re.search(r'\d+\.?\d*', sub_cell) else 0.0
+                        
+                        # Fix comma in subscription (e.g. "36.21x")
+                        sub_clean = sub_cell.replace(',', '')
+                        sub_match = re.search(r'([\d\.]+)', sub_clean)
+                        sub_times = float(sub_match.group(1)) if sub_match else 0.0
                         
                         gmp_rs, gmp_pct = 0.0, 0.0
                         gmp_match = re.search(r'(\d+)\s*\(([\d\.]+)\%\)', gmp_cell)
@@ -445,10 +463,11 @@ def scrape_upcoming_pipeline() -> list:
                             gmp_rs = float(gmp_match.group(1))
                             gmp_pct = float(gmp_match.group(2))
                             
+                        sym = derive_ticker_from_name(clean_name or raw_name_cell)
                         pipeline.append({
                             "company_name": clean_name or raw_name_cell,
-                            "symbol": derive_ticker_from_name(clean_name or raw_name_cell),
-                            "sector": resolve_ipo_sector(derive_ticker_from_name(clean_name or raw_name_cell), clean_name or raw_name_cell),
+                            "symbol": sym,
+                            "sector": resolve_ipo_sector(sym, clean_name or raw_name_cell, raw_sector),
                             "status": status,
                             "status_badge": status_badge,
                             "status_color": status_color,
