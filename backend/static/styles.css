@@ -37539,4 +37539,141 @@ body.light-theme .tech-prospectus-close-btn {
     }
 }
 
+/* ==========================================================================
+   12-MONTH IPO RADAR & BUY OPPORTUNITY FINDER STYLES
+   ========================================================================== */
+.ipo-chip {
+    background: rgba(15, 23, 42, 0.6);
+    border: 1px solid var(--border-glass, rgba(255, 255, 255, 0.12));
+    color: var(--text-secondary, #94a3b8);
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease-in-out;
+}
+.ipo-chip:hover {
+    border-color: #10b981;
+    color: var(--text-primary, #f8fafc);
+}
+.ipo-chip.active {
+    background: rgba(16, 185, 129, 0.18);
+    border-color: #10b981;
+    color: #34d399;
+    box-shadow: 0 0 10px rgba(16, 185, 129, 0.2);
+}
+
+.ipo-score-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px;
+    border-radius: 12px;
+    font-weight: 700;
+    font-size: 11.5px;
+}
+
+@media (min-width: 769px) {
+    .mobile-only-view {
+        display: none !important;
+    }
+}
+@media (max-width: 768px) {
+    .desktop-only-view {
+        display: none !important;
+    }
+    .mobile-only-view {
+        display: flex !important;
+    }
+}
+
+/* ==========================================================================
+   LIGHT THEME CONTRAST & VISIBILITY OVERRIDES FOR IPO RADAR
+   ========================================================================== */
+[data-mode="light"] #tab-ipo-radar,
+[data-theme="light"] #tab-ipo-radar {
+    color: #0f172a !important;
+}
+
+[data-mode="light"] #tab-ipo-radar .news-hero-header,
+[data-theme="light"] #tab-ipo-radar .news-hero-header {
+    background: linear-gradient(135deg, #ffffff, #f0fdf4, #ffffff) !important;
+    border: 1px solid #cbd5e1 !important;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06) !important;
+}
+
+[data-mode="light"] #tab-ipo-radar .news-hero-header h2,
+[data-theme="light"] #tab-ipo-radar .news-hero-header h2 {
+    color: #0f172a !important;
+}
+
+[data-mode="light"] #tab-ipo-radar .news-hero-header p,
+[data-theme="light"] #tab-ipo-radar .news-hero-header p {
+    color: #334155 !important;
+}
+
+[data-mode="light"] #tab-ipo-radar .card,
+[data-theme="light"] #tab-ipo-radar .card {
+    background: #ffffff !important;
+    border: 1px solid #e2e8f0 !important;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.04) !important;
+    color: #0f172a !important;
+}
+
+[data-mode="light"] #tab-ipo-radar #ipo-kpi-total-count,
+[data-theme="light"] #tab-ipo-radar #ipo-kpi-total-count {
+    color: #0f172a !important;
+}
+
+[data-mode="light"] #tab-ipo-radar .ipo-chip,
+[data-theme="light"] #tab-ipo-radar .ipo-chip {
+    background: #f1f5f9 !important;
+    border: 1px solid #cbd5e1 !important;
+    color: #334155 !important;
+}
+
+[data-mode="light"] #tab-ipo-radar .ipo-chip:hover,
+[data-theme="light"] #tab-ipo-radar .ipo-chip:hover {
+    border-color: #10b981 !important;
+    color: #059669 !important;
+}
+
+[data-mode="light"] #tab-ipo-radar .ipo-chip.active,
+[data-theme="light"] #tab-ipo-radar .ipo-chip.active {
+    background: #d1fae5 !important;
+    border-color: #10b981 !important;
+    color: #065f46 !important;
+    box-shadow: 0 2px 8px rgba(16, 185, 129, 0.2) !important;
+}
+
+[data-mode="light"] #tab-ipo-radar #ipo-search-input,
+[data-theme="light"] #tab-ipo-radar #ipo-search-input {
+    background: #ffffff !important;
+    border: 1px solid #cbd5e1 !important;
+    color: #0f172a !important;
+}
+
+[data-mode="light"] #tab-ipo-radar #ipo-search-input::placeholder,
+[data-theme="light"] #tab-ipo-radar #ipo-search-input::placeholder {
+    color: #64748b !important;
+}
+
+[data-mode="light"] #tab-ipo-radar table,
+[data-theme="light"] #tab-ipo-radar table {
+    color: #0f172a !important;
+}
+
+[data-mode="light"] #tab-ipo-radar th,
+[data-theme="light"] #tab-ipo-radar th {
+    color: #475569 !important;
+    border-bottom: 2px solid #e2e8f0 !important;
+}
+
+[data-mode="light"] #tab-ipo-radar td,
+[data-theme="light"] #tab-ipo-radar td {
+    border-bottom: 1px solid #f1f5f9 !important;
+    color: #0f172a !important;
+}
+
 

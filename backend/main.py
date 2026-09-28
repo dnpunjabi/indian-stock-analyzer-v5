@@ -2340,6 +2340,54 @@ async def get_llm_configuration():
     """Retrieve LLM configuration parameters to display active models on the frontend."""
     return get_llm_config()
 
+# --- IPO Radar & Buy Opportunities API Endpoints ---
+from backend.ipo_engine import get_ipo_tracker_dataset, scrape_upcoming_pipeline
+
+@app.get("/api/ipo/tracker")
+async def get_ipo_tracker_data(
+    force_refresh: bool = Query(False, description="Force re-scrape IPO sources"),
+    sector: Optional[str] = Query(None, description="Filter by sector"),
+    signal: Optional[str] = Query(None, description="Filter by opportunity signal: buy, watchlist, overextended")
+):
+    """
+    Returns 12-Month IPO dataset with technical performance metrics,
+    quantitative buy opportunity scores (0-100), and summary KPI stats.
+    """
+    try:
+        data = await asyncio.to_thread(
+            get_ipo_tracker_dataset,
+            force_refresh=force_refresh,
+            sector_filter=sector,
+            signal_filter=signal
+        )
+        return JSONResponse(content=data)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to fetch IPO tracker data: {str(e)}")
+
+@app.get("/api/ipo/upcoming")
+async def get_upcoming_ipo_pipeline():
+    """Returns active upcoming, bidding-open, and allotment-pending IPO pipeline."""
+    try:
+        data = await asyncio.to_thread(scrape_upcoming_pipeline)
+        return JSONResponse(content={"pipeline": data})
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to fetch upcoming IPO pipeline: {str(e)}")
+
+@app.get("/api/ipo/detail/{symbol}")
+async def get_ipo_detail_profile(symbol: str):
+    """Retrieve detailed profile and indicators for a single IPO symbol."""
+    try:
+        data = await asyncio.to_thread(get_ipo_tracker_dataset, force_refresh=False)
+        symbol_clean = symbol.upper().replace('.NS', '')
+        match = next((item for item in data.get("ipos", []) if item["symbol"].upper() == symbol_clean), None)
+        if not match:
+            raise HTTPException(status_code=404, detail=f"IPO symbol '{symbol}' not found in 12-Month tracker dataset.")
+        return JSONResponse(content=match)
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error retrieving IPO profile for {symbol}: {str(e)}")
+
 @app.post("/api/admin/rebalance")
 async def trigger_index_rebalance():
     """Manual administration endpoint to fetch official NSE index constituent listings."""

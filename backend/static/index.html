@@ -1747,6 +1747,9 @@
                     <button class="nav-btn" id="tab-sector-radar-btn-desktop" data-tab-key="sector-radar" data-category="magenta" onclick="window.switchTab && window.switchTab('sector-radar')" title="Sector Momentum Radar">
                         <span class="btn-icon">🔥</span><span class="btn-text">Sector Radar</span>
                     </button>
+                    <button class="nav-btn" id="tab-ipo-radar-btn-desktop" data-tab-key="ipo-radar" data-category="emerald" onclick="window.switchTab && window.switchTab('ipo-radar')" title="12-Month IPO Buy Opportunities">
+                        <span class="btn-icon">🚀</span><span class="btn-text">IPO Radar</span>
+                    </button>
                     <button class="nav-btn" id="tab-market-news-btn-desktop" data-tab-key="market-news" data-category="emerald" onclick="window.switchTab && window.switchTab('market-news')" title="Global Market News Feed">
                         <span class="btn-icon">📡</span><span class="btn-text">News</span>
                     </button>
@@ -1882,6 +1885,9 @@
                 </button>
                 <button class="nav-btn" id="tab-sector-radar-btn" data-title="Sector Momentum Radar">
                     <span class="btn-icon">🔥</span> <span class="btn-text">Sector Momentum Radar</span>
+                </button>
+                <button class="nav-btn" id="tab-ipo-radar-btn" data-title="12-Month IPO Buy Opportunities">
+                    <span class="btn-icon">🚀</span> <span class="btn-text">12M IPO Buy Opportunities</span>
                 </button>
                 <button class="nav-btn" id="tab-technical-scans-btn" data-title="Technical Scans & Breakouts">
                     <span class="btn-icon">⚡</span> <span class="btn-text">Technical Scans & Breakouts</span>
@@ -8089,6 +8095,227 @@
                 </div>
             </section>
 
+
+            <!-- SECTION: 12-MONTH IPO ANALYTICS & BUY OPPORTUNITY RADAR -->
+            <section class="workspace-tab" id="tab-ipo-radar" style="display: none; font-family: 'Inter', sans-serif;">
+                <!-- Primary Sub-Tab Navigation Bar -->
+                <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 20px; border-bottom: 1px solid var(--border-glass); padding-bottom: 14px;">
+                    <button id="ipo-subtab-btn-listed" class="ipo-chip active" onclick="window.switchIpoSubTab && window.switchIpoSubTab('listed')" style="padding: 10px 20px; font-size: 13.5px; font-weight: 700; border-radius: 10px;">
+                        📊 12M Listed IPO Radar (Technical Breakouts)
+                    </button>
+                    <button id="ipo-subtab-btn-upcoming" class="ipo-chip" onclick="window.switchIpoSubTab && window.switchIpoSubTab('upcoming')" style="padding: 10px 20px; font-size: 13.5px; font-weight: 700; border-radius: 10px;">
+                        🔥 Upcoming & Pipeline Watch (GMP & Allotment)
+                    </button>
+                </div>
+
+                <!-- SUB-VIEW 1: LISTED 12M IPO RADAR -->
+                <div id="ipo-listed-view-container">
+                    <!-- Hero Header Banner -->
+                    <div class="news-hero-header no-print" style="margin-bottom: 24px; border-radius: 16px; background: linear-gradient(135deg, rgba(15, 23, 42, 0.95), rgba(16, 185, 129, 0.1), rgba(15, 23, 42, 0.95)); border: 1px solid rgba(16, 185, 129, 0.35); backdrop-filter: blur(20px); padding: 22px 28px; box-shadow: 0 12px 32px -4px rgba(0, 0, 0, 0.5); position: relative; overflow: hidden; font-family: 'Outfit', 'Inter', sans-serif;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px; position: relative; z-index: 2;">
+                            <div>
+                                <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 6px;">
+                                    <span style="font-size: 24px;">🚀</span>
+                                    <h2 style="margin: 0; font-size: 22px; font-weight: 800; color: #f8fafc; letter-spacing: -0.02em;">12-Month IPO Buy Opportunities Radar</h2>
+                                    <span style="background: rgba(16, 185, 129, 0.2); border: 1px solid #10b981; color: #34d399; font-size: 11px; font-weight: 700; padding: 3px 10px; border-radius: 20px; text-transform: uppercase;">Quantitative Screening</span>
+                                </div>
+                                <p style="margin: 0; font-size: 13px; color: #94a3b8; max-width: 750px; line-height: 1.5;">
+                                    Algorithmic evaluation of Indian mainboard IPOs listed in the last 365 days. Pinpoint high-probability swing buy opportunities based on <strong>IPO Base Breakouts</strong>, <strong>20 EMA Pullbacks</strong>, and <strong>Anchor Investor Lock-in Expiries</strong>.
+                                </p>
+                            </div>
+                            <div style="display: flex; gap: 10px;">
+                                <button id="ipo-refresh-btn" onclick="window.refreshIpoTrackerData && window.refreshIpoTrackerData(true)" class="btn-primary" style="background: linear-gradient(135deg, #10b981, #059669); border: none; padding: 10px 18px; border-radius: 8px; color: white; font-weight: 700; font-size: 13px; cursor: pointer; display: flex; align-items: center; gap: 6px; box-shadow: 0 4px 14px rgba(16, 185, 129, 0.3);">
+                                    🔄 Refresh Scrapers
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- KPI Metric Cards Row -->
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin-bottom: 24px;">
+                        <div class="card" style="background: var(--bg-card); border: 1px solid var(--border-glass); border-radius: 12px; padding: 16px 20px; display: flex; flex-direction: column; gap: 6px;">
+                            <div style="font-size: 12px; color: var(--text-muted); font-weight: 600; text-transform: uppercase;">Total 12M Mainboard IPOs</div>
+                            <div id="ipo-kpi-total-count" style="font-size: 26px; font-weight: 800; color: var(--text-primary); font-family: 'Outfit', sans-serif;">--</div>
+                            <div id="ipo-kpi-breadth-sub" style="font-size: 11.5px; color: var(--text-secondary);">-- Gainers • -- Losers</div>
+                        </div>
+
+                        <div class="card" style="background: var(--bg-card); border: 1px solid var(--border-glass); border-radius: 12px; padding: 16px 20px; display: flex; flex-direction: column; gap: 6px;">
+                            <div style="font-size: 12px; color: var(--text-muted); font-weight: 600; text-transform: uppercase;">Near All-Time High (&lt;5%)</div>
+                            <div id="ipo-kpi-near-ath-count" style="font-size: 26px; font-weight: 800; color: #10b981; font-family: 'Outfit', sans-serif;">--</div>
+                            <div id="ipo-kpi-near-ath-sub" style="font-size: 11.5px; color: var(--text-secondary);">Trading within 5% of ATH peak</div>
+                        </div>
+
+                        <div class="card" style="background: var(--bg-card); border: 1px solid var(--border-glass); border-radius: 12px; padding: 16px 20px; display: flex; flex-direction: column; gap: 6px;">
+                            <div style="font-size: 12px; color: var(--text-muted); font-weight: 600; text-transform: uppercase;">Conviction Buy Signals</div>
+                            <div id="ipo-kpi-active-buys" style="font-size: 26px; font-weight: 800; color: #34d399; font-family: 'Outfit', sans-serif;">--</div>
+                            <div id="ipo-kpi-signals-sub" style="font-size: 11.5px; color: var(--text-secondary);">-- Base Watchlists • -- Discovery</div>
+                        </div>
+
+                        <div class="card" style="background: var(--bg-card); border: 1px solid var(--border-glass); border-radius: 12px; padding: 16px 20px; display: flex; flex-direction: column; gap: 6px;">
+                            <div style="font-size: 12px; color: var(--text-muted); font-weight: 600; text-transform: uppercase;">Top Outperforming Sector</div>
+                            <div id="ipo-kpi-top-sector" style="font-size: 18px; font-weight: 800; color: #38bdf8; font-family: 'Outfit', sans-serif; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">--</div>
+                            <div id="ipo-kpi-sector-sub" style="font-size: 11.5px; color: var(--text-secondary);">Leading sector returns</div>
+                        </div>
+                    </div>
+
+                    <!-- Filter & Search Controls Bar -->
+                    <div class="card" style="background: var(--bg-card); border: 1px solid var(--border-glass); border-radius: 14px; padding: 16px 20px; margin-bottom: 24px; display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 14px;">
+                        <!-- Filter Chips & Sector Dropdown -->
+                        <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;" id="ipo-signal-chips-container">
+                            <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                                <button class="ipo-chip active" data-signal="all" onclick="window.setIpoSignalFilter && window.setIpoSignalFilter('all', this)">All IPOs</button>
+                                <button class="ipo-chip" data-signal="buy" onclick="window.setIpoSignalFilter && window.setIpoSignalFilter('buy', this)">🚀 Strong Buy (Score 80+)</button>
+                                <button class="ipo-chip" data-signal="watchlist" onclick="window.setIpoSignalFilter && window.setIpoSignalFilter('watchlist', this)">📦 Base Building (60-79)</button>
+                                <button class="ipo-chip" data-signal="discovery" onclick="window.setIpoSignalFilter && window.setIpoSignalFilter('discovery', this)">🌱 Initial Discovery (&lt;30D)</button>
+                                <button class="ipo-chip" data-signal="below_issue" onclick="window.setIpoSignalFilter && window.setIpoSignalFilter('below_issue', this)">⚠️ Below Issue Price</button>
+                            </div>
+                            <div style="display: flex; align-items: center; gap: 6px; background: rgba(0,0,0,0.25); border: 1px solid var(--border-glass); padding: 4px 10px; border-radius: 8px;">
+                                <span style="font-size: 12px; color: var(--text-muted); font-weight: 600; white-space: nowrap;">🏢 Sector:</span>
+                                <select id="ipo-sector-filter-select" onchange="window.setIpoSectorFilter && window.setIpoSectorFilter(this.value)" style="background: transparent; border: none; color: #38bdf8; font-weight: 700; font-size: 12.5px; outline: none; cursor: pointer; max-width: 220px;">
+                                    <option value="all" style="background: var(--bg-card); color: var(--text-primary);">All Sectors</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- Search Input & Record Count -->
+                        <div style="display: flex; align-items: center; gap: 12px; flex-grow: 1; max-width: 450px; justify-content: flex-end;">
+                            <span id="ipo-table-record-count" style="font-size: 12px; font-weight: 700; color: #34d399; background: rgba(16, 185, 129, 0.15); border: 1px solid rgba(16, 185, 129, 0.4); padding: 7px 14px; border-radius: 20px; white-space: nowrap;">Showing 201 Listed IPOs</span>
+                            <input type="text" id="ipo-search-input" placeholder="Search by Symbol or Name..." oninput="window.filterIpoTableSearch && window.filterIpoTableSearch(this.value)" style="width: 100%; max-width: 260px; background: var(--bg-input); border: 1px solid var(--border-glass); color: var(--text-primary); padding: 9px 14px; border-radius: 8px; font-size: 13px; outline: none;">
+                        </div>
+                    </div>
+
+                    <!-- Desktop Table View -->
+                    <div class="card desktop-only-view" style="background: var(--bg-card); border: 1px solid var(--border-glass); border-radius: 14px; padding: 20px; overflow-x: auto; margin-bottom: 30px;">
+                        <table class="data-table" style="width: 100%; border-collapse: collapse; text-align: left; font-size: 13px;">
+                            <thead>
+                                <tr style="border-bottom: 1px solid var(--border-glass); color: var(--text-muted); font-size: 11.5px; text-transform: uppercase;">
+                                    <th style="padding: 12px 14px;">Symbol / Company</th>
+                                    <th style="padding: 12px 14px;">Sector</th>
+                                    <th style="padding: 12px 14px;">Listing Date</th>
+                                    <th style="padding: 12px 14px;">Issue Px ➔ CMP</th>
+                                    <th style="padding: 12px 14px;">Issue Return %</th>
+                                    <th style="padding: 12px 14px;">ATH Drawdown</th>
+                                    <th style="padding: 12px 14px;">Setup Stage</th>
+                                    <th style="padding: 12px 14px;">Buy Opportunity Rating</th>
+                                    <th style="padding: 12px 14px; text-align: right;">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="ipo-table-body">
+                                <tr>
+                                    <td colspan="9" style="text-align: center; padding: 40px; color: var(--text-muted);">
+                                        Loading 12-Month IPO dataset and quantitative ratings...
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Mobile Touch Card Stream View -->
+                    <div id="ipo-mobile-card-stream" class="mobile-only-view" style="display: flex; flex-direction: column; gap: 14px; margin-bottom: 40px;">
+                        <div style="text-align: center; padding: 30px; color: var(--text-muted); font-size: 13px;">
+                            Loading Mobile IPO Stream...
+                        </div>
+                    </div>
+                </div>
+
+                <!-- SUB-VIEW 2: UPCOMING & PIPELINE WATCH -->
+                <div id="ipo-upcoming-view-container" style="display: none;">
+                    <!-- Hero Header Banner -->
+                    <div class="news-hero-header no-print" style="margin-bottom: 24px; border-radius: 16px; background: linear-gradient(135deg, rgba(15, 23, 42, 0.95), rgba(56, 189, 248, 0.1), rgba(15, 23, 42, 0.95)); border: 1px solid rgba(56, 189, 248, 0.35); backdrop-filter: blur(20px); padding: 22px 28px; box-shadow: 0 12px 32px -4px rgba(0, 0, 0, 0.5); position: relative; overflow: hidden; font-family: 'Outfit', 'Inter', sans-serif;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px; position: relative; z-index: 2;">
+                            <div>
+                                <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 6px;">
+                                    <span style="font-size: 24px;">🔥</span>
+                                    <h2 style="margin: 0; font-size: 22px; font-weight: 800; color: #f8fafc; letter-spacing: -0.02em;">Upcoming & Active IPO Pipeline</h2>
+                                    <span style="background: rgba(56, 189, 248, 0.2); border: 1px solid #38bdf8; color: #38bdf8; font-size: 11px; font-weight: 700; padding: 3px 10px; border-radius: 20px; text-transform: uppercase;">Primary Market Tracker</span>
+                                </div>
+                                <p style="margin: 0; font-size: 13px; color: #94a3b8; max-width: 750px; line-height: 1.5;">
+                                    Track upcoming Indian mainboard IPOs, active bidding status, subscription demand, expected Grey Market Premiums (GMP), and allotment schedule.
+                                </p>
+                            </div>
+                            <div style="display: flex; gap: 10px;">
+                                <button onclick="window.refreshIpoTrackerData && window.refreshIpoTrackerData(true)" class="btn-primary" style="background: linear-gradient(135deg, #0284c7, #0369a1); border: none; padding: 10px 18px; border-radius: 8px; color: white; font-weight: 700; font-size: 13px; cursor: pointer; display: flex; align-items: center; gap: 6px; box-shadow: 0 4px 14px rgba(2, 132, 199, 0.3);">
+                                    🔄 Sync Pipeline
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Upcoming KPI Row -->
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin-bottom: 24px;">
+                        <div class="card" style="background: var(--bg-card); border: 1px solid var(--border-glass); border-radius: 12px; padding: 16px 20px; display: flex; flex-direction: column; gap: 6px;">
+                            <div style="font-size: 12px; color: var(--text-muted); font-weight: 600; text-transform: uppercase;">Active Pipeline</div>
+                            <div id="ipo-kpi-upcoming-count" style="font-size: 26px; font-weight: 800; color: #38bdf8; font-family: 'Outfit', sans-serif;">--</div>
+                            <div style="font-size: 11.5px; color: var(--text-secondary);">Upcoming & Bidding Mainboard IPOs</div>
+                        </div>
+
+                        <div class="card" style="background: var(--bg-card); border: 1px solid var(--border-glass); border-radius: 12px; padding: 16px 20px; display: flex; flex-direction: column; gap: 6px;">
+                            <div style="font-size: 12px; color: var(--text-muted); font-weight: 600; text-transform: uppercase;">Bidding Open Now</div>
+                            <div id="ipo-kpi-bidding-count" style="font-size: 26px; font-weight: 800; color: #10b981; font-family: 'Outfit', sans-serif;">--</div>
+                            <div style="font-size: 11.5px; color: var(--text-secondary);">Currently accepting retail bids</div>
+                        </div>
+
+                        <div class="card" style="background: var(--bg-card); border: 1px solid var(--border-glass); border-radius: 12px; padding: 16px 20px; display: flex; flex-direction: column; gap: 6px;">
+                            <div style="font-size: 12px; color: var(--text-muted); font-weight: 600; text-transform: uppercase;">Top GMP Premium</div>
+                            <div id="ipo-kpi-top-gmp" style="font-size: 26px; font-weight: 800; color: #f59e0b; font-family: 'Outfit', sans-serif;">--</div>
+                            <div style="font-size: 11.5px; color: var(--text-secondary);">Highest Grey Market Demand</div>
+                        </div>
+
+                        <div class="card" style="background: var(--bg-card); border: 1px solid var(--border-glass); border-radius: 12px; padding: 16px 20px; display: flex; flex-direction: column; gap: 6px;">
+                            <div style="font-size: 12px; color: var(--text-muted); font-weight: 600; text-transform: uppercase;">Total Pipeline Capital</div>
+                            <div id="ipo-kpi-total-capital" style="font-size: 22px; font-weight: 800; color: var(--text-primary); font-family: 'Outfit', sans-serif;">-- Cr</div>
+                            <div style="font-size: 11.5px; color: var(--text-secondary);">Cumulative issue size</div>
+                        </div>
+                    </div>
+
+                    <!-- Pipeline Filter & Search Bar -->
+                    <div class="card" style="background: var(--bg-card); border: 1px solid var(--border-glass); border-radius: 14px; padding: 16px 20px; margin-bottom: 24px; display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 14px;">
+                        <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;" id="ipo-upcoming-status-chips">
+                            <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                                <button class="ipo-chip active" data-upcoming-status="all" onclick="window.setUpcomingStatusFilter && window.setUpcomingStatusFilter('all', this)">All Pipeline</button>
+                                <button class="ipo-chip" data-upcoming-status="ongoing" onclick="window.setUpcomingStatusFilter && window.setUpcomingStatusFilter('ongoing', this)">🟢 Bidding Open</button>
+                                <button class="ipo-chip" data-upcoming-status="closed" onclick="window.setUpcomingStatusFilter && window.setUpcomingStatusFilter('closed', this)">🟡 Allotment Pending</button>
+                                <button class="ipo-chip" data-upcoming-status="upcoming" onclick="window.setUpcomingStatusFilter && window.setUpcomingStatusFilter('upcoming', this)">📅 Upcoming</button>
+                            </div>
+                            <div style="display: flex; align-items: center; gap: 6px; background: rgba(0,0,0,0.25); border: 1px solid var(--border-glass); padding: 4px 10px; border-radius: 8px;">
+                                <span style="font-size: 12px; color: var(--text-muted); font-weight: 600; white-space: nowrap;">🏢 Sector:</span>
+                                <select id="ipo-upcoming-sector-filter-select" onchange="window.setUpcomingSectorFilter && window.setUpcomingSectorFilter(this.value)" style="background: transparent; border: none; color: #38bdf8; font-weight: 700; font-size: 12.5px; outline: none; cursor: pointer; max-width: 220px;">
+                                    <option value="all" style="background: var(--bg-card); color: var(--text-primary);">All Sectors</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div>
+                            <span id="ipo-upcoming-record-count" style="font-size: 12px; font-weight: 700; color: #38bdf8; background: rgba(56, 189, 248, 0.15); border: 1px solid rgba(56, 189, 248, 0.4); padding: 7px 14px; border-radius: 20px; white-space: nowrap;">Showing 15 Pipeline IPOs</span>
+                        </div>
+                    </div>
+
+                    <!-- Desktop Pipeline Table View -->
+                    <div class="card desktop-only-view" style="background: var(--bg-card); border: 1px solid var(--border-glass); border-radius: 14px; padding: 20px; overflow-x: auto; margin-bottom: 30px;">
+                        <table class="data-table" style="width: 100%; border-collapse: collapse; text-align: left; font-size: 13px;">
+                            <thead>
+                                <tr style="border-bottom: 1px solid var(--border-glass); color: var(--text-muted); font-size: 11.5px; text-transform: uppercase;">
+                                    <th style="padding: 12px 14px;">Company / Symbol</th>
+                                    <th style="padding: 12px 14px;">Sector</th>
+                                    <th style="padding: 12px 14px;">Status</th>
+                                    <th style="padding: 12px 14px;">Offer Price Band</th>
+                                    <th style="padding: 12px 14px;">GMP (₹ / %)</th>
+                                    <th style="padding: 12px 14px;">Sub. Demand</th>
+                                    <th style="padding: 12px 14px;">Issue Size (Cr)</th>
+                                    <th style="padding: 12px 14px;">Bidding Window</th>
+                                    <th style="padding: 12px 14px;">Listing Date</th>
+                                </tr>
+                            </thead>
+                            <tbody id="ipo-upcoming-table-body">
+                                <tr>
+                                    <td colspan="9" style="text-align: center; padding: 40px; color: var(--text-muted);">
+                                        Loading active IPO pipeline...
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
 
             <!-- SECTION: GLOBAL MARKET NEWS TERMINAL -->
             <section class="workspace-tab" id="tab-market-news" style="display: none; font-family: 'Inter', sans-serif;">

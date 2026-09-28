@@ -42,6 +42,8 @@ desktop.ini
 google/
 
 # Scratch files
+scratch/
 backend/scratch/
 backend/static/app_test_*.js
 node_modules/
+*.apk
