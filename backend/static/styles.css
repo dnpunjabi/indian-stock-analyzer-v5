@@ -37716,5 +37716,45 @@ body.light-theme .tech-prospectus-close-btn {
     color: #4f46e5 !important;
 }
 
+/* IPO AI Prospectus Modal Theme Overrides */
+.ipo-ai-modal-card {
+    background: var(--bg-card, #0f172a);
+    border: 1px solid var(--border-glass, rgba(255, 255, 255, 0.1));
+    color: var(--text-primary, #f8fafc);
+}
+
+[data-theme="light"] .ipo-ai-modal-card,
+[data-mode="light"] .ipo-ai-modal-card {
+    background: #ffffff !important;
+    border: 1px solid rgba(0, 0, 0, 0.12) !important;
+    color: #0f172a !important;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15) !important;
+}
+
+[data-theme="light"] #ipo-ai-modal-company,
+[data-mode="light"] #ipo-ai-modal-company {
+    color: #0f172a !important;
+}
+
+[data-theme="light"] .ipo-ai-section,
+[data-mode="light"] .ipo-ai-section {
+    background: #f8fafc !important;
+    border-color: rgba(0, 0, 0, 0.08) !important;
+}
+
+[data-theme="light"] #ipo-ai-modal-summary,
+[data-theme="light"] #ipo-ai-modal-proceeds-alloc,
+[data-theme="light"] #ipo-ai-modal-valuation-verdict,
+[data-theme="light"] #ipo-ai-modal-risks li,
+[data-theme="light"] #ipo-ai-modal-takeaway,
+[data-mode="light"] #ipo-ai-modal-summary,
+[data-mode="light"] #ipo-ai-modal-proceeds-alloc,
+[data-mode="light"] #ipo-ai-modal-valuation-verdict,
+[data-mode="light"] #ipo-ai-modal-risks li,
+[data-mode="light"] #ipo-ai-modal-takeaway {
+    color: #334155 !important;
+}
+
+
 
 

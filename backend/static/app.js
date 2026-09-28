@@ -61378,7 +61378,7 @@ window.renderUpcomingPipelineUI = function(pipelineList) {
     const tableBody = document.getElementById('ipo-upcoming-table-body');
     if (tableBody) {
         if (filtered.length === 0) {
-            tableBody.innerHTML = '<tr><td colspan="9" style="text-align: center; padding: 40px; color: var(--text-muted);">No upcoming or active IPOs match the selected filter.</td></tr>';
+            tableBody.innerHTML = '<tr><td colspan="10" style="text-align: center; padding: 40px; color: var(--text-muted);">No upcoming or active IPOs match the selected filter.</td></tr>';
         } else {
             tableBody.innerHTML = filtered.map(item => {
                 let statusBadgeColor = '#38bdf8'; // blue default
@@ -61452,11 +61452,93 @@ window.renderUpcomingPipelineUI = function(pipelineList) {
                         <td style="padding: 14px; font-size: 12px; color: var(--text-secondary); font-family: 'JetBrains Mono', monospace; white-space: nowrap;">
                             ${item.listing_date || 'TBA'}
                         </td>
+
+                        <!-- 10. AI Intelligence -->
+                        <td style="padding: 14px; text-align: right; white-space: nowrap;">
+                            <button onclick="window.openIpoAiInsightModal('${(item.symbol || item.company_name).replace(/'/g, "\\'")}', '${item.company_name.replace(/'/g, "\\'")}')" class="btn-secondary" style="padding: 5px 12px; font-size: 11.5px; border-radius: 8px; background: rgba(99, 102, 241, 0.15); border: 1px solid rgba(99, 102, 241, 0.35); color: #a5b4fc; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; transition: all 0.2s ease;">
+                                ✨ DRHP AI
+                            </button>
+                        </td>
                     </tr>
                 `;
             }).join('');
         }
     }
+};
+
+window.openIpoAiInsightModal = async function(symbol, companyName) {
+    const modal = document.getElementById('ipo-ai-insight-modal');
+    const loader = document.getElementById('ipo-ai-modal-loader');
+    const content = document.getElementById('ipo-ai-modal-content');
+    
+    if (!modal) return;
+    
+    document.getElementById('ipo-ai-modal-company').innerText = companyName || symbol;
+    document.getElementById('ipo-ai-modal-grade').innerText = 'ANALYZING...';
+    modal.style.display = 'flex';
+    loader.style.display = 'flex';
+    content.style.display = 'none';
+
+    try {
+        const response = await fetch(`/api/ipo/ai-insight/${encodeURIComponent(symbol)}`);
+        if (!response.ok) throw new Error("HTTP " + response.status);
+        const json = await response.json();
+        
+        if (json.status === 'success' && json.data) {
+            const data = json.data;
+            
+            document.getElementById('ipo-ai-modal-company').innerText = data.company_name || companyName || symbol;
+            
+            const gradeEl = document.getElementById('ipo-ai-modal-grade');
+            const grade = (data.conviction_grade || 'MODERATE_CONVICTION').replace('_', ' ');
+            gradeEl.innerText = grade;
+            if (grade.includes('HIGH')) {
+                gradeEl.style.background = 'rgba(16, 185, 129, 0.15)';
+                gradeEl.style.color = '#34d399';
+                gradeEl.style.borderColor = 'rgba(16, 185, 129, 0.3)';
+            } else if (grade.includes('SPECULATIVE') || grade.includes('LOW')) {
+                gradeEl.style.background = 'rgba(239, 68, 68, 0.15)';
+                gradeEl.style.color = '#f87171';
+                gradeEl.style.borderColor = 'rgba(239, 68, 68, 0.3)';
+            } else {
+                gradeEl.style.background = 'rgba(99, 102, 241, 0.15)';
+                gradeEl.style.color = '#a5b4fc';
+                gradeEl.style.borderColor = 'rgba(99, 102, 241, 0.3)';
+            }
+
+            document.getElementById('ipo-ai-modal-summary').innerText = data.business_summary || 'Business summary pending DRHP filing.';
+            
+            const proceeds = data.use_of_proceeds || {};
+            document.getElementById('ipo-ai-modal-proceeds-ratio').innerText = proceeds.fresh_issue_ratio || 'Fresh Issue & OFS Mix';
+            document.getElementById('ipo-ai-modal-proceeds-alloc').innerText = proceeds.primary_allocation || 'Capital expenditure and corporate purposes.';
+            
+            const valuation = data.peer_valuation || {};
+            document.getElementById('ipo-ai-modal-issue-pe').innerText = valuation.issue_pe || 'N/A';
+            document.getElementById('ipo-ai-modal-peer-pe').innerText = valuation.peer_avg_pe || 'N/A';
+            document.getElementById('ipo-ai-modal-valuation-verdict').innerText = valuation.verdict || 'Valuation comparison details pending.';
+            
+            const risks = data.critical_risk_factors || ['Market and business operational risks.'];
+            const risksUl = document.getElementById('ipo-ai-modal-risks');
+            risksUl.innerHTML = risks.map(r => `<li>${r}</li>`).join('');
+            
+            document.getElementById('ipo-ai-modal-takeaway').innerText = data.key_takeaway || 'Monitor subscription demand and GMP trends.';
+
+            loader.style.display = 'none';
+            content.style.display = 'flex';
+        } else {
+            throw new Error("Invalid response format");
+        }
+    } catch (e) {
+        console.error("AI Insight Error:", e);
+        loader.style.display = 'none';
+        content.style.display = 'flex';
+        document.getElementById('ipo-ai-modal-summary').innerText = "Unable to fetch AI DRHP insight at this moment: " + e.message;
+    }
+};
+
+window.closeIpoAiModal = function() {
+    const modal = document.getElementById('ipo-ai-insight-modal');
+    if (modal) modal.style.display = 'none';
 };
 
 window.setIpoSectorFilter = function(sector) {
@@ -61506,10 +61588,10 @@ window.filterIpoTableSearch = function(query) {
     }
 };
 
-// Auto-load IPO data when tab is opened or document ready
 document.addEventListener('DOMContentLoaded', () => {
     setTimeout(() => {
         window.refreshIpoTrackerData && window.refreshIpoTrackerData(false);
     }, 1200);
 });
+
 

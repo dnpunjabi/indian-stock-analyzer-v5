@@ -1292,3 +1292,181 @@ def clean_nans(obj):
         return 0.0
     return obj
 
+
+IPO_AI_INSIGHTS_DB_PATH = os.path.join(DB_DIR, "ipo_ai_insights.db")
+
+def init_ipo_ai_insights_db():
+    try:
+        conn = sqlite3.connect(IPO_AI_INSIGHTS_DB_PATH)
+        cursor = conn.cursor()
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS ipo_ai_insights (
+                symbol TEXT PRIMARY KEY,
+                company_name TEXT,
+                insight_json TEXT NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            );
+        """)
+        conn.commit()
+        conn.close()
+    except Exception as e:
+        print(f"[IPO Engine] Error initializing AI insights DB: {e}")
+
+def get_cached_ipo_ai_insight(symbol: str) -> dict:
+    init_ipo_ai_insights_db()
+    try:
+        conn = sqlite3.connect(IPO_AI_INSIGHTS_DB_PATH)
+        cursor = conn.cursor()
+        cursor.execute("SELECT insight_json FROM ipo_ai_insights WHERE UPPER(symbol) = UPPER(?)", (symbol,))
+        row = cursor.fetchone()
+        conn.close()
+        if row and row[0]:
+            return json.loads(row[0])
+    except Exception as e:
+        print(f"[IPO Engine] Error reading AI insight cache for {symbol}: {e}")
+    return None
+
+def save_ipo_ai_insight(symbol: str, company_name: str, insight_dict: dict):
+    init_ipo_ai_insights_db()
+    try:
+        conn = sqlite3.connect(IPO_AI_INSIGHTS_DB_PATH)
+        cursor = conn.cursor()
+        insight_json = json.dumps(insight_dict)
+        cursor.execute("""
+            INSERT OR REPLACE INTO ipo_ai_insights (symbol, company_name, insight_json, created_at)
+            VALUES (?, ?, ?, CURRENT_TIMESTAMP)
+        """, (symbol.upper(), company_name, insight_json))
+        conn.commit()
+        conn.close()
+    except Exception as e:
+        print(f"[IPO Engine] Error saving AI insight cache for {symbol}: {e}")
+
+def generate_ipo_ai_prospectus_insight(symbol_or_name: str) -> dict:
+    """
+    Generates or retrieves cached AI Prospectus Summary & Risk Breakdown for an upcoming/pipeline IPO.
+    """
+    symbol_clean = symbol_or_name.strip().upper()
+    cached = get_cached_ipo_ai_insight(symbol_clean)
+    if cached:
+        print(f"[IPO AI Insight] Cache hit for {symbol_clean}")
+        return cached
+
+    # Find item in pipeline dataset
+    pipeline = scrape_upcoming_pipeline()
+    target_item = None
+    for item in pipeline:
+        item_sym = (item.get("symbol") or "").upper()
+        item_name = (item.get("company_name") or "").upper()
+        if symbol_clean in item_sym or symbol_clean in item_name or item_sym in symbol_clean or item_name in symbol_clean:
+            target_item = item
+            break
+
+    if not target_item:
+        target_item = {
+            "company_name": symbol_or_name,
+            "symbol": symbol_clean,
+            "sector": "Mainboard Industrial / Tech",
+            "price_band_str": "TBD",
+            "issue_size_cr": 0,
+            "status": "Upcoming",
+            "gmp_rs": 0,
+            "gmp_pct": 0.0,
+            "subscription_times": 0.0
+        }
+
+    company = target_item.get("company_name", symbol_or_name)
+    sector = target_item.get("sector", "General Enterprise")
+    price_band = target_item.get("price_band_str", "TBD")
+    issue_size = target_item.get("issue_size_cr") or target_item.get("issue_size") or "TBD"
+    gmp_rs = target_item.get("gmp_rs", 0)
+    gmp_pct = target_item.get("gmp_pct", 0)
+    sub = target_item.get("subscription_times", 0)
+    status = target_item.get("status", "Upcoming")
+
+    user_prompt = f"""
+    Please generate an institutional prospectus summary and risk breakdown for the following IPO:
+
+    Company Name: {company}
+    Ticker/Symbol: {symbol_clean}
+    Sector/Industry: {sector}
+    Price Band: {price_band}
+    Issue Size: {issue_size}
+    Current GMP: ₹{gmp_rs} ({gmp_pct:.1f}%)
+    Subscription Demand: {sub}x
+    Current Status: {status}
+    """
+
+    system_prompt = """
+    You are a senior SEBI-registered Lead Manager and Institutional IPO Analyst.
+    Analyze the provided IPO metadata and generate an executive prospectus analysis adhering strictly to JSON format.
+    Return ONLY a valid JSON object matching this exact structure:
+
+    {
+      "symbol": "SYMBOL",
+      "company_name": "Company Name",
+      "business_summary": "2-sentence executive summary of company's core business model and products.",
+      "use_of_proceeds": {
+        "fresh_issue_ratio": "70% Fresh Issue / 30% OFS",
+        "primary_allocation": "Expansion of manufacturing facility and working capital requirements"
+      },
+      "peer_valuation": {
+        "issue_pe": "24.5x",
+        "peer_avg_pe": "38.2x",
+        "verdict": "Attractive valuation relative to listed industry peers."
+      },
+      "critical_risk_factors": [
+        "Customer concentration: Top 5 clients account for over 50% of revenue.",
+        "Raw material volatility: Sensitive to key commodity input price swings.",
+        "Capacity utilization: Rapid expansion requires sustained order inflows."
+      ],
+      "conviction_grade": "HIGH_CONVICTION",
+      "key_takeaway": "High-growth enterprise play with strong market positioning."
+    }
+    """
+
+    try:
+        from backend.llm_config import call_llm, TASK_FAST
+        response = call_llm(
+            task_type=TASK_FAST,
+            system_prompt=system_prompt,
+            user_prompt=user_prompt,
+            max_tokens=1500
+        )
+
+        clean_json_str = response.strip()
+        if clean_json_str.startswith("```json"):
+            clean_json_str = clean_json_str.split("```json")[1].split("```")[0].strip()
+        elif clean_json_str.startswith("```"):
+            clean_json_str = clean_json_str.split("```")[1].split("```")[0].strip()
+
+        data = json.loads(clean_json_str)
+        data["symbol"] = symbol_clean
+        data["company_name"] = company
+        save_ipo_ai_insight(symbol_clean, company, data)
+        return data
+    except Exception as e:
+        print(f"[IPO Engine] Failed to generate AI insight for {symbol_clean}: {e}")
+        fallback_data = {
+            "symbol": symbol_clean,
+            "company_name": company,
+            "business_summary": f"{company} is an upcoming IPO in the {sector} sector.",
+            "use_of_proceeds": {
+                "fresh_issue_ratio": "Fresh Issue & OFS mix",
+                "primary_allocation": "Capital expansion, debt reduction, and general corporate purposes."
+            },
+            "peer_valuation": {
+                "issue_pe": "N/A",
+                "peer_avg_pe": "N/A",
+                "verdict": "Valuation details pending final price band confirmation."
+            },
+            "critical_risk_factors": [
+                "Market & Macroeconomic risks associated with sector cyclicality.",
+                "Execution risk on proposed capital deployment timelines.",
+                "Regulatory compliance requirements under SEBI guidelines."
+            ],
+            "conviction_grade": "MODERATE_CONVICTION",
+            "key_takeaway": "Pipeline tracking active. Monitor GMP and subscription trends near issue closing date."
+        }
+        return fallback_data
+
+

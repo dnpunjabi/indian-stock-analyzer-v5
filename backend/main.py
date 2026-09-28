@@ -2488,6 +2488,21 @@ async def test_ipo_whatsapp_alert():
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"WhatsApp test alert failed: {str(e)}")
 
+@app.get("/api/ipo/ai-insight/{symbol}")
+async def get_ipo_ai_insight_endpoint(symbol: str):
+    """
+    Returns AI-generated prospectus summary and risk breakdown for an upcoming pipeline IPO.
+    Uses cached result if available.
+    """
+    try:
+        from backend.ipo_engine import generate_ipo_ai_prospectus_insight, clean_nans
+        res = await asyncio.to_thread(generate_ipo_ai_prospectus_insight, symbol)
+        return JSONResponse(content={"status": "success", "data": clean_nans(res)})
+    except Exception as e:
+        logger.error(f"[API] Failed to get IPO AI insight for {symbol}: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to generate AI insight: {str(e)}")
+
+
 @app.post("/api/admin/rebalance")
 async def trigger_index_rebalance():
     """Manual administration endpoint to fetch official NSE index constituent listings."""
