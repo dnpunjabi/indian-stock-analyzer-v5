@@ -34542,7 +34542,23 @@ async function renderTVWorkstationChart(symbol, forceRefresh = false) {
         console.error("Error drawing Interactive Chart Terminal: ", err);
         if (window.tvChartLoadingTimeout) clearTimeout(window.tvChartLoadingTimeout);
         if (loadingOverlay) loadingOverlay.style.display = 'none';
-        alert(`Could not load chart data for ${symbol}. Please check your connection.`);
+        const cleanDisplayTicker = symbol.replace('.NS', '').replace('.BO', '').trim();
+        if (container) {
+            container.innerHTML = `
+                <div style="padding: 50px 20px; text-align: center; background: var(--bg-card, #0f172a); border-radius: 12px; border: 1px dashed var(--border-color, #334155); margin: 20px 0;">
+                    <div style="font-size: 40px; margin-bottom: 12px;">📊</div>
+                    <h4 style="font-size: 16px; font-weight: 700; color: var(--text-main, #f8fafc); margin-bottom: 8px;">
+                        Chart Feed Unavailable for ${cleanDisplayTicker}
+                    </h4>
+                    <p style="font-size: 13px; color: var(--text-muted, #94a3b8); max-width: 500px; margin: 0 auto 16px; line-height: 1.5;">
+                        Candlestick price feed is not yet published on Yahoo / Exchange market feeds for this stock (<strong>${cleanDisplayTicker}</strong>). This happens for unlisted equities, pending listings, or symbol mismatches.
+                    </p>
+                    <a href="https://in.tradingview.com/chart/?symbol=${encodeURIComponent(cleanDisplayTicker)}" target="_blank" class="btn-secondary" style="display: inline-flex; align-items: center; gap: 6px; padding: 8px 16px; font-size: 12.5px; border-radius: 6px; text-decoration: none; font-weight: 600;">
+                        <span>💹</span> Search on TradingView Web ↗
+                    </a>
+                </div>
+            `;
+        }
     }
 }
 
@@ -55818,7 +55834,10 @@ window.renderVcpCards = function(stocks) {
 window.openTradingViewChart = function(symbol) {
     if (!symbol) return;
     const cleanSym = symbol.replace('.NS', '').replace('.BO', '').trim().toUpperCase();
-    const tvUrl = `https://in.tradingview.com/chart/?symbol=NSE:${cleanSym}`;
+    let tvUrl = `https://in.tradingview.com/chart/?symbol=NSE:${cleanSym}`;
+    if (cleanSym === 'NSE') {
+        tvUrl = `https://in.tradingview.com/chart/?symbol=${encodeURIComponent('National Stock Exchange')}`;
+    }
     window.open(tvUrl, '_blank');
 };
 
@@ -55850,6 +55869,7 @@ window.openStandaloneInteractiveChart = async function(symbol, contextList, scre
         else if (screenerTabKey === 'undercut') contextList = window.allUndercutStocks;
         else if (screenerTabKey === 'confluence') contextList = window.currentFilteredConfluenceStocks || window.allConfluenceCandidates;
         else if (screenerTabKey === 'watchlist') contextList = window.activeWlQuantMatrixData;
+        else if (screenerTabKey === 'ipo' || screenerTabKey === 'ipo-radar' || screenerTabKey === 'listed-ipo') contextList = window.currentFilteredIpoList || (window.rawIpoRadarData ? window.rawIpoRadarData.ipos : []);
     }
 
     let list = [];
@@ -55988,12 +56008,30 @@ window.navigateIChartStock = function(direction) {
 
 window.returnToPreviousScreenerTab = function() {
     const state = window.activeIChartState;
-    if (!state || !state.screenerTabKey) return;
+    if (!state || !state.screenerTabKey) {
+        if (typeof window.switchTab === 'function') {
+            window.switchTab('ipo-radar');
+        }
+        return;
+    }
     
     const key = state.screenerTabKey;
     if (key === 'watchlist') {
         if (typeof window.switchTab === 'function') {
             window.switchTab('watchlist');
+        }
+    } else if (key === 'ipo' || key === 'ipo-radar' || key === 'ipo_radar' || key === 'listed-ipo' || key === 'upcoming-ipo') {
+        if (typeof window.switchTab === 'function') {
+            window.switchTab('ipo-radar');
+        }
+        if (key === 'upcoming-ipo') {
+            if (typeof window.switchIpoSubTab === 'function') {
+                window.switchIpoSubTab('upcoming');
+            }
+        } else {
+            if (typeof window.switchIpoSubTab === 'function') {
+                window.switchIpoSubTab('listed');
+            }
         }
     } else {
         if (typeof window.switchTab === 'function') {
@@ -61229,7 +61267,7 @@ window.renderIpoTrackerUI = function(data) {
                             </span>
                         </td>
                         <td style="padding: 12px 14px; text-align: right; white-space: nowrap;">
-                            <div style="display: inline-flex; align-items: center; justify-content: flex-end; gap: 5px;">
+                            <div class="ipo-action-btn-group">
                                 <button onclick="event.stopPropagation(); window.analyzeStock && window.analyzeStock('${item.symbol}')" class="btn-secondary" style="padding: 4px 8px; font-size: 11px; border-radius: 6px; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 3px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.12); color: var(--text-primary);" title="Equity Research Analysis">
                                     🔬 Research
                                 </button>
@@ -61242,71 +61280,6 @@ window.renderIpoTrackerUI = function(data) {
                             </div>
                         </td>
                     </tr>
-                `;
-            }).join('');
-        }
-    }
-    
-    // Render Mobile Card Stream
-    const mobileStream = document.getElementById('ipo-mobile-card-stream');
-    if (mobileStream) {
-        if (filtered.length === 0) {
-            mobileStream.innerHTML = '<div style="text-align: center; padding: 30px; color: var(--text-muted);">No IPO stocks found matching filter.</div>';
-        } else {
-            mobileStream.innerHTML = filtered.map(item => {
-                const gainClass = item.current_gain_from_issue_pct >= 0 ? 'color: #10b981;' : 'color: #ef4444;';
-                const gainSign = item.current_gain_from_issue_pct >= 0 ? '+' : '';
-                const sectorName = item.sector || 'Mainboard Equity';
-                return `
-                    <div class="card" style="background: var(--bg-card); border: 1px solid var(--border-glass); border-radius: 12px; padding: 16px; display: flex; flex-direction: column; gap: 12px;">
-                        <div style="display: flex; justify-content: space-between; align-items: flex-start;">
-                            <div>
-                                <div style="font-size: 16px; font-weight: 800; color: var(--text-primary); font-family: 'Outfit', sans-serif;">${item.symbol}</div>
-                                <div style="font-size: 12px; color: var(--text-muted); margin-top: 2px;">${item.company_name}</div>
-                                <div style="margin-top: 4px;">
-                                    <span style="background: rgba(56, 189, 248, 0.08); border: 1px solid rgba(56, 189, 248, 0.2); color: #38bdf8; padding: 2px 8px; border-radius: 4px; font-size: 10.5px; font-weight: 600;">
-                                        🏢 ${sectorName}
-                                    </span>
-                                </div>
-                            </div>
-                            <span class="ipo-score-pill" style="background: ${item.badge_color}20; color: ${item.badge_color}; border: 1px solid ${item.badge_color}50; font-size: 10.5px;">
-                                ${item.opportunity_score} • ${item.signal_badge}
-                            </span>
-                        </div>
-                        
-                        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; background: rgba(0,0,0,0.2); padding: 10px; border-radius: 8px;">
-                            <div>
-                                <div style="font-size: 10px; color: var(--text-muted); text-transform: uppercase;">Issue Px</div>
-                                <div style="font-size: 12.5px; font-weight: 700; color: var(--text-primary); font-family: 'JetBrains Mono', monospace;">₹${item.issue_price || 0}</div>
-                            </div>
-                            <div>
-                                <div style="font-size: 10px; color: var(--text-muted); text-transform: uppercase;">CMP</div>
-                                <div style="font-size: 12.5px; font-weight: 800; color: var(--text-primary); font-family: 'JetBrains Mono', monospace;">₹${item.current_price || 0}</div>
-                            </div>
-                            <div>
-                                <div style="font-size: 10px; color: var(--text-muted); text-transform: uppercase;">Return</div>
-                                <div style="font-size: 12.5px; font-weight: 800; font-family: 'JetBrains Mono', monospace; ${gainClass}">${gainSign}${item.current_gain_from_issue_pct}%</div>
-                            </div>
-                        </div>
-                        
-                        <div style="display: flex; flex-direction: column; gap: 8px; font-size: 11.5px; color: var(--text-secondary);">
-                            <div style="display: flex; justify-content: space-between; align-items: center;">
-                                <span>Setup: <strong style="color: #38bdf8;">${item.setup_type}</strong></span>
-                                <span style="font-size: 11px; color: var(--text-muted);">Listed: ${item.listing_date || 'N/A'}</span>
-                            </div>
-                            <div style="display: flex; gap: 6px; width: 100%; margin-top: 2px;">
-                                <button onclick="event.stopPropagation(); window.analyzeStock && window.analyzeStock('${item.symbol}')" class="btn-secondary" style="flex: 1; padding: 6px 4px; font-size: 11px; border-radius: 6px; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 3px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.12); color: var(--text-primary);" title="Equity Research Analysis">
-                                    🔬 Research
-                                </button>
-                                <button onclick="event.stopPropagation(); window.openStandaloneInteractiveChart && window.openStandaloneInteractiveChart('${item.symbol}', null, 'ipo', 'Listed IPO Radar')" class="btn-primary" style="flex: 1; padding: 6px 4px; font-size: 11px; border-radius: 6px; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 3px; background: rgba(59, 130, 246, 0.2); border: 1px solid #3b82f6; color: #60a5fa;" title="Interactive i-Chart Workstation">
-                                    📈 i-Chart
-                                </button>
-                                <button onclick="event.stopPropagation(); window.openTradingViewChart && window.openTradingViewChart('${item.symbol}')" class="btn-secondary" style="flex: 1; padding: 6px 4px; font-size: 11px; border-radius: 6px; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 3px; background: rgba(16, 185, 129, 0.15); border: 1px solid rgba(16, 185, 129, 0.4); color: #34d399;" title="TradingView Chart (NSE)">
-                                    💹 TradingView ↗
-                                </button>
-                            </div>
-                        </div>
-                    </div>
                 `;
             }).join('');
         }
