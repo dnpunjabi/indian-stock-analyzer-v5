@@ -2733,6 +2733,10 @@ function switchTab(tabKey) {
         if (typeof fetchAlertsList === 'function') fetchAlertsList();
     }
 
+    if (tabKey === 'ipo-radar' || tabKey === 'ipo') {
+        if (typeof window.refreshIpoTrackerData === 'function') window.refreshIpoTrackerData(false);
+    }
+
     if (tabKey === 'portfolio') {
         if (typeof loadPortfolioDoctorLedger === 'function') loadPortfolioDoctorLedger();
         if (typeof loadPortfolioFuzzySwaps === 'function') loadPortfolioFuzzySwaps();
@@ -61181,6 +61185,8 @@ window.switchIpoSubTab = function(subtab) {
         } else {
             renderIpoTrackerUI(rawIpoTrackerData);
         }
+    } else {
+        if (window.refreshIpoTrackerData) window.refreshIpoTrackerData(false);
     }
 };
 
@@ -61382,9 +61388,17 @@ window.renderIpoTrackerUI = function(data) {
             tableBody.innerHTML = filtered.map(item => {
                 const issuePx = item.issue_price ? `₹${item.issue_price}` : 'N/A';
                 const cmp = item.current_price ? `₹${item.current_price}` : 'N/A';
+                const dayChgVal = item.day_change_pct !== undefined && item.day_change_pct !== null ? item.day_change_pct : 0.0;
+                const dayChgSign = dayChgVal > 0 ? '+' : '';
+                const dayChgColor = dayChgVal > 0 ? '#10b981' : (dayChgVal < 0 ? '#ef4444' : '#94a3b8');
+                const dayChgBg = dayChgVal > 0 ? 'rgba(16, 185, 129, 0.12)' : (dayChgVal < 0 ? 'rgba(239, 68, 68, 0.12)' : 'rgba(148, 163, 184, 0.12)');
+                const dayChgBorder = dayChgVal > 0 ? 'rgba(16, 185, 129, 0.3)' : (dayChgVal < 0 ? 'rgba(239, 68, 68, 0.3)' : 'rgba(148, 163, 184, 0.3)');
+                const dayChangeBadge = `<span style="font-size: 10.5px; font-weight: 700; padding: 2px 6px; border-radius: 4px; background: ${dayChgBg}; border: 1px solid ${dayChgBorder}; color: ${dayChgColor}; margin-left: 6px; font-family: 'JetBrains Mono', monospace; display: inline-block;" title="Daily Price Change %">${dayChgSign}${dayChgVal}%</span>`;
+
                 const gainClass = item.current_gain_from_issue_pct >= 0 ? 'color: #10b981;' : 'color: #ef4444;';
                 const gainSign = item.current_gain_from_issue_pct >= 0 ? '+' : '';
-                const athDrawdown = (item.drawdown_from_ath_pct !== null && item.drawdown_from_ath_pct !== undefined && item.has_historical_candles) ? `${item.drawdown_from_ath_pct}%` : 'N/A';
+                const athDrawdown = (item.drawdown_from_ath_pct !== null && item.drawdown_from_ath_pct !== undefined) ? `${item.drawdown_from_ath_pct}%` : 'N/A';
+
                 const sectorName = item.sector || 'Mainboard Equity';
                 
                 return `
@@ -61401,8 +61415,8 @@ window.renderIpoTrackerUI = function(data) {
                         <td style="padding: 14px; font-size: 12px; color: var(--text-secondary); font-family: 'JetBrains Mono', monospace;">
                             ${item.listing_date || 'Recent'}
                         </td>
-                        <td style="padding: 14px; font-size: 13px; font-family: 'JetBrains Mono', monospace;">
-                            <span style="color: var(--text-muted); font-size: 11.5px;">${issuePx}</span> ➔ <strong style="color: var(--text-primary);">${cmp}</strong>
+                        <td style="padding: 14px; font-size: 13px; font-family: 'JetBrains Mono', monospace; white-space: nowrap;">
+                            <span style="color: var(--text-muted); font-size: 11.5px;">${issuePx}</span> ➔ <strong style="color: var(--text-primary);">${cmp}</strong> ${dayChangeBadge}
                         </td>
                         <td style="padding: 14px; font-weight: 700; font-family: 'JetBrains Mono', monospace; ${gainClass}">
                             ${gainSign}${item.current_gain_from_issue_pct}%
