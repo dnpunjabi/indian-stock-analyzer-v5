@@ -14274,9 +14274,10 @@ async def get_vcp_canslim_screener(
                 continue
 
             if tick_store:
-                live_tick = tick_store.get(sym) or tick_store.get(sym_yf)
-                if live_tick and live_tick.get("ltp"):
-                    st["current_price"] = clean_float(live_tick["ltp"])
+                live_tick = tick_store.get(sym) or tick_store.get(sym_yf) or tick_store.get(sym.replace(".NS", ""))
+                if live_tick and (live_tick.get("price") or live_tick.get("ltp")):
+                    l_p = live_tick.get("price") or live_tick.get("ltp")
+                    st["current_price"] = clean_float(l_p)
                     if live_tick.get("change_pct") is not None:
                         st["change_percent"] = round(float(live_tick["change_pct"]), 2)
 

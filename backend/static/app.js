@@ -920,50 +920,175 @@ function handleLiveTickMessage(ticksData) {
     }
 
     // Update live stock prices in Quantitative Scanner tables dynamically from WebSocket ticks
+    let weinsteinUpdated = false;
+    let htfUpdated = false;
+    let threeWtUpdated = false;
+    let flatBaseUpdated = false;
+    let episodicUpdated = false;
+    let pocketUpdated = false;
+    let oliverKellUpdated = false;
+    let cupHandleUpdated = false;
+    let rsnhUpdated = false;
+    let undercutUpdated = false;
+    let confluenceUpdated = false;
+    let divergenceUpdated = false;
+
     for (const [symKey, q] of Object.entries(ticksData)) {
         if (!q || (!q.price && q.change_pct === undefined)) continue;
         const symUpper = symKey.toUpperCase();
         const baseSym = symUpper.replace('.NS', '').replace('.BO', '');
 
+        // Helper match check
+        const isMatch = (s) => s && s.symbol && (s.symbol.toUpperCase() === symUpper || s.symbol.toUpperCase().replace('.NS', '') === baseSym);
+
         // 1. Weinstein Stage 2
         if (window.allWeinsteinStocks && window.allWeinsteinStocks.length > 0) {
-            let updated = false;
             window.allWeinsteinStocks.forEach(s => {
-                if (s && s.symbol && (s.symbol.toUpperCase() === symUpper || s.symbol.toUpperCase().replace('.NS', '') === baseSym)) {
+                if (isMatch(s)) {
                     if (q.price) s.current_price = q.price;
                     if (q.change_pct !== undefined) s.day_change_pct = q.change_pct;
-                    updated = true;
+                    weinsteinUpdated = true;
                 }
             });
-            if (updated && typeof window.filterWeinsteinTable === 'function') window.filterWeinsteinTable();
         }
 
         // 2. High-Tight Flag
         if (window.allHtfStocks && window.allHtfStocks.length > 0) {
-            let updated = false;
             window.allHtfStocks.forEach(s => {
-                if (s && s.symbol && (s.symbol.toUpperCase() === symUpper || s.symbol.toUpperCase().replace('.NS', '') === baseSym)) {
+                if (isMatch(s)) {
                     if (q.price) s.current_price = q.price;
                     if (q.change_pct !== undefined) s.day_change_pct = q.change_pct;
-                    updated = true;
+                    htfUpdated = true;
                 }
             });
-            if (updated && typeof window.filterHtfTable === 'function') window.filterHtfTable();
         }
 
         // 3. 3-Weeks Tight
         if (window.all3wtStocks && window.all3wtStocks.length > 0) {
-            let updated = false;
             window.all3wtStocks.forEach(s => {
-                if (s && s.symbol && (s.symbol.toUpperCase() === symUpper || s.symbol.toUpperCase().replace('.NS', '') === baseSym)) {
+                if (isMatch(s)) {
                     if (q.price) s.current_price = q.price;
                     if (q.change_pct !== undefined) s.day_change_pct = q.change_pct;
-                    updated = true;
+                    threeWtUpdated = true;
                 }
             });
-            if (updated && typeof window.filter3wtTable === 'function') window.filter3wtTable();
+        }
+
+        // 4. Flat Base Breakout
+        if (window.allFlatBaseStocks && window.allFlatBaseStocks.length > 0) {
+            window.allFlatBaseStocks.forEach(s => {
+                if (isMatch(s)) {
+                    if (q.price) s.current_price = q.price;
+                    if (q.change_pct !== undefined) s.day_change_pct = q.change_pct;
+                    flatBaseUpdated = true;
+                }
+            });
+        }
+
+        // 5. Episodic Pivot
+        if (window.allEpisodicStocks && window.allEpisodicStocks.length > 0) {
+            window.allEpisodicStocks.forEach(s => {
+                if (isMatch(s)) {
+                    if (q.price) s.current_price = q.price;
+                    if (q.change_pct !== undefined) s.day_change_pct = q.change_pct;
+                    episodicUpdated = true;
+                }
+            });
+        }
+
+        // 6. Pocket Pivot
+        if (window.allPocketStocks && window.allPocketStocks.length > 0) {
+            window.allPocketStocks.forEach(s => {
+                if (isMatch(s)) {
+                    if (q.price) s.current_price = q.price;
+                    if (q.change_pct !== undefined) s.day_change_pct = q.change_pct;
+                    pocketUpdated = true;
+                }
+            });
+        }
+
+        // 7. Oliver Kell EMA Reversal
+        if (window.allOliverKellStocks && window.allOliverKellStocks.length > 0) {
+            window.allOliverKellStocks.forEach(s => {
+                if (isMatch(s)) {
+                    if (q.price) s.current_price = q.price;
+                    if (q.change_pct !== undefined) s.day_change_pct = q.change_pct;
+                    oliverKellUpdated = true;
+                }
+            });
+        }
+
+        // 8. Cup With Handle
+        if (window.allCupHandleStocks && window.allCupHandleStocks.length > 0) {
+            window.allCupHandleStocks.forEach(s => {
+                if (isMatch(s)) {
+                    if (q.price) s.current_price = q.price;
+                    if (q.change_pct !== undefined) s.day_change_pct = q.change_pct;
+                    cupHandleUpdated = true;
+                }
+            });
+        }
+
+        // 9. RS Line New High
+        if (window.allRsnhStocks && window.allRsnhStocks.length > 0) {
+            window.allRsnhStocks.forEach(s => {
+                if (isMatch(s)) {
+                    if (q.price) s.current_price = q.price;
+                    if (q.change_pct !== undefined) s.day_change_pct = q.change_pct;
+                    rsnhUpdated = true;
+                }
+            });
+        }
+
+        // 10. Undercut & Rally
+        if (window.allUndercutStocks && window.allUndercutStocks.length > 0) {
+            window.allUndercutStocks.forEach(s => {
+                if (isMatch(s)) {
+                    if (q.price) s.current_price = q.price;
+                    if (q.change_pct !== undefined) s.day_change_pct = q.change_pct;
+                    undercutUpdated = true;
+                }
+            });
+        }
+
+        // 11. Apex Multi-Screener Confluence Leaderboard
+        if (window.allConfluenceCandidates && window.allConfluenceCandidates.length > 0) {
+            window.allConfluenceCandidates.forEach(s => {
+                if (isMatch(s)) {
+                    if (q.price) s.current_price = q.price;
+                    if (q.change_pct !== undefined) s.change_percent = q.change_pct;
+                    confluenceUpdated = true;
+                }
+            });
+        }
+
+        // 12. Market Correction & Index Divergence Radar
+        if (window._divergenceRadarData && window._divergenceRadarData.length > 0) {
+            window._divergenceRadarData.forEach(s => {
+                if (isMatch(s)) {
+                    if (q.price) s.current_price = q.price;
+                    if (q.change_pct !== undefined) s.day_change_pct = q.change_pct;
+                    divergenceUpdated = true;
+                }
+            });
         }
     }
+
+    // Trigger re-filters/re-renders for updated screeners
+    if (weinsteinUpdated && typeof window.filterWeinsteinTable === 'function') window.filterWeinsteinTable();
+    if (htfUpdated && typeof window.filterHtfTable === 'function') window.filterHtfTable();
+    if (threeWtUpdated && typeof window.filter3wtTable === 'function') window.filter3wtTable();
+    if (flatBaseUpdated && typeof window.filterFlatBaseTable === 'function') window.filterFlatBaseTable();
+    if (episodicUpdated && typeof window.filterEpisodicTable === 'function') window.filterEpisodicTable();
+    if (pocketUpdated && typeof window.filterPocketTable === 'function') window.filterPocketTable();
+    if (oliverKellUpdated && typeof window.filterOliverKellTable === 'function') window.filterOliverKellTable();
+    if (cupHandleUpdated && typeof window.filterCupHandleTable === 'function') window.filterCupHandleTable();
+    if (rsnhUpdated && typeof window.filterRsnhTable === 'function') window.filterRsnhTable();
+    if (undercutUpdated && typeof window.filterUndercutTable === 'function') window.filterUndercutTable();
+    if (confluenceUpdated && typeof window.renderMultiConfluenceLeaderboard === 'function' && window.cachedConfluenceResponse) {
+        window.renderMultiConfluenceLeaderboard(window.cachedConfluenceResponse);
+    }
+    if (divergenceUpdated && typeof window.filterDivergenceTable === 'function') window.filterDivergenceTable();
 }
 
 function handleWsAlertTriggered(alertData) {
@@ -57560,6 +57685,9 @@ window.runEpisodicScan = async function(isSilent = false, forceRefresh = false) 
             const cnt = data.count !== undefined ? data.count : (data.total_matches !== undefined ? data.total_matches : window.allEpisodicStocks.length);
             if (badge) badge.innerText = `${cnt} Matches`;
             window.renderUnifiedScreenerBadge('episodic-timestamp', cnt, data.last_updated || data.timestamp, forceRefresh);
+            if (typeof wsSubscribeSymbols === 'function' && window.allEpisodicStocks.length > 0) {
+                wsSubscribeSymbols(window.allEpisodicStocks.map(s => s.symbol));
+            }
         }
     } catch (err) {
         console.error('Error running Episodic Pivot scan:', err);
@@ -57701,6 +57829,9 @@ window.runPocketScan = async function(isSilent = false, forceRefresh = false) {
             const cnt = data.count !== undefined ? data.count : (data.total_matches !== undefined ? data.total_matches : window.allPocketStocks.length);
             if (badge) badge.innerText = `${cnt} Matches`;
             window.renderUnifiedScreenerBadge('pocket-timestamp', cnt, data.last_updated || data.timestamp, forceRefresh);
+            if (typeof wsSubscribeSymbols === 'function' && window.allPocketStocks.length > 0) {
+                wsSubscribeSymbols(window.allPocketStocks.map(s => s.symbol));
+            }
         }
     } catch (err) {
         console.error('Error running Pocket Pivot scan:', err);
@@ -57842,6 +57973,9 @@ window.runOliverKellScan = async function(isSilent = false, forceRefresh = false
             const cnt = data.count !== undefined ? data.count : (data.total_matches !== undefined ? data.total_matches : window.allOliverKellStocks.length);
             if (badge) badge.innerText = `${cnt} Matches`;
             window.renderUnifiedScreenerBadge('oliverkell-timestamp', cnt, data.last_updated || data.timestamp, forceRefresh);
+            if (typeof wsSubscribeSymbols === 'function' && window.allOliverKellStocks.length > 0) {
+                wsSubscribeSymbols(window.allOliverKellStocks.map(s => s.symbol));
+            }
         }
     } catch (err) {
         console.error('Error running Oliver Kell scan:', err);
@@ -58005,6 +58139,9 @@ window.runCupHandleScan = async function(isSilent = false, forceRefresh = false)
             const cnt = data.count !== undefined ? data.count : (data.total_matches !== undefined ? data.total_matches : window.allCupHandleStocks.length);
             if (badge) badge.innerText = `${cnt} Matches`;
             window.renderUnifiedScreenerBadge('cuphandle-timestamp', cnt, data.last_updated || data.timestamp, forceRefresh);
+            if (typeof wsSubscribeSymbols === 'function' && window.allCupHandleStocks.length > 0) {
+                wsSubscribeSymbols(window.allCupHandleStocks.map(s => s.symbol));
+            }
         }
     } catch (err) {
         console.error('Error running Cup & Handle scan:', err);
@@ -58186,6 +58323,9 @@ window.runRsnhScan = async function(isSilent = false, forceRefresh = false) {
             const cnt = data.count !== undefined ? data.count : window.allRsnhStocks.length;
             if (badge) badge.innerText = `${cnt} Matches`;
             window.renderUnifiedScreenerBadge('rsnh-timestamp', cnt, data.last_updated || data.timestamp, forceRefresh);
+            if (typeof wsSubscribeSymbols === 'function' && window.allRsnhStocks.length > 0) {
+                wsSubscribeSymbols(window.allRsnhStocks.map(s => s.symbol));
+            }
         }
     } catch (err) {
         console.error('Error running RS Line New High scan:', err);
@@ -58357,6 +58497,9 @@ window.runUndercutScan = async function(isSilent = false, forceRefresh = false) 
             const cnt = data.count !== undefined ? data.count : window.allUndercutStocks.length;
             if (badge) badge.innerText = `${cnt} Matches`;
             window.renderUnifiedScreenerBadge('undercut-timestamp', cnt, data.last_updated || data.timestamp, forceRefresh);
+            if (typeof wsSubscribeSymbols === 'function' && window.allUndercutStocks.length > 0) {
+                wsSubscribeSymbols(window.allUndercutStocks.map(s => s.symbol));
+            }
         }
     } catch (err) {
         console.error('Error running Undercut & Rally scan:', err);
@@ -58730,6 +58873,9 @@ window.runIndexDivergenceScan = async function(isSilent = false, forceRefresh = 
             const cnt = data.count !== undefined ? data.count : window._divergenceRadarData.length;
             if (badge) badge.innerText = `${cnt} Matches`;
             window.renderUnifiedScreenerBadge('divergence-header-status-badge', cnt, data.last_updated || data.timestamp, forceRefresh);
+            if (typeof wsSubscribeSymbols === 'function' && window._divergenceRadarData.length > 0) {
+                wsSubscribeSymbols(window._divergenceRadarData.map(s => s.symbol));
+            }
         }
     } catch (err) {
         console.error('Error running Index Divergence Radar scan:', err);
@@ -59052,6 +59198,9 @@ window.loadMultiConfluenceLeaderboard = async function(forceRefresh = false) {
                     window.renderMultiConfluenceLeaderboard(parsed);
                     const tsText = document.getElementById('confluence-last-updated-text');
                     if (tsText && parsed.last_updated) tsText.innerText = `Live Sync: ${parsed.last_updated}`;
+                    if (typeof wsSubscribeSymbols === 'function' && window.allConfluenceCandidates.length > 0) {
+                        wsSubscribeSymbols(window.allConfluenceCandidates.map(s => s.symbol));
+                    }
                     return;
                 }
             } catch (e) {
@@ -59083,6 +59232,9 @@ window.loadMultiConfluenceLeaderboard = async function(forceRefresh = false) {
 
         window.renderMultiConfluenceLeaderboard(data);
         window.renderUnifiedScreenerBadge('confluence-prewarmed-tag', window.allConfluenceCandidates.length, data.last_updated || new Date(), forceRefresh);
+        if (typeof wsSubscribeSymbols === 'function' && window.allConfluenceCandidates.length > 0) {
+            wsSubscribeSymbols(window.allConfluenceCandidates.map(s => s.symbol));
+        }
     } catch (err) {
         console.error("Error loading confluence leaderboard:", err);
         container.innerHTML = `
