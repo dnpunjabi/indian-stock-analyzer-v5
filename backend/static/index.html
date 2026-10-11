@@ -13821,6 +13821,96 @@
                             </div>
                         </div>
                         
+                        <!-- WhatsApp Pre-Market Morning Intelligence Card -->
+                        <div class="card" id="whatsapp-premarket-card" style="margin-top: 15px; border: 1px solid rgba(245, 158, 11, 0.25); background: rgba(245, 158, 11, 0.02);">
+                            <style>
+                                #whatsapp-premarket-card .switch-toggle input:checked + .slider-toggle-round {
+                                    background-color: #f59e0b !important;
+                                    border-color: #f59e0b !important;
+                                }
+                            </style>
+                            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 5px;">
+                                <div style="display: flex; align-items: center; gap: 8px;">
+                                    <span style="font-size: 18px;">🌅</span>
+                                    <div>
+                                        <div style="font-size: 14px; font-weight: 800; color: #fbbf24; text-transform: uppercase; letter-spacing: 0.04em;">Pre-Market Morning Intelligence</div>
+                                        <div style="font-size: 12px; color: var(--text-muted); margin-top: 1px;">Automated institutional tactical briefing delivered every weekday at 08:15 AM IST (ahead of market open).</div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Master Enable Toggle Switch -->
+                            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; margin-top: 8px; padding: 6px 10px; background: rgba(255,255,255,0.02); border: 1px solid var(--border-glass); border-radius: 6px;">
+                                <span style="font-size: 13.5px; font-weight: 600; color: var(--text-primary);">Enable Morning Dispatch (08:15 AM IST)</span>
+                                <label class="switch-toggle" style="position: relative; display: inline-block; width: 34px; height: 18px; margin-bottom: 0;">
+                                    <input type="checkbox" id="premarket-enabled" style="opacity: 0; width: 0; height: 0;">
+                                    <span class="slider-toggle-round" style="position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(255,255,255,0.1); transition: .3s; border-radius: 18px; border: 1px solid var(--border-glass);"></span>
+                                </label>
+                            </div>
+                            
+                            <!-- Content Feature Toggles -->
+                            <div style="display: flex; gap: 8px; margin-bottom: 8px; flex-wrap: wrap;">
+                                <label style="flex: 1; min-width: 135px; min-height: 48px; display: flex; align-items: center; justify-content: space-between; padding: 6px 10px; background: rgba(255,255,255,0.02); border: 1px solid var(--border-glass); border-radius: 6px; cursor: pointer; user-select: none; gap: 6px; box-sizing: border-box;">
+                                    <span style="font-size: 12.5px; font-weight: 700; color: var(--text-secondary); line-height: 1.25; flex: 1;">GIFT Nifty Projection</span>
+                                    <span class="switch-toggle" style="position: relative; display: inline-block; width: 34px; height: 18px; margin-bottom: 0; flex-shrink: 0;">
+                                        <input type="checkbox" id="premarket-include-gift" checked style="opacity: 0; width: 0; height: 0;">
+                                        <span class="slider-toggle-round" style="position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(255,255,255,0.1); transition: .3s; border-radius: 18px; border: 1px solid var(--border-glass);"></span>
+                                    </span>
+                                </label>
+                                <label style="flex: 1; min-width: 135px; min-height: 48px; display: flex; align-items: center; justify-content: space-between; padding: 6px 10px; background: rgba(255,255,255,0.02); border: 1px solid var(--border-glass); border-radius: 6px; cursor: pointer; user-select: none; gap: 6px; box-sizing: border-box;">
+                                    <span style="font-size: 12.5px; font-weight: 700; color: var(--text-secondary); line-height: 1.25; flex: 1;">FII/DII Flows & Cash</span>
+                                    <span class="switch-toggle" style="position: relative; display: inline-block; width: 34px; height: 18px; margin-bottom: 0; flex-shrink: 0;">
+                                        <input type="checkbox" id="premarket-include-fiidii" checked style="opacity: 0; width: 0; height: 0;">
+                                        <span class="slider-toggle-round" style="position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(255,255,255,0.1); transition: .3s; border-radius: 18px; border: 1px solid var(--border-glass);"></span>
+                                    </span>
+                                </label>
+                            </div>
+                            <div style="display: flex; gap: 8px; margin-bottom: 8px; flex-wrap: wrap;">
+                                <label style="flex: 1; min-width: 135px; min-height: 48px; display: flex; align-items: center; justify-content: space-between; padding: 6px 10px; background: rgba(255,255,255,0.02); border: 1px solid var(--border-glass); border-radius: 6px; cursor: pointer; user-select: none; gap: 6px; box-sizing: border-box;">
+                                    <span style="font-size: 12.5px; font-weight: 700; color: var(--text-secondary); line-height: 1.25; flex: 1;">Overnight News & Catalysts</span>
+                                    <span class="switch-toggle" style="position: relative; display: inline-block; width: 34px; height: 18px; margin-bottom: 0; flex-shrink: 0;">
+                                        <input type="checkbox" id="premarket-include-news" checked style="opacity: 0; width: 0; height: 0;">
+                                        <span class="slider-toggle-round" style="position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(255,255,255,0.1); transition: .3s; border-radius: 18px; border: 1px solid var(--border-glass);"></span>
+                                    </span>
+                                </label>
+                                <label style="flex: 1; min-width: 135px; min-height: 48px; display: flex; align-items: center; justify-content: space-between; padding: 6px 10px; background: rgba(255,255,255,0.02); border: 1px solid var(--border-glass); border-radius: 6px; cursor: pointer; user-select: none; gap: 6px; box-sizing: border-box;">
+                                    <span style="font-size: 12.5px; font-weight: 700; color: var(--text-secondary); line-height: 1.25; flex: 1;">Results & Events Today</span>
+                                    <span class="switch-toggle" style="position: relative; display: inline-block; width: 34px; height: 18px; margin-bottom: 0; flex-shrink: 0;">
+                                        <input type="checkbox" id="premarket-include-catalysts" checked style="opacity: 0; width: 0; height: 0;">
+                                        <span class="slider-toggle-round" style="position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(255,255,255,0.1); transition: .3s; border-radius: 18px; border: 1px solid var(--border-glass);"></span>
+                                    </span>
+                                </label>
+                            </div>
+                            <div style="display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap;">
+                                <label style="flex: 1; min-width: 135px; min-height: 48px; display: flex; align-items: center; justify-content: space-between; padding: 6px 10px; background: rgba(255,255,255,0.02); border: 1px solid var(--border-glass); border-radius: 6px; cursor: pointer; user-select: none; gap: 6px; box-sizing: border-box;">
+                                    <span style="font-size: 12.5px; font-weight: 700; color: var(--text-secondary); line-height: 1.25; flex: 1;">Portfolio & Watchlist Heads-Up</span>
+                                    <span class="switch-toggle" style="position: relative; display: inline-block; width: 34px; height: 18px; margin-bottom: 0; flex-shrink: 0;">
+                                        <input type="checkbox" id="premarket-include-portfolio-watchlist" checked style="opacity: 0; width: 0; height: 0;">
+                                        <span class="slider-toggle-round" style="position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(255,255,255,0.1); transition: .3s; border-radius: 18px; border: 1px solid var(--border-glass);"></span>
+                                    </span>
+                                </label>
+                            </div>
+                            
+                            <!-- Instant Test Trigger Button -->
+                            <button type="button" class="btn-secondary" id="trigger-premarket-now-btn" style="width: 100%; height: 34px; font-size: 13.5px; font-weight: 700; display: inline-flex; align-items: center; justify-content: center; margin-bottom: 10px; border-radius: 6px; border: 1px solid rgba(245, 158, 11, 0.5); background: rgba(245, 158, 11, 0.15); color: #fbbf24; cursor: pointer;">
+                                🚀 Send & Preview On-Demand Morning Brief
+                            </button>
+                            
+                            <!-- Last Sent Label -->
+                            <div style="font-size: 12.5px; color: var(--text-secondary); text-align: center; margin-bottom: 8px;" id="premarket-last-sent-lbl">
+                                Last dispatched: Ready for trigger
+                            </div>
+                            
+                            <!-- Live Preview Container -->
+                            <div id="premarket-preview-container" style="display: none; border-top: 1px solid rgba(255, 255, 255, 0.08); padding-top: 10px; margin-top: 8px;">
+                                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px;">
+                                    <div style="font-size: 12px; font-weight: bold; color: #fbbf24;">✨ Live Morning Intelligence Preview</div>
+                                    <button type="button" id="close-premarket-preview-btn" style="background: none; border: none; color: var(--text-secondary); cursor: pointer; font-size: 14px; font-weight: bold; outline: none; padding: 2px;">×</button>
+                                </div>
+                                <pre id="premarket-preview-text" style="font-size: 13px; font-family: monospace; background: #0f172a; border: 1px solid rgba(245, 158, 11, 0.3); border-radius: 6px; padding: 12px; color: #fde68a; white-space: pre-wrap; word-break: break-all; margin: 0; max-height: 220px; overflow-y: auto; text-align: left;"></pre>
+                            </div>
+                        </div>
+
                         <!-- WhatsApp Daily Wrap-Up Card -->
                         <div class="card" id="whatsapp-wrapup-card" style="margin-top: 15px; border: 1px solid rgba(37, 211, 102, 0.15); background: rgba(37, 211, 102, 0.01);">
                             <style>

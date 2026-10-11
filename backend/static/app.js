@@ -12250,6 +12250,8 @@ function setupAlertCenter() {
     fetchWhatsAppSettings();
     fetchDailyWrapupSettings();
     setupDailyWrapupListeners();
+    fetchPremarketSettings();
+    setupPremarketListeners();
     fetchWeeklyWrapupSettings();
     setupWeeklyWrapupListeners();
     fetchScreenerCookieSettings();
@@ -13178,6 +13180,163 @@ function setupDailyWrapupListeners() {
         closePreviewBtn.dataset.bound = 'true';
         closePreviewBtn.addEventListener('click', () => {
             const previewContainer = document.getElementById('wrapup-preview-container');
+            if (previewContainer) previewContainer.style.display = 'none';
+        });
+    }
+}
+
+// ─── PRE-MARKET MORNING INTELLIGENCE ALERT HANDLERS ──────────────────────────
+
+function applyPremarketDataToUI(data) {
+    if (!data) return;
+    const enabledChkbx = document.getElementById('premarket-enabled');
+    const lastSentLbl = document.getElementById('premarket-last-sent-lbl');
+    const includeGiftChkbx = document.getElementById('premarket-include-gift');
+    const includeFiidiiChkbx = document.getElementById('premarket-include-fiidii');
+    const includeNewsChkbx = document.getElementById('premarket-include-news');
+    const includeCatalystsChkbx = document.getElementById('premarket-include-catalysts');
+    const includePWChkbx = document.getElementById('premarket-include-portfolio-watchlist');
+
+    if (enabledChkbx) enabledChkbx.checked = !!data.enabled;
+    if (includeGiftChkbx) includeGiftChkbx.checked = data.include_gift !== false;
+    if (includeFiidiiChkbx) includeFiidiiChkbx.checked = data.include_fiidii !== false;
+    if (includeNewsChkbx) includeNewsChkbx.checked = data.include_news !== false;
+    if (includeCatalystsChkbx) includeCatalystsChkbx.checked = data.include_catalysts !== false;
+    if (includePWChkbx) includePWChkbx.checked = data.include_portfolio_watchlist !== false;
+    if (lastSentLbl) {
+        lastSentLbl.textContent = data.last_sent ? `Last dispatched: ${data.last_sent}` : "Last dispatched: Ready for trigger";
+    }
+}
+
+async function savePremarketSettingsAuto(showFeedback = false) {
+    const enabled = document.getElementById('premarket-enabled')?.checked;
+    const include_gift = document.getElementById('premarket-include-gift')?.checked;
+    const include_fiidii = document.getElementById('premarket-include-fiidii')?.checked;
+    const include_news = document.getElementById('premarket-include-news')?.checked;
+    const include_catalysts = document.getElementById('premarket-include-catalysts')?.checked;
+    const include_portfolio_watchlist = document.getElementById('premarket-include-portfolio-watchlist')?.checked;
+
+    const payload = { 
+        enabled, 
+        time: "08:15", 
+        persona: "institutional", 
+        include_gift, 
+        include_fiidii, 
+        include_news, 
+        include_catalysts, 
+        include_portfolio_watchlist 
+    };
+    try {
+        localStorage.setItem('premarket_settings_cache', JSON.stringify(payload));
+    } catch (e) {}
+
+    try {
+        const response = await fetch('/api/alerts/premarket/settings', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+        if (response.ok && showFeedback) {
+            showToast("Pre-Market Morning Intelligence settings updated.", "success");
+        }
+    } catch (err) {
+        console.error("Auto-save pre-market settings error:", err);
+    }
+}
+
+async function fetchPremarketSettings() {
+    try {
+        const cached = localStorage.getItem('premarket_settings_cache');
+        if (cached) {
+            applyPremarketDataToUI(JSON.parse(cached));
+        }
+    } catch (e) {}
+
+    try {
+        const response = await fetch('/api/alerts/premarket/settings');
+        if (!response.ok) return;
+        const data = await response.json();
+        applyPremarketDataToUI(data);
+        try {
+            localStorage.setItem('premarket_settings_cache', JSON.stringify(data));
+        } catch (e) {}
+    } catch (err) {
+        console.error("Failed to fetch pre-market settings:", err);
+    }
+}
+
+function setupPremarketListeners() {
+    const ids = [
+        'premarket-enabled',
+        'premarket-include-gift', 'premarket-include-fiidii',
+        'premarket-include-news', 'premarket-include-catalysts',
+        'premarket-include-portfolio-watchlist'
+    ];
+    ids.forEach(id => {
+        const el = document.getElementById(id);
+        if (el && !el.dataset.autoBound) {
+            el.dataset.autoBound = 'true';
+            el.addEventListener('change', () => savePremarketSettingsAuto(false));
+        }
+    });
+
+    const triggerBtn = document.getElementById('trigger-premarket-now-btn');
+    if (triggerBtn && !triggerBtn.dataset.bound) {
+        triggerBtn.dataset.bound = 'true';
+        triggerBtn.addEventListener('click', async () => {
+            triggerBtn.disabled = true;
+            const originalText = triggerBtn.textContent;
+            triggerBtn.textContent = "⌛ Compiling Morning Brief...";
+
+            try {
+                showToast("Compiling live Pre-Market Intelligence & overnight news...", "info");
+                const response = await fetch('/api/alerts/premarket/trigger', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ persona: "institutional" })
+                });
+                if (!response.ok) {
+                    const errData = await response.json();
+                    showToast(errData.detail || "Pre-Market trigger failed.", "error");
+                    return;
+                }
+
+                const data = await response.json();
+                
+                // Show live preview box
+                const previewContainer = document.getElementById('premarket-preview-container');
+                const previewText = document.getElementById('premarket-preview-text');
+                if (previewContainer && previewText) {
+                    typewriteElement(previewText, data.message_body, () => {
+                        if (data.llm_meta) {
+                            previewText.innerHTML += `<div class="ai-footer-meta-wrap">${window.renderLLMExecutionBadgeHtml(data.llm_meta)}</div>`;
+                        }
+                    });
+                    previewContainer.style.display = 'block';
+                }
+
+                if (data.dispatch_status === "success") {
+                    showToast("Pre-Market briefing dispatched successfully to WhatsApp!", "success");
+                } else {
+                    showToast(`Briefing compiled: ${data.error || 'Preview rendered'}`, "info");
+                }
+
+                await fetchPremarketSettings();
+            } catch (err) {
+                console.error("Error triggering pre-market alert:", err);
+                showToast("Failed to compile pre-market briefing.", "error");
+            } finally {
+                triggerBtn.disabled = false;
+                triggerBtn.textContent = originalText;
+            }
+        });
+    }
+
+    const closePreviewBtn = document.getElementById('close-premarket-preview-btn');
+    if (closePreviewBtn && !closePreviewBtn.dataset.bound) {
+        closePreviewBtn.dataset.bound = 'true';
+        closePreviewBtn.addEventListener('click', () => {
+            const previewContainer = document.getElementById('premarket-preview-container');
             if (previewContainer) previewContainer.style.display = 'none';
         });
     }

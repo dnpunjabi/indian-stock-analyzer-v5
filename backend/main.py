@@ -639,6 +639,16 @@ def init_db():
             cursor.execute("INSERT OR IGNORE INTO alert_settings (key, value) VALUES ('daily_wrapup_include_deals', 'true')")
             cursor.execute("INSERT OR IGNORE INTO alert_settings (key, value) VALUES ('daily_wrapup_include_sentiment', 'true')")
             cursor.execute("INSERT OR IGNORE INTO alert_settings (key, value) VALUES ('daily_wrapup_include_breakouts', 'true')")
+
+            # Seed default WhatsApp pre-market morning intelligence configurations
+            cursor.execute("INSERT OR IGNORE INTO alert_settings (key, value) VALUES ('premarket_alert_enabled', 'false')")
+            cursor.execute("INSERT OR IGNORE INTO alert_settings (key, value) VALUES ('premarket_alert_time', '08:15')")
+            cursor.execute("INSERT OR IGNORE INTO alert_settings (key, value) VALUES ('premarket_alert_persona', 'institutional')")
+            cursor.execute("INSERT OR IGNORE INTO alert_settings (key, value) VALUES ('premarket_include_gift', 'true')")
+            cursor.execute("INSERT OR IGNORE INTO alert_settings (key, value) VALUES ('premarket_include_fiidii', 'true')")
+            cursor.execute("INSERT OR IGNORE INTO alert_settings (key, value) VALUES ('premarket_include_news', 'true')")
+            cursor.execute("INSERT OR IGNORE INTO alert_settings (key, value) VALUES ('premarket_include_catalysts', 'true')")
+            cursor.execute("INSERT OR IGNORE INTO alert_settings (key, value) VALUES ('premarket_include_portfolio_watchlist', 'true')")
         except Exception as e:
             print(f"Error seeding daily wrap up configurations: {e}")
             
@@ -1136,6 +1146,97 @@ async def run_background_daily_wrapup_scheduler():
                             
         except Exception as loop_err:
             print(f"Daily Wrap-up: Background scheduler loop error: {loop_err}")
+            
+        await asyncio.sleep(300)  # Sweep every 5 minutes
+
+async def run_background_premarket_scheduler():
+    """
+    Asynchronous loop that sweeps every 5 minutes.
+    Checks if Pre-Market Morning Intelligence alert is enabled,
+    verifies if current IST time is past configured trigger time (default 08:15 IST)
+    on a weekday (Mon-Fri), and dispatches if not already sent today.
+    """
+    await asyncio.sleep(25)  # Let startup warming finish
+    print("Background WhatsApp pre-market alert scheduler started.")
+    
+    while True:
+        try:
+            enabled = "false"
+            trigger_time_str = "08:15"
+            last_sent = ""
+            persona = "institutional"
+            include_gift = "true"
+            include_fiidii = "true"
+            include_news = "true"
+            include_catalysts = "true"
+            include_pw = "true"
+            
+            with get_db() as conn:
+                cursor = conn.cursor()
+                cursor.execute("""
+                    SELECT key, value FROM alert_settings 
+                    WHERE key IN ('premarket_alert_enabled', 'premarket_alert_time', 'premarket_alert_last_sent',
+                                  'premarket_alert_persona', 'premarket_include_gift', 'premarket_include_fiidii',
+                                  'premarket_include_news', 'premarket_include_catalysts', 'premarket_include_portfolio_watchlist')
+                """)
+                for row in cursor.fetchall():
+                    k = row["key"]
+                    v = row["value"]
+                    if k == "premarket_alert_enabled": enabled = v
+                    elif k == "premarket_alert_time": trigger_time_str = v
+                    elif k == "premarket_alert_last_sent": last_sent = v
+                    elif k == "premarket_alert_persona": persona = v
+                    elif k == "premarket_include_gift": include_gift = v
+                    elif k == "premarket_include_fiidii": include_fiidii = v
+                    elif k == "premarket_include_news": include_news = v
+                    elif k == "premarket_include_catalysts": include_catalysts = v
+                    elif k == "premarket_include_portfolio_watchlist": include_pw = v
+            
+            if enabled.lower() == "true":
+                from datetime import datetime, timedelta
+                now_utc = datetime.utcnow()
+                now_ist = now_utc + timedelta(hours=5, minutes=30)
+                
+                # Mon-Fri
+                if now_ist.weekday() < 5:
+                    today_str = now_ist.strftime("%Y-%m-%d")
+                    if last_sent != today_str:
+                        try:
+                            t_parts = trigger_time_str.split(":")
+                            target_hour = int(t_parts[0])
+                            target_minute = int(t_parts[1])
+                            
+                            current_minutes = now_ist.hour * 60 + now_ist.minute
+                            target_minutes = target_hour * 60 + target_minute
+                            
+                            # Trigger window: from target time up to +90 minutes (e.g. 08:15 to 09:45)
+                            if target_minutes <= current_minutes <= (target_minutes + 90):
+                                print(f"Pre-Market Alert: Scheduled trigger time reached ({trigger_time_str} IST). Starting dispatch...")
+                                from backend.premarket_alert import compile_premarket_alert_payload, dispatch_premarket_alert
+                                
+                                config = {
+                                    "persona": persona,
+                                    "include_gift": include_gift.lower() == "true",
+                                    "include_fiidii": include_fiidii.lower() == "true",
+                                    "include_news": include_news.lower() == "true",
+                                    "include_catalysts": include_catalysts.lower() == "true",
+                                    "include_portfolio_watchlist": include_pw.lower() == "true"
+                                }
+                                
+                                msg, meta = await compile_premarket_alert_payload(config)
+                                res = await dispatch_premarket_alert(msg)
+                                if res.get("status") == "success":
+                                    print(f"Pre-Market Alert: Successfully dispatched to WhatsApp. Msg ID: {res.get('message_id')}")
+                                    with get_db() as conn:
+                                        cursor = conn.cursor()
+                                        cursor.execute("INSERT OR REPLACE INTO alert_settings (key, value) VALUES ('premarket_alert_last_sent', ?)", (today_str,))
+                                        conn.commit()
+                                else:
+                                    print(f"Pre-Market Alert: Dispatch failed: {res.get('message')}. Retrying in next sweep.")
+                        except Exception as parse_err:
+                            print(f"Pre-Market Alert: Error in trigger time parsing: {parse_err}")
+        except Exception as loop_err:
+            print(f"Pre-Market Alert: Background scheduler loop error: {loop_err}")
             
         await asyncio.sleep(300)  # Sweep every 5 minutes
 
@@ -2280,8 +2381,9 @@ async def startup_warm_caching():
     asyncio.create_task(asyncio.to_thread(update_nse_bulk_block_deals))
     asyncio.create_task(asyncio.to_thread(update_sector_regime_stats))
     asyncio.create_task(run_background_market_movers_updater())
-    # 4.5 Fire background WhatsApp daily & weekly wrap-up schedulers
+    # 4.5 Fire background WhatsApp daily, pre-market & weekly wrap-up schedulers
     asyncio.create_task(run_background_daily_wrapup_scheduler())
+    asyncio.create_task(run_background_premarket_scheduler())
     asyncio.create_task(run_background_weekly_wrapup_scheduler())
     
     # 4.6 Fire background FS alerts scheduler
@@ -7008,6 +7110,158 @@ async def trigger_daily_wrapup(payload: Optional[dict] = None):
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Daily Wrap-up Generation failed: {str(e)}")
+
+# ─── PRE-MARKET MORNING INTELLIGENCE WHATSAPP ALERT ROUTES ────────────────────
+
+@app.get("/api/alerts/premarket/settings")
+async def get_premarket_settings():
+    """Returns WhatsApp Pre-Market Morning Intelligence schedule and activation settings."""
+    enabled = "false"
+    trigger_time = "08:15"
+    persona = "institutional"
+    last_sent = ""
+    include_gift = "true"
+    include_fiidii = "true"
+    include_news = "true"
+    include_catalysts = "true"
+    include_pw = "true"
+
+    with get_db() as conn:
+        cursor = conn.cursor()
+        cursor.execute(
+            """SELECT key, value FROM alert_settings 
+               WHERE key IN ('premarket_alert_enabled', 'premarket_alert_time', 'premarket_alert_persona', 
+                             'premarket_alert_last_sent', 'premarket_include_gift', 'premarket_include_fiidii',
+                             'premarket_include_news', 'premarket_include_catalysts', 'premarket_include_portfolio_watchlist')"""
+        )
+        for row in cursor.fetchall():
+            k = row["key"]
+            v = row["value"]
+            if k == "premarket_alert_enabled": enabled = v
+            elif k == "premarket_alert_time": trigger_time = v
+            elif k == "premarket_alert_persona": persona = v
+            elif k == "premarket_alert_last_sent": last_sent = v
+            elif k == "premarket_include_gift": include_gift = v
+            elif k == "premarket_include_fiidii": include_fiidii = v
+            elif k == "premarket_include_news": include_news = v
+            elif k == "premarket_include_catalysts": include_catalysts = v
+            elif k == "premarket_include_portfolio_watchlist": include_pw = v
+    
+    return {
+        "enabled": enabled.lower() == "true",
+        "time": trigger_time,
+        "persona": persona,
+        "last_sent": last_sent,
+        "include_gift": include_gift.lower() == "true",
+        "include_fiidii": include_fiidii.lower() == "true",
+        "include_news": include_news.lower() == "true",
+        "include_catalysts": include_catalysts.lower() == "true",
+        "include_portfolio_watchlist": include_pw.lower() == "true"
+    }
+
+@app.post("/api/alerts/premarket/settings")
+async def save_premarket_settings(payload: dict):
+    """Updates pre-market alert schedule and configuration in SQLite."""
+    with get_db() as conn:
+        cursor = conn.cursor()
+        if "enabled" in payload:
+            val = "true" if payload["enabled"] else "false"
+            cursor.execute("INSERT OR REPLACE INTO alert_settings (key, value) VALUES ('premarket_alert_enabled', ?)", (val,))
+        if "time" in payload:
+            cursor.execute("INSERT OR REPLACE INTO alert_settings (key, value) VALUES ('premarket_alert_time', ?)", (payload["time"],))
+        if "persona" in payload:
+            cursor.execute("INSERT OR REPLACE INTO alert_settings (key, value) VALUES ('premarket_alert_persona', ?)", (payload["persona"],))
+        if "include_gift" in payload:
+            val = "true" if payload["include_gift"] else "false"
+            cursor.execute("INSERT OR REPLACE INTO alert_settings (key, value) VALUES ('premarket_include_gift', ?)", (val,))
+        if "include_fiidii" in payload:
+            val = "true" if payload["include_fiidii"] else "false"
+            cursor.execute("INSERT OR REPLACE INTO alert_settings (key, value) VALUES ('premarket_include_fiidii', ?)", (val,))
+        if "include_news" in payload:
+            val = "true" if payload["include_news"] else "false"
+            cursor.execute("INSERT OR REPLACE INTO alert_settings (key, value) VALUES ('premarket_include_news', ?)", (val,))
+        if "include_catalysts" in payload:
+            val = "true" if payload["include_catalysts"] else "false"
+            cursor.execute("INSERT OR REPLACE INTO alert_settings (key, value) VALUES ('premarket_include_catalysts', ?)", (val,))
+        if "include_portfolio_watchlist" in payload:
+            val = "true" if payload["include_portfolio_watchlist"] else "false"
+            cursor.execute("INSERT OR REPLACE INTO alert_settings (key, value) VALUES ('premarket_include_portfolio_watchlist', ?)", (val,))
+        conn.commit()
+    return {"status": "success"}
+
+@app.post("/api/alerts/premarket/trigger")
+async def trigger_premarket_alert(payload: Optional[dict] = None):
+    """Manually compiles the pre-market morning intelligence brief and dispatches to WhatsApp."""
+    from backend.premarket_alert import compile_premarket_alert_payload, dispatch_premarket_alert
+    try:
+        # Load current stored configuration
+        config = {
+            "persona": "institutional",
+            "include_gift": True,
+            "include_fiidii": True,
+            "include_news": True,
+            "include_catalysts": True,
+            "include_portfolio_watchlist": True
+        }
+        with get_db() as conn:
+            cursor = conn.cursor()
+            cursor.execute("""
+                SELECT key, value FROM alert_settings 
+                WHERE key IN ('premarket_alert_persona', 'premarket_include_gift', 'premarket_include_fiidii',
+                              'premarket_include_news', 'premarket_include_catalysts', 'premarket_include_portfolio_watchlist')
+            """)
+            for row in cursor.fetchall():
+                k, v = row["key"], row["value"]
+                if k == "premarket_alert_persona": config["persona"] = v
+                elif k == "premarket_include_gift": config["include_gift"] = v.lower() == "true"
+                elif k == "premarket_include_fiidii": config["include_fiidii"] = v.lower() == "true"
+                elif k == "premarket_include_news": config["include_news"] = v.lower() == "true"
+                elif k == "premarket_include_catalysts": config["include_catalysts"] = v.lower() == "true"
+                elif k == "premarket_include_portfolio_watchlist": config["include_portfolio_watchlist"] = v.lower() == "true"
+
+        # Apply runtime payload overrides
+        if payload:
+            if "persona" in payload and payload["persona"]:
+                config["persona"] = payload["persona"]
+            for field in ["include_gift", "include_fiidii", "include_news", "include_catalysts", "include_portfolio_watchlist"]:
+                if field in payload:
+                    config[field] = bool(payload[field])
+
+        msg, llm_meta = await compile_premarket_alert_payload(config)
+        wa_token = os.environ.get("WHATSAPP_TOKEN", "")
+        wa_phone_id = os.environ.get("WHATSAPP_PHONE_ID", "")
+        wa_recipient = os.environ.get("WHATSAPP_RECIPIENT", "")
+        
+        dispatch_status = "skipped"
+        dispatch_error = None
+        message_id = None
+        
+        if wa_token and wa_phone_id and wa_recipient:
+            res = await dispatch_premarket_alert(msg)
+            dispatch_status = res.get("status", "error")
+            if dispatch_status == "success":
+                message_id = res.get("message_id")
+                # Update last sent timestamp
+                with get_db() as conn:
+                    cursor = conn.cursor()
+                    cursor.execute("INSERT OR REPLACE INTO alert_settings (key, value) VALUES ('premarket_alert_last_sent', ?)", 
+                                   (datetime.now().strftime("%Y-%m-%d %H:%M"),))
+                    conn.commit()
+            else:
+                dispatch_error = res.get("message", "Unknown dispatch failure")
+        else:
+            dispatch_error = "WhatsApp credentials not configured in environment variables."
+            
+        return {
+            "status": "success",
+            "message_body": msg,
+            "dispatch_status": dispatch_status,
+            "message_id": message_id,
+            "error": dispatch_error,
+            "llm_meta": llm_meta
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Pre-Market Alert Generation failed: {str(e)}")
 
 @app.get("/api/alerts/weekly-wrapup/settings")
 async def get_weekly_wrapup_settings_route():
