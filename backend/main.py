@@ -21290,10 +21290,116 @@ async def run_background_midnight_quant_scanner():
             print(f"Error in midnight quant scanner worker: {e}")
         await asyncio.sleep(300)
 
+# ─── SHARK RADAR (SUPERSTAR INVESTOR PORTFOLIO) ENDPOINTS ─────────────────────
+
+@app.get("/api/sharks")
+async def get_shark_investors(
+    q: Optional[str] = Query(None, description="Search by name, sector, or stock"),
+    sort: str = Query("net_worth", description="Sort by 'net_worth' or 'stocks_count'"),
+    force: bool = Query(False, description="Force refresh from Trendlyne")
+):
+    """Returns list of all 60+ superstar investors with net worth, stock count, and recent moves."""
+    from backend.shark_scraper import sync_shark_directory
+    try:
+        investors = sync_shark_directory(force=force)
+        if q:
+            q_clean = q.strip().lower()
+            investors = [
+                inv for inv in investors
+                if q_clean in inv.get("name", "").lower()
+                or q_clean in inv.get("sector_preference", "").lower()
+                or q_clean in inv.get("top_holdings", "").lower()
+            ]
+        if sort == "stocks_count":
+            investors.sort(key=lambda x: x.get("stocks_count", 0), reverse=True)
+        else:
+            investors.sort(key=lambda x: x.get("net_worth_cr", 0.0), reverse=True)
+        return {"status": "success", "count": len(investors), "investors": investors}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to fetch shark investors: {str(e)}")
+
+@app.get("/api/sharks/consensus")
+async def get_shark_consensus_endpoint(min_sharks: int = Query(2, ge=2, le=10)):
+    """Option 1: Returns high-conviction stocks held by >= min_sharks (default 2)."""
+    from backend.shark_scraper import get_shark_consensus
+    try:
+        consensus = get_shark_consensus(min_sharks=min_sharks)
+        return {"status": "success", "min_sharks": min_sharks, "count": len(consensus), "consensus": consensus}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to fetch shark consensus: {str(e)}")
+
+@app.get("/api/sharks/{investor_id}")
+async def get_shark_portfolio(investor_id: str, force: bool = Query(False)):
+    """Returns full portfolio details, sector breakdown, holding history, insights, and bio."""
+    from backend.shark_scraper import sync_investor_portfolio
+    try:
+        portfolio = sync_investor_portfolio(investor_id, force=force)
+        return {"status": "success", "portfolio": portfolio}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to fetch portfolio for investor {investor_id}: {str(e)}")
+
+@app.post("/api/sharks/{investor_id}/clone-watchlist")
+async def clone_shark_portfolio_watchlist(investor_id: str, custom_name: Optional[str] = Query(None)):
+    """Option 6: 1-Click clones an investor's portfolio into a new workspace watchlist."""
+    from backend.shark_scraper import clone_shark_to_watchlist
+    try:
+        result = clone_shark_to_watchlist(investor_id, custom_name=custom_name)
+        if result.get("status") == "error":
+            raise HTTPException(status_code=400, detail=result.get("message"))
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to clone watchlist: {str(e)}")
+
+@app.post("/api/sharks/{investor_id}/refresh")
+async def refresh_shark_portfolio(investor_id: str):
+    """Forces an immediate refresh of a single investor's portfolio from filings."""
+    from backend.shark_scraper import sync_investor_portfolio
+    try:
+        portfolio = sync_investor_portfolio(investor_id, force=True)
+        return {"status": "success", "message": "Portfolio refreshed", "portfolio": portfolio}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to refresh portfolio: {str(e)}")
+
+@app.get("/api/stocks/{symbol}/sharks")
+async def get_sharks_holding_stock(symbol: str):
+    """Reverse lookup: returns all shark investors holding >= 1% in the requested stock."""
+    from backend.shark_scraper import get_sharks_for_stock
+    try:
+        sharks = get_sharks_for_stock(symbol)
+        return {
+            "status": "success",
+            "symbol": symbol.strip().upper(),
+            "count": len(sharks),
+            "sharks": sharks
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to get sharks for stock: {str(e)}")
+
+@app.get("/api/sharks/alerts/history")
+async def get_shark_alerts_history(limit: int = Query(50, ge=1, le=200)):
+    """Option 3: Returns recent shark alert notifications log."""
+    try:
+        with get_db() as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT * FROM shark_alert_history ORDER BY sent_at DESC LIMIT ?", (limit,))
+            rows = [dict(r) for r in cursor.fetchall()]
+            return {"status": "success", "count": len(rows), "alerts": rows}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to get alert history: {str(e)}")
+
+@app.post("/api/sharks/sync-batch")
+async def trigger_shark_batch_sync(limit: int = Query(15, ge=1, le=50)):
+    """Triggers background sync for the top N shark portfolios."""
+    from backend.shark_scraper import sync_top_sharks_batch
+    import threading
+    threading.Thread(target=sync_top_sharks_batch, kwargs={"limit": limit, "delay_sec": 1.2}, daemon=True).start()
+    return {"status": "success", "message": f"Background batch sync started for top {limit} sharks."}
+
 
 static_dir = os.path.join(os.path.dirname(__file__), "static")
 os.makedirs(static_dir, exist_ok=True)
 
 app.mount("/", StaticFiles(directory=static_dir, html=True), name="static")
+
 
 

@@ -1729,6 +1729,7 @@ const tabs = {
     swing: document.getElementById('tab-swing'),
     'sector-radar': document.getElementById('tab-sector-radar'),
     'ipo-radar': document.getElementById('tab-ipo-radar'),
+    'shark-radar': document.getElementById('tab-shark-radar'),
     movers: document.getElementById('tab-movers'),
     'market-news': document.getElementById('tab-market-news'),
     events: document.getElementById('tab-events'),
@@ -1755,6 +1756,7 @@ const tabBtns = {
     'interactive-chart': document.getElementById('tab-interactive-chart-btn') || document.getElementById('tab-interactive-chart-btn-desktop'),
     'sector-radar': document.getElementById('tab-sector-radar-btn') || document.getElementById('tab-sector-radar-btn-desktop'),
     'ipo-radar': document.getElementById('tab-ipo-radar-btn') || document.getElementById('tab-ipo-radar-btn-desktop'),
+    'shark-radar': document.getElementById('tab-shark-radar-btn') || document.getElementById('tab-shark-radar-btn-desktop'),
     movers: document.getElementById('tab-movers-btn'),
     'market-news': document.getElementById('tab-market-news-btn'),
     events: document.getElementById('tab-events-btn'),
@@ -2735,6 +2737,11 @@ function switchTab(tabKey) {
 
     if (tabKey === 'ipo-radar' || tabKey === 'ipo') {
         if (typeof window.refreshIpoTrackerData === 'function') window.refreshIpoTrackerData(false);
+    }
+
+    if (tabKey === 'shark-radar' || tabKey === 'shark') {
+        if (typeof window.loadSharkRadarData === 'function') window.loadSharkRadarData(false);
+        if (typeof window.openSharkAccordion === 'function') window.openSharkAccordion();
     }
 
     if (tabKey === 'portfolio') {
@@ -20055,6 +20062,7 @@ function showToast(message, type = 'info') {
         }
     }, 5000);
 }
+window.showToast = showToast;
 
 // Universal Printing Engine (Desktop & Mobile compatibility)
 function executeSystemPrint(printContent, customFeatures = 'width=850,height=900') {
@@ -43928,6 +43936,12 @@ async function loadShareholdingData(symbol) {
     const filterSelect = document.getElementById('sh-detailed-filter');
     
     if (filterSelect) filterSelect.value = 'all';
+    
+    // Check Shark Radar Smart Money Presence
+    if (typeof window.fetchSharkStockPresence === 'function') {
+        window.fetchSharkStockPresence(symbol);
+    }
+    
     if (!qSelect) return;
     
     try {
@@ -57093,6 +57107,15 @@ window.toggleSidebarAccordion = function(accordionId, event) {
 window.openQuantAccordion = function() {
     const body = document.getElementById('quant-screeners-accordion');
     const arrow = document.getElementById('quant-screeners-accordion-arrow');
+    if (body) {
+        body.style.display = 'block';
+        if (arrow) arrow.style.transform = 'rotate(180deg)';
+    }
+};
+
+window.openSharkAccordion = function() {
+    const body = document.getElementById('shark-radar-accordion');
+    const arrow = document.getElementById('shark-radar-accordion-arrow');
     if (body) {
         body.style.display = 'block';
         if (arrow) arrow.style.transform = 'rotate(180deg)';
