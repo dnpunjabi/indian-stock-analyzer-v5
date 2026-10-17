@@ -296,49 +296,82 @@
             return;
         }
 
+        function formatRelTime(dateStr) {
+            if (!dateStr) return { rel: 'Recently', exact: '' };
+            try {
+                const d = new Date(dateStr.replace(' ', 'T'));
+                if (isNaN(d.getTime())) return { rel: dateStr, exact: dateStr };
+                const diffMs = new Date() - d;
+                const diffSecs = Math.floor(diffMs / 1000);
+                const diffMins = Math.floor(diffSecs / 60);
+                const diffHours = Math.floor(diffMins / 60);
+                const diffDays = Math.floor(diffHours / 24);
+
+                let rel = '';
+                if (diffSecs < 60) rel = 'Just now';
+                else if (diffMins < 60) rel = `${diffMins}m ago`;
+                else if (diffHours < 24) rel = `${diffHours}h ago`;
+                else if (diffDays === 1) rel = 'Yesterday';
+                else if (diffDays < 7) rel = `${diffDays}d ago`;
+                else rel = d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
+
+                return { rel, exact: dateStr };
+            } catch (e) {
+                return { rel: dateStr, exact: dateStr };
+            }
+        }
+
         container.innerHTML = alerts.map(a => {
             const isNew = a.change_type === 'NEW_ENTRY';
             const badge = isNew 
-                ? '<span style="background: rgba(16, 185, 129, 0.15); color: #10b981; border: 1px solid rgba(16, 185, 129, 0.4); padding: 4px 10px; border-radius: 6px; font-size: 11px; font-weight: 800; display: inline-flex; align-items: center; gap: 4px;">🟢 NEW STAKE ENTRY</span>'
-                : '<span style="background: rgba(56, 189, 248, 0.15); color: #0284c7; border: 1px solid rgba(56, 189, 248, 0.4); padding: 4px 10px; border-radius: 6px; font-size: 11px; font-weight: 800; display: inline-flex; align-items: center; gap: 4px;">📈 AGGRESSIVE STAKE HIKE</span>';
+                ? '<span class="shark-badge-new">🟢 NEW STAKE ENTRY</span>'
+                : '<span class="shark-badge-hike">📈 AGGRESSIVE STAKE HIKE</span>';
 
-            // Clean formatted human text (strip markdown asterisks and parse nicely)
+            // Clean formatted human text
             let actionText = '';
             if (isNew) {
-                actionText = `entered a brand new disclosed stake of <strong style="color: #f59e0b;">${a.stake_percent}%</strong> in <strong class="shark-stock-name" style="color: #0284c7;">${escapeHtml(a.symbol)}</strong>`;
+                actionText = `entered a brand new disclosed stake of <strong style="color: #f59e0b;">${a.stake_percent}%</strong> in <strong class="shark-stock-name" style="color: #38bdf8;">${escapeHtml(a.symbol)}</strong>`;
             } else {
-                actionText = `aggressively increased stake by <strong style="color: #10b981;">+${a.change_percent}%</strong> to <strong style="color: #f59e0b;">${a.stake_percent}%</strong> in <strong class="shark-stock-name" style="color: #0284c7;">${escapeHtml(a.symbol)}</strong>`;
+                actionText = `aggressively increased stake by <strong style="color: #10b981;">+${a.change_percent}%</strong> to <strong style="color: #f59e0b;">${a.stake_percent}%</strong> in <strong class="shark-stock-name" style="color: #38bdf8;">${escapeHtml(a.symbol)}</strong>`;
             }
 
-            // Extract approx value if present in message_text
-            const valMatch = (a.message_text || '').match(/approx\s*(₹[0-9,.]+\s*Cr)/i);
-            const valStr = valMatch ? valMatch[1] : '';
+            // Extract approx value if present in message_text (supports Lakhs and Crores, ignores 0.0)
+            let valStr = '';
+            const valMatch = (a.message_text || '').match(/approx\s*(₹[0-9,.]+\s*(?:Cr|L))/i);
+            if (valMatch && !valMatch[1].includes('₹0.0')) {
+                valStr = valMatch[1];
+            }
 
             const initials = (a.investor_name || '').split(' ').map(w => w[0]).filter(Boolean).slice(0, 2).join('').toUpperCase();
+            const timeInfo = formatRelTime(a.sent_at);
 
             return `
-                <div class="shark-card" style="padding: 16px 20px; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px;">
-                    <div style="display: flex; align-items: center; gap: 14px; flex: 1; min-width: 280px;">
-                        <div class="shark-avatar" style="width: 42px; height: 42px; font-size: 14px;">${initials}</div>
-                        <div>
-                            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px; flex-wrap: wrap;">
+                <div class="shark-alert-card">
+                    <div class="shark-alert-main">
+                        <div class="shark-alert-avatar">${initials}</div>
+                        <div class="shark-alert-body">
+                            <div class="shark-alert-header">
                                 ${badge}
-                                <strong class="shark-stock-name" style="font-size: 15px;">${escapeHtml(a.investor_name)}</strong>
-                                <span class="shark-pill-holding" style="cursor: pointer; font-weight: 800;" onclick="window.researchSharkStock('${a.symbol}')" title="Click to analyze stock">
-                                    ${escapeHtml(a.symbol)}
+                                <strong class="shark-alert-investor">${escapeHtml(a.investor_name)}</strong>
+                                <span class="shark-alert-stock-chip" onclick="window.researchSharkStock('${a.symbol}')" title="Click to analyze ${escapeHtml(a.symbol)}">
+                                    ${escapeHtml(a.symbol)} ↗
                                 </span>
+                                ${valStr ? `<span class="shark-alert-val-pill">${valStr}</span>` : ''}
                             </div>
-                            <div class="shark-sector" style="font-size: 13px; line-height: 1.4; color: var(--text-secondary, #475569);">
-                                Superstar investor <strong>${escapeHtml(a.investor_name)}</strong> ${actionText}${valStr ? ` <span style="font-family: monospace; font-weight: 700;">(${valStr})</span>` : ''}.
+                            <div class="shark-alert-desc">
+                                Superstar investor <strong>${escapeHtml(a.investor_name)}</strong> ${actionText}.
                             </div>
                         </div>
                     </div>
-                    <div style="display: flex; align-items: center; gap: 14px; flex-shrink: 0;">
-                        <div style="text-align: right;">
-                            <span class="shark-stat-label" style="display: block; font-size: 10px;">TRIGGERED AT</span>
-                            <span style="font-size: 12px; font-weight: 600; color: var(--text-muted, #64748b);">${escapeHtml(a.sent_at || '')}</span>
+                    <div class="shark-alert-meta">
+                        <div class="shark-alert-time-box">
+                            <span class="shark-alert-time-label">⏱️ ALERT DISPATCHED</span>
+                            <span class="shark-alert-time-rel" title="Server scan & alert trigger: ${escapeHtml(a.sent_at || '')}">
+                                ${timeInfo.rel}
+                            </span>
+                            <span class="shark-alert-time-exact">${escapeHtml(timeInfo.exact)}</span>
                         </div>
-                        <button class="shark-btn-inspect" style="padding: 7px 14px; font-size: 12px; display: flex; align-items: center; gap: 4px;" onclick="window.researchSharkStock('${a.symbol}')">
+                        <button class="shark-btn-research" onclick="window.researchSharkStock('${a.symbol}')">
                             ⚡ Research
                         </button>
                     </div>

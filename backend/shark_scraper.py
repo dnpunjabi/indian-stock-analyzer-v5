@@ -143,6 +143,30 @@ def parse_int_safe(val_str: Any) -> int:
             return 0
     return 0
 
+def parse_holding_value(val_str: Any) -> tuple[float, str]:
+    """
+    Parses holding value from Trendlyne formats like '57.4 Cr', '41.8 L', '₹3.1 Cr', '-'.
+    Accurately converts Lakhs ('L') to Crores (dividing by 100).
+    Returns (value_in_cr, formatted_str).
+    """
+    if not val_str or str(val_str).strip() in ['-', '--', 'N/A', 'None']:
+        return 0.0, "-"
+    s = str(val_str).replace(',', '').replace('₹', '').strip()
+    match = re.search(r'[-+]?\d*\.?\d+', s)
+    if not match:
+        return 0.0, "-"
+    try:
+        num = float(match.group(0))
+        if 'L' in s.upper() and 'CR' not in s.upper():
+            val_cr = round(num / 100.0, 3)
+            formatted = f"₹{num:.1f} L"
+        else:
+            val_cr = round(num, 2)
+            formatted = f"₹{num:.1f} Cr"
+        return val_cr, formatted
+    except Exception:
+        return 0.0, "-"
+
 
 # ─── SCRAPING FUNCTIONS ───────────────────────────────────────────────────────
 
@@ -261,71 +285,84 @@ def scrape_investor_portfolio(investor_id: str, slug: str) -> Dict[str, Any]:
                 insights.append(text)
                 
     # 3. Extract Holdings Tables
-    # Trendlyne renders individual stock holding cards or tables
+    # Locate the primary/master superstar shareholding table (ignore nested child subtables)
+    master_table = soup.find("table", class_="superstar-shareholding")
+    if not master_table:
+        for t in soup.find_all("table"):
+            th_text = " ".join([th.get_text() for th in t.find_all("th")])
+            if "Stock" in th_text and ("Holding Value" in th_text or "Holding %" in th_text):
+                master_table = t
+                break
+
     holdings = []
     quarters_found = []
     
-    tables = soup.find_all("table")
-    for table in tables:
-        rows = table.find_all("tr")
-        if not rows:
-            continue
-            
-        header_cells = [c.get_text(strip=True) for c in rows[0].find_all(["th", "td"])]
-        if not ("Stock" in header_cells and ("Holding Value" in header_cells or "Qty Held" in header_cells or "Holding %" in " ".join(header_cells))):
-            continue
-            
-        # Detect quarter column indices from header
+    if master_table:
+        thead = master_table.find("thead")
+        header_cells = [c.get_text(strip=True) for c in (thead.find_all("th") if thead else master_table.find_all("tr")[0].find_all(["th", "td"]))]
+        
+        # Determine column positions based on whether the table has the 'Expand' column
+        has_expand = len(header_cells) > 0 and "expand" in header_cells[0].lower()
+        stock_col = 1 if has_expand else 0
+        val_col = 2 if has_expand else 1
+        qty_col = 3 if has_expand else 2
+        
+        # Quarter columns (strictly exclude any 'change' header)
         q_cols = []
+        change_col_idx = None
         for idx, col_name in enumerate(header_cells):
-            if re.search(r'(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s*\d{4}', col_name, re.I):
-                q_cols.append((idx, col_name.replace("Holding %", "").replace("%", "").strip()))
-                if col_name not in quarters_found:
-                    quarters_found.append(col_name)
-                    
-        # Parse data rows in this table
-        for r in rows[1:]:
-            cells = r.find_all(["td", "th"])
+            if "change" in col_name.lower():
+                change_col_idx = idx
+            elif re.search(r'(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s*\d{4}', col_name, re.I):
+                clean_q = re.search(r'(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s*\d{4}', col_name, re.I).group(0)
+                q_cols.append((idx, clean_q))
+                if clean_q not in quarters_found:
+                    quarters_found.append(clean_q)
+
+        tbody = master_table.find("tbody")
+        rows = tbody.find_all("tr", recursive=False) if tbody else master_table.find_all("tr")[1:]
+        
+        for r in rows:
+            # Skip child expansion rows or subtables
+            r_classes = r.get("class", [])
+            if any(c in r_classes for c in ["childrow", "childrowDT", "subtable"]):
+                continue
+                
+            cells = r.find_all(["td", "th"], recursive=False)
             if len(cells) < 4:
                 continue
                 
-            stock_name = cells[0].get_text(strip=True)
-            if not stock_name or stock_name.lower() in ["stock", "total"]:
+            stock_cell = cells[stock_col] if stock_col < len(cells) else cells[0]
+            stock_name = stock_cell.get_text(strip=True)
+            if not stock_name or stock_name.lower() in ["stock", "total", "expand"]:
                 continue
                 
-            # Extract ticker symbol from link if available
+            # Extract ticker symbol from link
             ticker = ""
-            a_tag = cells[0].find("a", href=True)
+            a_tag = stock_cell.find("a", href=True)
             if a_tag:
                 href = a_tag["href"]
-                # Match e.g. /equity/share-holding/38/AGARIND/latest/...
                 sym_match = re.search(r'/equity/share-holding/\d+/([A-Z0-9_-]+)/', href)
                 if sym_match:
                     ticker = sym_match.group(1).upper()
-                    
             if not ticker:
-                # Fallback to alphanumeric cleaning of the stock name
                 ticker = re.sub(r'[^A-Z0-9]', '', stock_name.upper())[:10]
                 
-            val_text = cells[1].get_text(strip=True) if len(cells) > 1 else "-"
-            holding_val_cr = parse_float_safe(val_text)
+            val_text = cells[val_col].get_text(strip=True) if val_col < len(cells) else "-"
+            holding_val_cr, holding_val_str = parse_holding_value(val_text)
             
-            qty_text = cells[2].get_text(strip=True) if len(cells) > 2 else "-"
+            qty_text = cells[qty_col].get_text(strip=True) if qty_col < len(cells) else "-"
             qty_held = parse_int_safe(qty_text)
             
-            # Holding entity / alias
-            holder_name = cells[-2].get_text(strip=True) if len(cells) >= 6 else ""
-            if not holder_name or holder_name == "":
-                holder_name = slug.replace("-", " ").title()
-                
+            holder_name = slug.replace("-", " ").title()
+            
             # Quarter by quarter history
             quarterly_pcts = {}
             for col_idx, q_label in q_cols:
                 if col_idx < len(cells):
                     pct_str = cells[col_idx].get_text(strip=True)
-                    quarterly_pcts[q_label] = parse_float_safe(pct_str) if pct_str != "-" else 0.0
+                    quarterly_pcts[q_label] = parse_float_safe(pct_str) if pct_str not in ["-", "--", ""] else 0.0
                     
-            # Latest and Prior Quarter Stake %
             latest_pct = 0.0
             prior_pct = 0.0
             if q_cols:
@@ -334,18 +371,18 @@ def scrape_investor_portfolio(investor_id: str, slug: str) -> Dict[str, Any]:
                 if len(q_cols) > 1:
                     prior_q_label = q_cols[1][1]
                     prior_pct = quarterly_pcts.get(prior_q_label, 0.0)
+                    
+            if change_col_idx is not None and change_col_idx < len(cells):
+                change_pct = parse_float_safe(cells[change_col_idx].get_text(strip=True))
             else:
-                # Fallback to column 3
-                latest_pct = parse_float_safe(cells[3].get_text(strip=True))
+                change_pct = round(latest_pct - prior_pct, 2)
                 
-            change_pct = round(latest_pct - prior_pct, 2)
-            
-            # Determine Change Type
-            if prior_pct == 0.0 and latest_pct > 0.0:
+            # Genuine new stake entry: prior stake was 0 (or unlisted under SEBI 1% mandatory threshold) and latest stake >= 1.0%
+            if prior_pct == 0.0 and latest_pct >= 1.0:
                 change_type = "NEW"
-            elif latest_pct > prior_pct:
+            elif change_pct > 0:
                 change_type = "INCREASED"
-            elif latest_pct < prior_pct:
+            elif change_pct < 0:
                 change_type = "REDUCED"
             else:
                 change_type = "UNCHANGED"
@@ -354,7 +391,7 @@ def scrape_investor_portfolio(investor_id: str, slug: str) -> Dict[str, Any]:
                 "stock_name": stock_name,
                 "symbol": ticker,
                 "holding_value_cr": holding_val_cr,
-                "holding_value_str": f"₹{holding_val_cr:.1f} Cr" if holding_val_cr > 0 else "-",
+                "holding_value_str": holding_val_str,
                 "shares_count": qty_held,
                 "latest_stake_pct": latest_pct,
                 "prior_stake_pct": prior_pct,
@@ -639,12 +676,19 @@ def dispatch_shark_alert(investor_name: str, investor_id: str, symbol: str, chan
     Option 3: Dispatches instant alert to WhatsApp / Telegram via backend/daily_wrapup.py
     and logs the alert in shark_alert_history and the global alerts table.
     """
+    val_snippet = ""
+    if val_cr >= 1.0:
+        val_snippet = f" (approx ₹{val_cr:.1f} Cr)"
+    elif val_cr > 0.0:
+        val_lakhs = round(val_cr * 100, 1)
+        val_snippet = f" (approx ₹{val_lakhs:.1f} L)"
+
     if change_type == "NEW_ENTRY":
         title = f"🦈 SHARK ALERT: New Entry by {investor_name}"
-        body = f"Superstar investor *{investor_name}* entered a brand new stake in *{symbol}* of *{stake_pct:.1f}%* (approx ₹{val_cr:.1f} Cr)."
+        body = f"Superstar investor *{investor_name}* entered a brand new disclosed stake in *{symbol}* of *{stake_pct:.1f}%*{val_snippet}."
     else:
         title = f"🦈 SHARK ALERT: Stake Increase by {investor_name}"
-        body = f"Superstar investor *{investor_name}* aggressively increased holding in *{symbol}* by *+{change_pct:.2f}%* to *{stake_pct:.1f}%* (approx ₹{val_cr:.1f} Cr)."
+        body = f"Superstar investor *{investor_name}* aggressively increased holding in *{symbol}* by *+{change_pct:.2f}%* to *{stake_pct:.1f}%*{val_snippet}."
         
     full_msg = f"{title}\n\n{body}\n\n📈 *Indian Stock Analyzer 5.0 — Shark Radar*"
     
