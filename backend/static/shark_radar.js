@@ -90,6 +90,14 @@
                 view.style.display = (t === tabKey) ? 'block' : 'none';
             }
         });
+
+        // Automatically dismiss mobile sidebar drawer upon selecting a sub-view
+        if (typeof window.closeMobileSidebar === 'function') {
+            window.closeMobileSidebar();
+        } else {
+            const sb = document.getElementById('sidebar');
+            if (sb && sb.classList.contains('open')) sb.classList.remove('open');
+        }
     };
 
     // ─── SEARCH & FILTER DIRECTORY ─────────────────────────────────────────

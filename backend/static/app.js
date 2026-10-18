@@ -2573,9 +2573,25 @@ function setupTabNavigation() {
     }
 }
 
-function switchTab(tabKey) {
+window.closeMobileSidebar = function() {
+    const sb = document.getElementById('sidebar');
+    if (sb && sb.classList.contains('open')) {
+        sb.classList.remove('open');
+    }
+    const overlay = document.getElementById('sidebar-overlay');
+    if (overlay && overlay.classList.contains('active')) {
+        overlay.classList.remove('active');
+    }
+};
+
+function switchTab(tabKey, options = {}) {
     activeTab = tabKey;
     localStorage.setItem('active-tab', tabKey);
+
+    // Auto-close mobile sidebar drawer on navigation
+    if (typeof window.closeMobileSidebar === 'function') {
+        window.closeMobileSidebar();
+    }
 
     const shieldEnabled = localStorage.getItem('portfolio-security-shield-enabled') !== 'false';
 
@@ -2737,11 +2753,12 @@ function switchTab(tabKey) {
 
     if (tabKey === 'ipo-radar' || tabKey === 'ipo') {
         if (typeof window.refreshIpoTrackerData === 'function') window.refreshIpoTrackerData(false);
+        if (!options?.preserveAccordion && typeof window.openIpoAccordion === 'function') window.openIpoAccordion();
     }
 
     if (tabKey === 'shark-radar' || tabKey === 'shark') {
         if (typeof window.loadSharkRadarData === 'function') window.loadSharkRadarData(false);
-        if (typeof window.openSharkAccordion === 'function') window.openSharkAccordion();
+        if (!options?.preserveAccordion && typeof window.openSharkAccordion === 'function') window.openSharkAccordion();
     }
 
     if (tabKey === 'portfolio') {
@@ -20593,23 +20610,22 @@ function setupMobileMenu() {
 
         document.addEventListener('click', (e) => {
             const navMore = document.getElementById('nav-more');
-            if (e.target && e.target.closest && (e.target.closest('.sidebar-accordion-header') || e.target.closest('.sidebar-accordion-group'))) {
-                return;
-            }
             if (sidebar.classList.contains('open') && !sidebar.contains(e.target) && e.target !== toggleBtn && e.target !== closeBtnMobile && (!navMore || !navMore.contains(e.target))) {
                 sidebar.classList.remove('open');
             }
         });
 
-        const navBtns = document.querySelectorAll('.nav-btn');
-        navBtns.forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                if (btn.classList.contains('sidebar-accordion-header') || btn.closest('.sidebar-accordion-header') || (e.target && e.target.closest && e.target.closest('.sidebar-accordion-header'))) {
-                    if (e && typeof e.stopPropagation === 'function') e.stopPropagation();
-                    return;
-                }
-                sidebar.classList.remove('open');
-            });
+        // Event delegation on sidebar: clicking any non-accordion-header navigation item closes the mobile drawer
+        sidebar.addEventListener('click', (e) => {
+            const btn = e.target.closest('.nav-btn');
+            if (!btn) return;
+            // Do not close sidebar if clicking the accordion toggle header itself
+            if (btn.classList.contains('sidebar-accordion-header') || btn.closest('.sidebar-accordion-header')) {
+                return;
+            }
+            sidebar.classList.remove('open');
+            const overlay = document.getElementById('sidebar-overlay');
+            if (overlay) overlay.classList.remove('active');
         });
     }
 }
@@ -57122,6 +57138,75 @@ window.openSharkAccordion = function() {
     }
 };
 
+window.closeSharkAccordion = function() {
+    const body = document.getElementById('shark-radar-accordion');
+    const arrow = document.getElementById('shark-radar-accordion-arrow');
+    if (body) {
+        body.style.display = 'none';
+        if (arrow) arrow.style.transform = 'rotate(0deg)';
+    }
+};
+
+window.toggleSharkAccordion = function(event) {
+    if (event) {
+        if (typeof event.stopPropagation === 'function') event.stopPropagation();
+        if (typeof event.stopImmediatePropagation === 'function') event.stopImmediatePropagation();
+    }
+    const body = document.getElementById('shark-radar-accordion');
+    const arrow = document.getElementById('shark-radar-accordion-arrow');
+    if (!body) return;
+    const isHidden = body.style.display === 'none' || getComputedStyle(body).display === 'none';
+    if (isHidden) {
+        body.style.display = 'block';
+        if (arrow) arrow.style.transform = 'rotate(180deg)';
+        if (typeof window.switchTab === 'function' && window.activeTab !== 'shark-radar') {
+            window.switchTab('shark-radar', { preserveAccordion: true });
+        }
+    } else {
+        body.style.display = 'none';
+        if (arrow) arrow.style.transform = 'rotate(0deg)';
+    }
+};
+
+window.openIpoAccordion = function() {
+    const body = document.getElementById('ipo-radar-accordion');
+    const arrow = document.getElementById('ipo-radar-accordion-arrow');
+    if (body) {
+        body.style.display = 'block';
+        if (arrow) arrow.style.transform = 'rotate(180deg)';
+    }
+};
+
+window.closeIpoAccordion = function() {
+    const body = document.getElementById('ipo-radar-accordion');
+    const arrow = document.getElementById('ipo-radar-accordion-arrow');
+    if (body) {
+        body.style.display = 'none';
+        if (arrow) arrow.style.transform = 'rotate(0deg)';
+    }
+};
+
+window.toggleIpoAccordion = function(event) {
+    if (event) {
+        if (typeof event.stopPropagation === 'function') event.stopPropagation();
+        if (typeof event.stopImmediatePropagation === 'function') event.stopImmediatePropagation();
+    }
+    const body = document.getElementById('ipo-radar-accordion');
+    const arrow = document.getElementById('ipo-radar-accordion-arrow');
+    if (!body) return;
+    const isHidden = body.style.display === 'none' || getComputedStyle(body).display === 'none';
+    if (isHidden) {
+        body.style.display = 'block';
+        if (arrow) arrow.style.transform = 'rotate(180deg)';
+        if (typeof window.switchTab === 'function' && window.activeTab !== 'ipo-radar') {
+            window.switchTab('ipo-radar', { preserveAccordion: true });
+        }
+    } else {
+        body.style.display = 'none';
+        if (arrow) arrow.style.transform = 'rotate(0deg)';
+    }
+};
+
 window.switchQuantScannerSubtab = function(tabName) {
     // Expand sidebar accordion if a sub-screener is selected
     if (tabName !== 'guide') {
@@ -61369,6 +61454,14 @@ window.switchIpoSubTab = function(subtab) {
         }
     } else {
         if (window.refreshIpoTrackerData) window.refreshIpoTrackerData(false);
+    }
+
+    // Auto-close mobile sidebar drawer upon selecting an IPO subtab
+    if (typeof window.closeMobileSidebar === 'function') {
+        window.closeMobileSidebar();
+    } else {
+        const sb = document.getElementById('sidebar');
+        if (sb && sb.classList.contains('open')) sb.classList.remove('open');
     }
 };
 

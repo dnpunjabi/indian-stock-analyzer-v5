@@ -1891,7 +1891,7 @@
                     <span class="btn-icon">🔥</span> <span class="btn-text">Sector Momentum Radar</span>
                 </button>
                 <div class="sidebar-accordion-group">
-                    <button class="nav-btn sidebar-accordion-header" id="ipo-radar-accordion-btn" onclick="window.toggleSidebarAccordion && window.toggleSidebarAccordion('ipo-radar-accordion', event); window.switchTab && window.switchTab('ipo-radar');" style="display: flex; align-items: center; justify-content: space-between; width: 100%; text-align: left;" data-title="IPO Radar & Pipeline Watch">
+                    <button class="nav-btn sidebar-accordion-header" id="ipo-radar-accordion-btn" onclick="window.toggleIpoAccordion ? window.toggleIpoAccordion(event) : window.toggleSidebarAccordion('ipo-radar-accordion', event);" style="display: flex; align-items: center; justify-content: space-between; width: 100%; text-align: left;" data-title="IPO Radar & Pipeline Watch">
                         <span style="display: flex; align-items: center; gap: 8px;">
                             <span class="btn-icon">🚀</span>
                             <span class="btn-text">IPO Radar & Pipeline</span>
@@ -1902,19 +1902,19 @@
                         </span>
                     </button>
                     <div class="sidebar-accordion-body" id="ipo-radar-accordion" style="display: none; padding-left: 10px; margin-left: 14px; border-left: 2px solid rgba(56, 189, 248, 0.25); margin-top: 2px; margin-bottom: 4px;">
-                        <button class="nav-btn" id="tab-ipo-sub-listed-btn" data-title="Listed Mainboard IPOs" onclick="window.switchTab && window.switchTab('ipo-radar'); window.switchIpoSubTab && window.switchIpoSubTab('listed');">
+                        <button class="nav-btn" id="tab-ipo-sub-listed-btn" data-title="Listed Mainboard IPOs" onclick="window.switchTab && window.switchTab('ipo-radar'); window.switchIpoSubTab && window.switchIpoSubTab('listed'); window.closeMobileSidebar && window.closeMobileSidebar();">
                             <span class="btn-icon">📊</span> <span class="btn-text">Listed Mainboard IPOs</span>
                         </button>
-                        <button class="nav-btn" id="tab-ipo-sub-upcoming-btn" data-title="Upcoming & Active Pipeline" onclick="window.switchTab && window.switchTab('ipo-radar'); window.switchIpoSubTab && window.switchIpoSubTab('upcoming');">
+                        <button class="nav-btn" id="tab-ipo-sub-upcoming-btn" data-title="Upcoming & Active Pipeline" onclick="window.switchTab && window.switchTab('ipo-radar'); window.switchIpoSubTab && window.switchIpoSubTab('upcoming'); window.closeMobileSidebar && window.closeMobileSidebar();">
                             <span class="btn-icon">🔥</span> <span class="btn-text">Upcoming & Pipeline Watch</span>
                         </button>
                     </div>
                 </div>
                 <div class="sidebar-accordion-group">
-                    <button class="nav-btn sidebar-accordion-header" id="shark-radar-accordion-btn" onclick="window.toggleSidebarAccordion && window.toggleSidebarAccordion('shark-radar-accordion', event); window.switchTab && window.switchTab('shark-radar');" style="display: flex; align-items: center; justify-content: space-between; width: 100%; text-align: left;" data-title="Shark Radar • Superstar Portfolios">
+                    <button class="nav-btn sidebar-accordion-header" id="shark-radar-accordion-btn" onclick="window.toggleSharkAccordion ? window.toggleSharkAccordion(event) : window.toggleSidebarAccordion('shark-radar-accordion', event);" style="display: flex; align-items: center; justify-content: space-between; width: 100%; text-align: left;" data-title="Shark Radar • Superstar Portfolios">
                         <span style="display: flex; align-items: center; gap: 8px;">
                             <span class="btn-icon">🦈</span>
-                            <span class="btn-text">Shark Radar (Smart Money)</span>
+                            <span class="btn-text">Shark Radar</span>
                         </span>
                         <span style="display: flex; align-items: center; gap: 6px;">
                             <span class="badge-count-pill" style="font-size: 10px; background: rgba(245, 158, 11, 0.15); color: #f59e0b; padding: 2px 7px; border-radius: 10px; font-weight: 800; border: 1px solid rgba(245, 158, 11, 0.3);">61</span>
@@ -1922,13 +1922,13 @@
                         </span>
                     </button>
                     <div class="sidebar-accordion-body" id="shark-radar-accordion" style="display: none; padding-left: 10px; margin-left: 14px; border-left: 2px solid rgba(245, 158, 11, 0.25); margin-top: 2px; margin-bottom: 4px;">
-                        <button class="nav-btn active" id="tab-shark-sub-superstars-btn" data-title="All Superstar Investors (60+)" onclick="window.switchTab && window.switchTab('shark-radar'); window.switchSharkSubTab && window.switchSharkSubTab('superstars');">
-                            <span class="btn-icon">👑</span> <span class="btn-text">Superstars (60+)</span>
+                        <button class="nav-btn active" id="tab-shark-sub-superstars-btn" data-title="All Superstar Investors" onclick="window.switchTab && window.switchTab('shark-radar'); window.switchSharkSubTab && window.switchSharkSubTab('superstars'); window.closeMobileSidebar && window.closeMobileSidebar();">
+                            <span class="btn-icon">👑</span> <span class="btn-text">Superstar Portfolios</span>
                         </button>
-                        <button class="nav-btn" id="tab-shark-sub-consensus-btn" data-title="Multi-Shark Consensus Overlaps" onclick="window.switchTab && window.switchTab('shark-radar'); window.switchSharkSubTab && window.switchSharkSubTab('consensus');">
+                        <button class="nav-btn" id="tab-shark-sub-consensus-btn" data-title="Multi-Shark Consensus Overlaps" onclick="window.switchTab && window.switchTab('shark-radar'); window.switchSharkSubTab && window.switchSharkSubTab('consensus'); window.closeMobileSidebar && window.closeMobileSidebar();">
                             <span class="btn-icon">🎯</span> <span class="btn-text">Consensus Overlaps</span>
                         </button>
-                        <button class="nav-btn" id="tab-shark-sub-alerts-btn" data-title="Smart Money Alerts Feed" onclick="window.switchTab && window.switchTab('shark-radar'); window.switchSharkSubTab && window.switchSharkSubTab('alerts');">
+                        <button class="nav-btn" id="tab-shark-sub-alerts-btn" data-title="Smart Money Alerts Feed" onclick="window.switchTab && window.switchTab('shark-radar'); window.switchSharkSubTab && window.switchSharkSubTab('alerts'); window.closeMobileSidebar && window.closeMobileSidebar();">
                             <span class="btn-icon">🚨</span> <span class="btn-text">Alerts Log</span>
                         </button>
                     </div>
@@ -18324,7 +18324,7 @@
     <script src="academy_prompts.js"></script>
     <script src="layman_details.js"></script>
     <script src="export_manager.js?v=5.0.1"></script>
-    <script src="app.js?v=5.1.9"></script>
+    <script src="app.js?v=5.2.0"></script>
 
     <!-- Modernization CDNs -->
     <script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js"></script>
@@ -18348,7 +18348,7 @@
 
     <!-- Modernization Custom Layer -->
     <script src="modernizer.js?v=8.53"></script>
-    <script src="shark_radar.js?v=5.0.5"></script>
+    <script src="shark_radar.js?v=5.0.6"></script>
 
     <!-- Mobile Frosted Glass Slide-up Details Bottom Sheet -->
     <div id="mobile-details-bottom-sheet" class="mobile-bottom-sheet no-print" style="display: none;">
