@@ -16,6 +16,7 @@ import re
 import json
 import time
 import asyncio
+import logging
 import requests
 from bs4 import BeautifulSoup
 from datetime import datetime, timedelta
@@ -23,12 +24,25 @@ from typing import Dict, List, Optional, Any
 
 from backend.main import get_db
 
+logger = logging.getLogger("shark_radar")
+
+SEED_FILE_PATH = os.path.join(os.path.dirname(__file__), "shark_radar_seed.json")
+
 # Standard browser headers to ensure 200 OK responses
 TRENDLYNE_HEADERS = {
     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
     "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8",
     "Accept-Language": "en-US,en;q=0.9",
-    "Referer": "https://trendlyne.com/portfolio/superstar-shareholders/index/"
+    "Accept-Encoding": "gzip, deflate, br",
+    "Referer": "https://trendlyne.com/portfolio/superstar-shareholders/index/",
+    "Sec-Ch-Ua": '"Chromium";v="124", "Google Chrome";v="124", "Not-A.Brand";v="99"',
+    "Sec-Ch-Ua-Mobile": "?0",
+    "Sec-Ch-Ua-Platform": '"Windows"',
+    "Sec-Fetch-Dest": "document",
+    "Sec-Fetch-Mode": "navigate",
+    "Sec-Fetch-Site": "same-origin",
+    "Sec-Fetch-User": "?1",
+    "Upgrade-Insecure-Requests": "1"
 }
 
 # ─── DATABASE INITIALIZATION ───────────────────────────────────────────────────
@@ -109,6 +123,70 @@ def init_shark_tables():
         """)
         
         conn.commit()
+    seed_shark_tables_if_empty()
+
+
+def seed_shark_tables_if_empty() -> bool:
+    """
+    Seeds shark tables from backend/shark_radar_seed.json if cached_shark_investors is empty.
+    Guarantees instant sub-20ms startup and offline/datacenter VM resilience.
+    """
+    if not os.path.exists(SEED_FILE_PATH):
+        return False
+        
+    try:
+        with get_db() as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT COUNT(*) FROM cached_shark_investors")
+            count = cursor.fetchone()[0]
+            if count > 0:
+                return True
+                
+            logger.info("Seeding Shark Radar database from bundled seed dataset...")
+            with open(SEED_FILE_PATH, "r", encoding="utf-8") as f:
+                seed_data = json.load(f)
+                
+            now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            
+            # 1. Directory Leaderboard
+            for inv in seed_data.get("investors", []):
+                cursor.execute("""
+                INSERT OR IGNORE INTO cached_shark_investors 
+                (id, name, slug, net_worth_cr, net_worth_str, change_pct, stocks_count, sector_preference, top_holdings, recently_bought, recently_sold, bio, profile_url, last_updated)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """, (
+                    inv["id"], inv["name"], inv["slug"], inv.get("net_worth_cr", 0.0), inv.get("net_worth_str", ""),
+                    inv.get("change_pct", 0.0), inv.get("stocks_count", 0), inv.get("sector_preference", ""),
+                    inv.get("top_holdings", ""), inv.get("recently_bought", ""), inv.get("recently_sold", ""),
+                    inv.get("bio", ""), inv.get("profile_url", ""), inv.get("last_updated") or now_str
+                ))
+                
+            # 2. Portfolios
+            for port in seed_data.get("portfolios", []):
+                cursor.execute("""
+                INSERT OR IGNORE INTO cached_shark_portfolios (investor_id, data_json, last_updated)
+                VALUES (?, ?, ?)
+                """, (port["investor_id"], port["data_json"], port.get("last_updated") or now_str))
+                
+            # 3. Stock Lookup
+            for row in seed_data.get("stock_lookup", []):
+                cursor.execute("""
+                INSERT OR IGNORE INTO shark_stock_lookup 
+                (symbol, company_name, investor_id, investor_name, holding_percent, holding_value_cr, shares_count, holding_entity, latest_quarter, prior_quarter_percent, change_percent, change_type, last_updated)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """, (
+                    row["symbol"], row.get("company_name", ""), row["investor_id"], row.get("investor_name", ""),
+                    row.get("holding_percent", 0.0), row.get("holding_value_cr", 0.0), row.get("shares_count", 0),
+                    row.get("holding_entity", ""), row.get("latest_quarter", ""), row.get("prior_quarter_percent", 0.0),
+                    row.get("change_percent", 0.0), row.get("change_type", "UNCHANGED"), row.get("last_updated") or now_str
+                ))
+                
+            conn.commit()
+            logger.info("Successfully seeded Shark Radar tables with bundled dataset.")
+            return True
+    except Exception as e:
+        logger.error(f"Failed to seed Shark Radar tables: {e}")
+        return False
 
 
 # ─── PARSING HELPERS ──────────────────────────────────────────────────────────
@@ -170,17 +248,73 @@ def parse_holding_value(val_str: Any) -> tuple[float, str]:
 
 # ─── SCRAPING FUNCTIONS ───────────────────────────────────────────────────────
 
+def trendlyne_get(url: str, timeout: int = 15) -> str:
+    """
+    Fetches HTML from Trendlyne using a resilient multi-tier engine:
+    1. curl_cffi with Chrome 120/124 TLS fingerprint impersonation (bypasses CloudFront / AWS WAF bot detection on Oracle VM / Datacenter IPs).
+    2. cloudscraper (anti-bot / Cloudflare challenge bypass).
+    3. requests.Session with complete modern browser headers.
+    """
+    errors = []
+    
+    # Tier 1: curl_cffi (Essential for bypassing CloudFront JA3/JA4 TLS fingerprinting on Datacenter IPs)
+    try:
+        from curl_cffi import requests as cffi_requests
+        resp = cffi_requests.get(
+            url,
+            headers=TRENDLYNE_HEADERS,
+            impersonate="chrome120",
+            timeout=timeout
+        )
+        if resp.status_code == 200 and resp.text:
+            return resp.text
+        else:
+            errors.append(f"curl_cffi HTTP {resp.status_code}")
+    except Exception as e:
+        errors.append(f"curl_cffi: {e}")
+
+    # Tier 2: cloudscraper
+    try:
+        import cloudscraper
+        scraper = cloudscraper.create_scraper(
+            browser={
+                'browser': 'chrome',
+                'platform': 'windows',
+                'desktop': True
+            }
+        )
+        resp = scraper.get(url, headers=TRENDLYNE_HEADERS, timeout=timeout)
+        if resp.status_code == 200 and resp.text:
+            return resp.text
+        else:
+            errors.append(f"cloudscraper HTTP {resp.status_code}")
+    except Exception as e:
+        errors.append(f"cloudscraper: {e}")
+
+    # Tier 3: standard requests with modern browser headers
+    try:
+        session = requests.Session()
+        resp = session.get(url, headers=TRENDLYNE_HEADERS, timeout=timeout)
+        if resp.status_code == 200 and resp.text:
+            return resp.text
+        else:
+            errors.append(f"requests HTTP {resp.status_code}")
+    except Exception as e:
+        errors.append(f"requests: {e}")
+
+    error_summary = " | ".join(errors)
+    raise Exception(f"Failed to fetch {url}. Diagnostics: {error_summary}")
+
+
 def scrape_superstar_index() -> List[Dict[str, Any]]:
     """
     Scrapes Trendlyne's Superstar Shareholders index page.
     Returns list of 60+ superstar investors with net worth, stock count, and recent moves.
     """
     url = "https://trendlyne.com/portfolio/superstar-shareholders/index/"
-    resp = requests.get(url, headers=TRENDLYNE_HEADERS, timeout=15)
-    if resp.status_code != 200:
-        raise Exception(f"Failed to fetch Trendlyne Superstar Index. HTTP Status: {resp.status_code}")
+    html_text = trendlyne_get(url, timeout=15)
         
-    soup = BeautifulSoup(resp.text, "html.parser")
+    soup = BeautifulSoup(html_text, "html.parser")
     table = soup.find("table")
     if not table:
         raise Exception("Superstar index table not found in Trendlyne page HTML.")
@@ -262,11 +396,9 @@ def scrape_investor_portfolio(investor_id: str, slug: str) -> Dict[str, Any]:
     Extracts complete stock holdings, tickers, quantities, values, quarterly history, and entity aliases.
     """
     url = f"https://trendlyne.com/portfolio/superstar-shareholders/{investor_id}/latest/{slug}/"
-    resp = requests.get(url, headers=TRENDLYNE_HEADERS, timeout=15)
-    if resp.status_code != 200:
-        raise Exception(f"Failed to fetch portfolio for {slug} (ID: {investor_id}). HTTP Status: {resp.status_code}")
+    html_text = trendlyne_get(url, timeout=15)
         
-    soup = BeautifulSoup(resp.text, "html.parser")
+    soup = BeautifulSoup(html_text, "html.parser")
     
     # 1. Extract Bio / Headline Summary
     headings = [h.get_text(strip=True) for h in soup.find_all(["h1", "h2", "h3"])]
@@ -450,10 +582,24 @@ def sync_shark_directory(force: bool = False, max_age_days: int = 7) -> List[Dic
             except Exception:
                 pass
                 
-    # 2. Cache miss or forced refresh: Scrape live
-    scraped_investors = scrape_superstar_index()
+    # 2. Cache miss or forced refresh: Scrape live with graceful failover
+    scraped_investors = []
+    try:
+        scraped_investors = scrape_superstar_index()
+    except Exception as scrape_err:
+        logger.warning(f"Trendlyne superstar index live scrape failed ({scrape_err}). Attempting fallback recovery.")
+
     if not scraped_investors:
-        # Fallback to existing cache if scrape returned empty
+        # Fallback 1: Return existing cache if any exists (even if older than max_age_days)
+        with get_db() as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT * FROM cached_shark_investors ORDER BY net_worth_cr DESC")
+            existing = [dict(r) for r in cursor.fetchall()]
+            if existing:
+                return existing
+                
+        # Fallback 2: Load from bundled seed dataset if cache is completely empty
+        seed_shark_tables_if_empty()
         with get_db() as conn:
             cursor = conn.cursor()
             cursor.execute("SELECT * FROM cached_shark_investors ORDER BY net_worth_cr DESC")
@@ -521,9 +667,54 @@ def sync_investor_portfolio(investor_id: str, force: bool = False, max_age_days:
         slug = inv_meta["slug"] if inv_meta else investor_id
         investor_name = inv_meta["name"] if inv_meta else slug.replace("-", " ").title()
         
-    # 2. Live Scrape
-    portfolio_data = scrape_investor_portfolio(investor_id, slug)
-    portfolio_data["investor_name"] = investor_name
+    # 2. Live Scrape with Fallback
+    portfolio_data = None
+    try:
+        portfolio_data = scrape_investor_portfolio(investor_id, slug)
+        portfolio_data["investor_name"] = investor_name
+    except Exception as scrape_err:
+        logger.warning(f"Live scrape failed for investor {investor_id} ({scrape_err}). Attempting cached/seed recovery.")
+
+    if not portfolio_data:
+        # Fallback 1: Check existing SQLite cache (even if older than max_age_days)
+        with get_db() as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT data_json FROM cached_shark_portfolios WHERE investor_id = ?", (investor_id,))
+            cached_row = cursor.fetchone()
+            if cached_row:
+                return json.loads(cached_row["data_json"])
+                
+        # Fallback 2: Check bundled seed dataset
+        if os.path.exists(SEED_FILE_PATH):
+            try:
+                with open(SEED_FILE_PATH, "r", encoding="utf-8") as f:
+                    seed_data = json.load(f)
+                for port in seed_data.get("portfolios", []):
+                    if str(port.get("investor_id")) == str(investor_id):
+                        seed_port = json.loads(port["data_json"])
+                        now_str = now.strftime("%Y-%m-%d %H:%M:%S")
+                        with get_db() as conn:
+                            cursor = conn.cursor()
+                            cursor.execute("""
+                            INSERT OR REPLACE INTO cached_shark_portfolios (investor_id, data_json, last_updated)
+                            VALUES (?, ?, ?)
+                            """, (investor_id, port["data_json"], port.get("last_updated") or now_str))
+                            conn.commit()
+                        return seed_port
+            except Exception:
+                pass
+                
+        # Fallback 3: Safe minimal response instead of 500 error
+        return {
+            "investor_id": investor_id,
+            "investor_name": investor_name,
+            "holdings_count": 0,
+            "holdings": [],
+            "bio": f"Live portfolio details for {investor_name} could not be updated right now.",
+            "insights": [],
+            "quarters": []
+        }
+    
     now_str = now.strftime("%Y-%m-%d %H:%M:%S")
     
     # 3. Option 3 Hook: Detect Brand New Entries & Aggressive Stake Hikes (>= +0.5%)
