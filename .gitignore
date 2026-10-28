@@ -48,3 +48,5 @@ backend/scratch/
 backend/static/app_test_*.js
 node_modules/
 *.apk
+outputs/
+

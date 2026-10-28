@@ -1174,9 +1174,37 @@ async def send_whatsapp_wrapup(msg_body: str) -> dict:
                 if idx < len(chunks) - 1:
                     await asyncio.sleep(0.5)
             else:
+                err_code = resp_data.get("error", {}).get("code")
+                # Auto-heal Error 133010 ("Account not registered")
+                if err_code == 133010:
+                    try:
+                        from backend.whatsapp_bot import ensure_sandbox_registered
+                        await asyncio.to_thread(ensure_sandbox_registered)
+                        resp = await asyncio.to_thread(requests.post, url, headers=headers, json=payload, timeout=10)
+                        resp_data = resp.json()
+                        if resp.status_code == 200 and "messages" in resp_data:
+                            last_msg_id = resp_data["messages"][0].get("id", "")
+                            continue
+                    except Exception:
+                        pass
+                # Auto-heal Error 131047 (24h conversation window lapsed)
+                elif err_code == 131047:
+                    try:
+                        from backend.whatsapp_bot import send_sandbox_wake_template
+                        await asyncio.to_thread(send_sandbox_wake_template, recipient=wa_recipient)
+                        await asyncio.sleep(1.0)
+                        resp = await asyncio.to_thread(requests.post, url, headers=headers, json=payload, timeout=10)
+                        resp_data = resp.json()
+                        if resp.status_code == 200 and "messages" in resp_data:
+                            last_msg_id = resp_data["messages"][0].get("id", "")
+                            continue
+                    except Exception:
+                        pass
+
                 error_msg = resp_data.get("error", {}).get("message", "Unknown error")
                 return {"status": "error", "message": f"WhatsApp Cloud API error (part {idx+1}/{len(chunks)}): {error_msg}"}
         except Exception as e:
             return {"status": "error", "message": f"Network error sending WhatsApp (part {idx+1}/{len(chunks)}): {str(e)}"}
             
     return {"status": "success", "message_id": last_msg_id}
+

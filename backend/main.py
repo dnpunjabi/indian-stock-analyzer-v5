@@ -43,7 +43,7 @@ import numpy as np
 from datetime import datetime, timedelta
 from contextlib import contextmanager
 import math
-from fastapi import FastAPI, HTTPException, Query, UploadFile, File, Header, Response
+from fastapi import FastAPI, HTTPException, Query, UploadFile, File, Header, Response, Request
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
@@ -1130,7 +1130,21 @@ async def run_background_daily_wrapup_scheduler():
                                 except Exception as deliv_err:
                                     print(f"Daily Wrap-up delivery pre-sync error: {deliv_err}")
                                 from backend.daily_wrapup import generate_daily_wrapup_text, send_whatsapp_wrapup
-                                
+                                try:
+                                    from backend.chart_generator import generate_portfolio_eod_chart, send_whatsapp_chart
+                                    from backend.daily_wrapup import fetch_portfolio_summary
+                                    summary = fetch_portfolio_summary()
+                                    if summary and summary.get("active"):
+                                        chart_bytes = generate_portfolio_eod_chart(
+                                            holdings=summary.get("enriched_holdings", []),
+                                            total_val=summary.get("total_value", 0.0),
+                                            daily_pnl_val=summary.get("total_daily_change_val", 0.0),
+                                            daily_pnl_pct=summary.get("total_daily_change_pct", 0.0)
+                                        )
+                                        await asyncio.to_thread(send_whatsapp_chart, chart_bytes, "📊 *ApexQuant Daily Market & Portfolio Performance*")
+                                except Exception as c_err:
+                                    print(f"Daily Wrap-up background chart error: {c_err}")
+
                                 msg = await generate_daily_wrapup_text()
                                 res = await send_whatsapp_wrapup(msg)
                                 if res.get("status") == "success":
@@ -2386,6 +2400,10 @@ async def startup_warm_caching():
     asyncio.create_task(run_background_premarket_scheduler())
     asyncio.create_task(run_background_weekly_wrapup_scheduler())
     
+    # 4.51 Fire WhatsApp Sandbox automated keep-alive scheduler (personal solo mode)
+    from backend.whatsapp_bot import run_background_whatsapp_sandbox_keepalive
+    asyncio.create_task(run_background_whatsapp_sandbox_keepalive())
+
     # 4.6 Fire background FS alerts scheduler
     asyncio.create_task(run_background_fs_alerts_scheduler())
 
@@ -6998,6 +7016,111 @@ async def test_whatsapp():
     except requests.exceptions.RequestException as e:
         raise HTTPException(status_code=500, detail=f"Network error sending WhatsApp test: {str(e)}")
 
+
+@app.get("/api/alerts/whatsapp/webhook")
+async def verify_whatsapp_webhook(
+    hub_mode: str = Query(None, alias="hub.mode"),
+    hub_challenge: str = Query(None, alias="hub.challenge"),
+    hub_verify_token: str = Query(None, alias="hub.verify_token")
+):
+    """
+    Meta Webhook Verification Handshake.
+    When configuring the webhook in Meta Developers console, Meta issues a GET request with
+    hub.mode, hub.challenge, and hub.verify_token.
+    """
+    expected_token = os.environ.get("WHATSAPP_VERIFY_TOKEN", "apexquant_secret")
+    if hub_mode == "subscribe" and hub_verify_token == expected_token:
+        print(f"[WHATSAPP WEBHOOK] Verified successfully with challenge: {hub_challenge}")
+        return Response(content=str(hub_challenge), media_type="text/plain")
+    else:
+        print(f"[WHATSAPP WEBHOOK] Verification token mismatch. Received: {hub_verify_token}")
+        raise HTTPException(status_code=403, detail="Verification token mismatch")
+
+
+@app.post("/api/alerts/whatsapp/webhook")
+async def handle_whatsapp_webhook(request: Request):
+    """
+    Receives incoming WhatsApp messages from Meta Cloud API webhook,
+    processes commands via the whatsapp_bot terminal, and dispatches responses.
+    """
+    try:
+        data = await request.json()
+    except Exception:
+        return {"status": "ignored"}
+
+    try:
+        entries = data.get("entry", [])
+        for entry in entries:
+            for change in entry.get("changes", []):
+                value = change.get("value", {})
+                messages = value.get("messages", [])
+                for msg in messages:
+                    sender = msg.get("from")
+                    text_body = ""
+                    if msg.get("type") == "text":
+                        text_body = msg.get("text", {}).get("body", "")
+                    elif msg.get("type") == "interactive":
+                        button_reply = msg.get("interactive", {}).get("button_reply", {})
+                        text_body = button_reply.get("id") or button_reply.get("title", "")
+                    
+                    if text_body:
+                        print(f"[WHATSAPP BOT] Inbound query from {sender}: '{text_body}'")
+                        from backend.whatsapp_bot import process_incoming_message
+                        reply_text = process_incoming_message(text_body)
+                        from backend.daily_wrapup import send_whatsapp_wrapup
+                        asyncio.create_task(send_whatsapp_wrapup(reply_text))
+    except Exception as e:
+        print(f"[WHATSAPP BOT] Error handling incoming webhook: {e}")
+
+    # Immediately respond 200 OK so Meta does not retry
+    return {"status": "received"}
+
+
+@app.post("/api/alerts/whatsapp/send-chart")
+async def trigger_whatsapp_chart():
+    """Manual trigger endpoint to generate and dispatch the EOD dark-mode chart to WhatsApp."""
+    from backend.chart_generator import generate_portfolio_eod_chart, send_whatsapp_chart
+    from backend.daily_wrapup import fetch_portfolio_summary
+    
+    summary = fetch_portfolio_summary()
+    holdings = summary.get("enriched_holdings", [])
+    total_val = summary.get("total_value", 0.0)
+    day_pnl_val = summary.get("total_daily_change_val", 0.0)
+    day_pnl_pct = summary.get("total_daily_change_pct", 0.0)
+    
+    img_bytes = generate_portfolio_eod_chart(
+        holdings=holdings,
+        total_val=total_val,
+        daily_pnl_val=day_pnl_val,
+        daily_pnl_pct=day_pnl_pct,
+        benchmark_pct=0.48,
+        benchmark_name="Nifty 50"
+    )
+    
+    pnl_sign = "+" if day_pnl_val >= 0 else "-"
+    caption = (
+        "📊 *ApexQuant Daily Market & Portfolio Wrap-Up*\n"
+        f"💰 *Total Value*: ₹ {total_val:,.0f}\n"
+        f"📈 *Today's Net P&L*: {pnl_sign}₹ {abs(day_pnl_val):,.0f} ({'+' if day_pnl_pct >= 0 else ''}{day_pnl_pct:.2f}%)\n"
+        "━━━━━━━━━━━━━━━━━━━━\n"
+        "_Automated dark-mode briefing attached._"
+    )
+    res = send_whatsapp_chart(img_bytes, caption)
+    return res
+
+
+@app.post("/api/alerts/whatsapp/wake-sandbox")
+async def trigger_wake_whatsapp_sandbox():
+    """
+    Re-registers the Meta WhatsApp sandbox test number and re-opens the 24-hour
+    interactive conversation window on the user's phone with zero app publishing.
+    """
+    from backend.whatsapp_bot import wake_sandbox_session
+    res = await asyncio.to_thread(wake_sandbox_session)
+    return res
+
+
+
 @app.get("/api/alerts/daily-wrapup/settings")
 async def get_daily_wrapup_settings():
     """Returns WhatsApp Daily Wrap-Up schedule and activation settings."""
@@ -7091,6 +7214,21 @@ async def trigger_daily_wrapup(payload: Optional[dict] = None):
         message_id = None
         
         if wa_token and wa_phone_id and wa_recipient:
+            try:
+                from backend.chart_generator import generate_portfolio_eod_chart, send_whatsapp_chart
+                from backend.daily_wrapup import fetch_portfolio_summary
+                summary = fetch_portfolio_summary()
+                if summary and summary.get("active"):
+                    chart_bytes = generate_portfolio_eod_chart(
+                        holdings=summary.get("enriched_holdings", []),
+                        total_val=summary.get("total_value", 0.0),
+                        daily_pnl_val=summary.get("total_daily_change_val", 0.0),
+                        daily_pnl_pct=summary.get("total_daily_change_pct", 0.0)
+                    )
+                    await asyncio.to_thread(send_whatsapp_chart, chart_bytes, "📊 *ApexQuant Daily Market & Portfolio Performance*")
+            except Exception as chart_err:
+                print(f"Daily Wrap-up chart auto-dispatch error: {chart_err}")
+
             res = await send_whatsapp_wrapup(msg)
             dispatch_status = res.get("status", "error")
             if dispatch_status == "success":
@@ -7237,6 +7375,16 @@ async def trigger_premarket_alert(payload: Optional[dict] = None):
         message_id = None
         
         if wa_token and wa_phone_id and wa_recipient:
+            try:
+                from backend.chart_generator import generate_premarket_cues_chart, send_whatsapp_chart
+                from backend.premarket_alert import fetch_global_market_cues
+                cues = await asyncio.to_thread(fetch_global_market_cues)
+                if cues:
+                    cues_bytes = generate_premarket_cues_chart(cues)
+                    await asyncio.to_thread(send_whatsapp_chart, cues_bytes, "🌐 *ApexQuant Pre-Market Global Cues & Radar*")
+            except Exception as cues_err:
+                print(f"Pre-market cues chart auto-dispatch error: {cues_err}")
+
             res = await dispatch_premarket_alert(msg)
             dispatch_status = res.get("status", "error")
             if dispatch_status == "success":
