@@ -2223,18 +2223,155 @@ def handle_portfolio(recipient: Optional[str] = None) -> Dict[str, Any]:
             f"🔻 *Top Laggard*: {top_loser['symbol']} ({top_loser['pct']:+.2f}%)\n"
             f"📌 *Active Positions*: {len(active_holdings)} stocks\n"
             "━━━━━━━━━━━━━━━━━━━━\n"
-            "_Synced with local SQLite portfolio table._"
+            "Tap *Inspect Positions* below to view stock-by-stock charts, P&L & valuation dossiers:"
         )
     except Exception as e:
         logger.error(f"Error computing portfolio: {e}")
         body = f"⚠️ *Error*: Failed to compute portfolio: {str(e)}"
 
     buttons = [
+        ("view:holdings", "🔍 Inspect Positions"),
         ("nav:sub:trade", "📝 Log Trade"),
-        ("view:pulse", "🌐 Market Pulse"),
         ("nav:menu:main", "🏠 Main Menu")
     ]
     return send_whatsapp_interactive_buttons(body, buttons=buttons, recipient=recipient)
+
+
+def handle_portfolio_drilldown(recipient: Optional[str] = None) -> Dict[str, Any]:
+    """
+    Renders an interactive WhatsApp list of all active portfolio holdings.
+    Users can tap any holding to inspect its valuation dossier, dark-mode chart, or live news.
+    """
+    try:
+        with get_db() as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT id, symbol, name, sector, quantity, purchase_price, purchase_date, transaction_type FROM portfolio_items")
+            all_txs = [dict(row) for row in cursor.fetchall()]
+
+        active_holdings = compute_active_holdings(all_txs)
+        active_holdings = [h for h in active_holdings if not h.get("symbol", "").startswith("TEST") and clean_float(h.get("quantity", 0)) > 0]
+
+        if not active_holdings:
+            body = (
+                "💼 *PORTFOLIO HOLDINGS*\n"
+                "━━━━━━━━━━━━━━━━━━━━\n"
+                "No active positions found in your portfolio database.\n\n"
+                "To log a trade, text: `BUY <SYMBOL> <QTY> <PRICE>`\n"
+                "Example: `BUY BOSCH 5 34000`"
+            )
+            return send_whatsapp_interactive_buttons(
+                body,
+                buttons=[
+                    ("nav:sub:trade", "📝 Log Trade"),
+                    ("view:portfolio", "💼 Portfolio"),
+                    ("nav:menu:main", "🏠 Main Menu")
+                ],
+                recipient=recipient
+            )
+
+        # 1. Group active lots by symbol to compute weighted average cost and total quantity
+        grouped = {}
+        for h in active_holdings:
+            sym = h["symbol"].replace(".NS", "").replace(".BO", "").strip().upper()
+            qty = clean_float(h["quantity"])
+            price = clean_float(h["purchase_price"])
+            if sym not in grouped:
+                grouped[sym] = {
+                    "symbol": sym,
+                    "full_symbol": h["symbol"],
+                    "name": h.get("name") or sym,
+                    "total_qty": 0.0,
+                    "total_cost": 0.0
+                }
+            grouped[sym]["total_qty"] += qty
+            grouped[sym]["total_cost"] += qty * price
+
+        # 2. Fetch live or cached prices
+        rows = []
+        for sym, data in grouped.items():
+            tot_qty = data["total_qty"]
+            avg_price = data["total_cost"] / tot_qty if tot_qty > 0 else 0.0
+            full_sym = data["full_symbol"]
+
+            curr_price = avg_price
+            day_chg_pct = 0.0
+
+            # Try cached_profiles first for instant local speed
+            try:
+                with get_db() as conn:
+                    cursor = conn.cursor()
+                    cursor.execute("SELECT profile_json FROM cached_profiles WHERE symbol = ?", (full_sym,))
+                    p_row = cursor.fetchone()
+                    if p_row and p_row[0]:
+                        p_data = json.loads(p_row[0])
+                        curr_price = clean_float(p_data.get("fundamentals", {}).get("current_price"), default=curr_price)
+                        day_chg_pct = clean_float(p_data.get("technicals", {}).get("price_change_pct"), default=0.0)
+            except Exception:
+                pass
+
+            # Fast info fallback if price unchanged
+            if curr_price == avg_price:
+                try:
+                    t = yf.Ticker(full_sym)
+                    fi = t.fast_info
+                    curr_price = float(fi.last_price or avg_price)
+                    prev_close = float(fi.previous_close or curr_price)
+                    day_chg_pct = ((curr_price - prev_close) / prev_close * 100.0) if prev_close > 0 else 0.0
+                except Exception:
+                    pass
+
+            pnl_pct = ((curr_price - avg_price) / avg_price * 100.0) if avg_price > 0 else 0.0
+            pnl_emoji = "🟢" if pnl_pct >= 0 else "🔴"
+
+            # WhatsApp List constraints: title <= 24, description <= 72
+            qty_str = f"{int(tot_qty)}" if tot_qty.is_integer() else f"{tot_qty:.1f}"
+            row_title = f"{pnl_emoji} {sym} ({pnl_pct:+.1f}%)"[:24]
+            row_desc = f"{qty_str} shs @ ₹{avg_price:,.0f} | LTP ₹{curr_price:,.0f} ({day_chg_pct:+.1f}%)"[:72]
+
+            rows.append({
+                "id": f"view:stock:{sym}",
+                "title": row_title,
+                "description": row_desc,
+                "pnl_pct": pnl_pct
+            })
+
+        # Sort by P&L % descending (best performing holdings first)
+        rows.sort(key=lambda x: x["pnl_pct"], reverse=True)
+
+        # Meta limits list messages to max 10 rows
+        display_rows = rows[:10]
+
+        body = (
+            "💼 *PORTFOLIO HOLDINGS DRILL-DOWN*\n"
+            "━━━━━━━━━━━━━━━━━━━━\n"
+            f"You have *{len(grouped)} active positions*.\n\n"
+            "Tap *Inspect Position* below to select any stock and view its:\n"
+            "• Fundamental Valuation Dossier (P/E, ROCE, DCF)\n"
+            "• 6-Month Dark-Mode Technical Chart\n"
+            "• Real-Time News & AI Catalyst Synthesis"
+        )
+        if len(rows) > 10:
+            body += f"\n\n_(Showing top 10 positions. Text `Q <SYMBOL>` to inspect any other stock.)_"
+
+        sections = [
+            {
+                "title": "Active Portfolio Stocks",
+                "rows": [
+                    {"id": r["id"], "title": r["title"], "description": r["description"]}
+                    for r in display_rows
+                ]
+            }
+        ]
+
+        return send_whatsapp_interactive_list(
+            body_text=body,
+            button_text="Inspect Position",
+            sections=sections,
+            recipient=recipient
+        )
+    except Exception as e:
+        logger.error(f"Error in portfolio drilldown: {e}")
+        return handle_portfolio(recipient=recipient)
 
 
 def handle_log_trade_menu(recipient: Optional[str] = None) -> Dict[str, Any]:
@@ -2784,6 +2921,8 @@ def dispatch_incoming_whatsapp_message(text_body: str, sender: Optional[str] = N
         return handle_chart_prompt(recipient=sender)
 
     # Portfolio & Trade Journal
+    elif cleaned.startswith("view:holdings") or cleaned.startswith("view:positions") or upper in ["HOLDINGS", "POSITIONS", "MY STOCKS", "MYSTOCKS", "STOCKS", "ACTIVE STOCKS"]:
+        return handle_portfolio_drilldown(recipient=sender)
     elif cleaned.startswith("view:portfolio") or upper in ["PORTFOLIO", "STATUS", "PF", "MYSTOCKS"]:
         return handle_portfolio(recipient=sender)
     elif cleaned.startswith("nav:sub:trade") or upper in ["TRADE", "JOURNAL"]:
