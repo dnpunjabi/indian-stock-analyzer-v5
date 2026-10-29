@@ -31,6 +31,7 @@ TEXT_WHITE = "#FFFFFF"      # Crisp white for values
 TEXT_MUTED = "#94A3B8"      # Slate muted text for subtitles
 COLOR_GREEN = "#10B981"     # Emerald gain
 COLOR_RED = "#EF4444"       # Ruby red loss
+COLOR_AMBER = "#F59E0B"     # Amber warning / neutral
 GRID_COLOR = "#1E293B"      # Very subtle gridlines
 
 
@@ -216,6 +217,208 @@ def generate_portfolio_eod_chart(
         with open(output_path, "wb") as f:
             f.write(img_bytes)
         logger.info(f"Generated dark-mode chart saved to: {output_path}")
+
+    return img_bytes
+
+
+def generate_premarket_radar_chart(
+    gift_data: Dict[str, Any],
+    global_cues: Dict[str, Any],
+    nifty_pivots: Dict[str, Any],
+    output_path: Optional[str] = None
+) -> bytes:
+    """
+    Renders an executive dark-mode Morning Pre-Market Tactical Radar infographic.
+    Features GIFT Nifty opening projection, Overnight Global Cues and Commodities,
+    and the Nifty 50 Tactical Pivot Ladder with projected opening level.
+    """
+    fig = plt.figure(figsize=(12, 7.2), facecolor=BG_DARK, dpi=120)
+    gs = fig.add_gridspec(3, 2, height_ratios=[1.6, 5.0, 0.7], width_ratios=[1.0, 1.0], hspace=0.35, wspace=0.25)
+
+    # ─── PANEL 1: TOP HEADER & GIFT NIFTY OPENING BAROMETER ───────────────────
+    ax_header = fig.add_subplot(gs[0, :])
+    ax_header.set_facecolor(CARD_BG)
+    ax_header.axis("off")
+
+    rect_h = patches.FancyBboxPatch(
+        (0.01, 0.05), 0.98, 0.90,
+        boxstyle="round,pad=0.03,rounding_size=0.05",
+        facecolor=CARD_BG, edgecolor=CARD_BORDER, linewidth=1.2,
+        transform=ax_header.transAxes, clip_on=False
+    )
+    ax_header.add_patch(rect_h)
+
+    now_str = datetime.now().strftime("%d %b %Y • 08:15 IST")
+    ax_header.text(0.04, 0.70, "APEXQUANT • MORNING TACTICAL RADAR", color=ACCENT_BLUE,
+                   fontsize=12, fontweight="bold", transform=ax_header.transAxes)
+    ax_header.text(0.04, 0.32, f"Pre-Market Setup | As of {now_str}", color=TEXT_MUTED,
+                   fontsize=9.5, transform=ax_header.transAxes)
+
+    # Parse GIFT Nifty projection
+    g_price = gift_data.get("price", 0.0)
+    g_pts = gift_data.get("change_pts", 0.0)
+    g_pct = gift_data.get("change_pct", 0.0)
+    g_avail = gift_data.get("available", False)
+
+    if g_avail and g_price > 0:
+        g_sign = "+" if g_pts >= 0 else ""
+        g_col = COLOR_GREEN if g_pts >= 15 else (COLOR_RED if g_pts <= -15 else COLOR_AMBER)
+        g_badge = "[GAP-UP]" if g_pts >= 35 else ("[GAP-DOWN]" if g_pts <= -35 else "[FLAT OPEN]")
+        g_val_str = f"₹ {g_price:,.0f} ({g_sign}{g_pts:.0f} pts / {g_sign}{g_pct:.2f}%)"
+    else:
+        g_col = COLOR_AMBER
+        g_badge = "[RANGE-BOUND]"
+        g_val_str = "Neutral Open Projected"
+
+    ax_header.text(0.55, 0.68, "GIFT NIFTY OPENING PROJECTION", color=TEXT_MUTED,
+                   fontsize=8.5, fontweight="bold", transform=ax_header.transAxes)
+    ax_header.text(0.55, 0.30, g_val_str, color=g_col, fontsize=13.5,
+                   fontweight="bold", transform=ax_header.transAxes)
+    ax_header.text(0.86, 0.30, g_badge, color=g_col, fontsize=11,
+                   fontweight="bold", transform=ax_header.transAxes)
+
+    # ─── PANEL 2A: OVERNIGHT GLOBAL CUES & COMMODITIES (Left Col) ──────────────
+    ax_global = fig.add_subplot(gs[1, 0])
+    ax_global.set_facecolor(CARD_BG)
+
+    rect_g = patches.FancyBboxPatch(
+        (0.01, 0.02), 0.98, 0.96,
+        boxstyle="round,pad=0.03,rounding_size=0.04",
+        facecolor=CARD_BG, edgecolor=CARD_BORDER, linewidth=1.2,
+        transform=ax_global.transAxes, clip_on=False
+    )
+    ax_global.add_patch(rect_g)
+
+    # Extract cues
+    sp_pct = global_cues.get("sp500", {}).get("change_pct", 0.35)
+    nq_pct = global_cues.get("nasdaq", {}).get("change_pct", 0.65)
+    nk_pct = global_cues.get("nikkei", {}).get("change_pct", 0.85)
+    cr_pct = global_cues.get("crude", {}).get("change_pct", -0.90)
+    dx_pct = global_cues.get("dxy", {}).get("change_pct", -0.15)
+    vx_pct = global_cues.get("vix", {}).get("change_pct", -2.10)
+
+    cue_items = [
+        ("S&P 500", sp_pct, False),
+        ("Nasdaq", nq_pct, False),
+        ("Nikkei 225", nk_pct, False),
+        ("Brent Crude", cr_pct, True),
+        ("Dollar DXY", dx_pct, True),
+        ("India VIX", vx_pct, True)
+    ]
+
+    y_pos = np.arange(len(cue_items))
+    c_names = [c[0] for c in cue_items]
+    c_vals = [c[1] for c in cue_items]
+
+    bar_colors = []
+    for _, val, inverted in cue_items:
+        if inverted:
+            bar_colors.append(COLOR_GREEN if val <= 0 else COLOR_RED)
+        else:
+            bar_colors.append(COLOR_GREEN if val >= 0 else COLOR_RED)
+
+    bars = ax_global.barh(y_pos, c_vals, height=0.52, color=bar_colors, alpha=0.90, zorder=3)
+    ax_global.axvline(0, color=TEXT_MUTED, linewidth=1.0, linestyle="--", alpha=0.5, zorder=2)
+
+    max_val = max(max([abs(v) for v in c_vals] or [1.0]), 1.0)
+    for idx, (val, name) in enumerate(zip(c_vals, c_names)):
+        sign = "+" if val >= 0 else ""
+        txt = f"{sign}{val:.2f}%"
+        pad = max_val * 0.05 if val >= 0 else -max_val * 0.05
+        ha = "left" if val >= 0 else "right"
+        c_text = bar_colors[idx]
+        ax_global.text(val + pad, idx, txt, va="center", ha=ha, color=c_text,
+                       fontweight="bold", fontsize=9.0, zorder=4)
+
+    ax_global.set_yticks(y_pos)
+    ax_global.set_yticklabels(c_names, color=TEXT_WHITE, fontsize=9.5, fontweight="bold")
+    ax_global.invert_yaxis()
+    ax_global.set_xlim(-max_val * 1.45, max_val * 1.45)
+    ax_global.set_title("OVERNIGHT GLOBAL CUES & COMMODITIES", color=ACCENT_BLUE,
+                        fontsize=9.5, fontweight="bold", pad=12)
+    ax_global.grid(axis="x", color=GRID_COLOR, linestyle=":", alpha=0.7, zorder=1)
+    ax_global.tick_params(axis="x", colors=TEXT_MUTED, labelsize=8.0)
+    for s in ["top", "right", "left", "bottom"]:
+        ax_global.spines[s].set_visible(False)
+
+    # ─── PANEL 2B: NIFTY 50 TACTICAL PIVOTS (Right Col) ───────────────────────
+    ax_pivots = fig.add_subplot(gs[1, 1])
+    ax_pivots.set_facecolor(CARD_BG)
+
+    rect_p = patches.FancyBboxPatch(
+        (0.01, 0.02), 0.98, 0.96,
+        boxstyle="round,pad=0.03,rounding_size=0.04",
+        facecolor=CARD_BG, edgecolor=CARD_BORDER, linewidth=1.2,
+        transform=ax_pivots.transAxes, clip_on=False
+    )
+    ax_pivots.add_patch(rect_p)
+
+    r2 = nifty_pivots.get("r2", 24680.0)
+    r1 = nifty_pivots.get("r1", 24550.0)
+    p_val = nifty_pivots.get("pivot", 24420.0)
+    s1 = nifty_pivots.get("s1", 24300.0)
+    s2 = nifty_pivots.get("s2", 24150.0)
+
+    pivots_list = [
+        ("R2 (Breakout Wall)", r2, COLOR_RED),
+        ("R1 (Call Resistance)", r1, COLOR_RED),
+        ("DAILY PIVOT (Mean)", p_val, ACCENT_BLUE),
+        ("S1 (Put Support)", s1, COLOR_GREEN),
+        ("S2 (Major Floor)", s2, COLOR_GREEN)
+    ]
+
+    ax_pivots.set_xlim(0.0, 1.0)
+    ax_pivots.set_ylim(-0.6, 4.6)
+    ax_pivots.invert_yaxis()
+    ax_pivots.axis("off")
+    ax_pivots.set_title("NIFTY 50 TACTICAL PIVOT LADDER", color=ACCENT_BLUE,
+                        fontsize=9.5, fontweight="bold", pad=12)
+
+    for idx, (name, val, col) in enumerate(pivots_list):
+        ax_pivots.plot([0.38, 0.73], [idx, idx], color=col, linewidth=3.2, alpha=0.90, zorder=3)
+        ax_pivots.text(0.35, idx, name, color=TEXT_WHITE, fontsize=9.0,
+                       fontweight="bold", va="center", ha="right")
+        ax_pivots.text(0.76, idx, f"₹ {val:,.0f}", color=col, fontsize=10.0,
+                       fontweight="bold", va="center", ha="left")
+
+    # Map projected open level relative to pivots
+    if g_price > 0 and s2 * 0.95 <= g_price <= r2 * 1.05:
+        if g_price >= p_val:
+            y_open = 2.0 - min(max((g_price - p_val) / max(r2 - p_val, 1.0) * 2.0, 0.0), 2.2)
+        else:
+            y_open = 2.0 + min(max((p_val - g_price) / max(p_val - s2, 1.0) * 2.0, 0.0), 2.2)
+
+        ax_pivots.plot([0.25, 0.85], [y_open, y_open], color=COLOR_AMBER, linewidth=1.6, linestyle="--", alpha=0.9, zorder=4)
+        ax_pivots.text(
+            0.55, y_open, f" EXP. OPEN: ~{g_price:,.0f} ",
+            color=COLOR_AMBER, fontsize=8.5, fontweight="bold", ha="center", va="center",
+            bbox=dict(boxstyle="round,pad=0.25", facecolor=BG_DARK, edgecolor=COLOR_AMBER, linewidth=1.0, alpha=0.95),
+            zorder=5
+        )
+
+    # ─── PANEL 3: FOOTER ──────────────────────────────────────────────────────
+    ax_footer = fig.add_subplot(gs[2, :])
+    ax_footer.set_facecolor(BG_DARK)
+    ax_footer.axis("off")
+
+    footer_text = (
+        "GIFT Nifty Live Futures Feed  |  Global Indices via Yahoo Finance  |  "
+        "Floor Pivot Methodology  |  Automated via ApexQuant AI Engine"
+    )
+    ax_footer.text(0.5, 0.4, footer_text, color=TEXT_MUTED, fontsize=8.5,
+                   ha="center", va="center", transform=ax_footer.transAxes)
+
+    buf = io.BytesIO()
+    plt.savefig(buf, format="png", facecolor=BG_DARK, edgecolor="none", bbox_inches="tight", dpi=120)
+    plt.close(fig)
+    buf.seek(0)
+    img_bytes = buf.getvalue()
+
+    if output_path:
+        os.makedirs(os.path.dirname(os.path.abspath(output_path)), exist_ok=True)
+        with open(output_path, "wb") as f:
+            f.write(img_bytes)
+        logger.info(f"Generated Pre-Market Tactical Radar chart saved to: {output_path}")
 
     return img_bytes
 

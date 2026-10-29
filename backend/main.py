@@ -1238,6 +1238,17 @@ async def run_background_premarket_scheduler():
                                 }
                                 
                                 msg, meta = await compile_premarket_alert_payload(config)
+                                try:
+                                    from backend.chart_generator import generate_premarket_radar_chart, send_whatsapp_chart
+                                    from backend.premarket_alert import fetch_actual_gift_nifty_quote, fetch_global_market_cues, calculate_index_pivots
+                                    gift = await asyncio.to_thread(fetch_actual_gift_nifty_quote)
+                                    cues = await asyncio.to_thread(fetch_global_market_cues)
+                                    pivots = await asyncio.to_thread(calculate_index_pivots, "^NSEI")
+                                    if pivots:
+                                        radar_bytes = generate_premarket_radar_chart(gift, cues, pivots)
+                                        await asyncio.to_thread(send_whatsapp_chart, radar_bytes, "🌅 *ApexQuant Pre-Market Tactical Radar*")
+                                except Exception as radar_err:
+                                    print(f"Pre-Market background radar chart error: {radar_err}")
                                 res = await dispatch_premarket_alert(msg)
                                 if res.get("status") == "success":
                                     print(f"Pre-Market Alert: Successfully dispatched to WhatsApp. Msg ID: {res.get('message_id')}")
@@ -7379,14 +7390,16 @@ async def trigger_premarket_alert(payload: Optional[dict] = None):
         
         if wa_token and wa_phone_id and wa_recipient:
             try:
-                from backend.chart_generator import generate_premarket_cues_chart, send_whatsapp_chart
-                from backend.premarket_alert import fetch_global_market_cues
+                from backend.chart_generator import generate_premarket_radar_chart, send_whatsapp_chart
+                from backend.premarket_alert import fetch_actual_gift_nifty_quote, fetch_global_market_cues, calculate_index_pivots
+                gift = await asyncio.to_thread(fetch_actual_gift_nifty_quote)
                 cues = await asyncio.to_thread(fetch_global_market_cues)
-                if cues:
-                    cues_bytes = generate_premarket_cues_chart(cues)
-                    await asyncio.to_thread(send_whatsapp_chart, cues_bytes, "🌐 *ApexQuant Pre-Market Global Cues & Radar*")
-            except Exception as cues_err:
-                print(f"Pre-market cues chart auto-dispatch error: {cues_err}")
+                pivots = await asyncio.to_thread(calculate_index_pivots, "^NSEI")
+                if pivots:
+                    radar_bytes = generate_premarket_radar_chart(gift, cues, pivots)
+                    await asyncio.to_thread(send_whatsapp_chart, radar_bytes, "🌅 *ApexQuant Pre-Market Tactical Radar*")
+            except Exception as radar_err:
+                print(f"Pre-market radar chart auto-dispatch error: {radar_err}")
 
             res = await dispatch_premarket_alert(msg)
             dispatch_status = res.get("status", "error")

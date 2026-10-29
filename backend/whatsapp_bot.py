@@ -2237,6 +2237,44 @@ def handle_portfolio(recipient: Optional[str] = None) -> Dict[str, Any]:
     return send_whatsapp_interactive_buttons(body, buttons=buttons, recipient=recipient)
 
 
+def handle_premarket_brief(recipient: Optional[str] = None) -> Dict[str, Any]:
+    """
+    On-demand generation and dispatch of the Morning Pre-Market Tactical Radar chart and intelligence brief.
+    """
+    target = recipient or os.environ.get("WHATSAPP_RECIPIENT", "")
+    try:
+        from backend.chart_generator import generate_premarket_radar_chart, send_whatsapp_chart
+        from backend.premarket_alert import (
+            fetch_actual_gift_nifty_quote,
+            fetch_global_market_cues,
+            calculate_index_pivots,
+            compile_premarket_alert_payload,
+            dispatch_premarket_alert,
+        )
+
+        gift = fetch_actual_gift_nifty_quote()
+        cues = fetch_global_market_cues()
+        pivots = calculate_index_pivots("^NSEI")
+        if pivots:
+            radar_bytes = generate_premarket_radar_chart(gift, cues, pivots)
+            send_whatsapp_chart(radar_bytes, "🌅 *ApexQuant Pre-Market Tactical Radar*", recipient=target)
+
+        import asyncio
+        loop = None
+        try:
+            loop = asyncio.get_event_loop()
+        except RuntimeError:
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+
+        msg, _ = loop.run_until_complete(compile_premarket_alert_payload())
+        loop.run_until_complete(dispatch_premarket_alert(msg))
+        return {"status": "success", "message": "Pre-Market Tactical Radar dispatched."}
+    except Exception as e:
+        logger.error(f"Error dispatching on-demand pre-market brief: {e}", exc_info=True)
+        return send_whatsapp_text(f"⚠️ Failed to generate Pre-Market Radar: {e}", recipient=target)
+
+
 def handle_portfolio_drilldown(recipient: Optional[str] = None) -> Dict[str, Any]:
     """
     Renders an interactive WhatsApp list of all active portfolio holdings.
@@ -2919,6 +2957,10 @@ def dispatch_incoming_whatsapp_message(text_body: str, sender: Optional[str] = N
         return handle_conversational_copilot(q, recipient=sender)
     elif cleaned.startswith("nav:sub:chart"):
         return handle_chart_prompt(recipient=sender)
+
+    # Pre-Market Setup & Tactical Radar Visual Card
+    elif cleaned.startswith("view:premarket") or upper in ["PREMARKET", "PRE-MARKET", "MORNING", "PRE MARKET", "TACTICAL RADAR", "RADAR"]:
+        return handle_premarket_brief(recipient=sender)
 
     # Portfolio & Trade Journal
     elif cleaned.startswith("view:holdings") or cleaned.startswith("view:positions") or upper in ["HOLDINGS", "POSITIONS", "MY STOCKS", "MYSTOCKS", "STOCKS", "ACTIVE STOCKS"]:
