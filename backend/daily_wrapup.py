@@ -161,7 +161,8 @@ def fetch_portfolio_summary() -> dict:
             "total_return_pct": total_return_pct,
             "top_gainer": top_gainer,
             "top_loser": top_loser,
-            "distressed_symbols": list(set(distressed_symbols))
+            "distressed_symbols": list(set(distressed_symbols)),
+            "enriched_holdings": enriched_holdings
         }
     except Exception as e:
         print(f"Daily Wrap-up: Portfolio aggregation error: {e}")
