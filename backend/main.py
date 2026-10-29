@@ -2423,6 +2423,14 @@ async def startup_warm_caching():
     except Exception as pa_err:
         logger.error(f"Failed to start WhatsApp price alerts checker: {pa_err}")
 
+    # 4.53 Fire Intraday Volatility & Surge Scanner (Market Hours 09:20 - 15:30 IST)
+    try:
+        from backend.intraday_surge_monitor import init_intraday_surge_db, run_background_intraday_surge_scheduler
+        init_intraday_surge_db()
+        asyncio.create_task(run_background_intraday_surge_scheduler())
+    except Exception as surge_err:
+        logger.error(f"Failed to start Intraday Surge monitor: {surge_err}")
+
     # 4.6 Fire background FS alerts scheduler
     asyncio.create_task(run_background_fs_alerts_scheduler())
 
@@ -7348,6 +7356,13 @@ async def save_premarket_settings(payload: dict):
             cursor.execute("INSERT OR REPLACE INTO alert_settings (key, value) VALUES ('premarket_include_portfolio_watchlist', ?)", (val,))
         conn.commit()
     return {"status": "success"}
+
+@app.post("/api/alerts/intraday-surge/trigger")
+async def trigger_intraday_surge_scan():
+    """Manual trigger to evaluate intraday volatility & volume breakouts."""
+    from backend.intraday_surge_monitor import scan_intraday_volatility
+    triggered = await asyncio.to_thread(scan_intraday_volatility, force=True)
+    return {"status": "success", "triggered_count": len(triggered), "events": triggered}
 
 @app.post("/api/alerts/premarket/trigger")
 async def trigger_premarket_alert(payload: Optional[dict] = None):

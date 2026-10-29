@@ -2292,6 +2292,36 @@ def handle_cancel_price_alert(cmd_text: str, recipient: Optional[str] = None) ->
     return send_whatsapp_interactive_buttons(msg, buttons=buttons, recipient=recipient)
 
 
+def handle_intraday_surge_ondemand(recipient: Optional[str] = None) -> Dict[str, Any]:
+    """Runs an immediate scan across active portfolio holdings & watchlist for intraday surges."""
+    from backend.intraday_surge_monitor import scan_intraday_volatility, get_monitored_universe
+    universe = get_monitored_universe()
+    triggered = scan_intraday_volatility(force=True)
+    if not triggered:
+        msg = (
+            "⚡ *INTRADAY SURGE SENTINEL*\n"
+            "━━━━━━━━━━━━━━━━━━━━\n"
+            f"Scanned *{len(universe)} active positions & watchlist items*.\n"
+            "🟢 *All positions operating within normal bands* (No sudden ±3.5% spikes or >2.2x volume surges right now).\n"
+            "━━━━━━━━━━━━━━━━━━━━\n"
+            "_Automated sweeps run continuously every 10 min during market hours._"
+        )
+    else:
+        msg = (
+            "🚨 *INTRADAY SURGE SCAN COMPLETE*\n"
+            "━━━━━━━━━━━━━━━━━━━━\n"
+            f"Detected *{len(triggered)} active volatility events*.\n"
+            "Detailed alert cards dispatched above.\n"
+            "━━━━━━━━━━━━━━━━━━━━"
+        )
+    buttons = [
+        ("view:portfolio", "💼 Portfolio"),
+        ("view:alerts", "🔔 Price Alerts"),
+        ("nav:menu:main", "🏠 Main Menu")
+    ]
+    return send_whatsapp_interactive_buttons(msg, buttons=buttons, recipient=recipient)
+
+
 def handle_premarket_brief(recipient: Optional[str] = None) -> Dict[str, Any]:
     """
     On-demand generation and dispatch of the Morning Pre-Market Tactical Radar chart and intelligence brief.
@@ -3022,6 +3052,10 @@ def dispatch_incoming_whatsapp_message(text_body: str, sender: Optional[str] = N
         return handle_conversational_copilot(q, recipient=sender)
     elif cleaned.startswith("nav:sub:chart"):
         return handle_chart_prompt(recipient=sender)
+
+    # Intraday Surge & Volatility Scanner On-Demand
+    elif upper in ["SURGE", "VOLATILITY", "SURGE SCAN", "INTRADAY SURGE"]:
+        return handle_intraday_surge_ondemand(recipient=sender)
 
     # Pre-Market Setup & Tactical Radar Visual Card
     elif cleaned.startswith("view:premarket") or upper in ["PREMARKET", "PRE-MARKET", "MORNING", "PRE MARKET", "TACTICAL RADAR", "RADAR"]:
