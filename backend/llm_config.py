@@ -157,7 +157,7 @@ def _get_config():
     api_key = os.environ.get("LLM_API_KEY", "") or os.environ.get("GROQ_API_KEY", "")
     
     if provider == "gemini":
-        heavy_model = os.environ.get("GEMINI_HEAVY_MODEL", "gemini-3.6-flash")
+        heavy_model = os.environ.get("GEMINI_HEAVY_MODEL", "gemini-2.5-flash")
         fast_model = os.environ.get("GEMINI_FAST_MODEL", "gemini-2.5-flash")
         heavy_label = _format_model_label(heavy_model)
         fast_label = _format_model_label(fast_model)
@@ -235,7 +235,8 @@ def _call_gemini_with_rotation(task_type: str,
                               user_prompt: str = None,
                               max_tokens: int = 2500,
                               messages: list = None,
-                              structured_schema: dict = None) -> tuple:
+                              structured_schema: dict = None,
+                              enable_web_search: bool = False) -> tuple:
     """
     Executes a content generation request using the Gemini API key pool.
     Rotates keys dynamically on 429 rate limit or 401/403 auth failures.
@@ -288,6 +289,8 @@ def _call_gemini_with_rotation(task_type: str,
         
     if structured_schema:
         payload["generationConfig"]["responseMimeType"] = "application/json"
+    elif enable_web_search:
+        payload["tools"] = [{"google_search": {}}]
         
     gemini_timeout = float(os.environ.get("GEMINI_TIMEOUT", "60.0"))
     consecutive_timeouts = 0
@@ -326,8 +329,8 @@ def _call_gemini_with_rotation(task_type: str,
                     GEMINI_KEYS_COOLDOWN[mask] = datetime.now() + timedelta(seconds=5)
                 continue
                 
-            elif res.status_code in [401, 403]:
-                print(f"[LLM Rotation] Key {mask} unauthorized/invalid ({res.status_code}). Blacklisting key.")
+            elif res.status_code in [401, 403, 404]:
+                print(f"[LLM Rotation] Key {mask} unauthorized/invalid/unsupported ({res.status_code}). Blacklisting key.")
                 with _rotation_lock:
                     GEMINI_KEYS_BLACKLIST.add(mask)
                 continue
@@ -542,7 +545,8 @@ def call_llm(task_type: str,
              system_prompt: str,
              user_prompt: str = None,
              max_tokens: int = 2500,
-             messages: list = None) -> str:
+             messages: list = None,
+             enable_web_search: bool = False) -> str:
     """
     Provider-agnostic LLM call. Routes to the correct model based on task_type.
     """
@@ -584,7 +588,8 @@ def call_llm(task_type: str,
             user_prompt=user_prompt,
             max_tokens=max_tokens,
             messages=messages,
-            structured_schema=structured_schema
+            structured_schema=structured_schema,
+            enable_web_search=enable_web_search
         )
         if success:
             return _clean_reasoning_metadata(result)
@@ -649,11 +654,12 @@ def call_llm_with_meta(task_type: str,
                        system_prompt: str,
                        user_prompt: str = None,
                        max_tokens: int = 2500,
-                       messages: list = None) -> tuple[str, dict]:
+                       messages: list = None,
+                       enable_web_search: bool = False) -> tuple[str, dict]:
     """
     Executes call_llm and returns a tuple of (response_text, llm_meta_dict).
     """
-    text = call_llm(task_type, system_prompt, user_prompt, max_tokens, messages)
+    text = call_llm(task_type, system_prompt, user_prompt, max_tokens, messages, enable_web_search=enable_web_search)
     return text, get_last_llm_meta()
 
 def _clean_reasoning_metadata(text: str) -> str:
