@@ -2415,6 +2415,14 @@ async def startup_warm_caching():
     from backend.whatsapp_bot import run_background_whatsapp_sandbox_keepalive
     asyncio.create_task(run_background_whatsapp_sandbox_keepalive())
 
+    # 4.52 Fire WhatsApp Price Alerts background evaluator
+    try:
+        from backend.whatsapp_alerts import init_whatsapp_alerts_db, run_background_price_alert_checker
+        init_whatsapp_alerts_db()
+        asyncio.create_task(run_background_price_alert_checker())
+    except Exception as pa_err:
+        logger.error(f"Failed to start WhatsApp price alerts checker: {pa_err}")
+
     # 4.6 Fire background FS alerts scheduler
     asyncio.create_task(run_background_fs_alerts_scheduler())
 

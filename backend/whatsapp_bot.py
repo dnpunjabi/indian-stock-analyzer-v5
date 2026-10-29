@@ -2237,6 +2237,61 @@ def handle_portfolio(recipient: Optional[str] = None) -> Dict[str, Any]:
     return send_whatsapp_interactive_buttons(body, buttons=buttons, recipient=recipient)
 
 
+def handle_view_price_alerts(recipient: Optional[str] = None) -> Dict[str, Any]:
+    """Displays active price alerts with current LTP and distance %."""
+    from backend.whatsapp_alerts import list_active_price_alerts
+    body, alerts = list_active_price_alerts(user_phone=recipient)
+    buttons = [
+        ("nav:sub:screeners", "🎯 Quant Screeners"),
+        ("view:portfolio", "💼 Portfolio"),
+        ("nav:menu:main", "🏠 Main Menu")
+    ]
+    if alerts:
+        first_id = alerts[0]["id"]
+        buttons = [
+            (f"act:del_alert:{first_id}", f"❌ Cancel #{first_id}"),
+            ("view:portfolio", "💼 Portfolio"),
+            ("nav:menu:main", "🏠 Main Menu")
+        ]
+    return send_whatsapp_interactive_buttons(body, buttons=buttons, recipient=recipient)
+
+
+def handle_set_price_alert(parsed: Dict[str, Any], recipient: Optional[str] = None) -> Dict[str, Any]:
+    """Creates a new price alert from parsed parameters."""
+    from backend.whatsapp_alerts import create_price_alert
+    ok, msg, aid = create_price_alert(
+        symbol_input=parsed["symbol"],
+        condition=parsed["condition"],
+        target_price=parsed["target_price"],
+        note=parsed.get("note", ""),
+        user_phone=recipient
+    )
+    if ok and aid:
+        buttons = [
+            (f"act:del_alert:{aid}", f"❌ Cancel #{aid}"),
+            ("view:alerts", "📋 My Alerts"),
+            ("nav:menu:main", "🏠 Main Menu")
+        ]
+        return send_whatsapp_interactive_buttons(msg, buttons=buttons, recipient=recipient)
+    else:
+        return send_whatsapp_text(msg, recipient=recipient)
+
+
+def handle_cancel_price_alert(cmd_text: str, recipient: Optional[str] = None) -> Dict[str, Any]:
+    """Cancels a price alert by ID."""
+    from backend.whatsapp_alerts import cancel_price_alert
+    m = re.search(r"(\d+)", cmd_text)
+    if not m:
+        return send_whatsapp_text("⚠️ Please specify the alert ID to cancel, e.g. `CANCEL ALERT 1`.", recipient=recipient)
+    aid = int(m.group(1))
+    ok, msg = cancel_price_alert(aid, user_phone=recipient)
+    buttons = [
+        ("view:alerts", "📋 My Alerts"),
+        ("nav:menu:main", "🏠 Main Menu")
+    ]
+    return send_whatsapp_interactive_buttons(msg, buttons=buttons, recipient=recipient)
+
+
 def handle_premarket_brief(recipient: Optional[str] = None) -> Dict[str, Any]:
     """
     On-demand generation and dispatch of the Morning Pre-Market Tactical Radar chart and intelligence brief.
@@ -2938,9 +2993,19 @@ def dispatch_incoming_whatsapp_message(text_body: str, sender: Optional[str] = N
     elif cleaned.startswith("view:pulse") or upper in ["NIFTY", "MARKET", "PULSE", "SENSEX", "INDICES"]:
         return handle_market_pulse(recipient=sender)
 
-    # Alerts Hub
-    elif cleaned.startswith("view:alerts") or upper in ["ALERTS", "ALERT", "TRIGGERS"]:
-        return handle_alerts(recipient=sender)
+    # Price Alerts Setup & Evaluation (e.g. ALERT INFY > 1950, SL TCS 3900, TARGET TATAMOTORS 1100)
+    from backend.whatsapp_alerts import parse_price_alert_command
+    parsed_alert = parse_price_alert_command(cleaned)
+    if parsed_alert:
+        return handle_set_price_alert(parsed_alert, recipient=sender)
+
+    # Cancel Price Alert (e.g. CANCEL ALERT 3, DEL ALERT 3, act:del_alert:3)
+    if upper.startswith("CANCEL ALERT") or upper.startswith("DEL ALERT") or upper.startswith("DELETE ALERT") or cleaned.startswith("act:del_alert:"):
+        return handle_cancel_price_alert(cleaned, recipient=sender)
+
+    # Price Alerts Hub
+    elif cleaned.startswith("view:alerts") or cleaned.startswith("view:price_alerts") or upper in ["ALERTS", "ALERT", "MY ALERTS", "ACTIVE ALERTS", "PRICE ALERTS", "TRIGGERS"]:
+        return handle_view_price_alerts(recipient=sender)
 
     # Financial News
     elif cleaned.startswith("nav:sub:news") or upper in ["NEWS", "BULLETINS"]:
