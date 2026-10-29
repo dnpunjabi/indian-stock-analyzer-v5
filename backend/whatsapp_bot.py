@@ -2794,28 +2794,66 @@ def generate_local_copilot_fallback(query: str, detected_symbols: list) -> str:
 
 def handle_conversational_copilot(query: str, recipient: Optional[str] = None) -> Dict[str, Any]:
     """
-    Intelligent conversational co-pilot for WhatsApp.
-    Handles freeform natural language questions using Gemini key rotation (with Groq fallback).
-    Pre-injects live ground truth facts to guarantee zero hallucinations.
+    Intelligent conversational co-pilot for WhatsApp with Multi-Turn Memory.
+    Features:
+      - 15-minute sliding TTL memory window with automatic pronoun resolution ("it", "its", "the stock").
+      - Cross-turn comparative context tracking (e.g. "Compare it with Dixon").
+      - Pre-injects verified live ground truth facts to eliminate hallucinations.
+      - Session reset capability ("RESET", "CLEAR CHAT").
     """
     cleaned_query = (query or "").strip()
     clean_prompt = re.sub(r"^(?:AI|ASK|COPILOT|BOT)\s*[:\-\s]*", "", cleaned_query, flags=re.IGNORECASE).strip()
     if not clean_prompt:
         return handle_stock_query_prompt(recipient=recipient)
 
-    logger.info(f"[AI COPILOT] Processing freeform query: '{clean_prompt}' for recipient {recipient}")
+    # 1. Check for manual memory reset command
+    if clean_prompt.upper() in ["RESET", "CLEAR CHAT", "CLEAR MEMORY", "FORGET", "NEW CHAT", "RESET CHAT"]:
+        from backend.whatsapp_memory import clear_chat_history
+        clear_chat_history(user_phone=recipient)
+        msg = (
+            "🧹 *Conversation memory cleared!*\n"
+            "━━━━━━━━━━━━━━━━━━━━\n"
+            "Starting a fresh session with Apex AI Co-Pilot.\n"
+            "Ask me anything about any Indian stock, technical levels, or market trends."
+        )
+        buttons = [
+            ("nav:sub:screeners", "🎯 Quant Screeners"),
+            ("view:portfolio", "💼 Portfolio"),
+            ("nav:menu:main", "🏠 Main Menu")
+        ]
+        return send_whatsapp_interactive_buttons(msg, buttons=buttons, recipient=recipient)
 
-    # 1. Extract stock symbols mentioned in query
+    logger.info(f"[AI COPILOT] Processing multi-turn query: '{clean_prompt}' for recipient {recipient}")
+
+    # 2. Retrieve recent non-expired conversation turns and active context
+    from backend.whatsapp_memory import get_recent_conversation_history, save_chat_turn
+    history_turns, inherited_symbols = get_recent_conversation_history(
+        user_phone=recipient, max_turns=3, ttl_minutes=15
+    )
+
+    # 3. Detect Stock Symbols & Resolve Pronouns
     detected_stocks = extract_tickers_from_freeform_text(clean_prompt)
-    facts_lines = []
-    detected_symbols = []
+    detected_symbols: List[str] = []
 
     if detected_stocks:
-        for st in detected_stocks[:2]:  # Limit to top 2 to keep prompt tight
-            sym = st["base_symbol"]
-            detected_symbols.append(sym)
+        new_symbols = [st["base_symbol"] for st in detected_stocks[:2]]
+        # Check comparative intent: e.g. "compare with Dixon" when inherited has "AMBER"
+        is_comparative = any(w in clean_prompt.lower() for w in ["compare", " vs ", "versus", "against", "with "])
+        if is_comparative and inherited_symbols and len(new_symbols) == 1 and inherited_symbols[0] != new_symbols[0]:
+            detected_symbols = [inherited_symbols[0], new_symbols[0]]
+        else:
+            detected_symbols = new_symbols
+    elif inherited_symbols:
+        # Pronoun or continuation question without an explicit ticker (e.g. "What about its PE?", "What is the RSI?")
+        detected_symbols = list(inherited_symbols[:2])
+        logger.info(f"[AI COPILOT] Inherited active symbol(s) from previous turn: {detected_symbols}")
+
+    # 4. Fetch Verified Ground Truth Facts
+    facts_lines = []
+    if detected_symbols:
+        for sym in detected_symbols[:2]:
             gt = get_stock_ground_truth(sym)
-            name = gt.get("name") or st.get("name") or sym
+            name = gt.get("name", sym)
             ltp = gt.get("ltp", 0.0)
             chg = gt.get("change_pct", 0.0)
             sma50 = gt.get("sma_50", 0.0)
@@ -2834,7 +2872,6 @@ def handle_conversational_copilot(query: str, recipient: Optional[str] = None) -
                 f"RSI {rsi:.1f}, P/E {pe:.1f}, DCF Fair Value ₹{dcf:,.1f} (Margin of Safety: {mos:+.1f}%){user_hold_txt}"
             )
     else:
-        # Macro / general market facts
         m = get_macro_ground_truth()
         facts_lines.append(
             f"• Macro Pulse: NIFTY 50: {m['nifty']:,.2f} ({m['nifty_chg']:+.2f}%), SENSEX: {m['sensex']:,.2f} ({m['sensex_chg']:+.2f}%), "
@@ -2842,7 +2879,7 @@ def handle_conversational_copilot(query: str, recipient: Optional[str] = None) -
             f"Leading: {m['leading_sector']}, Lagging: {m['lagging_sector']}"
         )
 
-    # Fetch real-time live RSS news snippets to inject into prompt context
+    # Fetch live RSS news snippets
     try:
         rss_query = f"{detected_symbols[0]} share stock news India" if detected_symbols else "Indian stock market today Nifty Sensex"
         live_rss = fetch_google_news_rss(rss_query)
@@ -2855,18 +2892,31 @@ def handle_conversational_copilot(query: str, recipient: Optional[str] = None) -
 
     facts_context = "\n".join(facts_lines)
 
-    # 2. Call LLM with Google Search Grounding enabled
+    # Format multi-turn conversation history
+    history_context = ""
+    if history_turns:
+        formatted_turns = []
+        for t in history_turns[-4:]:
+            role_label = "User" if t["role"] == "user" else "Assistant"
+            formatted_turns.append(f"{role_label}: {t['content']}")
+        history_context = "Prior Conversation Context (Last 15 minutes):\n" + "\n".join(formatted_turns) + "\n\n"
+
+    # 5. Call LLM with Memory Context & Ground Truth
     sys_prompt = (
         "You are Apex AI, an elite institutional Indian equity research analyst on WhatsApp.\n"
         "Provide razor-sharp, objective, and actionable insights tailored for mobile WhatsApp reading.\n\n"
         "Formatting Rules:\n"
         "1. Maximum 3 to 4 concise bullet points (total response strictly under 500 characters).\n"
-        "2. Use WhatsApp formatting: *bold* for emphasis/prices/levels, _italics_ for subtext. DO NOT use markdown tables, ### headers, or HTML tags.\n"
-        "3. Include concrete support/resistance levels, moving averages, or valuation metrics based strictly on the provided Ground Truth facts.\n"
-        "4. Synthesize real-time breaking news catalysts using your live Google Search grounding.\n"
+        "2. If the user asks a follow-up question (e.g. 'what about its support?', 'how are its margins?'), seamlessly answer for the active stock using the prior context.\n"
+        "3. Use WhatsApp formatting: *bold* for emphasis/prices/levels, _italics_ for subtext. DO NOT use markdown tables, ### headers, or HTML tags.\n"
+        "4. Include concrete support/resistance levels, moving averages, or valuation metrics based strictly on the provided Ground Truth facts.\n"
         "5. End with a 1-line disclaimer: '_Educational insight only • Not SEBI financial advice._'"
     )
-    user_prompt = f"Ground Truth Market Facts:\n{facts_context}\n\nUser Question:\n{clean_prompt}"
+    user_prompt = (
+        f"{history_context}"
+        f"Ground Truth Market Facts:\n{facts_context}\n\n"
+        f"Current User Question:\n{clean_prompt}"
+    )
 
     ai_text = None
     try:
@@ -2877,11 +2927,19 @@ def handle_conversational_copilot(query: str, recipient: Optional[str] = None) -
     except Exception as e:
         logger.warning(f"[AI COPILOT] LLM generation error: {e}")
 
-    # 3. Deterministic Local Fallback if LLM unavailable
+    # Fallback if LLM unavailable
     if not ai_text:
         ai_text = generate_local_copilot_fallback(clean_prompt, detected_symbols)
 
-    # 4. Form Header & Body
+    # 6. Save Turn to Multi-Turn Memory
+    save_chat_turn(
+        user_phone=recipient,
+        user_query=clean_prompt,
+        assistant_reply=ai_text,
+        active_symbols=detected_symbols
+    )
+
+    # 7. Form Header & Body
     header_title = f"🤖 *APEX AI CO-PILOT*" + (f" • {', '.join(detected_symbols)}" if detected_symbols else " • MARKET")
     body = (
         f"{header_title}\n"
@@ -2889,7 +2947,7 @@ def handle_conversational_copilot(query: str, recipient: Optional[str] = None) -
         f"{ai_text}\n"
     )
 
-    # 5. Interactive Action Buttons
+    # 8. Interactive Action Buttons
     buttons = []
     if len(detected_symbols) == 1:
         s = detected_symbols[0]
@@ -3081,6 +3139,10 @@ def dispatch_incoming_whatsapp_message(text_body: str, sender: Optional[str] = N
     elif cleaned.startswith("view:stock:"):
         sym = cleaned.replace("view:stock:", "").strip()
         return handle_stock_query(sym, recipient=sender)
+
+    # Conversational Session Memory Reset
+    if upper in ["RESET", "CLEAR CHAT", "CLEAR MEMORY", "FORGET", "NEW CHAT", "RESET CHAT"]:
+        return handle_conversational_copilot("RESET", recipient=sender)
 
     # 3. Freeform Single-Stock Query (e.g. "BOSCH", "RELIANCE", "TCS")
     # Single tokens without spaces belong to direct quantitative stock inspection
