@@ -7060,15 +7060,18 @@ async def handle_whatsapp_webhook(request: Request):
                     if msg.get("type") == "text":
                         text_body = msg.get("text", {}).get("body", "")
                     elif msg.get("type") == "interactive":
-                        button_reply = msg.get("interactive", {}).get("button_reply", {})
-                        text_body = button_reply.get("id") or button_reply.get("title", "")
+                        interactive = msg.get("interactive", {})
+                        if "button_reply" in interactive:
+                            btn = interactive["button_reply"]
+                            text_body = btn.get("id") or btn.get("title", "")
+                        elif "list_reply" in interactive:
+                            lst = interactive["list_reply"]
+                            text_body = lst.get("id") or lst.get("title", "")
                     
                     if text_body:
                         print(f"[WHATSAPP BOT] Inbound query from {sender}: '{text_body}'")
-                        from backend.whatsapp_bot import process_incoming_message
-                        reply_text = process_incoming_message(text_body)
-                        from backend.daily_wrapup import send_whatsapp_wrapup
-                        asyncio.create_task(send_whatsapp_wrapup(reply_text))
+                        from backend.whatsapp_bot import dispatch_incoming_whatsapp_message
+                        asyncio.create_task(asyncio.to_thread(dispatch_incoming_whatsapp_message, text_body, sender))
     except Exception as e:
         print(f"[WHATSAPP BOT] Error handling incoming webhook: {e}")
 
