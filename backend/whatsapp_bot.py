@@ -1804,28 +1804,82 @@ def handle_run_news(news_type: str, recipient: Optional[str] = None) -> Dict[str
             ]
             return send_whatsapp_interactive_buttons(body, buttons=buttons, recipient=recipient)
 
-        # 1. Primary: Grounded search across actual active holdings
+        # Collect verified headlines for each active holding first from RSS & local cache
+        holding_verified_news = {}
+        for sym in active_symbols[:5]:
+            headlines = []
+            # Check local profile cache first
+            try:
+                with get_db() as conn:
+                    cursor = conn.cursor()
+                    cursor.execute("SELECT profile_json FROM cached_profiles WHERE symbol = ? OR symbol = ? LIMIT 1", (f"{sym}.NS", sym))
+                    row = cursor.fetchone()
+                    if row and row[0]:
+                        p_data = json.loads(row[0])
+                        for n in p_data.get("news", [])[:2]:
+                            t = clean_news_headline(n.get("title", ""))
+                            if t and not any(w in t.lower() for w in ["calculator", "multibagger", "penny stock"]):
+                                headlines.append({
+                                    "title": t,
+                                    "source": clean_news_headline(n.get("publisher", "Exchange Filing")),
+                                    "date": n.get("date", "")
+                                })
+            except Exception:
+                pass
+
+            # If not in cache, fetch verified live Google News RSS
+            if not headlines:
+                try:
+                    rss_items = fetch_google_news_rss(f"{sym} share stock news India")
+                    for it in rss_items[:2]:
+                        t = clean_news_headline(it.get("title", ""))
+                        if t and not any(w in t.lower() for w in ["calculator", "multibagger", "penny stock"]):
+                            headlines.append({
+                                "title": t,
+                                "source": clean_news_headline(it.get("source", "Financial Press")),
+                                "date": it.get("date", "")
+                            })
+                except Exception:
+                    pass
+
+            if headlines:
+                holding_verified_news[sym] = headlines
+
+        # 1. Primary: Grounded synthesis strictly restricted to verified headlines
         try:
+            verified_blocks = []
+            for sym in active_symbols[:5]:
+                items = holding_verified_news.get(sym, [])
+                if items:
+                    h_lines = [f"  - [{it['source']} | {it['date']}]: {it['title']}" for it in items]
+                    verified_blocks.append(f"• {sym}:\n" + "\n".join(h_lines))
+                else:
+                    verified_blocks.append(f"• {sym}: No recent breaking news headlines found.")
+            verified_news_text = "\n\n".join(verified_blocks)
+
             sys_prompt = (
-                f"You are an enterprise portfolio catalyst engine for Indian equities on WhatsApp. Today is {current_date_str}.\n"
-                f"You provide verified, institutional-grade business events (earnings, order wins, joint ventures, regulatory filings) for specific holdings strictly from recent days ({current_year}).\n"
-                "Rules:\n"
-                f"1. Strictly report verified facts from recent days ({current_year}). Do NOT cite old news from previous fiscal periods (FY24/FY25).\n"
-                f"2. If quiet, state recent operational trend for {fy_str}.\n"
-                "3. Output strictly WhatsApp markdown without conversational filler or disclaimers."
+                f"You are an institutional Indian equity analyst for WhatsApp. Today is {current_date_str}.\n"
+                "Synthesize verified news catalysts for the user's portfolio holdings.\n"
+                "CRITICAL FACTUAL INTEGRITY RULES:\n"
+                "1. You may ONLY synthesize the EXACT events explicitly stated in the Verified Headlines below.\n"
+                "2. ABSOLUTE ZERO FABRICATION: Do NOT invent fake contracts, imaginary joint ventures, or made-up order amounts (e.g. ₹1,200 cr or ₹2,500 cr). If an event is not in the provided headlines, DO NOT invent it.\n"
+                "3. If a holding has no breaking news in the last 48-72h or only routine coverage, state:\n"
+                "   ⚡ *<SYMBOL>* • [Operational Status]\n"
+                "   └ *Status*: Trading in standard range; no breaking exchange filings in last 48h.\n"
+                "   └ *Context*: <1-sentence factual trend from headline or business focus>\n"
+                "4. WhatsApp bold formatting only (*text*). No disclaimers."
             )
             u_prompt = (
-                f"Today: {current_date_str}\n"
-                f"User Portfolio Holdings: {', '.join(active_summary)}\n\n"
-                f"Search Google for breaking news, corporate announcements, order wins, quarterly earnings, regulatory orders, or joint ventures specifically impacting these companies within recent days ({current_year}).\n\n"
-                "Format Rules:\n"
-                "Select top 3 holdings with the most critical live catalysts and format exactly:\n"
+                f"Today: {current_date_str}\n\n"
+                f"Verified Headlines from Exchanges & Financial Press:\n"
+                f"{verified_news_text}\n\n"
+                "Format top holdings (up to 3):\n"
                 "⚡ *<SYMBOL>* • [🟢 BULLISH | 🔴 CAUTION | ⚡ CATALYST]\n"
-                "└ *Source*: <Publisher or BSE/NSE Filing> (<Date>)\n"
-                "└ *Event*: <Concise 1-sentence verified event>\n"
-                "└ *Impact*: <1-sentence margin, price, or trader takeaway>\n\n"
+                "└ *Source*: <Actual Publisher from headlines> (<Actual Date>)\n"
+                "└ *Event*: <Concise 1-sentence summary of the VERIFIED event from the headline>\n"
+                f"└ *Impact*: <1-sentence margin, price, or trader takeaway for {fy_str}>\n"
             )
-            res = call_llm(TASK_FAST, system_prompt=sys_prompt, user_prompt=u_prompt, max_tokens=320, enable_web_search=True)
+            res = call_llm(TASK_FAST, system_prompt=sys_prompt, user_prompt=u_prompt, max_tokens=350, enable_web_search=False)
             if res and len(res.strip()) > 50:
                 cleaned_body = html.unescape(res.strip())
                 body = (
