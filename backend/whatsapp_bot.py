@@ -1803,24 +1803,112 @@ def handle_run_news(news_type: str, recipient: Optional[str] = None) -> Dict[str
         return send_whatsapp_interactive_buttons(body, buttons=buttons, recipient=recipient)
 
 
-def generate_ai_news_catalyst_synthesis(comp_name: str, symbol: str, headlines: list) -> str:
+def get_stock_price_context(symbol_clean: str, ticker: str) -> Dict[str, Any]:
+    """
+    Fetches real-time price, 52W range, SMAs, and key technical levels from cached_profiles
+    (or live yfinance fallback) to anchor LLM prompts and eliminate hallucinations.
+    """
+    ctx = {
+        "cmp": 0.0,
+        "high_52w": 0.0,
+        "low_52w": 0.0,
+        "sma_50": 0.0,
+        "sma_200": 0.0,
+        "resistance": 0.0,
+        "support": 0.0,
+        "formatted_text": ""
+    }
+    try:
+        with get_db() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                "SELECT profile_json FROM cached_profiles WHERE symbol = ? OR symbol = ? OR symbol = ? LIMIT 1",
+                (ticker, f"{symbol_clean}.NS", symbol_clean)
+            )
+            row = cursor.fetchone()
+            if row and row[0]:
+                p_data = json.loads(row[0])
+                tech = p_data.get("technicals") or {}
+                fund = p_data.get("fundamentals") or {}
+                cmp_val = clean_float(tech.get("current_price") or fund.get("current_price"))
+                h52 = clean_float(tech.get("high_52w") or fund.get("high_52week"))
+                l52 = clean_float(tech.get("low_52w") or fund.get("low_52week"))
+                s50 = clean_float(tech.get("sma_50") or fund.get("sma_50"))
+                s200 = clean_float(tech.get("sma_200") or fund.get("sma_200"))
+                fib = tech.get("fib_levels") or {}
+                fib618 = clean_float(fib.get("fib_618"))
+                bb_upper = clean_float(tech.get("bb_upper"))
+                bb_lower = clean_float(tech.get("bb_lower"))
+
+                res_val = fib618 if fib618 > cmp_val else (bb_upper if bb_upper > cmp_val else (s50 if s50 > cmp_val else (h52 if h52 > cmp_val else cmp_val * 1.05)))
+                sup_val = bb_lower if 0 < bb_lower < cmp_val else (s200 if 0 < s200 < cmp_val else (l52 if 0 < l52 < cmp_val else cmp_val * 0.95))
+
+                ctx["cmp"] = cmp_val
+                ctx["high_52w"] = h52
+                ctx["low_52w"] = l52
+                ctx["sma_50"] = s50
+                ctx["sma_200"] = s200
+                ctx["resistance"] = res_val
+                ctx["support"] = sup_val
+    except Exception as e:
+        logger.warning(f"Error fetching stock price context for {symbol_clean}: {e}")
+
+    # Live fallback if not present in cache
+    if not ctx["cmp"]:
+        try:
+            t = yf.Ticker(ticker)
+            fast_info = getattr(t, "fast_info", None)
+            if fast_info:
+                cmp_val = clean_float(getattr(fast_info, "last_price", 0.0))
+                h52 = clean_float(getattr(fast_info, "year_high", 0.0))
+                l52 = clean_float(getattr(fast_info, "year_low", 0.0))
+                ctx["cmp"] = cmp_val
+                ctx["high_52w"] = h52
+                ctx["low_52w"] = l52
+                ctx["resistance"] = h52 if h52 > cmp_val else cmp_val * 1.05
+                ctx["support"] = l52 if 0 < l52 < cmp_val else cmp_val * 0.95
+        except Exception:
+            pass
+
+    if ctx["cmp"] > 0:
+        ctx["formatted_text"] = (
+            f"• Live CMP: ₹{ctx['cmp']:,.2f} | 52W Range: ₹{ctx['low_52w']:,.2f} - ₹{ctx['high_52w']:,.2f}\n"
+            f"• Moving Averages: 50-DMA: ₹{ctx['sma_50']:,.2f} | 200-DMA: ₹{ctx['sma_200']:,.2f}\n"
+            f"• Key Levels: Immediate Resistance ~₹{ctx['resistance']:,.2f} | Key Support ~₹{ctx['support']:,.2f}"
+        )
+    return ctx
+
+
+def generate_ai_news_catalyst_synthesis(comp_name: str, symbol: str, headlines: list, ticker: Optional[str] = None) -> str:
     """
     Synthesizes breaking news headlines into an institutional 'Why It Matters'
-    impact analysis using Gemini key rotation (with Groq fallback).
+    impact analysis using Gemini key rotation (with Groq fallback), strictly anchored
+    to real-time price and current date to prevent hallucinations.
     """
     try:
         from backend.llm_config import call_llm, TASK_FAST
         news_bullets = "\n".join([f"- {clean_news_headline(h[0])} (Source: {clean_news_headline(h[1])})" for h in headlines[:3]])
+        now_dt = datetime.now()
+        current_date_str = now_dt.strftime("%A, %d %B %Y")
+        current_year = now_dt.year
+        fy_year = (current_year + 1) if now_dt.month >= 4 else current_year
+        fy_str = f"FY{str(fy_year)[-2:]}"
+
+        price_ctx = get_stock_price_context(symbol, ticker or f"{symbol}.NS")
+        cmp_val = price_ctx.get("cmp", 0.0)
+        price_info = price_ctx.get("formatted_text", "")
+
         sys_prompt = (
-            "You are an institutional Indian equity analyst on WhatsApp.\n"
+            f"You are an institutional Indian equity analyst on WhatsApp. Today is {current_date_str}.\n"
             "Given recent news headlines for an Indian listed company, synthesize a concise 'Why It Matters' for traders.\n"
             "Rules:\n"
-            "1. Output exactly 2 bullet points (maximum 40 words per bullet).\n"
+            f"1. Output exactly 2 bullet points (maximum 40 words per bullet) for the current fiscal period ({fy_str}).\n"
             "2. Bullet 1 (*Margin/Realization*): Impact on revenue, operating EBITDA margins, or industry demand.\n"
             "3. Bullet 2 (*Catalyst/Technical*): Key price reaction, catalyst horizon, or support/resistance level to monitor.\n"
-            "4. Use WhatsApp bold (*text*). Do not include disclaimers, headers, or introductory conversational filler."
+            f"4. CRITICAL PRICE ANCHOR: The stock's live CMP is ₹{cmp_val:,.2f}. Any technical levels MUST be strictly consistent with CMP ₹{cmp_val:,.2f}. NEVER hallucinate outdated price levels (e.g., historical ₹1,200) or obsolete fiscal years (FY24/FY25).\n"
+            "5. Use WhatsApp bold (*text*). Do not include disclaimers, headers, or introductory conversational filler."
         )
-        u_prompt = f"Company: {comp_name} ({symbol})\nRecent Headlines:\n{news_bullets}"
+        u_prompt = f"Company: {comp_name} ({symbol})\n{price_info}\nRecent Headlines:\n{news_bullets}"
         res = call_llm(TASK_FAST, system_prompt=sys_prompt, user_prompt=u_prompt, max_tokens=160, enable_web_search=True)
         if res and len(res.strip()) > 15:
             return (
@@ -1837,6 +1925,7 @@ def handle_stock_news(symbol_input: str, recipient: Optional[str] = None) -> Dic
     Enterprise Single-Stock News Catalyst Engine.
     Uses Gemini 2.5 Flash Google Search Grounding to fetch live, verified news & filings
     for a specific company, eliminating repetitive calendar duplicates and providing an executive 'Why It Matters'.
+    Anchors output strictly to verified market price (CMP) and current date to eliminate hallucinations.
     """
     clean = symbol_input.strip().upper().replace("NEWS", "").replace(":", "").strip()
     resolved = resolve_company_ticker(clean)
@@ -1844,30 +1933,47 @@ def handle_stock_news(symbol_input: str, recipient: Optional[str] = None) -> Dic
     base_sym = resolved.get("base_symbol") if resolved else clean.replace(".NS", "")
     comp_name = resolved.get("name") if resolved else base_sym
 
+    # Get verified price context & current fiscal year
+    now_dt = datetime.now()
+    current_date_str = now_dt.strftime("%A, %d %B %Y")
+    current_year = now_dt.year
+    fy_year = (current_year + 1) if now_dt.month >= 4 else current_year
+    fy_str = f"FY{str(fy_year)[-2:]}"
+
+    price_ctx = get_stock_price_context(base_sym, ticker)
+    cmp_val = price_ctx.get("cmp", 0.0)
+    price_info = price_ctx.get("formatted_text", "")
+
     # 1. Primary: Gemini 2.5 Flash with Real-Time Google Search Grounding
     try:
         sys_prompt = (
-            "You are an institutional Indian equity analyst on WhatsApp. Provide real-time news catalysts without conversational preamble or markdown headers outside the format.\n"
+            f"You are an institutional Indian equity analyst on WhatsApp. Today is {current_date_str}.\n"
+            "Provide real-time news catalysts without conversational preamble or markdown headers outside the format.\n"
             "Rules:\n"
-            "1. Output exactly 2 distinct verified headlines from the last 24-72 hours with clean sources and dates.\n"
-            "2. If no breaking news in last 48h, state operational/quarterly status.\n"
+            f"1. Output exactly 2 distinct verified headlines from recent days ({current_year}) with clean sources and dates.\n"
+            f"2. If no breaking news in last 48h, state operational/quarterly status for current fiscal period ({fy_str}).\n"
             "3. Output a crisp 2-bullet 'WHY IT MATTERS' (Margin/Realization and Catalyst/Technical).\n"
-            "4. WhatsApp bold formatting only. No disclaimers."
+            "4. CRITICAL ANCHOR RULE:\n"
+            f"   - The CURRENT MARKET PRICE (CMP) is ₹{cmp_val:,.2f}.\n"
+            f"   - Any technical levels (support/resistance/targets) MUST be strictly anchored around the CMP of ₹{cmp_val:,.2f}.\n"
+            f"   - NEVER cite outdated historical price levels (such as ₹1,200) or obsolete fiscal years (FY24/FY25).\n"
+            "5. WhatsApp bold formatting only (*text*). No disclaimers."
         )
         u_prompt = (
-            f"Company: {comp_name} ({base_sym} / {ticker})\n\n"
-            "Search Google for verified live news, business developments, corporate filings, order wins, or management announcements for this company within the last 24-72 hours.\n\n"
+            f"Company: {comp_name} ({base_sym} / {ticker})\n"
+            f"{price_info}\n\n"
+            f"Search Google for verified live news, business developments, corporate filings, order wins, or management announcements for this company within recent days ({current_year}).\n\n"
             "Output Format:\n"
             "Output 2 distinct verified headlines:\n"
             "[🟢 BULLISH | 🔴 CAUTION | ⚡ CATALYST] • [<Source & Date>]\n"
             "└ <Concise 1-sentence verified event>\n\n"
             "If there is no major breaking news in the last 48 hours, output:\n"
             "⚡ CATALYST • [Operational Status]\n"
-            "└ No major breaking corporate filings in last 48h. Core operational focus remains on <1-sentence recent business trend>.\n\n"
+            f"└ No major breaking corporate filings in last 48h. Core operational focus remains on <1-sentence recent business trend for {fy_str}>.\n\n"
             "Followed by:\n"
             "⚡ *WHY IT MATTERS (AI SYNTHESIS)*:\n"
-            "* *Margin/Realization*: <1-2 sentences on margin, revenue, or industry volume impact>\n"
-            "* *Catalyst/Technical*: <1-2 sentences on near-term catalyst or key technical level to watch>"
+            f"* *Margin/Realization*: <1-2 sentences on margin, revenue, or industry volume impact for {fy_str}>\n"
+            f"* *Catalyst/Technical*: <1-2 sentences on near-term catalyst or key technical level to watch relative to CMP ₹{cmp_val:,.2f}>"
         )
         res = call_llm(TASK_FAST, system_prompt=sys_prompt, user_prompt=u_prompt, max_tokens=320, enable_web_search=True)
         if res and len(res.strip()) > 50:

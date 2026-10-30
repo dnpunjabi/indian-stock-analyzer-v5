@@ -174,3 +174,4 @@ def clear_chat_history(user_phone: Optional[str] = None) -> bool:
     except Exception as e:
         logger.error(f"Error clearing chat history: {e}")
         return False
+
