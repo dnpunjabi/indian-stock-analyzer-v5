@@ -1587,33 +1587,108 @@ def handle_news_menu(recipient: Optional[str] = None) -> Dict[str, Any]:
     )
 
 
+def get_macro_pulse_context() -> Dict[str, Any]:
+    """Fetches real-time benchmark levels for Nifty, Sensex, Bank Nifty, VIX, and Brent Crude."""
+    ctx = {
+        "nifty": 24400.0,
+        "nifty_chg": 0.0,
+        "sensex": 80100.0,
+        "sensex_chg": 0.0,
+        "bank_nifty": 52100.0,
+        "bank_chg": 0.0,
+        "vix": 12.5,
+        "crude": 73.0,
+        "formatted_text": ""
+    }
+    try:
+        t_nifty = yf.Ticker("^NSEI")
+        fi_n = getattr(t_nifty, "fast_info", None)
+        np = float(getattr(fi_n, "last_price", 0.0) or 0.0) if fi_n else 0.0
+        pc_n = float(getattr(fi_n, "previous_close", 0.0) or np) if fi_n else np
+        if np > 0:
+            ctx["nifty"] = np
+            ctx["nifty_chg"] = ((np - pc_n) / pc_n * 100.0) if pc_n > 0 else 0.0
+
+        t_sen = yf.Ticker("^BSESN")
+        fi_s = getattr(t_sen, "fast_info", None)
+        sp = float(getattr(fi_s, "last_price", 0.0) or 0.0) if fi_s else 0.0
+        pc_s = float(getattr(fi_s, "previous_close", 0.0) or sp) if fi_s else sp
+        if sp > 0:
+            ctx["sensex"] = sp
+            ctx["sensex_chg"] = ((sp - pc_s) / pc_s * 100.0) if pc_s > 0 else 0.0
+
+        t_bank = yf.Ticker("^NSEBANK")
+        fi_b = getattr(t_bank, "fast_info", None)
+        bp = float(getattr(fi_b, "last_price", 0.0) or 0.0) if fi_b else 0.0
+        pc_b = float(getattr(fi_b, "previous_close", 0.0) or bp) if fi_b else bp
+        if bp > 0:
+            ctx["bank_nifty"] = bp
+            ctx["bank_chg"] = ((bp - pc_b) / pc_b * 100.0) if pc_b > 0 else 0.0
+
+        t_vix = yf.Ticker("^INDIAVIX")
+        fi_v = getattr(t_vix, "fast_info", None)
+        vp = float(getattr(fi_v, "last_price", 0.0) or 0.0) if fi_v else 0.0
+        if vp > 0:
+            ctx["vix"] = vp
+
+        t_crude = yf.Ticker("BZ=F")
+        fi_c = getattr(t_crude, "fast_info", None)
+        cp = float(getattr(fi_c, "last_price", 0.0) or 0.0) if fi_c else 0.0
+        if cp > 0:
+            ctx["crude"] = cp
+    except Exception as e:
+        logger.warning(f"Error fetching macro pulse context: {e}")
+
+    ctx["formatted_text"] = (
+        f"• LIVE BENCHMARKS: Nifty 50: ~{ctx['nifty']:,.1f} ({ctx['nifty_chg']:+.2f}%) | "
+        f"Sensex: ~{ctx['sensex']:,.1f} ({ctx['sensex_chg']:+.2f}%) | "
+        f"Bank Nifty: ~{ctx['bank_nifty']:,.1f} ({ctx['bank_chg']:+.2f}%)\n"
+        f"• GLOBAL CUES: Brent Crude: ~${ctx['crude']:.1f}/bbl | India VIX: {ctx['vix']:.1f}"
+    )
+    return ctx
+
+
 def handle_run_news(news_type: str, recipient: Optional[str] = None) -> Dict[str, Any]:
     """
     Enterprise Institutional News Catalyst Engine.
     Uses Gemini 2.5 Flash Google Search Grounding to fetch live, verified news,
-    filtering retail spam, unescaping HTML entities, and analyzing user's real holdings.
+    anchored strictly to live benchmarks, current date, and user's real holdings.
     """
     clean_type = (news_type or "macro").strip().lower()
 
+    now_dt = datetime.now()
+    current_date_str = now_dt.strftime("%A, %d %B %Y")
+    current_year = now_dt.year
+    fy_year = (current_year + 1) if now_dt.month >= 4 else current_year
+    fy_str = f"FY{str(fy_year)[-2:]}"
+
     if clean_type == "macro":
+        macro_ctx = get_macro_pulse_context()
+        macro_info = macro_ctx.get("formatted_text", "")
+        nifty_lvl = macro_ctx.get("nifty", 24400.0)
+
         # 1. Primary: Gemini 2.5 Flash with Real-Time Google Search Grounding
         try:
             sys_prompt = (
-                "You are an institutional Indian macroeconomic analyst delivering high-signal, zero-fluff market intelligence for WhatsApp.\n"
+                f"You are an institutional Indian macroeconomic analyst delivering high-signal, zero-fluff market intelligence for WhatsApp. Today is {current_date_str}.\n"
+                f"Deliver real-time market intelligence strictly for recent days ({current_year}).\n"
                 "Rules:\n"
                 "1. Filter out retail clickbait (e.g. IPO listing gain calculators, penny stocks, small NII speculation).\n"
-                "2. Focus strictly on institutional market drivers: Nifty 50, Sensex, FII/DII net flows, RBI policy/inflation, or crude oil.\n"
-                "3. Output strictly WhatsApp markdown. No conversational preamble, no trailing disclaimers."
+                f"2. Focus strictly on institutional market drivers from this week ({current_year}): Nifty 50, Sensex, FII/DII net flows, RBI policy/inflation, or crude oil.\n"
+                f"3. CRITICAL BENCHMARK ANCHOR: Nifty 50 is trading around {nifty_lvl:,.0f}. All support, resistance, and targets MUST be strictly consistent with this current benchmark level. NEVER cite obsolete historical levels from 2023/2024 (such as Nifty 21,000 or 22,500) or old crude spikes ($90+).\n"
+                "4. Output strictly WhatsApp markdown. No conversational preamble, no trailing disclaimers."
             )
             u_prompt = (
-                "Search Google for today's live Indian macroeconomic catalysts, Nifty 50 and Sensex drivers, FII/DII institutional flows, and crude oil/global cues.\n\n"
+                f"Today: {current_date_str}\n"
+                f"{macro_info}\n\n"
+                f"Search Google for today's live Indian macroeconomic catalysts, Nifty 50 and Sensex drivers, FII/DII institutional flows, and crude oil/global cues for this week ({current_year}).\n\n"
                 "Output format:\n"
                 "Top 3 verified macroeconomic developments today, formatted exactly as:\n"
-                "[🟢 BULLISH | 🔴 CAUTION | ⚡ CATALYST] • [<Source>]\n"
+                "[🟢 BULLISH | 🔴 CAUTION | ⚡ CATALYST] • [<Source & Date>]\n"
                 "└ <Clear 1-sentence headline/development>\n\n"
                 "Followed by:\n"
                 "⚡ *EXECUTIVE TAKEAWAY*:\n"
-                "* <1-2 sentences on Nifty/Sensex trend, institutional flows, or key support/resistance levels to watch>"
+                f"* <1-2 sentences on Nifty/Sensex trend, institutional flows, and key support/resistance levels anchored strictly to current levels around {nifty_lvl:,.0f}>"
             )
             res = call_llm(TASK_FAST, system_prompt=sys_prompt, user_prompt=u_prompt, max_tokens=320, enable_web_search=True)
             if res and len(res.strip()) > 50:
@@ -1665,9 +1740,9 @@ def handle_run_news(news_type: str, recipient: Optional[str] = None) -> Dict[str
 
         if not headlines:
             headlines = [
-                ("Indian markets rally on Fed rate pause & sustained DII liquidity", "Financial Express", "Bullish"),
-                ("Retail inflation stands at 5.54%; RBI maintains cautious stance on food prices", "Economic Times", "Neutral"),
-                ("Crude stabilizes as global supply risks ease; margin relief for auto & chemicals", "Reuters", "Bullish")
+                ("Indian markets trade resilient amid steady domestic institutional flows", "Financial Express", "Bullish"),
+                ("RBI active in liquidity operations; monitoring food inflation prints", "Economic Times", "Neutral"),
+                ("Crude prices stable as global demand cues balance geopolitical supply risks", "Reuters", "Bullish")
             ]
 
         lines = []
@@ -1719,7 +1794,7 @@ def handle_run_news(news_type: str, recipient: Optional[str] = None) -> Dict[str
                 "No active equity positions currently logged in your portfolio.\n\n"
                 "To track catalysts for your investments, log a purchase:\n"
                 "• Text `BUY <SYMBOL> <QTY> <PRICE>`\n"
-                "  _(e.g. `BUY RELIANCE 10 2850`)_\n\n"
+                "  _(e.g. `BUY RELIANCE 10 2850`)\n\n"
                 "Or check macro drivers & screener ideas below:"
             )
             buttons = [
@@ -1732,26 +1807,25 @@ def handle_run_news(news_type: str, recipient: Optional[str] = None) -> Dict[str
         # 1. Primary: Grounded search across actual active holdings
         try:
             sys_prompt = (
-                "You are an enterprise portfolio catalyst engine for Indian equities on WhatsApp.\n"
-                "You provide verified, institutional-grade business events (earnings, order wins, joint ventures, regulatory filings) for specific holdings.\n"
+                f"You are an enterprise portfolio catalyst engine for Indian equities on WhatsApp. Today is {current_date_str}.\n"
+                f"You provide verified, institutional-grade business events (earnings, order wins, joint ventures, regulatory filings) for specific holdings strictly from recent days ({current_year}).\n"
                 "Rules:\n"
-                "1. Strictly report verified facts from the last 24-72 hours. Do NOT use old news from weeks/months ago.\n"
-                "2. If quiet, state recent operational trend.\n"
+                f"1. Strictly report verified facts from recent days ({current_year}). Do NOT cite old news from previous fiscal periods (FY24/FY25).\n"
+                f"2. If quiet, state recent operational trend for {fy_str}.\n"
                 "3. Output strictly WhatsApp markdown without conversational filler or disclaimers."
             )
             u_prompt = (
+                f"Today: {current_date_str}\n"
                 f"User Portfolio Holdings: {', '.join(active_summary)}\n\n"
-                "Search Google for breaking news, corporate announcements, order wins, quarterly earnings, regulatory orders, or joint ventures specifically impacting these companies within the last 48-72 hours.\n\n"
+                f"Search Google for breaking news, corporate announcements, order wins, quarterly earnings, regulatory orders, or joint ventures specifically impacting these companies within recent days ({current_year}).\n\n"
                 "Format Rules:\n"
                 "Select top 3 holdings with the most critical live catalysts and format exactly:\n"
                 "⚡ *<SYMBOL>* • [🟢 BULLISH | 🔴 CAUTION | ⚡ CATALYST]\n"
                 "└ *Source*: <Publisher or BSE/NSE Filing> (<Date>)\n"
                 "└ *Event*: <Concise 1-sentence verified event>\n"
                 "└ *Impact*: <1-sentence margin, price, or trader takeaway>\n\n"
-                "If remaining holdings are quiet, summarize in 1 bullet:\n"
-                "• *Other Holdings*: <1-sentence operational summary of remaining quiet holdings>"
             )
-            res = call_llm(TASK_FAST, system_prompt=sys_prompt, user_prompt=u_prompt, max_tokens=350, enable_web_search=True)
+            res = call_llm(TASK_FAST, system_prompt=sys_prompt, user_prompt=u_prompt, max_tokens=320, enable_web_search=True)
             if res and len(res.strip()) > 50:
                 cleaned_body = html.unescape(res.strip())
                 body = (
@@ -1759,11 +1833,11 @@ def handle_run_news(news_type: str, recipient: Optional[str] = None) -> Dict[str
                     "━━━━━━━━━━━━━━━━━━━━\n"
                     f"{cleaned_body}\n"
                     "━━━━━━━━━━━━━━━━━━━━\n"
-                    "_Tip: Text `NEWS <SYMBOL>` (e.g. `NEWS BOSCH`) for single-stock deep dive._"
+                    "_Tip: Text `NEWS <SYMBOL>` (e.g. `NEWS BOSCH`) for stock deep dive._"
                 )
                 buttons = [
-                    ("view:portfolio", "💼 Full Portfolio"),
-                    ("view:pulse", "🌐 Market Pulse"),
+                    ("view:portfolio", "💼 My Holdings"),
+                    ("run:news:macro", "🌐 Macro News"),
                     ("nav:menu:main", "🏠 Main Menu")
                 ]
                 return send_whatsapp_interactive_buttons(body, buttons=buttons, recipient=recipient)
