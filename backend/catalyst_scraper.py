@@ -71,7 +71,7 @@ def fetch_latest_news_for_query(
                 encoded_query = urllib.parse.quote(query)
                 tbs = f"qdr:{qdr}"
                 url = f"https://serpapi.com/search.json?engine=google&q={encoded_query}&api_key={sk}&tbs={tbs}"
-                r = requests.get(url, timeout=20.0)
+                r = requests.get(url, timeout=8.0)
                 if r.status_code == 200:
                     data = r.json()
                     ai_overview = data.get("ai_overview", {})

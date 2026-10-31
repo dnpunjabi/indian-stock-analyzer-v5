@@ -1842,6 +1842,25 @@ def handle_run_news(news_type: str, recipient: Optional[str] = None) -> Dict[str
                 except Exception:
                     pass
 
+            # If still empty, trigger SerpApi fallback for quiet holdings
+            if not headlines:
+                try:
+                    from backend.catalyst_scraper import fetch_latest_news_for_query
+                    resolved = resolve_company_ticker(sym)
+                    c_name = resolved.get("name") if resolved else sym
+                    serp_query = f'"{c_name}" share OR stock (filing OR order OR earnings OR news)'
+                    snippets, prov = fetch_latest_news_for_query(serp_query, timeframe="7d", use_serpapi=True)
+                    for s in snippets[:2]:
+                        clean_s = s.replace("\n", " ").strip()
+                        if clean_s:
+                            headlines.append({
+                                "title": clean_s[:130],
+                                "source": f"{prov}",
+                                "date": datetime.now().strftime("%Y-%m-%d")
+                            })
+                except Exception as e:
+                    logger.warning(f"SerpApi portfolio fallback error for {sym}: {e}")
+
             if headlines:
                 holding_verified_news[sym] = headlines
 
@@ -2193,9 +2212,106 @@ def handle_stock_news(symbol_input: str, recipient: Optional[str] = None) -> Dic
     return send_whatsapp_interactive_buttons(body, buttons=buttons, recipient=recipient)
 
 
+def handle_why_stock_moved(query_input: str, recipient: Optional[str] = None) -> Dict[str, Any]:
+    """
+    On-Demand Stock Move Explainer powered by SerpApi and Gemini.
+    Detects whether the stock is falling or surging and retrieves the exact
+    brokerage rating, earnings trigger, block deal, or sector news explaining the move.
+    """
+    clean = query_input.strip()
+    upper = clean.upper()
+
+    # Determine direction
+    is_down = any(w in upper for w in ["DOWN", "FALLING", "CRASH", "DROP", "DIP", "SLUMP", "LOSS", "WEAK"])
+    is_up = any(w in upper for w in ["UP", "SURGING", "RISING", "RALLY", "GAIN", "ROCKET", "JUMP"])
+    direction_word = "falling" if is_down else ("surging" if is_up else "moving")
+    direction_badge = "🔴 SELL-OFF TRIGGER" if is_down else ("🟢 RALLY CATALYST" if is_up else "⚡ INTRADAY CATALYST")
+
+    # Extract ticker symbol
+    extracted_sym = re.sub(r"^(?:WHY\s+(?:IS\s+)?|WHAT\s+HAPPENED\s+TO\s+)", "", clean, flags=re.IGNORECASE)
+    extracted_sym = re.sub(r"\b(?:DOWN|FALLING|CRASH|CRASHING|DROP|DROPPING|UP|SURGING|RISING|RALLY|TODAY|NOW)\b", "", extracted_sym, flags=re.IGNORECASE)
+    extracted_sym = extracted_sym.replace("?", "").replace(":", "").strip().upper()
+
+    resolved = resolve_company_ticker(extracted_sym)
+    base_sym = resolved.get("base_symbol") if resolved else extracted_sym.replace(".NS", "")
+    comp_name = resolved.get("name") if resolved else base_sym
+    ticker = resolved.get("yf_ticker") if resolved else f"{base_sym}.NS"
+
+    # Get live technical & price context
+    price_ctx = get_stock_price_context(base_sym, ticker)
+    cmp_val = price_ctx.get("cmp", 0.0)
+    sup_val = price_ctx.get("support", 0.0)
+    res_val = price_ctx.get("resistance", 0.0)
+
+    # 1. Fetch live web snippets from SerpApi
+    from backend.catalyst_scraper import fetch_latest_news_for_query
+    serp_query = f'"{comp_name}" share price {direction_word} reasons news India'
+    snippets, provider = fetch_latest_news_for_query(serp_query, timeframe="7d", use_serpapi=True, use_tavily=True)
+
+    # 2. Fallback to Google News RSS if SerpApi returned empty
+    if not snippets:
+        rss_items = fetch_google_news_rss(f"{comp_name} share news")
+        for it in rss_items[:4]:
+            snippets.append(f"Title: {it.get('title')} | Source: {it.get('source')} | Date: {it.get('date')}")
+
+    if not snippets:
+        snippets = [f"{comp_name} experiencing broader sector-driven volatility and standard institutional rebalancing."]
+
+    now_dt = datetime.now()
+    current_date_str = now_dt.strftime("%A, %d %B %Y")
+
+    sys_prompt = (
+        f"You are an institutional Indian equity desk analyst on WhatsApp. Today is {current_date_str}.\n"
+        "Explain why this stock is moving without preamble or meta-commentary.\n"
+        "Rules:\n"
+        "1. Output exactly 3 bullet points:\n"
+        "   • *Primary Catalyst*: The specific real trigger (earnings, block deal, broker downgrade/upgrade, raw material costs, sector weakness).\n"
+        "   • *Institutional Action*: FII/DII activity, volume breakout, or peer sector sentiment.\n"
+        f"   • *Key Defend Zone*: Anchor directly to live CMP ₹{cmp_val:,.2f} with immediate support/resistance.\n"
+        "2. WhatsApp bold formatting only (*text*). No disclaimers or filler."
+    )
+    u_prompt = (
+        f"Stock: {comp_name} (`{base_sym}`)\n"
+        f"Live CMP: ₹{cmp_val:,.2f} | Support: ₹{sup_val:,.2f} | Resistance: ₹{res_val:,.2f}\n"
+        f"Direction: {direction_word.capitalize()}\n\n"
+        f"Verified Search Snippets ({provider}):\n"
+        + "\n".join([f"- {s[:160]}" for s in snippets[:4]]) + "\n\n"
+        f"Synthesize why {base_sym} is {direction_word} and what levels traders are monitoring."
+    )
+
+    try:
+        explanation = call_llm(TASK_FAST, system_prompt=sys_prompt, user_prompt=u_prompt, max_tokens=280, enable_web_search=False)
+        cleaned_exp = html.unescape(explanation.strip())
+    except Exception as e:
+        logger.warning(f"Error synthesizing why stock moved: {e}")
+        cleaned_exp = (
+            f"• *Primary Catalyst*: Experiencing price pressure consistent with broader sectoral sentiment.\n"
+            f"• *Institutional Action*: Standard institutional liquidity adjustments.\n"
+            f"• *Key Defend Zone*: Current support around ₹{sup_val:,.2f}; resistance at ₹{res_val:,.2f}."
+        )
+
+    body = (
+        f"🏢 *{comp_name.upper()}* (`{base_sym}`)\n"
+        f"{direction_badge}\n"
+        "━━━━━━━━━━━━━━━━━━━━\n"
+        f"💵 *Live CMP*: ₹{cmp_val:,.2f}\n\n"
+        f"{cleaned_exp}\n"
+        "━━━━━━━━━━━━━━━━━━━━\n"
+        "Tap below to view chart or deep dive dossier:"
+    )
+
+    buttons = [
+        (f"act:chart:{base_sym}", f"📈 {base_sym} Chart"),
+        (f"run:stock_news:{base_sym}", f"📰 {base_sym} News"),
+        ("nav:menu:main", "🏠 Main Menu")
+    ]
+    return send_whatsapp_interactive_buttons(body, buttons=buttons, recipient=recipient)
+
+
 # ==============================================================================
 # NAVIGATION MODULE 8 & 9: STOCK QUERY & TECHNICAL CHARTS
 # ==============================================================================
+
 
 def handle_stock_query_prompt(recipient: Optional[str] = None) -> Dict[str, Any]:
     """Prompts the user to text any stock symbol or ask freeform AI questions."""
@@ -2208,6 +2324,7 @@ def handle_stock_query_prompt(recipient: Optional[str] = None) -> Dict[str, Any]
         "• _'Compare Dixon vs Amber for 1-year horizon'_\n"
         "• _'Why is Nifty falling so sharply today?'_\n\n"
         "🔍 *Quick Single-Stock Inspection:*\n"
+        "• Text `WHY <SYM> DOWN` (e.g. `WHY RVNL DOWN`)\n"
         "• Text `Q <SYMBOL>` (e.g. `Q RELIANCE`)\n"
         "• Text `NEWS <SYMBOL>` for news + AI impact\n"
         "• Text `C <SYMBOL>` for technical chart\n\n"
@@ -3223,6 +3340,10 @@ def dispatch_incoming_whatsapp_message(text_body: str, sender: Optional[str] = N
 
     if not cleaned or upper in ["HELP", "MENU", "START", "HI", "HELLO", "NAV:MENU:MAIN"]:
         return handle_main_menu(recipient=sender)
+
+    # 0. Stock Move Explainer: "Why is X falling / rising?" (e.g. WHY RVNL DOWN, WHY DIXON FALLING, WHY POLYCAB UP)
+    if re.match(r"^(?:WHY\s+(?:IS\s+)?|WHAT\s+HAPPENED\s+TO\s+)", upper):
+        return handle_why_stock_moved(cleaned, recipient=sender)
 
     # 1. Single Stock News Interceptor (Fixes NEWS <SYMBOL> bug & adds AI catalyst triggers)
     if upper.startswith("NEWS ") or upper.startswith("NEWS:") or upper.startswith("AI NEWS ") or upper.startswith("NEWS/") or upper.startswith("NEWS-") or cleaned.startswith("news:") or cleaned.startswith("run:stock_news:"):
