@@ -394,6 +394,11 @@ def handle_main_menu(recipient: Optional[str] = None) -> Dict[str, Any]:
                     "description": "Buffett Quality, Zero Debt, Deep Value, GARP"
                 },
                 {
+                    "id": "nav:sub:ai_scan",
+                    "title": "🤖 AI Scan Radar",
+                    "description": "Freeform NL Scanner: Text any custom criteria"
+                },
+                {
                     "id": "nav:sub:watchlists",
                     "title": "⭐ My Watchlists",
                     "description": "10 Curated Lists (Core, Breakouts, Sharks...)"
@@ -1267,6 +1272,27 @@ def handle_run_fundamental(fund_key: str, recipient: Optional[str] = None) -> Di
     buttons = [
         (f"act:chart:{first_sym}", f"📈 {first_sym} Chart"),
         ("nav:sub:fundamental", "🏛️ Fundamental"),
+        ("nav:menu:main", "🏠 Main Menu")
+    ]
+    return send_whatsapp_interactive_buttons(body, buttons=buttons, recipient=recipient)
+
+
+def handle_ai_scan_prompt(recipient: Optional[str] = None) -> Dict[str, Any]:
+    """Displays the AI Scan Command Radar guide and 1-tap sample executions."""
+    body = (
+        "🤖 *AI SCAN COMMAND RADAR*\n"
+        "Screen 500+ NSE equities using free-form plain English!\n\n"
+        "💬 *Simply text your criteria, for example:*\n"
+        "• `scan midcaps with PE < 15 and RSI < 30`\n"
+        "• `find large caps with zero debt and ROE > 20`\n"
+        "• `find stocks with RSI < 25`\n"
+        "• `find buffett quality stocks`\n"
+        "• `show midcaps with golden cross`\n\n"
+        "⚡ *Or tap an instant sample scan below:*"
+    )
+    buttons = [
+        ("run:nl_sample:oversold_mid", "🔍 Oversold Mid-Caps"),
+        ("run:nl_sample:zero_debt", "🏰 Zero Debt Leaders"),
         ("nav:menu:main", "🏠 Main Menu")
     ]
     return send_whatsapp_interactive_buttons(body, buttons=buttons, recipient=recipient)
@@ -3914,6 +3940,14 @@ def dispatch_incoming_whatsapp_message(text_body: str, sender: Optional[str] = N
     elif cleaned.startswith("run:fund:"):
         fund_key = cleaned.replace("run:fund:", "")
         return handle_run_fundamental(fund_key, recipient=sender)
+
+    # AI Scan Radar Navigation & 1-Tap Samples
+    elif cleaned.startswith("nav:sub:ai_scan") or upper in ["AI SCAN", "AI SCANNER", "SCAN RADAR", "RADAR SCAN"]:
+        return handle_ai_scan_prompt(recipient=sender)
+    elif cleaned == "run:nl_sample:oversold_mid":
+        return handle_conversational_rule_scan("scan midcaps with PE below 15 and RSI below 30", recipient=sender)
+    elif cleaned == "run:nl_sample:zero_debt":
+        return handle_conversational_rule_scan("find large caps with zero debt and ROE > 20", recipient=sender)
 
     # Watchlists & Fast-Path Primary Shortcuts (Options 2, 3, 4)
     elif upper in ["WL", "WATCHLIST", "MY WATCHLIST", "PRIMARY WATCHLIST"]:
