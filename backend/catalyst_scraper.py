@@ -1,6 +1,8 @@
 import os
+import re
 import requests
 import urllib.parse
+from typing import Optional, List, Dict, Any
 from bs4 import BeautifulSoup
 
 def fetch_latest_news_for_query(
@@ -221,13 +223,45 @@ def fetch_latest_news_for_query(
     return [], "None"
 
 
-def fetch_serpapi_google_ai_overview(query: str, serpapi_keys: list) -> dict:
+def _parse_sge_text_blocks(text_blocks: list) -> str:
+    """Parses SerpApi google_ai_overview text_blocks into clean WhatsApp-ready markdown."""
+    lines = []
+    for tb in text_blocks:
+        tb_type = tb.get("type")
+        snippet = str(tb.get("snippet", "")).strip()
+        items = tb.get("list", [])
+
+        if tb_type == "heading" and snippet:
+            clean_head = re.sub(r"^\d+\.\s*", "", snippet)
+            lines.append(f"\n➡️ *{clean_head}*")
+        elif tb_type == "paragraph" and snippet:
+            # Skip interactive filler prompts at the end of Google AI output
+            if any(w in snippet.lower() for w in ["let me know", "manage your exposure", "looking for specific", "follow-up"]):
+                continue
+            lines.append(f"_{snippet}_")
+        elif tb_type == "list" and items:
+            for it in items:
+                text = str(it.get("snippet", it)).strip()
+                if text and not any(w in text.lower() for w in ["technical analysis support", "financial metric comparison table"]):
+                    lines.append(f"• {text}")
+    return "\n".join(lines).strip()
+
+
+def fetch_serpapi_google_ai_overview(query: str, serpapi_keys: Optional[list] = None) -> dict:
     """
     Queries SerpApi with Google AI Overview (SGE) engine and extracts
     structured sections, bullet points, source citation badges, and
     Google AI generated follow-up prompts.
+    Supports both direct response and page_token google_ai_overview engine with key rotation.
     """
     if not serpapi_keys:
+        serpapi_keys = []
+        for k, v in sorted(os.environ.items()):
+            if k.startswith("SERPAPI_API_KEY") and v.strip() and v.strip() not in serpapi_keys:
+                serpapi_keys.append(v.strip())
+
+    if not serpapi_keys:
+        print("[Catalyst Scraper] No SerpApi keys found in environment.")
         return {}
 
     for sk in serpapi_keys:
@@ -242,10 +276,38 @@ def fetch_serpapi_google_ai_overview(query: str, serpapi_keys: list) -> dict:
             if r.status_code == 200:
                 data = r.json()
                 ai_overview = data.get("ai_overview", {})
-                if ai_overview:
+
+                # Check for page_token (SerpApi SGE sub-engine)
+                page_token = ai_overview.get("page_token") if isinstance(ai_overview, dict) else None
+                if page_token:
+                    print(f"[Catalyst Scraper] Fetching SGE text_blocks via page_token for key {masked_sk}...")
+                    ai_url = f"https://serpapi.com/search.json?engine=google_ai_overview&page_token={page_token}&api_key={sk}"
+                    r_ai = requests.get(ai_url, timeout=15.0)
+                    if r_ai.status_code == 200:
+                        data_ai = r_ai.json()
+                        ai_sub = data_ai.get("ai_overview", {})
+                        text_blocks = ai_sub.get("text_blocks", [])
+                        if text_blocks:
+                            formatted_text = _parse_sge_text_blocks(text_blocks)
+                            top_sources = []
+                            for ref in ai_sub.get("references", []):
+                                if isinstance(ref, dict):
+                                    src_name = ref.get("source", ref.get("title", ""))
+                                    if src_name and src_name not in top_sources:
+                                        top_sources.append(src_name)
+
+                            print(f"[Catalyst Scraper] Successfully extracted {len(text_blocks)} SGE text_blocks ({len(formatted_text)} chars).")
+                            return {
+                                "text": formatted_text,
+                                "formatted_text": formatted_text,
+                                "text_blocks": text_blocks,
+                                "sources": top_sources,
+                                "data_source": "SerpApi SGE"
+                            }
+
+                # Direct response fallback (if text or sections returned directly)
+                if ai_overview and isinstance(ai_overview, dict):
                     text = ai_overview.get("text", "")
-                    
-                    # 1. Extract sections
                     sections = []
                     raw_sections = ai_overview.get("sections", [])
                     if isinstance(raw_sections, list):
@@ -263,8 +325,7 @@ def fetch_serpapi_google_ai_overview(query: str, serpapi_keys: list) -> dict:
                                     "bullet_points": clean_bullets,
                                     "sources": sources
                                 })
-                    
-                    # 2. Extract references/citations at top-level
+
                     top_sources = []
                     for ref in ai_overview.get("references", []):
                         if isinstance(ref, dict):
@@ -272,29 +333,22 @@ def fetch_serpapi_google_ai_overview(query: str, serpapi_keys: list) -> dict:
                             if src_name and src_name not in top_sources:
                                 top_sources.append(src_name)
 
-                    # 3. Extract Google AI generated follow-up prompts
-                    suggested_followups = []
-                    for followup in ai_overview.get("suggested_questions", ai_overview.get("follow_ups", [])):
-                        if isinstance(followup, dict):
-                            txt = followup.get("question", followup.get("text", ""))
-                        else:
-                            txt = str(followup)
-                        if txt:
-                            suggested_followups.append(txt)
-                            
-                    print(f"[Catalyst Scraper] SerpApi SGE successfully returned AI Overview ({len(sections)} sections, {len(suggested_followups)} followups).")
-                    return {
-                        "text": text,
-                        "sections": sections,
-                        "sources": top_sources,
-                        "suggested_followups": suggested_followups,
-                        "data_source": "SerpApi SGE"
-                    }
+                    if text or sections:
+                        print(f"[Catalyst Scraper] SerpApi SGE successfully returned direct AI Overview.")
+                        return {
+                            "text": text,
+                            "formatted_text": text,
+                            "sections": sections,
+                            "sources": top_sources,
+                            "data_source": "SerpApi SGE"
+                        }
                 else:
-                    print(f"[Catalyst Scraper] SerpApi returned HTTP 200 but no 'ai_overview' block for this query.")
+                    print(f"[Catalyst Scraper] SerpApi returned HTTP 200 but no 'ai_overview' block for key {masked_sk}.")
+            else:
+                print(f"[Catalyst Scraper] SerpApi key {masked_sk} returned status {r.status_code}. Rotating to next key.")
+                continue
         except Exception as e:
-            print(f"[Catalyst Scraper] SerpApi SGE query failed: {e}")
+            print(f"[Catalyst Scraper] SerpApi SGE query failed for key {masked_sk}: {e}. Rotating to next key.")
             continue
 
     return {}
-

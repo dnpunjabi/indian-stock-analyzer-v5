@@ -2069,8 +2069,8 @@ def handle_news_menu(recipient: Optional[str] = None) -> Dict[str, Any]:
                 },
                 {
                     "id": "run:news:portfolio",
-                    "title": "💼 Portfolio News",
-                    "description": "Catalysts affecting stocks currently in your portfolio"
+                    "title": "💼 Portfolio Catalysts",
+                    "description": "Google AI Overview digest of active holdings via SerpApi"
                 }
             ]
         }
@@ -2277,189 +2277,145 @@ def handle_run_news(news_type: str, recipient: Optional[str] = None) -> Dict[str
         return send_whatsapp_interactive_buttons(body, buttons=buttons, recipient=recipient)
 
     else:
-        # Portfolio News: Grounded dynamically on the user's REAL active holdings
-        active_symbols = []
-        active_summary = []
-        try:
-            with get_db() as conn:
-                cursor = conn.cursor()
-                cursor.execute("SELECT id, symbol, name, sector, quantity, purchase_price, purchase_date, transaction_type FROM portfolio_items")
-                all_txs = [dict(row) for row in cursor.fetchall()]
-            active_holdings = compute_active_holdings(all_txs)
-            active_holdings = [
-                h for h in active_holdings
-                if not h.get("symbol", "").startswith("TEST") and clean_float(h.get("quantity", 0)) > 0
-            ]
-            for h in active_holdings[:5]:
-                sym = h.get("symbol", "").replace(".NS", "").strip()
-                name = h.get("name", "").strip()
-                if sym:
-                    active_symbols.append(sym)
-                    active_summary.append(f"{sym} ({name})" if name and name != sym else sym)
-        except Exception as e:
-            logger.warning(f"Portfolio holdings fetch error: {e}")
+        # Portfolio News: Pure SerpAPI SGE Google AI Overview Digest
+        return handle_portfolio_catalyst_digest(recipient=recipient, force_refresh=False)
 
-        if not active_symbols:
-            body = (
-                "📰 *PORTFOLIO STOCK CATALYSTS*\n"
-                "━━━━━━━━━━━━━━━━━━━━\n"
-                "No active equity positions currently logged in your portfolio.\n\n"
-                "To track catalysts for your investments, log a purchase:\n"
-                "• Text `BUY <SYMBOL> <QTY> <PRICE>`\n"
-                "  _(e.g. `BUY RELIANCE 10 2850`)\n\n"
-                "Or check macro drivers & screener ideas below:"
-            )
-            buttons = [
-                ("run:news:macro", "📰 Macro News"),
-                ("view:pulse", "🌐 Market Pulse"),
-                ("nav:menu:main", "🏠 Main Menu")
-            ]
-            return send_whatsapp_interactive_buttons(body, buttons=buttons, recipient=recipient)
 
-        # Collect verified headlines for each active holding first from RSS & local cache
-        holding_verified_news = {}
-        for sym in active_symbols[:5]:
-            headlines = []
-            # Check local profile cache first
-            try:
-                with get_db() as conn:
-                    cursor = conn.cursor()
-                    cursor.execute("SELECT profile_json FROM cached_profiles WHERE symbol = ? OR symbol = ? LIMIT 1", (f"{sym}.NS", sym))
-                    row = cursor.fetchone()
-                    if row and row[0]:
-                        p_data = json.loads(row[0])
-                        for n in p_data.get("news", [])[:2]:
-                            t = clean_news_headline(n.get("title", ""))
-                            if t and not any(w in t.lower() for w in ["calculator", "multibagger", "penny stock"]):
-                                headlines.append({
-                                    "title": t,
-                                    "source": clean_news_headline(n.get("publisher", "Exchange Filing")),
-                                    "date": n.get("date", "")
-                                })
-            except Exception:
-                pass
+_PORTFOLIO_NEWS_CACHE: Dict[str, Any] = {}
 
-            # If not in cache, fetch verified live Google News RSS
-            if not headlines:
-                try:
-                    rss_items = fetch_google_news_rss(f"{sym} share stock news India")
-                    for it in rss_items[:2]:
-                        t = clean_news_headline(it.get("title", ""))
-                        if t and not any(w in t.lower() for w in ["calculator", "multibagger", "penny stock"]):
-                            headlines.append({
-                                "title": t,
-                                "source": clean_news_headline(it.get("source", "Financial Press")),
-                                "date": it.get("date", "")
-                            })
-                except Exception:
-                    pass
+def handle_portfolio_catalyst_digest(recipient: Optional[str] = None, force_refresh: bool = False) -> Dict[str, Any]:
+    """
+    Renders the Pure-SerpAPI Google AI Overview Portfolio Intelligence & Catalyst Digest.
+    Queries SerpApi SGE for active portfolio holdings (or core basket: RVNL, DIXON, BOSCH, JSWENERGY, JSWINFRA).
+    Strictly uses SerpApi with multi-key rotation (no RSS fallback).
+    Includes 3-hour caching with 1-tap Force Refresh.
+    """
+    global _PORTFOLIO_NEWS_CACHE
+    import time
+    now_ts = time.time()
 
-            # If still empty, trigger SerpApi fallback for quiet holdings
-            if not headlines:
-                try:
-                    from backend.catalyst_scraper import fetch_latest_news_for_query
-                    resolved = resolve_company_ticker(sym)
-                    c_name = resolved.get("name") if resolved else sym
-                    serp_query = f'"{c_name}" share OR stock (filing OR order OR earnings OR news)'
-                    snippets, prov = fetch_latest_news_for_query(serp_query, timeframe="7d", use_serpapi=True)
-                    for s in snippets[:2]:
-                        clean_s = s.replace("\n", " ").strip()
-                        if clean_s:
-                            headlines.append({
-                                "title": clean_s[:130],
-                                "source": f"{prov}",
-                                "date": datetime.now().strftime("%Y-%m-%d")
-                            })
-                except Exception as e:
-                    logger.warning(f"SerpApi portfolio fallback error for {sym}: {e}")
+    buttons = [
+        ("act:refresh_pf_news", "🔄 Force Refresh"),
+        ("view:portfolio", "💼 Portfolio"),
+        ("nav:menu:main", "🏠 Main Menu")
+    ]
 
-            if headlines:
-                holding_verified_news[sym] = headlines
+    # 1. Check 3-hour cache unless forced
+    cache_ttl = 3 * 3600  # 3 hours
+    cached_entry = _PORTFOLIO_NEWS_CACHE.get("latest")
+    if not force_refresh and cached_entry and (now_ts - cached_entry.get("ts", 0) < cache_ttl):
+        logger.info("[PORTFOLIO CATALYST] Serving valid cached digest (< 3h old).")
+        cached_body = cached_entry.get("body", "")
+        cached_part1 = cached_entry.get("part1")
+        if cached_part1:
+            send_whatsapp_text(cached_part1, recipient=recipient)
+        return send_whatsapp_interactive_buttons(cached_body, buttons=buttons, recipient=recipient)
 
-        # 1. Primary: Grounded synthesis strictly restricted to verified headlines
-        try:
-            verified_blocks = []
-            for sym in active_symbols[:5]:
-                items = holding_verified_news.get(sym, [])
-                if items:
-                    h_lines = [f"  - [{it['source']} | {it['date']}]: {it['title']}" for it in items]
-                    verified_blocks.append(f"• {sym}:\n" + "\n".join(h_lines))
-                else:
-                    verified_blocks.append(f"• {sym}: No recent breaking news headlines found.")
-            verified_news_text = "\n\n".join(verified_blocks)
+    # 2. Extract active holdings from SQLite portfolio_items
+    active_symbols = []
+    try:
+        with get_db() as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT id, symbol, name, sector, quantity, purchase_price, purchase_date, transaction_type FROM portfolio_items")
+            all_txs = [dict(row) for row in cursor.fetchall()]
+        active_holdings = compute_active_holdings(all_txs)
+        active_symbols = [
+            h.get("symbol", "").replace(".NS", "").replace(".BO", "").strip().upper()
+            for h in active_holdings
+            if not h.get("symbol", "").startswith("TEST") and clean_float(h.get("quantity", 0)) > 0
+        ]
+        # Deduplicate while preserving order
+        active_symbols = list(dict.fromkeys(active_symbols))
+    except Exception as e:
+        logger.warning(f"Error reading portfolio_items for catalyst digest: {e}")
 
-            sys_prompt = (
-                f"You are an institutional Indian equity analyst for WhatsApp. Today is {current_date_str}.\n"
-                "Synthesize verified news catalysts for the user's portfolio holdings.\n"
-                "CRITICAL FACTUAL INTEGRITY RULES:\n"
-                "1. You may ONLY synthesize the EXACT events explicitly stated in the Verified Headlines below.\n"
-                "2. ABSOLUTE ZERO FABRICATION: Do NOT invent fake contracts, imaginary joint ventures, or made-up order amounts (e.g. ₹1,200 cr or ₹2,500 cr). If an event is not in the provided headlines, DO NOT invent it.\n"
-                "3. If a holding has no breaking news in the last 48-72h or only routine coverage, state:\n"
-                "   ⚡ *<SYMBOL>* • [Operational Status]\n"
-                "   └ *Status*: Trading in standard range; no breaking exchange filings in last 48h.\n"
-                "   └ *Context*: <1-sentence factual trend from headline or business focus>\n"
-                "4. WhatsApp bold formatting only (*text*). No disclaimers."
-            )
-            u_prompt = (
-                f"Today: {current_date_str}\n\n"
-                f"Verified Headlines from Exchanges & Financial Press:\n"
-                f"{verified_news_text}\n\n"
-                "Format top holdings (up to 3):\n"
-                "⚡ *<SYMBOL>* • [🟢 BULLISH | 🔴 CAUTION | ⚡ CATALYST]\n"
-                "└ *Source*: <Actual Publisher from headlines> (<Actual Date>)\n"
-                "└ *Event*: <Concise 1-sentence summary of the VERIFIED event from the headline>\n"
-                f"└ *Impact*: <1-sentence margin, price, or trader takeaway for {fy_str}>\n"
-            )
-            res = call_llm(TASK_FAST, system_prompt=sys_prompt, user_prompt=u_prompt, max_tokens=350, enable_web_search=False)
-            if res and len(res.strip()) > 50:
-                cleaned_body = html.unescape(res.strip())
-                body = (
-                    "📰 *PORTFOLIO STOCK CATALYSTS*\n"
-                    "━━━━━━━━━━━━━━━━━━━━\n"
-                    f"{cleaned_body}\n"
-                    "━━━━━━━━━━━━━━━━━━━━\n"
-                    "_Tip: Text `NEWS <SYMBOL>` (e.g. `NEWS BOSCH`) for stock deep dive._"
-                )
-                buttons = [
-                    ("view:portfolio", "💼 My Holdings"),
-                    ("run:news:macro", "🌐 Macro News"),
-                    ("nav:menu:main", "🏠 Main Menu")
-                ]
-                return send_whatsapp_interactive_buttons(body, buttons=buttons, recipient=recipient)
-        except Exception as e:
-            logger.warning(f"Portfolio news LLM grounding error: {e}")
+    # Fallback to user core basket if no active holdings currently logged
+    is_default_basket = False
+    if not active_symbols:
+        active_symbols = ["RVNL", "DIXON", "BOSCH", "JSWENERGY", "JSWINFRA"]
+        is_default_basket = True
 
-        # 2. Resilient Fallback: Individual clean queries for active holdings
-        lines = []
-        for sym in active_symbols[:3]:
-            try:
-                raw = fetch_google_news_rss(f"{sym} share stock news India")
-                for item in raw:
-                    t = clean_news_headline(item.get("title", ""))
-                    if t and not any(w in t.lower() for w in ["calculator", "multibagger", "penny stock"]):
-                        sent = classify_news_sentiment(t)
-                        badge = "🟢 BULLISH" if "bull" in sent.lower() else ("🔴 CAUTION" if "bear" in sent.lower() else "⚡ CATALYST")
-                        lines.append(f"⚡ *{sym}* • {badge}\n   └ {t[:100]}")
-                        break
-            except Exception:
-                pass
+    # 3. Resolve symbols to full corporate names
+    comp_names = []
+    for s in active_symbols[:6]:
+        resolved = resolve_company_ticker(s)
+        name = resolved.get("name") if resolved else s
+        clean_name = name if name and name != s else s
+        if clean_name not in comp_names:
+            comp_names.append(clean_name)
 
-        if not lines:
-            lines = [f"⚡ *{sym}* • ⚡ CATALYST\n   └ Trading in consolidation; no major regulatory filings in last 48h." for sym in active_symbols[:3]]
+    # 4. Query SerpApi Google SGE
+    from backend.catalyst_scraper import fetch_serpapi_google_ai_overview
 
-        body = (
-            "📰 *PORTFOLIO STOCK CATALYSTS*\n"
+    # Attempt 1: High-impact institutional query
+    companies_str = ", ".join(comp_names)
+    query_1 = f"latest corporate announcements, quarterly earnings results, order wins, competitor threats, brokerage ratings of {companies_str} stocks India"
+    logger.info(f"[PORTFOLIO CATALYST] Querying SerpApi SGE with query: '{query_1}'")
+    sge_res = fetch_serpapi_google_ai_overview(query_1)
+
+    # Attempt 2: If attempt 1 returned empty overview, fallback to concise query with tickers
+    if not sge_res or not sge_res.get("formatted_text"):
+        query_2 = f"latest news of {', '.join(active_symbols)} stocks"
+        logger.info(f"[PORTFOLIO CATALYST] Retrying SerpApi SGE with concise query: '{query_2}'")
+        sge_res = fetch_serpapi_google_ai_overview(query_2)
+
+    # 5. Handle pure SerpApi failure (Strictly No RSS fallback per user instruction!)
+    if not sge_res or not sge_res.get("formatted_text"):
+        error_msg = (
+            "⚠️ *SERPAPI INTELLIGENCE UNAVAILABLE*\n"
             "━━━━━━━━━━━━━━━━━━━━\n"
-            + "\n\n".join(lines) + "\n"
-            "━━━━━━━━━━━━━━━━━━━━\n"
-            "_Tip: Text `NEWS <SYMBOL>` (e.g. `NEWS BOSCH`) for stock news._"
+            "Google AI Overview could not be retrieved via SerpApi at this moment.\n\n"
+            "📌 *Diagnostic Notes:*\n"
+            "• Monthly search quota may be exhausted across configured SerpApi keys\n"
+            "• Google SGE engine temporarily timed out or throttled request\n\n"
+            "Tap *Retry* below or check SerpApi account in `.env`."
         )
-        buttons = [
-            ("view:portfolio", "💼 Full Portfolio"),
-            ("view:pulse", "🌐 Market Pulse"),
+        retry_buttons = [
+            ("act:refresh_pf_news", "🔄 Retry Live Query"),
+            ("view:portfolio", "💼 Portfolio"),
             ("nav:menu:main", "🏠 Main Menu")
         ]
-        return send_whatsapp_interactive_buttons(body, buttons=buttons, recipient=recipient)
+        return send_whatsapp_interactive_buttons(error_msg, buttons=retry_buttons, recipient=recipient)
+
+    formatted_intel = sge_res["formatted_text"]
+    now_str = datetime.now().strftime("%d %b %Y, %I:%M %p IST")
+    basket_tag = "Core Watchlist Basket" if is_default_basket else "Active Holdings"
+
+    header = (
+        "📰 *PORTFOLIO INTELLIGENCE & CATALYST DIGEST*\n"
+        f"🏢 *Tracked ({basket_tag})*: {', '.join(active_symbols)}\n"
+        f"🕒 *Generated*: {now_str}\n"
+        "━━━━━━━━━━━━━━━━━━━━"
+    )
+    footer = (
+        "━━━━━━━━━━━━━━━━━━━━\n"
+        "⚡ _Pure Google AI Overview intelligence powered by SerpApi._"
+    )
+
+    full_report = f"{header}\n\n{formatted_intel}\n\n{footer}"
+
+    # 6. Smart Character Guard (< 3,800 chars)
+    if len(full_report) <= 3800:
+        _PORTFOLIO_NEWS_CACHE["latest"] = {
+            "ts": now_ts,
+            "body": full_report,
+            "part1": None
+        }
+        return send_whatsapp_interactive_buttons(full_report, buttons=buttons, recipient=recipient)
+    else:
+        # Split cleanly into Part 1 and Part 2 by company block
+        blocks = full_report.split("\n➡️ ")
+        mid = len(blocks) // 2
+        part1 = "\n➡️ ".join(blocks[:mid]) + "\n\n_(Continued in Part 2 below...)_"
+        part2 = f"📰 *PORTFOLIO DIGEST (Part 2/2)*\n━━━━━━━━━━━━━━━━━━━━\n" + "\n➡️ ".join(blocks[mid:])
+
+        _PORTFOLIO_NEWS_CACHE["latest"] = {
+            "ts": now_ts,
+            "body": part2,
+            "part1": part1
+        }
+        send_whatsapp_text(part1, recipient=recipient)
+        return send_whatsapp_interactive_buttons(part2, buttons=buttons, recipient=recipient)
 
 
 def get_stock_price_context(symbol_clean: str, ticker: str) -> Dict[str, Any]:
@@ -3106,7 +3062,7 @@ def handle_portfolio(recipient: Optional[str] = None) -> Dict[str, Any]:
 
     buttons = [
         ("view:holdings", "🔍 Inspect Positions"),
-        ("nav:sub:watchlists", "⭐ My Watchlists"),
+        ("run:news:portfolio", "📰 Portfolio News"),
         ("nav:menu:main", "🏠 Main Menu")
     ]
     return send_whatsapp_interactive_buttons(body, buttons=buttons, recipient=recipient)
@@ -4273,9 +4229,15 @@ def dispatch_incoming_whatsapp_message(text_body: str, sender: Optional[str] = N
     elif cleaned.startswith("view:alerts_active") or cleaned.startswith("view:alerts") or cleaned.startswith("view:price_alerts") or upper in ["ALERTS", "ALERT", "MY ALERTS", "ACTIVE ALERTS", "PRICE ALERTS", "TRIGGERS"]:
         return handle_view_price_alerts(recipient=sender)
 
-    # Financial News
+    # Financial News & Portfolio Catalyst Digest
     elif cleaned.startswith("nav:sub:news") or upper in ["NEWS", "BULLETINS"]:
         return handle_news_menu(recipient=sender)
+    elif cleaned in ["run:news:portfolio", "view:pf_news", "view:portfolio_news"]:
+        return handle_portfolio_catalyst_digest(recipient=sender, force_refresh=False)
+    elif cleaned == "act:refresh_pf_news":
+        return handle_portfolio_catalyst_digest(recipient=sender, force_refresh=True)
+    elif upper in ["PF NEWS", "PORTFOLIO NEWS", "CATALYST DIGEST", "NEWS PF", "PORTFOLIO REPORT", "PF REPORT", "PORTFOLIO CATALYSTS"]:
+        return handle_portfolio_catalyst_digest(recipient=sender, force_refresh=False)
     elif cleaned.startswith("run:news:"):
         ntype = cleaned.replace("run:news:", "")
         return handle_run_news(ntype, recipient=sender)
