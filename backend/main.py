@@ -1064,6 +1064,15 @@ _MARKET_MOVERS_CACHE = {
     "mid_cap_temp": 0.0,
     "small_cap_temp": 0.0
 }
+try:
+    _movers_disk = os.path.join(os.path.dirname(__file__), "data", "market_movers_cache.json")
+    if os.path.exists(_movers_disk):
+        with open(_movers_disk, "r", encoding="utf-8") as _mf_p:
+            _disk_c = json.load(_mf_p)
+            if _disk_c.get("status") == "success":
+                _MARKET_MOVERS_CACHE = _disk_c
+except Exception:
+    pass
 
 def is_indian_market_hours() -> bool:
     """
@@ -1577,6 +1586,12 @@ async def run_background_market_movers_updater():
                 "mid_cap_temp": round(avg_mid, 2),
                 "small_cap_temp": round(avg_small, 2)
             }
+            try:
+                _movers_disk = os.path.join(os.path.dirname(__file__), "data", "market_movers_cache.json")
+                with open(_movers_disk, "w", encoding="utf-8") as _mf_p:
+                    json.dump(_MARKET_MOVERS_CACHE, _mf_p)
+            except Exception as _fe:
+                pass
             print("Background market movers updater: updated cache successfully.")
         except Exception as loop_err:
             print(f"Background market movers updater loop error: {loop_err}")

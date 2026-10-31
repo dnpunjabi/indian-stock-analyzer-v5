@@ -1282,15 +1282,41 @@ def handle_run_movers(cap_type: str, recipient: Optional[str] = None) -> Dict[st
     gainers = []
     losers = []
 
-    # 1. TIER 1: Check live in-memory cache from backend.main
+    # 1. TIER 1: Check live in-memory cache, persistent disk JSON, or localhost API
+    cache = {}
     try:
         import backend.main as bmain
-        cache = getattr(bmain, "_MARKET_MOVERS_CACHE", {})
-        if cache and cache.get("status") == "success":
-            gainers = cache.get("gainers", {}).get(cap_type_clean, [])[:3]
-            losers = cache.get("losers", {}).get(cap_type_clean, [])[:3]
-    except Exception as e:
-        logger.warning(f"Error reading movers live cache: {e}")
+        c_mem = getattr(bmain, "_MARKET_MOVERS_CACHE", {})
+        if c_mem and c_mem.get("status") == "success" and c_mem.get("gainers", {}).get(cap_type_clean):
+            cache = c_mem
+    except Exception:
+        pass
+
+    if not cache:
+        try:
+            movers_json_path = os.path.join(os.path.dirname(__file__), "data", "market_movers_cache.json")
+            if os.path.exists(movers_json_path):
+                with open(movers_json_path, "r", encoding="utf-8") as _mf_p:
+                    c_disk = json.load(_mf_p)
+                    if c_disk.get("status") == "success" and c_disk.get("gainers", {}).get(cap_type_clean):
+                        cache = c_disk
+        except Exception:
+            pass
+
+    if not cache:
+        try:
+            import requests
+            r = requests.get("http://127.0.0.1:8000/api/market-movers", timeout=1.2)
+            if r.status_code == 200:
+                c_api = r.json()
+                if c_api.get("status") == "success" and c_api.get("gainers", {}).get(cap_type_clean):
+                    cache = c_api
+        except Exception:
+            pass
+
+    if cache:
+        gainers = cache.get("gainers", {}).get(cap_type_clean, [])[:3]
+        losers = cache.get("losers", {}).get(cap_type_clean, [])[:3]
 
     # 2. TIER 2: Fallback to real Database (screener_universe + cached_profiles)
     if not gainers or not losers:
