@@ -444,6 +444,11 @@ def handle_main_menu(recipient: Optional[str] = None) -> Dict[str, Any]:
                     "description": "6-Month Dark Chart with SMA 50/200 & RSI"
                 },
                 {
+                    "id": "view:alerts",
+                    "title": "🔔 Price & SL Alerts",
+                    "description": "Active Trigger Hub, Live Distance & Management"
+                },
+                {
                     "id": "view:portfolio",
                     "title": "💼 Portfolio Health",
                     "description": "Live Net Worth, Today's P&L, 1-Tap BUY Journal"
