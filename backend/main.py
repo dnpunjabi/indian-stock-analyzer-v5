@@ -19050,23 +19050,50 @@ def _overlay_live_quotes_on_candidates(candidates: list) -> list:
                 if chg_val is not None:
                     live_chg_pct = float(chg_val)
 
-        # 2. Try cached_profiles if missing
+        # 1b. Try in-memory or persisted market movers cache
         if live_price is None or live_chg_pct is None:
+            mm = _MARKET_MOVERS_CACHE if '_MARKET_MOVERS_CACHE' in globals() and _MARKET_MOVERS_CACHE else None
+            if not mm:
+                mm_file = os.path.join(DATABASE_DIR, "market_movers_cache.json")
+                if os.path.exists(mm_file):
+                    try:
+                        with open(mm_file, "r") as f:
+                            mm = json.load(f)
+                    except Exception:
+                        pass
+            if mm:
+                for cat in ["gainers", "losers"]:
+                    for cap_list in mm.get(cat, {}).values():
+                        if isinstance(cap_list, list):
+                            for mm_item in cap_list:
+                                mm_sym = mm_item.get("symbol", "").replace(".NS", "").replace(".BO", "").upper()
+                                if mm_sym == base_sym:
+                                    if live_price is None and mm_item.get("price"):
+                                        live_price = float(mm_item["price"])
+                                    if live_chg_pct is None and mm_item.get("change_pct") is not None:
+                                        live_chg_pct = float(mm_item["change_pct"])
+                                    break
+
+        existing_price = float(st.get("current_price") or st.get("price") or st.get("close") or 0.0)
+        orig_chg = st.get("day_change_pct") if st.get("day_change_pct") is not None else (st.get("change_pct") if st.get("change_pct") is not None else st.get("change_percent"))
+        existing_chg = float(orig_chg) if orig_chg is not None else None
+
+        # 2. Try cached_profiles ONLY if price or change_pct are missing from candidate
+        if (live_price is None and existing_price <= 0) or (live_chg_pct is None and existing_chg is None):
             p_data = profile_map.get(sym) or profile_map.get(f"{base_sym}.NS")
             if p_data:
-                if live_price is None:
+                if live_price is None and existing_price <= 0:
                     cp = p_data.get("fundamentals", {}).get("current_price")
                     if cp and float(cp) > 0:
                         live_price = float(cp)
-                if live_chg_pct is None:
+                if live_chg_pct is None and existing_chg is None:
                     chg = p_data.get("technicals", {}).get("price_change_pct")
                     if chg is not None:
                         live_chg_pct = float(chg)
 
-        # 3. Apply live values if found, fallback to original cached values
-        final_price = round(live_price, 2) if live_price is not None else round(st.get("current_price") or st.get("price") or st.get("close") or 0.0, 2)
-        orig_chg = st.get("day_change_pct") if st.get("day_change_pct") is not None else (st.get("change_pct") if st.get("change_pct") is not None else st.get("change_percent", 0.0))
-        final_chg_pct = round(live_chg_pct, 2) if live_chg_pct is not None else round(float(orig_chg or 0.0), 2)
+        # 3. Apply live values if found, fallback to original candidate values
+        final_price = round(live_price, 2) if live_price is not None else round(existing_price, 2)
+        final_chg_pct = round(live_chg_pct, 2) if live_chg_pct is not None else (round(existing_chg, 2) if existing_chg is not None else 0.0)
 
         # Standardize keys on the object
         st["current_price"] = final_price

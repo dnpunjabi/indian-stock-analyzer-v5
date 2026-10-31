@@ -646,8 +646,80 @@ def handle_run_screener(screener_key: str, recipient: Optional[str] = None) -> D
                 "sl": sl,
                 "price": price,
                 "change_pct": chg_pct,
+                "score_desc": score_desc,
                 "note": note
             })
+
+        # Hydrate top 4 picks with live market quotes (market movers cache + fast batch yfinance)
+        # 1. First overlay from market movers cache if available
+        try:
+            import backend.main as bmain
+            mm = getattr(bmain, "_MARKET_MOVERS_CACHE", {})
+            if not mm:
+                mm_file = os.path.join(getattr(bmain, "DATABASE_DIR", "backend/data"), "market_movers_cache.json")
+                if os.path.exists(mm_file):
+                    with open(mm_file, "r") as f:
+                        mm = json.load(f)
+            if mm:
+                for it in results[:4]:
+                    s_code = it["symbol"].replace(".NS", "").replace(".BO", "").upper()
+                    for cat in ["gainers", "losers"]:
+                        for cap_list in mm.get(cat, {}).values():
+                            if isinstance(cap_list, list):
+                                for mm_item in cap_list:
+                                    if mm_item.get("symbol", "").replace(".NS", "").replace(".BO", "").upper() == s_code:
+                                        if mm_item.get("price"):
+                                            it["price"] = round(float(mm_item["price"]), 2)
+                                        if mm_item.get("change_pct") is not None:
+                                            it["change_pct"] = round(float(mm_item["change_pct"]), 2)
+                                        break
+        except Exception:
+            pass
+
+        # 2. Fast batch yfinance fetch for top 4 picks to guarantee 100% current-day prices
+        fetch_tickers = [f"{it['symbol'].replace('.NS', '').replace('.BO', '')}.NS" for it in results[:4]]
+        if fetch_tickers:
+            try:
+                import yfinance as yf
+                import pandas as pd
+                df_q = yf.download(fetch_tickers, period="5d", interval="1d", progress=False)
+                if not df_q.empty:
+                    for it in results[:4]:
+                        s_code = it["symbol"].replace(".NS", "").replace(".BO", "")
+                        yf_tk = f"{s_code}.NS"
+                        try:
+                            if isinstance(df_q.columns, pd.MultiIndex):
+                                s_close = df_q["Close"][yf_tk].dropna() if yf_tk in df_q["Close"].columns else None
+                            else:
+                                s_close = df_q["Close"].dropna()
+                            if s_close is not None and len(s_close) >= 2:
+                                p_latest = float(s_close.iloc[-1])
+                                p_prev = float(s_close.iloc[-2])
+                                it["price"] = round(p_latest, 2)
+                                it["change_pct"] = round((p_latest - p_prev) / p_prev * 100.0, 2)
+                        except Exception:
+                            pass
+            except Exception as e:
+                logger.warning(f"Error fetching quick batch quotes for screener picks: {e}")
+
+        # 3. Synchronize Buy Zone status with fresh market quotes
+        for it in results[:4]:
+            p_val = float(it.get("price") or 0.0)
+            pivot_val = float(it.get("pivot") or 0.0)
+            if pivot_val > 0 and p_val > 0:
+                dist_pct = ((p_val - pivot_val) / pivot_val) * 100.0
+                if -3.0 <= dist_pct <= 5.0:
+                    bz_badge = "🟢 In Buy Zone"
+                elif dist_pct > 5.0:
+                    bz_badge = "⚠️ Extended"
+                else:
+                    bz_badge = "⏳ Forming Base"
+
+                if screener_key == "confluence":
+                    s_desc = it.get("score_desc")
+                    it["note"] = f"{s_desc} models | {bz_badge}" if s_desc else bz_badge
+                else:
+                    it["note"] = bz_badge
     except Exception as e:
         logger.error(f"Error querying screener {screener_key}: {e}")
 
