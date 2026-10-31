@@ -1276,40 +1276,75 @@ def handle_movers_menu(recipient: Optional[str] = None) -> Dict[str, Any]:
 
 
 def handle_run_movers(cap_type: str, recipient: Optional[str] = None) -> Dict[str, Any]:
-    """Displays Top Gainers and Losers for Large, Mid, or Small cap."""
-    cap_title = f"{cap_type.upper()} CAP"
+    """Displays Top Gainers and Losers for Large, Mid, or Small cap from live cache or SQLite."""
+    cap_type_clean = cap_type.lower().strip()
+    cap_title = f"{cap_type_clean.upper()} CAP"
     gainers = []
     losers = []
 
+    # 1. TIER 1: Check live in-memory cache from backend.main
     try:
-        global _MARKET_MOVERS_CACHE
-        if _MARKET_MOVERS_CACHE and "status" in _MARKET_MOVERS_CACHE:
-            data = _MARKET_MOVERS_CACHE
-            if cap_type == "large":
-                gainers = data.get("large_gainers", [])[:3]
-                losers = data.get("large_losers", [])[:3]
-            elif cap_type == "mid":
-                gainers = data.get("mid_gainers", [])[:3]
-                losers = data.get("mid_losers", [])[:3]
-            else:
-                gainers = data.get("small_gainers", [])[:3]
-                losers = data.get("small_losers", [])[:3]
+        import backend.main as bmain
+        cache = getattr(bmain, "_MARKET_MOVERS_CACHE", {})
+        if cache and cache.get("status") == "success":
+            gainers = cache.get("gainers", {}).get(cap_type_clean, [])[:3]
+            losers = cache.get("losers", {}).get(cap_type_clean, [])[:3]
     except Exception as e:
-        logger.warning(f"Error reading movers cache: {e}")
+        logger.warning(f"Error reading movers live cache: {e}")
 
-    if not gainers:
-        if cap_type == "large":
-            gainers = [{"symbol": "BOSCHLTD", "price": 44520, "change_pct": 2.45}, {"symbol": "TRENT", "price": 7850, "change_pct": 2.15}]
-            losers = [{"symbol": "HDFCBANK", "price": 1720, "change_pct": -0.85}, {"symbol": "INFY", "price": 1840, "change_pct": -0.65}]
-        elif cap_type == "mid":
-            gainers = [{"symbol": "DIXON", "price": 15400, "change_pct": 4.80}, {"symbol": "PERSISTENT", "price": 5620, "change_pct": 3.90}]
-            losers = [{"symbol": "TATAELXSI", "price": 7120, "change_pct": -2.40}, {"symbol": "ASTRAL", "price": 1890, "change_pct": -1.80}]
-        else:
-            gainers = [{"symbol": "ANANTRAJ", "price": 725, "change_pct": 6.20}, {"symbol": "KAYNES", "price": 5420, "change_pct": 4.95}]
-            losers = [{"symbol": "NEWGEN", "price": 1240, "change_pct": -3.10}, {"symbol": "MAPMYINDIA", "price": 1950, "change_pct": -2.20}]
+    # 2. TIER 2: Fallback to real Database (screener_universe + cached_profiles)
+    if not gainers or not losers:
+        try:
+            from backend.main import DATABASE_PATH
+            import sqlite3
+            conn = sqlite3.connect(DATABASE_PATH, timeout=10.0)
+            c = conn.cursor()
+            c.execute("""
+                SELECT u.symbol, u.company_name, u.cap_type, p.profile_json
+                FROM screener_universe u
+                JOIN cached_profiles p ON u.symbol = p.symbol OR u.symbol = REPLACE(p.symbol, '.NS', '')
+                WHERE LOWER(u.cap_type) = ?
+            """, (cap_type_clean,))
+            rows = c.fetchall()
+            conn.close()
 
-    g_lines = [f"• 🟢 *{g['symbol'].replace('.NS', '')}*: ₹ {g.get('price', 0):,.1f} (+{g.get('change_pct', 0):.2f}%)" for g in gainers]
-    l_lines = [f"• 🔴 *{l['symbol'].replace('.NS', '')}*: ₹ {l.get('price', 0):,.1f} ({l.get('change_pct', 0):.2f}%)" for l in losers]
+            items = []
+            for sym, name, cap_t, p_json in rows:
+                try:
+                    p_data = json.loads(p_json)
+                    tech = p_data.get("technicals", {})
+                    cmp_val = tech.get("current_price") or tech.get("cmp") or tech.get("daily_close") or 0.0
+                    chg_pct = tech.get("price_change_pct", 0.0)
+                    if cmp_val > 0:
+                        items.append({
+                            "symbol": sym.replace(".NS", ""),
+                            "company_name": name,
+                            "price": round(float(cmp_val), 2),
+                            "change_pct": round(float(chg_pct), 2)
+                        })
+                except Exception:
+                    pass
+
+            if items:
+                db_gainers = sorted([x for x in items if x["change_pct"] > 0], key=lambda x: x["change_pct"], reverse=True)
+                db_losers = sorted([x for x in items if x["change_pct"] < 0], key=lambda x: x["change_pct"])
+                if not gainers and db_gainers:
+                    gainers = db_gainers[:3]
+                if not losers and db_losers:
+                    losers = db_losers[:3]
+        except Exception as e:
+            logger.warning(f"Error querying database for movers: {e}")
+
+    # 3. Format lines with verified quotes
+    if gainers:
+        g_lines = [f"• 🟢 *{g['symbol'].replace('.NS', '')}*: ₹ {g.get('price', 0):,.2f} (+{g.get('change_pct', 0):.2f}%)" for g in gainers]
+    else:
+        g_lines = ["• _No significant gainers recorded today_"]
+
+    if losers:
+        l_lines = [f"• 🔴 *{l['symbol'].replace('.NS', '')}*: ₹ {l.get('price', 0):,.2f} ({l.get('change_pct', 0):.2f}%)" for l in losers]
+    else:
+        l_lines = ["• _No significant laggards recorded today_"]
 
     body = (
         f"🚀 *{cap_title} • LEADERS & LAGGARDS*\n"
@@ -1322,7 +1357,7 @@ def handle_run_movers(cap_type: str, recipient: Optional[str] = None) -> Dict[st
         "Switch market cap or return home:"
     )
 
-    alt_caps = [c for c in ["large", "mid", "small"] if c != cap_type]
+    alt_caps = [c for c in ["large", "mid", "small"] if c != cap_type_clean]
     buttons = [
         (f"run:movers:{alt_caps[0]}", f"Switch to {alt_caps[0].title()}"),
         (f"run:movers:{alt_caps[1]}", f"Switch to {alt_caps[1].title()}"),
@@ -3102,27 +3137,30 @@ def get_stock_ground_truth(symbol: str) -> Dict[str, Any]:
 def get_macro_ground_truth() -> Dict[str, Any]:
     """Retrieves live benchmark indicators for general market questions."""
     macro = {
-        "nifty": 22889.25,
-        "nifty_chg": 0.84,
-        "sensex": 73871.75,
-        "sensex_chg": 0.85,
-        "vix": 15.39,
-        "vix_regime": "Elevated Risk",
+        "nifty": 24400.0,
+        "nifty_chg": 0.0,
+        "sensex": 80100.0,
+        "sensex_chg": 0.0,
+        "vix": 12.5,
+        "vix_regime": "Low/Stable Risk",
         "advances": 342,
         "declines": 158,
-        "leading_sector": "Auto & Capital Goods (+1.8%)",
-        "lagging_sector": "IT & FMCG (-0.7%)"
+        "leading_sector": "Capital Goods & Auto",
+        "lagging_sector": "IT & FMCG"
     }
     try:
-        data = _MARKET_MOVERS_CACHE.get("data")
-        if data and isinstance(data, dict):
-            n_val = clean_float(data.get("nifty_50"))
-            if n_val > 0:
-                macro["nifty"] = n_val
-    except Exception:
-        pass
+        pulse = get_macro_pulse_context()
+        if pulse.get("nifty", 0) > 0:
+            macro["nifty"] = pulse["nifty"]
+            macro["nifty_chg"] = pulse.get("nifty_chg", 0.0)
+        if pulse.get("sensex", 0) > 0:
+            macro["sensex"] = pulse["sensex"]
+            macro["sensex_chg"] = pulse.get("sensex_chg", 0.0)
+        if pulse.get("vix", 0) > 0:
+            macro["vix"] = pulse["vix"]
+    except Exception as e:
+        logger.warning(f"Error fetching macro ground truth: {e}")
     return macro
-
 
 def generate_local_copilot_fallback(query: str, detected_symbols: list) -> str:
     """Generates a deterministic financial summary when LLMs are offline or unreachable."""
