@@ -389,6 +389,11 @@ def handle_main_menu(recipient: Optional[str] = None) -> Dict[str, Any]:
                     "description": "14 Scans: 52W High/Low, Gaps, RSI, Vol, Fibs"
                 },
                 {
+                    "id": "nav:sub:fundamental",
+                    "title": "🏛️ Fundamental & Value",
+                    "description": "Buffett Quality, Zero Debt, Deep Value, GARP"
+                },
+                {
                     "id": "nav:sub:watchlists",
                     "title": "⭐ My Watchlists",
                     "description": "10 Curated Lists (Core, Breakouts, Sharks...)"
@@ -1069,6 +1074,311 @@ def handle_run_scan(scan_key: str, recipient: Optional[str] = None) -> Dict[str,
     buttons = [
         (f"act:chart:{first_sym}", f"📈 {first_sym} Chart"),
         ("nav:sub:scans", "⚡ Other Scans"),
+        ("nav:menu:main", "🏠 Main Menu")
+    ]
+    return send_whatsapp_interactive_buttons(body, buttons=buttons, recipient=recipient)
+
+
+# ==============================================================================
+# NAVIGATION MODULE 2B: FUNDAMENTAL & INSTITUTIONAL VAULT (RULE SCANNER)
+# ==============================================================================
+
+def handle_fundamental_menu(recipient: Optional[str] = None) -> Dict[str, Any]:
+    """Renders Level 1: Curated Institutional & Fundamental Rule Strategies."""
+    sections = [
+        {
+            "title": "Institutional & Quality Strategies",
+            "rows": [
+                {
+                    "id": "run:fund:buffett_quality",
+                    "title": "🛡️ Buffett Quality",
+                    "description": "High ROE (≥ 15%) & Low Debt (D/E ≤ 0.5)"
+                },
+                {
+                    "id": "run:fund:value_reversal",
+                    "title": "💎 Value Reversal Dip",
+                    "description": "Deep Value P/E (< 15) & Oversold RSI (< 35)"
+                },
+                {
+                    "id": "run:fund:debt_free",
+                    "title": "🏰 Debt-Free Fortresses",
+                    "description": "Virtually zero debt (D/E < 0.10)"
+                },
+                {
+                    "id": "run:fund:high_roe",
+                    "title": "⭐ High ROE Compounders",
+                    "description": "Return on Equity > 20% Capital Allocators"
+                },
+                {
+                    "id": "run:fund:deep_value",
+                    "title": "🎯 Deep Value P/E",
+                    "description": "P/E < 15 Undervalued Earnings Multiples"
+                },
+                {
+                    "id": "run:fund:garp_peg",
+                    "title": "📈 GARP Compounders",
+                    "description": "Growth at a Reasonable Price (PEG < 1.0)"
+                },
+                {
+                    "id": "run:fund:clean_governance",
+                    "title": "🧼 Clean Governance",
+                    "description": "Promoter Pledge < 1% & Profit Expansion ≥ 12%"
+                },
+                {
+                    "id": "run:fund:heavy_institutional",
+                    "title": "🏛️ High FII / DII Stake",
+                    "description": "Combined Institutional Holding ≥ 30%"
+                }
+            ]
+        }
+    ]
+    body = (
+        "🏛️ *FUNDAMENTAL & VALUE VAULT*\n"
+        "Multi-factor fundamental & balance sheet models across 500+ NSE equities.\n\n"
+        "Select an institutional strategy below, or text any custom scan\n"
+        "(e.g. `scan midcaps with PE < 15 and RSI < 30`):"
+    )
+    send_whatsapp_interactive_list(
+        body_text=body,
+        button_text="🏛️ Select Strategy",
+        sections=sections,
+        recipient=recipient,
+        header_text="FUNDAMENTAL VAULT",
+        footer_text="ApexQuant Institutional Engine"
+    )
+    return send_whatsapp_interactive_buttons(
+        "⚡ *Instant 1-Tap Execution*:",
+        buttons=[
+            ("run:fund:buffett_quality", "🛡️ Buffett Quality"),
+            ("run:fund:debt_free", "🏰 Debt-Free"),
+            ("nav:menu:main", "🏠 Main Menu")
+        ],
+        recipient=recipient
+    )
+
+
+def handle_run_fundamental(fund_key: str, recipient: Optional[str] = None) -> Dict[str, Any]:
+    """Executes a curated fundamental/institutional rule scan with live price hydration."""
+    fund_configs = {
+        "buffett_quality": ("COMBO_BUFFETT_QUALITY", "==", "1", "all", "BUFFETT QUALITY", "ROE ≥ 15% & Debt-to-Equity ≤ 0.5"),
+        "value_reversal": ("COMBO_VALUE_REVERSAL", "==", "1", "all", "VALUE REVERSAL DIP", "P/E < 15 & Oversold RSI < 35"),
+        "debt_free": ("DE", "<", "0.1", "all", "DEBT-FREE FORTRESSES", "Virtually Zero Debt (D/E < 0.10)"),
+        "high_roe": ("ROE", ">", "20", "all", "HIGH ROE COMPOUNDERS", "Return on Equity > 20%"),
+        "deep_value": ("PE", "<", "15", "all", "DEEP VALUE P/E", "P/E Ratio < 15.0"),
+        "garp_peg": ("COMBO_GARP_PEG", "==", "1", "all", "GARP COMPOUNDERS", "Growth at Reasonable Price (PEG < 1.0)"),
+        "clean_governance": ("COMBO_CLEAN_GOVERNANCE", "==", "1", "all", "CLEAN GOVERNANCE", "Pledge < 1% & 3Y Profit Growth ≥ 12%"),
+        "heavy_institutional": ("COMBO_HEAVY_INSTITUTIONAL", "==", "1", "all", "HIGH FII/DII OWNERSHIP", "Combined FII + DII Holding ≥ 30%")
+    }
+
+    if fund_key not in fund_configs:
+        return handle_fundamental_menu(recipient=recipient)
+
+    c_type, op, val, uni, title, desc = fund_configs[fund_key]
+
+    try:
+        from backend.main import scan_trigger
+        res = asyncio.run(scan_trigger(condition_type=c_type, operator=op, value=val, universe=uni))
+        raw_results = res.get("results") or []
+    except Exception as e:
+        logger.error(f"Error running fundamental scan {fund_key}: {e}")
+        raw_results = []
+
+    if not raw_results:
+        body = (
+            f"🏛️ *{title} • RESULTS*\n"
+            "━━━━━━━━━━━━━━━━━━━━\n"
+            f"_{desc}_\n\n"
+            "No stocks currently qualify under this specific fundamental filter.\n"
+            "Check back after the next corporate data refresh."
+        )
+        return send_whatsapp_interactive_buttons(
+            body,
+            buttons=[
+                ("nav:sub:fundamental", "🏛️ Other Strategies"),
+                ("nav:menu:main", "🏠 Main Menu")
+            ],
+            recipient=recipient
+        )
+
+    # Sort results by institutional score descending
+    raw_results.sort(key=lambda x: float(x.get("score") or 0.0), reverse=True)
+    top_candidates = raw_results[:4]
+
+    # Hydrate with live market prices & day change %
+    fetch_tickers = [f"{it['symbol'].replace('.NS', '').replace('.BO', '')}.NS" for it in top_candidates]
+    if fetch_tickers:
+        try:
+            import yfinance as yf
+            import pandas as pd
+            df_q = yf.download(fetch_tickers, period="5d", interval="1d", progress=False)
+            if not df_q.empty:
+                for it in top_candidates:
+                    s_code = it["symbol"].replace(".NS", "").replace(".BO", "")
+                    yf_tk = f"{s_code}.NS"
+                    try:
+                        if isinstance(df_q.columns, pd.MultiIndex):
+                            s_close = df_q["Close"][yf_tk].dropna() if yf_tk in df_q["Close"].columns else None
+                        else:
+                            s_close = df_q["Close"].dropna()
+                        if s_close is not None and len(s_close) >= 2:
+                            p_latest = float(s_close.iloc[-1])
+                            p_prev = float(s_close.iloc[-2])
+                            it["price"] = round(p_latest, 2)
+                            it["change_pct"] = round((p_latest - p_prev) / p_prev * 100.0, 2)
+                    except Exception:
+                        pass
+        except Exception as e:
+            logger.warning(f"Error hydrating fundamental picks: {e}")
+
+    first_sym = top_candidates[0]["symbol"].replace(".NS", "").replace(".BO", "")
+    cards = []
+    for idx, r in enumerate(top_candidates, 1):
+        sym = r["symbol"].replace(".NS", "").replace(".BO", "")
+        name = r.get("company_name", sym)[:22]
+        p_val = float(r.get("price") or 0.0)
+        chg_val = r.get("change_pct")
+        chg_str = f" ({'+' if chg_val >= 0 else ''}{chg_val:.2f}%)" if chg_val is not None else ""
+        
+        m_parts = []
+        if r.get("roe") and float(r["roe"]) > 0:
+            m_parts.append(f"ROE: {float(r['roe']):.1f}%")
+        if r.get("de_ratio") is not None:
+            m_parts.append(f"D/E: {float(r['de_ratio']):.2f}")
+        if r.get("pe") and float(r["pe"]) > 0 and len(m_parts) < 2:
+            m_parts.append(f"P/E: {float(r['pe']):.1f}")
+        if r.get("score") and float(r["score"]) > 0:
+            m_parts.append(f"Score: {float(r['score']):.0f}")
+
+        metric_str = " | ".join(m_parts)
+        cards.append(
+            f"{idx}. ⭐ *{sym}* — {name}\n"
+            f"   └ ₹ {p_val:,.2f}{chg_str} | {metric_str}"
+        )
+
+    body = (
+        f"🏛️ *{title} • TOP PICKS*\n"
+        f"Filter: _{desc}_\n"
+        "━━━━━━━━━━━━━━━━━━━━\n"
+        + "\n\n".join(cards) + "\n"
+        "━━━━━━━━━━━━━━━━━━━━\n"
+        f"Tap `{first_sym} Chart` or explore strategies:"
+    )
+
+    buttons = [
+        (f"act:chart:{first_sym}", f"📈 {first_sym} Chart"),
+        ("nav:sub:fundamental", "🏛️ Fundamental"),
+        ("nav:menu:main", "🏠 Main Menu")
+    ]
+    return send_whatsapp_interactive_buttons(body, buttons=buttons, recipient=recipient)
+
+
+def handle_conversational_rule_scan(prompt: str, recipient: Optional[str] = None) -> Dict[str, Any]:
+    """Parses a free-form natural language scan prompt via LLM and executes scan_trigger."""
+    cleaned = (prompt or "").strip()
+    logger.info(f"[WHATSAPP NL SCAN] Processing query from {recipient}: '{cleaned}'")
+
+    try:
+        from backend.main import parse_nl_scan, scan_trigger, ParseNLScanRequest
+        req = ParseNLScanRequest(prompt=cleaned)
+        parsed = asyncio.run(parse_nl_scan(req))
+        if not parsed or parsed.get("status") != "success":
+            raise ValueError(parsed.get("detail", "Could not compile scanning parameters."))
+
+        c_type = parsed.get("condition_type", "RSI")
+        op = parsed.get("operator", "<")
+        val = str(parsed.get("value", "30"))
+        uni = parsed.get("universe", "all")
+
+        res = asyncio.run(scan_trigger(condition_type=c_type, operator=op, value=val, universe=uni))
+        matched = res.get("results") or []
+    except Exception as e:
+        logger.warning(f"[WHATSAPP NL SCAN] Parsing/execution failed: {e}")
+        return handle_stock_query(cleaned, recipient=recipient)
+
+    c_label = c_type.replace("COMBO_", "").replace("_", " ")
+    uni_label = uni.upper() if uni != "all" else "ALL CAPS"
+
+    if not matched:
+        body = (
+            f"🤖 *AI SCAN COMMAND RADAR*\n"
+            f"Query: _{cleaned}_\n"
+            f"Resolved: `{c_label} {op} {val}` ({uni_label})\n"
+            "━━━━━━━━━━━━━━━━━━━━\n"
+            "No equities in the universe currently meet these specific parameters.\n"
+            "Try relaxing your threshold or explore pre-compiled institutional vaults below:"
+        )
+        return send_whatsapp_interactive_buttons(
+            body,
+            buttons=[
+                ("nav:sub:fundamental", "🏛️ Fundamental"),
+                ("nav:sub:scans", "⚡ Technical Scans"),
+                ("nav:menu:main", "🏠 Main Menu")
+            ],
+            recipient=recipient
+        )
+
+    # Sort matched candidates by institutional score descending
+    matched.sort(key=lambda x: float(x.get("score") or 0.0), reverse=True)
+    top_candidates = matched[:4]
+
+    # Hydrate with live market prices & day change %
+    fetch_tickers = [f"{it['symbol'].replace('.NS', '').replace('.BO', '')}.NS" for it in top_candidates]
+    if fetch_tickers:
+        try:
+            import yfinance as yf
+            import pandas as pd
+            df_q = yf.download(fetch_tickers, period="5d", interval="1d", progress=False)
+            if not df_q.empty:
+                for it in top_candidates:
+                    s_code = it["symbol"].replace(".NS", "").replace(".BO", "")
+                    yf_tk = f"{s_code}.NS"
+                    try:
+                        if isinstance(df_q.columns, pd.MultiIndex):
+                            s_close = df_q["Close"][yf_tk].dropna() if yf_tk in df_q["Close"].columns else None
+                        else:
+                            s_close = df_q["Close"].dropna()
+                        if s_close is not None and len(s_close) >= 2:
+                            p_latest = float(s_close.iloc[-1])
+                            p_prev = float(s_close.iloc[-2])
+                            it["price"] = round(p_latest, 2)
+                            it["change_pct"] = round((p_latest - p_prev) / p_prev * 100.0, 2)
+                    except Exception:
+                        pass
+        except Exception as e:
+            logger.warning(f"Error hydrating NL scan picks: {e}")
+
+    first_sym = top_candidates[0]["symbol"].replace(".NS", "").replace(".BO", "")
+    cards = []
+    for idx, r in enumerate(top_candidates, 1):
+        sym = r["symbol"].replace(".NS", "").replace(".BO", "")
+        name = r.get("company_name", sym)[:22]
+        p_val = float(r.get("price") or 0.0)
+        chg_val = r.get("change_pct")
+        chg_str = f" ({'+' if chg_val >= 0 else ''}{chg_val:.2f}%)" if chg_val is not None else ""
+        trig = r.get("trigger_value") or ""
+        score_val = float(r.get("score") or 0.0)
+        score_str = f"Score: {score_val:.0f}" if score_val > 0 else ""
+        
+        detail_parts = [p for p in [trig, score_str] if p]
+        detail_str = f" | {' | '.join(detail_parts)}" if detail_parts else ""
+        cards.append(
+            f"{idx}. ⭐ *{sym}* — {name}\n"
+            f"   └ ₹ {p_val:,.2f}{chg_str}{detail_str}"
+        )
+
+    body = (
+        f"🤖 *AI SCAN RADAR • TOP MATCHES*\n"
+        f"Query: _{cleaned}_\n"
+        f"Criteria: `{c_label} {op} {val}` on `{uni_label}` ({len(matched)} matched)\n"
+        "━━━━━━━━━━━━━━━━━━━━\n"
+        + "\n\n".join(cards) + "\n"
+        "━━━━━━━━━━━━━━━━━━━━\n"
+        f"Tap `{first_sym} Chart` or return to menu:"
+    )
+
+    buttons = [
+        (f"act:chart:{first_sym}", f"📈 {first_sym} Chart"),
+        ("nav:sub:fundamental", "🏛️ Fundamental"),
         ("nav:menu:main", "🏠 Main Menu")
     ]
     return send_whatsapp_interactive_buttons(body, buttons=buttons, recipient=recipient)
@@ -3598,6 +3908,13 @@ def dispatch_incoming_whatsapp_message(text_body: str, sender: Optional[str] = N
         scan = cleaned.replace("run:scan:", "")
         return handle_run_scan(scan, recipient=sender)
 
+    # Fundamental & Value Vault Navigation
+    elif cleaned.startswith("nav:sub:fundamental") or upper in ["FUNDAMENTAL", "FUNDAMENTALS", "VALUE VAULT", "BUFFETT"]:
+        return handle_fundamental_menu(recipient=sender)
+    elif cleaned.startswith("run:fund:"):
+        fund_key = cleaned.replace("run:fund:", "")
+        return handle_run_fundamental(fund_key, recipient=sender)
+
     # Watchlists & Fast-Path Primary Shortcuts (Options 2, 3, 4)
     elif upper in ["WL", "WATCHLIST", "MY WATCHLIST", "PRIMARY WATCHLIST"]:
         primary_id = get_primary_watchlist_id()
@@ -3695,6 +4012,15 @@ def dispatch_incoming_whatsapp_message(text_body: str, sender: Optional[str] = N
     # Conversational Session Memory Reset
     if upper in ["RESET", "CLEAR CHAT", "CLEAR MEMORY", "FORGET", "NEW CHAT", "RESET CHAT"]:
         return handle_conversational_copilot("RESET", recipient=sender)
+
+    # 2d. Conversational Natural Language Rule Scanner Interceptor
+    scan_prefixes = ["SCAN ", "FIND ", "SCREEN ", "FILTER ", "SEARCH "]
+    is_explicit_scan = any(upper.startswith(p) for p in scan_prefixes)
+    has_scan_metrics = bool(re.search(r"\b(?:RSI|PE|P/E|ROE|DEBT|DELIVERY)\b\s*(?:<|>|<=|>=|BELOW|ABOVE|UNDER|OVER|LESS|GREATER)\s*\d+", upper))
+    has_combo_keywords = any(kw in upper for kw in ["BUFFETT", "OVERSOLD", "OVERBOUGHT", "ZERO DEBT", "DEBT FREE", "GOLDEN CROSS", "VALUE REVERSAL", "GARP"]) and any(w in upper for w in ["STOCK", "STOCKS", "CAP", "COMPANIES", "NSE", "NIFTY", "FIND", "SHOW", "LIST", "GIVE", "SCREEN"])
+
+    if is_explicit_scan or has_scan_metrics or has_combo_keywords:
+        return handle_conversational_rule_scan(cleaned, recipient=sender)
 
     # 3. Freeform Single-Stock Query (e.g. "BOSCH", "RELIANCE", "TCS")
     # Single tokens without spaces belong to direct quantitative stock inspection
