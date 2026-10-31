@@ -365,6 +365,76 @@ def send_whatsapp_interactive_list(
         return {"status": "error", "message": str(e)}
 
 
+def send_whatsapp_document(
+    file_path: str,
+    caption: str = "",
+    filename: Optional[str] = None,
+    recipient: Optional[str] = None
+) -> Dict[str, Any]:
+    """
+    Uploads a document (PDF) to Meta WhatsApp Cloud API and dispatches it
+    as a native document message with inline preview and caption.
+    """
+    token = os.environ.get("WHATSAPP_TOKEN", "")
+    phone_id = os.environ.get("WHATSAPP_PHONE_ID", "")
+    to_phone = recipient or os.environ.get("WHATSAPP_RECIPIENT", "")
+
+    if not token or not phone_id or not to_phone:
+        return {"status": "error", "message": "Missing WhatsApp credentials."}
+
+    if not os.path.exists(file_path):
+        return {"status": "error", "message": f"File not found: {file_path}"}
+
+    doc_filename = filename or os.path.basename(file_path)
+
+    # 1. Upload media to Meta WhatsApp Media Endpoint
+    upload_url = f"https://graph.facebook.com/v21.0/{phone_id}/media"
+    headers_auth = {"Authorization": f"Bearer {token}"}
+    
+    try:
+        with open(file_path, "rb") as f:
+            files = {
+                "file": (doc_filename, f, "application/pdf")
+            }
+            data = {
+                "messaging_product": "whatsapp",
+                "type": "application/pdf"
+            }
+            resp_upload = requests.post(upload_url, headers=headers_auth, files=files, data=data, timeout=25)
+        
+        upload_data = resp_upload.json()
+        media_id = upload_data.get("id")
+        if not media_id:
+            logger.error(f"[WHATSAPP DOCUMENT] Media upload failed: {upload_data}")
+            return {"status": "error", "message": f"Media upload failed: {upload_data}"}
+
+        # 2. Dispatch document message referencing media_id
+        msg_url = f"https://graph.facebook.com/v21.0/{phone_id}/messages"
+        headers_json = {"Authorization": f"Bearer {token}", "Content-Type": "application/json"}
+        payload = {
+            "messaging_product": "whatsapp",
+            "recipient_type": "individual",
+            "to": to_phone,
+            "type": "document",
+            "document": {
+                "id": media_id,
+                "caption": str(caption)[:1024] if caption else "",
+                "filename": doc_filename
+            }
+        }
+        resp_msg = requests.post(msg_url, headers=headers_json, json=payload, timeout=15)
+        resp_data = resp_msg.json()
+        if resp_msg.status_code == 200 and "messages" in resp_data:
+            logger.info(f"[WHATSAPP DOCUMENT] Successfully dispatched PDF document {doc_filename} to {to_phone}")
+            return {"status": "success", "message_id": resp_data["messages"][0]["id"], "media_id": media_id}
+        else:
+            logger.error(f"[WHATSAPP DOCUMENT] Document dispatch failed: {resp_data}")
+            return {"status": "error", "message": resp_data.get("error", {}).get("message")}
+    except Exception as e:
+        logger.error(f"[WHATSAPP DOCUMENT] Exception dispatching document: {e}", exc_info=True)
+        return {"status": "error", "message": str(e)}
+
+
 # ==============================================================================
 # NAVIGATION MODULE 0: MASTER MAIN MENU (EXACTLY 10 DEDICATED ROWS)
 # ==============================================================================
@@ -2303,12 +2373,21 @@ def handle_portfolio_catalyst_digest(recipient: Optional[str] = None, force_refr
     # 1. Check 3-hour cache unless forced
     cache_ttl = 3 * 3600  # 3 hours
     cached_entry = _PORTFOLIO_NEWS_CACHE.get("latest")
+    pdf_path = "data/reports/latest_portfolio_catalyst.pdf"
     if not force_refresh and cached_entry and (now_ts - cached_entry.get("ts", 0) < cache_ttl):
         logger.info("[PORTFOLIO CATALYST] Serving valid cached digest (< 3h old).")
         cached_body = cached_entry.get("body", "")
         cached_part1 = cached_entry.get("part1")
         if cached_part1:
             send_whatsapp_text(cached_part1, recipient=recipient)
+            time.sleep(1.0)
+        if os.path.exists(pdf_path):
+            send_whatsapp_document(
+                file_path=pdf_path,
+                caption=f"📊 Daily Portfolio Catalyst Dossier (PDF Archive)",
+                filename="Portfolio_Catalyst_Report.pdf",
+                recipient=recipient
+            )
         return send_whatsapp_interactive_buttons(cached_body, buttons=buttons, recipient=recipient)
 
     # 2. Extract active holdings from SQLite portfolio_items
@@ -2337,30 +2416,41 @@ def handle_portfolio_catalyst_digest(recipient: Optional[str] = None, force_refr
 
     # 3. Resolve symbols to full corporate names
     comp_names = []
-    for s in active_symbols[:6]:
+    for s in active_symbols:
         resolved = resolve_company_ticker(s)
         name = resolved.get("name") if resolved else s
         clean_name = name if name and name != s else s
         if clean_name not in comp_names:
             comp_names.append(clean_name)
 
-    # 4. Query SerpApi Google SGE
+    # 4. Query SerpApi Google SGE (Batch in chunks of 8 to ensure 100% stock coverage without query truncation)
     from backend.catalyst_scraper import fetch_serpapi_google_ai_overview
 
-    # Attempt 1: High-impact institutional query
-    companies_str = ", ".join(comp_names)
-    query_1 = f"latest corporate announcements, quarterly earnings results, order wins, competitor threats, brokerage ratings of {companies_str} stocks India"
-    logger.info(f"[PORTFOLIO CATALYST] Querying SerpApi SGE with query: '{query_1}'")
-    sge_res = fetch_serpapi_google_ai_overview(query_1)
+    extracted_texts = []
+    all_sources = []
+    batch_size = 8
+    batches = [comp_names[i:i + batch_size] for i in range(0, len(comp_names), batch_size)]
 
-    # Attempt 2: If attempt 1 returned empty overview, fallback to concise query with tickers
-    if not sge_res or not sge_res.get("formatted_text"):
-        query_2 = f"latest news of {', '.join(active_symbols)} stocks"
-        logger.info(f"[PORTFOLIO CATALYST] Retrying SerpApi SGE with concise query: '{query_2}'")
-        sge_res = fetch_serpapi_google_ai_overview(query_2)
+    for b_idx, b_comps in enumerate(batches):
+        companies_str = ", ".join(b_comps)
+        query_1 = f"latest corporate announcements, quarterly earnings results, order wins, competitor threats, brokerage ratings of {companies_str} stocks India"
+        logger.info(f"[PORTFOLIO CATALYST] Querying SerpApi SGE batch {b_idx+1}/{len(batches)}: '{query_1}'")
+        sge_res = fetch_serpapi_google_ai_overview(query_1)
+
+        # Fallback to concise query with tickers if detailed query timed out
+        if not sge_res or not sge_res.get("formatted_text"):
+            query_2 = f"latest news of {companies_str} stocks"
+            logger.info(f"[PORTFOLIO CATALYST] Retrying batch {b_idx+1} with concise query: '{query_2}'")
+            sge_res = fetch_serpapi_google_ai_overview(query_2)
+
+        if sge_res and sge_res.get("formatted_text"):
+            extracted_texts.append(sge_res["formatted_text"])
+            for src in sge_res.get("sources", []):
+                if src not in all_sources:
+                    all_sources.append(src)
 
     # 5. Handle pure SerpApi failure (Strictly No RSS fallback per user instruction!)
-    if not sge_res or not sge_res.get("formatted_text"):
+    if not extracted_texts:
         error_msg = (
             "⚠️ *SERPAPI INTELLIGENCE UNAVAILABLE*\n"
             "━━━━━━━━━━━━━━━━━━━━\n"
@@ -2377,9 +2467,33 @@ def handle_portfolio_catalyst_digest(recipient: Optional[str] = None, force_refr
         ]
         return send_whatsapp_interactive_buttons(error_msg, buttons=retry_buttons, recipient=recipient)
 
-    formatted_intel = sge_res["formatted_text"]
+    formatted_intel = "\n\n".join(extracted_texts)
     now_str = datetime.now().strftime("%d %b %Y, %I:%M %p IST")
     basket_tag = "Core Watchlist Basket" if is_default_basket else "Active Holdings"
+
+    # 6. Generate & Overwrite Dynamic PDF Report
+    from backend.pdf_generator import generate_portfolio_catalyst_pdf
+    try:
+        generate_portfolio_catalyst_pdf({
+            "symbols": active_symbols,
+            "formatted_text": formatted_intel,
+            "timestamp": now_str,
+            "sources": all_sources
+        }, output_path=pdf_path)
+        logger.info(f"[PORTFOLIO CATALYST] Successfully generated dynamic PDF at {pdf_path}")
+    except Exception as pdf_err:
+        logger.warning(f"[PORTFOLIO CATALYST] Error generating PDF report: {pdf_err}")
+
+    # Dispatch PDF document to WhatsApp
+    try:
+        send_whatsapp_document(
+            file_path=pdf_path,
+            caption=f"📊 Daily Portfolio Catalyst Dossier ({len(active_symbols)} Stocks • {now_str})",
+            filename=f"Portfolio_Catalyst_Report.pdf",
+            recipient=recipient
+        )
+    except Exception as doc_err:
+        logger.warning(f"[PORTFOLIO CATALYST] Error dispatching PDF document to WhatsApp: {doc_err}")
 
     header = (
         "📰 *PORTFOLIO INTELLIGENCE & CATALYST DIGEST*\n"
@@ -2389,12 +2503,13 @@ def handle_portfolio_catalyst_digest(recipient: Optional[str] = None, force_refr
     )
     footer = (
         "━━━━━━━━━━━━━━━━━━━━\n"
-        "⚡ _Pure Google AI Overview intelligence powered by SerpApi._"
+        "⚡ _Pure Google AI Overview intelligence powered by SerpApi._\n"
+        "📄 _Detailed Multi-Page Dossier attached above as PDF._"
     )
 
     full_report = f"{header}\n\n{formatted_intel}\n\n{footer}"
 
-    # 6. Smart Character Guard (< 3,800 chars)
+    # 7. Smart Character Guard (< 3,800 chars)
     if len(full_report) <= 3800:
         _PORTFOLIO_NEWS_CACHE["latest"] = {
             "ts": now_ts,
@@ -2415,6 +2530,7 @@ def handle_portfolio_catalyst_digest(recipient: Optional[str] = None, force_refr
             "part1": part1
         }
         send_whatsapp_text(part1, recipient=recipient)
+        time.sleep(1.2)  # Avoid WhatsApp Cloud API bursting rate limit
         return send_whatsapp_interactive_buttons(part2, buttons=buttons, recipient=recipient)
 
 

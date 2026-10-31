@@ -2961,6 +2961,33 @@ async def export_download(id: str = Query(...)):
         headers=headers
     )
 
+
+@app.get("/api/reports/portfolio-catalyst/pdf")
+async def get_portfolio_catalyst_pdf(download: bool = Query(False)):
+    """
+    Serves the daily morning Portfolio Catalyst & Corporate Intelligence Dossier (PDF).
+    Overwritten daily at 08:45 AM IST to cap VM disk usage permanently (~150-250 KB).
+    """
+    pdf_path = "data/reports/latest_portfolio_catalyst.pdf"
+    if not os.path.exists(pdf_path):
+        try:
+            from backend.whatsapp_bot import handle_portfolio_catalyst_digest
+            await asyncio.to_thread(handle_portfolio_catalyst_digest, force_refresh=False)
+        except Exception as e:
+            print(f"[PDF ENDPOINT] Auto-generate failed: {e}")
+        
+    if not os.path.exists(pdf_path):
+        raise HTTPException(status_code=404, detail="Portfolio catalyst PDF report not available.")
+
+    from fastapi.responses import FileResponse
+    disposition = "attachment" if download else "inline"
+    return FileResponse(
+        path=pdf_path,
+        media_type="application/pdf",
+        filename="Portfolio_Catalyst_Report.pdf",
+        headers={"Content-Disposition": f'{disposition}; filename="Portfolio_Catalyst_Report.pdf"'}
+    )
+
 @app.get("/api/search")
 async def search_ticker(q: str):
     """Resolves conversational company queries into NSE tickers."""

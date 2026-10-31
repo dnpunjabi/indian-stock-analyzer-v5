@@ -19,4 +19,5 @@ openai>=1.30.0
 cloudscraper>=1.2.71
 curl_cffi>=0.7.0
 matplotlib>=3.8.0
+reportlab>=5.0.0
 
