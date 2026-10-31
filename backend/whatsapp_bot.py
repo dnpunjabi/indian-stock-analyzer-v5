@@ -372,7 +372,7 @@ def send_whatsapp_interactive_list(
 def handle_main_menu(recipient: Optional[str] = None) -> Dict[str, Any]:
     """
     Renders Level 0: Master Terminal Navigation Menu.
-    All 10 core institutional pillars accessible in one native list drawer.
+    Strictly 10 core institutional pillars across 3 sections to comply with Meta WhatsApp API limits.
     """
     sections = [
         {
@@ -390,18 +390,8 @@ def handle_main_menu(recipient: Optional[str] = None) -> Dict[str, Any]:
                 },
                 {
                     "id": "nav:sub:fundamental",
-                    "title": "🏛️ Fundamental & Value",
-                    "description": "Buffett Quality, Zero Debt, Deep Value, GARP"
-                },
-                {
-                    "id": "nav:sub:ai_scan",
-                    "title": "🤖 AI Scan Radar",
-                    "description": "Freeform NL Scanner: Text any custom criteria"
-                },
-                {
-                    "id": "nav:sub:watchlists",
-                    "title": "⭐ My Watchlists",
-                    "description": "10 Curated Lists (Core, Breakouts, Sharks...)"
+                    "title": "🏛️ Fundamental & AI Scans",
+                    "description": "Buffett Quality, Zero Debt, Deep Value & AI NL"
                 }
             ]
         },
@@ -431,20 +421,15 @@ def handle_main_menu(recipient: Optional[str] = None) -> Dict[str, Any]:
             ]
         },
         {
-            "title": "💼 Execution & Analysis",
+            "title": "💼 Execution & Sentinel",
             "rows": [
                 {
-                    "id": "nav:sub:stock",
-                    "title": "🤖 AI Co-Pilot & Query",
-                    "description": "Freeform Stock Q&A, Support Levels & DCF"
+                    "id": "nav:sub:watchlists",
+                    "title": "⭐ My Watchlists",
+                    "description": "10 Curated Lists (Core, Breakouts, Sharks...)"
                 },
                 {
-                    "id": "nav:sub:chart",
-                    "title": "📈 Technical Chart",
-                    "description": "6-Month Dark Chart with SMA 50/200 & RSI"
-                },
-                {
-                    "id": "view:alerts",
+                    "id": "nav:sub:alerts",
                     "title": "🔔 Price & SL Alerts",
                     "description": "Active Trigger Hub, Live Distance & Management"
                 },
@@ -459,9 +444,13 @@ def handle_main_menu(recipient: Optional[str] = None) -> Dict[str, Any]:
 
     body = (
         "🤖 *APEXQUANT MASTER TERMINAL*\n"
-        "Institutional Quant & Portfolio Intelligence.\n\n"
-        "Tap *Open Menu* below to explore strategies, markets, or portfolio, "
-        "or text any stock ticker (e.g. `BOSCH`, `RELIANCE`):"
+        "Institutional Quant, Sentinel Alerts & Market Intelligence.\n\n"
+        "Tap *Open Menu* below to explore strategies, markets, or sentinel alerts.\n\n"
+        "💡 *Direct Shortcuts:*\n"
+        "• Text any ticker (e.g. `BOSCH`, `RELIANCE`) for instant AI analysis\n"
+        "• Text `CHART <SYM>` (e.g. `CHART INFY`) for dark technical chart\n"
+        "• Text `ALERT <SYM> > <PRICE>` or `SL <SYM> <PRICE>` to set live alerts\n"
+        "• Text `scan <criteria>` (e.g. `scan midcaps with PE < 15 and RSI < 30`)"
     )
 
     return send_whatsapp_interactive_list(
@@ -1160,7 +1149,7 @@ def handle_fundamental_menu(recipient: Optional[str] = None) -> Dict[str, Any]:
         "⚡ *Instant 1-Tap Execution*:",
         buttons=[
             ("run:fund:buffett_quality", "🛡️ Buffett Quality"),
-            ("run:fund:debt_free", "🏰 Debt-Free"),
+            ("nav:sub:ai_scan", "🤖 AI Scan Radar"),
             ("nav:menu:main", "🏠 Main Menu")
         ],
         recipient=recipient
@@ -3123,21 +3112,284 @@ def handle_portfolio(recipient: Optional[str] = None) -> Dict[str, Any]:
     return send_whatsapp_interactive_buttons(body, buttons=buttons, recipient=recipient)
 
 
+def handle_alerts_menu(recipient: Optional[str] = None) -> Dict[str, Any]:
+    """
+    Renders Level 1: Dedicated Alert Center & Sentinel Submenu.
+    Provides complete management of active price triggers, stop-losses, sentinel automation, and alert guide.
+    """
+    sections = [
+        {
+            "title": "📌 Price & Stop-Loss Alerts",
+            "rows": [
+                {
+                    "id": "view:alerts_active",
+                    "title": "📋 Active Triggers Hub",
+                    "description": "View all active price & stop-loss targets with live LTP"
+                },
+                {
+                    "id": "view:alerts_guide",
+                    "title": "💡 How to Set Alerts",
+                    "description": "Quick guide: ALERT, SL, TARGET and trailing notes syntax"
+                },
+                {
+                    "id": "view:alerts_cancel",
+                    "title": "🗑️ Cancel / Clear Alerts",
+                    "description": "Deactivate or manage pending price alerts"
+                }
+            ]
+        },
+        {
+            "title": "📡 Sentinel & Intelligence",
+            "rows": [
+                {
+                    "id": "view:alerts_sentinel",
+                    "title": "🛡️ Sentinel Status",
+                    "description": "Real-time 60s price sweeper & automated market briefings"
+                },
+                {
+                    "id": "view:alerts_history",
+                    "title": "📜 Alert History",
+                    "description": "Recently triggered price and stop-loss notifications"
+                }
+            ]
+        }
+    ]
+
+    body = (
+        "🔔 *ALERT CENTER & SENTINEL HUB*\n"
+        "Real-time institutional price surveillance & automated sentinel alerts.\n\n"
+        "Select an option below or text quick commands in chat:\n"
+        "• `ALERT INFY > 1950` (Take-Profit Target)\n"
+        "• `SL TCS 3900` (Stop-Loss Floor)\n"
+        "• `TARGET TATAMOTORS 1100`"
+    )
+
+    send_whatsapp_interactive_list(
+        body_text=body,
+        button_text="🔔 Alert Options",
+        sections=sections,
+        recipient=recipient,
+        header_text="ALERT CENTER",
+        footer_text="ApexQuant Real-Time Sentinel"
+    )
+
+    return send_whatsapp_interactive_buttons(
+        "⚡ *Quick Alert Actions*:",
+        buttons=[
+            ("view:alerts_active", "📋 Active Alerts"),
+            ("act:test_alert:infy", "⚡ Test Alert (INFY)"),
+            ("nav:menu:main", "🏠 Main Menu")
+        ],
+        recipient=recipient
+    )
+
+
+def handle_alerts_guide(recipient: Optional[str] = None) -> Dict[str, Any]:
+    """Displays an interactive syntax guide with examples for setting Price & SL Alerts."""
+    body = (
+        "🔔 *SMART PRICE & STOP-LOSS ALERT GUIDE*\n"
+        "━━━━━━━━━━━━━━━━━━━━\n"
+        "ApexQuant Sentinel monitors 500+ NSE stocks in real-time during market hours "
+        "and pushes instant WhatsApp notifications the moment your level is touched.\n\n"
+        "🎯 *Profit Targets (ABOVE)*:\n"
+        "• `ALERT INFY > 2000`\n"
+        "• `TARGET TCS 4200`\n"
+        "• `TGT RELIANCE 3100 note: Swing high breakout`\n\n"
+        "🛑 *Stop-Loss Floors (BELOW)*:\n"
+        "• `SL TCS 3900`\n"
+        "• `STOPLOSS INFY 1850`\n"
+        "• `ALERT TATAMOTORS < 950 note: Trailing stop`\n\n"
+        "⚡ *Management Commands*:\n"
+        "• `ALERTS` or `MY ALERTS` — View active triggers & distance\n"
+        "• `CANCEL ALERT <ID>` — Deactivate alert (e.g. `CANCEL ALERT 1`)\n"
+        "━━━━━━━━━━━━━━━━━━━━\n"
+        "_Tip: Tap 'Test Alert (INFY)' below to arm a live test alert instantly!_"
+    )
+    buttons = [
+        ("act:test_alert:infy", "⚡ Test Alert (INFY)"),
+        ("view:alerts_active", "📋 Active Alerts"),
+        ("nav:sub:alerts", "🔔 Alert Menu")
+    ]
+    return send_whatsapp_interactive_buttons(body, buttons=buttons, recipient=recipient)
+
+
+def handle_test_alert_infy(recipient: Optional[str] = None) -> Dict[str, Any]:
+    """Creates a 1-tap live test alert for INFY (+5% above current LTP) to demonstrate the alert system."""
+    from backend.whatsapp_alerts import create_price_alert
+    from backend.whatsapp_bot import get_stock_ground_truth
+
+    info = get_stock_ground_truth("INFY")
+    ltp = float(info.get("ltp", 0.0))
+    if ltp <= 0:
+        ltp = 1850.0
+
+    test_target = round(ltp * 1.05, 1)
+    ok, msg, aid = create_price_alert(
+        symbol_input="INFY",
+        condition="ABOVE",
+        target_price=test_target,
+        note="1-Tap Instant Test Alert",
+        user_phone=recipient
+    )
+
+    if ok and aid:
+        buttons = [
+            (f"act:del_alert:{aid}", f"❌ Cancel #{aid}"),
+            ("view:alerts_active", "📋 View All Alerts"),
+            ("nav:sub:alerts", "🔔 Alert Menu")
+        ]
+        return send_whatsapp_interactive_buttons(msg, buttons=buttons, recipient=recipient)
+    else:
+        return send_whatsapp_text(msg, recipient=recipient)
+
+
+def handle_alerts_cancel_menu(recipient: Optional[str] = None) -> Dict[str, Any]:
+    """Provides a 1-tap interactive menu to cancel pending price alerts."""
+    from backend.whatsapp_alerts import list_active_price_alerts
+    _, alerts = list_active_price_alerts(user_phone=recipient)
+
+    if not alerts:
+        msg = (
+            "🗑️ *CANCEL / MANAGE ALERTS*\n"
+            "━━━━━━━━━━━━━━━━━━━━\n"
+            "You currently have *no active alerts* to cancel.\n\n"
+            "To arm an alert, text:\n"
+            "• `ALERT INFY > 2000`\n"
+            "• `SL TCS 3900`"
+        )
+        buttons = [
+            ("act:test_alert:infy", "⚡ Test Alert (INFY)"),
+            ("nav:sub:alerts", "🔔 Alert Menu"),
+            ("nav:menu:main", "🏠 Main Menu")
+        ]
+        return send_whatsapp_interactive_buttons(msg, buttons=buttons, recipient=recipient)
+
+    rows = []
+    for a in alerts[:10]:
+        aid = a["id"]
+        sym = a["symbol"]
+        cond = a["condition"]
+        tgt = a["target_price"]
+        rows.append({
+            "id": f"act:del_alert:{aid}",
+            "title": f"❌ Cancel #{aid} {sym}",
+            "description": f"{cond} ₹{tgt:,.1f}"
+        })
+
+    sections = [{"title": "Active Alerts (Tap to Cancel)", "rows": rows}]
+    return send_whatsapp_interactive_list(
+        body_text=(
+            "🗑️ *CANCEL ACTIVE ALERT*\n"
+            "Tap any alert below to deactivate it immediately:"
+        ),
+        button_text="❌ Select Alert",
+        sections=sections,
+        recipient=recipient,
+        header_text="CANCEL ALERT",
+        footer_text="Deactivate with 1-tap"
+    )
+
+
+def handle_alerts_sentinel(recipient: Optional[str] = None) -> Dict[str, Any]:
+    """Displays the status and schedule of the automated Sentinel surveillance system."""
+    body = (
+        "🛡️ *SENTINEL AUTOMATION & SURVEILLANCE*\n"
+        "━━━━━━━━━━━━━━━━━━━━\n"
+        "ApexQuant Sentinel runs automated background intelligence on your workstation:\n\n"
+        "🟢 *Real-Time Price Sweeper*\n"
+        "• Cycle: Every 60 seconds (09:15–15:30 IST)\n"
+        "• Evaluates all active Price Targets & Stop-Losses\n\n"
+        "🌅 *Pre-Market Tactical Radar*\n"
+        "• Dispatch: 08:30 AM IST (Trading Days)\n"
+        "• Global cues, GIFT Nifty, Top Confluence setups\n\n"
+        "⚡ *Intraday Surge & Volatility Monitor*\n"
+        "• Cycle: Every 10 minutes (Market Hours)\n"
+        "• Scans active portfolio & watchlist for ±3.5% spikes\n\n"
+        "🌇 *EOD Market Wrap & Sector Matrix*\n"
+        "• Dispatch: 04:00 PM IST\n"
+        "• Nifty breadth, FII/DII net flows & sector leaders\n"
+        "━━━━━━━━━━━━━━━━━━━━\n"
+        "_All background services are running autonomously._"
+    )
+    buttons = [
+        ("view:alerts_active", "📋 Active Alerts"),
+        ("nav:sub:alerts", "🔔 Alert Menu"),
+        ("nav:menu:main", "🏠 Main Menu")
+    ]
+    return send_whatsapp_interactive_buttons(body, buttons=buttons, recipient=recipient)
+
+
+def handle_alerts_history(recipient: Optional[str] = None) -> Dict[str, Any]:
+    """Displays recent history of triggered price & stop-loss alerts."""
+    from backend.whatsapp_alerts import _get_db, init_whatsapp_alerts_db
+    init_whatsapp_alerts_db()
+
+    rows = []
+    try:
+        with _get_db() as conn:
+            cursor = conn.cursor()
+            cursor.execute("""
+                SELECT id, symbol, company_name, condition, target_price, initial_price, triggered_at, triggered_price, note
+                FROM whatsapp_price_alerts
+                WHERE is_triggered = 1
+                ORDER BY triggered_at DESC
+                LIMIT 8
+            """)
+            rows = [dict(r) for r in cursor.fetchall()]
+    except Exception as e:
+        logger.error(f"Error fetching alert history: {e}", exc_info=True)
+
+    if not rows:
+        body = (
+            "📜 *ALERT EXECUTION HISTORY*\n"
+            "━━━━━━━━━━━━━━━━━━━━\n"
+            "No alerts have triggered yet.\n\n"
+            "Once a target or stop-loss price is crossed during market hours, "
+            "an instant alert notification is pushed and logged here.\n"
+            "━━━━━━━━━━━━━━━━━━━━\n"
+            "_Real-time Sentinel monitoring active._"
+        )
+    else:
+        lines = [
+            "📜 *RECENT TRIGGERED ALERTS*",
+            f"Logged Triggers: *{len(rows)}*",
+            "━━━━━━━━━━━━━━━━━━━━"
+        ]
+        for r in rows:
+            aid = r["id"]
+            sym = r["symbol"]
+            cond = r["condition"]
+            tgt = r["target_price"]
+            hit_p = r.get("triggered_price") or tgt
+            t_at = (r.get("triggered_at") or "")[:16]
+            icon = "🟢" if cond == "ABOVE" else "🛑"
+            lines.append(f"{icon} *#{aid} {sym}*: {cond} ₹{tgt:,.1f} | Hit ₹{hit_p:,.1f} ({t_at})")
+        lines.append("━━━━━━━━━━━━━━━━━━━━")
+        body = "\n".join(lines)
+
+    buttons = [
+        ("view:alerts_active", "📋 Active Alerts"),
+        ("nav:sub:alerts", "🔔 Alert Menu"),
+        ("nav:menu:main", "🏠 Main Menu")
+    ]
+    return send_whatsapp_interactive_buttons(body, buttons=buttons, recipient=recipient)
+
+
 def handle_view_price_alerts(recipient: Optional[str] = None) -> Dict[str, Any]:
     """Displays active price alerts with current LTP and distance %."""
     from backend.whatsapp_alerts import list_active_price_alerts
     body, alerts = list_active_price_alerts(user_phone=recipient)
     buttons = [
-        ("nav:sub:screeners", "🎯 Quant Screeners"),
-        ("view:portfolio", "💼 Portfolio"),
-        ("nav:menu:main", "🏠 Main Menu")
+        ("act:test_alert:infy", "⚡ Test Alert (INFY)"),
+        ("view:alerts_guide", "💡 How to Set"),
+        ("nav:sub:alerts", "🔔 Alert Menu")
     ]
     if alerts:
         first_id = alerts[0]["id"]
         buttons = [
             (f"act:del_alert:{first_id}", f"❌ Cancel #{first_id}"),
-            ("view:portfolio", "💼 Portfolio"),
-            ("nav:menu:main", "🏠 Main Menu")
+            ("view:alerts_cancel", "🗑️ Cancel Alerts"),
+            ("nav:sub:alerts", "🔔 Alert Menu")
         ]
     return send_whatsapp_interactive_buttons(body, buttons=buttons, recipient=recipient)
 
@@ -3155,8 +3407,8 @@ def handle_set_price_alert(parsed: Dict[str, Any], recipient: Optional[str] = No
     if ok and aid:
         buttons = [
             (f"act:del_alert:{aid}", f"❌ Cancel #{aid}"),
-            ("view:alerts", "📋 My Alerts"),
-            ("nav:menu:main", "🏠 Main Menu")
+            ("view:alerts_active", "📋 My Alerts"),
+            ("nav:sub:alerts", "🔔 Alert Menu")
         ]
         return send_whatsapp_interactive_buttons(msg, buttons=buttons, recipient=recipient)
     else:
@@ -3172,8 +3424,8 @@ def handle_cancel_price_alert(cmd_text: str, recipient: Optional[str] = None) ->
     aid = int(m.group(1))
     ok, msg = cancel_price_alert(aid, user_phone=recipient)
     buttons = [
-        ("view:alerts", "📋 My Alerts"),
-        ("nav:menu:main", "🏠 Main Menu")
+        ("view:alerts_active", "📋 My Alerts"),
+        ("nav:sub:alerts", "🔔 Alert Menu")
     ]
     return send_whatsapp_interactive_buttons(msg, buttons=buttons, recipient=recipient)
 
@@ -3999,8 +4251,26 @@ def dispatch_incoming_whatsapp_message(text_body: str, sender: Optional[str] = N
     if upper.startswith("CANCEL ALERT") or upper.startswith("DEL ALERT") or upper.startswith("DELETE ALERT") or cleaned.startswith("act:del_alert:"):
         return handle_cancel_price_alert(cleaned, recipient=sender)
 
-    # Price Alerts Hub
-    elif cleaned.startswith("view:alerts") or cleaned.startswith("view:price_alerts") or upper in ["ALERTS", "ALERT", "MY ALERTS", "ACTIVE ALERTS", "PRICE ALERTS", "TRIGGERS"]:
+    # 1-Tap Instant Test Alert
+    elif cleaned == "act:test_alert:infy":
+        return handle_test_alert_infy(recipient=sender)
+
+    # Alert Center & Sentinel Submenu Drawer
+    elif cleaned in ["nav:sub:alerts", "nav:menu:alerts"] or upper in ["ALERT MENU", "ALERTS MENU", "ALERT CENTER", "SENTINEL"]:
+        return handle_alerts_menu(recipient=sender)
+
+    # Alert Center Sub-actions
+    elif cleaned == "view:alerts_guide" or upper in ["ALERT GUIDE", "HOW TO SET ALERT", "ALERT HELP"]:
+        return handle_alerts_guide(recipient=sender)
+    elif cleaned == "view:alerts_sentinel" or upper in ["SENTINEL STATUS", "SENTINEL"]:
+        return handle_alerts_sentinel(recipient=sender)
+    elif cleaned == "view:alerts_history" or upper in ["ALERT HISTORY", "TRIGGERED ALERTS"]:
+        return handle_alerts_history(recipient=sender)
+    elif cleaned == "view:alerts_cancel":
+        return handle_alerts_cancel_menu(recipient=sender)
+
+    # Price Alerts Hub (Active Triggers)
+    elif cleaned.startswith("view:alerts_active") or cleaned.startswith("view:alerts") or cleaned.startswith("view:price_alerts") or upper in ["ALERTS", "ALERT", "MY ALERTS", "ACTIVE ALERTS", "PRICE ALERTS", "TRIGGERS"]:
         return handle_view_price_alerts(recipient=sender)
 
     # Financial News
