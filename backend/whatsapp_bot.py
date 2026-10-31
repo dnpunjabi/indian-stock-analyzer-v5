@@ -390,8 +390,13 @@ def handle_main_menu(recipient: Optional[str] = None) -> Dict[str, Any]:
                 },
                 {
                     "id": "nav:sub:fundamental",
-                    "title": "🏛️ Fundamental & AI Scans",
-                    "description": "Buffett Quality, Zero Debt, Deep Value & AI NL"
+                    "title": "🏛️ Fundamental Vault",
+                    "description": "Buffett Quality, Zero Debt, Deep Value & GARP"
+                },
+                {
+                    "id": "nav:sub:ai_scan",
+                    "title": "🤖 AI Scan Radar",
+                    "description": "Freeform NL Scanner: Text any custom criteria"
                 }
             ]
         },
@@ -410,13 +415,8 @@ def handle_main_menu(recipient: Optional[str] = None) -> Dict[str, Any]:
                 },
                 {
                     "id": "view:pulse",
-                    "title": "🌐 Market Pulse",
-                    "description": "Nifty 50, Sensex, Bank Nifty, VIX & Breadth"
-                },
-                {
-                    "id": "nav:sub:news",
-                    "title": "📰 Financial News",
-                    "description": "Live RSS Market News & Stock Catalyst Feeds"
+                    "title": "🌐 Market Pulse & News",
+                    "description": "Nifty 50, Sensex, VIX, Breadth & Live Feeds"
                 }
             ]
         },
