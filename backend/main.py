@@ -14475,6 +14475,13 @@ async def _run_full_quant_cron_sweep():
             print(f"[CRON WARN] Index Divergence Radar recalculation error: {e}")
             summary["index_divergence_radar"] = 0
 
+        try:
+            conf_res = await get_multi_confluence_leaderboard(force_refresh=True)
+            summary["confluence"] = conf_res.get("total_confluence_stocks", 0)
+        except Exception as e:
+            print(f"[CRON WARN] Confluence recalculation error: {e}")
+            summary["confluence"] = 0
+
         duration = round(time.time() - t0, 2)
         details_json = json.dumps(summary)
         

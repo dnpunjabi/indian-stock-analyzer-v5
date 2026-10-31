@@ -555,57 +555,99 @@ def handle_screeners_family(family_key: str, recipient: Optional[str] = None) ->
 
 
 def handle_run_screener(screener_key: str, recipient: Optional[str] = None) -> Dict[str, Any]:
-    """Runs a specific screener or Confluence Leaderboard from screener_results_cache."""
+    """Runs a specific screener or Confluence Leaderboard with live quote overlay."""
     disp_name = "APEX CONFLUENCE LEADERBOARD" if screener_key == "confluence" else screener_key.replace("_", " ").upper()
     results = []
+    updated_date = ""
 
     try:
-        with get_db() as conn:
-            cursor = conn.cursor()
-            if screener_key == "vcp":
-                cursor.execute("""
-                    SELECT symbol, vcp_json FROM vcp_screener_cache 
-                    ORDER BY updated_at DESC LIMIT 5
-                """)
-                for r in cursor.fetchall():
-                    try:
-                        v = json.loads(r["vcp_json"])
-                        sym = v.get("symbol", "").replace(".NS", "").replace(".BO", "")
-                        pivot = v.get("pivot_price", 0.0)
-                        sl = v.get("stop_loss", 0.0)
-                        results.append({
-                            "symbol": sym,
-                            "name": v.get("company_name", sym),
-                            "pivot": pivot,
-                            "sl": sl,
-                            "price": v.get("current_price", pivot),
-                            "note": "Contractions: " + str(len(v.get("contractions", [])))
-                        })
-                    except Exception:
-                        pass
+        items = []
+        # Check in-memory cache for confluence first
+        if screener_key == "confluence":
+            try:
+                import backend.main as bmain
+                c_mem = getattr(bmain, "_MULTI_CONFLUENCE_CACHE", {})
+                if c_mem and c_mem.get("candidates"):
+                    items = c_mem["candidates"]
+                    updated_date = c_mem.get("last_updated", "")[:10]
+            except Exception:
+                pass
+
+        if not items:
+            with get_db() as conn:
+                cursor = conn.cursor()
+                if screener_key == "vcp":
+                    cursor.execute("""
+                        SELECT symbol, vcp_json, updated_at FROM vcp_screener_cache 
+                        ORDER BY updated_at DESC LIMIT 6
+                    """)
+                    for r in cursor.fetchall():
+                        try:
+                            v = json.loads(r["vcp_json"])
+                            sym = v.get("symbol", "").replace(".NS", "").replace(".BO", "")
+                            pivot = v.get("pivot_price", 0.0)
+                            sl = v.get("stop_loss", 0.0)
+                            items.append({
+                                "symbol": sym,
+                                "company_name": v.get("company_name", sym),
+                                "pivot_price": pivot,
+                                "stop_loss": sl,
+                                "current_price": v.get("current_price", pivot),
+                                "confluence_count": None,
+                                "buy_zone_status": "IN_BUY_ZONE",
+                                "note": "Contractions: " + str(len(v.get("contractions", [])))
+                            })
+                            if not updated_date and "updated_at" in r.keys() and r["updated_at"]:
+                                updated_date = str(r["updated_at"])[:10]
+                        except Exception:
+                            pass
+                else:
+                    cursor.execute("""
+                        SELECT cache_json, updated_at FROM screener_results_cache 
+                        WHERE screener_name = ?
+                    """, (screener_key,))
+                    row = cursor.fetchone()
+                    if row and row["cache_json"]:
+                        items = json.loads(row["cache_json"])
+                        if "updated_at" in row.keys() and row["updated_at"]:
+                            updated_date = str(row["updated_at"])[:10]
+
+        # Overlay real-time live quotes on candidates
+        try:
+            from backend.main import _overlay_live_quotes_on_candidates
+            hydrated = _overlay_live_quotes_on_candidates(items)
+        except Exception:
+            hydrated = items
+
+        for item in hydrated[:6]:
+            sym = item.get("symbol", "").replace(".NS", "").replace(".BO", "")
+            pivot = item.get("pivot_price") or item.get("breakout_level") or 0.0
+            sl = item.get("stop_loss", 0.0)
+            price = item.get("current_price") or item.get("close") or item.get("price") or 0.0
+            chg_pct = item.get("change_percent") or item.get("change_pct") or item.get("day_change_pct")
+            score_desc = item.get("confluence_count") or item.get("score")
+            bz = item.get("buy_zone_status", "")
+            bz_badge = "🟢 In Buy Zone" if bz == "IN_BUY_ZONE" else ("⏳ Forming Base" if bz == "FORMING_BASE" else ("⚠️ Extended" if bz == "EXTENDED" else ""))
+
+            if screener_key == "confluence":
+                note_parts = []
+                if score_desc:
+                    note_parts.append(f"{score_desc} models")
+                if bz_badge:
+                    note_parts.append(bz_badge)
+                note = " | ".join(note_parts)
             else:
-                cursor.execute("""
-                    SELECT cache_json FROM screener_results_cache 
-                    WHERE screener_name = ?
-                """, (screener_key,))
-                row = cursor.fetchone()
-                if row and row["cache_json"]:
-                    items = json.loads(row["cache_json"])
-                    for item in items[:5]:
-                        sym = item.get("symbol", "").replace(".NS", "").replace(".BO", "")
-                        pivot = item.get("pivot_price") or item.get("breakout_level") or 0.0
-                        sl = item.get("stop_loss", 0.0)
-                        price = item.get("current_price") or item.get("close") or 0.0
-                        score_desc = item.get("confluence_count") or item.get("score")
-                        note = f"Confluence: {score_desc} models" if score_desc else ""
-                        results.append({
-                            "symbol": sym,
-                            "name": item.get("company_name", sym),
-                            "pivot": pivot,
-                            "sl": sl,
-                            "price": price,
-                            "note": note
-                        })
+                note = bz_badge if bz_badge else item.get("note", "")
+
+            results.append({
+                "symbol": sym,
+                "name": item.get("company_name", sym),
+                "pivot": pivot,
+                "sl": sl,
+                "price": price,
+                "change_pct": chg_pct,
+                "note": note
+            })
     except Exception as e:
         logger.error(f"Error querying screener {screener_key}: {e}")
 
@@ -619,7 +661,7 @@ def handle_run_screener(screener_key: str, recipient: Optional[str] = None) -> D
         return send_whatsapp_interactive_buttons(
             body,
             buttons=[
-                ("nav:sub:screeners", "📂 Other Screeners"),
+                ("nav:sub:screeners", "📁 Other Screeners"),
                 ("nav:menu:main", "🏠 Main Menu")
             ],
             recipient=recipient
@@ -628,11 +670,18 @@ def handle_run_screener(screener_key: str, recipient: Optional[str] = None) -> D
     cards = []
     first_sym = results[0]["symbol"]
     for idx, r in enumerate(results[:4], 1):
-        pivot_txt = f"🎯 Pivot: ₹ {r['pivot']:,.1f}" if r['pivot'] > 0 else "🎯 Active Setup"
-        extra = f" | {r['note']}" if r.get('note') else ""
+        chg_val = r.get("change_pct")
+        if chg_val is not None:
+            chg_sign = "+" if chg_val >= 0 else ""
+            chg_txt = f" ({chg_sign}{chg_val:.2f}%)"
+        else:
+            chg_txt = ""
+        pivot_txt = f"🎯 Pivot: ₹ {r['pivot']:,.1f}" if r.get('pivot') and r['pivot'] > 0 else ""
+        extra_parts = [p for p in [pivot_txt, r.get('note')] if p]
+        extra_str = f" | {' | '.join(extra_parts)}" if extra_parts else ""
         cards.append(
-            f"{idx}. ⭐ *{r['symbol']}* — {r['name'][:20]}\n"
-            f"   └ ₹ {r['price']:,.1f} | {pivot_txt}{extra}"
+            f"{idx}. ⭐ *{r['symbol']}* — {r['name'][:22]}\n"
+            f"   └ ₹ {r['price']:,.2f}{chg_txt}{extra_str}"
         )
 
     body = (
@@ -645,7 +694,7 @@ def handle_run_screener(screener_key: str, recipient: Optional[str] = None) -> D
 
     buttons = [
         (f"act:chart:{first_sym}", f"📈 {first_sym} Chart"),
-        ("nav:sub:screeners", "📂 Screeners"),
+        ("nav:sub:screeners", "📁 Screeners"),
         ("nav:menu:main", "🏠 Main Menu")
     ]
     return send_whatsapp_interactive_buttons(body, buttons=buttons, recipient=recipient)
