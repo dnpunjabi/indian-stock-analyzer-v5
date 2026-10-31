@@ -224,7 +224,7 @@ def fetch_latest_news_for_query(
 
 
 def _parse_sge_text_blocks(text_blocks: list) -> str:
-    """Parses SerpApi google_ai_overview text_blocks into clean WhatsApp-ready markdown."""
+    """Parses SerpApi google_ai_overview text_blocks (headings, lists, tables, paragraphs) into clean WhatsApp-ready markdown."""
     lines = []
     for tb in text_blocks:
         tb_type = tb.get("type")
@@ -235,8 +235,12 @@ def _parse_sge_text_blocks(text_blocks: list) -> str:
             clean_head = re.sub(r"^\d+\.\s*", "", snippet)
             lines.append(f"\n➡️ *{clean_head}*")
         elif tb_type == "paragraph" and snippet:
-            # Skip interactive filler prompts at the end of Google AI output
-            if any(w in snippet.lower() for w in ["let me know", "manage your exposure", "looking for specific", "follow-up"]):
+            # Skip intro metadata sentences and interactive follow-up prompts from Google AI output
+            lower_s = snippet.lower()
+            if any(w in lower_s for w in [
+                "let me know", "manage your exposure", "looking for specific", "follow-up",
+                "the following table", "would you like", "to help you rebalance", "overview of the latest"
+            ]):
                 continue
             lines.append(f"_{snippet}_")
         elif tb_type == "list" and items:
@@ -244,6 +248,29 @@ def _parse_sge_text_blocks(text_blocks: list) -> str:
                 text = str(it.get("snippet", it)).strip()
                 if text and not any(w in text.lower() for w in ["technical analysis support", "financial metric comparison table"]):
                     lines.append(f"• {text}")
+        elif tb_type == "table":
+            table = tb.get("table", [])
+            if len(table) > 1:
+                headers = [h.strip() for h in table[0]]
+                for row in table[1:]:
+                    if not row:
+                        continue
+                    company = str(row[0]).strip()
+                    clean_company = re.sub(r"^\d+\.\s*", "", company)
+                    lines.append(f"\n➡️ *{clean_company}*")
+                    for h_idx in range(1, len(row)):
+                        header_name = headers[h_idx] if h_idx < len(headers) else "Update"
+                        header_name = header_name.replace(" (YoY)", "").replace("Financial Highlights", "Earnings").replace("Key Order Wins / Corporate Updates", "Orders & Updates").replace("Competitor Threats / Risks", "Threats & Risks").replace("Recent Brokerage Ratings", "Brokerage Ratings")
+                        val = str(row[h_idx]).strip()
+                        if not val:
+                            continue
+                        sub_items = [s.strip() for s in re.split(r'[\u2022•]', val) if s.strip()]
+                        if len(sub_items) > 1:
+                            lines.append(f"• *{header_name}*:")
+                            for s in sub_items:
+                                lines.append(f"   – {s}")
+                        elif sub_items:
+                            lines.append(f"• *{header_name}*: {sub_items[0]}")
     return "\n".join(lines).strip()
 
 

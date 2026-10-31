@@ -279,3 +279,4 @@ def generate_portfolio_catalyst_pdf(
     # Build PDF using NumberedCanvas
     doc.build(story, canvasmaker=NumberedCanvas)
     return output_path
+
