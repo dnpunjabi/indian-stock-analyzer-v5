@@ -1274,6 +1274,55 @@ async def run_background_premarket_scheduler():
             
         await asyncio.sleep(300)  # Sweep every 5 minutes
 
+
+async def run_background_portfolio_catalyst_scheduler():
+    """
+    Asynchronous loop that sweeps every 2 minutes.
+    Dispatches the Pure-SerpAPI Portfolio Catalyst Digest at 08:45 AM IST
+    every weekday (Mon-Fri) if not already sent today.
+    """
+    await asyncio.sleep(25)  # Let startup warming finish
+    print("Background WhatsApp Portfolio Catalyst Digest scheduler started (Target: 08:45 AM IST).")
+
+    while True:
+        try:
+            from datetime import datetime, timedelta
+            now_utc = datetime.utcnow()
+            now_ist = now_utc + timedelta(hours=5, minutes=30)
+
+            # Mon-Fri
+            if now_ist.weekday() < 5:
+                today_str = now_ist.strftime("%Y-%m-%d")
+                last_sent = ""
+                with get_db() as conn:
+                    cursor = conn.cursor()
+                    cursor.execute("SELECT value FROM alert_settings WHERE key = 'portfolio_catalyst_last_sent'")
+                    row = cursor.fetchone()
+                    if row and row["value"]:
+                        last_sent = row["value"]
+
+                if last_sent != today_str:
+                    current_minutes = now_ist.hour * 60 + now_ist.minute
+                    target_minutes = 8 * 60 + 45  # 08:45 AM IST
+
+                    # Trigger window: 08:45 to 09:30 AM IST (before 09:15-09:30 market open session)
+                    if target_minutes <= current_minutes <= (target_minutes + 45):
+                        print("Portfolio Catalyst Digest: Scheduled time 08:45 AM IST reached. Dispatching live...")
+                        from backend.whatsapp_bot import handle_portfolio_catalyst_digest
+                        res = await asyncio.to_thread(handle_portfolio_catalyst_digest, force_refresh=True)
+                        if res and res.get("status") == "success":
+                            print("Portfolio Catalyst Digest: Dispatched successfully to WhatsApp.")
+                            with get_db() as conn:
+                                cursor = conn.cursor()
+                                cursor.execute("INSERT OR REPLACE INTO alert_settings (key, value) VALUES ('portfolio_catalyst_last_sent', ?)", (today_str,))
+                                conn.commit()
+                        else:
+                            print(f"Portfolio Catalyst Digest: Dispatch result: {res}")
+        except Exception as loop_err:
+            print(f"Portfolio Catalyst Digest scheduler error: {loop_err}")
+
+        await asyncio.sleep(120)  # Sweep every 2 minutes
+
 async def run_background_weekly_wrapup_scheduler():
     """
     Asynchronous loop that sweeps every 5 minutes.
@@ -2424,6 +2473,7 @@ async def startup_warm_caching():
     # 4.5 Fire background WhatsApp daily, pre-market & weekly wrap-up schedulers
     asyncio.create_task(run_background_daily_wrapup_scheduler())
     asyncio.create_task(run_background_premarket_scheduler())
+    asyncio.create_task(run_background_portfolio_catalyst_scheduler())
     asyncio.create_task(run_background_weekly_wrapup_scheduler())
     
     # 4.51 Fire WhatsApp Sandbox automated keep-alive scheduler (personal solo mode)
