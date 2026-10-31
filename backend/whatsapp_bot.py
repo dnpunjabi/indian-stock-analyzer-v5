@@ -2243,12 +2243,24 @@ def handle_why_stock_moved(query_input: str, recipient: Optional[str] = None) ->
     sup_val = price_ctx.get("support", 0.0)
     res_val = price_ctx.get("resistance", 0.0)
 
-    # 1. Fetch live web snippets from SerpApi
+    # 1. Fetch freshest 24-hour news first (Today's breaking catalysts)
     from backend.catalyst_scraper import fetch_latest_news_for_query
     serp_query = f'"{comp_name}" share price {direction_word} reasons news India'
-    snippets, provider = fetch_latest_news_for_query(serp_query, timeframe="7d", use_serpapi=True, use_tavily=True)
+    snippets, provider = fetch_latest_news_for_query(serp_query, timeframe="1d", use_serpapi=True, use_tavily=True)
+    is_today_fresh = len(snippets) >= 2
 
-    # 2. Fallback to Google News RSS if SerpApi returned empty
+    # 2. If fewer than 2 breaking snippets in last 24h, expand to past 7 days
+    if not is_today_fresh:
+        broader_snippets, broader_prov = fetch_latest_news_for_query(serp_query, timeframe="7d", use_serpapi=True, use_tavily=True)
+        if broader_snippets:
+            snippets = broader_snippets
+            provider = broader_prov
+
+    # Update badge with freshness
+    badge_prefix = "TODAY'S " if is_today_fresh else ""
+    direction_badge = f"🔴 {badge_prefix}SELL-OFF TRIGGER" if is_down else (f"🟢 {badge_prefix}RALLY CATALYST" if is_up else f"⚡ {badge_prefix}INTRADAY CATALYST")
+
+    # 3. Fallback to Google News RSS if SerpApi returned empty
     if not snippets:
         rss_items = fetch_google_news_rss(f"{comp_name} share news")
         for it in rss_items[:4]:
