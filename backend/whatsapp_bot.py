@@ -2374,6 +2374,8 @@ def handle_portfolio_catalyst_digest(recipient: Optional[str] = None, force_refr
     cache_ttl = 3 * 3600  # 3 hours
     cached_entry = _PORTFOLIO_NEWS_CACHE.get("latest")
     pdf_path = "data/reports/latest_portfolio_catalyst.pdf"
+    nav_body = "⚡ *Catalyst Actions & Navigation*\nTap below to refresh live catalysts, inspect portfolio holdings, or return to the main menu:"
+
     if not force_refresh and cached_entry and (now_ts - cached_entry.get("ts", 0) < cache_ttl):
         logger.info("[PORTFOLIO CATALYST] Serving valid cached digest (< 3h old).")
         cached_body = cached_entry.get("body", "")
@@ -2381,6 +2383,8 @@ def handle_portfolio_catalyst_digest(recipient: Optional[str] = None, force_refr
         if cached_part1:
             send_whatsapp_text(cached_part1, recipient=recipient)
             time.sleep(1.0)
+        send_whatsapp_text(cached_body, recipient=recipient)
+        time.sleep(1.0)
         if os.path.exists(pdf_path):
             send_whatsapp_document(
                 file_path=pdf_path,
@@ -2388,7 +2392,7 @@ def handle_portfolio_catalyst_digest(recipient: Optional[str] = None, force_refr
                 filename="Portfolio_Catalyst_Report.pdf",
                 recipient=recipient
             )
-        return send_whatsapp_interactive_buttons(cached_body, buttons=buttons, recipient=recipient)
+        return send_whatsapp_interactive_buttons(nav_body, buttons=buttons, recipient=recipient)
 
     # 2. Extract active holdings from SQLite portfolio_items
     active_symbols = []
@@ -2509,14 +2513,21 @@ def handle_portfolio_catalyst_digest(recipient: Optional[str] = None, force_refr
 
     full_report = f"{header}\n\n{formatted_intel}\n\n{footer}"
 
-    # 7. Smart Character Guard (< 3,800 chars)
+    # 7. Smart Unabridged Dispatch & Meta 1,024-Char Interactive Body Guard
+    # Meta Cloud API strictly caps interactive button body text at 1,024 chars.
+    # Standard text messages allow up to 4,096 chars.
+    # We dispatch the unabridged intelligence via send_whatsapp_text, followed by interactive navigation buttons.
+    nav_body = "⚡ *Catalyst Actions & Navigation*\nTap below to refresh live catalysts, inspect portfolio holdings, or return to the main menu:"
+
     if len(full_report) <= 3800:
         _PORTFOLIO_NEWS_CACHE["latest"] = {
             "ts": now_ts,
             "body": full_report,
             "part1": None
         }
-        return send_whatsapp_interactive_buttons(full_report, buttons=buttons, recipient=recipient)
+        send_whatsapp_text(full_report, recipient=recipient)
+        time.sleep(1.0)
+        return send_whatsapp_interactive_buttons(nav_body, buttons=buttons, recipient=recipient)
     else:
         # Split cleanly into Part 1 and Part 2 by company block
         blocks = full_report.split("\n➡️ ")
@@ -2531,7 +2542,9 @@ def handle_portfolio_catalyst_digest(recipient: Optional[str] = None, force_refr
         }
         send_whatsapp_text(part1, recipient=recipient)
         time.sleep(1.2)  # Avoid WhatsApp Cloud API bursting rate limit
-        return send_whatsapp_interactive_buttons(part2, buttons=buttons, recipient=recipient)
+        send_whatsapp_text(part2, recipient=recipient)
+        time.sleep(1.0)
+        return send_whatsapp_interactive_buttons(nav_body, buttons=buttons, recipient=recipient)
 
 
 def get_stock_price_context(symbol_clean: str, ticker: str) -> Dict[str, Any]:
