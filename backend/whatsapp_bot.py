@@ -405,13 +405,8 @@ def handle_main_menu(recipient: Optional[str] = None) -> Dict[str, Any]:
             "rows": [
                 {
                     "id": "nav:sub:movers",
-                    "title": "🚀 Market Movers",
-                    "description": "Large Cap, Mid Cap & Small Cap Leaders & Laggards"
-                },
-                {
-                    "id": "nav:sub:sector_tf",
-                    "title": "🧭 Sector Radar",
-                    "description": "Multi-Timeframe RS: 1D, 5D, 1M, 3M, 6M, 1Y, YTD"
+                    "title": "🚀 Movers & Sector Radar",
+                    "description": "Leaders, Laggards & Sector RS Heatmap"
                 },
                 {
                     "id": "view:pulse",
@@ -421,12 +416,17 @@ def handle_main_menu(recipient: Optional[str] = None) -> Dict[str, Any]:
             ]
         },
         {
-            "title": "💼 Execution & Sentinel",
+            "title": "💼 Execution & Analysis",
             "rows": [
                 {
-                    "id": "nav:sub:watchlists",
-                    "title": "⭐ My Watchlists",
-                    "description": "10 Curated Lists (Core, Breakouts, Sharks...)"
+                    "id": "nav:sub:stock",
+                    "title": "🤖 AI Co-Pilot & Query",
+                    "description": "Freeform Stock Q&A, Support Levels & DCF"
+                },
+                {
+                    "id": "nav:sub:chart",
+                    "title": "📈 Technical Chart",
+                    "description": "6-Month Dark Chart with SMA 50/200 & RSI"
                 },
                 {
                     "id": "nav:sub:alerts",
@@ -435,8 +435,8 @@ def handle_main_menu(recipient: Optional[str] = None) -> Dict[str, Any]:
                 },
                 {
                     "id": "view:portfolio",
-                    "title": "💼 Portfolio Health",
-                    "description": "Live Net Worth, Today's P&L, 1-Tap BUY Journal"
+                    "title": "💼 Portfolio & Watchlists",
+                    "description": "Live Net Worth, Holdings & 10 Curated Lists"
                 }
             ]
         }
@@ -1714,9 +1714,9 @@ def handle_watchlist_audit(wl_id: int, recipient: Optional[str] = None) -> Dict[
 def handle_movers_menu(recipient: Optional[str] = None) -> Dict[str, Any]:
     """Renders 3 Market Cap segment buttons for Movers."""
     body = (
-        "🚀 *TODAY'S MARKET MOVERS*\n"
-        "Real-time top gainers and losers categorized by market capitalization.\n"
-        "Select a market cap segment below:"
+        "🚀 *MARKET MOVERS & SECTOR RADAR*\n"
+        "Real-time top gainers, losers and sector momentum across 500+ NSE equities.\n\n"
+        "Select a market cap segment below, or text `SECTOR` for relative strength heatmap:"
     )
     buttons = [
         ("run:movers:large", "🐘 Large Cap"),
@@ -3106,7 +3106,7 @@ def handle_portfolio(recipient: Optional[str] = None) -> Dict[str, Any]:
 
     buttons = [
         ("view:holdings", "🔍 Inspect Positions"),
-        ("nav:sub:trade", "📝 Log Trade"),
+        ("nav:sub:watchlists", "⭐ My Watchlists"),
         ("nav:menu:main", "🏠 Main Menu")
     ]
     return send_whatsapp_interactive_buttons(body, buttons=buttons, recipient=recipient)
