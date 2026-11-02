@@ -393,10 +393,13 @@ def evaluate_price_alerts_sweep() -> List[Dict[str, Any]]:
                 f"_Triggered at {datetime.now().strftime('%d %b • %H:%M IST')}_"
             )
 
+            clean_btn_sym = sym.replace(".NS", "").replace(".BO", "").strip()
+            chart_label = f"📈 {clean_btn_sym[:8]} Chart"
+            dossier_label = f"📌 {clean_btn_sym[:7]} Dossier"
             buttons = [
-                (f"view:stock:{sym}", "📊 View Stock"),
-                (f"act:chart:{sym}", "📈 Live Chart"),
-                ("view:alerts", "📋 My Alerts")
+                (f"act:chart:{clean_btn_sym}", chart_label),
+                (f"view:stock:{clean_btn_sym}", dossier_label),
+                ("view:portfolio", "💼 Portfolio")
             ]
 
             send_whatsapp_interactive_buttons(body, buttons=buttons, recipient=phone)

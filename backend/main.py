@@ -1172,6 +1172,53 @@ async def run_background_daily_wrapup_scheduler():
             
         await asyncio.sleep(300)  # Sweep every 5 minutes
 
+async def run_background_closing_bell_scheduler():
+    """
+    Asynchronous loop running every 60 seconds.
+    Triggers Mon-Fri at 15:35 IST (market close + 5 mins), checking if today's
+    closing bell and portfolio performance digest has been dispatched to WhatsApp.
+    """
+    await asyncio.sleep(25)  # Let server startup finish
+    logger.info("Background WhatsApp 3:35 PM Closing Bell scheduler started.")
+
+    while True:
+        try:
+            from datetime import datetime, timedelta
+            now_utc = datetime.utcnow()
+            now_ist = now_utc + timedelta(hours=5, minutes=30)
+
+            # Check if weekday (Mon-Fri)
+            if now_ist.weekday() < 5:
+                today_str = now_ist.strftime("%Y-%m-%d")
+                last_sent = ""
+
+                with get_db() as conn:
+                    cursor = conn.cursor()
+                    cursor.execute("SELECT value FROM alert_settings WHERE key = 'closing_bell_last_sent'")
+                    row = cursor.fetchone()
+                    if row:
+                        last_sent = row["value"]
+
+                current_minutes = now_ist.hour * 60 + now_ist.minute
+                target_minutes = 15 * 60 + 35  # 15:35 IST
+
+                if target_minutes <= current_minutes <= (target_minutes + 120) and last_sent != today_str:
+                    logger.info(f"[CLOSING BELL CRON] 15:35 IST reached ({now_ist.strftime('%H:%M')} IST). Dispatching closing summary...")
+                    from backend.whatsapp_bot import handle_closing_bell
+                    recipient = os.environ.get("WHATSAPP_RECIPIENT", "")
+                    res = await asyncio.to_thread(handle_closing_bell, recipient)
+                    if res.get("status") == "success" or res.get("message_id"):
+                        with get_db() as conn:
+                            cursor = conn.cursor()
+                            cursor.execute("INSERT OR REPLACE INTO alert_settings (key, value) VALUES ('closing_bell_last_sent', ?)", (today_str,))
+                            conn.commit()
+                        logger.info(f"[CLOSING BELL CRON] Successfully sent closing bell digest for {today_str}.")
+        except Exception as loop_err:
+            logger.warning(f"[CLOSING BELL CRON] Scheduler loop error: {loop_err}")
+
+        await asyncio.sleep(60)
+
+
 async def run_background_premarket_scheduler():
     """
     Asynchronous loop that sweeps every 5 minutes.
@@ -2472,6 +2519,7 @@ async def startup_warm_caching():
     asyncio.create_task(run_background_market_movers_updater())
     # 4.5 Fire background WhatsApp daily, pre-market & weekly wrap-up schedulers
     asyncio.create_task(run_background_daily_wrapup_scheduler())
+    asyncio.create_task(run_background_closing_bell_scheduler())
     asyncio.create_task(run_background_premarket_scheduler())
     asyncio.create_task(run_background_portfolio_catalyst_scheduler())
     asyncio.create_task(run_background_weekly_wrapup_scheduler())

@@ -491,7 +491,7 @@ def handle_main_menu(recipient: Optional[str] = None) -> Dict[str, Any]:
                 {
                     "id": "nav:sub:stock",
                     "title": "🤖 AI Co-Pilot & Query",
-                    "description": "Freeform Stock Q&A, Support Levels & DCF"
+                    "description": "Stock Dossiers, Compare & Co-Pilot Q&A"
                 },
                 {
                     "id": "nav:sub:chart",
@@ -2194,7 +2194,7 @@ def handle_news_menu(recipient: Optional[str] = None) -> Dict[str, Any]:
     """Renders Financial News Submenu (Macro vs. Portfolio vs. Company News)."""
     sections = [
         {
-            "title": "News Feeds",
+            "title": "News & Corporate Actions",
             "rows": [
                 {
                     "id": "run:news:macro",
@@ -2205,14 +2205,19 @@ def handle_news_menu(recipient: Optional[str] = None) -> Dict[str, Any]:
                     "id": "run:news:portfolio",
                     "title": "💼 Portfolio Catalysts",
                     "description": "Google AI Overview digest of active holdings via SerpApi"
+                },
+                {
+                    "id": "view:events_calendar",
+                    "title": "📅 Corporate & Earnings",
+                    "description": "Upcoming results, dividends & splits for your holdings"
                 }
             ]
         }
     ]
     body = (
         "📰 *FINANCIAL NEWS & CATALYSTS*\n"
-        "Live RSS feeds with AI sentiment classification.\n"
-        "Select a feed or text `NEWS <SYMBOL>` (e.g. `NEWS BOSCH`):"
+        "Live RSS feeds, AI sentiment & Corporate Events.\n"
+        "Select an option, or text `NEWS <SYM>` or `EVENTS <SYM>`:"
     )
     send_whatsapp_interactive_list(
         body_text=body,
@@ -2223,11 +2228,11 @@ def handle_news_menu(recipient: Optional[str] = None) -> Dict[str, Any]:
         footer_text="ApexQuant News Engine"
     )
     return send_whatsapp_interactive_buttons(
-        "⚡ *Instant News Taps*:",
+        "⚡ *Instant News & Event Taps*:",
         buttons=[
             ("run:news:macro", "🌐 Macro News"),
             ("run:news:portfolio", "💼 Portfolio News"),
-            ("nav:menu:main", "🏠 Main Menu")
+            ("view:events_calendar", "📅 Events Calendar")
         ],
         recipient=recipient
     )
@@ -2611,6 +2616,165 @@ def handle_portfolio_catalyst_digest(recipient: Optional[str] = None, force_refr
         return send_whatsapp_interactive_buttons(nav_body, buttons=buttons, recipient=recipient)
 
 
+def handle_events_calendar(query_arg: Optional[str] = None, recipient: Optional[str] = None) -> Dict[str, Any]:
+    """
+    Renders Corporate Actions & Earnings Calendar.
+    If query_arg is provided (e.g. 'BOSCH'), inspects corporate events for that specific stock.
+    Otherwise, aggregates forward-looking earnings results, dividends, and corporate actions
+    for active portfolio holdings, backfilled with key market earnings.
+    """
+    def get_badge(etype: str) -> str:
+        et = (etype or "").lower()
+        if "dividend" in et:
+            return "💰 Dividend"
+        if "result" in et or "earning" in et or "quarter" in et:
+            return "📊 Earnings"
+        if "split" in et:
+            return "✂️ Split"
+        if "bonus" in et or "right" in et:
+            return "🎁 Bonus"
+        return "🏛️ Corporate Action"
+
+    def fmt_date(dstr: str) -> str:
+        try:
+            dt = datetime.strptime(dstr, "%Y-%m-%d")
+            return dt.strftime("%d %b %Y")
+        except Exception:
+            return str(dstr)
+
+    today = datetime.now().strftime("%Y-%m-%d")
+
+    # Mode A: Specific company requested (e.g. EVENTS BOSCH, DIVIDENDS INFY)
+    if query_arg and query_arg.strip():
+        sym_clean = query_arg.strip().upper().replace("EVENTS", "").replace("DIVIDENDS", "").replace("EARNINGS", "").replace("CALENDAR", "").strip()
+        if sym_clean:
+            resolved = resolve_company_ticker(sym_clean)
+            base_sym = resolved.get("base_symbol") if resolved else sym_clean
+            comp_name = resolved.get("name") if resolved else base_sym
+
+            events = []
+            try:
+                with get_db() as conn:
+                    cursor = conn.cursor()
+                    cursor.execute(
+                        "SELECT symbol, company_name, event_type, event_date, description FROM stock_events "
+                        "WHERE symbol = ? OR symbol = ? ORDER BY event_date DESC LIMIT 8",
+                        (base_sym, f"{base_sym}.NS")
+                    )
+                    events = [dict(r) for r in cursor.fetchall()]
+            except Exception as e:
+                logger.warning(f"Error fetching stock events for {base_sym}: {e}")
+
+            if not events:
+                body = (
+                    f"📅 *CORPORATE CALENDAR: {base_sym}*\n"
+                    f"*{comp_name}*\n"
+                    "━━━━━━━━━━━━━━━━━━━━\n"
+                    f"No corporate events (earnings, dividends, splits) recorded for `{base_sym}` in the database.\n\n"
+                    f"Text `NEWS {base_sym}` for live news coverage or tap below:"
+                )
+            else:
+                body = (
+                    f"📅 *CORPORATE CALENDAR: {base_sym}*\n"
+                    f"*{comp_name}*\n"
+                    "━━━━━━━━━━━━━━━━━━━━\n"
+                )
+                for row in events:
+                    s, cn, et, ed, desc = row["symbol"], row["company_name"], row["event_type"], row["event_date"], row["description"]
+                    badge = get_badge(et)
+                    clean_desc = desc.replace("Quarterly Results (Earnings)", "Quarterly Results").strip()
+                    body += f"• {badge} • {fmt_date(ed)}\n  _{clean_desc}_\n"
+                body += (
+                    "━━━━━━━━━━━━━━━━━━━━\n"
+                    "Tap below to view dark-mode chart or valuation dossier:"
+                )
+
+            clean_btn = base_sym[:8]
+            buttons = [
+                (f"act:chart:{clean_btn}", f"📈 {clean_btn} Chart"),
+                (f"view:stock:{clean_btn}", f"📌 {clean_btn} Dossier"),
+                ("nav:menu:main", "🏠 Main Menu")
+            ]
+            return send_whatsapp_interactive_buttons(body[:1024], buttons=buttons, recipient=recipient)
+
+    # Mode B: Portfolio & Market-Wide Calendar
+    pf_syms = []
+    try:
+        with get_db() as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT DISTINCT symbol FROM portfolio_items")
+            pf_syms = [
+                r["symbol"].replace(".NS", "").replace(".BO", "").strip()
+                for r in cursor.fetchall()
+                if r["symbol"] and not r["symbol"].startswith("TEST")
+            ]
+    except Exception as e:
+        logger.warning(f"Error reading portfolio symbols for calendar: {e}")
+
+    pf_events = []
+    mkt_events = []
+    try:
+        with get_db() as conn:
+            cursor = conn.cursor()
+            if pf_syms:
+                q_marks = ",".join(["?"] * len(pf_syms))
+                cursor.execute(
+                    f"SELECT symbol, company_name, event_type, event_date, description FROM stock_events "
+                    f"WHERE symbol IN ({q_marks}) AND event_date >= ? ORDER BY event_date ASC LIMIT 6",
+                    pf_syms + [today]
+                )
+                pf_events = [dict(r) for r in cursor.fetchall()]
+
+            # Key market events to round out calendar
+            mkt_limit = 6 if not pf_events else 4
+            cursor.execute(
+                f"SELECT symbol, company_name, event_type, event_date, description FROM stock_events "
+                f"WHERE event_date >= ? ORDER BY event_date ASC LIMIT {mkt_limit}",
+                [today]
+            )
+            mkt_events = [dict(r) for r in cursor.fetchall()]
+    except Exception as e:
+        logger.warning(f"Error reading stock_events for calendar: {e}")
+
+    body = (
+        "📅 *CORPORATE & EARNINGS CALENDAR*\n"
+        "━━━━━━━━━━━━━━━━━━━━\n"
+        "Forward-looking earnings pipeline & dividend announcements:\n\n"
+        "💼 *Your Active Portfolio:*\n"
+    )
+
+    if pf_events:
+        for r in pf_events:
+            sym, cname, etype, edate, desc = r["symbol"], r["company_name"], r["event_type"], r["event_date"], r["description"]
+            badge = get_badge(etype)
+            clean_desc = desc.replace("Quarterly Results (Earnings)", "Quarterly Results").replace("Quarterly Results", "Q2/Q3 Results").strip()
+            body += f"• *{sym}* ({cname[:16]}):\n  {badge} • {fmt_date(edate)} ({clean_desc})\n"
+    else:
+        body += "• No pending earnings or dividends announced for your holdings.\n"
+
+    # Distinct market events that aren't already listed in portfolio
+    pf_event_syms = {r["symbol"] for r in pf_events}
+    filtered_mkt = [r for r in mkt_events if r["symbol"] not in pf_event_syms][:4]
+    if filtered_mkt:
+        body += "\n🌐 *Notable Market Earnings This Week:*\n"
+        for r in filtered_mkt:
+            sym, cname, etype, edate, desc = r["symbol"], r["company_name"], r["event_type"], r["event_date"], r["description"]
+            badge = get_badge(etype)
+            body += f"• *{sym}*: {badge} • {fmt_date(edate)}\n"
+
+    body += (
+        "━━━━━━━━━━━━━━━━━━━━\n"
+        "Tap below to view portfolio catalysts or inspect holdings:"
+    )
+
+    buttons = [
+        ("run:news:portfolio", "📰 Portfolio News"),
+        ("view:portfolio", "💼 Active Portfolio"),
+        ("nav:menu:main", "🏠 Main Menu")
+    ]
+    return send_whatsapp_interactive_buttons(body[:1024], buttons=buttons, recipient=recipient)
+
+
 def get_stock_price_context(symbol_clean: str, ticker: str) -> Dict[str, Any]:
     """
     Fetches real-time price, 52W range, SMAs, and key technical levels from cached_profiles
@@ -2987,25 +3151,23 @@ def handle_why_stock_moved(query_input: str, recipient: Optional[str] = None) ->
 
 
 def handle_stock_query_prompt(recipient: Optional[str] = None) -> Dict[str, Any]:
-    """Prompts the user to text any stock symbol or ask freeform AI questions."""
+    """Prompts the user to text any stock symbol, compare stocks, or ask freeform AI questions."""
     body = (
         "🤖 *APEX AI CO-PILOT & QUANT DIAGNOSTIC*\n"
         "━━━━━━━━━━━━━━━━━━━━\n"
-        "Ask ANY question in plain English or inspect fundamentals.\n\n"
-        "💬 *Ask Freeform Questions Anytime:*\n"
-        "• _'Should I average down on HDFCBANK or wait for support?'_\n"
-        "• _'Compare Dixon vs Amber for 1-year horizon'_\n"
-        "• _'Why is Nifty falling so sharply today?'_\n\n"
+        "Ask ANY question in plain English, compare stocks, or inspect fundamentals.\n\n"
+        "⚔️ *Head-to-Head Stock Battles:*\n"
+        "• Text `COMPARE <S1> <S2>` (e.g. `COMPARE DIXON AMBER` or `INFY VS TCS`)\n\n"
         "🔍 *Quick Single-Stock Inspection:*\n"
+        "• Text `<SYMBOL>` (e.g. `BOSCH` or `RELIANCE`)\n"
         "• Text `WHY <SYM> DOWN` (e.g. `WHY RVNL DOWN`)\n"
-        "• Text `Q <SYMBOL>` (e.g. `Q RELIANCE`)\n"
-        "• Text `NEWS <SYMBOL>` for news + AI impact\n"
-        "• Text `C <SYMBOL>` for technical chart\n\n"
+        "• Text `NEWS <SYM>` or `EVENTS <SYM>`\n"
+        "• Text `C <SYM>` for technical chart\n\n"
         "Or tap a quick chip below:"
     )
     buttons = [
         ("view:stock:BOSCH", "🔍 BOSCH"),
-        ("view:stock:RELIANCE", "🔍 RELIANCE"),
+        ("run:compare:INFY:TCS", "⚔️ INFY vs TCS"),
         ("nav:menu:main", "🏠 Main Menu")
     ]
     return send_whatsapp_interactive_buttons(body, buttons=buttons, recipient=recipient)
@@ -3271,6 +3433,233 @@ def handle_chart_query(symbol_input: str, recipient: Optional[str] = None) -> Di
         )
 
 
+def handle_stock_comparison(query_text: str, recipient: Optional[str] = None) -> Dict[str, Any]:
+    """
+    Renders Institutional Head-to-Head Stock Battle comparing two equities across
+    CMP, 1Y/3Y returns, Alpha vs Nifty 50, Valuation (Current & 3Y P/E), ROCE, ROE,
+    Debt/Equity, and Piotroski score, concluding with an Apex Quant Verdict.
+    """
+    cleaned = (query_text or "").strip()
+    upper = cleaned.upper()
+
+    sym1, sym2 = None, None
+
+    if cleaned.startswith("run:compare:"):
+        parts = cleaned.split(":")
+        if len(parts) >= 4:
+            sym1, sym2 = parts[2].strip().upper(), parts[3].strip().upper()
+    else:
+        m1 = re.match(r"^COMPARE\s+([A-Za-z0-9_&.-]+)(?:\s+(?:AND|WITH|VS)\s+|\s+)([A-Za-z0-9_&.-]+)$", upper)
+        if m1:
+            sym1, sym2 = m1.group(1).strip(), m1.group(2).strip()
+        else:
+            m2 = re.match(r"^([A-Za-z0-9_&.-]+)\s+(?:VS|VERSUS|BATTLE)\s+([A-Za-z0-9_&.-]+)$", upper)
+            if m2:
+                sym1, sym2 = m2.group(1).strip(), m2.group(2).strip()
+
+    if not sym1 or not sym2 or sym1 == sym2:
+        body = (
+            "⚔️ *HEAD-TO-HEAD STOCK COMPARISON*\n"
+            "━━━━━━━━━━━━━━━━━━━━\n"
+            "Compare any two Indian equities side-by-side on returns, Nifty alpha, valuation multiples, and capital efficiency.\n\n"
+            "💬 *How to Compare:*\n"
+            "• Text `COMPARE <SYM1> <SYM2>` (e.g. `COMPARE DIXON AMBER`)\n"
+            "• Text `<SYM1> VS <SYM2>` (e.g. `INFY VS TCS` or `RELIANCE VS TATAMOTORS`)\n\n"
+            "Or tap a sample battle below:"
+        )
+        buttons = [
+            ("run:compare:INFY:TCS", "⚔️ INFY vs TCS"),
+            ("run:compare:DIXON:AMBER", "⚔️ DIXON vs AMBER"),
+            ("nav:menu:main", "🏠 Main Menu")
+        ]
+        return send_whatsapp_interactive_buttons(body, buttons=buttons, recipient=recipient)
+
+    import numpy as np
+
+    def fetch_stock_data(sym_in: str) -> Dict[str, Any]:
+        resolved = resolve_company_ticker(sym_in)
+        base = resolved.get("base_symbol") if resolved else sym_in.upper().replace(".NS", "")
+        lookup = resolved.get("yf_ticker") if resolved else f"{base}.NS"
+        name = resolved.get("name") if resolved else base
+
+        p_data = {}
+        try:
+            with get_db() as conn:
+                cursor = conn.cursor()
+                cursor.execute(
+                    "SELECT profile_json FROM cached_profiles WHERE symbol = ? OR symbol = ?",
+                    (lookup, f"{base}.NS")
+                )
+                p_row = cursor.fetchone()
+                if p_row and p_row[0]:
+                    p_data = json.loads(p_row[0])
+        except Exception as e:
+            logger.warning(f"Error fetching profile for {base}: {e}")
+
+        name = p_data.get("company_name", name)
+        t = p_data.get("technicals", {})
+        f = p_data.get("fundamentals", {})
+        capm = p_data.get("capm_risk_nifty50", {})
+        swot = (p_data.get("swot_performance") or {}).get("performance", {})
+        pe_bands = p_data.get("pe_bands", {})
+
+        curr_price = float(t.get("current_price") or f.get("current_price") or 0.0)
+        day_chg_pct = float(t.get("price_change_pct") or t.get("chg_1d") or 0.0)
+
+        try:
+            t_yf = yf.Ticker(lookup)
+            fi = t_yf.fast_info
+            lp = float(fi.last_price or 0.0)
+            if lp > 0:
+                curr_price = lp
+                prev_close = float(fi.previous_close or curr_price)
+                day_chg_pct = ((curr_price - prev_close) / prev_close * 100.0) if prev_close > 0 else 0.0
+        except Exception:
+            pass
+
+        ret_1y = swot.get("1Y") if swot.get("1Y") is not None else t.get("chg_1y")
+        ret_3y = swot.get("3Y")
+        if ret_3y is None:
+            try:
+                with get_db() as conn:
+                    cursor = conn.cursor()
+                    cursor.execute(
+                        "SELECT return_3y FROM stock_regime_stats WHERE symbol = ? OR symbol = ?",
+                        (base, lookup)
+                    )
+                    s_row = cursor.fetchone()
+                    if s_row and s_row[0] is not None:
+                        ret_3y = s_row[0]
+            except Exception:
+                pass
+
+        alpha = capm.get("capm_alpha_pct")
+        if alpha is None and ret_1y is not None:
+            try:
+                alpha = float(ret_1y) - 12.8
+            except Exception:
+                pass
+
+        pe = f.get("pe_ratio")
+        pe_hist = [p["pe"] for p in pe_bands.get("pe_history", []) if p.get("pe") and p["pe"] > 0]
+        pe_3y = float(np.median(pe_hist[-156:])) if len(pe_hist) >= 156 else (float(np.median(pe_hist)) if pe_hist else None)
+
+        roce = f.get("roce_pct")
+        roe = f.get("roe_pct")
+        de = f.get("debt_to_equity")
+        de_str = "N/A"
+        if de is not None and de != "N/A":
+            try:
+                def_f = float(de)
+                de_str = f"{def_f:.2f}" + (" (Debt-Free)" if def_f < 0.1 else "")
+            except Exception:
+                de_str = str(de)
+
+        piot = p_data.get("earnings_quality", {}).get("piotroski_score", "N/A")
+
+        return {
+            "base": base,
+            "name": name,
+            "cmp": curr_price,
+            "chg": day_chg_pct,
+            "ret_1y": ret_1y,
+            "ret_3y": ret_3y,
+            "alpha": alpha,
+            "pe": pe,
+            "pe_3y": pe_3y,
+            "roce": roce,
+            "roe": roe,
+            "de": de_str,
+            "piot": piot
+        }
+
+    d1 = fetch_stock_data(sym1)
+    d2 = fetch_stock_data(sym2)
+
+    def fmt_p(val):
+        if val is None or val == "N/A" or val == "":
+            return "N/A"
+        try:
+            fv = float(val)
+            return f"{fv:+.1f}%"
+        except Exception:
+            return str(val)
+
+    def fmt_x(val):
+        if val is None or val == "N/A" or val == "":
+            return "N/A"
+        try:
+            fv = float(val)
+            return f"{fv:.1f}x"
+        except Exception:
+            return str(val)
+
+    # Compute verdict edges
+    edges = []
+    try:
+        if d1["ret_1y"] is not None and d2["ret_1y"] is not None:
+            r1, r2 = float(d1["ret_1y"]), float(d2["ret_1y"])
+            if abs(r1 - r2) >= 3.0:
+                ret_leader = d1["base"] if r1 > r2 else d2["base"]
+                edges.append(f"`{ret_leader}` leads 1Y momentum")
+    except Exception:
+        pass
+
+    try:
+        if d1["roce"] is not None and d2["roce"] is not None:
+            rc1, rc2 = float(d1["roce"]), float(d2["roce"])
+            if abs(rc1 - rc2) >= 4.0:
+                roce_leader = d1["base"] if rc1 > rc2 else d2["base"]
+                edges.append(f"`{roce_leader}` holds higher ROCE")
+    except Exception:
+        pass
+
+    try:
+        if d1["pe"] is not None and d2["pe"] is not None:
+            p1_val, p2_val = float(d1["pe"]), float(d2["pe"])
+            if p1_val > 0 and p2_val > 0 and abs(p1_val - p2_val) >= 5.0:
+                val_leader = d1["base"] if p1_val < p2_val else d2["base"]
+                edges.append(f"`{val_leader}` trades at cheaper P/E")
+    except Exception:
+        pass
+
+    verdict_text = " • ".join(edges) if edges else "Both companies exhibit comparable fundamental & valuation profiles."
+
+    b1_clean, b2_clean = d1["base"][:8], d2["base"][:8]
+
+    body = (
+        "⚔️ *HEAD-TO-HEAD BATTLE*\n"
+        f"*{d1['name']}* vs *{d2['name']}*\n"
+        f"`{d1['base']}` vs `{d2['base']}`\n"
+        "━━━━━━━━━━━━━━━━━━━━\n"
+        "💰 *Price (LTP)*:\n"
+        f"• {d1['base']}: ₹ {d1['cmp']:,.1f} ({d1['chg']:+.1f}%)\n"
+        f"• {d2['base']}: ₹ {d2['cmp']:,.1f} ({d2['chg']:+.1f}%)\n\n"
+        "📊 *Returns & Benchmark Alpha*:\n"
+        f"• 1Y Return: {d1['base']} {fmt_p(d1['ret_1y'])}  vs  {d2['base']} {fmt_p(d2['ret_1y'])}\n"
+        f"• 3Y Return: {d1['base']} {fmt_p(d1['ret_3y'])}  vs  {d2['base']} {fmt_p(d2['ret_3y'])}\n"
+        f"• Alpha vs Nifty: {d1['base']} {fmt_p(d1['alpha'])}  vs  {d2['base']} {fmt_p(d2['alpha'])}\n\n"
+        "⚖️ *Valuation Multiples*:\n"
+        f"• Current P/E: {d1['base']} {fmt_x(d1['pe'])}  vs  {d2['base']} {fmt_x(d2['pe'])}\n"
+        f"• 3Y Median P/E: {d1['base']} {fmt_x(d1['pe_3y'])}  vs  {d2['base']} {fmt_x(d2['pe_3y'])}\n\n"
+        "💎 *Quality & Balance Sheet*:\n"
+        f"• ROCE: {d1['base']} {fmt_p(d1['roce'])}  vs  {d2['base']} {fmt_p(d2['roce'])}\n"
+        f"• ROE: {d1['base']} {fmt_p(d1['roe'])}  vs  {d2['base']} {fmt_p(d2['roe'])}\n"
+        f"• Debt/Equity: {d1['base']} {d1['de']}  vs  {d2['base']} {d2['de']}\n"
+        f"• Piotroski: {d1['base']} {d1['piot']}/9  vs  {d2['base']} {d2['piot']}/9\n"
+        "━━━━━━━━━━━━━━━━━━━━\n"
+        f"🏆 *Apex Verdict*: {verdict_text}\n\n"
+        "Tap below to view individual charts:"
+    )
+
+    buttons = [
+        (f"act:chart:{b1_clean}", f"📈 {b1_clean} Chart"),
+        (f"act:chart:{b2_clean}", f"📈 {b2_clean} Chart"),
+        ("nav:menu:main", "🏠 Main Menu")
+    ]
+    return send_whatsapp_interactive_buttons(body[:1024], buttons=buttons, recipient=recipient)
+
+
 # ==============================================================================
 # NAVIGATION MODULE 10: PORTFOLIO HEALTH & LOG TRADE
 # ==============================================================================
@@ -3372,6 +3761,146 @@ def handle_portfolio(recipient: Optional[str] = None) -> Dict[str, Any]:
         ("nav:menu:main", "🏠 Main Menu")
     ]
     return send_whatsapp_interactive_buttons(body, buttons=buttons, recipient=recipient)
+
+
+def handle_closing_bell(recipient: Optional[str] = None) -> Dict[str, Any]:
+    """
+    Renders 3:35 PM Daily Market Close & Portfolio Performance summary.
+    Dispatches benchmark close levels, net portfolio valuation, today's P&L,
+    daily alpha vs Nifty 50, and top performer/laggard holdings.
+    """
+    # 1. Fetch live benchmark quotes
+    nifty_price = 24480.0
+    nifty_pts = 0.0
+    nifty_chg = 0.0
+    sensex_price = 80320.0
+    sensex_pts = 0.0
+    sensex_chg = 0.0
+    vix_val = 12.8
+    adv = 340
+    dec = 160
+
+    try:
+        t_n = yf.Ticker("^NSEI")
+        fi_n = t_n.fast_info
+        np = float(fi_n.last_price or 0.0)
+        pcn = float(fi_n.previous_close or np)
+        if np > 0 and pcn > 0:
+            nifty_price = np
+            nifty_pts = np - pcn
+            nifty_chg = (np - pcn) / pcn * 100.0
+
+        t_s = yf.Ticker("^BSESN")
+        fi_s = t_s.fast_info
+        sp = float(fi_s.last_price or 0.0)
+        pcs = float(fi_s.previous_close or sp)
+        if sp > 0 and pcs > 0:
+            sensex_price = sp
+            sensex_pts = sp - pcs
+            sensex_chg = (sp - pcs) / pcs * 100.0
+
+        t_v = yf.Ticker("^INDIAVIX")
+        vp = float(t_v.fast_info.last_price or 0.0)
+        if vp > 0:
+            vix_val = vp
+    except Exception as e:
+        logger.warning(f"Closing bell benchmark quote warning: {e}")
+
+    try:
+        from backend.agent import _MARKET_MOVERS_CACHE
+        if _MARKET_MOVERS_CACHE and "advances" in _MARKET_MOVERS_CACHE:
+            adv = _MARKET_MOVERS_CACHE.get("advances", adv)
+            dec = _MARKET_MOVERS_CACHE.get("declines", dec)
+    except Exception:
+        pass
+
+    # 2. Compute portfolio today's performance
+    total_cost = 0.0
+    total_val = 0.0
+    total_day_pnl = 0.0
+    holdings_summary = []
+    active_holdings = []
+
+    try:
+        with get_db() as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT id, symbol, name, sector, quantity, purchase_price, purchase_date, transaction_type FROM portfolio_items")
+            all_txs = [dict(row) for row in cursor.fetchall()]
+
+        active_holdings = compute_active_holdings(all_txs)
+        active_holdings = [h for h in active_holdings if not h.get("symbol", "").startswith("TEST")]
+
+        for h in active_holdings:
+            sym = h["symbol"]
+            qty = h["quantity"]
+            buy_price = h["purchase_price"]
+            total_cost += qty * buy_price
+
+            try:
+                t = yf.Ticker(sym)
+                fi = t.fast_info
+                curr_p = float(fi.last_price or buy_price)
+                prev_p = float(fi.previous_close or curr_p)
+            except Exception:
+                curr_p = buy_price
+                prev_p = buy_price
+
+            val = qty * curr_p
+            total_val += val
+            day_chg_val = qty * (curr_p - prev_p)
+            total_day_pnl += day_chg_val
+            day_chg_pct = ((curr_p - prev_p) / prev_p * 100.0) if prev_p > 0 else 0.0
+
+            holdings_summary.append({
+                "symbol": sym.replace(".NS", ""),
+                "val": val,
+                "pct": day_chg_pct
+            })
+    except Exception as e:
+        logger.warning(f"Closing bell portfolio calculation warning: {e}")
+
+    holdings_summary.sort(key=lambda x: x["pct"], reverse=True)
+    top_gainer = holdings_summary[0] if holdings_summary else {"symbol": "N/A", "pct": 0.0}
+    top_loser = holdings_summary[-1] if holdings_summary else {"symbol": "N/A", "pct": 0.0}
+
+    day_pnl_pct = (total_day_pnl / (total_val - total_day_pnl) * 100.0) if (total_val - total_day_pnl) > 0 else 0.0
+    day_alpha = day_pnl_pct - nifty_chg
+
+    day_pnl_sign = "+" if total_day_pnl >= 0 else "-"
+    day_pnl_emoji = "🟢" if total_day_pnl >= 0 else "🔴"
+
+    alpha_sign = "+" if day_alpha >= 0 else ""
+    alpha_emoji = "🟢" if day_alpha >= 0 else "🔴"
+
+    n_pts_sign = "+" if nifty_pts >= 0 else ""
+    n_sign = "+" if nifty_chg >= 0 else ""
+    s_pts_sign = "+" if sensex_pts >= 0 else ""
+    s_sign = "+" if sensex_chg >= 0 else ""
+
+    body = (
+        "🔔 *MARKET CLOSE & PORTFOLIO EOD (3:35 PM IST)*\n"
+        "━━━━━━━━━━━━━━━━━━━━\n"
+        "🏛️ *Benchmark Indices:*\n"
+        f"• Nifty 50: {nifty_price:,.2f} ({n_pts_sign}{nifty_pts:,.1f} pts | {n_sign}{nifty_chg:.2f}%)\n"
+        f"• Sensex: {sensex_price:,.2f} ({s_pts_sign}{sensex_pts:,.1f} pts | {s_sign}{sensex_chg:.2f}%)\n"
+        f"• India VIX: {vix_val:.2f} • Breadth: {adv} Adv / {dec} Dec\n\n"
+        "💼 *Your Portfolio Today:*\n"
+        f"• Valuation: ₹ {total_val:,.0f}\n"
+        f"• Today's Net P&L: {day_pnl_emoji} {day_pnl_sign}₹ {abs(total_day_pnl):,.0f} ({day_pnl_sign}{abs(day_pnl_pct):.2f}%)\n"
+        f"• Day's Alpha: {alpha_emoji} {alpha_sign}{day_alpha:.2f}% vs Nifty 50\n"
+        f"• Top Gainer: 🚀 {top_gainer['symbol']} ({top_gainer['pct']:+.2f}%)\n"
+        f"• Top Laggard: 🔻 {top_loser['symbol']} ({top_loser['pct']:+.2f}%)\n"
+        f"• Active Positions: {len(active_holdings)} stocks\n"
+        "━━━━━━━━━━━━━━━━━━━━\n"
+        "Tap below to inspect positions, read catalysts, or return home:"
+    )
+
+    buttons = [
+        ("view:portfolio", "💼 Active Portfolio"),
+        ("run:news:portfolio", "📰 Portfolio News"),
+        ("nav:menu:main", "🏠 Main Menu")
+    ]
+    return send_whatsapp_interactive_buttons(body[:1024], buttons=buttons, recipient=recipient)
 
 
 def handle_alerts_menu(recipient: Optional[str] = None) -> Dict[str, Any]:
@@ -4406,6 +4935,33 @@ def dispatch_incoming_whatsapp_message(text_body: str, sender: Optional[str] = N
         if sym:
             return handle_stock_news(sym, recipient=sender)
         return handle_news_menu(recipient=sender)
+
+    # 1b. Head-to-Head Stock Comparison Interceptor (COMPARE S1 S2 / S1 VS S2)
+    if (
+        cleaned.startswith("run:compare:")
+        or upper in ["COMPARE", "VS", "STOCK COMPARE", "STOCK COMPARISON", "HEAD TO HEAD"]
+        or upper.startswith("COMPARE ")
+        or upper.startswith("BATTLE ")
+        or bool(re.match(r"^[A-Za-z0-9_&.-]+\s+(?:VS|VERSUS|BATTLE)\s+[A-Za-z0-9_&.-]+$", upper))
+    ):
+        return handle_stock_comparison(cleaned, recipient=sender)
+
+    # 1c. 3:35 PM Daily Market Close & Portfolio Performance Interceptor (EOD / Close summary)
+    if (
+        cleaned in ["view:closing_bell", "run:closing_bell"]
+        or upper in ["CLOSE", "CLOSING BELL", "MARKET CLOSE", "TODAY PNL", "DAILY SUMMARY", "EOD", "CLOSING"]
+    ):
+        return handle_closing_bell(recipient=sender)
+
+    # 1d. Corporate Actions & Earnings Calendar Interceptor
+    if (
+        cleaned in ["view:events_calendar", "run:events_calendar"]
+        or upper in ["CALENDAR", "EVENTS", "DIVIDENDS", "EARNINGS", "CORP ACTIONS", "CORPORATE ACTIONS"]
+        or upper.startswith("EVENTS ")
+        or upper.startswith("DIVIDENDS ")
+        or upper.startswith("EARNINGS ")
+    ):
+        return handle_events_calendar(cleaned, recipient=sender)
 
     # Direct Scan Text Aliases (14 Web Scans Support)
     if upper in ["52W HIGH", "NEAR 52W HIGH", "NEAR HIGH", "52 HIGH"]:
