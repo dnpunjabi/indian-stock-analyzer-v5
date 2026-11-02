@@ -2731,9 +2731,9 @@ def generate_ai_news_catalyst_synthesis(comp_name: str, symbol: str, headlines: 
 def handle_stock_news(symbol_input: str, recipient: Optional[str] = None) -> Dict[str, Any]:
     """
     Enterprise Single-Stock News Catalyst Engine.
-    Strictly grounded in real SerpApi Google SGE & Google News data to completely eliminate hallucinations.
-    Rotates keys across SerpApi pool, extracts verified corporate developments,
-    and synthesizes an executive 'Why It Matters' anchored to live CMP.
+    Uses Gemini 2.5 Flash Google Search Grounding to fetch live, verified news & filings
+    for a specific company, eliminating repetitive calendar duplicates and providing an executive 'Why It Matters'.
+    Anchors output strictly to verified market price (CMP) and current date to eliminate hallucinations.
     """
     clean = symbol_input.strip().upper().replace("NEWS", "").replace(":", "").strip()
     resolved = resolve_company_ticker(clean)
@@ -2752,107 +2752,58 @@ def handle_stock_news(symbol_input: str, recipient: Optional[str] = None) -> Dic
     cmp_val = price_ctx.get("cmp", 0.0)
     price_info = price_ctx.get("formatted_text", "")
 
-    # 1. Fetch Verified Grounding Data via SerpApi (Google SGE / News)
-    verified_facts = ""
-    verified_source = "Google AI Overview (SerpApi)"
-
+    # 1. Primary: Gemini 2.5 Flash with Real-Time Google Search Grounding
     try:
-        from backend.main import get_serpapi_keys_pool
-        from backend.catalyst_scraper import fetch_serpapi_google_ai_overview
-        serp_keys = get_serpapi_keys_pool()
-
-        # Primary: SerpApi Google AI Overview (SGE)
-        sge_query = f"{comp_name} share latest news catalysts developments India"
-        sge_res = fetch_serpapi_google_ai_overview(sge_query, serpapi_keys=serp_keys)
-        if sge_res and sge_res.get("formatted_text"):
-            verified_facts = sge_res.get("formatted_text", "").strip()
-            verified_source = "Google AI Overview (SerpApi)"
+        sys_prompt = (
+            f"You are an institutional Indian equity analyst on WhatsApp. Today is {current_date_str}.\n"
+            "Provide real-time news catalysts without conversational preamble or markdown headers outside the format.\n"
+            "Rules:\n"
+            f"1. Output exactly 2 distinct verified headlines from recent days ({current_year}) with clean sources and dates.\n"
+            f"2. If no breaking news in last 48h, state operational/quarterly status for current fiscal period ({fy_str}).\n"
+            "3. Output a crisp 2-bullet 'WHY IT MATTERS' (Margin/Realization and Catalyst/Technical).\n"
+            "4. CRITICAL ANCHOR RULE:\n"
+            f"   - The CURRENT MARKET PRICE (CMP) is ₹{cmp_val:,.2f}.\n"
+            f"   - Any technical levels (support/resistance/targets) MUST be strictly anchored around the CMP of ₹{cmp_val:,.2f}.\n"
+            f"   - NEVER cite outdated historical price levels (such as ₹1,200) or obsolete fiscal years (FY24/FY25).\n"
+            "5. WhatsApp bold formatting only (*text*). No disclaimers."
+        )
+        u_prompt = (
+            f"Company: {comp_name} ({base_sym} / {ticker})\n"
+            f"{price_info}\n\n"
+            f"Search Google for verified live news, business developments, corporate filings, order wins, or management announcements for this company within recent days ({current_year}).\n\n"
+            "Output Format:\n"
+            "Output 2 distinct verified headlines:\n"
+            "[🟢 BULLISH | 🔴 CAUTION | ⚡ CATALYST] • [<Source & Date>]\n"
+            "└ <Concise 1-sentence verified event>\n\n"
+            "If there is no major breaking news in the last 48 hours, output:\n"
+            "⚡ CATALYST • [Operational Status]\n"
+            f"└ No major breaking corporate filings in last 48h. Core operational focus remains on <1-sentence recent business trend for {fy_str}>.\n\n"
+            "Followed by:\n"
+            "⚡ *WHY IT MATTERS (AI SYNTHESIS)*:\n"
+            f"* *Margin/Realization*: <1-2 sentences on margin, revenue, or industry volume impact for {fy_str}>\n"
+            f"* *Catalyst/Technical*: <1-2 sentences on near-term catalyst or key technical level to watch relative to CMP ₹{cmp_val:,.2f}>"
+        )
+        res = call_llm(TASK_FAST, system_prompt=sys_prompt, user_prompt=u_prompt, max_tokens=320, enable_web_search=True)
+        if res and len(res.strip()) > 50:
+            cleaned_synthesis = html.unescape(res.strip())
+            body = (
+                f"🏢 *{comp_name.upper()}* (`{base_sym}`)\n"
+                "📰 *RECENT NEWS & CATALYSTS*\n"
+                "━━━━━━━━━━━━━━━━━━━━\n"
+                f"{cleaned_synthesis}\n"
+                "━━━━━━━━━━━━━━━━━━━━\n"
+                "Tap below to view dark-mode chart or valuation dossier:"
+            )
+            buttons = [
+                (f"act:chart:{base_sym}", f"📈 {base_sym} Chart"),
+                (f"view:stock:{base_sym}", f"📌 {base_sym} Dossier"),
+                ("nav:menu:main", "🏠 Main Menu")
+            ]
+            return send_whatsapp_interactive_buttons(body, buttons=buttons, recipient=recipient)
     except Exception as e:
-        logger.warning(f"SerpApi SGE fetch failed for {base_sym}: {e}")
+        logger.warning(f"Stock news LLM grounding error for {base_sym}: {e}")
 
-    # Fallback 1: Multi-provider search (SerpApi / Tavily news search)
-    if not verified_facts:
-        try:
-            from backend.catalyst_scraper import fetch_latest_news_for_query
-            snippets, prov = fetch_latest_news_for_query(
-                f'"{comp_name}" share price news catalysts India',
-                timeframe="7d",
-                use_serpapi=True,
-                use_tavily=True
-            )
-            if snippets:
-                verified_facts = "\n".join(snippets[:5])
-                verified_source = prov
-        except Exception as e:
-            logger.warning(f"SerpApi news search failed for {base_sym}: {e}")
-
-    # Fallback 2: Real Google News RSS (verified live headlines)
-    if not verified_facts:
-        try:
-            raw_rss = fetch_google_news_rss(f"{comp_name} share news India")
-            rss_snippets = []
-            for item in raw_rss[:4]:
-                title = clean_news_headline(item.get("title", ""))
-                src = item.get("source", "Financial Press")
-                if title:
-                    rss_snippets.append(f"• {title} ({src})")
-            if rss_snippets:
-                verified_facts = "\n".join(rss_snippets)
-                verified_source = "Google News RSS"
-        except Exception as e:
-            logger.warning(f"RSS fetch failed for {base_sym}: {e}")
-
-    # 2. Institutional LLM Synthesis Grounded STRICTLY in Verified Facts
-    if verified_facts:
-        try:
-            sys_prompt = (
-                f"You are an institutional Indian equity analyst on WhatsApp. Today is {current_date_str}.\n"
-                "Provide real-time news catalysts strictly grounded in the verified facts provided.\n"
-                "RULES TO PREVENT HALLUCINATIONS:\n"
-                "1. Base your summary EXCLUSIVELY on the verified facts/snippets provided. DO NOT fabricate, assume, or invent order wins, contracts, percentages, or dates not explicitly present.\n"
-                "2. NEVER attribute announcements, locomotive orders, or contracts from other companies to this firm.\n"
-                f"3. Output exactly 2 distinct verified catalyst/news points directly from the facts:\n"
-                "   [🟢 BULLISH | 🔴 CAUTION | ⚡ CATALYST] • [<Source or Milestone>]\n"
-                "   └ <Concise 1-sentence verified event from facts>\n"
-                "4. Follow with a crisp 'WHY IT MATTERS (AI SYNTHESIS)':\n"
-                f"   * *Margin/Realization*: <1-2 sentences on margin/operational impact for {fy_str} from facts>\n"
-                f"   * *Catalyst/Technical*: <1-2 sentences on key technical level or catalyst relative to live CMP ₹{cmp_val:,.2f}>\n"
-                f"5. The current market price (CMP) is ₹{cmp_val:,.2f}. All levels MUST be strictly anchored around this CMP.\n"
-                "6. WhatsApp bold formatting only (*text*). No disclaimers or conversational preamble."
-            )
-            u_prompt = (
-                f"Company: {comp_name} (`{base_sym}` / {ticker})\n"
-                f"{price_info}\n\n"
-                f"Verified Intelligence ({verified_source}):\n"
-                f"{verified_facts[:2500]}\n\n"
-                "Synthesize the 2 headlines and the 'WHY IT MATTERS' strictly using the facts above."
-            )
-            res = call_llm(TASK_FAST, system_prompt=sys_prompt, user_prompt=u_prompt, max_tokens=320)
-            if res and len(res.strip()) > 50:
-                cleaned_synthesis = html.unescape(res.strip())
-                body = (
-                    f"🏢 *{comp_name.upper()}* (`{base_sym}`)\n"
-                    "📰 *RECENT NEWS & CATALYSTS*\n"
-                    "━━━━━━━━━━━━━━━━━━━━\n"
-                    f"{cleaned_synthesis}\n"
-                    "━━━━━━━━━━━━━━━━━━━━\n"
-                    "Tap below to view dark-mode chart or valuation dossier:"
-                )
-                buttons = [
-                    (f"act:chart:{base_sym}", f"📈 {base_sym} Chart"),
-                    (f"view:stock:{base_sym}", f"📌 {base_sym} Dossier"),
-                    ("nav:menu:main", "🏠 Main Menu")
-                ]
-                if len(body) > 950:
-                    send_whatsapp_text(body, recipient=recipient)
-                    nav_body = f"📊 *{base_sym} Quick Navigation*\nTap below to view dark-mode chart, valuation dossier, or return home:"
-                    return send_whatsapp_interactive_buttons(nav_body, buttons=buttons, recipient=recipient)
-                else:
-                    return send_whatsapp_interactive_buttons(body, buttons=buttons, recipient=recipient)
-        except Exception as e:
-            logger.warning(f"Stock news LLM grounding error for {base_sym}: {e}")
-
-    # 3. Resilient Fallback: Sanitized and Deduplicated Local Cache / RSS
+    # 2. Resilient Fallback: Sanitized and Deduplicated Local Cache / RSS
     headlines = []
     seen_titles = set()
     try:
@@ -2919,12 +2870,7 @@ def handle_stock_news(symbol_input: str, recipient: Optional[str] = None) -> Dic
         (f"view:stock:{base_sym}", f"📌 {base_sym} Dossier"),
         ("nav:menu:main", "🏠 Main Menu")
     ]
-    if len(body) > 950:
-        send_whatsapp_text(body, recipient=recipient)
-        nav_body = f"📊 *{base_sym} Quick Navigation*\nTap below to view dark-mode chart, valuation dossier, or return home:"
-        return send_whatsapp_interactive_buttons(nav_body, buttons=buttons, recipient=recipient)
-    else:
-        return send_whatsapp_interactive_buttons(body, buttons=buttons, recipient=recipient)
+    return send_whatsapp_interactive_buttons(body, buttons=buttons, recipient=recipient)
 
 
 def handle_why_stock_moved(query_input: str, recipient: Optional[str] = None) -> Dict[str, Any]:
@@ -3082,7 +3028,11 @@ def handle_chart_prompt(recipient: Optional[str] = None) -> Dict[str, Any]:
 
 
 def handle_stock_query(symbol_input: str, recipient: Optional[str] = None) -> Dict[str, Any]:
-    """Single-stock valuation dossier with quick chart & log buy buttons."""
+    """
+    Single-stock institutional valuation dossier with comprehensive multi-timeframe returns,
+    alpha vs benchmark, valuation multiples (Current, 3Y, 5Y PE), and quality ratios.
+    Completely eliminates DCF Fair Value in favor of institutional metrics.
+    """
     raw_upper = (symbol_input or "").strip().upper()
     if raw_upper.startswith("NEWS ") or raw_upper.startswith("NEWS:"):
         target_sym = re.sub(r"^NEWS[\s:]+", "", symbol_input.strip(), flags=re.IGNORECASE).strip()
@@ -3098,61 +3048,170 @@ def handle_stock_query(symbol_input: str, recipient: Optional[str] = None) -> Di
     base_sym = resolved.get("base_symbol") if resolved else lookup_ticker.replace(".NS", "")
     company_name = resolved.get("name") if resolved else base_sym
 
-    curr_price = 0.0
-    day_chg_pct = 0.0
-    fifty_two_h = 0.0
-    fifty_two_l = 0.0
-
-    try:
-        t = yf.Ticker(lookup_ticker)
-        fi = t.fast_info
-        curr_price = float(fi.last_price or 0.0)
-        prev_close = float(fi.previous_close or curr_price)
-        day_chg_pct = ((curr_price - prev_close) / prev_close * 100.0) if prev_close > 0 else 0.0
-        fifty_two_h = float(fi.year_high or 0.0)
-        fifty_two_l = float(fi.year_low or 0.0)
-    except Exception as e:
-        logger.warning(f"Quote warning for {lookup_ticker}: {e}")
-
-    pe_ratio = "N/A"
-    roce = "N/A"
-    sector = "Equities"
-    dcf_fair_val = None
-    piotroski = "N/A"
-
+    # 1. Fetch cached profile from SQLite
+    p_data = {}
     try:
         with get_db() as conn:
             cursor = conn.cursor()
-            cursor.execute("SELECT profile_json FROM cached_profiles WHERE symbol = ?", (lookup_ticker,))
+            cursor.execute(
+                "SELECT profile_json FROM cached_profiles WHERE symbol = ? OR symbol = ?",
+                (lookup_ticker, f"{base_sym}.NS")
+            )
             p_row = cursor.fetchone()
-            if p_row:
-                p_data = json.loads(p_row["profile_json"])
-                company_name = p_data.get("company_name", company_name)
-                sector = p_data.get("sector", sector)
-                pe_ratio = p_data.get("fundamentals", {}).get("pe_ratio", "N/A")
-                roce = p_data.get("fundamentals", {}).get("roce_pct", "N/A")
-                dcf_fair_val = p_data.get("dcf_model", {}).get("intrinsic_value")
-                piotroski = p_data.get("earnings_quality", {}).get("piotroski_score", "N/A")
-    except Exception:
-        pass
+            if p_row and p_row[0]:
+                p_data = json.loads(p_row[0])
+    except Exception as e:
+        logger.warning(f"Error fetching profile for {lookup_ticker}: {e}")
+
+    company_name = p_data.get("company_name", company_name)
+    sector = p_data.get("sector", "Equities")
+    cap_type = p_data.get("cap_type", "").title()
+    cap_str = f" • {cap_type} Cap" if cap_type else ""
+
+    t = p_data.get("technicals", {})
+    f = p_data.get("fundamentals", {})
+    capm = p_data.get("capm_risk_nifty50", {})
+    swot_perf = (p_data.get("swot_performance") or {}).get("performance", {})
+    pe_bands = p_data.get("pe_bands", {})
+
+    # 2. Real-time Live Price via fast_info with fallback to cached technicals
+    curr_price = float(t.get("current_price") or f.get("current_price") or 0.0)
+    day_chg_pct = float(t.get("price_change_pct") or t.get("chg_1d") or 0.0)
+    fifty_two_h = float(t.get("high_52w") or f.get("high_52w") or 0.0)
+    fifty_two_l = float(t.get("low_52w") or f.get("low_52w") or 0.0)
+
+    try:
+        t_yf = yf.Ticker(lookup_ticker)
+        fi = t_yf.fast_info
+        lp = float(fi.last_price or 0.0)
+        if lp > 0:
+            curr_price = lp
+            prev_close = float(fi.previous_close or curr_price)
+            day_chg_pct = ((curr_price - prev_close) / prev_close * 100.0) if prev_close > 0 else 0.0
+            fifty_two_h = float(fi.year_high or fifty_two_h)
+            fifty_two_l = float(fi.year_low or fifty_two_l)
+    except Exception as e:
+        logger.warning(f"Live quote warning for {lookup_ticker}: {e}")
+
+    # ATH (All-Time High)
+    ath = float(t.get("ath") or 0.0)
+    if ath <= 0 or ath < fifty_two_h:
+        ath = fifty_two_h
+
+    ath_dist_str = ""
+    if ath > 0 and curr_price > 0:
+        ath_dist = ((curr_price - ath) / ath) * 100.0
+        if ath_dist >= -0.5:
+            ath_dist_str = " (🏆 Near ATH)"
+        else:
+            ath_dist_str = f" ({ath_dist:.1f}% below ATH)"
+
+    # 3. Trailing Returns (1W, 1M, 3M, 1Y, 3Y)
+    def fmt_pct(val):
+        if val is None or val == "" or val == "N/A":
+            return "N/A"
+        try:
+            fv = float(val)
+            sign = "+" if fv >= 0 else ""
+            return f"{sign}{fv:.1f}%"
+        except (ValueError, TypeError):
+            return str(val)
+
+    ret_1w = swot_perf.get("1W") if swot_perf.get("1W") is not None else t.get("chg_1w")
+    ret_1m = swot_perf.get("1M") if swot_perf.get("1M") is not None else t.get("chg_1m")
+    ret_3m = swot_perf.get("3M") if swot_perf.get("3M") is not None else t.get("chg_3m")
+    ret_1y = swot_perf.get("1Y") if swot_perf.get("1Y") is not None else t.get("chg_1y")
+    ret_3y = swot_perf.get("3Y")
+
+    if ret_3y is None:
+        try:
+            with get_db() as conn:
+                cursor = conn.cursor()
+                cursor.execute(
+                    "SELECT return_3y FROM stock_regime_stats WHERE symbol = ? OR symbol = ?",
+                    (base_sym, lookup_ticker)
+                )
+                s_row = cursor.fetchone()
+                if s_row and s_row[0] is not None:
+                    ret_3y = s_row[0]
+        except Exception:
+            pass
+
+    # 4. Alpha vs Nifty 50
+    alpha_nifty = capm.get("capm_alpha_pct")
+    if alpha_nifty is None and ret_1y is not None:
+        try:
+            alpha_nifty = float(ret_1y) - 12.8
+        except Exception:
+            pass
+
+    alpha_str = "N/A"
+    if alpha_nifty is not None:
+        try:
+            av = float(alpha_nifty)
+            abadge = "🟢" if av >= 0 else "🔴"
+            alpha_str = f"{abadge} {fmt_pct(av)} Alpha"
+        except Exception:
+            alpha_str = str(alpha_nifty)
+
+    # 5. Valuation Multiples (Current P/E, 3Y PE, 5Y PE)
+    import numpy as np
+    pe_curr = f.get("pe_ratio")
+    pe_curr_str = f"{float(pe_curr):.1f}x" if pe_curr and pe_curr != "N/A" else "N/A"
+
+    pe_hist = [p["pe"] for p in pe_bands.get("pe_history", []) if p.get("pe") and p["pe"] > 0]
+    pe_3y_str = "N/A"
+    pe_5y_str = "N/A"
+    if len(pe_hist) >= 156:
+        pe_3y_str = f"{float(np.median(pe_hist[-156:])):.1f}x"
+    elif pe_hist:
+        pe_3y_str = f"{float(np.median(pe_hist)):.1f}x"
+
+    if len(pe_hist) >= 260:
+        pe_5y_str = f"{float(np.median(pe_hist[-260:])):.1f}x"
+    elif pe_bands.get("median_pe"):
+        pe_5y_str = f"{float(pe_bands['median_pe']):.1f}x"
+    elif pe_hist:
+        pe_5y_str = f"{float(np.median(pe_hist)):.1f}x"
+
+    # 6. Quality & Financial Health (ROE, ROCE, Debt/Equity, Piotroski)
+    roe = f.get("roe_pct")
+    roe_str = f"{float(roe):.1f}%" if roe is not None and roe != "N/A" else "N/A"
+
+    roce = f.get("roce_pct")
+    roce_str = f"{float(roce):.1f}%" if roce is not None and roce != "N/A" else "N/A"
+
+    de = f.get("debt_to_equity")
+    de_str = "N/A"
+    if de is not None and de != "N/A":
+        try:
+            de_f = float(de)
+            de_str = f"{de_f:.2f}" + (" (Debt-Free)" if de_f < 0.1 else "")
+        except Exception:
+            de_str = str(de)
+
+    piotroski = p_data.get("earnings_quality", {}).get("piotroski_score", "N/A")
+    piot_str = f"{piotroski}/9" if piotroski != "N/A" else "N/A"
 
     chg_emoji = "🟢" if day_chg_pct >= 0 else "🔴"
     chg_sign = "+" if day_chg_pct >= 0 else ""
 
-    dcf_line = ""
-    if dcf_fair_val and dcf_fair_val > 0 and curr_price > 0:
-        mos = ((dcf_fair_val - curr_price) / dcf_fair_val * 100.0)
-        mos_sign = "+" if mos >= 0 else ""
-        dcf_line = f"🎯 *DCF Fair Value*: ₹ {dcf_fair_val:,.1f} (Upside: {mos_sign}{mos:.1f}%)\n"
-
     body = (
-        f"🏢 *{company_name.upper()}* (`{base_sym}`)\n"
-        f"📁 *Sector*: {sector}\n"
+        f"🏛️ *{company_name.upper()}* (`{base_sym}`)\n"
+        f"📁 *Sector*: {sector}{cap_str}\n"
         "━━━━━━━━━━━━━━━━━━━━\n"
         f"{chg_emoji} *Price*: ₹ {curr_price:,.2f} ({chg_sign}{day_chg_pct:.2f}%)\n"
         f"📏 *52W Range*: ₹ {fifty_two_l:,.1f} – ₹ {fifty_two_h:,.1f}\n"
-        f"⚖️ *P/E*: {pe_ratio}  |  *ROCE*: {roce}%  |  *Piotroski*: {piotroski}/9\n"
-        f"{dcf_line}"
+        f"🏔️ *All-Time High*: ₹ {ath:,.1f}{ath_dist_str}\n\n"
+        "📊 *RETURNS & BENCHMARK ALPHA*\n"
+        f"• 1W: {fmt_pct(ret_1w)}  |  1M: {fmt_pct(ret_1m)}  |  3M: {fmt_pct(ret_3m)}\n"
+        f"• 1Y: {fmt_pct(ret_1y)}  |  3Y: {fmt_pct(ret_3y)}\n"
+        f"• *Alpha vs Nifty 50*: {alpha_str}\n\n"
+        "⚖️ *VALUATION MULTIPLES*\n"
+        f"• Current P/E: {pe_curr_str}  |  3Y Median P/E: {pe_3y_str}  |  5Y Median P/E: {pe_5y_str}\n\n"
+        "💎 *QUALITY & FINANCIAL HEALTH*\n"
+        f"• ROCE: {roce_str}  |  ROE: {roe_str}\n"
+        f"• Debt/Equity: {de_str}  |  Piotroski: {piot_str}\n"
         "━━━━━━━━━━━━━━━━━━━━\n"
         "Tap below to view dark-mode chart or news:"
     )
