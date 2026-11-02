@@ -2731,9 +2731,9 @@ def generate_ai_news_catalyst_synthesis(comp_name: str, symbol: str, headlines: 
 def handle_stock_news(symbol_input: str, recipient: Optional[str] = None) -> Dict[str, Any]:
     """
     Enterprise Single-Stock News Catalyst Engine.
-    Uses Gemini 2.5 Flash Google Search Grounding to fetch live, verified news & filings
-    for a specific company, eliminating repetitive calendar duplicates and providing an executive 'Why It Matters'.
-    Anchors output strictly to verified market price (CMP) and current date to eliminate hallucinations.
+    Strictly grounded in real SerpApi Google SGE & Google News data to completely eliminate hallucinations.
+    Rotates keys across SerpApi pool, extracts verified corporate developments,
+    and synthesizes an executive 'Why It Matters' anchored to live CMP.
     """
     clean = symbol_input.strip().upper().replace("NEWS", "").replace(":", "").strip()
     resolved = resolve_company_ticker(clean)
@@ -2752,58 +2752,107 @@ def handle_stock_news(symbol_input: str, recipient: Optional[str] = None) -> Dic
     cmp_val = price_ctx.get("cmp", 0.0)
     price_info = price_ctx.get("formatted_text", "")
 
-    # 1. Primary: Gemini 2.5 Flash with Real-Time Google Search Grounding
-    try:
-        sys_prompt = (
-            f"You are an institutional Indian equity analyst on WhatsApp. Today is {current_date_str}.\n"
-            "Provide real-time news catalysts without conversational preamble or markdown headers outside the format.\n"
-            "Rules:\n"
-            f"1. Output exactly 2 distinct verified headlines from recent days ({current_year}) with clean sources and dates.\n"
-            f"2. If no breaking news in last 48h, state operational/quarterly status for current fiscal period ({fy_str}).\n"
-            "3. Output a crisp 2-bullet 'WHY IT MATTERS' (Margin/Realization and Catalyst/Technical).\n"
-            "4. CRITICAL ANCHOR RULE:\n"
-            f"   - The CURRENT MARKET PRICE (CMP) is ₹{cmp_val:,.2f}.\n"
-            f"   - Any technical levels (support/resistance/targets) MUST be strictly anchored around the CMP of ₹{cmp_val:,.2f}.\n"
-            f"   - NEVER cite outdated historical price levels (such as ₹1,200) or obsolete fiscal years (FY24/FY25).\n"
-            "5. WhatsApp bold formatting only (*text*). No disclaimers."
-        )
-        u_prompt = (
-            f"Company: {comp_name} ({base_sym} / {ticker})\n"
-            f"{price_info}\n\n"
-            f"Search Google for verified live news, business developments, corporate filings, order wins, or management announcements for this company within recent days ({current_year}).\n\n"
-            "Output Format:\n"
-            "Output 2 distinct verified headlines:\n"
-            "[🟢 BULLISH | 🔴 CAUTION | ⚡ CATALYST] • [<Source & Date>]\n"
-            "└ <Concise 1-sentence verified event>\n\n"
-            "If there is no major breaking news in the last 48 hours, output:\n"
-            "⚡ CATALYST • [Operational Status]\n"
-            f"└ No major breaking corporate filings in last 48h. Core operational focus remains on <1-sentence recent business trend for {fy_str}>.\n\n"
-            "Followed by:\n"
-            "⚡ *WHY IT MATTERS (AI SYNTHESIS)*:\n"
-            f"* *Margin/Realization*: <1-2 sentences on margin, revenue, or industry volume impact for {fy_str}>\n"
-            f"* *Catalyst/Technical*: <1-2 sentences on near-term catalyst or key technical level to watch relative to CMP ₹{cmp_val:,.2f}>"
-        )
-        res = call_llm(TASK_FAST, system_prompt=sys_prompt, user_prompt=u_prompt, max_tokens=320, enable_web_search=True)
-        if res and len(res.strip()) > 50:
-            cleaned_synthesis = html.unescape(res.strip())
-            body = (
-                f"🏢 *{comp_name.upper()}* (`{base_sym}`)\n"
-                "📰 *RECENT NEWS & CATALYSTS*\n"
-                "━━━━━━━━━━━━━━━━━━━━\n"
-                f"{cleaned_synthesis}\n"
-                "━━━━━━━━━━━━━━━━━━━━\n"
-                "Tap below to view dark-mode chart or valuation dossier:"
-            )
-            buttons = [
-                (f"act:chart:{base_sym}", f"📈 {base_sym} Chart"),
-                (f"view:stock:{base_sym}", f"📌 {base_sym} Dossier"),
-                ("nav:menu:main", "🏠 Main Menu")
-            ]
-            return send_whatsapp_interactive_buttons(body, buttons=buttons, recipient=recipient)
-    except Exception as e:
-        logger.warning(f"Stock news LLM grounding error for {base_sym}: {e}")
+    # 1. Fetch Verified Grounding Data via SerpApi (Google SGE / News)
+    verified_facts = ""
+    verified_source = "Google AI Overview (SerpApi)"
 
-    # 2. Resilient Fallback: Sanitized and Deduplicated Local Cache / RSS
+    try:
+        from backend.main import get_serpapi_keys_pool
+        from backend.catalyst_scraper import fetch_serpapi_google_ai_overview
+        serp_keys = get_serpapi_keys_pool()
+
+        # Primary: SerpApi Google AI Overview (SGE)
+        sge_query = f"{comp_name} share latest news catalysts developments India"
+        sge_res = fetch_serpapi_google_ai_overview(sge_query, serpapi_keys=serp_keys)
+        if sge_res and sge_res.get("formatted_text"):
+            verified_facts = sge_res.get("formatted_text", "").strip()
+            verified_source = "Google AI Overview (SerpApi)"
+    except Exception as e:
+        logger.warning(f"SerpApi SGE fetch failed for {base_sym}: {e}")
+
+    # Fallback 1: Multi-provider search (SerpApi / Tavily news search)
+    if not verified_facts:
+        try:
+            from backend.catalyst_scraper import fetch_latest_news_for_query
+            snippets, prov = fetch_latest_news_for_query(
+                f'"{comp_name}" share price news catalysts India',
+                timeframe="7d",
+                use_serpapi=True,
+                use_tavily=True
+            )
+            if snippets:
+                verified_facts = "\n".join(snippets[:5])
+                verified_source = prov
+        except Exception as e:
+            logger.warning(f"SerpApi news search failed for {base_sym}: {e}")
+
+    # Fallback 2: Real Google News RSS (verified live headlines)
+    if not verified_facts:
+        try:
+            raw_rss = fetch_google_news_rss(f"{comp_name} share news India")
+            rss_snippets = []
+            for item in raw_rss[:4]:
+                title = clean_news_headline(item.get("title", ""))
+                src = item.get("source", "Financial Press")
+                if title:
+                    rss_snippets.append(f"• {title} ({src})")
+            if rss_snippets:
+                verified_facts = "\n".join(rss_snippets)
+                verified_source = "Google News RSS"
+        except Exception as e:
+            logger.warning(f"RSS fetch failed for {base_sym}: {e}")
+
+    # 2. Institutional LLM Synthesis Grounded STRICTLY in Verified Facts
+    if verified_facts:
+        try:
+            sys_prompt = (
+                f"You are an institutional Indian equity analyst on WhatsApp. Today is {current_date_str}.\n"
+                "Provide real-time news catalysts strictly grounded in the verified facts provided.\n"
+                "RULES TO PREVENT HALLUCINATIONS:\n"
+                "1. Base your summary EXCLUSIVELY on the verified facts/snippets provided. DO NOT fabricate, assume, or invent order wins, contracts, percentages, or dates not explicitly present.\n"
+                "2. NEVER attribute announcements, locomotive orders, or contracts from other companies to this firm.\n"
+                f"3. Output exactly 2 distinct verified catalyst/news points directly from the facts:\n"
+                "   [🟢 BULLISH | 🔴 CAUTION | ⚡ CATALYST] • [<Source or Milestone>]\n"
+                "   └ <Concise 1-sentence verified event from facts>\n"
+                "4. Follow with a crisp 'WHY IT MATTERS (AI SYNTHESIS)':\n"
+                f"   * *Margin/Realization*: <1-2 sentences on margin/operational impact for {fy_str} from facts>\n"
+                f"   * *Catalyst/Technical*: <1-2 sentences on key technical level or catalyst relative to live CMP ₹{cmp_val:,.2f}>\n"
+                f"5. The current market price (CMP) is ₹{cmp_val:,.2f}. All levels MUST be strictly anchored around this CMP.\n"
+                "6. WhatsApp bold formatting only (*text*). No disclaimers or conversational preamble."
+            )
+            u_prompt = (
+                f"Company: {comp_name} (`{base_sym}` / {ticker})\n"
+                f"{price_info}\n\n"
+                f"Verified Intelligence ({verified_source}):\n"
+                f"{verified_facts[:2500]}\n\n"
+                "Synthesize the 2 headlines and the 'WHY IT MATTERS' strictly using the facts above."
+            )
+            res = call_llm(TASK_FAST, system_prompt=sys_prompt, user_prompt=u_prompt, max_tokens=320)
+            if res and len(res.strip()) > 50:
+                cleaned_synthesis = html.unescape(res.strip())
+                body = (
+                    f"🏢 *{comp_name.upper()}* (`{base_sym}`)\n"
+                    "📰 *RECENT NEWS & CATALYSTS*\n"
+                    "━━━━━━━━━━━━━━━━━━━━\n"
+                    f"{cleaned_synthesis}\n"
+                    "━━━━━━━━━━━━━━━━━━━━\n"
+                    "Tap below to view dark-mode chart or valuation dossier:"
+                )
+                buttons = [
+                    (f"act:chart:{base_sym}", f"📈 {base_sym} Chart"),
+                    (f"view:stock:{base_sym}", f"📌 {base_sym} Dossier"),
+                    ("nav:menu:main", "🏠 Main Menu")
+                ]
+                if len(body) > 950:
+                    send_whatsapp_text(body, recipient=recipient)
+                    nav_body = f"📊 *{base_sym} Quick Navigation*\nTap below to view dark-mode chart, valuation dossier, or return home:"
+                    return send_whatsapp_interactive_buttons(nav_body, buttons=buttons, recipient=recipient)
+                else:
+                    return send_whatsapp_interactive_buttons(body, buttons=buttons, recipient=recipient)
+        except Exception as e:
+            logger.warning(f"Stock news LLM grounding error for {base_sym}: {e}")
+
+    # 3. Resilient Fallback: Sanitized and Deduplicated Local Cache / RSS
     headlines = []
     seen_titles = set()
     try:
@@ -2870,7 +2919,12 @@ def handle_stock_news(symbol_input: str, recipient: Optional[str] = None) -> Dic
         (f"view:stock:{base_sym}", f"📌 {base_sym} Dossier"),
         ("nav:menu:main", "🏠 Main Menu")
     ]
-    return send_whatsapp_interactive_buttons(body, buttons=buttons, recipient=recipient)
+    if len(body) > 950:
+        send_whatsapp_text(body, recipient=recipient)
+        nav_body = f"📊 *{base_sym} Quick Navigation*\nTap below to view dark-mode chart, valuation dossier, or return home:"
+        return send_whatsapp_interactive_buttons(nav_body, buttons=buttons, recipient=recipient)
+    else:
+        return send_whatsapp_interactive_buttons(body, buttons=buttons, recipient=recipient)
 
 
 def handle_why_stock_moved(query_input: str, recipient: Optional[str] = None) -> Dict[str, Any]:
