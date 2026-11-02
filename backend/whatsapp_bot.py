@@ -1907,49 +1907,108 @@ def handle_stock_stage_diagnostic(symbol_input: str, recipient: Optional[str] = 
         else "🔻 STAGE 4: CAPITULATION 📉"))
     )
 
-    screener_status = diag.get("screener_status", {})
-    qualified_screeners = []
-    unqualified_screeners = []
+    ORDERED_SCREENERS = [
+        ("vcp", "Minervini VCP"),
+        ("weinstein_stage2", "Weinstein Stage 2"),
+        ("htf", "High-Tight Flag"),
+        ("three_wt", "3-Weeks Tight"),
+        ("flat_base", "Modern Flat Base"),
+        ("episodic_pivot", "Episodic Pivot"),
+        ("pocket_pivot", "Pocket Pivot"),
+        ("oliver_kell", "Oliver Kell 10/20"),
+        ("cup_with_handle", "Cup with Handle"),
+        ("rs_line_new_high", "RS Line New High"),
+        ("undercut_and_rally", "Undercut & Rally"),
+    ]
 
-    for k, v in screener_status.items():
-        if k == "weinstein_stage3":
-            continue
-        name_clean = k.replace("_", " ").title()
-        if k == "vcp":
-            name_clean = "Minervini VCP"
-        elif k == "weinstein_stage2":
-            name_clean = "Weinstein Stage 2"
-        elif k == "htf":
-            name_clean = "High-Tight Flag"
-        elif k == "three_wt":
-            name_clean = "3-Weeks Tight"
-        elif k == "flat_base":
-            name_clean = "Modern Flat Base"
-        elif k == "oliver_kell":
-            name_clean = "Oliver Kell 10/20"
-        elif k == "cup_with_handle":
-            name_clean = "Cup with Handle"
-        elif k == "rs_line_new_high":
-            name_clean = "RS Line New High"
-        elif k == "undercut_and_rally":
-            name_clean = "Undercut & Rally"
-
-        reason = (v.get("reason") or "").strip()
-        if "U&R Reclaim Active" in reason:
-            reason = "U&R shakeout reclaim active (tight volume)"
-        elif "Base pivot" in reason and "is > 3% above" in reason:
-            reason = "Consolidating below base pivot resistance"
-        elif "Volume Dry-Up" in reason:
-            reason = "Volume dry-up ratio loose (>0.85x average)"
-        elif len(reason) > 42:
-            reason = reason[:39] + "..."
-
-        if v.get("qualified"):
-            qualified_screeners.append(f"✅ *{name_clean}*: {reason}")
+    def _clean_reason(key: str, reason: str, qualified: bool) -> str:
+        r = (reason or "").strip()
+        if qualified:
+            if "U&R Reclaim Active" in r or key == "undercut_and_rally":
+                return "U&R shakeout reclaim active"
+            if "VCP structure" in r or key == "vcp":
+                return "Active VCP contraction"
+            if "Stage 2 Breakout" in r or key == "weinstein_stage2":
+                return "Stage 2 institutional markup"
+            if "EP Gap-Up" in r or key == "episodic_pivot":
+                return "Catalyst gap-up with high RVOL"
+            if "Pocket Pivot" in r or key == "pocket_pivot":
+                return "Pocket pivot vol accumulation"
+            if "RS Line at 52-Week" in r or key == "rs_line_new_high":
+                return "RS line at 52W high"
+            if "Flat Base" in r or key == "flat_base":
+                return "Flat base breakout ready"
+            if "3WT Status" in r or key == "three_wt":
+                return "3-weeks tight consolidation"
+            if "HTF Status" in r or key == "htf":
+                return "High-tight flag active"
+            if "Oliver Kell" in r or key == "oliver_kell":
+                return "Oliver Kell 10/20 EMA reversal"
+            if "Cup & Handle" in r or key == "cup_with_handle":
+                return "Cup with handle pattern active"
+            return r[:26] if len(r) > 26 else r
         else:
-            unqualified_screeners.append(f"❌ *{name_clean}*: {reason}")
+            if "No active VCP" in r:
+                return "No active contraction pattern"
+            if "Base pivot" in r and "is > 3%" in r:
+                return "Pivot > 3% above current price"
+            if "Requires 100%+" in r:
+                return "Req 100%+ rally in <8 wks"
+            if "Close variance > 2.0%" in r:
+                return "Close variance > 2.0%"
+            if "Volume Dry-Up" in r:
+                return "Volume dry-up ratio loose"
+            if "No recent catalyst gap" in r:
+                return "No recent catalyst gap-up"
+            if "Gap < 4%" in r:
+                return "Gap < 4% or RVOL < 2.5x"
+            if "Price is not holding key MA" in r:
+                return "Below key MA support"
+            if "30-Wk MA slope" in r or "30-Week (150 SMA) slope" in r:
+                return "30-Wk MA slope not positive"
+            if "Fails Oliver Kell" in r:
+                return "Fails 10>20>50 EMA stack"
+            if "Failed Stage 2 Trend Template" in r:
+                return "Fails EMA trend template"
+            if "Fails Stage 2 trend alignment" in r:
+                return "Fails EMA trend alignment"
+            if "Price is < 35% above 52W Low" in r:
+                return "Price < 35% above 52W low"
+            if "Price is only" in r and "above 52W Low" in r:
+                return "Price < 30% above 52W low"
+            if "Low liquidity" in r:
+                return "Low avg daily volume"
+            if "RS Line not at 52W" in r or "RS line not at 52W" in r:
+                return "RS line not at 52W max"
+            if "Stock not in Stage 2" in r:
+                return "Not in Stage 2 markup"
+            if "No active Undercut & Rally" in r:
+                return "No active U&R setup"
+            if "exceeds 20% cap" in r or "exceeds 15% limit" in r or "below 52w high" in r.lower():
+                return "Price > 15-20% below 52W high"
+            if "Volume lower than highest" in r:
+                return "Vol below 10D down max"
+            if "Cup depth > 35%" in r:
+                return "Cup depth > 35% or <7 wks"
+            if "Base depth > 15%" in r:
+                return "Base depth > 15% or <5 wks"
+            if "RS rating < 60" in r:
+                return "RS rating < 60 or EMA off"
+            if "No institutional distribution" in r:
+                return "No institutional distribution"
+            return r[:28] if len(r) > 28 else r
 
-    qual_count = len(qualified_screeners)
+    screener_status = diag.get("screener_status", {})
+    screener_lines = []
+    qual_count = 0
+    for k, name in ORDERED_SCREENERS:
+        v = screener_status.get(k, {})
+        is_qual = bool(v.get("qualified"))
+        if is_qual:
+            qual_count += 1
+        icon = "✅" if is_qual else "❌"
+        r_text = _clean_reason(k, v.get("reason", ""), is_qual)
+        screener_lines.append(f"{icon} *{name}*: {r_text}")
 
     pivot_p = float(metrics.get("pivot_price") or (curr_p * 1.01))
     stop_l = float(metrics.get("stop_loss") or (pivot_p * 0.95))
@@ -1962,31 +2021,22 @@ def handle_stock_stage_diagnostic(symbol_input: str, recipient: Optional[str] = 
 
     comp_disp = comp_name[:24] if comp_name != base_sym else base_sym
 
-    body = (
-        f"🔬 *{base_sym} • STAGE 1-4 QUANT MATRIX*\n"
-        f"*{comp_disp}*\n"
-        "━━━━━━━━━━━━━━━━━━━━\n"
-        f"💰 *Price*: ₹ {curr_p:,.1f} ({day_chg:+.2f}%)\n"
-        f"📈 *Stage Diagnosis*: {stage_badge}\n"
-        f"• 30-Week MA Slope: {slope:+.1f}% (Long-Term Momentum)\n"
-        f"• 52W High Distance: {dist_high:.1f}% (Near Highs)\n\n"
-        f"🎯 *11-Screener Confluence: {qual_count}/11 QUALIFIED*\n"
-    )
+    body_lines = [
+        f"🔬 *{base_sym} • 11-SCREENER QUANT MATRIX*",
+        f"*{comp_disp}*",
+        "━━━━━━━━━━━━━━━━━━━━",
+        f"💰 *LTP*: ₹ {curr_p:,.1f} ({day_chg:+.2f}%) • {stage_badge}",
+        f"• 30W Slope: {slope:+.1f}% | 52W High Dist: {dist_high:.1f}%\n",
+        f"🎯 *11-SCREENER ALIGNMENT ({qual_count}/11 QUALIFIED)*:"
+    ]
+    body_lines.extend(screener_lines)
+    body_lines.append("\n🎯 *Execution Plan & Risk Guard:*")
+    body_lines.append(f"• Pivot: ₹ {pivot_p:,.1f} | SL: ₹ {stop_l:,.1f} ({sl_pct:.1f}%)")
+    body_lines.append(f"• T1: ₹ {target_1:,.1f} (+{t1_pct:.1f}%) | T2: ₹ {target_2:,.1f} (+{t2_pct:.1f}%)")
+    body_lines.append("━━━━━━━━━━━━━━━━━━━━")
+    body_lines.append("Tap below to view dark-mode chart or dossier:")
 
-    if qualified_screeners:
-        body += "\n".join(qualified_screeners) + "\n"
-    for uq in unqualified_screeners[:4]:
-        body += uq + "\n"
-
-    body += (
-        "\n🎯 *Execution Plan & Risk Guard:*\n"
-        f"• Buy Pivot: ₹ {pivot_p:,.1f} (Awaiting volume breakout)\n"
-        f"• Stop-Loss: ₹ {stop_l:,.1f} ({sl_pct:.1f}% risk)\n"
-        f"• Target 1: ₹ {target_1:,.1f} (+{t1_pct:.1f}%)\n"
-        f"• Target 2: ₹ {target_2:,.1f} (+{t2_pct:.1f}%)\n"
-        "━━━━━━━━━━━━━━━━━━━━\n"
-        "Tap below to view dark-mode chart or valuation dossier:"
-    )
+    body = "\n".join(body_lines)
 
     clean_btn = base_sym[:8]
     buttons = [
@@ -1994,7 +2044,15 @@ def handle_stock_stage_diagnostic(symbol_input: str, recipient: Optional[str] = 
         (f"view:stock:{clean_btn}", f"📌 {clean_btn} Dossier"),
         ("nav:sub:watchlists", "⭐ Watchlists")
     ]
-    return send_whatsapp_interactive_buttons(body[:1024], buttons=buttons, recipient=recipient)
+
+    if len(body) > 1020:
+        send_whatsapp_text(body, recipient=recipient)
+        return send_whatsapp_interactive_buttons(
+            f"⚡ *Actions for {base_sym}*:",
+            buttons=buttons,
+            recipient=recipient
+        )
+    return send_whatsapp_interactive_buttons(body, buttons=buttons, recipient=recipient)
 
 
 def handle_watchlist_stage_matrix(wl_id: int, recipient: Optional[str] = None) -> Dict[str, Any]:
