@@ -1719,13 +1719,13 @@ def handle_run_watchlist(wl_id: int, recipient: Optional[str] = None) -> Dict[st
         + (f"🚀 *Top Idea*: {top_performer['symbol']} ({top_performer['gain_pct']:+.2f}%)\n" if top_performer and top_performer['added_price'] > 0 else "")
         + f"📌 *Monitored*: {len(scored_items)} stocks\n"
         "━━━━━━━━━━━━━━━━━━━━\n"
-        "Tap below to audit breakouts or view charts:"
+        "Tap *Stage Matrix* to inspect 11-screener setups, or choose an action:"
     )
 
     buttons = [
-        (f"run:wl:audit:{wl_id}", "⚡ Audit Breakouts"),
+        (f"run:wl:matrix:{wl_id}", "🔬 Stage Matrix"),
         (f"act:chart:{first_sym}", f"📈 {first_sym} Chart"),
-        ("nav:sub:watchlists", "⭐ Other Lists")
+        (f"run:wl:audit:{wl_id}", "⚡ Breakout Audit")
     ]
     return send_whatsapp_interactive_buttons(body, buttons=buttons, recipient=recipient)
 
@@ -1839,6 +1839,283 @@ def handle_watchlist_audit(wl_id: int, recipient: Optional[str] = None) -> Dict[
         ("nav:menu:main", "🏠 Main Menu")
     ]
     return send_whatsapp_interactive_buttons(body, buttons=buttons, recipient=recipient)
+
+
+def handle_stock_stage_diagnostic(symbol_input: str, recipient: Optional[str] = None) -> Dict[str, Any]:
+    """
+    Renders Stage 1-4 Quantitative Life Cycle Alignment Map for a single stock.
+    Diagnoses Stan Weinstein Stage 1-4, 30-week MA slope, 11-screener confluence status,
+    and algorithmic execution plan (pivot, stop-loss, targets).
+    """
+    clean_sym = (symbol_input or "").strip().upper()
+    clean_sym = re.sub(r"^(?:STAGE|MATRIX|QUANT)[\s:]+", "", clean_sym, flags=re.IGNORECASE).strip()
+    clean_sym = clean_sym.replace("RUN:STAGE:", "").replace("VIEW:STAGE:", "").strip()
+
+    if not clean_sym:
+        primary_id = get_primary_watchlist_id()
+        return handle_watchlist_stage_matrix(primary_id, recipient=recipient)
+
+    resolved = resolve_company_ticker(clean_sym)
+    base_sym = resolved.get("base_symbol") if resolved else clean_sym.replace(".NS", "").replace(".BO", "")
+    lookup_ticker = resolved.get("yf_ticker") if resolved else f"{base_sym}.NS"
+    comp_name = resolved.get("name") if resolved else base_sym
+
+    import concurrent.futures
+    from backend.main import get_stage_diagnostic
+
+    def _sync_eval():
+        try:
+            return asyncio.run(get_stage_diagnostic(lookup_ticker))
+        except RuntimeError:
+            with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
+                return executor.submit(asyncio.run, get_stage_diagnostic(lookup_ticker)).result()
+
+    diag = {}
+    try:
+        diag = _sync_eval()
+    except Exception as e:
+        logger.error(f"Error evaluating stage diagnostic for {base_sym}: {e}")
+
+    if not diag or diag.get("status") == "error":
+        body = (
+            f"🔬 *STAGE 1-4 DIAGNOSTIC: {base_sym}*\n"
+            "━━━━━━━━━━━━━━━━━━━━\n"
+            f"⚠️ Could not compute life cycle matrix for `{base_sym}`.\n"
+            "Ensure the symbol is listed on NSE/BSE with sufficient price history.\n\n"
+            f"Text `STAGE <SYM>` (e.g. `STAGE BOSCH`) or tap below:"
+        )
+        return send_whatsapp_interactive_buttons(
+            body,
+            buttons=[
+                ("nav:sub:watchlists", "⭐ Watchlists"),
+                ("nav:menu:main", "🏠 Main Menu")
+            ],
+            recipient=recipient
+        )
+
+    metrics = diag.get("metrics", {})
+    curr_p = float(metrics.get("current_price") or 0.0)
+    day_chg = float(metrics.get("day_change_pct") or 0.0)
+    slope = float(metrics.get("ma_30wk_slope_pct") or 0.0)
+    dist_high = float(metrics.get("dist_52wk_high_pct") or 0.0)
+    stage_num = diag.get("stage_number", 1)
+
+    stage_badge = (
+        "🟢 STAGE 2: MARK-UP 🚀" if stage_num == 2
+        else ("🟡 STAGE 1: BASING ⏳" if stage_num == 1
+        else ("🔴 STAGE 3: DISTRIBUTION TOP ⚠️" if stage_num == 3
+        else "🔻 STAGE 4: CAPITULATION 📉"))
+    )
+
+    screener_status = diag.get("screener_status", {})
+    qualified_screeners = []
+    unqualified_screeners = []
+
+    for k, v in screener_status.items():
+        if k == "weinstein_stage3":
+            continue
+        name_clean = k.replace("_", " ").title()
+        if k == "vcp":
+            name_clean = "Minervini VCP"
+        elif k == "weinstein_stage2":
+            name_clean = "Weinstein Stage 2"
+        elif k == "htf":
+            name_clean = "High-Tight Flag"
+        elif k == "three_wt":
+            name_clean = "3-Weeks Tight"
+        elif k == "flat_base":
+            name_clean = "Modern Flat Base"
+        elif k == "oliver_kell":
+            name_clean = "Oliver Kell 10/20"
+        elif k == "cup_with_handle":
+            name_clean = "Cup with Handle"
+        elif k == "rs_line_new_high":
+            name_clean = "RS Line New High"
+        elif k == "undercut_and_rally":
+            name_clean = "Undercut & Rally"
+
+        reason = (v.get("reason") or "").strip()
+        if "U&R Reclaim Active" in reason:
+            reason = "U&R shakeout reclaim active (tight volume)"
+        elif "Base pivot" in reason and "is > 3% above" in reason:
+            reason = "Consolidating below base pivot resistance"
+        elif "Volume Dry-Up" in reason:
+            reason = "Volume dry-up ratio loose (>0.85x average)"
+        elif len(reason) > 42:
+            reason = reason[:39] + "..."
+
+        if v.get("qualified"):
+            qualified_screeners.append(f"✅ *{name_clean}*: {reason}")
+        else:
+            unqualified_screeners.append(f"❌ *{name_clean}*: {reason}")
+
+    qual_count = len(qualified_screeners)
+
+    pivot_p = float(metrics.get("pivot_price") or (curr_p * 1.01))
+    stop_l = float(metrics.get("stop_loss") or (pivot_p * 0.95))
+    target_1 = float(metrics.get("target_1") or (pivot_p * 1.10))
+    target_2 = float(metrics.get("target_2") or (pivot_p * 1.20))
+
+    sl_pct = ((stop_l - pivot_p) / pivot_p * 100.0) if pivot_p > 0 else -5.0
+    t1_pct = ((target_1 - pivot_p) / pivot_p * 100.0) if pivot_p > 0 else 10.0
+    t2_pct = ((target_2 - pivot_p) / pivot_p * 100.0) if pivot_p > 0 else 20.0
+
+    comp_disp = comp_name[:24] if comp_name != base_sym else base_sym
+
+    body = (
+        f"🔬 *{base_sym} • STAGE 1-4 QUANT MATRIX*\n"
+        f"*{comp_disp}*\n"
+        "━━━━━━━━━━━━━━━━━━━━\n"
+        f"💰 *Price*: ₹ {curr_p:,.1f} ({day_chg:+.2f}%)\n"
+        f"📈 *Stage Diagnosis*: {stage_badge}\n"
+        f"• 30-Week MA Slope: {slope:+.1f}% (Long-Term Momentum)\n"
+        f"• 52W High Distance: {dist_high:.1f}% (Near Highs)\n\n"
+        f"🎯 *11-Screener Confluence: {qual_count}/11 QUALIFIED*\n"
+    )
+
+    if qualified_screeners:
+        body += "\n".join(qualified_screeners) + "\n"
+    for uq in unqualified_screeners[:4]:
+        body += uq + "\n"
+
+    body += (
+        "\n🎯 *Execution Plan & Risk Guard:*\n"
+        f"• Buy Pivot: ₹ {pivot_p:,.1f} (Awaiting volume breakout)\n"
+        f"• Stop-Loss: ₹ {stop_l:,.1f} ({sl_pct:.1f}% risk)\n"
+        f"• Target 1: ₹ {target_1:,.1f} (+{t1_pct:.1f}%)\n"
+        f"• Target 2: ₹ {target_2:,.1f} (+{t2_pct:.1f}%)\n"
+        "━━━━━━━━━━━━━━━━━━━━\n"
+        "Tap below to view dark-mode chart or valuation dossier:"
+    )
+
+    clean_btn = base_sym[:8]
+    buttons = [
+        (f"act:chart:{clean_btn}", f"📈 {clean_btn} Chart"),
+        (f"view:stock:{clean_btn}", f"📌 {clean_btn} Dossier"),
+        ("nav:sub:watchlists", "⭐ Watchlists")
+    ]
+    return send_whatsapp_interactive_buttons(body[:1024], buttons=buttons, recipient=recipient)
+
+
+def handle_watchlist_stage_matrix(wl_id: int, recipient: Optional[str] = None) -> Dict[str, Any]:
+    """
+    Renders Watchlist Stage 1-4 Quant Matrix roll-up with KPI cards
+    and an interactive list to drill down into any stock's 11-screener diagnostic.
+    """
+    wl_name = f"Watchlist #{wl_id}"
+    symbols = []
+
+    try:
+        with get_db() as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT name FROM watchlists WHERE id = ?", (wl_id,))
+            w_row = cursor.fetchone()
+            if w_row and w_row[0]:
+                wl_name = w_row[0].encode('ascii', 'ignore').decode('ascii').strip() or wl_name
+
+            cursor.execute("SELECT symbol, name FROM watchlist_items WHERE watchlist_id = ? ORDER BY id ASC", (wl_id,))
+            symbols = [r["symbol"].replace(".NS", "").replace(".BO", "").strip().upper() for r in cursor.fetchall() if r["symbol"]]
+    except Exception as e:
+        logger.error(f"Error querying watchlist {wl_id} for matrix: {e}")
+
+    if not symbols:
+        body = (
+            f"🔬 *{wl_name.upper()} • QUANT MATRIX*\n"
+            "━━━━━━━━━━━━━━━━━━━━\n"
+            "This watchlist currently has no active stock positions.\n"
+            "Select another list to view Stage 1-4 Life Cycle diagnostics:"
+        )
+        return send_whatsapp_interactive_buttons(
+            body,
+            buttons=[
+                ("nav:sub:watchlists", "⭐ Other Lists"),
+                ("nav:menu:main", "🏠 Main Menu")
+            ],
+            recipient=recipient
+        )
+
+    import concurrent.futures
+    from backend.main import _eval_watchlist_quant_diagnostics
+
+    def _sync_eval_wl():
+        try:
+            return asyncio.run(_eval_watchlist_quant_diagnostics(symbols[:10]))
+        except RuntimeError:
+            with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
+                return executor.submit(asyncio.run, _eval_watchlist_quant_diagnostics(symbols[:10])).result()
+
+    wl_diag = {}
+    try:
+        wl_diag = _sync_eval_wl()
+    except Exception as e:
+        logger.error(f"Error evaluating watchlist quant matrix: {e}")
+
+    items = wl_diag.get("data", []) if wl_diag else []
+
+    total_count = len(items)
+    stage2_count = sum(1 for s in items if s.get("stage_num") == 2)
+    qual_count = sum(1 for s in items if s.get("qual_count", 0) >= 1)
+    slopes = [s.get("ma_30wk_slope_pct", 0.0) for s in items]
+    avg_slope = (sum(slopes) / len(slopes)) if slopes else 0.0
+
+    body = (
+        f"🔬 *{wl_name.upper()} • QUANT MATRIX*\n"
+        "━━━━━━━━━━━━━━━━━━━━\n"
+        "📊 *Watchlist Macro Health:*\n"
+        f"• Constituents: {total_count} stocks evaluated\n"
+        f"• Stage 2 Mark-Up: 🚀 {stage2_count} institutional uptrends\n"
+        f"• Multi-Factor Ready: 🎯 {qual_count} qualified setups\n"
+        f"• Avg 30-Wk MA Slope: {avg_slope:+.1f}% long-term slope\n\n"
+        "Select any stock below to inspect its 11-screener diagnostic, slope & execution plan:"
+    )
+
+    rows = []
+    for s in items[:10]:
+        bsym = s["symbol"].replace(".NS", "").replace(".BO", "").strip()
+        stg_num = s.get("stage_num", 1)
+        stg_label = f"Stage {stg_num}"
+        if stg_num == 2:
+            stg_label = "Stage 2: Mark-Up"
+        elif stg_num == 1:
+            stg_label = "Stage 1: Basing"
+        elif stg_num == 3:
+            stg_label = "Stage 3: Top"
+        elif stg_num == 4:
+            stg_label = "Stage 4: Decline"
+
+        slp = s.get("ma_30wk_slope_pct", 0.0)
+        qc = s.get("qual_count", 0)
+        desc = f"{stg_label} • Slope {slp:+.1f}% • {qc}/11 Qual"
+        rows.append({
+            "id": f"run:stage:{bsym}",
+            "title": f"🔬 {bsym}"[:24],
+            "description": desc[:72]
+        })
+
+    sections = [{"title": f"{wl_name[:20]} Stocks", "rows": rows}]
+
+    send_whatsapp_interactive_list(
+        body_text=body,
+        button_text="🔬 Choose Stock",
+        sections=sections,
+        recipient=recipient,
+        header_text="STAGE 1-4 QUANT MATRIX",
+        footer_text="ApexQuant Life Cycle Engine"
+    )
+
+    first_sym = items[0]["symbol"].replace(".NS", "").replace(".BO", "").strip() if items else symbols[0]
+    first_btn = first_sym[:8]
+
+    buttons = [
+        (f"run:stage:{first_btn}", f"🔬 {first_btn} Stage"),
+        (f"act:chart:{first_btn}", f"📈 {first_btn} Chart"),
+        ("nav:sub:watchlists", "⭐ Other Lists")
+    ]
+    return send_whatsapp_interactive_buttons(
+        f"⚡ *Quick Stage Diagnostic for {first_sym}*:",
+        buttons=buttons,
+        recipient=recipient
+    )
 
 
 # ==============================================================================
@@ -4962,6 +5239,29 @@ def dispatch_incoming_whatsapp_message(text_body: str, sender: Optional[str] = N
         or upper.startswith("EARNINGS ")
     ):
         return handle_events_calendar(cleaned, recipient=sender)
+
+    # 1e. Stage 1-4 Quant Matrix Interceptors (STAGE <SYM> / MATRIX <SYM> / WL MATRIX)
+    if cleaned.startswith("run:stage:") or cleaned.startswith("view:stage:"):
+        sym = cleaned.replace("run:stage:", "").replace("view:stage:", "").strip()
+        return handle_stock_stage_diagnostic(sym, recipient=sender)
+
+    if cleaned.startswith("run:wl:matrix:") or cleaned.startswith("view:wl:matrix:"):
+        raw_id = cleaned.replace("run:wl:matrix:", "").replace("view:wl:matrix:", "").strip()
+        wl_id = int(raw_id) if raw_id.isdigit() else get_primary_watchlist_id()
+        return handle_watchlist_stage_matrix(wl_id, recipient=sender)
+
+    if upper in ["WL MATRIX", "WATCHLIST MATRIX", "STAGE MATRIX", "QUANT MATRIX"]:
+        primary_id = get_primary_watchlist_id()
+        return handle_watchlist_stage_matrix(primary_id, recipient=sender)
+
+    if upper.startswith("STAGE ") or upper.startswith("STAGE:") or upper.startswith("MATRIX ") or upper.startswith("MATRIX:") or upper.startswith("QUANT "):
+        target_sym = re.sub(r"^(?:STAGE|MATRIX|QUANT)[\s:]+", "", cleaned, flags=re.IGNORECASE).strip()
+        if target_sym and target_sym.upper() not in ["MATRIX", "SCAN", "RADAR"]:
+            return handle_stock_stage_diagnostic(target_sym, recipient=sender)
+        return handle_watchlist_stage_matrix(get_primary_watchlist_id(), recipient=sender)
+
+    if upper in ["STAGE", "MATRIX"]:
+        return handle_watchlist_stage_matrix(get_primary_watchlist_id(), recipient=sender)
 
     # Direct Scan Text Aliases (14 Web Scans Support)
     if upper in ["52W HIGH", "NEAR 52W HIGH", "NEAR HIGH", "52 HIGH"]:
