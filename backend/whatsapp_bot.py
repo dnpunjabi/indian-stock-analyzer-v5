@@ -474,12 +474,12 @@ def handle_main_menu(recipient: Optional[str] = None) -> Dict[str, Any]:
             "title": "🌐 Market Intelligence",
             "rows": [
                 {
-                    "id": "nav:sub:movers",
+                    "id": "nav:hub:movers_sector",
                     "title": "🚀 Movers & Sector Radar",
                     "description": "Leaders, Laggards & Sector RS Heatmap"
                 },
                 {
-                    "id": "view:pulse",
+                    "id": "nav:hub:pulse_news",
                     "title": "🌐 Market Pulse & News",
                     "description": "Nifty 50, Sensex, VIX, Breadth & Live Feeds"
                 }
@@ -504,7 +504,7 @@ def handle_main_menu(recipient: Optional[str] = None) -> Dict[str, Any]:
                     "description": "Active Trigger Hub, Live Distance & Management"
                 },
                 {
-                    "id": "view:portfolio",
+                    "id": "nav:hub:portfolio_wl",
                     "title": "💼 Portfolio & Watchlists",
                     "description": "Live Net Worth, Holdings & 10 Curated Lists"
                 }
@@ -531,6 +531,70 @@ def handle_main_menu(recipient: Optional[str] = None) -> Dict[str, Any]:
         header_text="APEXQUANT MASTER TERMINAL",
         footer_text="Personal Workstation • Local DB Terminal"
     )
+
+
+# ==============================================================================
+# NAVIGATION HUBS: DUAL-PURPOSE CLUBBED SUBMENU ROUTERS
+# ==============================================================================
+
+def handle_movers_sector_hub(recipient: Optional[str] = None) -> Dict[str, Any]:
+    """
+    Renders Level 1 Hub for Movers & Sector Radar.
+    Prompts the user to select between Top Gainers/Losers or Sector Relative Strength Heatmap.
+    """
+    body = (
+        "🚀 *MOVERS & SECTOR RADAR HUB*\n"
+        "───────────────────────────\n"
+        "Please select which market intelligence feed you wish to navigate to:\n\n"
+        "• *Top Movers:* Real-time top gainers & losers ranked across Large Cap, Mid Cap, and Small Cap segments.\n\n"
+        "• *Sector Radar:* Multi-timeframe Relative Strength heatmap (1D, 5D, 1M, 3M, 6M, 1Y) tracking institutional capital rotation."
+    )
+    buttons = [
+        ("act:nav:movers_caps", "🚀 Top Movers"),
+        ("nav:sub:sector_tf", "📊 Sector Heatmap"),
+        ("nav:menu:main", "🏠 Main Menu")
+    ]
+    return send_whatsapp_interactive_buttons(body, buttons=buttons, recipient=recipient)
+
+
+def handle_pulse_news_hub(recipient: Optional[str] = None) -> Dict[str, Any]:
+    """
+    Renders Level 1 Hub for Market Pulse & Financial News.
+    Prompts the user to select between Live Macro Benchmarks or Financial News & Catalyst Dossier.
+    """
+    body = (
+        "🌐 *MARKET PULSE & NEWS HUB*\n"
+        "───────────────────────────\n"
+        "Please select which live market intelligence feed you wish to navigate to:\n\n"
+        "• *Market Pulse:* Live benchmark indices (Nifty 50, Sensex, Bank Nifty), India VIX, Market Breadth & Global Cues.\n\n"
+        "• *News & Dossier:* Macro financial headlines and Google AI Portfolio Catalyst Digest."
+    )
+    buttons = [
+        ("run:pulse:live", "🌐 Market Pulse"),
+        ("nav:sub:news", "📰 News & Dossier"),
+        ("nav:menu:main", "🏠 Main Menu")
+    ]
+    return send_whatsapp_interactive_buttons(body, buttons=buttons, recipient=recipient)
+
+
+def handle_portfolio_watchlists_hub(recipient: Optional[str] = None) -> Dict[str, Any]:
+    """
+    Renders Level 1 Hub for Portfolio & Watchlists.
+    Prompts the user to select between Active Portfolio Holdings or Curated Watchlists.
+    """
+    body = (
+        "💼 *PORTFOLIO & WATCHLISTS HUB*\n"
+        "───────────────────────────\n"
+        "Please select which asset management module you wish to navigate to:\n\n"
+        "• *Active Portfolio:* Live net worth, unrealized P&L, stock holdings breakdown, trade logging & PDF dossier.\n\n"
+        "• *Watchlists Hub:* 10 institutional watchlists including Primary Watchlist, Confluence Leaders, and custom lists."
+    )
+    buttons = [
+        ("run:portfolio:live", "💼 Active Portfolio"),
+        ("nav:sub:watchlists", "📋 Watchlists Hub"),
+        ("nav:menu:main", "🏠 Main Menu")
+    ]
+    return send_whatsapp_interactive_buttons(body, buttons=buttons, recipient=recipient)
 
 
 # ==============================================================================
@@ -1784,9 +1848,9 @@ def handle_watchlist_audit(wl_id: int, recipient: Optional[str] = None) -> Dict[
 def handle_movers_menu(recipient: Optional[str] = None) -> Dict[str, Any]:
     """Renders 3 Market Cap segment buttons for Movers."""
     body = (
-        "🚀 *MARKET MOVERS & SECTOR RADAR*\n"
-        "Real-time top gainers, losers and sector momentum across 500+ NSE equities.\n\n"
-        "Select a market cap segment below, or text `SECTOR` for relative strength heatmap:"
+        "🚀 *TOP MARKET MOVERS*\n"
+        "Real-time top gainers and losers across 500+ NSE equities.\n\n"
+        "Select a market cap segment below:"
     )
     buttons = [
         ("run:movers:large", "🐘 Large Cap"),
@@ -4293,6 +4357,22 @@ def dispatch_incoming_whatsapp_message(text_body: str, sender: Optional[str] = N
         return handle_conversational_rule_scan("scan midcaps with PE below 15 and RSI below 30", recipient=sender)
     elif cleaned == "run:nl_sample:zero_debt":
         return handle_conversational_rule_scan("find large caps with zero debt and ROE > 20", recipient=sender)
+
+    # Dual-Purpose Navigation Hubs (Clubbed Master Menu Pillars)
+    if cleaned in ["nav:hub:movers_sector", "nav:sub:movers_sector", "nav:sub:movers_sector_hub"] or upper in ["MOVERS & SECTOR RADAR", "MOVERS & SECTOR", "MOVERS SECTOR"]:
+        return handle_movers_sector_hub(recipient=sender)
+    elif cleaned in ["nav:hub:pulse_news", "nav:sub:pulse_news", "nav:sub:pulse_news_hub"] or upper in ["MARKET PULSE & NEWS", "PULSE & NEWS", "PULSE NEWS"]:
+        return handle_pulse_news_hub(recipient=sender)
+    elif cleaned in ["nav:hub:portfolio_wl", "nav:sub:portfolio_wl", "nav:sub:portfolio_wl_hub"] or upper in ["PORTFOLIO & WATCHLISTS", "PORTFOLIO & WATCHLIST", "PORTFOLIO WATCHLIST", "PF & WATCHLIST"]:
+        return handle_portfolio_watchlists_hub(recipient=sender)
+
+    # Sub-action aliases from Navigation Hubs
+    elif cleaned in ["act:nav:movers_caps", "act:nav:movers"]:
+        return handle_movers_menu(recipient=sender)
+    elif cleaned == "run:pulse:live":
+        return handle_market_pulse(recipient=sender)
+    elif cleaned == "run:portfolio:live":
+        return handle_portfolio(recipient=sender)
 
     # Watchlists & Fast-Path Primary Shortcuts (Options 2, 3, 4)
     elif upper in ["WL", "WATCHLIST", "MY WATCHLIST", "PRIMARY WATCHLIST"]:
