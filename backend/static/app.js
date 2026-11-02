@@ -49,6 +49,53 @@ window.getActiveChartSymbol = function() {
         }
     };
 
+    // Global Portfolio Catalyst PDF Viewer & Downloader (Authenticated for Mobile & Desktop)
+    window.openPortfolioCatalystPdf = async function() {
+        const isCap = (window.hasOwnProperty('Capacitor') || 
+                       (window.Capacitor !== undefined) || 
+                       (window.parent && window.parent.hasOwnProperty('Capacitor'))) && 
+                      !( (location.hostname === 'localhost' || location.hostname === '127.0.0.1') && 
+                         (location.port === '8000' || location.port === '8001' || location.port === '8002' || location.port === '5000') );
+
+        if (window.showToast) {
+            window.showToast('📄 Fetching Morning Catalyst Dossier...', 'info');
+        }
+
+        try {
+            const response = await window.fetch('/api/reports/portfolio-catalyst/pdf');
+            if (!response.ok) {
+                throw new Error(`Server returned status HTTP ${response.status}`);
+            }
+
+            const blob = await response.blob();
+            const blobUrl = URL.createObjectURL(blob);
+
+            if (isCap) {
+                // Mobile Android / Capacitor: Trigger authenticated file download
+                const a = document.createElement('a');
+                a.href = blobUrl;
+                a.download = `Portfolio_Catalyst_Report_${new Date().toISOString().slice(0, 10)}.pdf`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+
+                if (window.showToast) {
+                    window.showToast('✅ Catalyst PDF downloaded! Tap notification or check Downloads folder to view.', 'success');
+                }
+            } else {
+                // Desktop Browser: Open in new tab with browser PDF viewer
+                window.open(blobUrl, '_blank');
+            }
+        } catch (err) {
+            console.error('[Catalyst PDF Error]', err);
+            if (window.showToast) {
+                window.showToast(`⚠️ Could not load Catalyst PDF: ${err.message}`, 'danger');
+            } else {
+                alert(`Could not load Catalyst PDF: ${err.message}`);
+            }
+        }
+    };
+
     // Global LLM Execution Badge Renderer
     window.renderLLMExecutionBadgeHtml = function(meta) {
         if (!meta || !meta.model_used) {
