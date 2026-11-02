@@ -10,6 +10,10 @@ import android.print.PrintManager;
 import android.webkit.JavascriptInterface;
 import android.webkit.WebView;
 import android.os.Bundle;
+import android.util.Base64;
+import androidx.core.content.FileProvider;
+import java.io.File;
+import java.io.FileOutputStream;
 import android.speech.RecognitionListener;
 import android.speech.RecognizerIntent;
 import android.speech.SpeechRecognizer;
@@ -86,6 +90,44 @@ class WebAppInterface {
                 String name = (docName != null && !docName.isEmpty()) ? docName : "Stock Analyzer Report";
                 PrintDocumentAdapter printAdapter = mWebView.createPrintDocumentAdapter(name);
                 printManager.print(name, printAdapter, new PrintAttributes.Builder().build());
+            }
+        });
+    }
+
+    @JavascriptInterface
+    public void openPdf(final String base64Data, final String filename) {
+        mWebView.post(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    byte[] pdfBytes = Base64.decode(base64Data, Base64.DEFAULT);
+                    String safeName = (filename != null && !filename.isEmpty()) ? filename : "Portfolio_Catalyst_Report.pdf";
+                    if (!safeName.endsWith(".pdf")) safeName += ".pdf";
+
+                    File cacheDir = mContext.getCacheDir();
+                    File pdfFile = new File(cacheDir, safeName);
+                    FileOutputStream fos = new FileOutputStream(pdfFile);
+                    fos.write(pdfBytes);
+                    fos.flush();
+                    fos.close();
+
+                    android.net.Uri contentUri = FileProvider.getUriForFile(
+                        mContext,
+                        mContext.getPackageName() + ".fileprovider",
+                        pdfFile
+                    );
+
+                    Intent intent = new Intent(Intent.ACTION_VIEW);
+                    intent.setDataAndType(contentUri, "application/pdf");
+                    intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+                    intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+
+                    Intent chooser = Intent.createChooser(intent, "Open Portfolio Catalyst Dossier");
+                    chooser.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                    mContext.startActivity(chooser);
+                } catch (Exception e) {
+                    android.util.Log.e("StockAnalyzerPDF", "Failed to open PDF: " + e.getMessage(), e);
+                }
             }
         });
     }

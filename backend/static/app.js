@@ -70,8 +70,20 @@ window.getActiveChartSymbol = function() {
             const blob = await response.blob();
             const blobUrl = URL.createObjectURL(blob);
 
-            if (isCap) {
-                // Mobile Android / Capacitor: Trigger authenticated file download
+            if (window.AndroidPrint && typeof window.AndroidPrint.openPdf === 'function') {
+                // Native Android auto-launch in default PDF viewer app (Drive, Adobe, Samsung, etc.)
+                const reader = new FileReader();
+                reader.onloadend = function() {
+                    const base64Data = reader.result.split(',')[1];
+                    const filename = `Portfolio_Catalyst_Report_${new Date().toISOString().slice(0, 10)}.pdf`;
+                    window.AndroidPrint.openPdf(base64Data, filename);
+                    if (window.showToast) {
+                        window.showToast('🚀 Opening in default PDF reader...', 'success');
+                    }
+                };
+                reader.readAsDataURL(blob);
+            } else if (isCap) {
+                // Mobile Android / Capacitor fallback: Trigger file download
                 const a = document.createElement('a');
                 a.href = blobUrl;
                 a.download = `Portfolio_Catalyst_Report_${new Date().toISOString().slice(0, 10)}.pdf`;
