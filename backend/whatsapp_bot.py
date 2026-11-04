@@ -3939,6 +3939,94 @@ def handle_ichart_query(symbol_input: str, mode: str = "breaks", recipient: Opti
         )
 
 
+
+
+def handle_fibonacci_query(symbol_input: str, recipient: Optional[str] = None) -> Dict[str, Any]:
+    """
+    Renders Institutional Fibonacci Retracements & Momentum Analysis matching
+    the Equity Research Terminal on Desktop and Mobile view.
+    Dispatches publication-quality dark-mode chart with 52W Fibonacci Retracement scale,
+    accompanied by an institutional momentum synthesis card and quick action buttons.
+    """
+    from backend.chart_generator import generate_stock_fibonacci_chart, send_whatsapp_chart
+    clean = (symbol_input or "").strip().upper()
+    clean = re.sub(r"^(?:FIBONACCI|FIBO|FIB)[\s:]+", "", clean, flags=re.IGNORECASE).strip()
+    clean = re.sub(r"^(?:ACT:FIB|RUN:FIB):", "", clean, flags=re.IGNORECASE).strip()
+
+    if not clean:
+        clean = "BOSCH"
+
+    resolved = resolve_company_ticker(clean)
+    ticker = resolved.get("yf_ticker") if resolved else f"{clean}.NS"
+    disp_name = resolved.get("name") if resolved else clean
+    base_sym = resolved.get("base_symbol") if resolved else clean.replace(".NS", "")
+    btn_sym = base_sym[:8]
+
+    try:
+        img_bytes, meta = generate_stock_fibonacci_chart(ticker, disp_name)
+
+        curr_p = meta.get("curr_price", 0.0)
+        chg_pct = meta.get("chg_pct", 0.0)
+        chg_sign = "+" if chg_pct >= 0 else ""
+        high_52w = meta.get("high_52w", 0.0)
+        low_52w = meta.get("low_52w", 0.0)
+        fib_236 = meta.get("fib_236", 0.0)
+        fib_382 = meta.get("fib_382", 0.0)
+        fib_500 = meta.get("fib_500", 0.0)
+        fib_618 = meta.get("fib_618", 0.0)
+        fib_786 = meta.get("fib_786", 0.0)
+        nearest_lvl = meta.get("nearest_level", "")
+        nearest_val = meta.get("nearest_val", 0.0)
+        dist_str = meta.get("nearest_dist_str", "")
+        zone = meta.get("zone", "Neutral Zone")
+        action = meta.get("action", "HOLD")
+        synthesis = meta.get("synthesis", "")
+
+        lines = [
+            f"🌀 *{disp_name.upper()}* (`{base_sym}`)",
+            "━━━━━━━━━━━━━━━━━━━━",
+            f"💰 *LTP*: ₹ {curr_p:,.2f} ({chg_sign}{chg_pct:.2f}%)",
+            f"🛡️ *Nearest Level*: {nearest_lvl} (₹ {nearest_val:,.1f}) — {dist_str}\n",
+            "📊 *Fibonacci Retracement Scale (52W Range)*:",
+            f"• 0.0% (52W High):   ₹ {high_52w:,.1f}",
+            f"• 23.6% Retracement: ₹ {fib_236:,.1f}",
+            f"• 38.2% Retracement: ₹ {fib_382:,.1f}",
+            f"• 50.0% Mid-Pivot:   ₹ {fib_500:,.1f}",
+            f"• 61.8% Golden Ratio: 🟢 *₹ {fib_618:,.1f}* (Institutional Floor)",
+            f"• 78.6% Deep Floor:  ₹ {fib_786:,.1f}",
+            f"• 100.0% (52W Low):  ₹ {low_52w:,.1f}\n",
+            "⚡ *FIBONACCI MOMENTUM ANALYSIS*:",
+            f"• *Zone*: {zone}",
+            f"• *Momentum Action*: *{action}*",
+            f"• *Diagnosis*: {synthesis}",
+            "━━━━━━━━━━━━━━━━━━━━",
+            "Tap below to inspect technical chart, i-Chart, or dossier:"
+        ]
+        caption = "\n".join(lines)
+
+        send_whatsapp_chart(img_bytes, caption, recipient=recipient)
+        time.sleep(0.3)
+
+        buttons = [
+            (f"act:chart:{btn_sym}", f"📈 {btn_sym} Chart"),
+            (f"act:ichart:breaks:{btn_sym}", f"📊 {btn_sym} i-Chart"),
+            (f"view:stock:{btn_sym}", f"📌 {btn_sym} Dossier")
+        ]
+        return send_whatsapp_interactive_buttons(
+            f"⚡ *Actions for {base_sym}*:",
+            buttons=buttons,
+            recipient=recipient
+        )
+
+    except Exception as e:
+        logger.error(f"Error generating Fibonacci chart for {clean}: {e}", exc_info=True)
+        return send_whatsapp_interactive_buttons(
+            f"⚠️ *Error*: Failed to generate Fibonacci chart for `{clean}`: {str(e)}",
+            buttons=[("nav:menu:main", "🏠 Main Menu")],
+            recipient=recipient
+        )
+
+
 def handle_stock_comparison(query_text: str, recipient: Optional[str] = None) -> Dict[str, Any]:
     """
     Renders Institutional Head-to-Head Stock Battle comparing two equities across
@@ -5527,6 +5615,16 @@ def dispatch_incoming_whatsapp_message(text_body: str, sender: Optional[str] = N
         sym = re.sub(r"^LRTC[\s:]+", "", cleaned, flags=re.IGNORECASE).strip()
         if sym:
             return handle_ichart_query(sym, mode="lrtc", recipient=sender)
+
+    # 1g. Fibonacci Retracement & Momentum Scale Interceptors (FIB <SYM> / FIBONACCI <SYM>)
+    if cleaned.startswith("act:fib:") or cleaned.startswith("run:fib:"):
+        sym = cleaned.replace("act:fib:", "").replace("run:fib:", "").strip()
+        return handle_fibonacci_query(sym, recipient=sender)
+
+    if upper.startswith("FIB ") or upper.startswith("FIB:") or upper.startswith("FIBO ") or upper.startswith("FIBONACCI "):
+        sym = re.sub(r"^(?:FIBONACCI|FIBO|FIB)[\s:]+", "", cleaned, flags=re.IGNORECASE).strip()
+        if sym:
+            return handle_fibonacci_query(sym, recipient=sender)
 
     # Direct Scan Text Aliases (14 Web Scans Support)
     if upper in ["52W HIGH", "NEAR 52W HIGH", "NEAR HIGH", "52 HIGH"]:
