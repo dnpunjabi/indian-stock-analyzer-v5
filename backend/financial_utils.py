@@ -853,7 +853,15 @@ def calculate_technical_indicators(ticker_symbol: str, stock_obj=None) -> dict:
         "rsc_status": "Neutral",
         "crossover_short": "Neutral",
         "crossover_medium": "Neutral",
-        "crossover_long": "Neutral"
+        "crossover_long": "Neutral",
+        "ema_5": 0.0,
+        "ema_10": 0.0,
+        "ema_20": 0.0,
+        "ema_30": 0.0,
+        "ema_50": 0.0,
+        "ema_100": 0.0,
+        "ema_150": 0.0,
+        "ema_200": 0.0
     }
     
     try:
@@ -894,22 +902,30 @@ def calculate_technical_indicators(ticker_symbol: str, stock_obj=None) -> dict:
             pass
             
         df['EMA_5'] = df['Close'].ewm(span=5, adjust=False).mean()
+        df['EMA_10'] = df['Close'].ewm(span=10, adjust=False).mean()
+        df['EMA_20'] = df['Close'].ewm(span=20, adjust=False).mean()
+        df['EMA_30'] = df['Close'].ewm(span=30, adjust=False).mean()
+        df['EMA_50'] = df['Close'].ewm(span=50, adjust=False).mean()
+        df['EMA_100'] = df['Close'].ewm(span=100, adjust=False).mean()
+        df['EMA_150'] = df['Close'].ewm(span=150, adjust=False).mean()
+        df['EMA_200'] = df['Close'].ewm(span=200, adjust=False).mean()
         df['SMA_20'] = df['Close'].rolling(window=20).mean()
         df['SMA_50'] = df['Close'].rolling(window=50).mean()
         df['SMA_100'] = df['Close'].rolling(window=100).mean()
-        df['SMA_200'] = df['Close'].rolling(window=200).mean()
-        df['EMA_20'] = df['Close'].ewm(span=20, adjust=False).mean()
-        df['EMA_50'] = df['Close'].ewm(span=50, adjust=False).mean()
-        df['EMA_200'] = df['Close'].ewm(span=200, adjust=False).mean()
         df['SMA_150'] = df['Close'].rolling(window=150).mean()
+        df['SMA_200'] = df['Close'].rolling(window=200).mean()
         
         result["sma_20"] = float(df['SMA_20'].iloc[-1]) if not pd.isna(df['SMA_20'].iloc[-1]) else current_price
         result["sma_50"] = float(info_sma_50) if info_sma_50 else (float(df['SMA_50'].iloc[-1]) if not pd.isna(df['SMA_50'].iloc[-1]) else current_price)
         result["sma_100"] = float(df['SMA_100'].iloc[-1]) if not pd.isna(df['SMA_100'].iloc[-1]) else current_price
         result["sma_200"] = float(info_sma_200) if info_sma_200 else (float(df['SMA_200'].iloc[-1]) if not pd.isna(df['SMA_200'].iloc[-1]) else current_price)
         result["ema_5"] = float(df['EMA_5'].iloc[-1]) if not pd.isna(df['EMA_5'].iloc[-1]) else current_price
+        result["ema_10"] = float(df['EMA_10'].iloc[-1]) if not pd.isna(df['EMA_10'].iloc[-1]) else current_price
         result["ema_20"] = float(df['EMA_20'].iloc[-1]) if not pd.isna(df['EMA_20'].iloc[-1]) else current_price
+        result["ema_30"] = float(df['EMA_30'].iloc[-1]) if not pd.isna(df['EMA_30'].iloc[-1]) else current_price
         result["ema_50"] = float(df['EMA_50'].iloc[-1]) if not pd.isna(df['EMA_50'].iloc[-1]) else current_price
+        result["ema_100"] = float(df['EMA_100'].iloc[-1]) if not pd.isna(df['EMA_100'].iloc[-1]) else current_price
+        result["ema_150"] = float(df['EMA_150'].iloc[-1]) if not pd.isna(df['EMA_150'].iloc[-1]) else current_price
         result["ema_200"] = float(df['EMA_200'].iloc[-1]) if not pd.isna(df['EMA_200'].iloc[-1]) else current_price
         result["sma_150"] = float(df['SMA_150'].iloc[-1]) if not pd.isna(df['SMA_150'].iloc[-1]) or len(df) < 150 else float(df['Close'].rolling(window=min(len(df), 150)).mean().iloc[-1])
         

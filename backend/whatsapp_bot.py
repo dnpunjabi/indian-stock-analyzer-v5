@@ -3889,32 +3889,173 @@ def handle_stock_query(symbol_input: str, recipient: Optional[str] = None) -> Di
     chg_emoji = "🟢" if day_chg_pct >= 0 else "🔴"
     chg_sign = "+" if day_chg_pct >= 0 else ""
 
-    body = (
-        f"🏛️ *{company_name.upper()}* (`{base_sym}`)\n"
-        f"📁 *Sector*: {sector}{cap_str}\n"
-        "━━━━━━━━━━━━━━━━━━━━\n"
-        f"{chg_emoji} *Price*: ₹ {curr_price:,.2f} ({chg_sign}{day_chg_pct:.2f}%)\n"
-        f"📏 *52W Range*: ₹ {fifty_two_l:,.1f} – ₹ {fifty_two_h:,.1f}\n"
-        f"🏔️ *All-Time High*: ₹ {ath:,.1f}{ath_dist_str}\n\n"
-        "📊 *RETURNS & BENCHMARK ALPHA*\n"
-        f"• 1W: {fmt_pct(ret_1w)}  |  1M: {fmt_pct(ret_1m)}  |  3M: {fmt_pct(ret_3m)}\n"
-        f"• 1Y: {fmt_pct(ret_1y)}  |  3Y: {fmt_pct(ret_3y)}\n"
-        f"• *Alpha vs Nifty 50*: {alpha_str}\n\n"
-        "⚖️ *VALUATION MULTIPLES*\n"
-        f"• Current P/E: {pe_curr_str}  |  3Y Median P/E: {pe_3y_str}  |  5Y Median P/E: {pe_5y_str}\n\n"
-        "💎 *QUALITY & FINANCIAL HEALTH*\n"
-        f"• ROCE: {roce_str}  |  ROE: {roe_str}\n"
-        f"• Debt/Equity: {de_str}  |  Piotroski: {piot_str}\n"
-        "━━━━━━━━━━━━━━━━━━━━\n"
-        "Tap below to view dark-mode chart or news:"
-    )
-
-    buttons = [
-        (f"act:chart:{base_sym}", f"📈 {base_sym} Chart"),
-        (f"news:{base_sym}", f"📰 {base_sym} News"),
-        ("nav:menu:main", "🏠 Main Menu")
+    # ─── MESSAGE 1: FUNDAMENTAL & VALUATION DOSSIER ───
+    fund_lines = [
+        f"🏛️ *{company_name.upper()}* (`{base_sym}`)",
+        f"📁 *Sector*: {sector}{cap_str}",
+        "━━━━━━━━━━━━━━━━━━━━",
+        f"{chg_emoji} *Price*: ₹ {curr_price:,.2f} ({chg_sign}{day_chg_pct:.2f}%)",
+        f"📏 *52W Range*: ₹ {fifty_two_l:,.1f} – ₹ {fifty_two_h:,.1f}",
+        f"🏔️ *All-Time High*: ₹ {ath:,.1f}{ath_dist_str}\n",
+        "📊 *RETURNS & BENCHMARK ALPHA*",
+        f"• 1W: {fmt_pct(ret_1w)}  |  1M: {fmt_pct(ret_1m)}  |  3M: {fmt_pct(ret_3m)}",
+        f"• 1Y: {fmt_pct(ret_1y)}  |  3Y: {fmt_pct(ret_3y)}",
+        f"• *Alpha vs Nifty 50*: {alpha_str}\n",
+        "⚖️ *VALUATION MULTIPLES*",
+        f"• Current P/E: {pe_curr_str}  |  3Y Median P/E: {pe_3y_str}  |  5Y Median P/E: {pe_5y_str}\n",
+        "💎 *QUALITY & FINANCIAL HEALTH*",
+        f"• ROCE: {roce_str}  |  ROE: {roe_str}",
+        f"• Debt/Equity: {de_str}  |  Piotroski: {piot_str}\n",
+        "━━━━━━━━━━━━━━━━━━━━",
+        "_Delivering Technical Timing & Momentum Report below..._"
     ]
-    return send_whatsapp_interactive_buttons(body, buttons=buttons, recipient=recipient)
+    fund_body = "\n".join(fund_lines)
+
+    # Dispatch Message 1
+    send_whatsapp_text(fund_body, recipient=recipient)
+
+    time.sleep(0.35)  # Enforce chronological ordering
+
+    # Dispatch Message 2: Technical Timing & Momentum Dossier
+    return handle_stock_technical_timing(lookup_ticker, disp_name=company_name, base_sym=base_sym, recipient=recipient)
+
+
+def handle_stock_technical_timing(
+    symbol_input: str,
+    disp_name: Optional[str] = None,
+    base_sym: Optional[str] = None,
+    recipient: Optional[str] = None
+) -> Dict[str, Any]:
+    """
+    Renders the Institutional Technical Timing & Momentum Dossier matching the
+    Technical Timing tab of the Equity Research Terminal on Desktop and Mobile view.
+    Includes:
+      - 50-Day & 200-Day SMA with distance pct
+      - Moving Average Crossovers (Short 5/20, Medium 20/50, Long 50/200 Golden Cross)
+      - All 8 Momentum Oscillators (MACD, Stochastic, ROC, CCI, Williams %R, MFI, ADX, RSC)
+      - EMA & SMA Spectrum (8-tier moving averages alignment & price levels)
+    """
+    from backend.financial_utils import calculate_technical_indicators
+    clean_sym = symbol_input.strip().upper().replace(" ", "")
+    clean_sym = re.sub(r"^(?:TECH|TIMING|TECHNICAL)[\s:]+", "", clean_sym, flags=re.IGNORECASE).strip()
+    if not clean_sym:
+        clean_sym = "BOSCH"
+
+    resolved = resolve_company_ticker(clean_sym)
+    lookup_ticker = resolved.get("yf_ticker") if resolved else f"{clean_sym}.NS"
+    b_sym = base_sym or (resolved.get("base_symbol") if resolved else lookup_ticker.replace(".NS", ""))
+    d_name = disp_name or (resolved.get("name") if resolved else b_sym)
+    btn_sym = b_sym[:8]
+
+    try:
+        tech = calculate_technical_indicators(lookup_ticker)
+        curr_p = float(tech.get("current_price", 0.0))
+        chg_pct = float(tech.get("price_change_pct", 0.0))
+        chg_sign = "+" if chg_pct >= 0 else ""
+
+        # 1. 50 & 200-Day SMAs
+        sma_50 = float(tech.get("sma_50", 0.0))
+        sma_200 = float(tech.get("sma_200", 0.0))
+        d50_pct = ((curr_p - sma_50) / sma_50 * 100) if sma_50 > 0 else 0.0
+        d50_str = f"+{d50_pct:.1f}% above" if d50_pct >= 0 else f"{d50_pct:.1f}% below"
+        d200_pct = ((curr_p - sma_200) / sma_200 * 100) if sma_200 > 0 else 0.0
+        d200_str = f"+{d200_pct:.1f}% above" if d200_pct >= 0 else f"{d200_pct:.1f}% below"
+
+        # 2. Moving Average Crossovers
+        c_short = str(tech.get("crossover_short", "Neutral")).title()
+        c_med = str(tech.get("crossover_medium", "Neutral")).title()
+        c_long = str(tech.get("crossover_long", "Neutral")).title()
+        b_short = "🟢" if "bullish" in c_short.lower() else ("🔴" if "bearish" in c_short.lower() else "⚪")
+        b_med = "🟢" if "bullish" in c_med.lower() else ("🔴" if "bearish" in c_med.lower() else "⚪")
+        b_long = "🟢" if "bullish" in c_long.lower() else ("🔴" if "bearish" in c_long.lower() else "⚪")
+        long_suffix = " (Golden Cross)" if "bullish" in c_long.lower() else (" (Death Cross)" if "bearish" in c_long.lower() else "")
+
+        # 3. Momentum Oscillators
+        adx = float(tech.get("adx", 22.0))
+        adx_stat = str(tech.get("adx_status", "Moderate Trend"))
+        breakout_status = str(tech.get("breakout_status", "CONSOLIDATING")).upper()
+        sig_badge = "🟢" if "BULLISH" in breakout_status or "MOMENTUM" in breakout_status else ("🔴" if "BEARISH" in breakout_status else "🟡")
+
+        macd = float(tech.get("macd", 0.0))
+        macd_hist = float(tech.get("macd_hist", 0.0))
+        macd_stat = "Bullish" if macd_hist >= 0 else "Bearish"
+
+        stoch_k = float(tech.get("stoch_k", 50.0))
+        stoch_d = float(tech.get("stoch_d", 50.0))
+        stoch_stat = str(tech.get("stoch_status", "Neutral")).title()
+
+        rsi = float(tech.get("rsi", 50.0))
+        rsi_stat = str(tech.get("rsi_status", "Neutral")).title()
+
+        roc_20 = float(tech.get("roc_20", 0.0))
+        roc_stat = str(tech.get("roc_status", "Neutral")).title()
+
+        cci_20 = float(tech.get("cci_20", 0.0))
+        cci_stat = str(tech.get("cci_status", "Neutral")).title()
+
+        will_r = float(tech.get("will_r_14", -50.0))
+        will_stat = str(tech.get("will_r_status", "Neutral")).title()
+
+        mfi = float(tech.get("mfi_14", 50.0))
+        mfi_stat = str(tech.get("mfi_status", "Neutral")).title()
+
+        rsc = float(tech.get("rsc_6m", 0.0))
+        rsc_stat = str(tech.get("rsc_status", "Neutral")).title()
+
+        # 4. EMA & SMA Spectrum
+        e5 = float(tech.get("ema_5", 0.0))
+        e10 = float(tech.get("ema_10", 0.0))
+        e20 = float(tech.get("ema_20", 0.0))
+        e30 = float(tech.get("ema_30", 0.0))
+        e50 = float(tech.get("ema_50", 0.0))
+        e100 = float(tech.get("ema_100", 0.0))
+        e150 = float(tech.get("ema_150", 0.0))
+        e200 = float(tech.get("ema_200", 0.0))
+
+        spec_vals = [e5, e10, e20, e30, e50, e100, e150, e200]
+        bull_cnt = sum(1 for v in spec_vals if curr_p >= v and v > 0)
+        bear_cnt = 8 - bull_cnt
+        spec_badge = "🟢" if bull_cnt >= 6 else ("🔴" if bear_cnt >= 6 else "⚖️")
+
+        lines = [
+            f"⏱️ *{d_name.upper()}* (`{b_sym}`) • *TECHNICAL TIMING*",
+            "━━━━━━━━━━━━━━━━━━━━",
+            f"🎯 *Signal*: {sig_badge} *{breakout_status}*  |  *ADX (14)*: {adx:.1f} ({adx_stat})",
+            f"• *50-Day SMA*:  ₹ {sma_50:,.1f} ({d50_str})",
+            f"• *200-Day SMA*: ₹ {sma_200:,.1f} ({d200_str})\n",
+            "🔄 *MOVING AVERAGE CROSSOVERS*",
+            f"• Short Term (5 & 20 DMA):  {b_short} {c_short}",
+            f"• Medium Term (20 & 50 DMA): {b_med} {c_med}",
+            f"• Long Term (50 & 200 DMA): {b_long} {c_long}{long_suffix}\n",
+            "📊 *MOMENTUM OSCILLATORS*",
+            f"• MACD (12, 26, 9): {macd:,.1f} ({macd_stat})",
+            f"• Stochastic (20, 3): {stoch_k:.1f} / {stoch_d:.1f} ({stoch_stat})",
+            f"• RSI (14): {rsi:.1f} ({rsi_stat})  |  ROC (20): {roc_20:+.1f}% ({roc_stat})",
+            f"• CCI (20): {cci_20:.1f} ({cci_stat})  |  Williams %R: {will_r:.1f} ({will_stat})",
+            f"• MFI (14): {mfi:.1f} ({mfi_stat})  |  RSC vs Nifty: {rsc:+.1f}% ({rsc_stat})\n",
+            "📐 *EMA & SMA SPECTRUM*",
+            f"• Alignment: {spec_badge} *{bull_cnt} Bullish / {bear_cnt} Bearish Moving Averages*",
+            f"• Short: 5D: ₹{e5:,.0f} | 10D: ₹{e10:,.0f} | 20D: ₹{e20:,.0f} | 30D: ₹{e30:,.0f}",
+            f"• Long:  50D: ₹{e50:,.0f} | 100D: ₹{e100:,.0f} | 150D: ₹{e150:,.0f} | 200D: ₹{e200:,.0f}",
+            "━━━━━━━━━━━━━━━━━━━━",
+            "Tap below to inspect charts:"
+        ]
+        body = "\n".join(lines)
+
+        buttons = [
+            (f"act:chart:{btn_sym}", f"📈 {btn_sym} Chart"),
+            (f"act:ichart:breaks:{btn_sym}", f"⚡ {btn_sym} Breaks"),
+            (f"act:fib:{btn_sym}", f"🌀 {btn_sym} Fib")
+        ]
+        return send_whatsapp_interactive_buttons(body, buttons=buttons, recipient=recipient)
+
+    except Exception as e:
+        logger.error(f"Error computing technical timing for {clean_sym}: {e}", exc_info=True)
+        return send_whatsapp_interactive_buttons(
+            f"⚠️ *Technical Timing Error*: Failed to compute indicators for `{clean_sym}`: {str(e)}",
+            buttons=[("nav:menu:main", "🏠 Main Menu")],
+            recipient=recipient
+        )
 
 
 def handle_chart_query(symbol_input: str, recipient: Optional[str] = None) -> Dict[str, Any]:
@@ -5998,6 +6139,15 @@ def dispatch_incoming_whatsapp_message(text_body: str, sender: Optional[str] = N
     elif cleaned.startswith("run:news:"):
         ntype = cleaned.replace("run:news:", "")
         return handle_run_news(ntype, recipient=sender)
+
+    # Dedicated Technical Timing Command (TECH <SYM> / TIMING <SYM>)
+    if upper.startswith("TECH ") or upper.startswith("TECH:") or upper.startswith("TIMING ") or upper.startswith("TIMING:") or upper.startswith("TECHNICAL "):
+        sym = re.sub(r"^(?:TECHNICAL|TIMING|TECH)[\s:]+", "", cleaned, flags=re.IGNORECASE).strip()
+        if sym:
+            return handle_stock_technical_timing(sym, recipient=sender)
+    if cleaned.startswith("view:tech:") or cleaned.startswith("act:tech:"):
+        sym = cleaned.replace("view:tech:", "").replace("act:tech:", "").strip()
+        return handle_stock_technical_timing(sym, recipient=sender)
 
     # Dedicated Stock Query & Chart Prompts & AI Co-Pilot
     elif cleaned.startswith("nav:sub:stock") or cleaned.startswith("nav:sub:copilot"):
