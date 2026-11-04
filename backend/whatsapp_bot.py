@@ -495,8 +495,8 @@ def handle_main_menu(recipient: Optional[str] = None) -> Dict[str, Any]:
                 },
                 {
                     "id": "nav:sub:chart",
-                    "title": "📈 Technical Chart",
-                    "description": "6-Month Dark Chart with SMA 50/200 & RSI"
+                    "title": "📈 Technical Chart Suite",
+                    "description": "Breaks, SMC, LRTC, Fibs & SMA 50/200 Studio"
                 },
                 {
                     "id": "nav:sub:alerts",
@@ -3508,20 +3508,216 @@ def handle_stock_query_prompt(recipient: Optional[str] = None) -> Dict[str, Any]
     return send_whatsapp_interactive_buttons(body, buttons=buttons, recipient=recipient)
 
 
-def handle_chart_prompt(recipient: Optional[str] = None) -> Dict[str, Any]:
-    """Prompts the user to generate a dark-mode technical chart."""
-    body = (
-        "📈 *HEADLESS TECHNICAL CHART ENGINE*\n"
-        "━━━━━━━━━━━━━━━━━━━━\n"
-        "Generates a 6-month dark-mode technical chart image with SMA 50/200 & RSI.\n\n"
-        "Text `CHART <SYMBOL>` or `C <SYMBOL>` (e.g. `CHART BOSCH`) or tap below:"
-    )
-    buttons = [
-        ("act:chart:BOSCH", "📈 BOSCH Chart"),
-        ("act:chart:RELIANCE", "📈 RELIANCE Chart"),
-        ("nav:menu:main", "🏠 Main Menu")
+def handle_chart_menu(recipient: Optional[str] = None) -> Dict[str, Any]:
+    """
+    Renders Level 1: Technical Charting Suite & Institutional Studio.
+    Provides structured interactive list across 6 specialized visual engines:
+      - Classic Trend & Momentum (SMA 50/200, Volume, RSI)
+      - LuxAlgo Breaks & Signals (Support/Resistance lines & breakout arrows)
+      - Smart Money Concepts (SMC Order Blocks & Fair Value Gaps)
+      - Linear Regression Trend Channel (LRTC 2.0σ volatility envelopes)
+      - Fibonacci Retracements & Momentum (52W Retracements, Golden Pocket & Momentum Card)
+      - Maxwell Oscillators (Predictive wave harmonics & turning points)
+    """
+    sections = [
+        {
+            "title": "📈 Core Trend & Structure",
+            "rows": [
+                {
+                    "id": "chart:engine:classic",
+                    "title": "📈 Classic Trend & RSI",
+                    "description": "6M Dark Chart with SMA 50/200, Volume & RSI Oscillator"
+                },
+                {
+                    "id": "chart:engine:breaks",
+                    "title": "⚡ Breaks & Signals",
+                    "description": "Dynamic S/R Lines, Trendlines & LuxAlgo Breakout Signals"
+                },
+                {
+                    "id": "chart:engine:lrtc",
+                    "title": "📐 LRTC Trend Channel",
+                    "description": "Linear Regression Mean-Reversion Channel & 2.0σ Bands"
+                }
+            ]
+        },
+        {
+            "title": "🏛️ Institutional & Smart Money",
+            "rows": [
+                {
+                    "id": "chart:engine:smc",
+                    "title": "🏛️ SMC Order Blocks",
+                    "description": "Institutional Supply/Demand Blocks & Fair Value Gaps"
+                },
+                {
+                    "id": "chart:engine:fib",
+                    "title": "🌀 Fibonacci Retrace",
+                    "description": "52W Retracement Scale, Golden Pocket & Momentum Card"
+                },
+                {
+                    "id": "chart:engine:mxwll",
+                    "title": "🌊 Maxwell Cycles",
+                    "description": "LuxAlgo Predictive Cycle Waves & Trend Oscillation"
+                }
+            ]
+        },
+        {
+            "title": "⚡ Instant Live Demonstrations",
+            "rows": [
+                {
+                    "id": "act:fib:APLAPOLLO",
+                    "title": "🌀 Demo: APLAPOLLO Fib",
+                    "description": "Live 52W Retracements, Golden Pocket & Momentum Analysis"
+                },
+                {
+                    "id": "act:ichart:breaks:BOSCHLTD",
+                    "title": "⚡ Demo: BOSCH Breaks",
+                    "description": "Live Support/Resistance Breakouts & LuxBreak Arrows"
+                },
+                {
+                    "id": "act:chart:RELIANCE",
+                    "title": "📈 Demo: RELIANCE Trend",
+                    "description": "Live Multi-SMA 50/200, Volume Spike & RSI Reversal"
+                }
+            ]
+        }
     ]
-    return send_whatsapp_interactive_buttons(body, buttons=buttons, recipient=recipient)
+
+    body = (
+        "📊 *TECHNICAL CHART SUITE STUDIO*\n"
+        "━━━━━━━━━━━━━━━━━━━━\n"
+        "Explore 6 specialized institutional charting engines, or text directly:\n\n"
+        "⚡ *Direct Shortcut Syntax:*\n"
+        "• `CHART <SYM>` → Classic Trend (SMA 50/200 & RSI)\n"
+        "• `BREAKS <SYM>` → Support/Resistance & LuxBreak Arrows\n"
+        "• `SMC <SYM>` → Smart Money Order Blocks & FVG\n"
+        "• `LRTC <SYM>` → Linear Regression Trend Channel (2.0σ)\n"
+        "• `FIB <SYM>` → 52W Fibonacci Retracements & Golden Pocket\n"
+        "• `MXWLL <SYM>` → Maxwell Predictive Cycle Signals\n\n"
+        "_Select an engine below to inspect or run live demonstrations:_"
+    )
+
+    send_whatsapp_interactive_list(
+        body_text=body,
+        button_text="📊 Select Chart Engine",
+        sections=sections,
+        recipient=recipient,
+        header_text="CHARTING TERMINAL",
+        footer_text="ApexQuant Technical Engine"
+    )
+
+    return send_whatsapp_interactive_buttons(
+        "⚡ *Instant 1-Tap Demonstrations*:",
+        buttons=[
+            ("act:fib:APLAPOLLO", "🌀 Fib: APLAPOLLO"),
+            ("act:ichart:breaks:BOSCHLTD", "⚡ Breaks: BOSCH"),
+            ("nav:menu:main", "🏠 Main Menu")
+        ],
+        recipient=recipient
+    )
+
+
+def handle_chart_engine_guide(engine_key: str, recipient: Optional[str] = None) -> Dict[str, Any]:
+    """Provides focused educational guidance and instant benchmark triggers for a specific chart engine."""
+    clean_k = (engine_key or "").strip().lower()
+
+    configs = {
+        "breaks": {
+            "title": "⚡ *BREAKS & SIGNALS (LuxAlgo Engine)*",
+            "desc": (
+                "Dynamic algorithmic Trendlines with institutional Breakout Signals [B] / [S] "
+                "and horizontal Support / Resistance cushion bands. Perfect for identifying trend continuations "
+                "and high-probability breakout pivots."
+            ),
+            "syntax": "BREAKS <SYMBOL> (e.g. `BREAKS BOSCH` or `BREAKS TATAMOTORS`)",
+            "buttons": [
+                ("act:ichart:breaks:BOSCHLTD", "⚡ BOSCH Breaks"),
+                ("act:ichart:breaks:RELIANCE", "⚡ RELIANCE Breaks"),
+                ("nav:sub:chart", "📊 Chart Studio")
+            ]
+        },
+        "fib": {
+            "title": "🌀 *FIBONACCI RETRACEMENTS & MOMENTUM*",
+            "desc": (
+                "52-Week High-to-Low Retracement Ladder (23.6%, 38.2%, 50.0%, 61.8% Golden Pocket, 78.6%, 100.0%) "
+                "with non-overlapping dual-pill badges, active LTP pointer, and institutional Momentum Zone diagnosis."
+            ),
+            "syntax": "FIB <SYMBOL> (e.g. `FIB APLAPOLLO` or `FIB TCS`)",
+            "buttons": [
+                ("act:fib:APLAPOLLO", "🌀 APLAPOLLO Fib"),
+                ("act:fib:BOSCHLTD", "🌀 BOSCH Fib"),
+                ("nav:sub:chart", "📊 Chart Studio")
+            ]
+        },
+        "smc": {
+            "title": "🏛️ *SMART MONEY CONCEPTS (SMC)*",
+            "desc": (
+                "Tracks institutional footprints: Bullish/Bearish Order Blocks, Demand & Supply distribution zones, "
+                "Fair Value Gaps (FVG), and Market Structure Shifts (BOS / CHoCH)."
+            ),
+            "syntax": "SMC <SYMBOL> (e.g. `SMC BOSCH` or `SMC HDFCBANK`)",
+            "buttons": [
+                ("act:ichart:smc:BOSCHLTD", "🏛️ BOSCH SMC"),
+                ("act:ichart:smc:RELIANCE", "🏛️ RELIANCE SMC"),
+                ("nav:sub:chart", "📊 Chart Studio")
+            ]
+        },
+        "lrtc": {
+            "title": "📐 *LINEAR REGRESSION TREND CHANNEL (LRTC)*",
+            "desc": (
+                "Calculates statistical mean-reversion linear regression lines with dynamic ±2.0σ standard deviation "
+                "volatility bands. Helps pinpoint extreme oversold dips and overextended distribution peaks."
+            ),
+            "syntax": "LRTC <SYMBOL> (e.g. `LRTC BOSCH` or `LRTC INFY`)",
+            "buttons": [
+                ("act:ichart:lrtc:BOSCHLTD", "📐 BOSCH LRTC"),
+                ("act:ichart:lrtc:RELIANCE", "📐 RELIANCE LRTC"),
+                ("nav:sub:chart", "📊 Chart Studio")
+            ]
+        },
+        "mxwll": {
+            "title": "🌊 *MAXWELL OSCILLATORS & CYCLES*",
+            "desc": (
+                "LuxAlgo Maxwell trend cycles and harmonic momentum waves that identify institutional turning points "
+                "and momentum phase shifts before standard lagging indicators."
+            ),
+            "syntax": "MXWLL <SYMBOL> (e.g. `MXWLL BOSCH` or `MXWLL ITC`)",
+            "buttons": [
+                ("act:ichart:mxwll:BOSCHLTD", "🌊 BOSCH Mxwll"),
+                ("act:ichart:mxwll:RELIANCE", "🌊 RELIANCE Mxwll"),
+                ("nav:sub:chart", "📊 Chart Studio")
+            ]
+        },
+        "classic": {
+            "title": "📈 *CLASSIC TREND & MOMENTUM (Multi-SMA)*",
+            "desc": (
+                "Publication-quality 6-month dark-mode daily chart featuring 50-day SMA (Yellow) and 200-day SMA (Purple) "
+                "crossovers, institutional volume spikes, and 14-period RSI indicator subpanel."
+            ),
+            "syntax": "CHART <SYMBOL> or C <SYMBOL> (e.g. `CHART RELIANCE`)",
+            "buttons": [
+                ("act:chart:RELIANCE", "📈 RELIANCE Chart"),
+                ("act:chart:BOSCHLTD", "📈 BOSCH Chart"),
+                ("nav:sub:chart", "📊 Chart Studio")
+            ]
+        }
+    }
+
+    cfg = configs.get(clean_k, configs["classic"])
+
+    body = (
+        f"{cfg['title']}\n"
+        "━━━━━━━━━━━━━━━━━━━━\n"
+        f"{cfg['desc']}\n\n"
+        f"💡 *To render any stock:*\n"
+        f"Text `{cfg['syntax']}`\n\n"
+        "_Or tap an instant benchmark demonstration below:_"
+    )
+    return send_whatsapp_interactive_buttons(body, buttons=cfg["buttons"], recipient=recipient)
+
+
+def handle_chart_prompt(recipient: Optional[str] = None) -> Dict[str, Any]:
+    """Legacy alias: forwards to handle_chart_menu."""
+    return handle_chart_menu(recipient=recipient)
 
 
 def handle_stock_query(symbol_input: str, recipient: Optional[str] = None) -> Dict[str, Any]:
@@ -3750,12 +3946,12 @@ def handle_chart_query(symbol_input: str, recipient: Optional[str] = None) -> Di
         time.sleep(0.3)  # Brief delay so buttons appear below image
 
         buttons = [
-            (f"view:stock:{base_sym}", f"📌 {base_sym} Info"),
-            (f"news:{base_sym}", f"📰 {base_sym} News"),
-            ("nav:menu:main", "🏠 Main Menu")
+            (f"act:ichart:breaks:{base_sym}", "⚡ Breaks"),
+            (f"act:fib:{base_sym}", "🌀 Fibs"),
+            (f"act:ichart:smc:{base_sym}", "🏛️ SMC Blocks")
         ]
         return send_whatsapp_interactive_buttons(
-            f"Actions for *{base_sym}*:",
+            f"⚡ *Switch Chart View for {base_sym}*:",
             buttons=buttons,
             recipient=recipient
         )
@@ -3835,7 +4031,7 @@ def handle_ichart_query(symbol_input: str, mode: str = "breaks", recipient: Opti
             caption = "\n".join(lines)
             buttons = [
                 (f"act:ichart:smc:{btn_sym}", "🏛️ SMC Blocks"),
-                (f"act:ichart:mxwll:{btn_sym}", "🌀 Mxwll Suite"),
+                (f"act:fib:{btn_sym}", "🌀 Fibonacci"),
                 (f"act:ichart:lrtc:{btn_sym}", "📐 LRTC Channel")
             ]
 
@@ -3861,7 +4057,7 @@ def handle_ichart_query(symbol_input: str, mode: str = "breaks", recipient: Opti
             caption = "\n".join(lines)
             buttons = [
                 (f"act:ichart:breaks:{btn_sym}", "⚡ Breaks & Signals"),
-                (f"act:ichart:mxwll:{btn_sym}", "🌀 Mxwll Suite"),
+                (f"act:fib:{btn_sym}", "🌀 Fibonacci"),
                 (f"act:ichart:lrtc:{btn_sym}", "📐 LRTC Channel")
             ]
 
@@ -3891,7 +4087,7 @@ def handle_ichart_query(symbol_input: str, mode: str = "breaks", recipient: Opti
             buttons = [
                 (f"act:ichart:breaks:{btn_sym}", "⚡ Breaks & Signals"),
                 (f"act:ichart:smc:{btn_sym}", "🏛️ SMC Blocks"),
-                (f"act:ichart:lrtc:{btn_sym}", "📐 LRTC Channel")
+                (f"act:fib:{btn_sym}", "🌀 Fibonacci")
             ]
 
         else:  # lrtc
@@ -3919,7 +4115,7 @@ def handle_ichart_query(symbol_input: str, mode: str = "breaks", recipient: Opti
             buttons = [
                 (f"act:ichart:breaks:{btn_sym}", "⚡ Breaks & Signals"),
                 (f"act:ichart:smc:{btn_sym}", "🏛️ SMC Blocks"),
-                (f"act:ichart:mxwll:{btn_sym}", "🌀 Mxwll Suite")
+                (f"act:fib:{btn_sym}", "🌀 Fibonacci")
             ]
 
         send_whatsapp_chart(img_bytes, caption, recipient=recipient)
@@ -4008,12 +4204,12 @@ def handle_fibonacci_query(symbol_input: str, recipient: Optional[str] = None) -
         time.sleep(0.3)
 
         buttons = [
-            (f"act:chart:{btn_sym}", f"📈 {btn_sym} Chart"),
-            (f"act:ichart:breaks:{btn_sym}", f"📊 {btn_sym} i-Chart"),
-            (f"view:stock:{btn_sym}", f"📌 {btn_sym} Dossier")
+            (f"act:ichart:breaks:{btn_sym}", "⚡ Breaks"),
+            (f"act:ichart:smc:{btn_sym}", "🏛️ SMC Blocks"),
+            (f"act:chart:{btn_sym}", "📈 Classic")
         ]
         return send_whatsapp_interactive_buttons(
-            f"⚡ *Actions for {base_sym}*:",
+            f"⚡ *Switch Chart View for {base_sym}*:",
             buttons=buttons,
             recipient=recipient
         )
@@ -5581,6 +5777,23 @@ def dispatch_incoming_whatsapp_message(text_body: str, sender: Optional[str] = N
         return handle_watchlist_stage_matrix(get_primary_watchlist_id(), recipient=sender)
 
     # 1f. Institutional i-Chart Suite Interceptors (Breaks, SMC, Mxwll, LRTC)
+    if cleaned.startswith("chart:engine:") or cleaned.startswith("chart:guide:"):
+        ekey = cleaned.replace("chart:engine:", "").replace("chart:guide:", "").strip()
+        return handle_chart_engine_guide(ekey, recipient=sender)
+
+    if cleaned.startswith("act:breaks:") or cleaned.startswith("run:breaks:"):
+        sym = cleaned.replace("act:breaks:", "").replace("run:breaks:", "").strip()
+        return handle_ichart_query(sym, mode="breaks", recipient=sender)
+    if cleaned.startswith("act:smc:") or cleaned.startswith("run:smc:"):
+        sym = cleaned.replace("act:smc:", "").replace("run:smc:", "").strip()
+        return handle_ichart_query(sym, mode="smc", recipient=sender)
+    if cleaned.startswith("act:lrtc:") or cleaned.startswith("run:lrtc:"):
+        sym = cleaned.replace("act:lrtc:", "").replace("run:lrtc:", "").strip()
+        return handle_ichart_query(sym, mode="lrtc", recipient=sender)
+    if cleaned.startswith("act:mxwll:") or cleaned.startswith("run:mxwll:"):
+        sym = cleaned.replace("act:mxwll:", "").replace("run:mxwll:", "").strip()
+        return handle_ichart_query(sym, mode="mxwll", recipient=sender)
+
     if cleaned.startswith("act:ichart:") or cleaned.startswith("run:ichart:"):
         parts = cleaned.split(":")
         if len(parts) >= 4:
@@ -5792,8 +6005,8 @@ def dispatch_incoming_whatsapp_message(text_body: str, sender: Optional[str] = N
     elif upper.startswith("AI ") or upper.startswith("ASK ") or upper.startswith("COPILOT "):
         q = re.sub(r"^(?:AI|ASK|COPILOT)\s*[:\-\s]*", "", cleaned, flags=re.IGNORECASE).strip()
         return handle_conversational_copilot(q, recipient=sender)
-    elif cleaned.startswith("nav:sub:chart"):
-        return handle_chart_prompt(recipient=sender)
+    elif cleaned.startswith("nav:sub:chart") or cleaned.startswith("nav:menu:chart") or upper in ["CHARTS", "CHART MENU", "CHART STUDIO", "CHARTING", "ICHART MENU", "I-CHART MENU"]:
+        return handle_chart_menu(recipient=sender)
 
     # Intraday Surge & Volatility Scanner On-Demand
     elif upper in ["SURGE", "VOLATILITY", "SURGE SCAN", "INTRADAY SURGE"]:
