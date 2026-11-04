@@ -1691,13 +1691,13 @@ def generate_stock_fibonacci_chart(
     fib_100 = low_52w
 
     fib_map = [
-        ("0.0% (52W High)", fib_0, TEXT_WHITE),
+        ("0.0% High", fib_0, TEXT_WHITE),
         ("23.6%", fib_236, COLOR_AMBER),
         ("38.2%", fib_382, COLOR_YELLOW),
         ("50.0% Retrac", fib_500, COLOR_PURPLE),
         ("61.8% Golden", fib_618, COLOR_GREEN),
         ("78.6% Retrac", fib_786, COLOR_SLATE),
-        ("100.0% (52W Low)", fib_100, COLOR_RED)
+        ("100.0% Low", fib_100, COLOR_RED)
     ]
 
     # Find Nearest Fibonacci Level
@@ -1771,7 +1771,7 @@ def generate_stock_fibonacci_chart(
     }
 
     # Plot Visual Canvas
-    fig = plt.figure(figsize=(12, 7.0), facecolor=BG_DARK, dpi=120)
+    fig = plt.figure(figsize=(13.5, 7.2), facecolor=BG_DARK, dpi=120)
     gs = fig.add_gridspec(2, 1, height_ratios=[5.2, 1.8], hspace=0.25)
 
     # ─── 1. MAIN FIBONACCI RETRACEMENT CHART ──────────────────────────────────────
@@ -1790,6 +1790,7 @@ def generate_stock_fibonacci_chart(
     x_dates = df.index
     x_indices = np.arange(len(x_dates))
     closes = close_series.values
+    n_bars = len(x_indices)
 
     ax_chart.plot(x_indices, closes, color=ACCENT_BLUE, linewidth=1.8, label="Price", zorder=5)
     ax_chart.fill_between(x_indices, closes, low_52w * 0.96, color=ACCENT_BLUE, alpha=0.07, zorder=2)
@@ -1798,47 +1799,59 @@ def generate_stock_fibonacci_chart(
     gp_top = max(fib_500, fib_618)
     gp_bot = min(fib_500, fib_618)
     rect_gp = patches.Rectangle(
-        (0, gp_bot), len(x_indices) + 12, gp_top - gp_bot,
+        (0, gp_bot), n_bars, gp_top - gp_bot,
         facecolor=COLOR_GREEN, alpha=0.06, zorder=1
     )
     ax_chart.add_patch(rect_gp)
 
-    # Plot Dotted Horizontal Fibonacci Lines and Right Axis Pills
-    n_bars = len(x_indices)
-    pills_x = n_bars + 1.5
+    # Plot Dotted Horizontal Fibonacci Lines and Right Axis Pills (Two Distinct Side-by-Side Pill Columns)
+    right_margin_bars = max(int(n_bars * 0.28), 65)
+    pill1_w = right_margin_bars * 0.47
+    pill2_w = right_margin_bars * 0.43
+    pill1_x = n_bars + right_margin_bars * 0.04
+    pill2_x = pill1_x + pill1_w + right_margin_bars * 0.04
+    pill_h = (high_52w - low_52w) * 0.044
 
     for lbl, val, col in fib_map:
         lw = 1.3 if "61.8" in lbl or "50.0" in lbl else 0.9
         ls = "--" if "61.8" in lbl or "50.0" in lbl else ":"
         alpha_val = 0.85 if "61.8" in lbl or "50.0" in lbl else 0.65
-        ax_chart.plot([0, n_bars], [val, val], color=col, linestyle=ls, linewidth=lw, alpha=alpha_val, zorder=3)
+        ax_chart.plot([0, pill1_x], [val, val], color=col, linestyle=ls, linewidth=lw, alpha=alpha_val, zorder=3)
 
-        # Draw Pill Badge on Right
-        pill_w = 11.5
-        pill_h = (high_52w - low_52w) * 0.045
-        rect_pill = patches.FancyBboxPatch(
-            (pills_x, val - pill_h / 2.0), pill_w, pill_h,
+        # 1. Ratio Pill (Solid colored background with high-contrast text)
+        rect_p1 = patches.FancyBboxPatch(
+            (pill1_x, val - pill_h / 2.0), pill1_w, pill_h,
             boxstyle="round,pad=0.2,rounding_size=0.3",
-            facecolor=col, edgecolor="none", alpha=0.88, zorder=6
+            facecolor=col, edgecolor="none", alpha=0.92, zorder=6
         )
-        ax_chart.add_patch(rect_pill)
+        ax_chart.add_patch(rect_p1)
+        tcol = "#090D16" if col in [COLOR_AMBER, COLOR_YELLOW, COLOR_GREEN, ACCENT_BLUE, TEXT_WHITE] else TEXT_WHITE
+        ax_chart.text(pill1_x + pill1_w / 2.0, val, lbl, color=tcol, fontsize=7.8, fontweight="bold", va="center", ha="center", zorder=7)
 
-        # Short ratio text
-        short_lbl = lbl.split()[0]
-        text_col = "#090D16" if col in [COLOR_AMBER, COLOR_YELLOW, COLOR_GREEN, ACCENT_BLUE] else TEXT_WHITE
-        ax_chart.text(pills_x + 1.2, val, short_lbl, color=text_col, fontsize=7.5, fontweight="bold", va="center", zorder=7)
-        ax_chart.text(pills_x + pill_w - 0.8, val, f"₹{val:,.0f}", color=text_col, fontsize=7.5, fontweight="bold", va="center", ha="right", zorder=7)
+        # 2. Price Pill (Dark card background with matching colored border and crisp price text)
+        rect_p2 = patches.FancyBboxPatch(
+            (pill2_x, val - pill_h / 2.0), pill2_w, pill_h,
+            boxstyle="round,pad=0.2,rounding_size=0.3",
+            facecolor="#111827", edgecolor=col, linewidth=0.9, alpha=0.95, zorder=6
+        )
+        ax_chart.add_patch(rect_p2)
+        ax_chart.text(pill2_x + pill2_w / 2.0, val, f"₹{val:,.1f}", color=TEXT_WHITE, fontsize=7.8, fontweight="bold", va="center", ha="center", zorder=7)
 
-    # Current Price Marker Line
-    ax_chart.axhline(curr_p, color=ACCENT_BLUE, linestyle=":", linewidth=1.1, alpha=0.8, xmin=0, xmax=0.92, zorder=4)
-    # LTP Tag
-    rect_ltp = patches.FancyBboxPatch(
-        (pills_x, curr_p - (high_52w - low_52w) * 0.025), pill_w, (high_52w - low_52w) * 0.05,
-        boxstyle="round,pad=0.2,rounding_size=0.3",
-        facecolor=CARD_BG, edgecolor=ACCENT_BLUE, linewidth=1.2, zorder=7
+    # Active Price Pointer on Curve Tip
+    ax_chart.plot(n_bars - 1, curr_p, marker="o", markersize=7, color=ACCENT_BLUE, zorder=8)
+    ax_chart.axhline(curr_p, color=ACCENT_BLUE, linestyle=":", linewidth=1.2, alpha=0.85, xmin=0, xmax=0.78, zorder=4)
+
+    # Dedicated Non-Overlapping LTP Callout Tag at the Last Bar
+    y_offset = -28 if curr_p > (high_52w + low_52w) / 2 else 24
+    ax_chart.annotate(
+        f"  LTP ₹{curr_p:,.1f} ({chg_pct:+.2f}%)  ",
+        xy=(n_bars - 1, curr_p),
+        xytext=(-115, y_offset),
+        textcoords="offset points",
+        bbox=dict(boxstyle="round,pad=0.4,rounding_size=0.3", facecolor="#090D16", edgecolor=ACCENT_BLUE, linewidth=1.5),
+        arrowprops=dict(arrowstyle="->", color=ACCENT_BLUE, lw=1.3),
+        color=ACCENT_BLUE, fontsize=8.5, fontweight="bold", zorder=9
     )
-    ax_chart.add_patch(rect_ltp)
-    ax_chart.text(pills_x + pill_w / 2.0, curr_p, f"LTP ₹{curr_p:,.1f}", color=ACCENT_BLUE, fontsize=7.5, fontweight="bold", va="center", ha="center", zorder=8)
 
     # Top HUD Inside Chart
     today_str = datetime.now().strftime("%Y-%m-%d")
@@ -1848,7 +1861,7 @@ def generate_stock_fibonacci_chart(
     hud_sub = f"{today_str}  •  Price: ₹{curr_p:,.1f} ({chg_pct:+.2f}%)  •  Nearest: {nearest_name} (₹{nearest_val:,.1f}) — {dist_str}"
     ax_chart.text(0.02, 0.88, hud_sub, color=ACCENT_BLUE, fontsize=8.5, fontweight="bold", transform=ax_chart.transAxes)
 
-    ax_chart.set_xlim(-2, n_bars + 15)
+    ax_chart.set_xlim(-2, n_bars + right_margin_bars + 4)
     ax_chart.set_ylim(low_52w * 0.94, high_52w * 1.05)
     ax_chart.grid(color=GRID_COLOR, linestyle=":", alpha=0.5)
     ax_chart.tick_params(colors=TEXT_MUTED, labelsize=8)
