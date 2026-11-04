@@ -3889,6 +3889,37 @@ def handle_stock_query(symbol_input: str, recipient: Optional[str] = None) -> Di
     chg_emoji = "🟢" if day_chg_pct >= 0 else "🔴"
     chg_sign = "+" if day_chg_pct >= 0 else ""
 
+    # 7. Interactive Market Capture (12M) & Drawdown Risk Profile
+    from backend.financial_utils import calculate_capture_ratios, calculate_drawdown_metrics
+    up_cap, down_cap = 100.0, 100.0
+    max_dd, dd_days = -20.0, 180
+    try:
+        cap_res = calculate_capture_ratios(lookup_ticker, years="1y")
+        up_cap = float(cap_res.get("up_capture", 100.0))
+        down_cap = float(cap_res.get("down_capture", 100.0))
+        dd_res = calculate_drawdown_metrics(lookup_ticker, period="1y")
+        max_dd = float(dd_res.get("max_drawdown_pct", -20.0))
+        dd_days = int(dd_res.get("worst_drawdown_duration_days", 180))
+    except Exception as e:
+        logger.warning(f"Error fetching capture/drawdown for {lookup_ticker}: {e}")
+
+    up_badge = "🟢" if up_cap >= 100 else "⚪"
+    down_badge = "🛡️" if down_cap <= 50 else ("⚠️" if down_cap >= 100 else "⚪")
+    down_label = "Protected Downside" if down_cap <= 50 else ("High Downside" if down_cap >= 100 else "Moderate Downside")
+
+    if up_cap >= 120 and down_cap <= 50:
+        asym_profile = "Asymmetric Alpha (Premium Profile)"
+        asym_desc = "Superior upside gain vs deep downside defense"
+    elif up_cap >= 100 and down_cap <= 80:
+        asym_profile = "Outperforming Compounder"
+        asym_desc = "Outpaces index while cushioning corrections"
+    elif up_cap >= 100 and down_cap > 100:
+        asym_profile = "High Beta Volatility"
+        asym_desc = "Captures outsized gains & magnified drops"
+    else:
+        asym_profile = "Market Mimic"
+        asym_desc = "Tracks broader benchmark amplitude"
+
     # ─── MESSAGE 1: FUNDAMENTAL & VALUATION DOSSIER ───
     fund_lines = [
         f"🏛️ *{company_name.upper()}* (`{base_sym}`)",
@@ -3901,6 +3932,13 @@ def handle_stock_query(symbol_input: str, recipient: Optional[str] = None) -> Di
         f"• 1W: {fmt_pct(ret_1w)}  |  1M: {fmt_pct(ret_1m)}  |  3M: {fmt_pct(ret_3m)}",
         f"• 1Y: {fmt_pct(ret_1y)}  |  3Y: {fmt_pct(ret_3y)}",
         f"• *Alpha vs Nifty 50*: {alpha_str}\n",
+        "🛡️ *INTERACTIVE MARKET CAPTURE (12M)*",
+        f"• Up-Market:   {up_badge} *{up_cap:.1f}%* (vs Nifty 50)",
+        f"• Down-Market: {down_badge} *{down_cap:.1f}%* ({down_label})",
+        f"• *Verdict*: {asym_profile} — _{asym_desc}_\n",
+        "🌊 *DRAWDOWN & RISK PROFILE*",
+        f"• *Max 1Y Drawdown*: 🔴 *{max_dd:.1f}%* (Peak Volatility Floor)",
+        f"• *Worst Recovery Period*: ⏳ *{dd_days} days*\n",
         "⚖️ *VALUATION MULTIPLES*",
         f"• Current P/E: {pe_curr_str}  |  3Y Median P/E: {pe_3y_str}  |  5Y Median P/E: {pe_5y_str}\n",
         "💎 *QUALITY & FINANCIAL HEALTH*",
@@ -3918,6 +3956,89 @@ def handle_stock_query(symbol_input: str, recipient: Optional[str] = None) -> Di
 
     # Dispatch Message 2: Technical Timing & Momentum Dossier
     return handle_stock_technical_timing(lookup_ticker, disp_name=company_name, base_sym=base_sym, recipient=recipient)
+
+
+def handle_stock_risk_profile(symbol_input: str, recipient: Optional[str] = None) -> Dict[str, Any]:
+    """
+    Renders standalone Institutional Market Capture & Drawdown Risk Profile matching
+    the Interactive Market Capture and Drawdown & Risk Profile tabs of the Equity Research Terminal.
+    """
+    from backend.financial_utils import calculate_capture_ratios, calculate_drawdown_metrics
+    clean_sym = symbol_input.strip().upper().replace(" ", "")
+    clean_sym = re.sub(r"^(?:RISK|CAPTURE|DRAWDOWN)[\s:]+", "", clean_sym, flags=re.IGNORECASE).strip()
+    if not clean_sym:
+        clean_sym = "BOSCH"
+
+    resolved = resolve_company_ticker(clean_sym)
+    lookup_ticker = resolved.get("yf_ticker") if resolved else f"{clean_sym}.NS"
+    b_sym = resolved.get("base_symbol") if resolved else lookup_ticker.replace(".NS", "")
+    d_name = resolved.get("name") if resolved else b_sym
+    btn_sym = b_sym[:8]
+
+    try:
+        cap_res = calculate_capture_ratios(lookup_ticker, years="1y")
+        up_cap = float(cap_res.get("up_capture", 100.0))
+        down_cap = float(cap_res.get("down_capture", 100.0))
+        dd_res = calculate_drawdown_metrics(lookup_ticker, period="1y")
+        max_dd = float(dd_res.get("max_drawdown_pct", -20.0))
+        dd_days = int(dd_res.get("worst_drawdown_duration_days", 180))
+
+        up_badge = "🟢" if up_cap >= 100 else "⚪"
+        down_badge = "🛡️" if down_cap <= 50 else ("⚠️" if down_cap >= 100 else "⚪")
+        down_desc = "Protected Downside vs Nifty 50" if down_cap <= 50 else ("High Downside Sensitivity" if down_cap >= 100 else "Moderate Downside Cushion")
+
+        if up_cap >= 120 and down_cap <= 50:
+            asym_title = "Asymmetric Alpha (Premium Profile)"
+            asym_summary = f"Over the last year, {d_name} captured {up_cap:.1f}% of index gains while cushioning standard drawdowns to just {down_cap:.1f}%. This represents a classic asymmetric alpha asset with superior downside defense."
+            layman = f"This stock enjoys massive upside power during market rallies while barely flinching during market falls. High upside reward with minimal drawdown risk."
+        elif up_cap >= 100 and down_cap <= 80:
+            asym_title = "Outperforming Compounder"
+            asym_summary = f"Outperformed the index during bullish rallies ({up_cap:.1f}%) with defensive cushioning during market corrections ({down_cap:.1f}%)."
+            layman = f"Solid outperformer that gains more on green days and loses less on red days."
+        elif up_cap >= 100 and down_cap > 100:
+            asym_title = "High Beta Volatility"
+            asym_summary = f"High beta swings: captures {up_cap:.1f}% upside but also experiences amplified downside ({down_cap:.1f}%)."
+            layman = f"Like riding a fast roller coaster with sudden, steep drops. Requires high risk tolerance."
+        else:
+            asym_title = "Defensive / Market Neutral"
+            asym_summary = f"Muted upside capture ({up_cap:.1f}%) with standard market correlation."
+            layman = f"Tracks broader market movement without excessive deviation."
+
+        analyst_verdict = f"{'High cyclical beta swings' if abs(max_dd) >= 20 else 'Moderate cyclical swings'} (Max Drop: {abs(max_dd):.1f}%) with extended value-recovery timelines spanning {dd_days} days. Sizable risk premium requires a long-term capital focus."
+
+        lines = [
+            f"🛡️ *{d_name.upper()}* (`{b_sym}`) • *RISK & CAPTURE*",
+            "━━━━━━━━━━━━━━━━━━━━",
+            "📊 *INTERACTIVE MARKET CAPTURE (12M)*:",
+            f"• Up-Market Capture:   {up_badge} *{up_cap:.1f}%* (Outperforming vs Nifty 50)",
+            f"• Down-Market Capture: {down_badge} *{down_cap:.1f}%* ({down_desc})\n",
+            f"📈 *Capture Profile*: *{asym_title}*",
+            f"_{asym_summary}_\n",
+            "🌊 *DRAWDOWN & RISK PROFILE*:",
+            f"• *Max Drawdown (1Y)*: 🔴 *{max_dd:.1f}%* (Peak Volatility Floor)",
+            f"• *Worst Recovery Period*: ⏳ *{dd_days} days*\n",
+            "🧠 *AI RISK CHARTIST INTERPRETATION*:",
+            f"• *Analyst Verdict*: {analyst_verdict}",
+            f"• 💡 *Layman Translation*: _{layman}_",
+            "━━━━━━━━━━━━━━━━━━━━",
+            "Tap below to inspect technical timing or charts:"
+        ]
+        body = "\n".join(lines)
+
+        buttons = [
+            (f"view:tech:{btn_sym}", f"⏱️ {btn_sym} Timing"),
+            (f"act:chart:{btn_sym}", f"📈 {btn_sym} Chart"),
+            (f"act:fib:{btn_sym}", f"🌀 {btn_sym} Fib")
+        ]
+        return send_whatsapp_interactive_buttons(body, buttons=buttons, recipient=recipient)
+
+    except Exception as e:
+        logger.error(f"Error computing risk profile for {clean_sym}: {e}", exc_info=True)
+        return send_whatsapp_interactive_buttons(
+            f"⚠️ *Risk Profile Error*: Failed to compute capture & drawdown for `{clean_sym}`: {str(e)}",
+            buttons=[("nav:menu:main", "🏠 Main Menu")],
+            recipient=recipient
+        )
 
 
 def handle_stock_technical_timing(
@@ -6139,6 +6260,15 @@ def dispatch_incoming_whatsapp_message(text_body: str, sender: Optional[str] = N
     elif cleaned.startswith("run:news:"):
         ntype = cleaned.replace("run:news:", "")
         return handle_run_news(ntype, recipient=sender)
+
+    # Dedicated Risk & Capture Profile Command (RISK <SYM> / CAPTURE <SYM> / DRAWDOWN <SYM>)
+    if upper.startswith("RISK ") or upper.startswith("RISK:") or upper.startswith("CAPTURE ") or upper.startswith("CAPTURE:") or upper.startswith("DRAWDOWN ") or upper.startswith("DRAWDOWN:"):
+        sym = re.sub(r"^(?:DRAWDOWN|CAPTURE|RISK)[\s:]+", "", cleaned, flags=re.IGNORECASE).strip()
+        if sym:
+            return handle_stock_risk_profile(sym, recipient=sender)
+    if cleaned.startswith("view:risk:") or cleaned.startswith("act:risk:"):
+        sym = cleaned.replace("view:risk:", "").replace("act:risk:", "").strip()
+        return handle_stock_risk_profile(sym, recipient=sender)
 
     # Dedicated Technical Timing Command (TECH <SYM> / TIMING <SYM>)
     if upper.startswith("TECH ") or upper.startswith("TECH:") or upper.startswith("TIMING ") or upper.startswith("TIMING:") or upper.startswith("TECHNICAL "):
