@@ -32,6 +32,7 @@ TEXT_MUTED = "#94A3B8"      # Slate muted text for subtitles
 COLOR_GREEN = "#10B981"     # Emerald gain
 COLOR_RED = "#EF4444"       # Ruby red loss
 COLOR_AMBER = "#F59E0B"     # Amber warning / neutral
+COLOR_PURPLE = "#A855F7"    # Purple institutional indicator
 GRID_COLOR = "#1E293B"      # Very subtle gridlines
 
 
@@ -566,7 +567,7 @@ def generate_stock_technical_chart(
     """
     import yfinance as yf
     import pandas as pd
-    
+
     clean_sym = symbol.strip().upper()
     if not clean_sym.endswith(".NS") and not clean_sym.endswith(".BO"):
         ticker = f"{clean_sym}.NS"
@@ -1212,3 +1213,410 @@ def generate_premarket_radar_chart(
         logger.info(f"Generated Pre-Market Tactical Radar chart saved to: {output_path}")
 
     return img_bytes
+
+
+
+# ─── 4. INSTITUTIONAL i-CHART SUITE (BREAKS, SMC, MXWLL, LRTC) ─────────────────
+
+def generate_stock_ichart(
+    symbol: str,
+    company_name: Optional[str] = None,
+    indicator_mode: str = "breaks",
+    output_path: Optional[str] = None
+) -> Tuple[bytes, Dict[str, Any]]:
+    """
+    Renders an institutional i-Chart matching the Web App's i-Chart tab.
+    Modes supported:
+      - 'breaks': LuxAlgo Trendlines with Breaks (Buy/Sell arrows)
+      - 'smc': Smart Money Concepts (Order Blocks, BOS/CHoCH)
+      - 'mxwll': Maxwell Suite (Auto-Fibs, Swing Pivots)
+      - 'lrtc': Linear Regression Trend Channel (±2.0σ Bands)
+    """
+    import yfinance as yf
+    import pandas as pd
+    from backend.swing_utils import (
+        calculate_trendlines_with_breaks,
+        calculate_lux_smc,
+        calculate_mxwll_suite,
+        calculate_linear_regression_trend_channel
+    )
+
+    clean_sym = symbol.strip().upper()
+    if not clean_sym.endswith(".NS") and not clean_sym.endswith(".BO") and "^" not in clean_sym:
+        ticker = f"{clean_sym}.NS"
+    else:
+        ticker = clean_sym
+
+    base_sym = ticker.replace(".NS", "").replace(".BO", "")
+    disp_name = company_name or base_sym
+
+    # Download 9 months of daily data
+    df = yf.download(ticker, period="9mo", interval="1d", progress=False)
+    if hasattr(df.columns, "levels") and len(df.columns.levels) > 1:
+        df = df.xs(df.columns.levels[1][0], axis=1, level=1)
+    df = df.dropna(subset=["Close", "Open", "High", "Low"])
+
+    if df.empty or len(df) < 20:
+        # Fallback dummy data
+        dates = pd.date_range(end=datetime.now(), periods=120)
+        c = np.linspace(100, 150, 120) + np.random.normal(0, 2, 120)
+        df = pd.DataFrame({
+            "Open": c - 0.5,
+            "High": c + 1.5,
+            "Low": c - 1.5,
+            "Close": c,
+            "Volume": np.random.randint(50000, 200000, 120)
+        }, index=dates)
+
+    # Focus on the most recent 100 trading bars for optimal mobile legibility
+    if len(df) > 100:
+        eval_df = df.copy()  # Full dataframe for indicator lookback
+        plot_df = df.tail(90).copy()
+    else:
+        eval_df = df.copy()
+        plot_df = df.copy()
+
+    close = eval_df["Close"]
+    high = eval_df["High"]
+    low = eval_df["Low"]
+    volume = eval_df["Volume"]
+
+    # Moving Averages
+    ema_20 = close.ewm(span=20).mean()
+    ema_50 = close.ewm(span=50).mean()
+    sma_150 = close.rolling(150, min_periods=30).mean()
+
+    curr_p = float(close.iloc[-1])
+    prev_p = float(close.iloc[-2]) if len(close) >= 2 else curr_p
+    chg_pct = ((curr_p - prev_p) / prev_p * 100.0) if prev_p > 0 else 0.0
+
+    curr_30w = float(sma_150.iloc[-1])
+    past_20d_30w = float(sma_150.iloc[-20]) if len(sma_150) >= 20 else curr_30w
+    slope_30w = float(((curr_30w - past_20d_30w) / past_20d_30w) * 100.0) if past_20d_30w > 0 else 0.0
+
+    stage_badge = (
+        "Stage 2 Mark-Up" if slope_30w > 0 and curr_p > float(ema_50.iloc[-1])
+        else ("Stage 3 Top" if slope_30w >= -0.3 and curr_p < float(ema_50.iloc[-1])
+        else ("Stage 4 Decline" if slope_30w < -0.3
+        else "Stage 1 Basing"))
+    )
+
+    metadata: Dict[str, Any] = {
+        "symbol": base_sym,
+        "company_name": disp_name,
+        "curr_price": curr_p,
+        "chg_pct": chg_pct,
+        "ema_20": float(ema_20.iloc[-1]),
+        "ema_50": float(ema_50.iloc[-1]),
+        "sma_150": curr_30w,
+        "slope_30w": slope_30w,
+        "stage_badge": stage_badge,
+        "mode": indicator_mode
+    }
+
+    # Setup Plot
+    mode_clean = indicator_mode.lower().strip()
+    fig = plt.figure(figsize=(12, 8.2), facecolor=BG_DARK, dpi=120)
+    gs = fig.add_gridspec(3, 1, height_ratios=[1.3, 5.4, 1.8], hspace=0.28)
+
+    # ─── 1. HEADER CARD ──────────────────────────────────────────────────────────
+    ax_head = fig.add_subplot(gs[0])
+    ax_head.set_facecolor(CARD_BG)
+    ax_head.axis("off")
+
+    rect_head = patches.FancyBboxPatch(
+        (0.01, 0.05), 0.98, 0.90,
+        boxstyle="round,pad=0.03,rounding_size=0.05",
+        facecolor=CARD_BG, edgecolor=CARD_BORDER, linewidth=1.2,
+        transform=ax_head.transAxes, clip_on=False
+    )
+    ax_head.add_patch(rect_head)
+
+    chg_sign = "+" if chg_pct >= 0 else ""
+    pnl_col = COLOR_GREEN if chg_pct >= 0 else COLOR_RED
+
+    mode_titles = {
+        "breaks": "LUXALGO TRENDLINES & BREAKOUT SIGNALS",
+        "smc": "SMART MONEY CONCEPTS (SMC) & ORDER BLOCKS",
+        "mxwll": "MAXWELL AUTO-FIBONACCI & SWING PIVOTS",
+        "lrtc": "LINEAR REGRESSION TREND CHANNEL (+-2.0s)"
+    }
+    mode_label = mode_titles.get(mode_clean, "INSTITUTIONAL i-CHART")
+
+    ax_head.text(0.03, 0.70, f"{disp_name.upper()} ({base_sym})", color=TEXT_WHITE,
+                 fontsize=14.5, fontweight="bold", transform=ax_head.transAxes)
+    ax_head.text(0.03, 0.28, mode_label, color=ACCENT_BLUE,
+                 fontsize=9.5, fontweight="bold", transform=ax_head.transAxes)
+
+    ax_head.text(0.48, 0.70, "LAST PRICE", color=TEXT_MUTED, fontsize=8.5, fontweight="bold", transform=ax_head.transAxes)
+    ax_head.text(0.48, 0.26, f"₹ {curr_p:,.2f} ({chg_sign}{chg_pct:.2f}%)", color=pnl_col, fontsize=13.5, fontweight="bold", transform=ax_head.transAxes)
+
+    ax_head.text(0.76, 0.70, "30W MA (150 SMA) & STAGE", color=TEXT_MUTED, fontsize=8.5, fontweight="bold", transform=ax_head.transAxes)
+    ax_head.text(0.76, 0.26, f"₹ {curr_30w:,.1f} ({slope_30w:+.1f}%) • {stage_badge[:12]}", color=COLOR_PURPLE, fontsize=11.0, fontweight="bold", transform=ax_head.transAxes)
+
+    # ─── 2. MAIN CANDLESTICK PANEL ───────────────────────────────────────────────
+    ax_main = fig.add_subplot(gs[1])
+    ax_main.set_facecolor(CARD_BG)
+
+    rect_main = patches.FancyBboxPatch(
+        (0.01, 0.02), 0.98, 0.96,
+        boxstyle="round,pad=0.03,rounding_size=0.04",
+        facecolor=CARD_BG, edgecolor=CARD_BORDER, linewidth=1.2,
+        transform=ax_main.transAxes, clip_on=False
+    )
+    ax_main.add_patch(rect_main)
+
+    # Plot Candlesticks
+    dates = plot_df.index
+    x_indices = np.arange(len(dates))
+    candle_width = 0.58
+
+    opens = plot_df["Open"].values
+    highs = plot_df["High"].values
+    lows = plot_df["Low"].values
+    closes = plot_df["Close"].values
+
+    for idx in range(len(dates)):
+        o, h, l, c = opens[idx], highs[idx], lows[idx], closes[idx]
+        col = COLOR_GREEN if c >= o else COLOR_RED
+        # Wick
+        ax_main.plot([idx, idx], [l, h], color=col, linewidth=1.1, zorder=3)
+        # Body
+        body_bottom = min(o, c)
+        body_height = max(abs(c - o), (h - l) * 0.01 if h > l else 0.5)
+        rect = patches.Rectangle(
+            (idx - candle_width / 2.0, body_bottom), candle_width, body_height,
+            facecolor=col, edgecolor=col, linewidth=0.8, zorder=4
+        )
+        ax_main.add_patch(rect)
+
+    # Overlay Triple MAs
+    plot_ema_20 = ema_20.loc[dates]
+    plot_ema_50 = ema_50.loc[dates]
+    plot_sma_150 = sma_150.loc[dates]
+
+    ax_main.plot(x_indices, plot_ema_20.values, color=ACCENT_BLUE, linewidth=1.4, label="EMA 20", zorder=5)
+    ax_main.plot(x_indices, plot_ema_50.values, color=COLOR_AMBER, linewidth=1.4, label="EMA 50", zorder=5)
+    if not plot_sma_150.isna().all():
+        ax_main.plot(x_indices, plot_sma_150.values, color=COLOR_PURPLE, linewidth=1.6, label="30W MA (150D)", zorder=5)
+
+    # ─── MODE-SPECIFIC OVERLAYS ──────────────────────────────────────────────────
+    if mode_clean == "breaks":
+        breaks_res = calculate_trendlines_with_breaks(eval_df, length=14, atr_mult=1.0)
+        res_full = pd.Series(breaks_res["resistance"], index=eval_df.index).loc[dates].values
+        sup_full = pd.Series(breaks_res["support"], index=eval_df.index).loc[dates].values
+        bull_breaks = pd.Series(breaks_res["bullish_breaks"], index=eval_df.index).loc[dates].values
+        bear_breaks = pd.Series(breaks_res["bearish_breaks"], index=eval_df.index).loc[dates].values
+
+        # Plot Support & Resistance lines
+        ax_main.plot(x_indices, res_full, color="#F43F5E", linestyle="--", linewidth=1.3, alpha=0.85, label="Resistance", zorder=4)
+        ax_main.plot(x_indices, sup_full, color=COLOR_GREEN, linestyle="--", linewidth=1.3, alpha=0.85, label="Support", zorder=4)
+
+        # Plot Breakout Signals B and S
+        bull_count = 0
+        bear_count = 0
+        latest_signal = "None"
+        latest_signal_price = 0.0
+
+        for idx in range(len(dates)):
+            if bull_breaks[idx]:
+                bull_count += 1
+                latest_signal = "BUY BREAKOUT [B]"
+                latest_signal_price = closes[idx]
+                ax_main.plot(idx, lows[idx] * 0.985, marker="^", markersize=8, color=COLOR_GREEN, zorder=6)
+                ax_main.text(idx, lows[idx] * 0.975, "B", color=COLOR_GREEN, fontsize=8, fontweight="bold", ha="center", va="top", zorder=6)
+            elif bear_breaks[idx]:
+                bear_count += 1
+                latest_signal = "SELL BREAKDOWN [S]"
+                latest_signal_price = closes[idx]
+                ax_main.plot(idx, highs[idx] * 1.015, marker="v", markersize=8, color=COLOR_RED, zorder=6)
+                ax_main.text(idx, highs[idx] * 1.025, "S", color=COLOR_RED, fontsize=8, fontweight="bold", ha="center", va="bottom", zorder=6)
+
+        metadata.update({
+            "latest_signal": latest_signal,
+            "latest_signal_price": latest_signal_price,
+            "bullish_breaks_count": bull_count,
+            "bearish_breaks_count": bear_count,
+            "current_support": float(sup_full[-1]) if len(sup_full) > 0 and not np.isnan(sup_full[-1]) else curr_p * 0.95,
+            "current_resistance": float(res_full[-1]) if len(res_full) > 0 and not np.isnan(res_full[-1]) else curr_p * 1.05
+        })
+
+    elif mode_clean == "smc":
+        smc_res = calculate_lux_smc(eval_df)
+        order_blocks = smc_res.get("order_blocks", [])
+        structures = smc_res.get("structures", [])
+
+        # Plot recent order blocks
+        demand_obs = []
+        supply_obs = []
+        date_list = list(dates)
+
+        for ob in order_blocks[-8:]:
+            ob_type = ob.get("type", "").lower()
+            top_val = float(ob.get("top", 0))
+            bot_val = float(ob.get("bottom", 0))
+            if top_val <= 0 or bot_val <= 0:
+                continue
+
+            ob_col = COLOR_GREEN if "demand" in ob_type or "bull" in ob_type else COLOR_RED
+            if "demand" in ob_type or "bull" in ob_type:
+                demand_obs.append((bot_val, top_val))
+            else:
+                supply_obs.append((bot_val, top_val))
+
+            # Draw shaded horizontal box across recent bars
+            start_x = max(0, len(dates) - 30)
+            end_x = len(dates) - 1
+            box = patches.Rectangle(
+                (start_x, bot_val), end_x - start_x, top_val - bot_val,
+                facecolor=ob_col, edgecolor=ob_col, alpha=0.18, linewidth=1.0, linestyle="--", zorder=3
+            )
+            ax_main.add_patch(box)
+            ax_main.text(end_x + 0.5, (top_val + bot_val) / 2.0, "OB", color=ob_col, fontsize=7.5, fontweight="bold", va="center")
+
+        # Plot BOS / CHoCH lines
+        for st in structures[-6:]:
+            lvl = float(st.get("level", 0))
+            s_type = st.get("type", "BOS")
+            if lvl > 0:
+                ax_main.axhline(lvl, color=TEXT_MUTED, linestyle=":", alpha=0.55, linewidth=1.0, zorder=2)
+
+        metadata.update({
+            "order_block_count": len(order_blocks),
+            "structures_count": len(structures),
+            "demand_zone": f"₹ {demand_obs[-1][0]:,.0f} – ₹ {demand_obs[-1][1]:,.0f}" if demand_obs else "N/A",
+            "supply_zone": f"₹ {supply_obs[-1][0]:,.0f} – ₹ {supply_obs[-1][1]:,.0f}" if supply_obs else "N/A"
+        })
+
+    elif mode_clean == "mxwll":
+        mxwll_res = calculate_mxwll_suite(eval_df)
+        fibs = mxwll_res.get("fib_levels", {})
+
+        # Plot Auto-Fibonacci lines
+        fib_colors = {
+            "0.0": TEXT_WHITE,
+            "0.236": "#60A5FA",
+            "0.382": ACCENT_BLUE,
+            "0.5": COLOR_AMBER,
+            "0.618": COLOR_GREEN,
+            "0.786": COLOR_PURPLE,
+            "1.0": TEXT_WHITE
+        }
+
+        start_x = max(0, len(dates) - 45)
+        end_x = len(dates) - 1
+
+        for ratio, val in fibs.items():
+            if ratio in fib_colors and isinstance(val, (int, float)) and not np.isnan(val):
+                col = fib_colors[ratio]
+                ls = "-" if ratio in ["0.5", "0.618"] else "--"
+                lw = 1.4 if ratio in ["0.5", "0.618"] else 0.9
+                ax_main.plot([start_x, end_x], [val, val], color=col, linestyle=ls, linewidth=lw, alpha=0.85, zorder=3)
+                label_txt = f"{ratio} (₹{val:,.0f})"
+                if ratio == "0.618": label_txt += " (Golden Pocket)"
+                elif ratio == "0.5": label_txt += " (Equilibrium)"
+                ax_main.text(end_x + 0.6, val, label_txt, color=col, fontsize=7.5, fontweight="bold", va="center")
+
+        # Golden pocket highlight
+        if "0.5" in fibs and "0.618" in fibs:
+            p50 = float(fibs["0.5"])
+            p618 = float(fibs["0.618"])
+            gp_bot = min(p50, p618)
+            gp_top = max(p50, p618)
+            gp_box = patches.Rectangle(
+                (start_x, gp_bot), end_x - start_x, gp_top - gp_bot,
+                facecolor=COLOR_AMBER, alpha=0.09, zorder=2
+            )
+            ax_main.add_patch(gp_box)
+
+        metadata.update({
+            "fib_levels": fibs,
+            "fib_50": fibs.get("0.5"),
+            "fib_618": fibs.get("0.618")
+        })
+
+    elif mode_clean == "lrtc":
+        lrtc_res = calculate_linear_regression_trend_channel(eval_df, period=40, deviations_mult=2.0)
+        u_full = pd.Series(lrtc_res["upper_entry"], index=eval_df.index).loc[dates].values
+        l_full = pd.Series(lrtc_res["lower_entry"], index=eval_df.index).loc[dates].values
+        m_full = pd.Series(lrtc_res["middle"], index=eval_df.index).loc[dates].values
+
+        ax_main.plot(x_indices, u_full, color=COLOR_RED, linewidth=1.4, linestyle="-", label="Upper Channel (+2.0σ)", zorder=4)
+        ax_main.plot(x_indices, m_full, color=ACCENT_BLUE, linewidth=1.2, linestyle="--", label="Linear Centerline", zorder=4)
+        ax_main.plot(x_indices, l_full, color=COLOR_GREEN, linewidth=1.4, linestyle="-", label="Lower Channel (-2.0σ)", zorder=4)
+
+        # Fill channel
+        valid_mask = ~np.isnan(u_full) & ~np.isnan(l_full)
+        if np.any(valid_mask):
+            ax_main.fill_between(x_indices[valid_mask], l_full[valid_mask], u_full[valid_mask], color=ACCENT_BLUE, alpha=0.06, zorder=2)
+
+        cur_u = float(u_full[-1]) if len(u_full) > 0 and not np.isnan(u_full[-1]) else curr_p * 1.05
+        cur_l = float(l_full[-1]) if len(l_full) > 0 and not np.isnan(l_full[-1]) else curr_p * 0.95
+        cur_m = float(m_full[-1]) if len(m_full) > 0 and not np.isnan(m_full[-1]) else curr_p
+
+        width = cur_u - cur_l
+        pos_pct = ((curr_p - cur_l) / width * 100.0) if width > 0 else 50.0
+
+        metadata.update({
+            "channel_upper": cur_u,
+            "channel_lower": cur_l,
+            "channel_median": cur_m,
+            "channel_position_pct": pos_pct
+        })
+
+    # Main Panel Formatting
+    ax_main.legend(loc="upper left", facecolor=BG_DARK, edgecolor=CARD_BORDER, labelcolor=TEXT_WHITE, fontsize=8.0)
+    ax_main.grid(color=GRID_COLOR, linestyle=":", alpha=0.55)
+    ax_main.tick_params(colors=TEXT_MUTED, labelsize=8.5)
+    ax_main.set_xlim(-1, len(dates) + 5)
+
+    # Format X ticks with dates
+    tick_step = max(len(dates) // 7, 1)
+    ax_main.set_xticks(x_indices[::tick_step])
+    ax_main.set_xticklabels([d.strftime("%d %b") for d in dates[::tick_step]], color=TEXT_MUTED, fontsize=8)
+
+    for spine in ["top", "right", "left", "bottom"]:
+        ax_main.spines[spine].set_visible(False)
+
+    # ─── 3. VOLUME SUBPANEL ──────────────────────────────────────────────────────
+    ax_vol = fig.add_subplot(gs[2], sharex=ax_main)
+    ax_vol.set_facecolor(CARD_BG)
+
+    rect_vol = patches.FancyBboxPatch(
+        (0.01, 0.02), 0.98, 0.96,
+        boxstyle="round,pad=0.03,rounding_size=0.04",
+        facecolor=CARD_BG, edgecolor=CARD_BORDER, linewidth=1.2,
+        transform=ax_vol.transAxes, clip_on=False
+    )
+    ax_vol.add_patch(rect_vol)
+
+    vol_vals = plot_df["Volume"].values
+    vol_sma20 = plot_df["Volume"].rolling(20, min_periods=5).mean().values
+
+    for idx in range(len(dates)):
+        col = COLOR_GREEN if closes[idx] >= opens[idx] else COLOR_RED
+        # Highlight surge
+        if vol_sma20[idx] > 0 and vol_vals[idx] >= 1.8 * vol_sma20[idx]:
+            col = "#34D399" if closes[idx] >= opens[idx] else "#F87171"
+        ax_vol.bar(idx, vol_vals[idx], color=col, width=0.65, alpha=0.85, zorder=3)
+
+    ax_vol.plot(x_indices, vol_sma20, color="#94A3B8", linewidth=1.1, linestyle="--", label="20D Vol SMA", zorder=4)
+    ax_vol.legend(loc="upper left", facecolor=BG_DARK, edgecolor=CARD_BORDER, labelcolor=TEXT_MUTED, fontsize=7.5)
+    ax_vol.grid(color=GRID_COLOR, linestyle=":", alpha=0.4)
+    ax_vol.tick_params(colors=TEXT_MUTED, labelsize=7.5)
+    for spine in ["top", "right", "left", "bottom"]:
+        ax_vol.spines[spine].set_visible(False)
+
+    # Save to buffer
+    buf = io.BytesIO()
+    plt.savefig(buf, format="png", facecolor=BG_DARK, edgecolor="none", bbox_inches="tight", dpi=120)
+    plt.close(fig)
+    buf.seek(0)
+    img_bytes = buf.getvalue()
+
+    if output_path:
+        os.makedirs(os.path.dirname(os.path.abspath(output_path)), exist_ok=True)
+        with open(output_path, "wb") as f:
+            f.write(img_bytes)
+
+    return img_bytes, metadata

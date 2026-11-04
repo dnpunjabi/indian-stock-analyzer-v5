@@ -3768,6 +3768,177 @@ def handle_chart_query(symbol_input: str, recipient: Optional[str] = None) -> Di
         )
 
 
+
+
+def handle_ichart_query(symbol_input: str, mode: str = "breaks", recipient: Optional[str] = None) -> Dict[str, Any]:
+    """
+    Renders Institutional i-Chart matching the Web App's i-Chart tab across 4 indicator modes:
+      - 'breaks': LuxAlgo Trendlines with Breaks (Buy/Sell arrows & S/R lines)
+      - 'smc': Smart Money Concepts (Demand/Supply Order Blocks & BOS/CHoCH)
+      - 'mxwll': Maxwell Suite (Auto-Fibonacci Retracement Grid & Swing Pivots)
+      - 'lrtc': Linear Regression Trend Channel (+-2.0s deviation bands)
+    Dispatches high-res dark-mode candlestick chart image, accompanied by an institutional
+    signal synthesis card and dynamic 3-button rotation to switch between indicators with 1-tap.
+    """
+    from backend.chart_generator import generate_stock_ichart, send_whatsapp_chart
+    clean = (symbol_input or "").strip().upper()
+    clean = re.sub(r"^(?:ICHART|I-CHART|IC|BREAKS|SMC|MXWLL|MAXWELL|LRTC)[\s:]+", "", clean, flags=re.IGNORECASE).strip()
+    clean = re.sub(r"^(?:ACT:ICHART|RUN:ICHART):[A-Z0-9_]+:", "", clean, flags=re.IGNORECASE).strip()
+
+    if not clean:
+        clean = "BOSCH"
+
+    resolved = resolve_company_ticker(clean)
+    ticker = resolved.get("yf_ticker") if resolved else f"{clean}.NS"
+    disp_name = resolved.get("name") if resolved else clean
+    base_sym = resolved.get("base_symbol") if resolved else clean.replace(".NS", "")
+    btn_sym = base_sym[:8]
+
+    mode_clean = (mode or "breaks").lower().strip()
+    if mode_clean not in ["breaks", "smc", "mxwll", "lrtc"]:
+        mode_clean = "breaks"
+
+    try:
+        img_bytes, meta = generate_stock_ichart(ticker, disp_name, indicator_mode=mode_clean)
+        
+        curr_p = meta.get("curr_price", 0.0)
+        chg_pct = meta.get("chg_pct", 0.0)
+        chg_sign = "+" if chg_pct >= 0 else ""
+        sma_150 = meta.get("sma_150", 0.0)
+        slope_30w = meta.get("slope_30w", 0.0)
+        ema_20 = meta.get("ema_20", 0.0)
+        ema_50 = meta.get("ema_50", 0.0)
+        stage_badge = meta.get("stage_badge", "Stage 2 Mark-Up")
+
+        if mode_clean == "breaks":
+            sig = meta.get("latest_signal", "None")
+            sig_badge = "🟢" if "BUY" in sig else ("🔴" if "SELL" in sig else "⚡")
+            sup = meta.get("current_support", curr_p * 0.95)
+            res = meta.get("current_resistance", curr_p * 1.05)
+            n_bull = meta.get("bullish_breaks_count", 0)
+            n_bear = meta.get("bearish_breaks_count", 0)
+
+            lines = [
+                f"⚡ *{disp_name.upper()}* (`{base_sym}`)",
+                "━━━━━━━━━━━━━━━━━━━━",
+                f"💰 *LTP*: ₹ {curr_p:,.2f} ({chg_sign}{chg_pct:.2f}%) • 🟢 *{stage_badge}*",
+                f"• 30W MA (150 SMA): ₹ {sma_150:,.1f} (Slope: {slope_30w:+.1f}%)",
+                f"• EMAs: EMA 20: ₹ {ema_20:,.1f} | EMA 50: ₹ {ema_50:,.1f}\n",
+                "⚡ *LuxAlgo Breakout Engine*:",
+                f"• Active Signal: {sig_badge} *{sig}*",
+                f"• Dynamic Resistance: ₹ {res:,.1f} (Upper pivot)",
+                f"• Structural Support: ₹ {sup:,.1f} (Cushion floor)",
+                f"• Breakout Tally: {n_bull} Bullish [B] | {n_bear} Bearish [S]",
+                "━━━━━━━━━━━━━━━━━━━━",
+                "Tap below to switch indicator views:"
+            ]
+            caption = "\n".join(lines)
+            buttons = [
+                (f"act:ichart:smc:{btn_sym}", "🏛️ SMC Blocks"),
+                (f"act:ichart:mxwll:{btn_sym}", "🌀 Mxwll Suite"),
+                (f"act:ichart:lrtc:{btn_sym}", "📐 LRTC Channel")
+            ]
+
+        elif mode_clean == "smc":
+            d_zone = meta.get("demand_zone", "N/A")
+            s_zone = meta.get("supply_zone", "N/A")
+            n_ob = meta.get("order_block_count", 0)
+            n_struct = meta.get("structures_count", 0)
+
+            lines = [
+                f"🏛️ *{disp_name.upper()}* (`{base_sym}`)",
+                "━━━━━━━━━━━━━━━━━━━━",
+                f"💰 *LTP*: ₹ {curr_p:,.2f} ({chg_sign}{chg_pct:.2f}%) • 🟢 *{stage_badge}*",
+                f"• 30W MA: ₹ {sma_150:,.1f} | EMA 20: ₹ {ema_20:,.1f} | EMA 50: ₹ {ema_50:,.1f}\n",
+                "🏛️ *Smart Money Concepts (SMC)*:",
+                f"• Demand Order Block: *{d_zone}* (Institutional base)",
+                f"• Supply Overhead: *{s_zone}* (Distribution zone)",
+                f"• Market Structure Shifts: {n_struct} BOS / CHoCH triggers",
+                f"• Tracked Order Blocks: {n_ob} liquidity footprints",
+                "━━━━━━━━━━━━━━━━━━━━",
+                "Tap below to switch indicator views:"
+            ]
+            caption = "\n".join(lines)
+            buttons = [
+                (f"act:ichart:breaks:{btn_sym}", "⚡ Breaks & Signals"),
+                (f"act:ichart:mxwll:{btn_sym}", "🌀 Mxwll Suite"),
+                (f"act:ichart:lrtc:{btn_sym}", "📐 LRTC Channel")
+            ]
+
+        elif mode_clean == "mxwll":
+            fibs = meta.get("fib_levels", {})
+            f236 = fibs.get("0.236", curr_p * 0.97)
+            f382 = fibs.get("0.382", curr_p * 0.95)
+            f500 = fibs.get("0.5", curr_p * 0.93)
+            f618 = fibs.get("0.618", curr_p * 0.90)
+            f786 = fibs.get("0.786", curr_p * 0.85)
+
+            lines = [
+                f"🌀 *{disp_name.upper()}* (`{base_sym}`)",
+                "━━━━━━━━━━━━━━━━━━━━",
+                f"💰 *LTP*: ₹ {curr_p:,.2f} ({chg_sign}{chg_pct:.2f}%) • 🟢 *{stage_badge}*",
+                f"• 30W MA: ₹ {sma_150:,.1f} | EMA 20: ₹ {ema_20:,.1f} | EMA 50: ₹ {ema_50:,.1f}\n",
+                "📐 *Maxwell Auto-Fibonacci Retracement Grid*:",
+                f"• 0.236 Pullback: ₹ {f236:,.1f}",
+                f"• 0.382 Retracement: ₹ {f382:,.1f}",
+                f"• 0.500 Equilibrium: ₹ {f500:,.1f} (Key Confluence)",
+                f"• 0.618 Golden Pocket: 🟢 *₹ {f618:,.1f}* (High Reward)",
+                f"• 0.786 Deep Base: ₹ {f786:,.1f}",
+                "━━━━━━━━━━━━━━━━━━━━",
+                "Tap below to switch indicator views:"
+            ]
+            caption = "\n".join(lines)
+            buttons = [
+                (f"act:ichart:breaks:{btn_sym}", "⚡ Breaks & Signals"),
+                (f"act:ichart:smc:{btn_sym}", "🏛️ SMC Blocks"),
+                (f"act:ichart:lrtc:{btn_sym}", "📐 LRTC Channel")
+            ]
+
+        else:  # lrtc
+            u_band = meta.get("channel_upper", curr_p * 1.05)
+            l_band = meta.get("channel_lower", curr_p * 0.95)
+            m_band = meta.get("channel_median", curr_p)
+            pos_pct = meta.get("channel_position_pct", 50.0)
+
+            pos_label = "Value Buy Floor 🟢" if pos_pct <= 25 else ("Overbought Ceiling 🔴" if pos_pct >= 75 else "Mid-Band Channel ⚖️")
+
+            lines = [
+                f"📐 *{disp_name.upper()}* (`{base_sym}`)",
+                "━━━━━━━━━━━━━━━━━━━━",
+                f"💰 *LTP*: ₹ {curr_p:,.2f} ({chg_sign}{chg_pct:.2f}%) • 🟢 *{stage_badge}*",
+                f"• 30W MA: ₹ {sma_150:,.1f} | EMA 20: ₹ {ema_20:,.1f} | EMA 50: ₹ {ema_50:,.1f}\n",
+                "📐 *Linear Regression Trend Channel (±2.0σ)*:",
+                f"• Channel Position: *{pos_pct:.1f}%* ({pos_label})",
+                f"• Lower Buy Band (-2.0σ): ₹ {l_band:,.1f}",
+                f"• Linear Median: ₹ {m_band:,.1f}",
+                f"• Upper Ceiling (+2.0σ): ₹ {u_band:,.1f}",
+                "━━━━━━━━━━━━━━━━━━━━",
+                "Tap below to switch indicator views:"
+            ]
+            caption = "\n".join(lines)
+            buttons = [
+                (f"act:ichart:breaks:{btn_sym}", "⚡ Breaks & Signals"),
+                (f"act:ichart:smc:{btn_sym}", "🏛️ SMC Blocks"),
+                (f"act:ichart:mxwll:{btn_sym}", "🌀 Mxwll Suite")
+            ]
+
+        send_whatsapp_chart(img_bytes, caption, recipient=recipient)
+        time.sleep(0.3)
+        return send_whatsapp_interactive_buttons(
+            f"⚡ *Switch i-Chart Mode for {base_sym}*:",
+            buttons=buttons,
+            recipient=recipient
+        )
+
+    except Exception as e:
+        logger.error(f"Error generating i-Chart ({mode_clean}) for {clean}: {e}", exc_info=True)
+        return send_whatsapp_interactive_buttons(
+            f"⚠️ *Error*: Failed to generate i-Chart for `{clean}`: {str(e)}",
+            buttons=[("nav:menu:main", "🏠 Main Menu")],
+            recipient=recipient
+        )
+
+
 def handle_stock_comparison(query_text: str, recipient: Optional[str] = None) -> Dict[str, Any]:
     """
     Renders Institutional Head-to-Head Stock Battle comparing two equities across
@@ -5320,6 +5491,42 @@ def dispatch_incoming_whatsapp_message(text_body: str, sender: Optional[str] = N
 
     if upper in ["STAGE", "MATRIX"]:
         return handle_watchlist_stage_matrix(get_primary_watchlist_id(), recipient=sender)
+
+    # 1f. Institutional i-Chart Suite Interceptors (Breaks, SMC, Mxwll, LRTC)
+    if cleaned.startswith("act:ichart:") or cleaned.startswith("run:ichart:"):
+        parts = cleaned.split(":")
+        if len(parts) >= 4:
+            mode = parts[2].lower()
+            sym = parts[3].upper()
+            return handle_ichart_query(sym, mode=mode, recipient=sender)
+        elif len(parts) >= 3:
+            sym = parts[2].upper()
+            return handle_ichart_query(sym, mode="breaks", recipient=sender)
+
+    if upper.startswith("ICHART ") or upper.startswith("ICHART:") or upper.startswith("I-CHART ") or upper.startswith("IC "):
+        sym = re.sub(r"^(?:ICHART|I-CHART|IC)[\s:]+", "", cleaned, flags=re.IGNORECASE).strip()
+        if sym:
+            return handle_ichart_query(sym, mode="breaks", recipient=sender)
+
+    if upper.startswith("BREAKS ") or upper.startswith("BREAKS:"):
+        sym = re.sub(r"^BREAKS[\s:]+", "", cleaned, flags=re.IGNORECASE).strip()
+        if sym:
+            return handle_ichart_query(sym, mode="breaks", recipient=sender)
+
+    if upper.startswith("SMC ") or upper.startswith("SMC:"):
+        sym = re.sub(r"^SMC[\s:]+", "", cleaned, flags=re.IGNORECASE).strip()
+        if sym:
+            return handle_ichart_query(sym, mode="smc", recipient=sender)
+
+    if upper.startswith("MXWLL ") or upper.startswith("MXWLL:") or upper.startswith("MAXWELL ") or upper.startswith("MAXWELL:"):
+        sym = re.sub(r"^(?:MXWLL|MAXWELL)[\s:]+", "", cleaned, flags=re.IGNORECASE).strip()
+        if sym:
+            return handle_ichart_query(sym, mode="mxwll", recipient=sender)
+
+    if upper.startswith("LRTC ") or upper.startswith("LRTC:"):
+        sym = re.sub(r"^LRTC[\s:]+", "", cleaned, flags=re.IGNORECASE).strip()
+        if sym:
+            return handle_ichart_query(sym, mode="lrtc", recipient=sender)
 
     # Direct Scan Text Aliases (14 Web Scans Support)
     if upper in ["52W HIGH", "NEAR 52W HIGH", "NEAR HIGH", "52 HIGH"]:
