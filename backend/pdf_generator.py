@@ -280,3 +280,299 @@ def generate_portfolio_catalyst_pdf(
     doc.build(story, canvasmaker=NumberedCanvas)
     return output_path
 
+
+
+class GuideNumberedCanvas(canvas.Canvas):
+    """
+    Two-pass canvas for ApexQuant Terminal Command Cheat Sheet PDF
+    with institutional running header and page numbering (Page X of Y).
+    """
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._saved_page_states = []
+
+    def showPage(self):
+        self._saved_page_states.append(dict(self.__dict__))
+        self._startPage()
+
+    def save(self):
+        num_pages = len(self._saved_page_states)
+        for state in self._saved_page_states:
+            self.__dict__.update(state)
+            self.draw_page_decorations(num_pages)
+            super().showPage()
+        super().save()
+
+    def draw_page_decorations(self, page_count):
+        self.saveState()
+        width, height = A4
+
+        # Header rule & title (pages 2 and later)
+        if self._pageNumber > 1:
+            self.setStrokeColor(colors.HexColor("#cbd5e1"))
+            self.setLineWidth(0.5)
+            self.line(36, height - 28, width - 36, height - 28)
+
+            self.setFont("Helvetica-Bold", 8)
+            self.setFillColor(colors.HexColor("#0f172a"))
+            self.drawString(36, height - 24, "APEX QUANT TERMINAL")
+
+            self.setFont("Helvetica", 8)
+            self.setFillColor(colors.HexColor("#64748b"))
+            self.drawString(145, height - 24, "| Institutional Command Reference & Fast-Path Syntax")
+
+        # Footer rule (all pages)
+        self.setStrokeColor(colors.HexColor("#e2e8f0"))
+        self.setLineWidth(0.5)
+        self.line(36, 26, width - 36, 26)
+
+        # Footer Left: Confidential Notice
+        self.setFont("Helvetica", 7)
+        self.setFillColor(colors.HexColor("#64748b"))
+        self.drawString(36, 17, "APEXQUANT INSTITUTIONAL RESEARCH | FOR PERSONAL TRADING & RISK MANAGEMENT ONLY")
+
+        # Footer Right: Page X of Y
+        page_str = f"Page {self._pageNumber} of {page_count}"
+        self.drawRightString(width - 36, 17, page_str)
+
+        self.restoreState()
+
+
+def generate_terminal_shortcuts_guide_pdf(output_path: str = "data/reports/ApexQuant_Terminal_Cheat_Sheet.pdf") -> str:
+    """
+    Generates an institutional 2-page PDF Command Guide and Terminal Cheat Sheet
+    covering all power-user shorthand syntax across the WhatsApp Bot.
+    """
+    from reportlab.platypus import PageBreak
+    os.makedirs(os.path.dirname(output_path), exist_ok=True)
+
+    doc = SimpleDocTemplate(
+        output_path,
+        pagesize=A4,
+        leftMargin=36,
+        rightMargin=36,
+        topMargin=36,
+        bottomMargin=36
+    )
+
+    styles = getSampleStyleSheet()
+
+    title_style = ParagraphStyle(
+        'DocTitle',
+        parent=styles['Normal'],
+        fontName='Helvetica-Bold',
+        fontSize=15,
+        leading=18,
+        textColor=colors.HexColor("#0f172a")
+    )
+
+    subtitle_style = ParagraphStyle(
+        'DocSubtitle',
+        parent=styles['Normal'],
+        fontName='Helvetica-Bold',
+        fontSize=8.5,
+        leading=11,
+        textColor=colors.HexColor("#0284c7")
+    )
+
+    meta_style = ParagraphStyle(
+        'MetaText',
+        parent=styles['Normal'],
+        fontName='Helvetica',
+        fontSize=7.5,
+        leading=10,
+        textColor=colors.HexColor("#64748b")
+    )
+
+    sec_header_style = ParagraphStyle(
+        'SecHeader',
+        parent=styles['Normal'],
+        fontName='Helvetica-Bold',
+        fontSize=9.5,
+        leading=12,
+        textColor=colors.HexColor("#0f172a")
+    )
+
+    th_style = ParagraphStyle(
+        'TableHeader',
+        parent=styles['Normal'],
+        fontName='Helvetica-Bold',
+        fontSize=7.5,
+        leading=9.5,
+        textColor=colors.HexColor("#ffffff")
+    )
+
+    code_style = ParagraphStyle(
+        'CodeText',
+        parent=styles['Normal'],
+        fontName='Helvetica-Bold',
+        fontSize=7.5,
+        leading=9.5,
+        textColor=colors.HexColor("#0369a1")
+    )
+
+    desc_style = ParagraphStyle(
+        'DescText',
+        parent=styles['Normal'],
+        fontName='Helvetica',
+        fontSize=7.5,
+        leading=9.5,
+        textColor=colors.HexColor("#334155")
+    )
+
+    eg_style = ParagraphStyle(
+        'ExampleText',
+        parent=styles['Normal'],
+        fontName='Helvetica-Oblique',
+        fontSize=7.5,
+        leading=9.5,
+        textColor=colors.HexColor("#059669")
+    )
+
+    story = []
+
+    # 1. Masthead
+    now_str = datetime.now().strftime("%d %b %Y, %I:%M %p IST")
+    masthead_data = [
+        [
+            Paragraph("<b>APEX QUANT AI</b> | INSTITUTIONAL TERMINAL ARCHITECTURE", subtitle_style),
+            Paragraph(f"<b>TERMINAL DESK</b> | {now_str}", ParagraphStyle('RMeta', parent=meta_style, alignment=2))
+        ],
+        [
+            Paragraph("COMMAND CHEAT SHEET &amp; SHORTHAND SYNTAX", title_style),
+            Paragraph("<b>Universe:</b> 500+ Liquid NSE Equities", ParagraphStyle('RMeta2', parent=meta_style, alignment=2))
+        ]
+    ]
+    masthead_table = Table(masthead_data, colWidths=[360, 163])
+    masthead_table.setStyle(TableStyle([
+        ('TOPPADDING', (0,0), (-1,-1), 1),
+        ('BOTTOMPADDING', (0,0), (-1,-1), 2),
+        ('LEFTPADDING', (0,0), (-1,-1), 0),
+        ('RIGHTPADDING', (0,0), (-1,-1), 0),
+    ]))
+    story.append(masthead_table)
+    story.append(HRFlowable(width="100%", thickness=1, color=colors.HexColor("#0f172a"), spaceBefore=3, spaceAfter=6))
+
+    def make_table(rows):
+        table_data = [[
+            Paragraph("COMMAND SYNTAX", th_style),
+            Paragraph("CAPABILITY &amp; FEATURES", th_style),
+            Paragraph("EXAMPLE / SHORTHAND", th_style)
+        ]]
+        for cmd, desc, eg in rows:
+            table_data.append([
+                Paragraph(cmd, code_style),
+                Paragraph(desc, desc_style),
+                Paragraph(eg, eg_style)
+            ])
+        t = Table(table_data, colWidths=[140, 245, 138])
+        t.setStyle(TableStyle([
+            ('BACKGROUND', (0,0), (-1,0), colors.HexColor("#0f172a")),
+            ('TOPPADDING', (0,0), (-1,-1), 3),
+            ('BOTTOMPADDING', (0,0), (-1,-1), 3),
+            ('LEFTPADDING', (0,0), (-1,-1), 5),
+            ('RIGHTPADDING', (0,0), (-1,-1), 5),
+            ('GRID', (0,0), (-1,-1), 0.5, colors.HexColor("#e2e8f0")),
+            ('ROWBACKGROUNDS', (0,1), (-1,-1), [colors.HexColor("#ffffff"), colors.HexColor("#f8fafc")]),
+            ('VALIGN', (0,0), (-1,-1), 'MIDDLE')
+        ]))
+        return t
+
+    # SECTION 1: Stock Dossier & Valuation
+    story.append(Paragraph("<b>1. EQUITY RESEARCH &amp; STOCK DOSSIERS</b>", sec_header_style))
+    story.append(Spacer(1, 2))
+    rows_dossier = [
+        ("<b>&lt;SYMBOL&gt;</b> or <b>STOCK &lt;SYM&gt;</b>", "2-Message Institutional Dossier: DCF Valuation, MoS %, Piotroski, Altman Z, 50/200 SMA, Crossovers, 8 Oscillators, EMA Spectrum", "<code>RELIANCE</code> or <code>STOCK BOSCH</code>"),
+        ("<b>Q &lt;SYM&gt;</b>", "Instant quick quote, DCF margin of safety and quality check", "<code>Q TCS</code> or <code>Q INFY</code>"),
+        ("<b>RISK &lt;SYM&gt;</b> or <b>CAPTURE &lt;SYM&gt;</b>", "12M Interactive Market Capture (Up/Down) &amp; Max Drawdown Recovery Profile", "<code>RISK BOSCHLTD</code>"),
+        ("<b>COMPARE &lt;S1&gt; VS &lt;S2&gt;</b>", "Side-by-side competitor benchmarking across valuation, ROCE &amp; technicals", "<code>COMPARE TCS VS INFY</code>")
+    ]
+    story.append(make_table(rows_dossier))
+    story.append(Spacer(1, 7))
+
+    # SECTION 2: Technical Chart Suite
+    story.append(Paragraph("<b>2. TECHNICAL CHART STUDIO (6 INSTITUTIONAL MODELS)</b>", sec_header_style))
+    story.append(Spacer(1, 2))
+    rows_charts = [
+        ("<b>CHART &lt;SYM&gt;</b> or <b>C &lt;SYM&gt;</b>", "Classic 6-Month Dark Chart with SMA 50/200, RSI, Volume &amp; 52W High/Low Pills", "<code>CHART RELIANCE</code> or <code>C BOSCH</code>"),
+        ("<b>SMC &lt;SYM&gt;</b>", "Smart Money Concepts: Bullish/Bearish Order Blocks, FVGs &amp; Liquidity Sweeps", "<code>SMC TATAMOTORS</code>"),
+        ("<b>BREAKS &lt;SYM&gt;</b>", "Multi-Timeframe Structural Breakouts: BOS, CHOCH &amp; Swing High/Low levels", "<code>BREAKS DIXON</code>"),
+        ("<b>LRTC &lt;SYM&gt;</b>", "Linear Regression Trend Channel: Mean reversion SD bands &amp; slope velocity", "<code>LRTC POLYCAB</code>"),
+        ("<b>FIB &lt;SYM&gt;</b> or <b>FIBONACCI</b>", "Fibonacci Retracement Scale: Non-overlapping levels &amp; momentum zone action", "<code>FIB APLAPOLLO</code>"),
+        ("<b>MXWLL &lt;SYM&gt;</b> or <b>MAXWELL</b>", "Maxwell Cycle Oscillator: High-frequency cycles &amp; inflection turning points", "<code>MXWLL HDFCBANK</code>")
+    ]
+    story.append(make_table(rows_charts))
+    story.append(Spacer(1, 7))
+
+    # SECTION 3: AI Multi-Factor Screeners
+    story.append(Paragraph("<b>3. QUANT &amp; AI MULTI-FACTOR SCREENERS</b>", sec_header_style))
+    story.append(Spacer(1, 2))
+    rows_screeners = [
+        ("<b>SCREEN HYBRID [CAP] [STYLE]</b>", "Hybrid Strategy: ROE Quality + Peer Relative Value + Technical Entry Points", "<code>SCREEN HYBRID MID GROWTH</code>"),
+        ("<b>SCREEN BOTTOMUP [CAP] [STYLE]</b>", "Bottom-Up: Pure Fundamentals (Cash Flow, Margin of Safety, Solvency, ROE)", "<code>SCREEN BOTTOMUP LARGE VALUE</code>"),
+        ("<b>SCREEN TOPDOWN</b>", "Top-Down: Macro Sector Booms &amp; Tailwinds (Defense, Power, Infrastructure)", "<code>SCREEN TOPDOWN</code>"),
+        ("<b>SCREEN CONTRA</b> / <b>VALUE</b> / <b>GROWTH</b>", "Instant Style Overlays: Oversold RSI, Low P/E with MoS, or High EPS Growth", "<code>SCREEN CONTRA SMALL</code>"),
+        ("<b>CONFLUENCE</b>", "Apex Confluence Leaderboard: Equities passing 2+ institutional algorithms", "<code>CONFLUENCE</code>"),
+        ("<b>VCP</b> / <b>STAGE 2</b> / <b>POCKET PIVOT</b>", "Pattern models: Minervini Contraction, Weinstein Stage 2, or Volume Pivots", "<code>VCP</code> or <code>STAGE 2</code>")
+    ]
+    story.append(make_table(rows_screeners))
+
+    # Page Break to Page 2
+    story.append(PageBreak())
+
+    # SECTION 4: 14 Technical Scans
+    story.append(Paragraph("<b>4. 14 REAL-TIME TECHNICAL SCANS</b>", sec_header_style))
+    story.append(Spacer(1, 2))
+    rows_scans = [
+        ("<b>52W HIGH</b> / <b>52W LOW</b>", "Near 52-Week High (within 3%) or 52-Week Low support bounce setups", "<code>52W HIGH</code> or <code>52W LOW</code>"),
+        ("<b>GAP UP</b> / <b>GAP DOWN</b>", "Opening gap momentum breakouts or institutional breakdown alerts", "<code>GAP UP</code> or <code>GAP DOWN</code>"),
+        ("<b>RSI OVERSOLD</b> / <b>OVERBOUGHT</b>", "RSI extremes (RSI &lt; 30 oversold value zone / RSI &gt; 70 extended)", "<code>RSI OVERSOLD</code>"),
+        ("<b>VOLUME SHOCKERS</b> / <b>DELIVERY</b>", "Unusual institutional volume surge (2.5x+) or delivery accumulation %", "<code>VOLUME SHOCKERS</code> or <code>DELIVERY</code>"),
+        ("<b>GOLDEN CROSS</b>", "Major bullish moving average crossover: 50-Day SMA crossing above 200 SMA", "<code>GOLDEN CROSS</code>"),
+        ("<b>SMA 50</b> / <b>SMA 100</b> / <b>SMA 200</b>", "Mean-reversion pullback scans testing critical 50, 100, or 200-Day moving averages", "<code>SMA 50</code> or <code>SMA 200</code>"),
+        ("<b>FIB 618</b> / <b>FIB 500</b>", "Fibonacci golden ratio support pullbacks at 61.8% or 50.0% retracements", "<code>FIB 618</code> or <code>FIB 500</code>")
+    ]
+    story.append(make_table(rows_scans))
+    story.append(Spacer(1, 7))
+
+    # SECTION 5: Fundamental Vault
+    story.append(Paragraph("<b>5. FUNDAMENTAL VAULT &amp; QUALITY SCREENS</b>", sec_header_style))
+    story.append(Spacer(1, 2))
+    rows_fund = [
+        ("<b>BUFFETT</b> / <b>BUFFETT QUALITY</b>", "Warren Buffett high-ROCE (20%+), zero/low debt, high economic moat titans", "<code>BUFFETT</code>"),
+        ("<b>ZERO DEBT</b> / <b>DEBT FREE</b>", "Pristine balance sheets with zero net debt and high interest coverage", "<code>ZERO DEBT</code>"),
+        ("<b>DEEP VALUE</b>", "Graham net-net &amp; deep value: Low P/E, high Margin of Safety &amp; dividend yield", "<code>DEEP VALUE</code>"),
+        ("<b>GARP</b>", "Growth at a Reasonable Price: PEG ratio &lt; 1.0 with positive EPS trajectory", "<code>GARP</code>")
+    ]
+    story.append(make_table(rows_fund))
+    story.append(Spacer(1, 7))
+
+    # SECTION 6: Portfolio & Trade Journal
+    story.append(Paragraph("<b>6. PORTFOLIO MANAGEMENT &amp; 1-TAP TRADE JOURNAL</b>", sec_header_style))
+    story.append(Spacer(1, 2))
+    rows_pf = [
+        ("<b>PF</b> or <b>PORTFOLIO</b>", "Live Portfolio net worth, day's unrealized P&amp;L, and total profit/loss", "<code>PF</code> or <code>PORTFOLIO</code>"),
+        ("<b>HOLDINGS</b> or <b>POSITIONS</b>", "Complete holdings drilldown: Symbol, Qty, Avg Buy, CMP &amp; Unrealized Return", "<code>HOLDINGS</code>"),
+        ("<b>BUY &lt;SYM&gt; &lt;QTY&gt; &lt;PRICE&gt;</b>", "Instantly logs buy trade into portfolio database with cost basis", "<code>BUY RELIANCE 10 2450</code>"),
+        ("<b>SELL &lt;SYM&gt; &lt;QTY&gt; &lt;PRICE&gt;</b>", "Logs sell transaction, closes position, and computes realized P&amp;L", "<code>SELL RELIANCE 5 2600</code>"),
+        ("<b>REPORT</b>", "Generates &amp; dispatches comprehensive PDF Portfolio Performance Dossier", "<code>REPORT</code>")
+    ]
+    story.append(make_table(rows_pf))
+    story.append(Spacer(1, 7))
+
+    # SECTION 7: Alerts, Watchlists & Market Pulse
+    story.append(Paragraph("<b>7. SENTINEL ALERTS, WATCHLISTS &amp; MARKET INTELLIGENCE</b>", sec_header_style))
+    story.append(Spacer(1, 2))
+    rows_alerts = [
+        ("<b>ALERT &lt;SYM&gt; ABOVE &lt;PX&gt;</b>", "Sets real-time upside price breakout trigger with WhatsApp ping", "<code>ALERT RELIANCE ABOVE 2600</code>"),
+        ("<b>ALERT &lt;SYM&gt; BELOW &lt;PX&gt;</b>", "Sets downside support alert or trailing stop warning", "<code>ALERT TRENT BELOW 6800</code>"),
+        ("<b>SL &lt;SYM&gt; &lt;PRICE&gt;</b>", "Sets dynamic Stop-Loss sentinel trigger on any equity", "<code>SL BOSCH 48000</code>"),
+        ("<b>ALERTS</b>", "Hub of all active price and stop-loss sentinels with live price distance", "<code>ALERTS</code>"),
+        ("<b>WL</b> or <b>WATCHLIST</b>", "Primary Watchlist quotes, day change % and 52W high distance", "<code>WL</code>"),
+        ("<b>WL AUDIT</b>", "Full algorithmic audit of primary watchlist for valuation &amp; momentum risk", "<code>WL AUDIT</code>"),
+        ("<b>PULSE</b> / <b>NEWS</b> / <b>PREMARKET</b>", "Nifty 50, Sensex, VIX, Breadth, Stock/Macro News feeds &amp; Pre-Market brief", "<code>PULSE</code> or <code>NEWS</code>")
+    ]
+    story.append(make_table(rows_alerts))
+
+    doc.build(story, canvasmaker=GuideNumberedCanvas)
+    return output_path

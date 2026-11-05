@@ -439,6 +439,333 @@ def send_whatsapp_document(
 # NAVIGATION MODULE 0: MASTER MAIN MENU (EXACTLY 10 DEDICATED ROWS)
 # ==============================================================================
 
+# ==============================================================================
+# TERMINAL COMMAND GUIDE, POCKET CHEAT SHEET & PDF COMPILER
+# ==============================================================================
+
+def handle_guide_menu(recipient: Optional[str] = None) -> Dict[str, Any]:
+    """
+    Renders the Master Terminal Command Guide & Pocket Cheat Sheet.
+    Includes top 12 essential fast-path commands and an interactive list
+    to inspect detailed syntax by module or dispatch an institutional PDF cheat sheet.
+    """
+    sections = [
+        {
+            "title": "Analysis & Visual Charts",
+            "rows": [
+                {
+                    "id": "view:guide:dossier",
+                    "title": "📈 Stock Dossiers",
+                    "description": "DCF, Valuation, Piotroski, 50/200 SMA & Risk Profile"
+                },
+                {
+                    "id": "view:guide:charts",
+                    "title": "📊 Technical Charts",
+                    "description": "Classic, Breaks, SMC, LRTC, Fibs & Maxwell Studio"
+                }
+            ]
+        },
+        {
+            "title": "Screeners & Scans",
+            "rows": [
+                {
+                    "id": "view:guide:screeners",
+                    "title": "🧠 Quant & AI Screeners",
+                    "description": "Hybrid, Bottom-Up, Top-Down & Style Overlays"
+                },
+                {
+                    "id": "view:guide:scans",
+                    "title": "⚡ 14 Technical Scans",
+                    "description": "52W High/Low, Gaps, RSI, Volume & Moving Avgs"
+                },
+                {
+                    "id": "view:guide:fundamental",
+                    "title": "🏛️ Fundamental Vault",
+                    "description": "Buffett Quality, Zero Debt, Deep Value & GARP"
+                }
+            ]
+        },
+        {
+            "title": "Execution, Alerts & Market",
+            "rows": [
+                {
+                    "id": "view:guide:portfolio",
+                    "title": "💼 Portfolio & Trades",
+                    "description": "Net Worth, Holdings, BUY/SELL Logging & PDF Dossier"
+                },
+                {
+                    "id": "view:guide:alerts",
+                    "title": "🔔 Alerts & Watchlists",
+                    "description": "Price Triggers, Stop-Loss Sentinels & Watchlists"
+                },
+                {
+                    "id": "view:guide:market",
+                    "title": "🌐 Market & Sectors",
+                    "description": "Market Pulse, Pre-Market, Movers & Sector Heatmap"
+                }
+            ]
+        }
+    ]
+
+    body = (
+        "📖 *APEXQUANT TERMINAL CHEAT SHEET*\n"
+        "Institutional Shorthand Commands & Fast-Path Syntax\n\n"
+        "⚡ *TOP 12 ESSENTIAL SHORTCUTS:*\n"
+        "• `RELIANCE` or `Q BOSCH` ➔ 2-Msg Stock Dossier\n"
+        "• `CHART TCS` or `C INFY` ➔ 6M Dark Technical Chart\n"
+        "• `SMC TATAMOTORS` ➔ Smart Money Order Blocks & FVGs\n"
+        "• `BREAKS DIXON` ➔ Market Structure Breakout Chart\n"
+        "• `FIB APLAPOLLO` ➔ Fibonacci Retracement Levels\n"
+        "• `SCREEN HYBRID` ➔ Multi-Factor ROE + Value + Timing\n"
+        "• `SCREEN MID GROWTH` ➔ Midcap High Momentum Screen\n"
+        "• `52W HIGH` or `GAP UP` ➔ Real-time Technical Scans\n"
+        "• `BUFFETT` or `ZERO DEBT` ➔ Quality Fundamental Vault\n"
+        "• `PULSE` or `NEWS` ➔ Macro Indices & Live Feeds\n"
+        "• `PF` or `HOLDINGS` ➔ Live Portfolio Valuation & P&L\n"
+        "• `BUY RELIANCE 10 2450` ➔ 1-Tap Trade Logging\n\n"
+        "💡 *Tap below to browse syntax by module or download the PDF guide:*"
+    )
+
+    send_whatsapp_interactive_list(
+        body_text=body,
+        button_text="📂 Commands Directory",
+        sections=sections,
+        recipient=recipient,
+        header_text="COMMAND CHEAT SHEET",
+        footer_text="ApexQuant Shorthand Reference"
+    )
+
+    return send_whatsapp_interactive_buttons(
+        "⚡ *Cheat Sheet Actions*:",
+        buttons=[
+            ("act:guide:pdf", "📄 PDF Cheat Sheet"),
+            ("run:aiscreen:hybrid:all:all", "📊 Hybrid Scan"),
+            ("nav:menu:main", "🏠 Main Menu")
+        ],
+        recipient=recipient
+    )
+
+
+def handle_guide_module(module_key: str, recipient: Optional[str] = None) -> Dict[str, Any]:
+    """Renders comprehensive command syntax card for a specific terminal module."""
+    mod = module_key.lower().strip()
+
+    if mod in ["dossier", "stock", "stocks"]:
+        body = (
+            "📈 *EQUITY RESEARCH & STOCK DOSSIERS*\n"
+            "───────────────────────────\n"
+            "• `<TICKER>` or `STOCK <SYM>`\n"
+            "  └ 2-Message Institutional Dossier\n"
+            "  └ Msg 1: DCF, MoS %, ROCE, Piotroski, Altman Z, Market Capture & Drawdowns\n"
+            "  └ Msg 2: 50/200 SMA, Crossovers, 8 Oscillators & EMA Spectrum\n"
+            "  └ *Example:* `RELIANCE` or `STOCK BOSCH`\n\n"
+            "• `Q <SYM>`\n"
+            "  └ Instant quick quote & valuation check\n"
+            "  └ *Example:* `Q TCS` or `Q INFY`\n\n"
+            "• `RISK <SYM>` or `CAPTURE <SYM>`\n"
+            "  └ 12M Up/Down Market Capture & Drawdown Recovery Profile\n"
+            "  └ *Example:* `RISK BOSCHLTD`\n\n"
+            "• `COMPARE <S1> VS <S2>`\n"
+            "  └ Competitor benchmarking across multiples & momentum\n"
+            "  └ *Example:* `COMPARE TCS VS INFY`"
+        )
+        buttons = [
+            ("act:dossier:RELIANCE", "🏛️ Demo RELIANCE"),
+            ("act:guide:pdf", "📄 PDF Cheat Sheet"),
+            ("view:guide:menu", "📖 Guide Hub")
+        ]
+    elif mod in ["charts", "chart", "ichart"]:
+        body = (
+            "📊 *TECHNICAL CHART STUDIO (6 ENGINES)*\n"
+            "───────────────────────────\n"
+            "• `CHART <SYM>` or `C <SYM>`\n"
+            "  └ Classic 6-Month Dark Chart (SMA 50/200 & RSI)\n"
+            "  └ *Example:* `CHART RELIANCE` or `C TCS`\n\n"
+            "• `SMC <SYM>`\n"
+            "  └ Smart Money Concepts: Order Blocks, FVGs & Sweeps\n"
+            "  └ *Example:* `SMC TATAMOTORS`\n\n"
+            "• `BREAKS <SYM>`\n"
+            "  └ Structural Breakouts: BOS, CHOCH & S/R Breakouts\n"
+            "  └ *Example:* `BREAKS DIXON`\n\n"
+            "• `LRTC <SYM>`\n"
+            "  └ Linear Regression Trend Channel (2.0σ Bands)\n"
+            "  └ *Example:* `LRTC POLYCAB`\n\n"
+            "• `FIB <SYM>` or `FIBONACCI <SYM>`\n"
+            "  └ Fibonacci Retracements & Momentum Scale Card\n"
+            "  └ *Example:* `FIB APLAPOLLO`\n\n"
+            "• `MXWLL <SYM>` or `MAXWELL <SYM>`\n"
+            "  └ Maxwell High-Frequency Cycle Oscillators\n"
+            "  └ *Example:* `MXWLL HDFCBANK`"
+        )
+        buttons = [
+            ("nav:sub:chart", "📈 Chart Studio"),
+            ("act:guide:pdf", "📄 PDF Cheat Sheet"),
+            ("view:guide:menu", "📖 Guide Hub")
+        ]
+    elif mod in ["screeners", "screener", "aiscreen"]:
+        body = (
+            "🧠 *QUANT & AI MULTI-FACTOR SCREENERS*\n"
+            "───────────────────────────\n"
+            "• `SCREEN HYBRID [CAP] [STYLE]`\n"
+            "  └ ROE Quality + Peer Relative Value + Timing\n"
+            "  └ *Example:* `SCREEN HYBRID MID GROWTH`\n\n"
+            "• `SCREEN BOTTOMUP [CAP] [STYLE]`\n"
+            "  └ Pure Fundamentals, Cash Flow & MoS\n"
+            "  └ *Example:* `SCREEN BOTTOMUP LARGE VALUE`\n\n"
+            "• `SCREEN TOPDOWN`\n"
+            "  └ Macro Sector Booms & Tailwinds (Defense, Infra)\n"
+            "  └ *Example:* `SCREEN TOPDOWN`\n\n"
+            "• `SCREEN CONTRA` / `VALUE` / `GROWTH`\n"
+            "  └ Instant Style Overlays\n"
+            "  └ *Example:* `SCREEN CONTRA SMALL`\n\n"
+            "• `CONFLUENCE` ➔ Apex Multi-Model Leaderboard\n"
+            "• `VCP` ➔ Minervini Volatility Contraction\n"
+            "• `STAGE 2` ➔ Stan Weinstein Stage 2 Markup\n"
+            "• `POCKET PIVOT` ➔ Institutional Volume Surge"
+        )
+        buttons = [
+            ("nav:sub:screeners", "🎯 Screener Hub"),
+            ("act:guide:pdf", "📄 PDF Cheat Sheet"),
+            ("view:guide:menu", "📖 Guide Hub")
+        ]
+    elif mod in ["scans", "scan"]:
+        body = (
+            "⚡ *14 REAL-TIME TECHNICAL SCANS*\n"
+            "───────────────────────────\n"
+            "• `52W HIGH` / `52W LOW` ➔ Near 52W extremes\n"
+            "• `GAP UP` / `GAP DOWN` ➔ Market open gaps\n"
+            "• `RSI OVERSOLD` / `OVERBOUGHT` ➔ RSI &lt; 30 / &gt; 70\n"
+            "• `VOLUME SHOCKERS` ➔ Volume 2.5x+ surge\n"
+            "• `DELIVERY` or `DELIVERY SURGE` ➔ High delivery %\n"
+            "• `GOLDEN CROSS` ➔ 50 SMA crossing above 200 SMA\n"
+            "• `SMA 50` / `SMA 100` / `SMA 200` ➔ Moving avg pullbacks\n"
+            "• `FIB 618` / `FIB 500` ➔ Golden ratio pullbacks"
+        )
+        buttons = [
+            ("nav:sub:scans", "⚡ Scans Hub"),
+            ("act:guide:pdf", "📄 PDF Cheat Sheet"),
+            ("view:guide:menu", "📖 Guide Hub")
+        ]
+    elif mod in ["fundamental", "value", "vault"]:
+        body = (
+            "🏛️ *FUNDAMENTAL & VALUE VAULT*\n"
+            "───────────────────────────\n"
+            "• `BUFFETT` or `BUFFETT QUALITY`\n"
+            "  └ High ROCE (≥15%), low debt (D/E ≤0.5), moat titans\n\n"
+            "• `ZERO DEBT` or `DEBT FREE`\n"
+            "  └ Pristine balance sheets with zero net debt\n\n"
+            "• `DEEP VALUE`\n"
+            "  └ Graham deep value: Low P/E & high Margin of Safety\n\n"
+            "• `GARP`\n"
+            "  └ Growth at a Reasonable Price (PEG < 1.0)\n\n"
+            "• `DIVIDEND`\n"
+            "  └ High dividend yield compounding aristocrats"
+        )
+        buttons = [
+            ("nav:sub:fundamental", "🏛️ Fundamental Hub"),
+            ("act:guide:pdf", "📄 PDF Cheat Sheet"),
+            ("view:guide:menu", "📖 Guide Hub")
+        ]
+    elif mod in ["portfolio", "trade", "trades"]:
+        body = (
+            "💼 *PORTFOLIO & 1-TAP TRADE JOURNAL*\n"
+            "───────────────────────────\n"
+            "• `PF` or `PORTFOLIO`\n"
+            "  └ Net worth, live valuation & day's unrealized P&L\n\n"
+            "• `HOLDINGS` or `POSITIONS`\n"
+            "  └ Complete holdings drilldown with cost basis & returns\n\n"
+            "• `BUY <SYM> <QTY> <PRICE>`\n"
+            "  └ Logs buy trade into portfolio database\n"
+            "  └ *Example:* `BUY RELIANCE 10 2450`\n\n"
+            "• `SELL <SYM> <QTY> <PRICE>`\n"
+            "  └ Closes position and computes realized profit/loss\n"
+            "  └ *Example:* `SELL RELIANCE 5 2600`\n\n"
+            "• `REPORT`\n"
+            "  └ Generates & dispatches PDF Portfolio Performance Dossier"
+        )
+        buttons = [
+            ("run:portfolio:live", "💼 Active Portfolio"),
+            ("act:guide:pdf", "📄 PDF Cheat Sheet"),
+            ("view:guide:menu", "📖 Guide Hub")
+        ]
+    elif mod in ["alerts", "alert", "watchlists", "watchlist", "wl"]:
+        body = (
+            "🔔 *SENTINEL ALERTS & WATCHLISTS*\n"
+            "───────────────────────────\n"
+            "• `ALERT <SYM> ABOVE <PRICE>`\n"
+            "  └ Real-time breakout price sentinel\n"
+            "  └ *Example:* `ALERT RELIANCE ABOVE 2600`\n\n"
+            "• `ALERT <SYM> BELOW <PRICE>`\n"
+            "  └ Downside support breach warning\n"
+            "  └ *Example:* `ALERT TRENT BELOW 6800`\n\n"
+            "• `SL <SYM> <PRICE>`\n"
+            "  └ Sets dynamic stop-loss trigger\n"
+            "  └ *Example:* `SL BOSCH 48000`\n\n"
+            "• `ALERTS` ➔ Live distance to all active triggers\n\n"
+            "• `WL` or `WATCHLIST` ➔ Primary Watchlist live quotes\n"
+            "• `WL AUDIT` ➔ Valuation & momentum risk audit\n"
+            "• `WL ADD <SYM>` / `WL DEL <SYM>` ➔ Manage watchlist"
+        )
+        buttons = [
+            ("nav:sub:alerts", "🔔 Alerts Hub"),
+            ("act:guide:pdf", "📄 PDF Cheat Sheet"),
+            ("view:guide:menu", "📖 Guide Hub")
+        ]
+    else:  # market, macro, sectors
+        body = (
+            "🌐 *MARKET PULSE & SECTOR INTELLIGENCE*\n"
+            "───────────────────────────\n"
+            "• `PULSE` ➔ Nifty 50, Sensex, VIX, Breadth & Advance/Decline\n"
+            "• `NEWS` or `NEWS <SYM>` ➔ Curated RSS news with sentiment\n"
+            "• `PREMARKET` or `RADAR` ➔ Morning tactical setup & pivotal levels\n"
+            "• `SURGE` ➔ Intraday volatility & momentum surge radar\n"
+            "• `MOVERS`, `GAINERS`, `LOSERS` ➔ Top cap-wise leaders/laggards\n"
+            "• `SECTORS` ➔ Multi-timeframe sector performance heatmap\n"
+            "• `SECTOR <NAME>` (e.g. `SECTOR IT`, `SECTOR AUTO`) ➔ Constituents"
+        )
+        buttons = [
+            ("nav:hub:pulse_news", "🌐 Market Pulse"),
+            ("act:guide:pdf", "📄 PDF Cheat Sheet"),
+            ("view:guide:menu", "📖 Guide Hub")
+        ]
+
+    return send_whatsapp_interactive_buttons(body, buttons=buttons, recipient=recipient)
+
+
+def handle_send_guide_pdf(recipient: Optional[str] = None) -> Dict[str, Any]:
+    """
+    Generates and dispatches the institutional 2-page PDF Command Cheat Sheet
+    directly to the user via Meta WhatsApp Cloud API Document endpoint.
+    """
+    try:
+        from backend.pdf_generator import generate_terminal_shortcuts_guide_pdf
+        pdf_path = generate_terminal_shortcuts_guide_pdf()
+
+        caption = (
+            "📖 *APEXQUANT TERMINAL • COMMAND CHEAT SHEET*\n"
+            "Official Institutional Shorthand & Fast-Path Syntax Reference.\n\n"
+            "💡 Save or star this PDF for quick reference while trading."
+        )
+        send_whatsapp_document(
+            file_path=pdf_path,
+            caption=caption,
+            filename="ApexQuant_Command_Cheat_Sheet.pdf",
+            recipient=recipient
+        )
+        return send_whatsapp_interactive_buttons(
+            "⚡ *Guide Actions*:",
+            buttons=[
+                ("view:guide:menu", "📖 Guide Hub"),
+                ("run:aiscreen:hybrid:all:all", "📊 Hybrid Scan"),
+                ("nav:menu:main", "🏠 Main Menu")
+            ],
+            recipient=recipient
+        )
+    except Exception as e:
+        logger.error(f"Error dispatching PDF guide: {e}")
+        return send_whatsapp_text(f"⚠️ Failed to generate PDF guide: {e}", recipient=recipient)
+
+
 def handle_main_menu(recipient: Optional[str] = None) -> Dict[str, Any]:
     """
     Renders Level 0: Master Terminal Navigation Menu.
@@ -587,7 +914,11 @@ def handle_portfolio_watchlists_hub(recipient: Optional[str] = None) -> Dict[str
         "───────────────────────────\n"
         "Please select which asset management module you wish to navigate to:\n\n"
         "• *Active Portfolio:* Live net worth, unrealized P&L, stock holdings breakdown, trade logging & PDF dossier.\n\n"
-        "• *Watchlists Hub:* 10 institutional watchlists including Primary Watchlist, Confluence Leaders, and custom lists."
+        "• *Watchlists Hub:* 10 institutional watchlists including Primary Watchlist, Confluence Leaders, and custom lists.\n\n"
+        "⚡ *Direct Shortcuts:*\n"
+        "• `PF` or `HOLDINGS` ➔ Live valuation & positions\n"
+        "• `BUY RELIANCE 10 2450` ➔ 1-Tap trade logging\n"
+        "• `WL` or `WL AUDIT` ➔ Watchlist monitoring & risk audit"
     )
     buttons = [
         ("run:portfolio:live", "💼 Active Portfolio"),
@@ -996,6 +1327,9 @@ def handle_screeners_menu(recipient: Optional[str] = None) -> Dict[str, Any]:
     body = (
         "🎯 *QUANT & AI SCREENER VAULT*\n"
         "Multi-factor AI discovery & algorithmic price models across 500+ NSE equities.\n\n"
+        "⚡ *Direct Shortcuts:*\n"
+        "• Text `SCREEN HYBRID MID GROWTH` or `SCREEN BOTTOMUP VALUE`\n"
+        "• Text `SCREEN TOPDOWN`, `SCREEN CONTRA`, or `CONFLUENCE`\n\n"
         "Select an *AI Strategy* or *Pattern Model* below:"
     )
     send_whatsapp_interactive_list(
@@ -1303,7 +1637,10 @@ def handle_scans_menu(recipient: Optional[str] = None) -> Dict[str, Any]:
     ]
     body = (
         "⚡ *14 TECHNICAL SCANS VAULT*\n"
-        "Pre-calculated technical breakout and support scans across NSE equities.\n"
+        "Pre-calculated technical breakout and support scans across NSE equities.\n\n"
+        "⚡ *Direct Shortcuts:*\n"
+        "• Text `52W HIGH`, `52W LOW`, `GAP UP`, or `GAP DOWN`\n"
+        "• Text `RSI OVERSOLD`, `VOLUME SHOCKERS`, `DELIVERY`, or `GOLDEN CROSS`\n\n"
         "Select a scan cluster below or tap a quick scan:"
     )
     send_whatsapp_interactive_list(
@@ -1631,8 +1968,9 @@ def handle_fundamental_menu(recipient: Optional[str] = None) -> Dict[str, Any]:
     body = (
         "🏛️ *FUNDAMENTAL & VALUE VAULT*\n"
         "Multi-factor fundamental & balance sheet models across 500+ NSE equities.\n\n"
-        "Select an institutional strategy below, or text any custom scan\n"
-        "(e.g. `scan midcaps with PE < 15 and RSI < 30`):"
+        "⚡ *Direct Shortcuts:*\n"
+        "• Text `BUFFETT`, `ZERO DEBT`, `DEEP VALUE`, or `GARP`\n\n"
+        "Select an institutional strategy below, or text any custom scan:"
     )
     send_whatsapp_interactive_list(
         body_text=body,
@@ -6337,7 +6675,32 @@ def dispatch_incoming_whatsapp_message(text_body: str, sender: Optional[str] = N
 
     logger.info(f"[WHATSAPP DISPATCH] Inbound from {sender}: '{cleaned}'")
 
-    if not cleaned or upper in ["HELP", "MENU", "START", "HI", "HELLO", "NAV:MENU:MAIN"]:
+    # 0. Terminal Guide & Cheat Sheet Commands
+    if upper in ["HELP", "GUIDE", "COMMANDS", "SHORTCUTS", "CHEAT SHEET", "HOW TO USE", "TUTORIAL", "INFO"]:
+        return handle_guide_menu(recipient=sender)
+
+    if upper in ["GUIDE PDF", "PDF GUIDE", "CHEAT SHEET PDF", "COMMANDS PDF", "HELP PDF"]:
+        return handle_send_guide_pdf(recipient=sender)
+
+    if upper in ["HELP CHARTS", "GUIDE CHARTS", "CHART GUIDE", "CHARTS GUIDE", "HELP CHART"]:
+        return handle_guide_module("charts", recipient=sender)
+    elif upper in ["HELP SCREENERS", "GUIDE SCREENERS", "HELP SCREEN", "GUIDE SCREEN"]:
+        return handle_guide_module("screeners", recipient=sender)
+    elif upper in ["HELP SCANS", "GUIDE SCANS", "SCAN GUIDE", "SCANS GUIDE"]:
+        return handle_guide_module("scans", recipient=sender)
+    elif upper in ["HELP DOSSIER", "GUIDE DOSSIER", "HELP STOCK", "GUIDE STOCK"]:
+        return handle_guide_module("dossier", recipient=sender)
+    elif upper in ["HELP FUNDAMENTALS", "GUIDE FUNDAMENTALS", "HELP VALUE", "GUIDE VALUE"]:
+        return handle_guide_module("fundamental", recipient=sender)
+    elif upper in ["HELP PORTFOLIO", "GUIDE PORTFOLIO", "HELP TRADE", "GUIDE TRADE"]:
+        return handle_guide_module("portfolio", recipient=sender)
+    elif upper in ["HELP ALERTS", "GUIDE ALERTS", "HELP WATCHLIST", "GUIDE WATCHLIST"]:
+        return handle_guide_module("alerts", recipient=sender)
+    elif upper in ["HELP MARKET", "GUIDE MARKET", "HELP PULSE", "GUIDE PULSE", "HELP SECTORS"]:
+        return handle_guide_module("market", recipient=sender)
+
+    # 1. Master Menu
+    if not cleaned or upper in ["MENU", "START", "HI", "HELLO", "NAV:MENU:MAIN"]:
         return handle_main_menu(recipient=sender)
 
     # 0. Stock Move Explainer: "Why is X falling / rising?" (e.g. WHY RVNL DOWN, WHY DIXON FALLING, WHY POLYCAB UP)
@@ -6528,6 +6891,14 @@ def dispatch_incoming_whatsapp_message(text_body: str, sender: Optional[str] = N
         return handle_run_scan("fib_500_support", recipient=sender)
 
     # 2. Structured Navigation Payloads
+    if cleaned in ["nav:sub:guide", "view:guide:menu", "view:guide"]:
+        return handle_guide_menu(recipient=sender)
+    elif cleaned == "act:guide:pdf":
+        return handle_send_guide_pdf(recipient=sender)
+    elif cleaned.startswith("view:guide:"):
+        mod = cleaned.replace("view:guide:", "").strip()
+        return handle_guide_module(mod, recipient=sender)
+
     if cleaned.startswith("nav:sub:screeners"):
         return handle_screeners_menu(recipient=sender)
     elif cleaned.startswith("nav:sub:ai_screener:"):
