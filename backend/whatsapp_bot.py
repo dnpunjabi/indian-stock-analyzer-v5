@@ -451,7 +451,7 @@ def handle_main_menu(recipient: Optional[str] = None) -> Dict[str, Any]:
                 {
                     "id": "nav:sub:screeners",
                     "title": "🎯 Quant Screeners",
-                    "description": "12+ Strategies & Apex Confluence Leaderboard"
+                    "description": "AI Multi-Factor Discovery, 12+ Setups & Confluence"
                 },
                 {
                     "id": "nav:sub:scans",
@@ -601,11 +601,374 @@ def handle_portfolio_watchlists_hub(recipient: Optional[str] = None) -> Dict[str
 # NAVIGATION MODULE 1: 12+ QUANT SCREENERS & CONFLUENCE LEADERBOARD
 # ==============================================================================
 
-def handle_screeners_menu(recipient: Optional[str] = None) -> Dict[str, Any]:
-    """Renders Strategy Families Submenu including Apex Confluence Leaderboard."""
+def handle_ai_screener_strategy_menu(strategy_key: str = "hybrid", recipient: Optional[str] = None) -> Dict[str, Any]:
+    """
+    Renders Level 2 Submenu for AI Multi-Factor Screener:
+    Prompts user to select Cap Segment (All, Large, Mid, Small) or Investment Style Overlay (Value, Growth, Contra).
+    """
+    strat = strategy_key.lower() if strategy_key else "hybrid"
+    if strat not in ["hybrid", "bottom_up", "top_down"]:
+        strat = "hybrid"
+
+    meta_map = {
+        "hybrid": {
+            "name": "Hybrid Strategy",
+            "icon": "📊",
+            "desc": "ROE Quality + Relative Peer Value + Technical Entry Points",
+            "tagline": "Multi-factor quality, valuation & momentum alignment"
+        },
+        "bottom_up": {
+            "name": "Bottom-Up Selection",
+            "icon": "🏢",
+            "desc": "Pure Company Fundamentals (Cash Generation, Margin of Safety, ROE)",
+            "tagline": "Balance sheet strength, solvency & intrinsic DCF discount"
+        },
+        "top_down": {
+            "name": "Top-Down Allocation",
+            "icon": "🌐",
+            "desc": "Macro Sector Booms & Tailwinds (Defense, Power, Infrastructure)",
+            "tagline": "Sector regime outperformance + industry leaders"
+        }
+    }
+    meta = meta_map[strat]
+
     sections = [
         {
-            "title": "Confluence & Strategy",
+            "title": "Screener Universe Cap",
+            "rows": [
+                {
+                    "id": f"run:aiscreen:{strat}:all:all",
+                    "title": "🌐 All Segments (500)",
+                    "description": "Full Nifty 500: Large + Mid + Small Cap Universe"
+                },
+                {
+                    "id": f"run:aiscreen:{strat}:large:all",
+                    "title": "🏛️ Large Cap Bluechips",
+                    "description": "Top 100 high-liquidity market leaders"
+                },
+                {
+                    "id": f"run:aiscreen:{strat}:mid:all",
+                    "title": "🚀 Mid Cap Leaders",
+                    "description": "Midcap 150 high-growth compounding equities"
+                },
+                {
+                    "id": f"run:aiscreen:{strat}:small:all",
+                    "title": "🌱 Small Cap Discoveries",
+                    "description": "Smallcap 250 emerging multibagger opportunities"
+                }
+            ]
+        },
+        {
+            "title": "Investment Style Overlay",
+            "rows": [
+                {
+                    "id": f"run:aiscreen:{strat}:all:value",
+                    "title": "💎 Value Overlay",
+                    "description": "P/E under median, high Margin of Safety & dividend"
+                },
+                {
+                    "id": f"run:aiscreen:{strat}:all:growth",
+                    "title": "⚡ Growth Overlay",
+                    "description": "3Y EPS Growth >15%, Sales >12%, No Dilution"
+                },
+                {
+                    "id": f"run:aiscreen:{strat}:all:contra",
+                    "title": "🔄 Contra / Turnaround",
+                    "description": "Oversold RSI, low debt, turnaround Piotroski"
+                }
+            ]
+        }
+    ]
+
+    body = (
+        f"{meta['icon']} *{meta['name'].upper()} • SCANNER*\n"
+        f"_{meta['desc']}_\n\n"
+        f"🎯 *Engine:* {meta['tagline']}\n\n"
+        "Tap *Select Filters* below to choose your Universe Cap or Style Overlay:"
+    )
+
+    send_whatsapp_interactive_list(
+        body_text=body,
+        button_text="🔍 Select Filters",
+        sections=sections,
+        recipient=recipient,
+        header_text=f"{meta['name'].upper()[:20]}",
+        footer_text="ApexQuant Multi-Factor Engine"
+    )
+
+    return send_whatsapp_interactive_buttons(
+        f"⚡ *Quick Execution ({meta['name'][:14]}):*",
+        buttons=[
+            (f"run:aiscreen:{strat}:all:all", "⚡ Scan All Caps"),
+            ("nav:sub:screeners", "📁 Strategy Hub"),
+            ("nav:menu:main", "🏠 Main Menu")
+        ],
+        recipient=recipient
+    )
+
+
+def handle_ai_screener_presets_menu(recipient: Optional[str] = None) -> Dict[str, Any]:
+    """Renders Level 2 Submenu for 1-Tap Curated AI Screener Presets."""
+    sections = [
+        {
+            "title": "Curated Institutional Presets",
+            "rows": [
+                {
+                    "id": "run:aiscreen:hybrid:all:all",
+                    "title": "📊 Apex Hybrid All-Cap",
+                    "description": "Highest score across quality, value & momentum"
+                },
+                {
+                    "id": "run:aiscreen:hybrid:large:value",
+                    "title": "💎 Large-Cap Deep Value",
+                    "description": "Nifty 100 bluechips with low P/E & high Margin of Safety"
+                },
+                {
+                    "id": "run:aiscreen:hybrid:mid:growth",
+                    "title": "🚀 Mid-Cap Momentum",
+                    "description": "Midcap 150 compounders with accelerating EPS & RS"
+                },
+                {
+                    "id": "run:aiscreen:bottom_up:small:growth",
+                    "title": "🌱 Small-Cap Compounding",
+                    "description": "Smallcap 250 pure fundamentals & high cash conversion"
+                },
+                {
+                    "id": "run:aiscreen:bottom_up:all:contra",
+                    "title": "🔄 Contra Turnaround",
+                    "description": "Zero/low debt, oversold RSI & institutional accumulation"
+                },
+                {
+                    "id": "run:aiscreen:top_down:all:growth",
+                    "title": "🌐 Macro Sector Leaders",
+                    "description": "Defense, Power, Infra & top sector tailwind champions"
+                }
+            ]
+        }
+    ]
+
+    body = (
+        "⚡ *1-TAP CURATED SCREENER PRESETS*\n"
+        "Pre-configured institutional multi-factor models ready to execute.\n\n"
+        "Tap *Choose Preset* below to run an instant scan:"
+    )
+
+    send_whatsapp_interactive_list(
+        body_text=body,
+        button_text="⚡ Choose Preset",
+        sections=sections,
+        recipient=recipient,
+        header_text="AI SCREENER PRESETS",
+        footer_text="ApexQuant Curated Presets"
+    )
+
+    return send_whatsapp_interactive_buttons(
+        "⚡ *Instant Preset Execution*:",
+        buttons=[
+            ("run:aiscreen:hybrid:all:all", "📊 Hybrid All-Cap"),
+            ("nav:sub:screeners", "📁 Strategy Hub"),
+            ("nav:menu:main", "🏠 Main Menu")
+        ],
+        recipient=recipient
+    )
+
+
+def handle_run_ai_screener(
+    strategy: str = "hybrid",
+    universe: str = "all",
+    style: str = "all",
+    recipient: Optional[str] = None
+) -> Dict[str, Any]:
+    """
+    Executes the AI Quant Stock Screener dynamically across 500+ NSE equities
+    with the selected strategy (Hybrid, Bottom-Up, Top-Down), universe cap, and style overlay.
+    """
+    from backend.agent import run_ai_stock_screener
+
+    strat = strategy.lower() if strategy else "hybrid"
+    univ = universe.lower() if universe else "all"
+    sty = style.lower() if style else "all"
+
+    strat_labels = {
+        "hybrid": "HYBRID STRATEGY",
+        "bottom_up": "BOTTOM-UP SELECTION",
+        "top_down": "TOP-DOWN ALLOCATION"
+    }
+    univ_labels = {
+        "all": "All Segments (Nifty 500)",
+        "large": "Large Cap Bluechips",
+        "mid": "Mid Cap Leaders",
+        "small": "Small Cap Discoveries"
+    }
+    style_labels = {
+        "all": "Standard (No Overlay)",
+        "value": "Value Overlay",
+        "growth": "Growth Overlay",
+        "contra": "Contra Overlay"
+    }
+
+    strat_title = strat_labels.get(strat, "HYBRID STRATEGY")
+    univ_title = univ_labels.get(univ, univ.capitalize())
+    style_title = style_labels.get(sty, sty.capitalize())
+
+    try:
+        results = run_ai_stock_screener(
+            strategy=strat,
+            universe=univ,
+            horizon="Long-term (3+ years)",
+            risk_profile="Moderate",
+            style=sty
+        )
+    except Exception as e:
+        logger.error(f"Error running AI stock screener: {e}")
+        results = []
+
+    if not results:
+        body = (
+            f"🧠 *AI SCREENER • {strat_title}*\n"
+            f"📍 *Cap:* {univ_title} | *Style:* {style_title}\n"
+            "━━━━━━━━━━━━━━━━━━━━\n"
+            "⚠️ No qualified equities currently pass all operational and quality gates for this combination.\n\n"
+            "💡 *Tip:* Try running *All Segments* or reset the style overlay to *Standard*."
+        )
+        buttons = [
+            (f"run:aiscreen:{strat}:all:all", "🌐 Scan All Caps"),
+            ("nav:sub:screeners", "📁 Strategy Hub"),
+            ("nav:menu:main", "🏠 Main Menu")
+        ]
+        return send_whatsapp_interactive_buttons(body, buttons=buttons, recipient=recipient)
+
+    top_picks = results[:5]
+
+    # Hydrate top picks with quotes from market movers cache
+    try:
+        from backend.main import _MARKET_MOVERS_CACHE
+        mm = _MARKET_MOVERS_CACHE or {}
+        if not mm:
+            bmain_dir = os.path.join(os.path.dirname(__file__), "data")
+            mm_file = os.path.join(bmain_dir, "market_movers_cache.json")
+            if os.path.exists(mm_file):
+                with open(mm_file, "r") as f:
+                    mm = json.load(f)
+        if mm:
+            for it in top_picks:
+                s_code = it["symbol"].replace(".NS", "").replace(".BO", "").upper()
+                for cat in ["gainers", "losers"]:
+                    for cap_list in mm.get(cat, {}).values():
+                        if isinstance(cap_list, list):
+                            for mm_item in cap_list:
+                                if mm_item.get("symbol", "").replace(".NS", "").replace(".BO", "").upper() == s_code:
+                                    if mm_item.get("price"):
+                                        it["current_price"] = round(float(mm_item["price"]), 2)
+                                    if mm_item.get("change_pct") is not None:
+                                        it["change_pct"] = round(float(mm_item["change_pct"]), 2)
+                                    break
+    except Exception:
+        pass
+
+    # Batch quote fetch for current-day price / change%
+    fetch_tickers = [f"{it['symbol'].replace('.NS', '').replace('.BO', '')}.NS" for it in top_picks]
+    if fetch_tickers:
+        try:
+            import yfinance as yf
+            import pandas as pd
+            df_q = yf.download(fetch_tickers, period="5d", interval="1d", progress=False)
+            if not df_q.empty:
+                for it in top_picks:
+                    s_code = it["symbol"].replace(".NS", "").replace(".BO", "")
+                    yf_tk = f"{s_code}.NS"
+                    try:
+                        if isinstance(df_q.columns, pd.MultiIndex):
+                            s_close = df_q["Close"][yf_tk].dropna() if yf_tk in df_q["Close"].columns else None
+                        else:
+                            s_close = df_q["Close"].dropna()
+                        if s_close is not None and len(s_close) >= 2:
+                            p_latest = float(s_close.iloc[-1])
+                            p_prev = float(s_close.iloc[-2])
+                            it["current_price"] = round(p_latest, 2)
+                            it["change_pct"] = round((p_latest - p_prev) / p_prev * 100.0, 2)
+                    except Exception:
+                        pass
+        except Exception as e:
+            logger.warning(f"Error fetching quick batch quotes for AI screener picks: {e}")
+
+    rank_emojis = ["🥇", "🥈", "🥉", "4️⃣", "5️⃣"]
+    cards = []
+    for idx, r in enumerate(top_picks):
+        rank_badge = rank_emojis[idx] if idx < len(rank_emojis) else f"{idx+1}."
+        sym = r.get("base") or r["symbol"].replace(".NS", "").replace(".BO", "")
+        name = r.get("name", sym)
+        price = r.get("current_price", 0.0)
+        chg_val = r.get("change_pct")
+        chg_txt = f" ({'+' if chg_val >= 0 else ''}{chg_val:.2f}%)" if chg_val is not None else ""
+        score = r.get("score", 0)
+        action = r.get("action", "BUY 🟢")
+        roe_val = r.get("roe", 0.0)
+        pe_val = r.get("pe", 0.0)
+        mos_val = r.get("margin_of_safety", 0.0)
+        mos_sign = "+" if mos_val >= 0 else ""
+        cap_badge = (r.get("cap_type") or "").upper()
+        if cap_badge:
+            cap_badge = f" • {cap_badge} CAP"
+
+        cards.append(
+            f"{rank_badge} *{sym}* — {name[:24]}{cap_badge}\n"
+            f"   └ ₹ {price:,.2f}{chg_txt} | Score: *{score}/100* ({action})\n"
+            f"   └ ROE: *{roe_val:.1f}%* | P/E: *{pe_val:.1f}x* | MoS: *{mos_sign}{mos_val:.1f}%*"
+        )
+
+    first_sym = top_picks[0].get("base") or top_picks[0]["symbol"].replace(".NS", "").replace(".BO", "")
+    btn_sym = first_sym[:9]
+
+    body = (
+        f"🧠 *AI SCREENER • {strat_title}*\n"
+        f"📍 Universe: *{univ_title}*\n"
+        f"🎯 Style: *{style_title}*\n"
+        f"📊 Passed: *{len(results)} Equities* | Showing Top {len(top_picks)}\n"
+        "━━━━━━━━━━━━━━━━━━━━\n"
+        + "\n\n".join(cards) + "\n"
+        "━━━━━━━━━━━━━━━━━━━━\n"
+        f"Tap `{btn_sym} Chart` or `{btn_sym} Dossier` below:"
+    )
+
+    buttons = [
+        (f"act:chart:{first_sym}", f"📈 {btn_sym} Chart"),
+        (f"view:stock:{first_sym}", f"🏛️ {btn_sym} Dossier"),
+        ("nav:sub:screeners", "📁 Strategy Hub")
+    ]
+    return send_whatsapp_interactive_buttons(body, buttons=buttons, recipient=recipient)
+
+
+def handle_screeners_menu(recipient: Optional[str] = None) -> Dict[str, Any]:
+    """Renders Strategy Families Submenu including AI Multi-Factor Discovery & Apex Confluence."""
+    sections = [
+        {
+            "title": "🧠 AI Multi-Factor Discovery",
+            "rows": [
+                {
+                    "id": "nav:sub:ai_screener:hybrid",
+                    "title": "📊 Hybrid Strategy",
+                    "description": "ROE Quality + Relative Peer Value + Technical Entry"
+                },
+                {
+                    "id": "nav:sub:ai_screener:bottom_up",
+                    "title": "🏢 Bottom-Up Strategy",
+                    "description": "Pure Fundamentals: Cash Flow, Margin of Safety, ROE"
+                },
+                {
+                    "id": "nav:sub:ai_screener:top_down",
+                    "title": "🌐 Top-Down Strategy",
+                    "description": "Macro Sector Booms & Tailwinds (Defense, Power, Infra)"
+                },
+                {
+                    "id": "nav:sub:ai_screener:presets",
+                    "title": "⚡ 1-Tap Curated Presets",
+                    "description": "Large Value, Mid Growth, Small Cap Discoveries"
+                }
+            ]
+        },
+        {
+            "title": "📐 Price Action & Patterns",
             "rows": [
                 {
                     "id": "run:screen:confluence",
@@ -631,9 +994,9 @@ def handle_screeners_menu(recipient: Optional[str] = None) -> Dict[str, Any]:
         }
     ]
     body = (
-        "🎯 *12+ QUANT SCREENER VAULT*\n"
-        "Algorithmic screening models across 500+ NSE equities.\n"
-        "Tap *Apex Confluence* or select a strategy family below:"
+        "🎯 *QUANT & AI SCREENER VAULT*\n"
+        "Multi-factor AI discovery & algorithmic price models across 500+ NSE equities.\n\n"
+        "Select an *AI Strategy* or *Pattern Model* below:"
     )
     send_whatsapp_interactive_list(
         body_text=body,
@@ -646,8 +1009,8 @@ def handle_screeners_menu(recipient: Optional[str] = None) -> Dict[str, Any]:
     return send_whatsapp_interactive_buttons(
         "⚡ *Instant 1-Tap Execution*:",
         buttons=[
+            ("run:aiscreen:hybrid:all:all", "📊 Hybrid Scan"),
             ("run:screen:confluence", "⭐ Confluence"),
-            ("run:screen:vcp", "🚀 Instant VCP"),
             ("nav:menu:main", "🏠 Main Menu")
         ],
         recipient=recipient
@@ -6101,6 +6464,39 @@ def dispatch_incoming_whatsapp_message(text_body: str, sender: Optional[str] = N
         if sym:
             return handle_fibonacci_query(sym, recipient=sender)
 
+    # AI Multi-Factor Screener Shortcuts (e.g. SCREEN HYBRID, SCREEN BOTTOMUP VALUE, SCREEN CONTRA)
+    if upper in ["AI SCREENER", "AI SCREEN", "AI SCREENERS", "QUANT SCREENER", "QUANT SCREENERS"]:
+        return handle_screeners_menu(recipient=sender)
+
+    if (upper.startswith("SCREEN ") or upper.startswith("AISCREEN ") or upper.startswith("SCAN AI ")) and not bool(re.search(r"\b(?:RSI|PE|P/E|ROE|DEBT|DELIVERY)\b\s*(?:<|>|<=|>=|BELOW|ABOVE|UNDER|OVER|LESS|GREATER)\s*\d+", upper)):
+        cmd_text = upper
+        strat = "hybrid"
+        if "BOTTOM" in cmd_text:
+            strat = "bottom_up"
+        elif "TOP" in cmd_text:
+            strat = "top_down"
+        elif "HYBRID" in cmd_text:
+            strat = "hybrid"
+
+        univ = "all"
+        if "LARGE" in cmd_text or "BLUECHIP" in cmd_text:
+            univ = "large"
+        elif "MID" in cmd_text:
+            univ = "mid"
+        elif "SMALL" in cmd_text:
+            univ = "small"
+
+        sty = "all"
+        if "VALUE" in cmd_text:
+            sty = "value"
+        elif "GROWTH" in cmd_text:
+            sty = "growth"
+        elif "CONTRA" in cmd_text or "REVERSAL" in cmd_text:
+            sty = "contra"
+
+        if any(k in cmd_text for k in ["HYBRID", "BOTTOM", "TOP", "LARGE", "MID", "SMALL", "VALUE", "GROWTH", "CONTRA"]):
+            return handle_run_ai_screener(strategy=strat, universe=univ, style=sty, recipient=sender)
+
     # Direct Scan Text Aliases (14 Web Scans Support)
     if upper in ["52W HIGH", "NEAR 52W HIGH", "NEAR HIGH", "52 HIGH"]:
         return handle_run_scan("near_high", recipient=sender)
@@ -6134,6 +6530,18 @@ def dispatch_incoming_whatsapp_message(text_body: str, sender: Optional[str] = N
     # 2. Structured Navigation Payloads
     if cleaned.startswith("nav:sub:screeners"):
         return handle_screeners_menu(recipient=sender)
+    elif cleaned.startswith("nav:sub:ai_screener:"):
+        sub_key = cleaned.replace("nav:sub:ai_screener:", "").strip()
+        if sub_key == "presets":
+            return handle_ai_screener_presets_menu(recipient=sender)
+        else:
+            return handle_ai_screener_strategy_menu(sub_key, recipient=sender)
+    elif cleaned.startswith("run:aiscreen:"):
+        parts = cleaned.split(":")
+        strat = parts[2] if len(parts) > 2 else "hybrid"
+        univ = parts[3] if len(parts) > 3 else "all"
+        sty = parts[4] if len(parts) > 4 else "all"
+        return handle_run_ai_screener(strategy=strat, universe=univ, style=sty, recipient=sender)
     elif cleaned.startswith("nav:sub:screen_"):
         family = cleaned.replace("nav:sub:screen_", "")
         return handle_screeners_family(family, recipient=sender)
@@ -6312,9 +6720,9 @@ def dispatch_incoming_whatsapp_message(text_body: str, sender: Optional[str] = N
         sym = cleaned.replace("act:chart:", "").replace("CHART", "").replace("C ", "").strip()
         return handle_chart_query(sym, recipient=sender)
 
-    # Stock Details
-    elif cleaned.startswith("view:stock:"):
-        sym = cleaned.replace("view:stock:", "").strip()
+    # Stock Details & Interactive Dossier
+    elif cleaned.startswith("view:stock:") or cleaned.startswith("act:stock:") or cleaned.startswith("act:dossier:"):
+        sym = re.sub(r"^(?:view:stock:|act:stock:|act:dossier:)", "", cleaned).strip()
         return handle_stock_query(sym, recipient=sender)
 
     # Conversational Session Memory Reset
