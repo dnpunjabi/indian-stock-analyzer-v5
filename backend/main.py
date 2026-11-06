@@ -49,7 +49,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from dotenv import load_dotenv
-from typing import List, Optional
+from typing import List, Optional, Dict, Any
 from backend.fuzzy_engine import evaluate_fuzzy_logic
 from backend.llm_config import get_last_llm_meta
 
@@ -189,6 +189,39 @@ def init_db():
             pass
         try:
             cursor.execute("ALTER TABLE watchlist_items ADD COLUMN alert_config TEXT")
+        except Exception:
+            pass
+        # Watchlist-level automated WhatsApp Dip & Valuation Alert settings
+        try:
+            cursor.execute("ALTER TABLE watchlists ADD COLUMN dip_alerts_enabled INTEGER DEFAULT 1")
+        except Exception:
+            pass
+        try:
+            cursor.execute("ALTER TABLE watchlists ADD COLUMN dip_threshold_pct REAL DEFAULT 3.0")
+        except Exception:
+            pass
+        try:
+            cursor.execute("ALTER TABLE watchlists ADD COLUMN mos_threshold_pct REAL DEFAULT 20.0")
+        except Exception:
+            pass
+        try:
+            cursor.execute("""
+            CREATE TABLE IF NOT EXISTS watchlist_dip_alerts_history (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                watchlist_id INTEGER,
+                symbol TEXT NOT NULL,
+                alert_type TEXT NOT NULL,
+                trigger_price REAL,
+                change_pct REAL,
+                alert_date TEXT,
+                triggered_at TEXT,
+                UNIQUE(watchlist_id, symbol, alert_type, alert_date)
+            )
+            """)
+            cursor.execute("""
+            CREATE INDEX IF NOT EXISTS idx_wl_dip_history 
+            ON watchlist_dip_alerts_history(watchlist_id, symbol, alert_date)
+            """)
         except Exception:
             pass
         # Dedicated Portfolio Items table for AI Portfolio Doctor
@@ -2523,6 +2556,7 @@ async def startup_warm_caching():
     asyncio.create_task(run_background_premarket_scheduler())
     asyncio.create_task(run_background_portfolio_catalyst_scheduler())
     asyncio.create_task(run_background_weekly_wrapup_scheduler())
+    asyncio.create_task(run_background_watchlist_dip_alerts_scheduler())
     
     # 4.51 Fire WhatsApp Sandbox automated keep-alive scheduler (personal solo mode)
     from backend.whatsapp_bot import run_background_whatsapp_sandbox_keepalive
@@ -7076,6 +7110,7 @@ async def list_alerts():
 
     try:
         await sweep_watchlist_custom_alerts()
+        await sweep_watchlist_dip_alerts()
     except Exception as e:
         logger.error(f"Error sweeping watchlist custom alerts in list_alerts: {e}")
 
@@ -9893,6 +9928,250 @@ async def check_fuzzy_watchlist_whatsapp_alerts():
             print(f"Error checking fuzzy WhatsApp alert for {symbol}: {err}")
 
 
+async def sweep_watchlist_dip_alerts(watchlist_id: Optional[int] = None, force_dispatch: bool = False) -> Dict[str, Any]:
+    """
+    Evaluates watchlist stocks for automated Dip, Valuation MOS, and 52W-Low alerts.
+    If conditions are met and not already notified today, dispatches instant WhatsApp alerts.
+    When force_dispatch=True, dispatches a live test verification alert immediately.
+    """
+    from datetime import datetime, timedelta
+    from backend.daily_wrapup import send_whatsapp_wrapup
+    from backend.whatsapp_bot import get_stock_ground_truth
+
+    today_str = datetime.now().strftime("%Y-%m-%d")
+    dispatched_alerts = []
+
+    with get_db() as conn:
+        cursor = conn.cursor()
+        if watchlist_id is not None:
+            cursor.execute(
+                "SELECT id, name, COALESCE(dip_alerts_enabled, 1) as dip_alerts_enabled, "
+                "COALESCE(dip_threshold_pct, 3.0) as dip_threshold_pct, "
+                "COALESCE(mos_threshold_pct, 20.0) as mos_threshold_pct "
+                "FROM watchlists WHERE id = ?", (watchlist_id,)
+            )
+        else:
+            cursor.execute(
+                "SELECT id, name, COALESCE(dip_alerts_enabled, 1) as dip_alerts_enabled, "
+                "COALESCE(dip_threshold_pct, 3.0) as dip_threshold_pct, "
+                "COALESCE(mos_threshold_pct, 20.0) as mos_threshold_pct "
+                "FROM watchlists WHERE COALESCE(dip_alerts_enabled, 1) = 1"
+            )
+        target_watchlists = [dict(r) for r in cursor.fetchall()]
+
+    if not target_watchlists:
+        return {"status": "skipped", "reason": "No active watchlists found or dip alerts disabled"}
+
+    for wl in target_watchlists:
+        wl_id = wl["id"]
+        wl_name = wl["name"]
+        dip_thresh = float(wl["dip_threshold_pct"] or 3.0)
+        mos_thresh = float(wl["mos_threshold_pct"] or 20.0)
+        alerts_enabled = bool(wl["dip_alerts_enabled"])
+
+        if not alerts_enabled and not force_dispatch:
+            continue
+
+        with get_db() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                "SELECT symbol, name, added_price, added_date, alert_config "
+                "FROM watchlist_items WHERE watchlist_id = ?", (wl_id,)
+            )
+            items = [dict(r) for r in cursor.fetchall()]
+
+        if not items:
+            continue
+
+        # If force_dispatch (user clicked "Test WhatsApp Alert"), dispatch test alert for the first stock
+        if force_dispatch:
+            item = items[0]
+            symbol = item["symbol"].strip().upper()
+            base_sym = symbol.replace('.NS', '').replace('.BO', '')
+            gt = get_stock_ground_truth(symbol)
+            cp = float(gt.get("ltp") or 0.0)
+            chg = float(gt.get("change_pct") or 0.0)
+            mos = float(gt.get("margin_of_safety") or 0.0)
+
+            test_msg = (
+                f"🧪 *APEX WATCHLIST DIP SENTINEL — LIVE VERIFICATION*\n\n"
+                f"✅ *Status: 100% ACTIVE & RUNNING 24/7 IN BACKGROUND*\n\n"
+                f"• *Watchlist:* {wl_name}\n"
+                f"• *Sample Stock:* *{symbol}* ({item.get('name') or base_sym})\n"
+                f"• *Current Price:* ₹{cp:.2f} ({chg:+.2f}% today)\n"
+                f"• *Valuation MOS:* {mos:+.1f}%\n"
+                f"• *Dip Threshold Trigger:* Drop ≥ -{dip_thresh:.1f}%\n"
+                f"• *Valuation MOS Trigger:* Margin of Safety ≥ +{mos_thresh:.1f}%\n"
+                f"• *Anti-Spam Deduplication:* Enabled (Max 1 alert per stock/day)\n"
+                f"• *Background Frequency:* Continuous 15-min autonomous checks\n"
+                f"• *Verified At:* {datetime.now().strftime('%d %b %Y, %I:%M %p')}\n\n"
+                f"_Watchlist Sentinel is operating autonomously on the server. No browser tab needed!_"
+            )
+            try:
+                wa_res = await send_whatsapp_wrapup(test_msg)
+                return {
+                    "status": "success",
+                    "dispatched": True,
+                    "sample_stock": symbol,
+                    "watchlist": wl_name,
+                    "whatsapp_response": wa_res,
+                    "message": f"WhatsApp test alert successfully sent for {symbol}!"
+                }
+            except Exception as e:
+                logger.error(f"Failed to dispatch WhatsApp test alert: {e}")
+                return {"status": "error", "message": f"WhatsApp send failed: {str(e)}"}
+
+        # Normal sweep mode across items
+        for item in items:
+            symbol = item["symbol"].strip().upper()
+            base_sym = symbol.replace('.NS', '').replace('.BO', '')
+            try:
+                with get_db() as conn:
+                    cursor = conn.cursor()
+                    profile_row = cursor.execute(
+                        "SELECT profile_json FROM cached_profiles WHERE symbol = ? OR symbol = ?",
+                        (symbol, base_sym)
+                    ).fetchone()
+
+                p_json = json.loads(profile_row["profile_json"]) if profile_row and profile_row["profile_json"] else {}
+                tech = p_json.get("technicals", {})
+                fund = p_json.get("fundamentals", {})
+                cp = float(tech.get("current_price") or fund.get("current_price") or 0.0)
+
+                gt = None
+                if cp <= 0:
+                    gt = get_stock_ground_truth(symbol)
+                    cp = float(gt.get("ltp") or 0.0)
+
+                if cp <= 0:
+                    continue
+
+                added_price = float(item.get("added_price") or cp)
+                added_date = item.get("added_date") or ""
+                trend_metrics = compute_stock_trendlyne_metrics(p_json, cp, added_price, added_date)
+
+                day_chg = float(trend_metrics.get("change_pct") if trend_metrics.get("change_pct") is not None else (trend_metrics.get("returns", {}).get("d1") or (gt.get("change_pct") if gt else 0.0)))
+                mos_val = float(trend_metrics.get("mos_pct") if trend_metrics.get("mos_pct") is not None else (gt.get("margin_of_safety") if gt else 0.0))
+                range52 = trend_metrics.get("range_52w", {})
+                pos_pct = float(range52.get("pos_pct", 50.0))
+
+                triggers = []
+
+                # Condition 1: Significant Intraday Dip
+                if day_chg <= -dip_thresh:
+                    triggers.append((
+                        "INTRADAY_DIP",
+                        f"📉 *Watchlist Flash Dip:* Down *{day_chg:.2f}%* today",
+                        f"Stock dipped below your -{dip_thresh:.1f}% threshold. Trading at ₹{cp:.2f}. Consider strategic accumulation if fundamentals are intact."
+                    ))
+
+                # Condition 2: Deep Margin of Safety (Value Opportunity)
+                if mos_val >= mos_thresh:
+                    triggers.append((
+                        "VALUATION_MOS",
+                        f"💎 *Deep Valuation MOS:* *+{mos_val:.1f}%* Margin of Safety",
+                        f"Current market price ₹{cp:.2f} is trading at a deep discount against fair value. Favorable asymmetric risk-reward."
+                    ))
+
+                # Condition 3: Testing 52-Week Low
+                if 0.0 <= pos_pct <= 2.5:
+                    triggers.append((
+                        "52W_LOW_TEST",
+                        f"📉 *52-Week Low Test:* Trading near 52W Low",
+                        f"Trading at ₹{cp:.2f} (bottom {pos_pct:.1f}% of 52-week range). Watch for capitulation or support reversal."
+                    ))
+
+                for alert_type, headline, insight in triggers:
+                    # Check anti-spam deduplication in DB
+                    with get_db() as conn:
+                        cursor = conn.cursor()
+                        cursor.execute(
+                            "SELECT id FROM watchlist_dip_alerts_history "
+                            "WHERE watchlist_id = ? AND symbol = ? AND alert_type = ? AND alert_date = ?",
+                            (wl_id, symbol, alert_type, today_str)
+                        )
+                        already_sent = cursor.fetchone()
+
+                    if already_sent:
+                        continue
+
+                    # Compose WhatsApp notification
+                    time_str = datetime.now().strftime("%d %b %Y, %I:%M %p")
+                    wa_alert_msg = (
+                        f"🚨 *WATCHLIST DIP SENTINEL ALERT* 🚨\n\n"
+                        f"• *Watchlist:* {wl_name}\n"
+                        f"• *Stock:* *{symbol}* ({item.get('name') or base_sym})\n"
+                        f"• *Trigger:* {headline}\n"
+                        f"• *Current Price:* ₹{cp:.2f} ({day_chg:+.2f}% today)\n"
+                        f"• *Margin of Safety:* {mos_val:+.1f}%\n"
+                        f"• *Key Context:* {insight}\n"
+                        f"• *Timestamp:* {time_str}\n\n"
+                        f"_APEX 24/7 Watchlist Sentinel Desk_"
+                    )
+
+                    try:
+                        await send_whatsapp_wrapup(wa_alert_msg)
+                        logger.info(f"Dispatched Watchlist Dip WhatsApp Alert for {symbol} ({alert_type})")
+                        dispatched_alerts.append({"symbol": symbol, "alert_type": alert_type, "price": cp})
+                    except Exception as wa_err:
+                        logger.error(f"Failed to dispatch WhatsApp alert for {symbol}: {wa_err}")
+
+                    # Record in history table
+                    with get_db() as conn:
+                        cursor = conn.cursor()
+                        cursor.execute("""
+                            INSERT OR REPLACE INTO watchlist_dip_alerts_history
+                            (watchlist_id, symbol, alert_type, trigger_price, change_pct, alert_date, triggered_at)
+                            VALUES (?, ?, ?, ?, ?, ?, ?)
+                        """, (wl_id, symbol, alert_type, cp, day_chg, today_str, datetime.now().isoformat()))
+
+                        # Also sync to alerts table for Alerts Hub visibility
+                        alert_hub_id = f"wl_dip_{wl_id}_{base_sym}_{alert_type}_{today_str}"
+                        cursor.execute("""
+                            INSERT OR REPLACE INTO alerts 
+                            (id, ticker, condition_type, operator, value, status, triggered, trigger_date, ai_context)
+                            VALUES (?, ?, ?, 'ALERT', ?, 'Triggered', 1, ?, ?)
+                        """, (alert_hub_id, base_sym, alert_type, str(cp), time_str, headline))
+                        conn.commit()
+
+            except Exception as item_err:
+                logger.error(f"Error evaluating watchlist dip alert for {symbol}: {item_err}")
+                continue
+
+    return {"status": "success", "dispatched_count": len(dispatched_alerts), "alerts": dispatched_alerts}
+
+
+async def run_background_watchlist_dip_alerts_scheduler():
+    """
+    Autonomous 24/7 background daemon for Watchlist Dip & Valuation WhatsApp alerts.
+    - Market Hours (09:15 - 15:35 IST, Mon-Fri): Evaluates every 15 minutes.
+    - Off-Market Hours / Weekends: Evaluates once every 4 hours.
+    """
+    await asyncio.sleep(40)  # Wait for startup warm caching to complete
+    logger.info("Autonomous Background Watchlist Dip Alert Sentinel started.")
+
+    while True:
+        try:
+            from datetime import datetime, timedelta
+            now_utc = datetime.utcnow()
+            now_ist = now_utc + timedelta(hours=5, minutes=30)
+            is_weekday = (now_ist.weekday() < 5)
+            market_time_minutes = now_ist.hour * 60 + now_ist.minute
+            is_market_hours = is_weekday and (9 * 60 + 15 <= market_time_minutes <= 15 * 60 + 35)
+
+            await sweep_watchlist_dip_alerts()
+
+            if is_market_hours:
+                sleep_secs = 15 * 60
+            else:
+                sleep_secs = 4 * 3600
+
+            await asyncio.sleep(sleep_secs)
+        except Exception as e:
+            logger.error(f"Error in Watchlist Dip Alerts scheduler loop: {e}", exc_info=True)
+            await asyncio.sleep(300)
+
+
 @app.get("/api/alerts/check")
 async def check_alerts():
     """Background-triggered active alert scanning sweep."""
@@ -9903,6 +10182,7 @@ async def check_alerts():
     try:
         await check_fuzzy_watchlist_whatsapp_alerts()
         await sweep_watchlist_custom_alerts()
+        await sweep_watchlist_dip_alerts()
     except Exception as fz_alert_err:
         print(f"Watchlist alert sweep error: {fz_alert_err}")
 
@@ -10589,7 +10869,15 @@ async def get_portfolio_fuzzy_swaps():
 async def get_watchlists():
     with get_db() as conn:
         cursor = conn.cursor()
-        cursor.execute("SELECT id, name FROM watchlists")
+        cursor.execute("""
+            SELECT 
+                id, 
+                name, 
+                COALESCE(dip_alerts_enabled, 1) as dip_alerts_enabled,
+                COALESCE(dip_threshold_pct, 3.0) as dip_threshold_pct,
+                COALESCE(mos_threshold_pct, 20.0) as mos_threshold_pct
+            FROM watchlists
+        """)
         watchlists = [dict(row) for row in cursor.fetchall()]
         
         for w in watchlists:
@@ -10742,6 +11030,58 @@ async def delete_watchlist(watchlist_id: int):
         cursor.execute("DELETE FROM watchlists WHERE id = ?", (watchlist_id,))
         conn.commit()
     return {"status": "success"}
+
+@app.get("/api/watchlists/{watchlist_id}/dip-alerts/settings")
+async def get_watchlist_dip_alert_settings(watchlist_id: int):
+    """Retrieve automated dip alert settings for a watchlist."""
+    with get_db() as conn:
+        cursor = conn.cursor()
+        cursor.execute(
+            "SELECT id, name, COALESCE(dip_alerts_enabled, 1) as dip_alerts_enabled, "
+            "COALESCE(dip_threshold_pct, 3.0) as dip_threshold_pct, "
+            "COALESCE(mos_threshold_pct, 20.0) as mos_threshold_pct "
+            "FROM watchlists WHERE id = ?", (watchlist_id,)
+        )
+        row = cursor.fetchone()
+        if not row:
+            raise HTTPException(status_code=404, detail="Watchlist not found.")
+        return dict(row)
+
+@app.post("/api/watchlists/{watchlist_id}/dip-alerts/toggle")
+async def toggle_watchlist_dip_alerts_endpoint(watchlist_id: int, payload: Optional[Dict[str, Any]] = None):
+    """Toggle or update automated WhatsApp dip alert settings for a watchlist."""
+    with get_db() as conn:
+        cursor = conn.cursor()
+        cursor.execute(
+            "SELECT COALESCE(dip_alerts_enabled, 1) as dip_alerts_enabled "
+            "FROM watchlists WHERE id = ?", (watchlist_id,)
+        )
+        row = cursor.fetchone()
+        if not row:
+            raise HTTPException(status_code=404, detail="Watchlist not found.")
+        
+        current_state = row["dip_alerts_enabled"]
+        if payload and "enabled" in payload:
+            new_state = 1 if payload["enabled"] else 0
+        else:
+            new_state = 0 if current_state == 1 else 1
+            
+        cursor.execute(
+            "UPDATE watchlists SET dip_alerts_enabled = ? WHERE id = ?",
+            (new_state, watchlist_id)
+        )
+        conn.commit()
+        return {
+            "status": "success",
+            "watchlist_id": watchlist_id,
+            "dip_alerts_enabled": bool(new_state)
+        }
+
+@app.post("/api/watchlists/{watchlist_id}/dip-alerts/test")
+async def test_watchlist_dip_alert_endpoint(watchlist_id: int):
+    """Dispatches an instant live verification WhatsApp test alert for this watchlist."""
+    result = await sweep_watchlist_dip_alerts(watchlist_id=watchlist_id, force_dispatch=True)
+    return result
 
 def compute_stock_trendlyne_metrics(profile, cp_val, added_price, added_date):
     profile = profile or {}

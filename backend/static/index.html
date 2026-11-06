@@ -15467,7 +15467,8 @@
                                 <button class="btn-primary" id="analyze-watchlist-btn" style="font-size: 13.5px; padding: 6px 12px; display: none;">Analyze All</button>
                                 <button class="btn-secondary" id="watchlist-refresh-btn" style="font-size: 13.5px; padding: 6px 12px; display: none; align-items: center; gap: 4px;">🔄 Refresh Prices</button>
                                 
-                                <button class="btn-secondary" id="watchlist-alert-toggle-btn" style="font-size: 13.5px; padding: 6px 12px; display: none; align-items: center; gap: 4px; border-color: rgba(245,158,11,0.35); color: #f59e0b; background: rgba(245,158,11,0.06);" title="Toggle Watchlist Dip Alerts">🔔 Dip Alerts</button>
+                                <button class="btn-secondary" id="watchlist-alert-toggle-btn" onclick="window.toggleWatchlistDipAlerts && window.toggleWatchlistDipAlerts()" style="font-size: 13.5px; padding: 6px 12px; display: none; align-items: center; gap: 4px; border-color: rgba(245,158,11,0.35); color: #f59e0b; background: rgba(245,158,11,0.06);" title="Toggle Watchlist WhatsApp Dip Alerts (24/7 autonomous sentinel)">🔔 WhatsApp Alerts: ON</button>
+                                <button class="btn-secondary" id="watchlist-test-alert-btn" onclick="window.testWatchlistWhatsAppAlert && window.testWatchlistWhatsAppAlert()" style="font-size: 13.5px; padding: 6px 12px; display: none; align-items: center; gap: 4px; border-color: rgba(37,211,102,0.4); color: #25d366; background: rgba(37,211,102,0.08);" title="Send a live test alert to your WhatsApp immediately">🧪 Test WhatsApp</button>
                             </div>
                         </div>
 
@@ -15487,7 +15488,7 @@
                                     <button class="watchlist-filter-chip active" data-filter="all">All Stocks</button>
                                     <button class="watchlist-filter-chip" data-filter="gainers">🔥 Top Gainers</button>
                                     <button class="watchlist-filter-chip" data-filter="green">🟢 3-Dots Green</button>
-                                    <button class="watchlist-filter-chip" data-filter="dip">⚠️ Dip Alerts</button>
+                                    <button class="watchlist-filter-chip" data-filter="dip">📉 Dipping Stocks</button>
                                 </div>
 
                                 <div class="wl-vcp-actions-row" style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">

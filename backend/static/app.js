@@ -17205,6 +17205,10 @@ async function setupWatchlistControls() {
     if (alertToggleBtn) {
         alertToggleBtn.addEventListener('click', toggleWatchlistDipAlerts);
     }
+    const testAlertBtn = document.getElementById('watchlist-test-alert-btn');
+    if (testAlertBtn) {
+        testAlertBtn.addEventListener('click', testWatchlistWhatsAppAlert);
+    }
     if (addBtn) {
         addBtn.addEventListener('click', addCurrentStockToWatchlist);
     }
@@ -18114,40 +18118,70 @@ function exportActiveWatchlistCSV() {
 }
 
 function syncWatchlistDipAlertsState(enabled) {
+    const activeWatch = (typeof watchlistsList !== 'undefined' && Array.isArray(watchlistsList)) 
+        ? watchlistsList.find(w => w && w.id == activeWatchlistId) 
+        : null;
+
     if (typeof enabled === 'boolean') {
         window.watchlistDipAlertsEnabled = enabled;
+        if (activeWatch) activeWatch.dip_alerts_enabled = enabled ? 1 : 0;
         try { localStorage.setItem('watchlistDipAlertsEnabled', enabled ? 'true' : 'false'); } catch (e) {}
+    } else if (activeWatch && typeof activeWatch.dip_alerts_enabled !== 'undefined') {
+        window.watchlistDipAlertsEnabled = (activeWatch.dip_alerts_enabled == 1);
     } else {
         const stored = (function() { try { return localStorage.getItem('watchlistDipAlertsEnabled'); } catch (e) { return null; } })();
-        // Default to ON if never set before, or restore stored preference
         window.watchlistDipAlertsEnabled = stored === null ? true : (stored === 'true');
     }
+
     const btn = document.getElementById('watchlist-alert-toggle-btn');
     if (btn) {
         if (window.watchlistDipAlertsEnabled) {
-            btn.style.background = 'rgba(245,158,11,0.25)';
+            btn.style.background = 'rgba(245,158,11,0.22)';
             btn.style.borderColor = '#f59e0b';
-            btn.style.color = 'var(--text-primary)';
+            btn.style.color = '#f59e0b';
             btn.style.fontWeight = '700';
-            btn.innerText = '🔔 Dip Alerts: ON';
+            btn.innerHTML = '🔔 WhatsApp Alerts: ON';
+            btn.title = 'Watchlist 24/7 WhatsApp Dip & Valuation Sentinel is ACTIVE. Click to pause.';
         } else {
-            btn.style.background = 'rgba(245,158,11,0.06)';
-            btn.style.borderColor = 'rgba(245,158,11,0.35)';
+            btn.style.background = 'rgba(255,255,255,0.05)';
+            btn.style.borderColor = 'rgba(255,255,255,0.2)';
             btn.style.color = 'var(--text-secondary)';
             btn.style.fontWeight = 'normal';
-            btn.innerText = '🔔 Dip Alerts';
+            btn.innerHTML = '🔕 WhatsApp Alerts: OFF';
+            btn.title = 'Watchlist WhatsApp Alerts are PAUSED. Click to activate 24/7 background sentinel.';
         }
     }
 }
 
-function toggleWatchlistDipAlerts() {
+async function toggleWatchlistDipAlerts() {
+    const activeWatch = (typeof watchlistsList !== 'undefined' && Array.isArray(watchlistsList)) 
+        ? watchlistsList.find(w => w && w.id == activeWatchlistId) 
+        : null;
+
     const currentState = typeof window.watchlistDipAlertsEnabled !== 'undefined' 
         ? window.watchlistDipAlertsEnabled 
-        : (function() { try { return localStorage.getItem('watchlistDipAlertsEnabled') !== 'false'; } catch (e) { return true; } })();
+        : true;
     const newState = !currentState;
     syncWatchlistDipAlertsState(newState);
+
+    if (activeWatchlistId) {
+        try {
+            const resp = await fetch(`/api/watchlists/${activeWatchlistId}/dip-alerts/toggle`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ enabled: newState })
+            });
+            const data = await resp.json();
+            if (data && data.status === 'success') {
+                if (activeWatch) activeWatch.dip_alerts_enabled = newState ? 1 : 0;
+            }
+        } catch (e) {
+            console.warn('Failed to persist watchlist alert state to backend:', e);
+        }
+    }
+
     if (newState) {
-        showToast('Watchlist Dip & Valuation Alerts active: Threshold alerts (Day Dip >3%, MOS >25%) will dispatch via WhatsApp.', 'info');
+        showToast('✅ Watchlist WhatsApp Sentinel Active: Continuous 24/7 background monitoring enabled (Dips ≥ 3%, MOS ≥ 20%).', 'success');
         fetch('/api/alerts/check', { method: 'GET' })
             .then(res => res.json())
             .then(data => {
@@ -18157,9 +18191,47 @@ function toggleWatchlistDipAlerts() {
             })
             .catch(err => console.warn('Watchlist alert check background sync error:', err));
     } else {
-        showToast('Watchlist Dip Alerts disabled.', 'info');
+        showToast('⏸️ Watchlist WhatsApp Sentinel paused for this watchlist.', 'info');
     }
 }
+
+window.toggleWatchlistDipAlerts = toggleWatchlistDipAlerts;
+
+async function testWatchlistWhatsAppAlert() {
+    if (!activeWatchlistId) {
+        showToast('Please select a watchlist first.', 'warning');
+        return;
+    }
+
+    const testBtn = document.getElementById('watchlist-test-alert-btn');
+    const originalText = testBtn ? testBtn.innerHTML : '';
+    if (testBtn) {
+        testBtn.disabled = true;
+        testBtn.innerHTML = '⏳ Sending to WhatsApp...';
+    }
+
+    try {
+        const resp = await fetch(`/api/watchlists/${activeWatchlistId}/dip-alerts/test`, {
+            method: 'POST'
+        });
+        const data = await resp.json();
+        if (data && data.status === 'success') {
+            showToast(`🚀 WhatsApp Alert dispatched successfully! Check your phone for ${data.sample_stock || 'watchlist stocks'}.`, 'success');
+        } else {
+            showToast(`⚠️ WhatsApp dispatch note: ${data.message || 'Check WhatsApp credentials'}`, 'warning');
+        }
+    } catch (err) {
+        console.error('Failed to trigger test WhatsApp alert:', err);
+        showToast(`❌ Test alert failed: ${err.message}`, 'error');
+    } finally {
+        if (testBtn) {
+            testBtn.disabled = false;
+            testBtn.innerHTML = originalText || '🧪 Test WhatsApp';
+        }
+    }
+}
+
+window.testWatchlistWhatsAppAlert = testWatchlistWhatsAppAlert;
 
 async function addCurrentStockToWatchlist() {
     if (!activeStockProfile) {
@@ -18271,6 +18343,7 @@ function renderWatchlistItems() {
     const duplicateBtn = document.getElementById('duplicate-watchlist-btn');
     const exportCsvBtn = document.getElementById('watchlist-export-csv-btn');
     const alertToggleBtn = document.getElementById('watchlist-alert-toggle-btn');
+    const testAlertBtn = document.getElementById('watchlist-test-alert-btn');
 
     if (activeWatchlistId === null || watchlistsList.length === 0) {
         if (titleEl) titleEl.innerText = "SELECT A WATCHLIST";
@@ -18279,6 +18352,7 @@ function renderWatchlistItems() {
         if (duplicateBtn) duplicateBtn.style.display = 'none';
         if (exportCsvBtn) exportCsvBtn.style.display = 'none';
         if (alertToggleBtn) alertToggleBtn.style.display = 'none';
+        if (testAlertBtn) testAlertBtn.style.display = 'none';
         if (analyzeWatchlistBtn) analyzeWatchlistBtn.style.display = 'none';
         if (watchlistRefreshBtn) watchlistRefreshBtn.style.display = 'none';
         if (inlineAddContainer) inlineAddContainer.style.display = 'none';
@@ -18296,6 +18370,7 @@ function renderWatchlistItems() {
         if (duplicateBtn) duplicateBtn.style.display = 'none';
         if (exportCsvBtn) exportCsvBtn.style.display = 'none';
         if (alertToggleBtn) alertToggleBtn.style.display = 'none';
+        if (testAlertBtn) testAlertBtn.style.display = 'none';
         if (analyzeWatchlistBtn) analyzeWatchlistBtn.style.display = 'none';
         if (watchlistRefreshBtn) watchlistRefreshBtn.style.display = 'none';
         if (inlineAddContainer) inlineAddContainer.style.display = 'none';
@@ -18312,7 +18387,8 @@ function renderWatchlistItems() {
     if (renameBtn) renameBtn.style.display = 'inline-block';
     if (duplicateBtn) duplicateBtn.style.display = 'inline-block';
     if (exportCsvBtn) exportCsvBtn.style.display = 'inline-block';
-    if (alertToggleBtn) alertToggleBtn.style.display = 'inline-block';
+    if (alertToggleBtn) alertToggleBtn.style.display = 'inline-flex';
+    if (testAlertBtn) testAlertBtn.style.display = (activeWatch.items && activeWatch.items.length > 0) ? 'inline-flex' : 'none';
     syncWatchlistDipAlertsState();
     cancelWatchlistRename();
 
@@ -18322,6 +18398,7 @@ function renderWatchlistItems() {
         tbody.innerHTML = '<tr><td colspan="8" class="center-text text-muted">This watchlist is empty. Load a stock inside the Analyzer and add it.</td></tr>';
         if (analyzeWatchlistBtn) analyzeWatchlistBtn.style.display = 'none';
         if (watchlistRefreshBtn) watchlistRefreshBtn.style.display = 'none';
+        if (testAlertBtn) testAlertBtn.style.display = 'none';
         if (resultsContainer) resultsContainer.style.display = 'none';
         if (pagContainer) pagContainer.style.display = 'none';
         return;
@@ -18721,7 +18798,7 @@ function renderWatchlistItems() {
             <button class="watchlist-filter-chip ${activeF === 'all' ? 'active' : ''}" data-filter="all">All Stocks</button>
             <button class="watchlist-filter-chip ${activeF === 'gainers' ? 'active' : ''}" data-filter="gainers">🔥 Top Gainers</button>
             <button class="watchlist-filter-chip ${activeF === 'green' ? 'active' : ''}" data-filter="green">🟢 3-Dots Green</button>
-            <button class="watchlist-filter-chip ${activeF === 'dip' ? 'active' : ''}" data-filter="dip">⚠️ Dip Alerts</button>
+            <button class="watchlist-filter-chip ${activeF === 'dip' ? 'active' : ''}" data-filter="dip">📉 Dipping Stocks</button>
         `;
         chipsContainer.querySelectorAll('.watchlist-filter-chip').forEach(chip => {
             chip.onclick = () => {
