@@ -570,7 +570,9 @@ def generate_terminal_shortcuts_guide_pdf(output_path: str = "data/reports/ApexQ
         ("<b>ALERTS</b>", "Hub of all active price and stop-loss sentinels with live price distance", "<code>ALERTS</code>"),
         ("<b>WL</b> or <b>WATCHLIST</b>", "Primary Watchlist quotes, day change % and 52W high distance", "<code>WL</code>"),
         ("<b>WL AUDIT</b>", "Full algorithmic audit of primary watchlist for valuation &amp; momentum risk", "<code>WL AUDIT</code>"),
-        ("<b>PULSE</b> / <b>NEWS</b> / <b>PREMARKET</b>", "Nifty 50, Sensex, VIX, Breadth, Stock/Macro News feeds &amp; Pre-Market brief", "<code>PULSE</code> or <code>NEWS</code>")
+        ("<b>PULSE</b> / <b>NEWS</b> / <b>PREMARKET</b>", "Nifty 50, Sensex, VIX, Breadth, Stock/Macro News feeds &amp; Pre-Market brief", "<code>PULSE</code> or <code>NEWS</code>"),
+        ("<b>IPO</b> / <b>GMP</b>", "Active IPO pipeline, live Grey Market Premium %, subscription &amp; AI verdict", "<code>IPO</code> or <code>GMP</code>"),
+        ("<b>IPO &lt;NAME&gt;</b>", "Detailed single IPO dossier with dates, price band, lot size &amp; expected listing", "<code>IPO SWIGGY</code>")
     ]
     story.append(make_table(rows_alerts))
 

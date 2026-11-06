@@ -520,7 +520,7 @@ def handle_guide_menu(recipient: Optional[str] = None) -> Dict[str, Any]:
         "• `SCREEN MID GROWTH` ➔ Midcap High Momentum Screen\n"
         "• `52W HIGH` or `GAP UP` ➔ Real-time Technical Scans\n"
         "• `BUFFETT` or `ZERO DEBT` ➔ Quality Fundamental Vault\n"
-        "• `PULSE` or `NEWS` ➔ Macro Indices & Live Feeds\n"
+        "• `PULSE`, `NEWS` or `IPO` ➔ Macro Indices, News & Live GMP\n"
         "• `PF` or `HOLDINGS` ➔ Live Portfolio Valuation & P&L\n"
         "• `BUY RELIANCE 10 2450` ➔ 1-Tap Trade Logging\n\n"
         "💡 *Tap below to browse syntax by module or download the PDF guide:*"
@@ -717,6 +717,8 @@ def handle_guide_module(module_key: str, recipient: Optional[str] = None) -> Dic
             "───────────────────────────\n"
             "• `PULSE` ➔ Nifty 50, Sensex, VIX, Breadth & Advance/Decline\n"
             "• `NEWS` or `NEWS <SYM>` ➔ Curated RSS news with sentiment\n"
+            "• `IPO` or `GMP` ➔ Live IPO pipeline & Grey Market Premium (GMP %)\n"
+            "• `IPO <NAME>` (e.g. `IPO SWIGGY`) ➔ Detailed prospectus, subscription & AI verdict\n"
             "• `PREMARKET` or `RADAR` ➔ Morning tactical setup & pivotal levels\n"
             "• `SURGE` ➔ Intraday volatility & momentum surge radar\n"
             "• `MOVERS`, `GAINERS`, `LOSERS` ➔ Top cap-wise leaders/laggards\n"
@@ -807,8 +809,8 @@ def handle_main_menu(recipient: Optional[str] = None) -> Dict[str, Any]:
                 },
                 {
                     "id": "nav:hub:pulse_news",
-                    "title": "🌐 Market Pulse & News",
-                    "description": "Nifty 50, Sensex, VIX, Breadth & Live Feeds"
+                    "title": "🌐 Pulse, News & IPOs",
+                    "description": "Nifty 50, VIX, Feeds & IPO Tracker (GMP)"
                 }
             ]
         },
@@ -886,22 +888,495 @@ def handle_movers_sector_hub(recipient: Optional[str] = None) -> Dict[str, Any]:
 
 def handle_pulse_news_hub(recipient: Optional[str] = None) -> Dict[str, Any]:
     """
-    Renders Level 1 Hub for Market Pulse & Financial News.
-    Prompts the user to select between Live Macro Benchmarks or Financial News & Catalyst Dossier.
+    Renders Level 1 Hub for Market Pulse, Financial News & IPO Radar.
+    Prompts user to select between Live Indices, IPO Radar, or Financial News.
     """
     body = (
-        "🌐 *MARKET PULSE & NEWS HUB*\n"
+        "🌐 *MARKET PULSE, NEWS & IPO RADAR HUB*\n"
         "───────────────────────────\n"
-        "Please select which live market intelligence feed you wish to navigate to:\n\n"
-        "• *Market Pulse:* Live benchmark indices (Nifty 50, Sensex, Bank Nifty), India VIX, Market Breadth & Global Cues.\n\n"
-        "• *News & Dossier:* Macro financial headlines and Google AI Portfolio Catalyst Digest."
+        "Select a market intelligence module below:\n\n"
+        "• *Market Pulse:* Live benchmark indices (Nifty 50, Sensex, Bank Nifty), India VIX, Breadth & Global Cues.\n\n"
+        "• *IPO Radar & GMP:* Ongoing, upcoming pipeline & recent listings with live Grey Market Premium (GMP %) & AI verdicts.\n\n"
+        "• *News & Dossier:* Macro financial headlines and Google AI Portfolio Catalyst Digest.\n\n"
+        "⚡ *Direct Shortcuts:*\n"
+        "• Text `PULSE` or `NEWS` for instant macro feeds\n"
+        "• Text `IPO` or `GMP` for live IPO tracking & Grey Market Premium"
     )
     buttons = [
         ("run:pulse:live", "🌐 Market Pulse"),
-        ("nav:sub:news", "📰 News & Dossier"),
-        ("nav:menu:main", "🏠 Main Menu")
+        ("nav:sub:ipo", "🚀 IPO Radar"),
+        ("nav:sub:news", "📰 News & Dossier")
     ]
     return send_whatsapp_interactive_buttons(body, buttons=buttons, recipient=recipient)
+
+# ==============================================================================
+# NAVIGATION MODULE: IPO RADAR, LIVE GMP TRACKER & LISTING INTELLIGENCE
+# ==============================================================================
+
+def get_safe_ipo_dataset() -> Dict[str, Any]:
+    """Retrieves IPO dataset from local cache or engine with robust fallbacks."""
+    try:
+        from backend.ipo_engine import load_processed_ipo_cache, get_ipo_tracker_dataset
+        cached = load_processed_ipo_cache(max_age_hours=999999.0)
+        if cached and (cached.get("ipos") or cached.get("upcoming_pipeline")):
+            return cached
+        return get_ipo_tracker_dataset(force_refresh=False)
+    except Exception as e:
+        logger.warning(f"[IPO Radar] Cache read warning: {e}")
+        try:
+            from backend.ipo_engine import get_ipo_tracker_dataset
+            return get_ipo_tracker_dataset(force_refresh=False)
+        except Exception as e2:
+            logger.error(f"[IPO Radar] Engine fallback failed: {e2}")
+            return {"ipos": [], "upcoming_pipeline": [], "summary": {}}
+
+
+def handle_ipo_menu(recipient: Optional[str] = None) -> Dict[str, Any]:
+    """
+    Renders Level 2 Sub-Menu: IPO Radar, Live GMP & AI Listing Intelligence.
+    Interactive list across Bidding Pipeline, Top GMP Leaders, and AI Setups.
+    """
+    sections = [
+        {
+            "title": "Bidding Pipeline & Dates",
+            "rows": [
+                {
+                    "id": "run:ipo:active",
+                    "title": "🟢 Bidding Open IPOs",
+                    "description": "Live ongoing IPOs accepting bids right now"
+                },
+                {
+                    "id": "run:ipo:upcoming",
+                    "title": "⏳ Upcoming Pipeline",
+                    "description": "Next 30-day pipeline with expected issue dates"
+                },
+                {
+                    "id": "run:ipo:recent",
+                    "title": "💎 Recent Listings",
+                    "description": "Last 12-month listings & returns from issue price"
+                }
+            ]
+        },
+        {
+            "title": "GMP & Quantitative AI",
+            "rows": [
+                {
+                    "id": "run:ipo:gmp",
+                    "title": "🔥 Top GMP Leaders",
+                    "description": "Ranked by highest Grey Market Premium % today"
+                },
+                {
+                    "id": "run:ipo:ai_scores",
+                    "title": "⭐ AI Opportunity Setups",
+                    "description": "Quantitative Buy Scores (0-100) on recent IPOs"
+                },
+                {
+                    "id": "run:ipo:digest",
+                    "title": "📊 Full Market Digest",
+                    "description": "Comprehensive 1-screen institutional IPO brief"
+                }
+            ]
+        }
+    ]
+
+    body = (
+        "🚀 *IPO RADAR & LISTING INTELLIGENCE*\n"
+        "Grey Market Premium (GMP), Subscription Tracking & AI Setups.\n\n"
+        "⚡ *Direct Shortcuts:*\n"
+        "• Text `GMP` for highest expected listing gains\n"
+        "• Text `IPO <NAME>` (e.g. `IPO SWIGGY`, `IPO HYUNDAI`) for deep dive\n"
+        "• Text `IPO ACTIVE` or `IPO UPCOMING`\n\n"
+        "Select an IPO category below or tap a quick scan:"
+    )
+
+    send_whatsapp_interactive_list(
+        body_text=body,
+        button_text="🚀 Select IPO Category",
+        sections=sections,
+        recipient=recipient,
+        header_text="IPO RADAR & GMP",
+        footer_text="ApexQuant Primary Market Engine"
+    )
+
+    return send_whatsapp_interactive_buttons(
+        "⚡ *Instant 1-Tap IPO Actions*:",
+        buttons=[
+            ("run:ipo:gmp", "🔥 Top GMP IPOs"),
+            ("run:ipo:recent", "💎 Recent Listings"),
+            ("nav:menu:main", "🏠 Main Menu")
+        ],
+        recipient=recipient
+    )
+
+
+def handle_run_ipo_pipeline(category: str, recipient: Optional[str] = None) -> Dict[str, Any]:
+    """Executes an IPO radar view by category: gmp, active, upcoming, recent, ai_scores, digest."""
+    data = get_safe_ipo_dataset()
+    dataset = data.get("ipos", [])
+    pipeline = data.get("upcoming_pipeline", [])
+
+    cat = category.lower().strip()
+
+    if cat == "digest":
+        from backend.ipo_engine import generate_ipo_whatsapp_summary
+        msg = generate_ipo_whatsapp_summary(dataset, pipeline)
+        buttons = [
+            ("run:ipo:gmp", "🔥 Top GMP IPOs"),
+            ("nav:sub:ipo", "🚀 IPO Hub"),
+            ("nav:menu:main", "🏠 Main Menu")
+        ]
+        return send_whatsapp_interactive_buttons(msg, buttons=buttons, recipient=recipient)
+
+    if cat == "gmp":
+        gmp_list = [p for p in pipeline if (p.get("gmp_pct") or 0) > 0 or (p.get("gmp_rs") or 0) > 0]
+        gmp_list.sort(key=lambda x: (float(x.get("gmp_pct", 0) or 0), float(x.get("gmp_rs", 0) or 0)), reverse=True)
+
+        if not gmp_list:
+            recent_gainers = sorted(dataset, key=lambda x: float(x.get("listing_gain_pct", 0) or 0), reverse=True)[:4]
+            cards = []
+            for idx, r in enumerate(recent_gainers, 1):
+                sym = r.get("symbol", "IPO")
+                name = r.get("company_name", sym)[:24]
+                issue_px = r.get("issue_price", 0)
+                list_px = r.get("listing_price", 0)
+                cur_px = r.get("current_price", list_px)
+                gain = r.get("listing_gain_pct", 0.0)
+                cur_gain = r.get("current_gain_from_issue_pct", 0.0)
+                cards.append(
+                    f"{idx}. ⭐ *{sym}* — {name}\n"
+                    f"   └ Issue: ₹{issue_px:,.0f} | Listed: ₹{list_px:,.1f} (*+{gain:.1f}%*)\n"
+                    f"   └ CMP: ₹{cur_px:,.1f} (*+{cur_gain:.1f}%* vs Issue)"
+                )
+            body = (
+                "🔥 *IPO RADAR • TOP LISTING GAIN LEADERS*\n"
+                "*(No unlisted pipeline IPOs currently reporting active GMP)*\n"
+                "━━━━━━━━━━━━━━━━━━━━\n"
+                + "\n\n".join(cards) + "\n"
+                "━━━━━━━━━━━━━━━━━━━━\n"
+                "💡 Text `IPO <NAME>` for detailed financials or AI verdict:"
+            )
+            first_sym = recent_gainers[0].get("symbol", "") if recent_gainers else ""
+            buttons = [
+                (f"act:ipo:{first_sym}", f"📋 {first_sym[:9]} Dossier") if first_sym else ("nav:sub:ipo", "🚀 IPO Hub"),
+                ("run:ipo:recent", "💎 Recent Listings"),
+                ("nav:sub:ipo", "🚀 IPO Hub")
+            ]
+            return send_whatsapp_interactive_buttons(body, buttons=buttons, recipient=recipient)
+
+        cards = []
+        for idx, item in enumerate(gmp_list[:4], 1):
+            name = item.get("company_name", "Upcoming IPO")[:24]
+            sym = item.get("symbol", "IPO")
+            price_band = item.get("price_band_str", "TBD")
+            gmp_rs = float(item.get("gmp_rs", 0) or 0)
+            gmp_pct = float(item.get("gmp_pct", 0) or 0)
+            sub = item.get("subscription_times", 0)
+            status = item.get("status_badge") or item.get("status", "Upcoming")
+            sub_str = f" • Sub: *{sub:.2f}x*" if sub and float(sub) > 0 else ""
+
+            cards.append(
+                f"{idx}. 🥇 *{name}* ({sym})\n"
+                f"   └ Status: {status}{sub_str}\n"
+                f"   └ Band: {price_band} | GMP: *+₹{int(gmp_rs)} (+{gmp_pct:.1f}%)* 🟢"
+            )
+
+        top_sym = gmp_list[0].get("symbol", "")
+        body = (
+            "🔥 *IPO RADAR • TOP GREY MARKET PREMIUM (GMP)*\n"
+            "Ranked by estimated listing upside demand:\n"
+            "━━━━━━━━━━━━━━━━━━━━\n"
+            + "\n\n".join(cards) + "\n"
+            "━━━━━━━━━━━━━━━━━━━━\n"
+            f"💡 Tap below or text `IPO {top_sym}` for prospectus insights:"
+        )
+        buttons = [
+            (f"act:ipo:{top_sym}", f"📋 {top_sym[:9]} Dossier"),
+            ("run:ipo:active", "🟢 Active Bids"),
+            ("nav:sub:ipo", "🚀 IPO Hub")
+        ]
+        return send_whatsapp_interactive_buttons(body, buttons=buttons, recipient=recipient)
+
+    elif cat == "active":
+        active_list = [p for p in pipeline if any(s in (p.get("status") or "").lower() for s in ["ongoing", "bidding open"])]
+        if not active_list:
+            body = (
+                "🟢 *ACTIVE IPOs • BIDDING OPEN TODAY*\n"
+                "━━━━━━━━━━━━━━━━━━━━\n"
+                "ℹ️ No mainboard IPOs are currently in their active 3-day bidding window today.\n\n"
+                "💡 Tap *Upcoming Pipeline* to view scheduled IPOs opening soon or check *Recent Listings*:"
+            )
+            buttons = [
+                ("run:ipo:upcoming", "⏳ Pipeline"),
+                ("run:ipo:recent", "💎 Recent Listings"),
+                ("nav:sub:ipo", "🚀 IPO Hub")
+            ]
+            return send_whatsapp_interactive_buttons(body, buttons=buttons, recipient=recipient)
+
+        cards = []
+        for idx, item in enumerate(active_list[:4], 1):
+            name = item.get("company_name", "IPO")[:24]
+            sym = item.get("symbol", "IPO")
+            price_band = item.get("price_band_str", "TBD")
+            gmp_pct = float(item.get("gmp_pct", 0) or 0)
+            gmp_rs = float(item.get("gmp_rs", 0) or 0)
+            gmp_str = f"+₹{int(gmp_rs)} (+{gmp_pct:.1f}%)" if gmp_pct > 0 else "N/A"
+            sub = item.get("subscription_times", 0)
+            sub_str = f"{sub:.2f}x" if sub and float(sub) > 0 else "Day 1"
+            close_d = item.get("close_date", "")
+
+            cards.append(
+                f"{idx}. 🟢 *{name}* ({sym})\n"
+                f"   └ Band: {price_band} | Lot: {item.get('lot_size', 'TBD')}\n"
+                f"   └ GMP: *{gmp_str}* | Subscribed: *{sub_str}*\n"
+                f"   └ Closing Date: *{close_d}*"
+            )
+
+        top_sym = active_list[0].get("symbol", "")
+        body = (
+            "🟢 *ACTIVE IPOs • ACCEPTING BIDS TODAY*\n"
+            "━━━━━━━━━━━━━━━━━━━━\n"
+            + "\n\n".join(cards) + "\n"
+            "━━━━━━━━━━━━━━━━━━━━\n"
+            f"💡 Tap `{top_sym[:9]} Dossier` or return to IPO Hub:"
+        )
+        buttons = [
+            (f"act:ipo:{top_sym}", f"📋 {top_sym[:9]} Dossier"),
+            ("run:ipo:gmp", "🔥 Top GMPs"),
+            ("nav:sub:ipo", "🚀 IPO Hub")
+        ]
+        return send_whatsapp_interactive_buttons(body, buttons=buttons, recipient=recipient)
+
+    elif cat == "upcoming":
+        upcoming_list = [p for p in pipeline if "closed" not in (p.get("status") or "").lower() and "listed" not in (p.get("status") or "").lower()]
+        if not upcoming_list:
+            upcoming_list = pipeline[:4]
+
+        if not upcoming_list:
+            body = (
+                "⏳ *UPCOMING IPO PIPELINE (NEXT 30 DAYS)*\n"
+                "━━━━━━━━━━━━━━━━━━━━\n"
+                "ℹ️ No new DRHP / RHP filings currently scheduled for the next 30 days.\n"
+                "Check back after the next SEBI regulatory update."
+            )
+            buttons = [
+                ("run:ipo:recent", "💎 Recent Listings"),
+                ("nav:sub:ipo", "🚀 IPO Hub"),
+                ("nav:menu:main", "🏠 Main Menu")
+            ]
+            return send_whatsapp_interactive_buttons(body, buttons=buttons, recipient=recipient)
+
+        cards = []
+        for idx, item in enumerate(upcoming_list[:4], 1):
+            name = item.get("company_name", "IPO")[:24]
+            sym = item.get("symbol", "IPO")
+            price_band = item.get("price_band_str", "TBD")
+            issue_sz = item.get("issue_size_cr", 0)
+            sz_str = f"₹{int(issue_sz):,} Cr" if issue_sz > 0 else "TBD"
+            open_d = item.get("open_date", "TBD")
+            gmp_pct = float(item.get("gmp_pct", 0) or 0)
+            gmp_str = f"+{gmp_pct:.1f}%" if gmp_pct > 0 else "TBD"
+
+            cards.append(
+                f"{idx}. ⏳ *{name}* ({sym})\n"
+                f"   └ Opens: *{open_d}* | Issue Size: *{sz_str}*\n"
+                f"   └ Band: {price_band} | Est. GMP: *{gmp_str}*"
+            )
+
+        top_sym = upcoming_list[0].get("symbol", "")
+        body = (
+            "⏳ *UPCOMING IPO PIPELINE (NEXT 30 DAYS)*\n"
+            "━━━━━━━━━━━━━━━━━━━━\n"
+            + "\n\n".join(cards) + "\n"
+            "━━━━━━━━━━━━━━━━━━━━\n"
+            f"💡 Tap `{top_sym[:9]} Dossier` or check GMP leaders:"
+        )
+        buttons = [
+            (f"act:ipo:{top_sym}", f"📋 {top_sym[:9]} Dossier"),
+            ("run:ipo:gmp", "🔥 Top GMPs"),
+            ("nav:sub:ipo", "🚀 IPO Hub")
+        ]
+        return send_whatsapp_interactive_buttons(body, buttons=buttons, recipient=recipient)
+
+    elif cat == "recent":
+        recent_sorted = sorted(dataset, key=lambda x: str(x.get("listing_date") or ""), reverse=True)[:5]
+        cards = []
+        for idx, r in enumerate(recent_sorted, 1):
+            sym = r.get("symbol", "IPO")
+            name = r.get("company_name", sym)[:24]
+            issue_px = r.get("issue_price", 0)
+            cur_px = r.get("current_price", 0)
+            gain = r.get("current_gain_from_issue_pct", 0.0)
+            gain_sign = "+" if gain >= 0 else ""
+            list_date = r.get("listing_date", "")
+            score = r.get("opportunity_score", 0)
+
+            cards.append(
+                f"{idx}. 💎 *{sym}* — {name}\n"
+                f"   └ Listed: {list_date} | Score: *{score}/100*\n"
+                f"   └ Issue: ₹{issue_px:,.0f} ➔ CMP: ₹{cur_px:,.1f} (*{gain_sign}{gain:.1f}%*)"
+            )
+
+        top_sym = recent_sorted[0].get("symbol", "") if recent_sorted else ""
+        body = (
+            "💎 *RECENT MAINBOARD IPO LISTINGS (12M)*\n"
+            "━━━━━━━━━━━━━━━━━━━━\n"
+            + "\n\n".join(cards) + "\n"
+            "━━━━━━━━━━━━━━━━━━━━\n"
+            f"💡 Tap `{top_sym[:9]} Chart` or view Technical Setups:"
+        )
+        buttons = [
+            (f"act:chart:{top_sym}", f"📈 {top_sym[:9]} Chart") if top_sym else ("nav:sub:ipo", "🚀 IPO Hub"),
+            ("run:ipo:ai_scores", "⭐ AI Setups"),
+            ("nav:sub:ipo", "🚀 IPO Hub")
+        ]
+        return send_whatsapp_interactive_buttons(body, buttons=buttons, recipient=recipient)
+
+    else:  # ai_scores
+        high_scores = [item for item in dataset if item.get("opportunity_score", 0) >= 55]
+        high_scores.sort(key=lambda x: (x.get("opportunity_score", 0), x.get("current_gain_from_issue_pct", 0)), reverse=True)
+        if not high_scores:
+            high_scores = dataset[:4]
+
+        cards = []
+        for idx, item in enumerate(high_scores[:4], 1):
+            sym = item.get("symbol", "IPO")
+            name = item.get("company_name", sym)[:24]
+            score = item.get("opportunity_score", 0)
+            setup = item.get("setup_type", "Consolidating")
+            cur_px = item.get("current_price", 0)
+            gain = item.get("current_gain_from_issue_pct", 0.0)
+            gain_sign = "+" if gain >= 0 else ""
+            reasons = item.get("key_reasons", [])
+            lead_reason = reasons[0] if reasons else "Constructive base formation"
+
+            cards.append(
+                f"{idx}. ⭐ *{sym}* — Score: *{score}/100* ({setup})\n"
+                f"   └ CMP: ₹{cur_px:,.1f} (*{gain_sign}{gain:.1f}%* vs Issue)\n"
+                f"   └ Catalyst: {lead_reason[:38]}"
+            )
+
+        top_sym = high_scores[0].get("symbol", "") if high_scores else ""
+        body = (
+            "⭐ *IPO RADAR • HIGH QUANTITATIVE BUY SETUPS*\n"
+            "Equities with institutional accumulation & base breakout score ≥ 55:\n"
+            "━━━━━━━━━━━━━━━━━━━━\n"
+            + "\n\n".join(cards) + "\n"
+            "━━━━━━━━━━━━━━━━━━━━\n"
+            f"💡 Tap `{top_sym[:9]} Chart` or pull full Stock Dossier:"
+        )
+        buttons = [
+            (f"act:chart:{top_sym}", f"📈 {top_sym[:9]} Chart") if top_sym else ("nav:sub:ipo", "🚀 IPO Hub"),
+            (f"act:dossier:{top_sym}", f"🏛️ {top_sym[:9]} Dossier") if top_sym else ("run:ipo:gmp", "🔥 Top GMPs"),
+            ("nav:sub:ipo", "🚀 IPO Hub")
+        ]
+        return send_whatsapp_interactive_buttons(body, buttons=buttons, recipient=recipient)
+
+
+def handle_ipo_detail_query(symbol_or_name: str, recipient: Optional[str] = None) -> Dict[str, Any]:
+    """Retrieves deep-dive intelligence, GMP, and AI prospectus insights for a specific IPO."""
+    sym_query = symbol_or_name.strip().upper().replace(".NS", "").replace(".BO", "")
+    data = get_safe_ipo_dataset()
+    dataset = data.get("ipos", [])
+    pipeline = data.get("upcoming_pipeline", [])
+
+    match_pipeline = next((item for item in pipeline if sym_query in (item.get("symbol") or "").upper() or sym_query in (item.get("company_name") or "").upper()), None)
+    match_listed = next((item for item in dataset if sym_query in (item.get("symbol") or "").upper() or sym_query in (item.get("company_name") or "").upper()), None)
+
+    if match_pipeline:
+        item = match_pipeline
+        name = item.get("company_name", sym_query)
+        sym = item.get("symbol", sym_query)
+        sector = item.get("sector", "General Enterprise")
+        price_band = item.get("price_band_str", "TBD")
+        lot_sz = item.get("lot_size", "TBD")
+        issue_sz = item.get("issue_size_cr", 0)
+        sz_str = f"₹{int(issue_sz):,} Cr" if issue_sz > 0 else "TBD"
+        gmp_rs = float(item.get("gmp_rs", 0) or 0)
+        gmp_pct = float(item.get("gmp_pct", 0) or 0)
+        sub = item.get("subscription_times", 0)
+        status = item.get("status_badge") or item.get("status", "Upcoming")
+        open_d = item.get("open_date", "TBD")
+        close_d = item.get("close_date", "TBD")
+        list_d = item.get("listing_date", "TBD")
+
+        min_invest = f"₹{int(item.get('min_price', 0) * lot_sz):,}" if lot_sz and isinstance(lot_sz, int) and item.get('min_price') else "TBD"
+        gmp_badge = f"+₹{int(gmp_rs)} (+{gmp_pct:.1f}%) 🟢" if gmp_pct > 0 else "TBD / Inactive"
+
+        body = (
+            f"🚀 *IPO DOSSIER: {name.upper()}*\n"
+            f"━━━━━━━━━━━━━━━━━━━━\n"
+            f"📌 *Status:* {status}\n"
+            f"🏢 *Sector:* {sector} • {item.get('segment', 'Mainboard')}\n"
+            f"💰 *Price Band:* {price_band} | Lot: {lot_sz} ({min_invest})\n"
+            f"📦 *Issue Size:* {sz_str}\n"
+            f"📅 *Dates:* Open {open_d} • Closes {close_d} • Listing {list_d}\n\n"
+            f"📊 *GREY MARKET PREMIUM (GMP):*\n"
+            f"• Current Estimated Premium: *{gmp_badge}*\n\n"
+            f"📈 *SUBSCRIPTION DEMAND:*\n"
+            f"• Total Demand Book: *{sub:.2f}x* oversubscribed\n\n"
+            f"💡 *Lead Registrar:* {item.get('registrar', 'LinkIntime / KFintech')}\n"
+            "━━━━━━━━━━━━━━━━━━━━\n"
+            "Tap below for other GMP leaders or return to IPO Hub:"
+        )
+        buttons = [
+            ("run:ipo:gmp", "🔥 Top GMP IPOs"),
+            ("run:ipo:upcoming", "⏳ Pipeline"),
+            ("nav:sub:ipo", "🚀 IPO Hub")
+        ]
+        return send_whatsapp_interactive_buttons(body, buttons=buttons, recipient=recipient)
+
+    elif match_listed:
+        item = match_listed
+        sym = item.get("symbol", sym_query)
+        name = item.get("company_name", sym)
+        sector = item.get("sector", "General Enterprise")
+        issue_px = item.get("issue_price", 0.0)
+        list_px = item.get("listing_price", 0.0)
+        cur_px = item.get("current_price", list_px)
+        gain_list = item.get("listing_gain_pct", 0.0)
+        gain_cur = item.get("current_gain_from_issue_pct", 0.0)
+        score = item.get("opportunity_score", 0)
+        setup = item.get("setup_type", "Consolidating")
+        sub = item.get("subscription_times", 0.0)
+        list_d = item.get("listing_date", "")
+
+        reasons_txt = "\n".join([f"• {r}" for r in item.get("key_reasons", [])[:2]]) if item.get("key_reasons") else "• Post-listing base consolidation"
+
+        body = (
+            f"🚀 *IPO DOSSIER: {name.upper()} ({sym})*\n"
+            f"━━━━━━━━━━━━━━━━━━━━\n"
+            f"📌 *Status:* Listed on {list_d}\n"
+            f"🏢 *Sector:* {sector}\n"
+            f"💰 *Issue Price:* ₹{issue_px:,.1f} ➔ Listed: ₹{list_px:,.1f} (*+{gain_list:.1f}%*)\n"
+            f"🟢 *Current Market Price (CMP):* ₹{cur_px:,.2f} (*{'+' if gain_cur >= 0 else ''}{gain_cur:.1f}%* vs Issue)\n"
+            f"📦 *Subscription Demand:* {sub:.1f}x\n\n"
+            f"⭐ *QUANTITATIVE BUY SCORE:* *{score}/100*\n"
+            f"🎯 *Setup Model:* {setup}\n"
+            f"{reasons_txt}\n"
+            "━━━━━━━━━━━━━━━━━━━━\n"
+            f"Tap `{sym[:9]} Chart` or pull full Stock Dossier below:"
+        )
+        buttons = [
+            (f"act:chart:{sym}", f"📈 {sym[:9]} Chart"),
+            (f"act:dossier:{sym}", f"🏛️ {sym[:9]} Dossier"),
+            ("nav:sub:ipo", "🚀 IPO Hub")
+        ]
+        return send_whatsapp_interactive_buttons(body, buttons=buttons, recipient=recipient)
+
+    else:
+        body = (
+            f"🚀 *IPO RADAR • SEARCH RESULT*\n"
+            f"━━━━━━━━━━━━━━━━━━━━\n"
+            f"⚠️ Could not find active IPO or recent listing matching `'{symbol_or_name}'`.\n\n"
+            "💡 *Tip:* Try texting `GMP` to see active pipeline or `IPO` to view all recent listings."
+        )
+        buttons = [
+            ("run:ipo:gmp", "🔥 Top GMP IPOs"),
+            ("run:ipo:recent", "💎 Recent Listings"),
+            ("nav:sub:ipo", "🚀 IPO Hub")
+        ]
+        return send_whatsapp_interactive_buttons(body, buttons=buttons, recipient=recipient)
+
 
 
 def handle_portfolio_watchlists_hub(recipient: Optional[str] = None) -> Dict[str, Any]:
@@ -6890,7 +7365,33 @@ def dispatch_incoming_whatsapp_message(text_body: str, sender: Optional[str] = N
     elif upper in ["FIB 500", "FIB 50", "FIB 50%", "FIB RETRACE"]:
         return handle_run_scan("fib_500_support", recipient=sender)
 
+    # IPO Radar Direct Shorthand & Quick Triggers
+    if upper in ["IPO", "IPOS", "IPO RADAR", "NEW IPO", "NEW IPOS", "UPCOMING IPO", "UPCOMING IPOS"]:
+        return handle_ipo_menu(recipient=sender)
+    elif upper in ["GMP", "IPO GMP", "TOP GMP", "GREY MARKET PREMIUM"]:
+        return handle_run_ipo_pipeline("gmp", recipient=sender)
+    elif upper in ["IPO ACTIVE", "ACTIVE IPO", "ACTIVE IPOS", "BIDDING OPEN"]:
+        return handle_run_ipo_pipeline("active", recipient=sender)
+    elif upper in ["IPO UPCOMING", "UPCOMING PIPELINE", "IPO PIPELINE"]:
+        return handle_run_ipo_pipeline("upcoming", recipient=sender)
+    elif upper in ["IPO RECENT", "RECENT IPO", "RECENT IPOS", "LISTED IPOS"]:
+        return handle_run_ipo_pipeline("recent", recipient=sender)
+    elif upper in ["IPO DIGEST", "IPO SUMMARY", "IPO REPORT"]:
+        return handle_run_ipo_pipeline("digest", recipient=sender)
+    elif upper.startswith("IPO ") and len(cleaned.split()) >= 2:
+        ipo_target = re.sub(r"^IPO\s+", "", cleaned, flags=re.IGNORECASE).strip()
+        if ipo_target:
+            return handle_ipo_detail_query(ipo_target, recipient=sender)
+
     # 2. Structured Navigation Payloads
+    if cleaned in ["nav:sub:ipo", "view:ipo:menu", "view:ipo"]:
+        return handle_ipo_menu(recipient=sender)
+    elif cleaned.startswith("run:ipo:"):
+        ipo_cat = cleaned.replace("run:ipo:", "").strip()
+        return handle_run_ipo_pipeline(ipo_cat, recipient=sender)
+    elif cleaned.startswith("act:ipo:"):
+        ipo_target = cleaned.replace("act:ipo:", "").strip()
+        return handle_ipo_detail_query(ipo_target, recipient=sender)
     if cleaned in ["nav:sub:guide", "view:guide:menu", "view:guide"]:
         return handle_guide_menu(recipient=sender)
     elif cleaned == "act:guide:pdf":
@@ -6947,7 +7448,7 @@ def dispatch_incoming_whatsapp_message(text_body: str, sender: Optional[str] = N
     # Dual-Purpose Navigation Hubs (Clubbed Master Menu Pillars)
     if cleaned in ["nav:hub:movers_sector", "nav:sub:movers_sector", "nav:sub:movers_sector_hub"] or upper in ["MOVERS & SECTOR RADAR", "MOVERS & SECTOR", "MOVERS SECTOR"]:
         return handle_movers_sector_hub(recipient=sender)
-    elif cleaned in ["nav:hub:pulse_news", "nav:sub:pulse_news", "nav:sub:pulse_news_hub"] or upper in ["MARKET PULSE & NEWS", "PULSE & NEWS", "PULSE NEWS"]:
+    elif cleaned in ["nav:hub:pulse_news", "nav:sub:pulse_news", "nav:sub:pulse_news_hub"] or upper in ["MARKET PULSE & NEWS", "PULSE & NEWS", "PULSE NEWS", "PULSE NEWS IPOS", "PULSE, NEWS & IPOS"]:
         return handle_pulse_news_hub(recipient=sender)
     elif cleaned in ["nav:hub:portfolio_wl", "nav:sub:portfolio_wl", "nav:sub:portfolio_wl_hub"] or upper in ["PORTFOLIO & WATCHLISTS", "PORTFOLIO & WATCHLIST", "PORTFOLIO WATCHLIST", "PF & WATCHLIST"]:
         return handle_portfolio_watchlists_hub(recipient=sender)
