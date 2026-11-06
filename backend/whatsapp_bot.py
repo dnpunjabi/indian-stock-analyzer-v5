@@ -559,6 +559,12 @@ def handle_guide_module(module_key: str, recipient: Optional[str] = None) -> Dic
             "  └ Msg 1: DCF, MoS %, ROCE, Piotroski, Altman Z, Market Capture & Drawdowns\n"
             "  └ Msg 2: 50/200 SMA, Crossovers, 8 Oscillators & EMA Spectrum\n"
             "  └ *Example:* `RELIANCE` or `STOCK BOSCH`\n\n"
+            "• `SHP <SYM>` or `HOLDING <SYM>`\n"
+            "  └ Shareholding Pattern, Zero-Pledge check & FII/DII quarterly trends\n"
+            "  └ *Example:* `SHP TATACHEM` or `HOLDING RELIANCE`\n\n"
+            "• `FIN <SYM>` or `FINANCIALS <SYM>`\n"
+            "  └ 5-Year Sales CAGR, OPM % expansion, Net Profit & Free Cash Flow\n"
+            "  └ *Example:* `FIN BOSCH` or `FIN TCS`\n\n"
             "• `Q <SYM>`\n"
             "  └ Instant quick quote & valuation check\n"
             "  └ *Example:* `Q TCS` or `Q INFY`\n\n"
@@ -715,7 +721,8 @@ def handle_guide_module(module_key: str, recipient: Optional[str] = None) -> Dic
         body = (
             "🌐 *MARKET PULSE & SECTOR INTELLIGENCE*\n"
             "───────────────────────────\n"
-            "• `PULSE` ➔ Nifty 50, Sensex, VIX, Breadth & Advance/Decline\n"
+            "• `PULSE` ➔ Nifty 50, Sensex, VIX, Breadth & Macro Commodities\n"
+            "• `COMMODITIES` or `GOLD` or `CRUDE` ➔ Spot Gold, Silver, Brent & USD/INR\n"
             "• `NEWS` or `NEWS <SYM>` ➔ Curated RSS news with sentiment\n"
             "• `IPO` or `GMP` ➔ Live IPO pipeline & Grey Market Premium (GMP %)\n"
             "• `IPO <NAME>` (e.g. `IPO SWIGGY`) ➔ Detailed prospectus, subscription & AI verdict\n"
@@ -888,26 +895,68 @@ def handle_movers_sector_hub(recipient: Optional[str] = None) -> Dict[str, Any]:
 
 def handle_pulse_news_hub(recipient: Optional[str] = None) -> Dict[str, Any]:
     """
-    Renders Level 1 Hub for Market Pulse, Financial News & IPO Radar.
-    Prompts user to select between Live Indices, IPO Radar, or Financial News.
+    Renders Level 1 Hub for Market Pulse, Commodities & Forex, News & IPO Radar.
+    Interactive list across Live Benchmark Pulse, Commodities & Forex Desk, IPO Radar, and News.
     """
+    sections = [
+        {
+            "title": "Macro & Primary Markets",
+            "rows": [
+                {
+                    "id": "run:pulse:live",
+                    "title": "🌐 Live Market Pulse",
+                    "description": "Nifty 50, Sensex, Bank Nifty, India VIX, Breadth & Macro"
+                },
+                {
+                    "id": "run:macro:commodities",
+                    "title": "💰 Commodities & Forex",
+                    "description": "Gold 24K/22K, Silver, Brent Crude Oil & USD/INR Desk"
+                },
+                {
+                    "id": "nav:sub:ipo",
+                    "title": "🚀 IPO Radar & GMP",
+                    "description": "Live GMP %, subscription tracking, pipeline & AI verdicts"
+                },
+                {
+                    "id": "nav:sub:news",
+                    "title": "📰 News & Dossier",
+                    "description": "Macro financial RSS headlines & Google AI Catalyst digests"
+                }
+            ]
+        }
+    ]
+
     body = (
-        "🌐 *MARKET PULSE, NEWS & IPO RADAR HUB*\n"
+        "🌐 *MARKET PULSE, NEWS & COMMODITIES HUB*\n"
         "───────────────────────────\n"
         "Select a market intelligence module below:\n\n"
-        "• *Market Pulse:* Live benchmark indices (Nifty 50, Sensex, Bank Nifty), India VIX, Breadth & Global Cues.\n\n"
-        "• *IPO Radar & GMP:* Ongoing, upcoming pipeline & recent listings with live Grey Market Premium (GMP %) & AI verdicts.\n\n"
-        "• *News & Dossier:* Macro financial headlines and Google AI Portfolio Catalyst Digest.\n\n"
+        "• *Market Pulse:* Live benchmark indices, VIX & market breadth\n"
+        "• *Commodities & Forex:* Spot Gold, Silver, Brent Crude & USD/INR\n"
+        "• *IPO Radar & GMP:* Upcoming pipeline, live GMP % & listing gains\n"
+        "• *News & Dossier:* Macro financial news & catalyst digest\n\n"
         "⚡ *Direct Shortcuts:*\n"
-        "• Text `PULSE` or `NEWS` for instant macro feeds\n"
-        "• Text `IPO` or `GMP` for live IPO tracking & Grey Market Premium"
+        "• Text `PULSE` or `COMMODITIES` (or `GOLD`, `CRUDE`, `USDINR`)\n"
+        "• Text `IPO` or `GMP` for primary markets"
     )
-    buttons = [
-        ("run:pulse:live", "🌐 Market Pulse"),
-        ("nav:sub:ipo", "🚀 IPO Radar"),
-        ("nav:sub:news", "📰 News & Dossier")
-    ]
-    return send_whatsapp_interactive_buttons(body, buttons=buttons, recipient=recipient)
+
+    send_whatsapp_interactive_list(
+        body_text=body,
+        button_text="🌐 Select Market Feed",
+        sections=sections,
+        recipient=recipient,
+        header_text="MARKET INTELLIGENCE",
+        footer_text="ApexQuant Macro Engine"
+    )
+
+    return send_whatsapp_interactive_buttons(
+        "⚡ *Instant 1-Tap Market Feeds*:",
+        buttons=[
+            ("run:pulse:live", "🌐 Market Pulse"),
+            ("run:macro:commodities", "💰 Commodities & FX"),
+            ("nav:sub:ipo", "🚀 IPO Radar")
+        ],
+        recipient=recipient
+    )
 
 # ==============================================================================
 # NAVIGATION MODULE: IPO RADAR, LIVE GMP TRACKER & LISTING INTELLIGENCE
@@ -3676,6 +3725,43 @@ def handle_market_pulse(recipient: Optional[str] = None) -> Dict[str, Any]:
 
     vix_badge = "Low Volatility (Bullish)" if vix_val < 15 else "Elevated Risk"
 
+    # Fetch Macro Commodities Snapshot
+    macro_block = ""
+    try:
+        from backend.commodity_scraper import CommodityScraper
+        macro = CommodityScraper.get_macro_snapshot()
+        g24 = macro.get("gold_24k", {})
+        sil = macro.get("silver_1kg", {})
+        crude = macro.get("brent_crude", {})
+        fx = macro.get("usd_inr", {})
+
+        g24_p = float(g24.get("price", 0.0) or 0.0)
+        g24_pct = float(g24.get("change_pct", 0.0) or 0.0)
+        g24_b = "🟢" if g24_pct >= 0 else "🔴"
+
+        sil_p = float(sil.get("price", 0.0) or 0.0)
+        sil_pct = float(sil.get("change_pct", 0.0) or 0.0)
+        sil_b = "🟢" if sil_pct >= 0 else "🔴"
+
+        oil_p = float(crude.get("price", 0.0) or 0.0)
+        oil_pct = float(crude.get("change_pct", 0.0) or 0.0)
+        oil_b = "🟢" if oil_pct >= 0 else "🔴"
+
+        fx_p = float(fx.get("price", 0.0) or 0.0)
+        fx_pct = float(fx.get("change_pct", 0.0) or 0.0)
+        fx_b = "🟢" if fx_pct <= 0 else "🔴"  # Lower USD/INR = Rupee strengthening
+
+        macro_block = (
+            "\n💰 *COMMODITIES & FOREX (SPOT & FX)*\n"
+            f"• 🟡 Gold 24K: ₹{g24_p:,.0f} ({g24_pct:+.2f}% {g24_b}) | 22K: ₹{float(macro.get('gold_22k', {}).get('price', 0.0)):,.0f}\n"
+            f"• ⚪ Silver 1kg: ₹{sil_p:,.0f} ({sil_pct:+.2f}% {sil_b})\n"
+            f"• 🛢️ Brent Crude: ${oil_p:,.2f}/bbl ({oil_pct:+.2f}% {oil_b})\n"
+            f"• 💵 USD / INR: ₹{fx_p:,.2f} ({fx_pct:+.2f}% {fx_b})\n"
+        )
+    except Exception as e:
+        logger.warning(f"Error appending macro commodities in pulse: {e}")
+        macro_block = ""
+
     body = (
         "🌐 *MACRO MARKET PULSE*\n"
         "━━━━━━━━━━━━━━━━━━━━\n"
@@ -3684,17 +3770,96 @@ def handle_market_pulse(recipient: Optional[str] = None) -> Dict[str, Any]:
         f"{chg_b_emoji} *BANK NIFTY*: {bank_price:,.2f} ({chg_b_pts_sign}{bank_pts:,.2f} pts, {chg_b_sign}{bank_chg:.2f}%)\n"
         f"📊 *INDIA VIX*: {vix_val:.2f} ({vix_badge})\n"
         f"⚖️ *Market Breadth*: {adv} Advances / {dec} Declines\n"
-        f"🚗 *Leading Sector*: Auto & Capital Goods (+1.8%)\n"
+        f"{macro_block}"
         "━━━━━━━━━━━━━━━━━━━━\n"
         "_Real-time benchmark pulse from workstation engine._"
     )
 
     buttons = [
-        ("nav:sub:screeners", "🎯 Quant Screeners"),
-        ("nav:sub:movers", "🚀 Market Movers"),
+        ("run:macro:commodities", "💰 Commodities Desk"),
+        ("nav:hub:movers_sector", "🚀 Movers & Sectors"),
         ("nav:menu:main", "🏠 Main Menu")
     ]
     return send_whatsapp_interactive_buttons(body, buttons=buttons, recipient=recipient)
+
+
+def handle_macro_commodities(recipient: Optional[str] = None) -> Dict[str, Any]:
+    """
+    Renders standalone Macro Commodities & Forex Desk:
+    - Spot Gold 24K & 22K (10g) in INR with daily point & % change
+    - Spot Silver (1kg) in INR with daily change
+    - Brent Crude Oil ($/bbl) with equity sector sensitivity
+    - USD / INR exchange rate & Dollar Index (DXY)
+    """
+    try:
+        from backend.commodity_scraper import CommodityScraper
+        data = CommodityScraper.get_macro_snapshot()
+        g24 = data.get("gold_24k", {})
+        g22 = data.get("gold_22k", {})
+        sil = data.get("silver_1kg", {})
+        oil = data.get("brent_crude", {})
+        fx = data.get("usd_inr", {})
+        dxy = data.get("dollar_index", {})
+
+        def fmt_item(d, prefix="", suffix="", invert_badge=False):
+            p = float(d.get("price", 0.0) or 0.0)
+            c = float(d.get("change", 0.0) or 0.0)
+            pct = float(d.get("change_pct", 0.0) or 0.0)
+            sign = "+" if c >= 0 else ""
+            if invert_badge:
+                badge = "🟢" if c <= 0 else "🔴"
+            else:
+                badge = "🟢" if c > 0 else ("🔴" if c < 0 else "⚪")
+            return f"{prefix}{p:,.2f}{suffix} ({sign}{c:,.2f}, {sign}{pct:.2f}% {badge})"
+
+        oil_pct = float(oil.get("change_pct", 0.0) or 0.0)
+        oil_impact = (
+            "Soft crude cushions operating margins for Paints, Auto, Aviation, and Tyre manufacturers."
+            if oil_pct < 0 else
+            "Rising crude exerts margin pressure on oil-consuming cyclicals, paints, and logistics."
+        )
+
+        fx_pct = float(fx.get("change_pct", 0.0) or 0.0)
+        fx_impact = (
+            "Rupee resilience cushions foreign capital flight and supports domestic cyclicals."
+            if fx_pct <= 0 else
+            "Rupee softening benefits IT & Pharma exporters while elevating imported inflation."
+        )
+
+        body = (
+            "💰 *MACRO COMMODITIES & FOREX DESK*\n"
+            "━━━━━━━━━━━━━━━━━━━━\n"
+            "Real-time spot rates, energy benchmarks & currency flows.\n\n"
+            "🟡 *SPOT GOLD (10g • Domestic India)*\n"
+            f"• 24K Pure Gold: {fmt_item(g24, '₹ ')}\n"
+            f"• 22K Standard:  {fmt_item(g22, '₹ ')}\n"
+            "• _Safe-haven demand & domestic inflation hedge_\n\n"
+            "⚪ *SPOT SILVER (1kg • Domestic India)*\n"
+            f"• Pure Silver: {fmt_item(sil, '₹ ')}\n"
+            "• _Industrial demand & solar fabrication gauge_\n\n"
+            "🛢️ *BRENT CRUDE OIL (Energy Benchmark)*\n"
+            f"• Spot Barrel: {fmt_item(oil, '$ ', '/bbl')}\n"
+            f"• 💡 *Equity Impact*: {oil_impact}\n\n"
+            "💵 *USD / INR & DOLLAR INDEX (DXY)*\n"
+            f"• USD/INR: {fmt_item(fx, '₹ ', invert_badge=True)}\n"
+            f"• Dollar Index (DXY): {fmt_item(dxy)}\n"
+            f"• 💡 *Equity Impact*: {fx_impact}\n"
+            "━━━━━━━━━━━━━━━━━━━━\n"
+            f"_Updated: {data.get('last_updated', 'Live')} • 15-min cached feeds._"
+        )
+        buttons = [
+            ("run:pulse:live", "🌐 Market Pulse"),
+            ("nav:hub:movers_sector", "🚀 Sector Radar"),
+            ("nav:menu:main", "🏠 Main Menu")
+        ]
+        return send_whatsapp_interactive_buttons(body, buttons=buttons, recipient=recipient)
+    except Exception as e:
+        logger.error(f"Error generating macro commodities desk: {e}", exc_info=True)
+        return send_whatsapp_interactive_buttons(
+            f"⚠️ Failed to retrieve live commodities data: {e}",
+            buttons=[("nav:menu:main", "🏠 Main Menu")],
+            recipient=recipient
+        )
 
 
 # ==============================================================================
@@ -4662,26 +4827,81 @@ def handle_why_stock_moved(query_input: str, recipient: Optional[str] = None) ->
 
 
 def handle_stock_query_prompt(recipient: Optional[str] = None) -> Dict[str, Any]:
-    """Prompts the user to text any stock symbol, compare stocks, or ask freeform AI questions."""
-    body = (
-        "🤖 *APEX AI CO-PILOT & QUANT DIAGNOSTIC*\n"
-        "━━━━━━━━━━━━━━━━━━━━\n"
-        "Ask ANY question in plain English, compare stocks, or inspect fundamentals.\n\n"
-        "⚔️ *Head-to-Head Stock Battles:*\n"
-        "• Text `COMPARE <S1> <S2>` (e.g. `COMPARE DIXON AMBER` or `INFY VS TCS`)\n\n"
-        "🔍 *Quick Single-Stock Inspection:*\n"
-        "• Text `<SYMBOL>` (e.g. `BOSCH` or `RELIANCE`)\n"
-        "• Text `WHY <SYM> DOWN` (e.g. `WHY RVNL DOWN`)\n"
-        "• Text `NEWS <SYM>` or `EVENTS <SYM>`\n"
-        "• Text `C <SYM>` for technical chart\n\n"
-        "Or tap a quick chip below:"
-    )
-    buttons = [
-        ("view:stock:BOSCH", "🔍 BOSCH"),
-        ("run:compare:INFY:TCS", "⚔️ INFY vs TCS"),
-        ("nav:menu:main", "🏠 Main Menu")
+    """
+    Renders Level 1 Sub-Menu: Equity Research & AI Co-Pilot Hub.
+    Offers structured interactive list covering Single Stock Dossiers,
+    Shareholding & FII/DII Trends, 5-Year Financial Statements, Head-to-Head Comparisons,
+    and Conversational AI Diagnostics.
+    """
+    sections = [
+        {
+            "title": "🔍 Equity Research Pillars",
+            "rows": [
+                {
+                    "id": "nav:act:stock_dossier",
+                    "title": "🔍 Stock Dossier & Timing",
+                    "description": "Full fundamental valuation, returns alpha, drawdown & timing"
+                },
+                {
+                    "id": "nav:act:stock_shp",
+                    "title": "🏛️ Shareholding & FII/DII",
+                    "description": "Promoters %, pledge risk & institutional quarterly flow"
+                },
+                {
+                    "id": "nav:act:stock_fin",
+                    "title": "📊 5Y Financial Statements",
+                    "description": "5Y Revenue CAGR, OPM %, Net Profit & Free Cash Flow"
+                }
+            ]
+        },
+        {
+            "title": "🤖 Quantitative AI & Battles",
+            "rows": [
+                {
+                    "id": "nav:act:stock_compare",
+                    "title": "⚔️ Head-to-Head Compare",
+                    "description": "Compare 2 rival stocks across 15+ institutional metrics"
+                },
+                {
+                    "id": "nav:act:stock_copilot",
+                    "title": "🤖 Conversational Co-Pilot",
+                    "description": "Ask any question in plain English (e.g. why stock is down)"
+                }
+            ]
+        }
     ]
-    return send_whatsapp_interactive_buttons(body, buttons=buttons, recipient=recipient)
+
+    body = (
+        "🤖 *EQUITY RESEARCH & AI CO-PILOT HUB*\n"
+        "━━━━━━━━━━━━━━━━━━━━\n"
+        "Deep fundamental dossiers, ownership trends & quantitative AI diagnostics.\n\n"
+        "⚡ *Fast-Path Shorthand Commands:*\n"
+        "• Text `<SYM>` (e.g. `BOSCH` or `RELIANCE`) ➔ Complete dossier\n"
+        "• Text `SHP <SYM>` (e.g. `SHP TATACHEM`) ➔ Shareholding & FII/DII\n"
+        "• Text `FIN <SYM>` (e.g. `FIN TCS`) ➔ 5-Year Financials & Cash Flow\n"
+        "• Text `COMPARE <S1> <S2>` (e.g. `COMPARE INFY TCS`)\n"
+        "• Text `AI <query>` (e.g. `AI why is Tata Motors dropping`)\n\n"
+        "Select a research module or tap a live stock below:"
+    )
+
+    send_whatsapp_interactive_list(
+        body_text=body,
+        button_text="🔍 Research Modules",
+        sections=sections,
+        recipient=recipient,
+        header_text="EQUITY RESEARCH HUB",
+        footer_text="ApexQuant Diagnostic Suite"
+    )
+
+    return send_whatsapp_interactive_buttons(
+        "⚡ *Instant 1-Tap Equity Dives*:",
+        buttons=[
+            ("view:stock:RELIANCE", "🔍 RELIANCE Dossier"),
+            ("act:shp:TATACHEM", "🏛️ TATACHEM SHP"),
+            ("act:fin:BOSCH", "📊 BOSCH 5Y Fin")
+        ],
+        recipient=recipient
+    )
 
 
 def handle_chart_menu(recipient: Optional[str] = None) -> Dict[str, Any]:
@@ -5217,6 +5437,252 @@ def handle_stock_risk_profile(symbol_input: str, recipient: Optional[str] = None
         )
 
 
+def handle_stock_shareholding(symbol_input: str, recipient: Optional[str] = None) -> Dict[str, Any]:
+    """
+    Renders Institutional Shareholding Pattern & Ownership Trends:
+    - Promoters holding % & QoQ change
+    - Promoter Pledge % & Risk Badge
+    - FII / FPI holding % & QoQ accumulation/outflow
+    - DII (Mutual Funds, Insurance) holding % & QoQ change
+    - Public / Retail holding %
+    - Quantitative Ownership Verdict (Institutional accumulation vs distribution)
+    """
+    clean_sym = symbol_input.strip().upper().replace(" ", "")
+    clean_sym = re.sub(r"^(?:SHP|HOLDING|SHAREHOLDING|PROMOTER|FII|DII)[\s:]+", "", clean_sym, flags=re.IGNORECASE).strip()
+    clean_sym = re.sub(r"^(?:ACT:SHP:|VIEW:SHP:)", "", clean_sym, flags=re.IGNORECASE).strip()
+    if not clean_sym:
+        clean_sym = "RELIANCE"
+
+    resolved = resolve_company_ticker(clean_sym)
+    lookup_ticker = resolved.get("yf_ticker") if resolved else f"{clean_sym}.NS"
+    b_sym = resolved.get("base_symbol") if resolved else lookup_ticker.replace(".NS", "")
+    d_name = resolved.get("name") if resolved else b_sym
+    btn_sym = b_sym[:8]
+
+    try:
+        from backend.shareholding_scraper import scrape_shareholding_pattern
+        data = scrape_shareholding_pattern(b_sym)
+        quarters = data.get("quarters", [])
+        cats = data.get("categories", {})
+
+        latest_q = quarters[-1] if quarters else "Latest Quarter"
+
+        def get_cat_stat(c_name):
+            vals = cats.get(c_name, [])
+            if not vals:
+                return 0.0, 0.0, 0.0
+            curr = float(vals[-1]) if len(vals) >= 1 else 0.0
+            prev = float(vals[-2]) if len(vals) >= 2 else curr
+            return curr, prev, (curr - prev)
+
+        prom_curr, prom_prev, prom_qoq = get_cat_stat("Promoters")
+        fii_curr, fii_prev, fii_qoq = get_cat_stat("FIIs")
+        dii_curr, dii_prev, dii_qoq = get_cat_stat("DIIs")
+        pub_curr, pub_prev, pub_qoq = get_cat_stat("Public")
+        gov_curr, gov_prev, gov_qoq = get_cat_stat("Government")
+
+        inst_curr = fii_curr + dii_curr
+        inst_qoq = fii_qoq + dii_qoq
+
+        # Pledge check
+        pledge_val = 0.0
+        pledged_list = cats.get("Pledged", cats.get("Pledged %", []))
+        if pledged_list:
+            pledge_val = float(pledged_list[-1])
+
+        if pledge_val == 0.0:
+            pledge_badge = "🟢 *Zero Promoter Pledge (Clean)*"
+        elif pledge_val < 10.0:
+            pledge_badge = f"🟡 *Low Pledge ({pledge_val:.1f}%)*"
+        else:
+            pledge_badge = f"⚠️ *Elevated Pledge Risk ({pledge_val:.1f}%)*"
+
+        fii_badge = "🟢" if fii_qoq > 0.1 else ("🔴" if fii_qoq < -0.1 else "⚪")
+        dii_badge = "🟢" if dii_qoq > 0.1 else ("🔴" if dii_qoq < -0.1 else "⚪")
+        inst_badge = "🟢" if inst_qoq > 0.2 else ("🔴" if inst_qoq < -0.2 else "⚖️")
+
+        if inst_qoq > 0.3:
+            verdict = "Smart Money Accumulation"
+            verdict_desc = f"Institutional investors aggressively accumulated +{inst_qoq:.2f}% combined stake in {latest_q}."
+        elif fii_qoq < -0.3 and dii_qoq > 0.3:
+            verdict = "Domestic Institutional Absorption"
+            verdict_desc = f"Domestic Mutual Funds absorbed foreign outflow (+{dii_qoq:.2f}% DII vs {fii_qoq:+.2f}% FII)."
+        elif fii_qoq > 0.3 and dii_qoq < 0:
+            verdict = "Foreign Inflow Expansion"
+            verdict_desc = f"FIIs increased allocation by +{fii_qoq:.2f}% while domestic funds took partial profit."
+        elif inst_qoq < -0.3:
+            verdict = "Institutional Profit Booking"
+            verdict_desc = f"Smart money trimmed combined holdings by {inst_qoq:.2f}% over the quarter."
+        else:
+            verdict = "Stable Institutional Base"
+            verdict_desc = "Ownership distribution remained well-balanced with minimal QoQ variance."
+
+        lines = [
+            f"🏛️ *{d_name.upper()}* (`{b_sym}`) • *SHAREHOLDING*",
+            "━━━━━━━━━━━━━━━━━━━━",
+            f"📅 *Reporting Period*: {latest_q} (Latest Quarter)\n",
+            "👑 *PROMOTER HOLDING*:",
+            f"• Stake: *{prom_curr:.2f}%* (QoQ: {prom_qoq:+.2f}%)",
+            f"• Pledge Risk: {pledge_badge}\n",
+            "🏦 *SMART MONEY & INSTITUTIONS*:",
+            f"• *Total Institutional*: {inst_badge} *{inst_curr:.2f}%* (QoQ: {inst_qoq:+.2f}%)",
+            f"• Foreign Portfolio (FII): {fii_badge} *{fii_curr:.2f}%* (QoQ: {fii_qoq:+.2f}%)",
+            f"• Domestic Funds (DII):   {dii_badge} *{dii_curr:.2f}%* (QoQ: {dii_qoq:+.2f}%)\n",
+            "👥 *RETAIL & PUBLIC BASE*:",
+            f"• Public / Retail: *{pub_curr:.2f}%* (QoQ: {pub_qoq:+.2f}%)",
+            f"• Government & Others: *{gov_curr:.2f}%*\n",
+            "🧠 *QUANT OWNERSHIP VERDICT*:",
+            f"• *Signal*: *{verdict}*",
+            f"• *Insight*: _{verdict_desc}_",
+            "━━━━━━━━━━━━━━━━━━━━",
+            "Tap below to inspect 5Y financials or charts:"
+        ]
+        body = "\n".join(lines)
+        buttons = [
+            (f"act:fin:{btn_sym}", f"📊 {btn_sym} 5Y Fin"),
+            (f"act:chart:{btn_sym}", f"📈 {btn_sym} Chart"),
+            ("nav:sub:stock", "🤖 Equity Hub")
+        ]
+        return send_whatsapp_interactive_buttons(body, buttons=buttons, recipient=recipient)
+    except Exception as e:
+        logger.error(f"Error computing shareholding for {clean_sym}: {e}", exc_info=True)
+        return send_whatsapp_interactive_buttons(
+            f"⚠️ Failed to retrieve shareholding data for `{clean_sym}`: {e}",
+            buttons=[("nav:menu:main", "🏠 Main Menu")],
+            recipient=recipient
+        )
+
+
+def handle_stock_financials(symbol_input: str, recipient: Optional[str] = None) -> Dict[str, Any]:
+    """
+    Renders 5-Year Multi-Year Financial Statements & Cash Flow Trajectory:
+    - 5-Year Sales / Revenue trajectory & Sales CAGR %
+    - 5-Year Operating Profit & OPM % expansion
+    - 5-Year Net Profit (PAT) trajectory & PAT CAGR %
+    - Cash Flow from Operations (CFO) vs Net Profit conversion ratio
+    - Cumulative 5-Year Free Cash Flow (FCF)
+    - Quant Financial Compounder Profile & Quality assessment
+    """
+    clean_sym = symbol_input.strip().upper().replace(" ", "")
+    clean_sym = re.sub(r"^(?:FIN|FINANCIALS|PL|CASHFLOW|CFO)[\s:]+", "", clean_sym, flags=re.IGNORECASE).strip()
+    clean_sym = re.sub(r"^(?:ACT:FIN:|VIEW:FIN:)", "", clean_sym, flags=re.IGNORECASE).strip()
+    if not clean_sym:
+        clean_sym = "RELIANCE"
+
+    resolved = resolve_company_ticker(clean_sym)
+    lookup_ticker = resolved.get("yf_ticker") if resolved else f"{clean_sym}.NS"
+    b_sym = resolved.get("base_symbol") if resolved else lookup_ticker.replace(".NS", "")
+    d_name = resolved.get("name") if resolved else b_sym
+    btn_sym = b_sym[:8]
+
+    try:
+        from backend.financial_statements_scraper import scrape_financial_statements
+        data = scrape_financial_statements(b_sym)
+        pl = data.get("profit_loss", {})
+        cf = data.get("cash_flow", {})
+
+        headers = [h for h in pl.get("headers", []) if h and h.lower() != "ttm"]
+        years = headers[-5:] if len(headers) >= 5 else headers
+
+        def find_row_vals(table, label):
+            for r in table.get("rows", []):
+                if r.get("label", "").strip().lower() == label.lower():
+                    vals = r.get("values", [])
+                    return vals[-len(years):] if len(vals) >= len(years) else vals
+            return []
+
+        sales = find_row_vals(pl, "Sales")
+        op_profit = find_row_vals(pl, "Operating Profit")
+        opm = find_row_vals(pl, "OPM %")
+        net_profit = find_row_vals(pl, "Net Profit")
+        cfo = find_row_vals(cf, "Cash from Operating Activity")
+        fcf = find_row_vals(cf, "Free Cash Flow")
+
+        sales_start = sales[0] if sales else 0
+        sales_end = sales[-1] if sales else 0
+        cagr_str = "N/A"
+        if sales_start > 0 and sales_end > 0 and len(sales) > 1:
+            cagr = ((sales_end / sales_start) ** (1 / (len(sales) - 1)) - 1) * 100
+            cagr_badge = "🟢" if cagr >= 12 else ("🟡" if cagr >= 5 else "🔴")
+            cagr_str = f"{cagr_badge} *+{cagr:.1f}% p.a.*"
+
+        opm_str = " ➔ ".join([f"{v:.0f}%" for v in opm]) if opm else "N/A"
+
+        op_start = op_profit[0] if op_profit else 0
+        op_end = op_profit[-1] if op_profit else 0
+
+        pat_start = net_profit[0] if net_profit else 0
+        pat_end = net_profit[-1] if net_profit else 0
+        pat_cagr_str = "N/A"
+        if pat_start > 0 and pat_end > 0 and len(net_profit) > 1:
+            pat_cagr = ((pat_end / pat_start) ** (1 / (len(net_profit) - 1)) - 1) * 100
+            pat_badge = "🟢" if pat_cagr >= 12 else ("🟡" if pat_cagr >= 5 else "🔴")
+            pat_cagr_str = f"{pat_badge} *+{pat_cagr:.1f}% p.a.*"
+
+        # CFO / PAT Cash Conversion
+        cfo_latest = cfo[-1] if cfo else 0
+        conv_str = "N/A"
+        if pat_end > 0 and cfo_latest:
+            conv_ratio = (cfo_latest / pat_end) * 100
+            conv_badge = "🟢" if conv_ratio >= 90 else ("🟡" if conv_ratio >= 60 else "⚠️")
+            conv_str = f"{conv_badge} *{conv_ratio:.1f}%* (High Earnings Quality)" if conv_ratio >= 90 else f"{conv_badge} *{conv_ratio:.1f}%*"
+
+        total_fcf = sum(fcf) if fcf else 0
+        fcf_badge = "🟢" if total_fcf > 0 else "🔴"
+
+        y_start = years[0] if years else "Start"
+        y_end = years[-1] if years else "Latest"
+
+        # Quant Compounder Verdict
+        if (sales_start > 0 and sales_end > sales_start) and total_fcf > 0 and (pat_end > pat_start):
+            v_title = "💎 High-Grade Cash Compounder"
+            v_desc = "Double-digit top-line growth with consistent positive free cash flow and expanding operational scale."
+        elif total_fcf > 0:
+            v_title = "🛡️ Stable Cash Generator"
+            v_desc = "Healthy operating cash conversion cushioning cyclical revenue phases."
+        else:
+            v_title = "⏳ Capital Intensive Reinvestment"
+            v_desc = "Heavy capex cycle absorbing operating cash; monitor future margin payoff."
+
+        lines = [
+            f"📊 *{d_name.upper()}* (`{b_sym}`) • *5Y FINANCIALS*",
+            "━━━━━━━━━━━━━━━━━━━━",
+            f"📅 *Multi-Year Horizon*: {y_start} – {y_end}\n",
+            "📈 *TOP-LINE SALES (REVENUE)*:",
+            f"• {y_start}: ₹ {sales_start:,.0f} Cr  ➔  {y_end}: ₹ {sales_end:,.0f} Cr",
+            f"• *5-Year Revenue CAGR*: {cagr_str}\n",
+            "⚡ *OPERATING PROFIT & MARGINS*:",
+            f"• Operating Profit: ₹ {op_start:,.0f} Cr ➔ ₹ {op_end:,.0f} Cr",
+            f"• *OPM % Trajectory*: {opm_str}\n",
+            "💰 *BOTTOM-LINE NET PROFIT (PAT)*:",
+            f"• {y_start}: ₹ {pat_start:,.0f} Cr ➔ {y_end}: ₹ {pat_end:,.0f} Cr",
+            f"• *5-Year PAT CAGR*: {pat_cagr_str}\n",
+            "🌊 *CASH CONVERSION & FREE CASH FLOW*:",
+            f"• Cash Flow from Ops (CFO): ₹ {cfo_latest:,.0f} Cr ({y_end})",
+            f"• CFO / PAT Cash Conversion: {conv_str}",
+            f"• *5-Year Cumulative FCF*: {fcf_badge} *₹ {total_fcf:,.0f} Cr*\n",
+            "🧠 *QUANT FINANCIAL ASSESSMENT*:",
+            f"• *Verdict*: {v_title}",
+            f"• *Health*: _{v_desc}_",
+            "━━━━━━━━━━━━━━━━━━━━",
+            "Tap below to inspect shareholding or charts:"
+        ]
+        body = "\n".join(lines)
+        buttons = [
+            (f"act:shp:{btn_sym}", f"🏛️ {btn_sym} Holding"),
+            (f"act:chart:{btn_sym}", f"📈 {btn_sym} Chart"),
+            ("nav:sub:stock", "🤖 Equity Hub")
+        ]
+        return send_whatsapp_interactive_buttons(body, buttons=buttons, recipient=recipient)
+    except Exception as e:
+        logger.error(f"Error computing financials for {clean_sym}: {e}", exc_info=True)
+        return send_whatsapp_interactive_buttons(
+            f"⚠️ Failed to retrieve financial statements for `{clean_sym}`: {e}",
+            buttons=[("nav:menu:main", "🏠 Main Menu")],
+            recipient=recipient
+        )
+
+
 def handle_stock_technical_timing(
     symbol_input: str,
     disp_name: Optional[str] = None,
@@ -5335,14 +5801,14 @@ def handle_stock_technical_timing(
             f"• Short: 5D: ₹{e5:,.0f} | 10D: ₹{e10:,.0f} | 20D: ₹{e20:,.0f} | 30D: ₹{e30:,.0f}",
             f"• Long:  50D: ₹{e50:,.0f} | 100D: ₹{e100:,.0f} | 150D: ₹{e150:,.0f} | 200D: ₹{e200:,.0f}",
             "━━━━━━━━━━━━━━━━━━━━",
-            "Tap below to inspect charts:"
+            "Tap below for ownership, financials or chart:"
         ]
         body = "\n".join(lines)
 
         buttons = [
-            (f"act:chart:{btn_sym}", f"📈 {btn_sym} Chart"),
-            (f"act:ichart:breaks:{btn_sym}", f"⚡ {btn_sym} Breaks"),
-            (f"act:fib:{btn_sym}", f"🌀 {btn_sym} Fib")
+            (f"act:shp:{btn_sym}", f"🏛️ {btn_sym} Holding"),
+            (f"act:fin:{btn_sym}", f"📊 {btn_sym} 5Y Fin"),
+            (f"act:chart:{btn_sym}", f"📈 {btn_sym} Chart")
         ]
         return send_whatsapp_interactive_buttons(body, buttons=buttons, recipient=recipient)
 
@@ -7458,6 +7924,10 @@ def dispatch_incoming_whatsapp_message(text_body: str, sender: Optional[str] = N
         return handle_movers_menu(recipient=sender)
     elif cleaned == "run:pulse:live":
         return handle_market_pulse(recipient=sender)
+    elif cleaned in ["run:macro:commodities", "view:commodities", "view:commodity", "view:macro"] or upper in [
+        "COMMODITIES", "COMMODITY", "GOLD", "SILVER", "CRUDE", "BRENT", "USDINR", "USD/INR", "FOREX", "MACRO DESK", "COMMODITY DESK"
+    ]:
+        return handle_macro_commodities(recipient=sender)
     elif cleaned == "run:portfolio:live":
         return handle_portfolio(recipient=sender)
 
@@ -7558,6 +8028,91 @@ def dispatch_incoming_whatsapp_message(text_body: str, sender: Optional[str] = N
     if cleaned.startswith("view:tech:") or cleaned.startswith("act:tech:"):
         sym = cleaned.replace("view:tech:", "").replace("act:tech:", "").strip()
         return handle_stock_technical_timing(sym, recipient=sender)
+
+    # Dedicated Shareholding Pattern Command (SHP <SYM> / HOLDING <SYM>)
+    if upper.startswith("SHP ") or upper.startswith("SHP:") or upper.startswith("HOLDING ") or upper.startswith("HOLDING:") or upper.startswith("SHAREHOLDING ") or upper.startswith("PROMOTER ") or upper.startswith("FII "):
+        sym = re.sub(r"^(?:SHAREHOLDING|HOLDING|SHP|PROMOTER|FII)[\s:]+", "", cleaned, flags=re.IGNORECASE).strip()
+        if sym:
+            return handle_stock_shareholding(sym, recipient=sender)
+    if cleaned.startswith("view:shp:") or cleaned.startswith("act:shp:"):
+        sym = cleaned.replace("view:shp:", "").replace("act:shp:", "").strip()
+        return handle_stock_shareholding(sym, recipient=sender)
+
+    # Dedicated 5-Year Financial Statements Command (FIN <SYM> / FINANCIALS <SYM> / PL <SYM> / CASHFLOW <SYM>)
+    if upper.startswith("FIN ") or upper.startswith("FIN:") or upper.startswith("FINANCIALS ") or upper.startswith("FINANCIALS:") or upper.startswith("PL ") or upper.startswith("PL:") or upper.startswith("CASHFLOW ") or upper.startswith("CFO "):
+        sym = re.sub(r"^(?:FINANCIALS|FIN|CASHFLOW|CFO|PL)[\s:]+", "", cleaned, flags=re.IGNORECASE).strip()
+        if sym:
+            return handle_stock_financials(sym, recipient=sender)
+    if cleaned.startswith("view:fin:") or cleaned.startswith("act:fin:"):
+        sym = cleaned.replace("view:fin:", "").replace("act:fin:", "").strip()
+        return handle_stock_financials(sym, recipient=sender)
+
+    # Equity Hub Sub-Action Prompts
+    elif cleaned == "nav:act:stock_dossier":
+        return send_whatsapp_interactive_buttons(
+            "🔍 *STOCK DOSSIER & TIMING PROMPT*\n"
+            "━━━━━━━━━━━━━━━━━━━━\n"
+            "Text any stock symbol (e.g. `RELIANCE`, `BOSCH`, `TCS`, `INFY`) to generate its fundamental valuation, benchmark alpha & technical timing report.\n\n"
+            "Or tap a quick demo below:",
+            buttons=[
+                ("view:stock:RELIANCE", "🔍 RELIANCE"),
+                ("view:stock:BOSCH", "🔍 BOSCH"),
+                ("nav:menu:main", "🏠 Main Menu")
+            ],
+            recipient=sender
+        )
+    elif cleaned == "nav:act:stock_shp":
+        return send_whatsapp_interactive_buttons(
+            "🏛️ *SHAREHOLDING & FII/DII PROMPT*\n"
+            "━━━━━━━━━━━━━━━━━━━━\n"
+            "Text `SHP <SYMBOL>` (e.g. `SHP TATACHEM`, `SHP RELIANCE`, `SHP INFY`) to inspect promoter holding, pledge risk & institutional quarterly flow.\n\n"
+            "Or tap a quick demo below:",
+            buttons=[
+                ("act:shp:TATACHEM", "🏛️ TATACHEM SHP"),
+                ("act:shp:RELIANCE", "🏛️ RELIANCE SHP"),
+                ("nav:menu:main", "🏠 Main Menu")
+            ],
+            recipient=sender
+        )
+    elif cleaned == "nav:act:stock_fin":
+        return send_whatsapp_interactive_buttons(
+            "📊 *5-YEAR FINANCIALS & CASH FLOW PROMPT*\n"
+            "━━━━━━━━━━━━━━━━━━━━\n"
+            "Text `FIN <SYMBOL>` (e.g. `FIN BOSCH`, `FIN TCS`, `FIN RELIANCE`) to analyze 5-Year Revenue CAGR, OPM %, Net Profit & Free Cash Flow.\n\n"
+            "Or tap a quick demo below:",
+            buttons=[
+                ("act:fin:BOSCH", "📊 BOSCH Fin"),
+                ("act:fin:TCS", "📊 TCS Fin"),
+                ("nav:menu:main", "🏠 Main Menu")
+            ],
+            recipient=sender
+        )
+    elif cleaned == "nav:act:stock_compare":
+        return send_whatsapp_interactive_buttons(
+            "⚔️ *HEAD-TO-HEAD STOCK COMPARISON*\n"
+            "━━━━━━━━━━━━━━━━━━━━\n"
+            "Text `COMPARE <S1> <S2>` (e.g. `COMPARE INFY TCS` or `COMPARE DIXON AMBER`) to contrast multiples, ROCE, and momentum.\n\n"
+            "Or tap a quick battle below:",
+            buttons=[
+                ("run:compare:INFY:TCS", "⚔️ INFY vs TCS"),
+                ("run:compare:DIXON:AMBER", "⚔️ DIXON vs AMBER"),
+                ("nav:menu:main", "🏠 Main Menu")
+            ],
+            recipient=sender
+        )
+    elif cleaned == "nav:act:stock_copilot":
+        return send_whatsapp_interactive_buttons(
+            "🤖 *APEX QUANT AI CO-PILOT*\n"
+            "━━━━━━━━━━━━━━━━━━━━\n"
+            "Text `AI <your query>` (e.g. `AI why is Tata Motors dropping`, `AI explain debt equity ratio`, `AI compare HDFC and ICICI`).\n\n"
+            "Our conversational quant agent will analyze fundamentals, news & technicals.",
+            buttons=[
+                ("run:compare:INFY:TCS", "⚔️ INFY vs TCS"),
+                ("view:stock:RELIANCE", "🔍 RELIANCE"),
+                ("nav:menu:main", "🏠 Main Menu")
+            ],
+            recipient=sender
+        )
 
     # Dedicated Stock Query & Chart Prompts & AI Co-Pilot
     elif cleaned.startswith("nav:sub:stock") or cleaned.startswith("nav:sub:copilot"):

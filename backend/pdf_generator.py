@@ -483,12 +483,14 @@ def generate_terminal_shortcuts_guide_pdf(output_path: str = "data/reports/ApexQ
     story.append(Spacer(1, 2))
     rows_dossier = [
         ("<b>&lt;SYMBOL&gt;</b> or <b>STOCK &lt;SYM&gt;</b>", "2-Message Institutional Dossier: DCF Valuation, MoS %, Piotroski, Altman Z, 50/200 SMA, Crossovers, 8 Oscillators, EMA Spectrum", "<code>RELIANCE</code> or <code>STOCK BOSCH</code>"),
+        ("<b>SHP &lt;SYM&gt;</b> or <b>HOLDING</b>", "Shareholding Pattern: Promoter %, Zero-Pledge check &amp; FII vs DII quarterly institutional flow", "<code>SHP TATACHEM</code> or <code>HOLDING RELIANCE</code>"),
+        ("<b>FIN &lt;SYM&gt;</b> or <b>FINANCIALS</b>", "5-Year Financial Statements: Revenue CAGR, OPM % expansion, Net Profit (PAT) &amp; Free Cash Flow", "<code>FIN BOSCH</code> or <code>FIN TCS</code>"),
         ("<b>Q &lt;SYM&gt;</b>", "Instant quick quote, DCF margin of safety and quality check", "<code>Q TCS</code> or <code>Q INFY</code>"),
         ("<b>RISK &lt;SYM&gt;</b> or <b>CAPTURE &lt;SYM&gt;</b>", "12M Interactive Market Capture (Up/Down) &amp; Max Drawdown Recovery Profile", "<code>RISK BOSCHLTD</code>"),
         ("<b>COMPARE &lt;S1&gt; VS &lt;S2&gt;</b>", "Side-by-side competitor benchmarking across valuation, ROCE &amp; technicals", "<code>COMPARE TCS VS INFY</code>")
     ]
     story.append(make_table(rows_dossier))
-    story.append(Spacer(1, 7))
+    story.append(Spacer(1, 5))
 
     # SECTION 2: Technical Chart Suite
     story.append(Paragraph("<b>2. TECHNICAL CHART STUDIO (6 INSTITUTIONAL MODELS)</b>", sec_header_style))
@@ -502,7 +504,7 @@ def generate_terminal_shortcuts_guide_pdf(output_path: str = "data/reports/ApexQ
         ("<b>MXWLL &lt;SYM&gt;</b> or <b>MAXWELL</b>", "Maxwell Cycle Oscillator: High-frequency cycles &amp; inflection turning points", "<code>MXWLL HDFCBANK</code>")
     ]
     story.append(make_table(rows_charts))
-    story.append(Spacer(1, 7))
+    story.append(Spacer(1, 5))
 
     # SECTION 3: AI Multi-Factor Screeners
     story.append(Paragraph("<b>3. QUANT &amp; AI MULTI-FACTOR SCREENERS</b>", sec_header_style))
@@ -570,7 +572,8 @@ def generate_terminal_shortcuts_guide_pdf(output_path: str = "data/reports/ApexQ
         ("<b>ALERTS</b>", "Hub of all active price and stop-loss sentinels with live price distance", "<code>ALERTS</code>"),
         ("<b>WL</b> or <b>WATCHLIST</b>", "Primary Watchlist quotes, day change % and 52W high distance", "<code>WL</code>"),
         ("<b>WL AUDIT</b>", "Full algorithmic audit of primary watchlist for valuation &amp; momentum risk", "<code>WL AUDIT</code>"),
-        ("<b>PULSE</b> / <b>NEWS</b> / <b>PREMARKET</b>", "Nifty 50, Sensex, VIX, Breadth, Stock/Macro News feeds &amp; Pre-Market brief", "<code>PULSE</code> or <code>NEWS</code>"),
+        ("<b>PULSE</b> / <b>PREMARKET</b>", "Nifty 50, Sensex, VIX, Breadth &amp; Pre-Market tactical setup", "<code>PULSE</code>"),
+        ("<b>COMMODITIES</b> / <b>GOLD</b> / <b>CRUDE</b>", "Macro Commodities &amp; Forex: Spot Gold 24K/22K, Silver, Brent Crude &amp; USD/INR", "<code>COMMODITIES</code> or <code>GOLD</code>"),
         ("<b>IPO</b> / <b>GMP</b>", "Active IPO pipeline, live Grey Market Premium %, subscription &amp; AI verdict", "<code>IPO</code> or <code>GMP</code>"),
         ("<b>IPO &lt;NAME&gt;</b>", "Detailed single IPO dossier with dates, price band, lot size &amp; expected listing", "<code>IPO SWIGGY</code>")
     ]
