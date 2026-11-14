@@ -517,7 +517,7 @@ def fetch_macro_news_headlines(
             if val and val not in serpapi_keys:
                 serpapi_keys.append(val)
 
-    query_str = "Indian stock market macro news Nifty RBI inflation"
+    query_str = "Indian stock market news Nifty Sensex RBI FII"
 
     # Tier 1: SerpApi google_news engine
     if use_serpapi and serpapi_keys:
@@ -534,17 +534,21 @@ def fetch_macro_news_headlines(
                     news_results = data.get("news_results", [])
                     if news_results:
                         headlines = []
-                        seen_titles = set()
+                        seen_topics = set()
                         for it in news_results:
                             t = (it.get("title") or "").strip()
                             norm_t = re.sub(r"[^a-zA-Z0-9]", "", t).lower()
                             if (
                                 not norm_t
-                                or norm_t in seen_titles
                                 or any(w in t.lower() for w in ["calculator", "crorepati", "penny stock", "small nii", "big nii"])
                             ):
                                 continue
-                            seen_titles.add(norm_t)
+                            
+                            # Deduplicate similar themes (e.g. multiple "markets snap rally" titles)
+                            topic_key = " ".join([w for w in re.findall(r"\b\w{4,}\b", norm_t) if w not in ["today", "share", "stock", "market", "points", "drops", "falls"]][:3])
+                            if topic_key and topic_key in seen_topics:
+                                continue
+                            seen_topics.add(topic_key)
 
                             src_obj = it.get("source")
                             src_name = src_obj.get("name") if isinstance(src_obj, dict) else str(src_obj or "Financial Press")

@@ -4033,43 +4033,42 @@ def handle_run_news(news_type: str, recipient: Optional[str] = None) -> Dict[str
                 {"title": "Crude prices stable as global demand cues balance geopolitical supply risks", "source": "Reuters", "date": ""}
             ]
 
-        # 4. Format headlines with sentiment badges
-        lines = []
-        news_bullets = []
-        for it in headlines_raw[:3]:
-            title = clean_news_headline(it.get("title", ""))
-            source = clean_news_headline(it.get("source", "Financial Press"))
-            sent = classify_news_sentiment(title)
-            badge = "🟢 BULLISH" if "bull" in sent.lower() else ("🔴 CAUTION" if "bear" in sent.lower() else "⚡ CATALYST")
-            lines.append(f"{badge} • [{source}]\n   └ {title[:110]}")
-            news_bullets.append(f"- {title} (Source: {source})")
-
-        # 5. Synthesize Executive Takeaway anchored strictly to live benchmark
-        takeaway_text = ""
+        # 4. Synthesize Headlines with Semantic Badges and Executive Takeaway
+        bulletin_content = ""
         try:
+            news_items_formatted = "\n".join([f"{i+1}. '{it['title']}' (Source: {it['source']})" for i, it in enumerate(headlines_raw[:3])])
             sys_prompt = (
                 f"You are an institutional Indian macroeconomic desk analyst on WhatsApp. Today is {current_date_str}.\n"
-                "Given verified breaking macro headlines, provide a concise 2-sentence EXECUTIVE TAKEAWAY for traders.\n"
-                f"CRITICAL: Strictly anchor any market levels around current Nifty {nifty_lvl:,.0f}. "
-                "Highlight key support/resistance and overall institutional bias. No disclaimers, no meta-commentary."
+                "Given verified headlines, assign an accurate institutional badge ([🟢 BULLISH], [🔴 CAUTION], or [⚡ CATALYST]) "
+                "to each headline based on genuine financial impact (e.g., rising bond yields spooking markets or inflation surge is CAUTION, not Bullish; market drop is CAUTION; rate cut or strong FII inflow is BULLISH; policy meetings/data prints are CATALYST).\n"
+                f"Then write a concise 2-sentence EXECUTIVE TAKEAWAY anchored strictly to current Nifty level (~{nifty_lvl:,.0f}).\n"
+                "Output Format:\n"
+                "[🟢 BULLISH | 🔴 CAUTION | ⚡ CATALYST] • [<Source>]\n"
+                "└ <Clean headline>\n\n"
+                "⚡ *EXECUTIVE TAKEAWAY*:\n"
+                "<2-sentence takeaway anchored to Nifty level>"
             )
-            u_prompt = (
-                f"Benchmark: Nifty 50 at {nifty_lvl:,.0f}\n"
-                f"{macro_info}\n"
-                f"Recent Verified Headlines:\n" + "\n".join(news_bullets) + "\n\n"
-                "Synthesize the concise 2-sentence executive takeaway for traders:"
-            )
-            res = call_llm(TASK_FAST, system_prompt=sys_prompt, user_prompt=u_prompt, max_tokens=150, enable_web_search=False)
-            if res and len(res.strip()) > 20:
-                takeaway_text = f"\n\n⚡ *EXECUTIVE TAKEAWAY*:\n{html.unescape(res.strip())}"
+            u_prompt = f"Live Benchmark: Nifty 50 at {nifty_lvl:,.0f}\n\nVerified Headlines:\n{news_items_formatted}\n\nGenerate the formatted macro bulletin:"
+            res = call_llm(TASK_FAST, system_prompt=sys_prompt, user_prompt=u_prompt, max_tokens=280, enable_web_search=False)
+            if res and len(res.strip()) > 50:
+                bulletin_content = html.unescape(res.strip())
         except Exception as e:
-            logger.warning(f"Macro takeaway synthesis error: {e}")
+            logger.warning(f"Macro bulletin LLM synthesis error: {e}")
+
+        # Fallback formatting if LLM failed
+        if not bulletin_content:
+            fallback_lines = []
+            for it in headlines_raw[:3]:
+                title = clean_news_headline(it.get("title", ""))
+                source = clean_news_headline(it.get("source", "Financial Press"))
+                badge = "🔴 CAUTION" if any(w in title.lower() for w in ["drop", "fall", "spook", "inflation", "hike", "fear", "loss", "crash"]) else ("🟢 BULLISH" if any(w in title.lower() for w in ["gain", "rally", "surge", "jump", "record"]) else "⚡ CATALYST")
+                fallback_lines.append(f"{badge} • [{source}]\n   └ {title[:110]}")
+            bulletin_content = "\n\n".join(fallback_lines) + f"\n\n⚡ *EXECUTIVE TAKEAWAY*:\nNifty 50 at {nifty_lvl:,.0f} continues to monitor global cues and domestic monetary policy. Key defend zone is anchored near {nifty_lvl*0.99:,.0f}."
 
         body = (
             "📰 *MACRO MARKET CATALYSTS*\n"
             "━━━━━━━━━━━━━━━━━━━━\n"
-            + "\n\n".join(lines)
-            + takeaway_text + "\n"
+            f"{bulletin_content}\n"
             "━━━━━━━━━━━━━━━━━━━━\n"
             "_Tip: Text `NEWS <SYMBOL>` (e.g. `NEWS BOSCH`) for stock deep dive._"
         )
