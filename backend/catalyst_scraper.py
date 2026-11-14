@@ -379,3 +379,121 @@ def fetch_serpapi_google_ai_overview(query: str, serpapi_keys: Optional[list] = 
             continue
 
     return {}
+
+
+def fetch_stock_news_headlines(
+    comp_name: str, 
+    symbol: str, 
+    max_items: int = 3,
+    use_serpapi: bool = True
+) -> tuple[list[dict], str]:
+    """
+    Fetches real-time, verified financial news headlines for an Indian listed stock.
+    Priority 1: SerpApi Google News Engine (dedicated financial news feed).
+    Priority 2: Free Google News RSS Feed (instant failover with 0 quota limit).
+    
+    Returns a tuple of (list_of_news_dicts, provider_name).
+    Each dict contains: {'title': str, 'source': str, 'date': str, 'link': str}
+    """
+    # Get all configured SerpApi keys
+    serpapi_keys = []
+    for k, v in os.environ.items():
+        if k.startswith("SERPAPI_API_KEY"):
+            val = v.strip()
+            if val and val not in serpapi_keys:
+                serpapi_keys.append(val)
+
+    clean_comp = re.sub(r"\b(?:LTD|LIMITED|PVT|PRIVATE|CORP|CORPORATION|INC)\b\.?", "", comp_name, flags=re.IGNORECASE).strip()
+    query_str = f"{clean_comp} share news"
+
+    # Tier 1: SerpApi google_news engine
+    if use_serpapi and serpapi_keys:
+        for sk in serpapi_keys:
+            if not sk:
+                continue
+            try:
+                masked_sk = f"{sk[:6]}...{sk[-4:]}" if len(sk) > 10 else sk
+                encoded = urllib.parse.quote(query_str)
+                url = f"https://serpapi.com/search.json?engine=google_news&q={encoded}&gl=in&hl=en&api_key={sk}"
+                r = requests.get(url, timeout=8.0)
+                if r.status_code == 200:
+                    data = r.json()
+                    news_results = data.get("news_results", [])
+                    if news_results:
+                        headlines = []
+                        seen_titles = set()
+                        for it in news_results:
+                            t = (it.get("title") or "").strip()
+                            norm_t = re.sub(r"[^a-zA-Z0-9]", "", t).lower()
+                            if not norm_t or norm_t in seen_titles:
+                                continue
+                            seen_titles.add(norm_t)
+                            
+                            src_obj = it.get("source")
+                            src_name = src_obj.get("name") if isinstance(src_obj, dict) else str(src_obj or "Financial Press")
+                            date_str = it.get("date", "")
+                            link = it.get("link", "")
+                            headlines.append({
+                                "title": t,
+                                "source": src_name,
+                                "date": date_str,
+                                "link": link
+                            })
+                            if len(headlines) >= max_items:
+                                break
+                        if headlines:
+                            print(f"[Catalyst Scraper] SerpApi google_news returned {len(headlines)} headlines with key {masked_sk}.")
+                            return headlines, "SerpApi Google News"
+                elif r.status_code in (401, 403, 429):
+                    print(f"[Catalyst Scraper] SerpApi key {masked_sk} returned {r.status_code}. Rotating.")
+                    continue
+            except Exception as e:
+                print(f"[Catalyst Scraper] SerpApi google_news exception: {e}")
+                continue
+
+    # Tier 2: Free Google News RSS fallback
+    try:
+        rss_query = f"{clean_comp} share news India when:7d"
+        encoded_rss = urllib.parse.quote(rss_query)
+        rss_url = f"https://news.google.com/rss/search?q={encoded_rss}&hl=en-IN&gl=IN&ceid=IN:en"
+        headers = {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36"
+        }
+        r = requests.get(rss_url, headers=headers, timeout=6.0)
+        if r.status_code == 200:
+            soup = BeautifulSoup(r.content, "html.parser")
+            items = soup.find_all("item")
+            headlines = []
+            seen_titles = set()
+            for it in items:
+                raw_title = it.find("title").text if it.find("title") else ""
+                if not raw_title:
+                    continue
+                src_name = "Google News"
+                if " - " in raw_title:
+                    parts = raw_title.rsplit(" - ", 1)
+                    title = parts[0].strip()
+                    src_name = parts[1].strip()
+                else:
+                    title = raw_title.strip()
+                norm_t = re.sub(r"[^a-zA-Z0-9]", "", title).lower()
+                if norm_t in seen_titles:
+                    continue
+                seen_titles.add(norm_t)
+                pub_date = it.find("pubdate").text if it.find("pubdate") else ""
+                headlines.append({
+                    "title": title,
+                    "source": src_name,
+                    "date": pub_date,
+                    "link": it.find("link").text if it.find("link") else ""
+                })
+                if len(headlines) >= max_items:
+                    break
+            if headlines:
+                print(f"[Catalyst Scraper] Google News RSS returned {len(headlines)} headlines.")
+                return headlines, "Google News RSS"
+    except Exception as e:
+        print(f"[Catalyst Scraper] Google News RSS fallback failed: {e}")
+
+    return [], "None"
+
