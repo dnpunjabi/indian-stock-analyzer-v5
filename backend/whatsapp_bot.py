@@ -4729,9 +4729,9 @@ def handle_why_stock_moved(query_input: str, recipient: Optional[str] = None) ->
     direction_badge = "🔴 SELL-OFF TRIGGER" if is_down else ("🟢 RALLY CATALYST" if is_up else "⚡ INTRADAY CATALYST")
 
     # Extract ticker symbol
-    extracted_sym = re.sub(r"^(?:WHY\s+(?:IS\s+)?|WHAT\s+HAPPENED\s+TO\s+)", "", clean, flags=re.IGNORECASE)
-    extracted_sym = re.sub(r"\b(?:DOWN|FALLING|CRASH|CRASHING|DROP|DROPPING|UP|SURGING|RISING|RALLY|TODAY|NOW)\b", "", extracted_sym, flags=re.IGNORECASE)
-    extracted_sym = extracted_sym.replace("?", "").replace(":", "").strip().upper()
+    extracted_sym = re.sub(r"^(?:WHY\s+(?:IS\s+)?|WHAT\s+HAPPENED\s+TO\s+|TELL\s+ME\s+ABOUT\s+)", "", clean, flags=re.IGNORECASE)
+    extracted_sym = re.sub(r"\b(?:IS|ARE|WAS|BEEN|DOWN|FALLING|CRASH|CRASHING|DROP|DROPPING|UP|SURGING|RISING|RALLY|TODAY|NOW|SHARE|STOCK|PRICE)\b", "", extracted_sym, flags=re.IGNORECASE)
+    extracted_sym = re.sub(r"[?!:;,.]", "", extracted_sym).strip().upper()
 
     resolved = resolve_company_ticker(extracted_sym)
     base_sym = resolved.get("base_symbol") if resolved else extracted_sym.replace(".NS", "")
@@ -4743,6 +4743,31 @@ def handle_why_stock_moved(query_input: str, recipient: Optional[str] = None) ->
     cmp_val = price_ctx.get("cmp", 0.0)
     sup_val = price_ctx.get("support", 0.0)
     res_val = price_ctx.get("resistance", 0.0)
+
+    # Fallback lookup if yfinance didn't return CMP
+    if cmp_val <= 0:
+        gt = get_stock_ground_truth(base_sym)
+        cmp_val = float(gt.get("ltp") or 0.0)
+        if cmp_val > 0:
+            sup_val = round(cmp_val * 0.95, 2)
+            res_val = round(cmp_val * 1.05, 2)
+
+    # If the symbol cannot be identified or price is 0, give helpful guidance instead of hallucinating
+    if cmp_val <= 0 and (not resolved or base_sym == extracted_sym):
+        body = (
+            f"🔍 *Could not find stock '{extracted_sym}' on NSE*\n"
+            "━━━━━━━━━━━━━━━━━━━━\n"
+            "Please check the company name or symbol, for example:\n"
+            "• *Why BOSCH is down?*\n"
+            "• *Why TATA MOTORS falling?*\n"
+            "• *Why RELIANCE surging?*"
+        )
+        buttons = [
+            ("view:stock:BOSCHLTD", "🔍 BOSCH"),
+            ("view:stock:RELIANCE", "🔍 RELIANCE"),
+            ("nav:menu:main", "🏠 Main Menu")
+        ]
+        return send_whatsapp_interactive_buttons(body, buttons=buttons, recipient=recipient)
 
     # 1. Fetch freshest 24-hour news first (Today's breaking catalysts)
     from backend.catalyst_scraper import fetch_latest_news_for_query
