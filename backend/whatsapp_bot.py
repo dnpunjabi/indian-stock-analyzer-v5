@@ -4466,6 +4466,7 @@ def get_stock_price_context(symbol_clean: str, ticker: str) -> Dict[str, Any]:
         "support": 0.0,
         "formatted_text": ""
     }
+    # 1. Fetch cached profile for deep technicals (50-DMA, 200-DMA, Fibonacci, BB)
     try:
         with get_db() as conn:
             cursor = conn.cursor()
@@ -4501,22 +4502,32 @@ def get_stock_price_context(symbol_clean: str, ticker: str) -> Dict[str, Any]:
     except Exception as e:
         logger.warning(f"Error fetching stock price context for {symbol_clean}: {e}")
 
-    # Live fallback if not present in cache
-    if not ctx["cmp"]:
-        try:
-            t = yf.Ticker(ticker)
-            fast_info = getattr(t, "fast_info", None)
-            if fast_info:
-                cmp_val = clean_float(getattr(fast_info, "last_price", 0.0))
-                h52 = clean_float(getattr(fast_info, "year_high", 0.0))
-                l52 = clean_float(getattr(fast_info, "year_low", 0.0))
-                ctx["cmp"] = cmp_val
-                ctx["high_52w"] = h52
-                ctx["low_52w"] = l52
-                ctx["resistance"] = h52 if h52 > cmp_val else cmp_val * 1.05
-                ctx["support"] = l52 if 0 < l52 < cmp_val else cmp_val * 0.95
-        except Exception:
-            pass
+    # 2. Always fetch live fast_info to guarantee real-time CMP and fresh 52W range
+    try:
+        t = yf.Ticker(ticker)
+        fast_info = getattr(t, "fast_info", None)
+        if fast_info:
+            live_cmp = clean_float(getattr(fast_info, "last_price", 0.0))
+            if live_cmp > 0:
+                ctx["cmp"] = live_cmp
+            live_h52 = clean_float(getattr(fast_info, "year_high", 0.0))
+            if live_h52 > 0:
+                ctx["high_52w"] = live_h52
+            live_l52 = clean_float(getattr(fast_info, "year_low", 0.0))
+            if live_l52 > 0:
+                ctx["low_52w"] = live_l52
+    except Exception as e:
+        logger.debug(f"Could not fetch live fast_info for {ticker}: {e}")
+
+    # 3. Dynamic sanity adjustments for support/resistance relative to fresh CMP
+    if ctx["cmp"] > 0:
+        cmp_val = ctx["cmp"]
+        h52 = ctx["high_52w"]
+        l52 = ctx["low_52w"]
+        if ctx["resistance"] <= cmp_val:
+            ctx["resistance"] = h52 if h52 > cmp_val else round(cmp_val * 1.05, 2)
+        if ctx["support"] >= cmp_val or ctx["support"] <= 0:
+            ctx["support"] = l52 if 0 < l52 < cmp_val else round(cmp_val * 0.95, 2)
 
     if ctx["cmp"] > 0:
         ctx["formatted_text"] = (
