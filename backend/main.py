@@ -7110,7 +7110,6 @@ async def list_alerts():
 
     try:
         await sweep_watchlist_custom_alerts()
-        await sweep_watchlist_dip_alerts()
     except Exception as e:
         logger.error(f"Error sweeping watchlist custom alerts in list_alerts: {e}")
 
@@ -9930,15 +9929,26 @@ async def check_fuzzy_watchlist_whatsapp_alerts():
 
 async def sweep_watchlist_dip_alerts(watchlist_id: Optional[int] = None, force_dispatch: bool = False) -> Dict[str, Any]:
     """
-    Evaluates watchlist stocks for automated Dip, Valuation MOS, and 52W-Low alerts.
-    If conditions are met and not already notified today, dispatches instant WhatsApp alerts.
-    When force_dispatch=True, dispatches a live test verification alert immediately.
+    Evaluates watchlist stocks for automated intraday price dips (>= 3% drop or 52W Lows).
+    Strictly gates execution to active NSE market hours (09:15 - 15:35 IST, Mon-Fri).
+    Valuation MOS auto-alerts are disabled to prevent repetitive non-intraday alerts.
+    When force_dispatch=True (user taps 'Test WhatsApp'), dispatches a live verification alert immediately.
     """
     from datetime import datetime, timedelta
     from backend.daily_wrapup import send_whatsapp_wrapup
     from backend.whatsapp_bot import get_stock_ground_truth
 
-    today_str = datetime.now().strftime("%Y-%m-%d")
+    now_utc = datetime.utcnow()
+    now_ist = now_utc + timedelta(hours=5, minutes=30)
+    is_weekday = (now_ist.weekday() < 5)
+    market_time_minutes = now_ist.hour * 60 + now_ist.minute
+    is_market_hours = is_weekday and (9 * 60 + 15 <= market_time_minutes <= 15 * 60 + 35)
+
+    # Strictly guard against off-market hours or weekend alerts unless manually triggered via test button
+    if not is_market_hours and not force_dispatch:
+        return {"status": "skipped", "reason": "Outside active NSE market hours (09:15 - 15:35 IST, Mon-Fri)"}
+
+    today_str = now_ist.strftime("%Y-%m-%d")
     dispatched_alerts = []
 
     with get_db() as conn:
@@ -9966,7 +9976,6 @@ async def sweep_watchlist_dip_alerts(watchlist_id: Optional[int] = None, force_d
         wl_id = wl["id"]
         wl_name = wl["name"]
         dip_thresh = float(wl["dip_threshold_pct"] or 3.0)
-        mos_thresh = float(wl["mos_threshold_pct"] or 20.0)
         alerts_enabled = bool(wl["dip_alerts_enabled"])
 
         if not alerts_enabled and not force_dispatch:
@@ -9995,17 +10004,17 @@ async def sweep_watchlist_dip_alerts(watchlist_id: Optional[int] = None, force_d
 
             test_msg = (
                 f"🧪 *APEX WATCHLIST DIP SENTINEL — LIVE VERIFICATION*\n\n"
-                f"✅ *Status: 100% ACTIVE & RUNNING 24/7 IN BACKGROUND*\n\n"
+                f"✅ *Status: 100% ACTIVE (Live Market Hours: 09:15 - 15:35 IST, Mon-Fri)*\n\n"
                 f"• *Watchlist:* {wl_name}\n"
                 f"• *Sample Stock:* *{symbol}* ({item.get('name') or base_sym})\n"
                 f"• *Current Price:* ₹{cp:.2f} ({chg:+.2f}% today)\n"
-                f"• *Valuation MOS:* {mos:+.1f}%\n"
                 f"• *Dip Threshold Trigger:* Drop ≥ -{dip_thresh:.1f}%\n"
-                f"• *Valuation MOS Trigger:* Margin of Safety ≥ +{mos_thresh:.1f}%\n"
+                f"• *52-Week Low Trigger:* Trading near 52W Low (bottom 2.5%)\n"
+                f"• *MOS Valuation Alert:* Disabled (Pure Price Dips Only)\n"
                 f"• *Anti-Spam Deduplication:* Enabled (Max 1 alert per stock/day)\n"
-                f"• *Background Frequency:* Continuous 15-min autonomous checks\n"
-                f"• *Verified At:* {datetime.now().strftime('%d %b %Y, %I:%M %p')}\n\n"
-                f"_Watchlist Sentinel is operating autonomously on the server. No browser tab needed!_"
+                f"• *Background Frequency:* Live 15-min checks during NSE hours\n"
+                f"• *Verified At:* {now_ist.strftime('%d %b %Y, %I:%M %p')} IST\n\n"
+                f"_Watchlist Sentinel is operating autonomously during live market hours. Zero off-market alerts._"
             )
             try:
                 wa_res = await send_whatsapp_wrapup(test_msg)
@@ -10021,7 +10030,7 @@ async def sweep_watchlist_dip_alerts(watchlist_id: Optional[int] = None, force_d
                 logger.error(f"Failed to dispatch WhatsApp test alert: {e}")
                 return {"status": "error", "message": f"WhatsApp send failed: {str(e)}"}
 
-        # Normal sweep mode across items
+        # Normal sweep mode across items (Active Market Hours Only)
         for item in items:
             symbol = item["symbol"].strip().upper()
             base_sym = symbol.replace('.NS', '').replace('.BO', '')
@@ -10057,7 +10066,7 @@ async def sweep_watchlist_dip_alerts(watchlist_id: Optional[int] = None, force_d
 
                 triggers = []
 
-                # Condition 1: Significant Intraday Dip
+                # Condition 1: Significant Intraday Dip (Drop >= dip_thresh)
                 if day_chg <= -dip_thresh:
                     triggers.append((
                         "INTRADAY_DIP",
@@ -10065,15 +10074,7 @@ async def sweep_watchlist_dip_alerts(watchlist_id: Optional[int] = None, force_d
                         f"Stock dipped below your -{dip_thresh:.1f}% threshold. Trading at ₹{cp:.2f}. Consider strategic accumulation if fundamentals are intact."
                     ))
 
-                # Condition 2: Deep Margin of Safety (Value Opportunity)
-                if mos_val >= mos_thresh:
-                    triggers.append((
-                        "VALUATION_MOS",
-                        f"💎 *Deep Valuation MOS:* *+{mos_val:.1f}%* Margin of Safety",
-                        f"Current market price ₹{cp:.2f} is trading at a deep discount against fair value. Favorable asymmetric risk-reward."
-                    ))
-
-                # Condition 3: Testing 52-Week Low
+                # Condition 2: Testing 52-Week Low
                 if 0.0 <= pos_pct <= 2.5:
                     triggers.append((
                         "52W_LOW_TEST",
@@ -10096,7 +10097,7 @@ async def sweep_watchlist_dip_alerts(watchlist_id: Optional[int] = None, force_d
                         continue
 
                     # Compose WhatsApp notification
-                    time_str = datetime.now().strftime("%d %b %Y, %I:%M %p")
+                    time_str = now_ist.strftime("%d %b %Y, %I:%M %p")
                     wa_alert_msg = (
                         f"🚨 *WATCHLIST DIP SENTINEL ALERT* 🚨\n\n"
                         f"• *Watchlist:* {wl_name}\n"
@@ -10105,8 +10106,8 @@ async def sweep_watchlist_dip_alerts(watchlist_id: Optional[int] = None, force_d
                         f"• *Current Price:* ₹{cp:.2f} ({day_chg:+.2f}% today)\n"
                         f"• *Margin of Safety:* {mos_val:+.1f}%\n"
                         f"• *Key Context:* {insight}\n"
-                        f"• *Timestamp:* {time_str}\n\n"
-                        f"_APEX 24/7 Watchlist Sentinel Desk_"
+                        f"• *Timestamp:* {time_str} IST\n\n"
+                        f"_APEX Live Market Watchlist Sentinel_"
                     )
 
                     try:
@@ -10143,12 +10144,12 @@ async def sweep_watchlist_dip_alerts(watchlist_id: Optional[int] = None, force_d
 
 async def run_background_watchlist_dip_alerts_scheduler():
     """
-    Autonomous 24/7 background daemon for Watchlist Dip & Valuation WhatsApp alerts.
+    Autonomous background daemon for Watchlist Dip WhatsApp alerts.
     - Market Hours (09:15 - 15:35 IST, Mon-Fri): Evaluates every 15 minutes.
-    - Off-Market Hours / Weekends: Evaluates once every 4 hours.
+    - Off-Market Hours / Weekends / Startup: Sleeps quietly until market hours.
     """
-    await asyncio.sleep(40)  # Wait for startup warm caching to complete
-    logger.info("Autonomous Background Watchlist Dip Alert Sentinel started.")
+    await asyncio.sleep(45)  # Wait for startup warm caching to complete
+    logger.info("Autonomous Watchlist Dip Alert Sentinel daemon started.")
 
     while True:
         try:
@@ -10159,16 +10160,17 @@ async def run_background_watchlist_dip_alerts_scheduler():
             market_time_minutes = now_ist.hour * 60 + now_ist.minute
             is_market_hours = is_weekday and (9 * 60 + 15 <= market_time_minutes <= 15 * 60 + 35)
 
-            await sweep_watchlist_dip_alerts()
-
             if is_market_hours:
-                sleep_secs = 15 * 60
+                await sweep_watchlist_dip_alerts()
+                sleep_secs = 15 * 60  # 15 minutes during live trading
             else:
-                sleep_secs = 4 * 3600
+                # Outside market hours: check every 15 minutes without running any alert evaluation
+                sleep_secs = 15 * 60
 
             await asyncio.sleep(sleep_secs)
         except Exception as e:
             logger.error(f"Error in Watchlist Dip Alerts scheduler loop: {e}", exc_info=True)
+            await asyncio.sleep(300)
             await asyncio.sleep(300)
 
 

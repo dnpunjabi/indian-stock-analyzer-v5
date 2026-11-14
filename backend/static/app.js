@@ -18141,14 +18141,14 @@ function syncWatchlistDipAlertsState(enabled) {
             btn.style.color = '#f59e0b';
             btn.style.fontWeight = '700';
             btn.innerHTML = '🔔 WhatsApp Alerts: ON';
-            btn.title = 'Watchlist 24/7 WhatsApp Dip & Valuation Sentinel is ACTIVE. Click to pause.';
+            btn.title = 'Watchlist WhatsApp Dip Sentinel is ACTIVE (Live market hours 09:15-15:35 IST). Click to pause.';
         } else {
             btn.style.background = 'rgba(255,255,255,0.05)';
             btn.style.borderColor = 'rgba(255,255,255,0.2)';
             btn.style.color = 'var(--text-secondary)';
             btn.style.fontWeight = 'normal';
             btn.innerHTML = '🔕 WhatsApp Alerts: OFF';
-            btn.title = 'Watchlist WhatsApp Alerts are PAUSED. Click to activate 24/7 background sentinel.';
+            btn.title = 'Watchlist WhatsApp Alerts are PAUSED. Click to activate live market dip sentinel.';
         }
     }
 }
@@ -18181,7 +18181,7 @@ async function toggleWatchlistDipAlerts() {
     }
 
     if (newState) {
-        showToast('✅ Watchlist WhatsApp Sentinel Active: Continuous 24/7 background monitoring enabled (Dips ≥ 3%, MOS ≥ 20%).', 'success');
+        showToast('✅ Watchlist WhatsApp Sentinel Active: Live market monitoring enabled for intraday dips (≥ 3% drop or 52W lows during 09:15-15:35 IST).', 'success');
         fetch('/api/alerts/check', { method: 'GET' })
             .then(res => res.json())
             .then(data => {
