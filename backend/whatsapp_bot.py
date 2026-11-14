@@ -3994,95 +3994,84 @@ def handle_run_news(news_type: str, recipient: Optional[str] = None) -> Dict[str
         macro_info = macro_ctx.get("formatted_text", "")
         nifty_lvl = macro_ctx.get("nifty", 24400.0)
 
-        # 1. Primary: Gemini 2.5 Flash with Real-Time Google Search Grounding
-        try:
-            sys_prompt = (
-                f"You are an institutional Indian macroeconomic analyst delivering high-signal, zero-fluff market intelligence for WhatsApp. Today is {current_date_str}.\n"
-                f"Deliver real-time market intelligence strictly for recent days ({current_year}).\n"
-                "Rules:\n"
-                "1. Filter out retail clickbait (e.g. IPO listing gain calculators, penny stocks, small NII speculation).\n"
-                f"2. Focus strictly on institutional market drivers from this week ({current_year}): Nifty 50, Sensex, FII/DII net flows, RBI policy/inflation, or crude oil.\n"
-                f"3. CRITICAL BENCHMARK ANCHOR: Nifty 50 is trading around {nifty_lvl:,.0f}. All support, resistance, and targets MUST be strictly consistent with this current benchmark level. NEVER cite obsolete historical levels from 2023/2024 (such as Nifty 21,000 or 22,500) or old crude spikes ($90+).\n"
-                "4. Output strictly WhatsApp markdown. No conversational preamble, no trailing disclaimers."
-            )
-            u_prompt = (
-                f"Today: {current_date_str}\n"
-                f"{macro_info}\n\n"
-                f"Search Google for today's live Indian macroeconomic catalysts, Nifty 50 and Sensex drivers, FII/DII institutional flows, and crude oil/global cues for this week ({current_year}).\n\n"
-                "Output format:\n"
-                "Top 3 verified macroeconomic developments today, formatted exactly as:\n"
-                "[🟢 BULLISH | 🔴 CAUTION | ⚡ CATALYST] • [<Source & Date>]\n"
-                "└ <Clear 1-sentence headline/development>\n\n"
-                "Followed by:\n"
-                "⚡ *EXECUTIVE TAKEAWAY*:\n"
-                f"* <1-2 sentences on Nifty/Sensex trend, institutional flows, and key support/resistance levels anchored strictly to current levels around {nifty_lvl:,.0f}>"
-            )
-            res = call_llm(TASK_FAST, system_prompt=sys_prompt, user_prompt=u_prompt, max_tokens=320, enable_web_search=True)
-            if res and len(res.strip()) > 50:
-                cleaned_body = html.unescape(res.strip())
-                body = (
-                    "📰 *MACRO MARKET CATALYSTS*\n"
-                    "━━━━━━━━━━━━━━━━━━━━\n"
-                    f"{cleaned_body}\n"
-                    "━━━━━━━━━━━━━━━━━━━━\n"
-                    "_Tip: Text `NEWS <SYMBOL>` (e.g. `NEWS BOSCH`) for stock deep dive._"
-                )
-                buttons = [
-                    ("view:portfolio", "💼 Portfolio"),
-                    ("view:pulse", "🌐 Market Pulse"),
-                    ("nav:menu:main", "🏠 Main Menu")
-                ]
-                return send_whatsapp_interactive_buttons(body, buttons=buttons, recipient=recipient)
-        except Exception as e:
-            logger.warning(f"Macro news LLM grounding error: {e}")
+        # 1. Primary: SerpApi Google News Engine for verified Indian macroeconomic headlines
+        from backend.catalyst_scraper import fetch_macro_news_headlines
+        headlines_raw, provider = fetch_macro_news_headlines(max_items=3, use_serpapi=True)
 
         # 2. Resilient Fallback: Cleaned and Deduplicated cached_global_market_news
-        headlines = []
-        try:
-            with get_db() as conn:
-                cursor = conn.cursor()
-                cursor.execute("SELECT payload_json FROM cached_global_market_news WHERE feed_key = 'global_news'")
-                row = cursor.fetchone()
-                if row and row[0]:
-                    data = json.loads(row[0])
-                    seen_titles = set()
-                    for item in data.get("news_items", []):
-                        raw_title = clean_news_headline(item.get("title", ""))
-                        norm_title = re.sub(r"[^a-zA-Z0-9]", "", raw_title).lower()
-                        # Filter clickbait and duplicates
-                        if (
-                            not norm_title
-                            or norm_title in seen_titles
-                            or any(w in raw_title.lower() for w in ["calculator", "small nii", "big nii", "crorepati", "penny stock"])
-                        ):
-                            continue
-                        seen_titles.add(norm_title)
-                        source = clean_news_headline(item.get("source", "Market News"))
-                        sent = item.get("sentiment", "Neutral")
-                        headlines.append((raw_title, source, sent))
-                        if len(headlines) >= 3:
-                            break
-        except Exception as e:
-            logger.warning(f"Fallback macro news fetch error: {e}")
+        if not headlines_raw:
+            try:
+                with get_db() as conn:
+                    cursor = conn.cursor()
+                    cursor.execute("SELECT payload_json FROM cached_global_market_news WHERE feed_key = 'global_news'")
+                    row = cursor.fetchone()
+                    if row and row[0]:
+                        data = json.loads(row[0])
+                        seen_titles = set()
+                        for item in data.get("news_items", []):
+                            raw_title = clean_news_headline(item.get("title", ""))
+                            norm_title = re.sub(r"[^a-zA-Z0-9]", "", raw_title).lower()
+                            if (
+                                not norm_title
+                                or norm_title in seen_titles
+                                or any(w in raw_title.lower() for w in ["calculator", "small nii", "big nii", "crorepati", "penny stock"])
+                            ):
+                                continue
+                            seen_titles.add(norm_title)
+                            source = clean_news_headline(item.get("source", "Market News"))
+                            headlines_raw.append({"title": raw_title, "source": source, "date": ""})
+                            if len(headlines_raw) >= 3:
+                                break
+            except Exception as e:
+                logger.warning(f"Fallback macro news fetch error: {e}")
 
-        if not headlines:
-            headlines = [
-                ("Indian markets trade resilient amid steady domestic institutional flows", "Financial Express", "Bullish"),
-                ("RBI active in liquidity operations; monitoring food inflation prints", "Economic Times", "Neutral"),
-                ("Crude prices stable as global demand cues balance geopolitical supply risks", "Reuters", "Bullish")
+        # 3. Institutional baseline if scrapers and cache both empty
+        if not headlines_raw:
+            headlines_raw = [
+                {"title": "Indian markets trade resilient amid steady domestic institutional flows", "source": "Financial Express", "date": ""},
+                {"title": "RBI active in liquidity operations; monitoring core inflation prints", "source": "Economic Times", "date": ""},
+                {"title": "Crude prices stable as global demand cues balance geopolitical supply risks", "source": "Reuters", "date": ""}
             ]
 
+        # 4. Format headlines with sentiment badges
         lines = []
-        for title, source, sent in headlines:
+        news_bullets = []
+        for it in headlines_raw[:3]:
+            title = clean_news_headline(it.get("title", ""))
+            source = clean_news_headline(it.get("source", "Financial Press"))
+            sent = classify_news_sentiment(title)
             badge = "🟢 BULLISH" if "bull" in sent.lower() else ("🔴 CAUTION" if "bear" in sent.lower() else "⚡ CATALYST")
             lines.append(f"{badge} • [{source}]\n   └ {title[:110]}")
+            news_bullets.append(f"- {title} (Source: {source})")
+
+        # 5. Synthesize Executive Takeaway anchored strictly to live benchmark
+        takeaway_text = ""
+        try:
+            sys_prompt = (
+                f"You are an institutional Indian macroeconomic desk analyst on WhatsApp. Today is {current_date_str}.\n"
+                "Given verified breaking macro headlines, provide a concise 2-sentence EXECUTIVE TAKEAWAY for traders.\n"
+                f"CRITICAL: Strictly anchor any market levels around current Nifty {nifty_lvl:,.0f}. "
+                "Highlight key support/resistance and overall institutional bias. No disclaimers, no meta-commentary."
+            )
+            u_prompt = (
+                f"Benchmark: Nifty 50 at {nifty_lvl:,.0f}\n"
+                f"{macro_info}\n"
+                f"Recent Verified Headlines:\n" + "\n".join(news_bullets) + "\n\n"
+                "Synthesize the concise 2-sentence executive takeaway for traders:"
+            )
+            res = call_llm(TASK_FAST, system_prompt=sys_prompt, user_prompt=u_prompt, max_tokens=150, enable_web_search=False)
+            if res and len(res.strip()) > 20:
+                takeaway_text = f"\n\n⚡ *EXECUTIVE TAKEAWAY*:\n{html.unescape(res.strip())}"
+        except Exception as e:
+            logger.warning(f"Macro takeaway synthesis error: {e}")
 
         body = (
-            "📰 *MACRO MARKET HEADLINES*\n"
+            "📰 *MACRO MARKET CATALYSTS*\n"
             "━━━━━━━━━━━━━━━━━━━━\n"
-            + "\n\n".join(lines) + "\n"
+            + "\n\n".join(lines)
+            + takeaway_text + "\n"
             "━━━━━━━━━━━━━━━━━━━━\n"
-            "_Tip: Text `NEWS <SYMBOL>` (e.g. `NEWS BOSCH`) for stock news._"
+            "_Tip: Text `NEWS <SYMBOL>` (e.g. `NEWS BOSCH`) for stock deep dive._"
         )
         buttons = [
             ("view:portfolio", "💼 Portfolio"),

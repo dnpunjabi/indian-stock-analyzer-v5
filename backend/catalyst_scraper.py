@@ -497,3 +497,120 @@ def fetch_stock_news_headlines(
 
     return [], "None"
 
+
+def fetch_macro_news_headlines(
+    max_items: int = 3,
+    use_serpapi: bool = True
+) -> tuple[list[dict], str]:
+    """
+    Fetches real-time Indian macroeconomic headlines (RBI, Nifty, FII/DII, Inflation).
+    Priority 1: SerpApi Google News Engine.
+    Priority 2: Free Google News RSS failover.
+    
+    Returns (list_of_news_dicts, provider_name).
+    """
+    # Get all configured SerpApi keys
+    serpapi_keys = []
+    for k, v in os.environ.items():
+        if k.startswith("SERPAPI_API_KEY"):
+            val = v.strip()
+            if val and val not in serpapi_keys:
+                serpapi_keys.append(val)
+
+    query_str = "Indian stock market macro news Nifty RBI inflation"
+
+    # Tier 1: SerpApi google_news engine
+    if use_serpapi and serpapi_keys:
+        for sk in serpapi_keys:
+            if not sk:
+                continue
+            try:
+                masked_sk = f"{sk[:6]}...{sk[-4:]}" if len(sk) > 10 else sk
+                encoded = urllib.parse.quote(query_str)
+                url = f"https://serpapi.com/search.json?engine=google_news&q={encoded}&gl=in&hl=en&api_key={sk}"
+                r = requests.get(url, timeout=8.0)
+                if r.status_code == 200:
+                    data = r.json()
+                    news_results = data.get("news_results", [])
+                    if news_results:
+                        headlines = []
+                        seen_titles = set()
+                        for it in news_results:
+                            t = (it.get("title") or "").strip()
+                            norm_t = re.sub(r"[^a-zA-Z0-9]", "", t).lower()
+                            if (
+                                not norm_t
+                                or norm_t in seen_titles
+                                or any(w in t.lower() for w in ["calculator", "crorepati", "penny stock", "small nii", "big nii"])
+                            ):
+                                continue
+                            seen_titles.add(norm_t)
+
+                            src_obj = it.get("source")
+                            src_name = src_obj.get("name") if isinstance(src_obj, dict) else str(src_obj or "Financial Press")
+                            date_str = it.get("date", "")
+                            link = it.get("link", "")
+                            headlines.append({
+                                "title": t,
+                                "source": src_name,
+                                "date": date_str,
+                                "link": link
+                            })
+                            if len(headlines) >= max_items:
+                                break
+                        if headlines:
+                            print(f"[Catalyst Scraper] SerpApi macro news returned {len(headlines)} headlines with key {masked_sk}.")
+                            return headlines, "SerpApi Google News"
+                elif r.status_code in (401, 403, 429):
+                    continue
+            except Exception as e:
+                print(f"[Catalyst Scraper] SerpApi macro news error: {e}")
+                continue
+
+    # Tier 2: Free Google News RSS fallback
+    try:
+        rss_query = "Indian stock market macro news Nifty RBI inflation when:7d"
+        encoded_rss = urllib.parse.quote(rss_query)
+        rss_url = f"https://news.google.com/rss/search?q={encoded_rss}&hl=en-IN&gl=IN&ceid=IN:en"
+        headers = {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36"
+        }
+        r = requests.get(rss_url, headers=headers, timeout=6.0)
+        if r.status_code == 200:
+            soup = BeautifulSoup(r.content, "html.parser")
+            items = soup.find_all("item")
+            headlines = []
+            seen_titles = set()
+            for it in items:
+                raw_title = it.find("title").text if it.find("title") else ""
+                if not raw_title or any(w in raw_title.lower() for w in ["calculator", "crorepati", "penny stock"]):
+                    continue
+                src_name = "Financial Press"
+                if " - " in raw_title:
+                    parts = raw_title.rsplit(" - ", 1)
+                    title = parts[0].strip()
+                    src_name = parts[1].strip()
+                else:
+                    title = raw_title.strip()
+                norm_t = re.sub(r"[^a-zA-Z0-9]", "", title).lower()
+                if norm_t in seen_titles:
+                    continue
+                seen_titles.add(norm_t)
+                pub_date = it.find("pubdate").text if it.find("pubdate") else ""
+                headlines.append({
+                    "title": title,
+                    "source": src_name,
+                    "date": pub_date,
+                    "link": it.find("link").text if it.find("link") else ""
+                })
+                if len(headlines) >= max_items:
+                    break
+            if headlines:
+                print(f"[Catalyst Scraper] Google News RSS macro returned {len(headlines)} headlines.")
+                return headlines, "Google News RSS"
+    except Exception as e:
+        print(f"[Catalyst Scraper] Google News RSS macro error: {e}")
+
+    return [], "None"
+
+
