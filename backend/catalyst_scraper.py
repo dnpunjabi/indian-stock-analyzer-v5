@@ -414,7 +414,7 @@ def fetch_stock_news_headlines(
             try:
                 masked_sk = f"{sk[:6]}...{sk[-4:]}" if len(sk) > 10 else sk
                 encoded = urllib.parse.quote(query_str)
-                url = f"https://serpapi.com/search.json?engine=google_news&q={encoded}&gl=in&hl=en&api_key={sk}"
+                url = f"https://serpapi.com/search.json?engine=google_news&q={encoded}&gl=in&hl=en&sort_by=date&api_key={sk}"
                 r = requests.get(url, timeout=8.0)
                 if r.status_code == 200:
                     data = r.json()
@@ -517,7 +517,7 @@ def fetch_macro_news_headlines(
             if val and val not in serpapi_keys:
                 serpapi_keys.append(val)
 
-    query_str = "Indian stock market news Nifty Sensex RBI FII"
+    query_str = "Nifty Sensex market news"
 
     # Tier 1: SerpApi google_news engine
     if use_serpapi and serpapi_keys:
@@ -527,7 +527,7 @@ def fetch_macro_news_headlines(
             try:
                 masked_sk = f"{sk[:6]}...{sk[-4:]}" if len(sk) > 10 else sk
                 encoded = urllib.parse.quote(query_str)
-                url = f"https://serpapi.com/search.json?engine=google_news&q={encoded}&gl=in&hl=en&api_key={sk}"
+                url = f"https://serpapi.com/search.json?engine=google_news&q={encoded}&gl=in&hl=en&sort_by=date&api_key={sk}"
                 r = requests.get(url, timeout=8.0)
                 if r.status_code == 200:
                     data = r.json()
