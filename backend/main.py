@@ -2557,10 +2557,6 @@ async def startup_warm_caching():
     asyncio.create_task(run_background_portfolio_catalyst_scheduler())
     asyncio.create_task(run_background_weekly_wrapup_scheduler())
     asyncio.create_task(run_background_watchlist_dip_alerts_scheduler())
-    
-    # 4.51 Fire WhatsApp Sandbox automated keep-alive scheduler (personal solo mode)
-    from backend.whatsapp_bot import run_background_whatsapp_sandbox_keepalive
-    asyncio.create_task(run_background_whatsapp_sandbox_keepalive())
 
     # 4.52 Fire WhatsApp Price Alerts background evaluator
     try:
