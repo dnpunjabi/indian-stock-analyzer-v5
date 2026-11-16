@@ -18872,6 +18872,124 @@
         </div>
     </div>
 
+    <!-- MULTI-VECTOR CONFLUENCE STORYTELLER MODAL -->
+    <div id="confluence-story-modal" class="confluence-story-modal-backdrop" onclick="if(event.target === this) window.closeConfluenceStoryModal && window.closeConfluenceStoryModal()">
+        <div class="confluence-story-card">
+            <!-- Header -->
+            <div class="confluence-story-header">
+                <div style="display: flex; align-items: center; gap: 12px; overflow: hidden; flex: 1; min-width: 240px;">
+                    <div style="font-size: 24px; flex-shrink: 0;">🎯</div>
+                    <div style="overflow: hidden;">
+                        <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                            <span id="confluence-story-sym" style="font-size: 18px; font-weight: 800; color: #38bdf8; letter-spacing: 0.5px;">SYMBOL</span>
+                            <span id="confluence-story-cmp" style="font-size: 13.5px; font-weight: 700; color: var(--text-secondary, #94a3b8);">₹0.00</span>
+                            <span id="confluence-story-score" style="font-size: 11px; padding: 2px 8px; border-radius: 12px; font-weight: 800; background: rgba(245, 158, 11, 0.2); color: #f59e0b; border: 1px solid rgba(245, 158, 11, 0.4);">Score: --/100</span>
+                            <span id="confluence-story-tier" style="font-size: 10.5px; padding: 2px 8px; border-radius: 12px; font-weight: 700; background: rgba(168, 85, 247, 0.15); color: #c084fc; border: 1px solid rgba(168, 85, 247, 0.35);">Apex Leader</span>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 8px; margin-top: 3px; font-size: 12px; color: var(--text-secondary, #94a3b8); flex-wrap: wrap;">
+                            <span id="confluence-story-comp-name">Company Name</span>
+                            <span style="opacity: 0.5;">•</span>
+                            <span id="confluence-story-model-tag" style="color: #60a5fa; font-weight: 600;">🤖 Institutional AI</span>
+                            <span id="confluence-story-cache-tag" style="display: none; background: rgba(16, 185, 129, 0.15); color: #34d399; padding: 1px 6px; border-radius: 4px; font-size: 10px;">⚡ Cached</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Action Controls -->
+                <div style="display: flex; align-items: center; gap: 8px; flex-shrink: 0; flex-wrap: wrap;">
+                    <button id="confluence-story-tts-btn" onclick="window.toggleConfluenceStoryTTS && window.toggleConfluenceStoryTTS()" class="btn-secondary" style="padding: 7px 12px; font-size: 12px; border-radius: 8px; display: inline-flex; align-items: center; gap: 5px; font-weight: 700; cursor: pointer;" title="Listen to Institutional Thesis">
+                        <span>🔊</span> Listen
+                    </button>
+                    <button onclick="window.copyConfluenceStoryMemo && window.copyConfluenceStoryMemo()" class="btn-secondary" style="padding: 7px 12px; font-size: 12px; border-radius: 8px; display: inline-flex; align-items: center; gap: 5px; font-weight: 700; cursor: pointer;" title="Copy Full Memo to Clipboard">
+                        <span>📋</span> Copy
+                    </button>
+                    <button onclick="window.refreshConfluenceStoryCurrent && window.refreshConfluenceStoryCurrent()" class="btn-secondary" style="padding: 7px 10px; font-size: 12px; border-radius: 8px; cursor: pointer;" title="Force Re-Analyze">
+                        🔄
+                    </button>
+                    <button onclick="window.closeConfluenceStoryModal && window.closeConfluenceStoryModal()" style="background: rgba(255,255,255,0.08); border: 1px solid var(--border-glass, rgba(255,255,255,0.12)); color: var(--text-primary, #f1f5f9); width: 34px; height: 34px; border-radius: 50%; font-size: 16px; cursor: pointer; display: flex; align-items: center; justify-content: center;" title="Close Modal (Esc)">
+                        ✕
+                    </button>
+                </div>
+            </div>
+
+            <!-- Body -->
+            <div class="confluence-story-body">
+                <!-- Loader -->
+                <div id="confluence-story-loading" style="text-align: center; padding: 60px 20px;">
+                    <div class="spinner" style="border: 3px solid rgba(245, 158, 11, 0.15); border-left-color: #f59e0b; border-radius: 50%; width: 44px; height: 44px; animation: spin 1s linear infinite; margin: 0 auto 16px auto;"></div>
+                    <h4 style="color: var(--text-primary, #f8fafc); margin: 0 0 6px 0; font-size: 16px; font-weight: 700;">Synthesizing Multi-Vector Confluence Thesis...</h4>
+                    <p style="color: var(--text-secondary, #94a3b8); font-size: 13px; max-width: 500px; margin: 0 auto; line-height: 1.5;">Cross-indexing 11 quantitative algorithms, institutional volume accumulation footprints, synergy pairs, and stage lifecycles.</p>
+                </div>
+
+                <!-- Content -->
+                <div id="confluence-story-content" style="display: none; flex-direction: column; gap: 16px;">
+                    <!-- Active Screener Mesh Row -->
+                    <div>
+                        <div style="font-size: 11px; font-weight: 800; text-transform: uppercase; color: #f59e0b; letter-spacing: 0.6px; margin-bottom: 8px; display: flex; align-items: center; gap: 6px;">
+                            <span>🔥</span> Active Screener Confluence Mesh
+                        </div>
+                        <div id="confluence-story-mesh-tags" style="display: flex; gap: 6px; flex-wrap: wrap;">
+                            <!-- Dynamically populated -->
+                        </div>
+                    </div>
+
+                    <!-- Synergy Signatures Row (if any) -->
+                    <div id="confluence-story-synergies-section" style="display: none;">
+                        <div style="font-size: 11px; font-weight: 800; text-transform: uppercase; color: #fbbf24; letter-spacing: 0.6px; margin-bottom: 8px; display: flex; align-items: center; gap: 6px;">
+                            <span>🧬</span> Verified Screener Synergy Pairs (+15 Pts Bonus)
+                        </div>
+                        <div id="confluence-story-synergies-list" style="display: flex; gap: 8px; flex-wrap: wrap;">
+                            <!-- Dynamically populated -->
+                        </div>
+                    </div>
+
+                    <!-- Institutional Story Narrative -->
+                    <div style="background: var(--bg-card-sub, rgba(255, 255, 255, 0.02)); border: 1px solid var(--border-glass, rgba(255, 255, 255, 0.08)); border-radius: 12px; padding: 16px 18px; border-left: 4px solid #f59e0b;">
+                        <div style="font-size: 11px; font-weight: 800; text-transform: uppercase; color: #f59e0b; letter-spacing: 0.6px; margin-bottom: 10px; display: flex; align-items: center; gap: 6px;">
+                            <span>📖</span> The Institutional Story
+                        </div>
+                        <div id="confluence-story-narrative" style="font-size: 13.5px; line-height: 1.65; color: var(--text-primary, #f8fafc); white-space: pre-line;">
+                            <!-- Dynamically populated -->
+                        </div>
+                    </div>
+
+                    <!-- Conflict & Red-Flag Audit (Devil's Advocate) -->
+                    <div style="background: var(--bg-card-sub, rgba(255, 255, 255, 0.02)); border: 1px solid var(--border-glass, rgba(255, 255, 255, 0.08)); border-radius: 12px; padding: 14px 16px;">
+                        <div style="font-size: 11px; font-weight: 800; text-transform: uppercase; color: #38bdf8; letter-spacing: 0.6px; margin-bottom: 10px; display: flex; align-items: center; gap: 6px;">
+                            <span>⚠️</span> Conflict & Red-Flag Audit (Devil's Advocate)
+                        </div>
+                        <div id="confluence-story-conflicts-list" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 8px;">
+                            <!-- Dynamically populated -->
+                        </div>
+                    </div>
+
+                    <!-- Asymmetric Execution Blueprint -->
+                    <div style="background: var(--bg-card-sub, rgba(255, 255, 255, 0.02)); border: 1px solid var(--border-glass, rgba(255, 255, 255, 0.08)); border-radius: 12px; padding: 14px 16px;">
+                        <div style="font-size: 11px; font-weight: 800; text-transform: uppercase; color: #34d399; letter-spacing: 0.6px; margin-bottom: 10px; display: flex; align-items: center; gap: 6px;">
+                            <span>⚡</span> Asymmetric Execution Blueprint
+                        </div>
+                        <div class="confluence-blueprint-grid" id="confluence-story-blueprint-grid">
+                            <!-- Dynamically populated -->
+                        </div>
+                    </div>
+
+                    <!-- Direct Navigation Footer -->
+                    <div style="display: flex; gap: 8px; justify-content: flex-end; flex-wrap: wrap; padding-top: 6px; border-top: 1px solid var(--border-glass, rgba(255,255,255,0.06));">
+                        <button id="confluence-story-ichart-btn" class="btn-primary" style="padding: 8px 14px; font-size: 12px; border-radius: 8px; cursor: pointer; display: inline-flex; align-items: center; gap: 5px; font-weight: 700; background: rgba(59, 130, 246, 0.2); border: 1px solid #3b82f6; color: #60a5fa;">
+                            📈 Open i-Chart Workstation
+                        </button>
+                        <button id="confluence-story-vision-btn" class="btn-primary" style="padding: 8px 14px; font-size: 12px; border-radius: 8px; cursor: pointer; display: inline-flex; align-items: center; gap: 5px; font-weight: 700; background: rgba(168, 85, 247, 0.2); border: 1px solid #a855f7; color: #c084fc;">
+                            🤖 AI Chart Pattern
+                        </button>
+                        <button id="confluence-story-tv-btn" class="btn-secondary" style="padding: 8px 14px; font-size: 12px; border-radius: 8px; cursor: pointer; display: inline-flex; align-items: center; gap: 5px; font-weight: 700; background: rgba(56, 189, 248, 0.15); border: 1px solid rgba(56, 189, 248, 0.4); color: #38bdf8;">
+                            Chart ↗
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Floating Scroll To Top Glass Button -->
     <button id="footer-scroll-top-btn" class="scroll-top-glass-btn no-print" title="Scroll to Top" aria-label="Scroll to Top">
         <svg class="scroll-top-ring" width="40" height="40" viewBox="0 0 36 36">

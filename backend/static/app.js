@@ -60021,7 +60021,10 @@ window.renderMultiConfluenceLeaderboard = function(data) {
                         <div class="confluence-action-footer" style="font-size: 11.5px; line-height: 1.4; padding: 6px 10px; border-radius: 6px; border-left: 3px solid #f59e0b; flex: 1; min-width: 170px;">
                             ${item.tactical_action || 'Look for high-volume breakout near pivot level.'}
                         </div>
-                        <div style="display: flex; gap: 6px; flex-shrink: 0;">
+                        <div style="display: flex; gap: 6px; flex-shrink: 0; flex-wrap: wrap;">
+                            <button onclick="event.stopPropagation(); window.openConfluenceStoryModal && window.openConfluenceStoryModal('${cleanSym}')" class="btn-primary quant-story-btn" style="padding: 6px 11px; font-size: 11.5px; border-radius: 7px; cursor: pointer; white-space: nowrap; display: inline-flex; align-items: center; gap: 4px; font-weight: 700; background: linear-gradient(135deg, #f59e0b, #d97706); border: 1px solid #f59e0b; color: #000; box-shadow: 0 2px 8px rgba(245, 158, 11, 0.25);" title="Generate AI Multi-Vector Confluence Story">
+                                ⚡ AI Story
+                            </button>
                             <button onclick="event.stopPropagation(); window.launchStageSimulator && window.launchStageSimulator('${cleanSym}')" class="btn-secondary quant-sim-btn" style="padding: 6px 11px; font-size: 11.5px; border-radius: 7px; cursor: pointer; white-space: nowrap; display: inline-flex; align-items: center; gap: 4px; font-weight: 700; background: rgba(168, 85, 247, 0.15); border: 1px solid rgba(168, 85, 247, 0.4); color: #c084fc;" title="Scan stock in 4-Stage Life Cycle Masterclass Simulator">
                                 Simulate ⚙️
                             </button>
@@ -60041,6 +60044,293 @@ window.renderMultiConfluenceLeaderboard = function(data) {
     html += `</div>`;
     container.innerHTML = html;
 };
+
+// ==========================================================================
+// MULTI-VECTOR CONFLUENCE STORYTELLER CONTROLLER
+// ==========================================================================
+window.activeConfluenceStoryData = null;
+window.activeConfluenceStorySymbol = null;
+let isConfluenceSpeaking = false;
+
+window.openConfluenceStoryModal = async function(symbol, forceRefresh = false) {
+    if (!symbol) return;
+    const cleanSym = String(symbol).trim().toUpperCase().replace('.NS', '').replace('.BO', '');
+    window.activeConfluenceStorySymbol = cleanSym;
+
+    const modal = document.getElementById('confluence-story-modal');
+    if (!modal) return;
+
+    // Reset TTS
+    if (window.speechSynthesis) window.speechSynthesis.cancel();
+    isConfluenceSpeaking = false;
+    const ttsBtn = document.getElementById('confluence-story-tts-btn');
+    if (ttsBtn) ttsBtn.innerHTML = '<span>🔊</span> Listen';
+
+    // Show modal & loader
+    modal.style.display = 'flex';
+    const loader = document.getElementById('confluence-story-loading');
+    const content = document.getElementById('confluence-story-content');
+    if (loader) loader.style.display = 'block';
+    if (content) content.style.display = 'none';
+
+    // Set initial header info
+    const symEl = document.getElementById('confluence-story-sym');
+    const cmpEl = document.getElementById('confluence-story-cmp');
+    const scoreEl = document.getElementById('confluence-story-score');
+    const tierEl = document.getElementById('confluence-story-tier');
+    const nameEl = document.getElementById('confluence-story-comp-name');
+    const modelTag = document.getElementById('confluence-story-model-tag');
+    const cacheTag = document.getElementById('confluence-story-cache-tag');
+
+    if (symEl) symEl.textContent = cleanSym;
+    if (cmpEl) cmpEl.textContent = 'Loading...';
+    if (scoreEl) scoreEl.textContent = 'Score: --/100';
+    if (tierEl) tierEl.textContent = 'Apex Confluence';
+    if (nameEl) nameEl.textContent = 'Analyzing 11 algorithms...';
+    if (cacheTag) cacheTag.style.display = 'none';
+
+    try {
+        const url = `/api/confluence/stock-story?symbol=${encodeURIComponent(cleanSym)}${forceRefresh ? '&force_refresh=true' : ''}`;
+        const resp = await fetch(url);
+        if (!resp.ok) {
+            throw new Error(`HTTP error ${resp.status}`);
+        }
+        const data = await resp.json();
+        window.activeConfluenceStoryData = data;
+
+        // Populate Header
+        if (cmpEl) cmpEl.textContent = `₹${(data.cmp || 0).toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+        if (scoreEl) scoreEl.textContent = `Score: ${data.confluence_score || 85}/100`;
+        if (tierEl) tierEl.textContent = data.tier_label || '👑 TIER 1: APEX CONFLUENCE LEADER';
+        if (nameEl) nameEl.textContent = data.company_name || cleanSym;
+        if (modelTag) modelTag.textContent = `🤖 ${data.model_label || 'Gemini 2.5 Flash'}`;
+        if (cacheTag) cacheTag.style.display = data.from_cache ? 'inline-block' : 'none';
+
+        // 1. Mesh tags
+        const meshContainer = document.getElementById('confluence-story-mesh-tags');
+        if (meshContainer) {
+            const screeners = data.screeners_active || [];
+            if (screeners.length > 0) {
+                meshContainer.innerHTML = screeners.map(s => `<span class="confluence-mesh-tag">✓ ${s}</span>`).join('');
+            } else {
+                meshContainer.innerHTML = `<span class="confluence-mesh-tag">✓ Stage 2 Mark-Up</span>`;
+            }
+        }
+
+        // 2. Synergy badges
+        const synSection = document.getElementById('confluence-story-synergies-section');
+        const synList = document.getElementById('confluence-story-synergies-list');
+        if (synSection && synList) {
+            const synergies = data.synergies || [];
+            if (synergies.length > 0) {
+                synSection.style.display = 'block';
+                synList.innerHTML = synergies.map(syn => `
+                    <div class="confluence-synergy-pill" title="${syn.desc || ''}">
+                        <span>${syn.badge || '🧬 SYNERGY'}</span>
+                        <span style="font-size: 11px; opacity: 0.85;">• ${syn.title} (+${syn.bonus || 15} Pts)</span>
+                    </div>
+                `).join('');
+            } else {
+                synSection.style.display = 'none';
+            }
+        }
+
+        // 3. Narrative
+        const narrEl = document.getElementById('confluence-story-narrative');
+        if (narrEl) {
+            let narrativeText = '';
+            const rawMd = data.formatted_markdown || '';
+            const storyMatch = rawMd.match(/📖\s*\*THE INSTITUTIONAL STORY\*:\s*([\s\S]*?)(?=━|⚠️|⚡|$)/i);
+            if (storyMatch && storyMatch[1]) {
+                narrativeText = storyMatch[1].trim();
+            } else {
+                narrativeText = rawMd;
+            }
+            narrEl.innerHTML = narrativeText
+                .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                .replace(/\*(.*?)\*/g, '<strong>$1</strong>')
+                .replace(/\n\n/g, '<br><br>');
+        }
+
+        // 4. Conflicts list (Devil's Advocate)
+        const confList = document.getElementById('confluence-story-conflicts-list');
+        if (confList) {
+            const conflicts = data.conflicts || [];
+            if (conflicts.length > 0) {
+                confList.innerHTML = conflicts.map(c => {
+                    const isPass = c.status === 'PASS';
+                    const icon = isPass ? '✅' : '⚠️';
+                    const color = isPass ? '#10b981' : '#f59e0b';
+                    return `
+                        <div class="confluence-audit-card" style="border-left: 3px solid ${color};">
+                            <div style="font-size: 11px; font-weight: 700; color: ${color}; display: flex; align-items: center; gap: 5px;">
+                                <span>${icon}</span> ${c.label || 'Audit'}
+                            </div>
+                            <div style="font-size: 12px; color: var(--text-secondary, #94a3b8); line-height: 1.4;">
+                                ${c.detail || ''}
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+            } else {
+                confList.innerHTML = `
+                    <div class="confluence-audit-card" style="border-left: 3px solid #10b981;">
+                        <div style="font-size: 11px; font-weight: 700; color: #10b981;">✅ Overextension & Stage Check</div>
+                        <div style="font-size: 12px; color: var(--text-secondary, #94a3b8);">All structural moving averages and overhead supply checks passed.</div>
+                    </div>
+                `;
+            }
+        }
+
+        // 5. Execution Blueprint Grid
+        const grid = document.getElementById('confluence-story-blueprint-grid');
+        if (grid) {
+            const lvl = data.tactical_levels || {};
+            grid.innerHTML = `
+                <div style="background: var(--bg-card, #0f172a); border: 1px solid rgba(56, 189, 248, 0.25); border-radius: 8px; padding: 8px 10px; text-align: center;">
+                    <div style="font-size: 10px; font-weight: 700; color: #38bdf8; text-transform: uppercase;">Pivot Trigger</div>
+                    <div style="font-size: 13.5px; font-weight: 800; color: #38bdf8; margin-top: 2px;">₹${(lvl.pivot_price || 0).toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</div>
+                    <div style="font-size: 9.5px; color: var(--text-secondary, #94a3b8);">Vol > 1.3x</div>
+                </div>
+                <div style="background: var(--bg-card, #0f172a); border: 1px solid rgba(248, 113, 113, 0.25); border-radius: 8px; padding: 8px 10px; text-align: center;">
+                    <div style="font-size: 10px; font-weight: 700; color: #f87171; text-transform: uppercase;">Stop-Loss</div>
+                    <div style="font-size: 13.5px; font-weight: 800; color: #f87171; margin-top: 2px;">₹${(lvl.stop_loss || 0).toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</div>
+                    <div style="font-size: 9.5px; color: #f87171;">-${lvl.risk_pct || 4.0}% Risk</div>
+                </div>
+                <div style="background: var(--bg-card, #0f172a); border: 1px solid rgba(52, 211, 153, 0.25); border-radius: 8px; padding: 8px 10px; text-align: center;">
+                    <div style="font-size: 10px; font-weight: 700; color: #34d399; text-transform: uppercase;">Target 1 (2-4W)</div>
+                    <div style="font-size: 13.5px; font-weight: 800; color: #34d399; margin-top: 2px;">₹${(lvl.target_1 || 0).toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</div>
+                    <div style="font-size: 9.5px; color: #34d399;">+${lvl.gain_pct || 10.0}% Gain</div>
+                </div>
+                <div style="background: var(--bg-card, #0f172a); border: 1px solid rgba(192, 132, 252, 0.25); border-radius: 8px; padding: 8px 10px; text-align: center;">
+                    <div style="font-size: 10px; font-weight: 700; color: #c084fc; text-transform: uppercase;">Target 2 (Positional)</div>
+                    <div style="font-size: 13.5px; font-weight: 800; color: #c084fc; margin-top: 2px;">₹${(lvl.target_2 || 0).toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</div>
+                    <div style="font-size: 9.5px; color: #c084fc;">Runner Leg</div>
+                </div>
+                <div style="background: var(--bg-card, #0f172a); border: 1px solid rgba(245, 158, 11, 0.25); border-radius: 8px; padding: 8px 10px; text-align: center;">
+                    <div style="font-size: 10px; font-weight: 700; color: #f59e0b; text-transform: uppercase;">Risk / Reward</div>
+                    <div style="font-size: 13.5px; font-weight: 800; color: #f59e0b; margin-top: 2px;">1 : ${lvl.rr_ratio || 2.5}</div>
+                    <div style="font-size: 9.5px; color: #f59e0b;">Asymmetric</div>
+                </div>
+            `;
+        }
+
+        // 6. Action buttons wiring
+        const ichartBtn = document.getElementById('confluence-story-ichart-btn');
+        if (ichartBtn) {
+            ichartBtn.onclick = () => {
+                window.closeConfluenceStoryModal();
+                if (window.openStandaloneInteractiveChart) {
+                    window.openStandaloneInteractiveChart(cleanSym, null, 'confluence', 'Apex Confluence Leaderboard');
+                }
+            };
+        }
+        const visionBtn = document.getElementById('confluence-story-vision-btn');
+        if (visionBtn) {
+            visionBtn.onclick = () => {
+                window.closeConfluenceStoryModal();
+                if (window.openChartVisionDiagnosticModal) {
+                    window.openChartVisionDiagnosticModal(cleanSym);
+                }
+            };
+        }
+        const tvBtn = document.getElementById('confluence-story-tv-btn');
+        if (tvBtn) {
+            tvBtn.onclick = () => {
+                if (window.openTradingViewChart) {
+                    window.openTradingViewChart(cleanSym);
+                }
+            };
+        }
+
+        // Hide loader, show content
+        if (loader) loader.style.display = 'none';
+        if (content) content.style.display = 'flex';
+
+    } catch (err) {
+        console.error('Failed to load confluence story:', err);
+        if (loader) {
+            loader.innerHTML = `
+                <div style="color: #f87171; font-size: 14px; font-weight: 700; margin-bottom: 8px;">⚠️ Failed to load Confluence Story</div>
+                <div style="color: var(--text-secondary, #94a3b8); font-size: 12px; margin-bottom: 16px;">${err.message || 'Network error or server unavailable'}</div>
+                <button onclick="window.openConfluenceStoryModal('${cleanSym}', true)" class="btn-primary" style="padding: 8px 16px; font-size: 12px; border-radius: 8px; cursor: pointer;">
+                    🔄 Retry
+                </button>
+            `;
+        }
+    }
+};
+
+window.closeConfluenceStoryModal = function() {
+    const modal = document.getElementById('confluence-story-modal');
+    if (modal) modal.style.display = 'none';
+    if (window.speechSynthesis) window.speechSynthesis.cancel();
+    isConfluenceSpeaking = false;
+    const ttsBtn = document.getElementById('confluence-story-tts-btn');
+    if (ttsBtn) ttsBtn.innerHTML = '<span>🔊</span> Listen';
+};
+
+window.refreshConfluenceStoryCurrent = function() {
+    if (window.activeConfluenceStorySymbol) {
+        window.openConfluenceStoryModal(window.activeConfluenceStorySymbol, true);
+    }
+};
+
+window.toggleConfluenceStoryTTS = function() {
+    if (!('speechSynthesis' in window)) {
+        if (typeof showToast === 'function') showToast('Text-to-Speech not supported in this browser', 'info');
+        return;
+    }
+    const btn = document.getElementById('confluence-story-tts-btn');
+    if (isConfluenceSpeaking) {
+        window.speechSynthesis.cancel();
+        isConfluenceSpeaking = false;
+        if (btn) btn.innerHTML = '<span>🔊</span> Listen';
+        return;
+    }
+    const narrEl = document.getElementById('confluence-story-narrative');
+    const textToSpeak = (narrEl ? narrEl.innerText : '').trim();
+    if (!textToSpeak) return;
+
+    window.speechSynthesis.cancel();
+    const utter = new SpeechSynthesisUtterance(textToSpeak);
+    utter.rate = 1.0;
+    utter.pitch = 1.0;
+    utter.onend = () => {
+        isConfluenceSpeaking = false;
+        if (btn) btn.innerHTML = '<span>🔊</span> Listen';
+    };
+    utter.onerror = () => {
+        isConfluenceSpeaking = false;
+        if (btn) btn.innerHTML = '<span>🔊</span> Listen';
+    };
+    isConfluenceSpeaking = true;
+    if (btn) btn.innerHTML = '<span>⏹</span> Stop';
+    window.speechSynthesis.speak(utter);
+};
+
+window.copyConfluenceStoryMemo = function() {
+    if (!window.activeConfluenceStoryData) return;
+    const text = window.activeConfluenceStoryData.formatted_markdown || '';
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(() => {
+            if (typeof showToast === 'function') showToast('📋 Institutional Dossier copied to clipboard!', 'success');
+        }).catch(() => {
+            if (typeof showToast === 'function') showToast('Failed to copy to clipboard', 'warning');
+        });
+    } else {
+        if (typeof showToast === 'function') showToast('Clipboard API unavailable', 'warning');
+    }
+};
+
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+        const modal = document.getElementById('confluence-story-modal');
+        if (modal && modal.style.display !== 'none') {
+            window.closeConfluenceStoryModal();
+        }
+    }
+});
 
 
 

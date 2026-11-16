@@ -5860,6 +5860,91 @@ def handle_chart_vision_query(symbol_input: str, recipient: Optional[str] = None
         )
 
 
+def handle_confluence_story_query(symbol_input: str, recipient: Optional[str] = None) -> Dict[str, Any]:
+    """
+    Generates and sends the Multi-Vector Institutional Confluence Dossier for a stock.
+    """
+    from backend.confluence_storyteller import generate_confluence_story_for_stock
+    clean = (symbol_input or "").strip().upper()
+    clean = re.sub(r"^(?:ACT:CONFLUENCE:STORY:|CONFLUENCE:STORY:|CONFLUENCE)[\s:]*", "", clean, flags=re.IGNORECASE).strip()
+    if not clean:
+        clean = "ZYDUSLIFE"
+
+    resolved = resolve_company_ticker(clean)
+    base_sym = resolved.get("base_symbol") if resolved else clean.replace(".NS", "")
+
+    try:
+        story = generate_confluence_story_for_stock(base_sym)
+        body = story.get("formatted_markdown", "")
+        if not body:
+            body = f"⚠️ *Could not compile confluence story for {base_sym}*."
+
+        buttons = [
+            (f"act:chart:{base_sym}", f"📈 {base_sym} Chart"),
+            (f"act:vision:{base_sym}", "🤖 AI Pattern"),
+            (f"view:stock:{base_sym}", f"📌 {base_sym} Dossier")
+        ]
+        return send_whatsapp_interactive_buttons(body, buttons=buttons, recipient=recipient)
+    except Exception as e:
+        logger.error(f"Error in handle_confluence_story_query for {base_sym}: {e}", exc_info=True)
+        return send_whatsapp_interactive_buttons(
+            f"⚠️ *Confluence Error*: Could not generate dossier for `{base_sym}`: {str(e)}",
+            buttons=[("nav:menu:main", "🏠 Main Menu")],
+            recipient=recipient
+        )
+
+
+def handle_confluence_overview_query(recipient: Optional[str] = None) -> Dict[str, Any]:
+    """
+    Sends the Top 3 Multi-Screener Confluence Setups of the Day with interactive buttons.
+    """
+    from backend.confluence_storyteller import get_top_confluence_setups
+    try:
+        top_setups = get_top_confluence_setups(limit=3)
+        if not top_setups:
+            return send_whatsapp_interactive_buttons(
+                "🏆 *Apex Confluence Radar*\n\n_Scanning 11 algorithms... No candidates in Buy Zone at this moment._",
+                buttons=[("nav:menu:main", "🏠 Main Menu")],
+                recipient=recipient
+            )
+
+        lines = [
+            "🏆 *APEX MULTI-SCREENER CONFLUENCE LEADERS*",
+            "Cross-indexing 11 Quant Screeners • Verified Buy Zones",
+            "━━━━━━━━━━━━━━━━━━━━"
+        ]
+
+        buttons = []
+        for idx, s in enumerate(top_setups[:3]):
+            sym = s.get("symbol", "")
+            score = s.get("confluence_score", 90)
+            sc_count = s.get("screener_count", 3)
+            cmp_v = s.get("cmp", 0.0)
+            syn_list = [syn["badge"] for syn in s.get("synergies", [])]
+            syn_str = f" • {syn_list[0]}" if syn_list else ""
+            
+            lines.append(f"{idx+1}. *{sym}* (Score: {score}/100 • CMP: ₹{cmp_v:,.2f})")
+            lines.append(f"   └ {sc_count} Screeners Active{syn_str}")
+            
+            if idx < 3 and sym:
+                buttons.append((f"act:confluence:story:{sym}", f"📖 {sym} Story"))
+
+        lines.append("━━━━━━━━━━━━━━━━━━━━")
+        lines.append("💡 _Tap a button below to read the complete Institutional Investment Committee Memo._")
+
+        msg = "\n".join(lines)
+        if not buttons:
+            buttons = [("nav:menu:main", "🏠 Main Menu")]
+        return send_whatsapp_interactive_buttons(msg, buttons=buttons[:3], recipient=recipient)
+    except Exception as e:
+        logger.error(f"Error in handle_confluence_overview_query: {e}", exc_info=True)
+        return send_whatsapp_interactive_buttons(
+            f"⚠️ *Confluence Radar Error*: {str(e)}",
+            buttons=[("nav:menu:main", "🏠 Main Menu")],
+            recipient=recipient
+        )
+
+
 
 
 def handle_ichart_query(symbol_input: str, mode: str = "breaks", recipient: Optional[str] = None) -> Dict[str, Any]:
@@ -8133,6 +8218,16 @@ def dispatch_incoming_whatsapp_message(text_body: str, sender: Optional[str] = N
     elif cleaned.startswith("log:trade:") or re.match(r"^(?:LOG\s+)?BUY\s+", upper):
         raw_cmd = cleaned.replace("log:trade:", "")
         return handle_log_buy(raw_cmd, recipient=sender)
+
+    # Multi-Screener Confluence Storyteller
+    elif cleaned.startswith("act:confluence:story:"):
+        sym = cleaned.replace("act:confluence:story:", "").strip()
+        return handle_confluence_story_query(sym, recipient=sender)
+    elif cleaned.startswith("act:confluence") or upper in ["CONFLUENCE", "APEX", "TOP CONFLUENCE", "CONFLUENCE RADAR"]:
+        return handle_confluence_overview_query(recipient=sender)
+    elif upper.startswith("CONFLUENCE "):
+        sym = re.sub(r"^CONFLUENCE\s+", "", cleaned, flags=re.IGNORECASE).strip()
+        return handle_confluence_story_query(sym, recipient=sender)
 
     # AI Chart Pattern & Vision Diagnostic
     elif cleaned.startswith("act:vision:") or upper.startswith("VISION") or upper.startswith("PATTERN"):

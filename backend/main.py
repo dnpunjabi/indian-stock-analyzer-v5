@@ -5643,6 +5643,44 @@ async def get_chart_vision_diagnostic(
         raise HTTPException(status_code=500, detail=f"Chart vision diagnostic failed: {str(e)}")
 
 
+@app.get("/api/confluence/stock-story")
+async def get_confluence_stock_story(
+    symbol: str,
+    force_refresh: bool = False
+):
+    """
+    Generates an institutional Multi-Vector Confluence Investment Committee Memo
+    synthesizing all 12+ quantitative screeners, synergy pairs, conflict audits,
+    and verified execution blueprints.
+    """
+    if not symbol:
+        raise HTTPException(status_code=400, detail="Symbol parameter is required.")
+    try:
+        from backend.confluence_storyteller import generate_confluence_story_for_stock
+        res = await asyncio.to_thread(generate_confluence_story_for_stock, symbol, force_refresh)
+        return res
+    except Exception as e:
+        logger.error(f"Confluence story generation failed for {symbol}: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Confluence story generation failed: {str(e)}")
+
+
+@app.get("/api/confluence/top-setups")
+async def get_confluence_top_setups_api(
+    limit: int = 5
+):
+    """
+    Returns the top N multi-screener confluence setups with their pre-warmed
+    institutional memos.
+    """
+    try:
+        from backend.confluence_storyteller import get_top_confluence_setups
+        res = await asyncio.to_thread(get_top_confluence_setups, limit)
+        return {"status": "success", "count": len(res), "setups": res}
+    except Exception as e:
+        logger.error(f"Top confluence setups fetch failed: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Top confluence setups fetch failed: {str(e)}")
+
+
 @app.post("/api/chart/chat-analyst")
 async def post_chart_chat_analyst(req: ChartChatRequest):
     ticker = req.symbol
