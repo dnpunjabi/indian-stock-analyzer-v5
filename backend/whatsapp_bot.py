@@ -5945,6 +5945,38 @@ def handle_confluence_overview_query(recipient: Optional[str] = None) -> Dict[st
         )
 
 
+def handle_valuation_expectations_query(symbol_input: str, recipient: Optional[str] = None) -> Dict[str, Any]:
+    """
+    Generates and sends the 5-Year Reverse DCF & Valuation Expectations Dossier.
+    """
+    from backend.valuation_expectations import generate_valuation_expectations
+    clean = (symbol_input or "").strip().upper()
+    clean = re.sub(r"^(?:ACT:VAL:|ACT:DCF:|VAL|DCF|EXPECTATIONS)[\s:]*", "", clean, flags=re.IGNORECASE).strip()
+    if not clean:
+        clean = "POLYCAB"
+
+    resolved = resolve_company_ticker(clean)
+    base_sym = resolved.get("base_symbol") if resolved else clean.replace(".NS", "")
+
+    try:
+        val_data = generate_valuation_expectations(base_sym)
+        body = val_data.get("formatted_markdown", "")
+        if not body:
+            body = f"⚠️ *Could not generate valuation expectations for {base_sym}*."
+
+        buttons = [
+            (f"act:chart:{base_sym}", f"📈 {base_sym} Chart"),
+            (f"act:confluence:story:{base_sym}", "🎯 Confluence"),
+            (f"view:stock:{base_sym}", f"📌 {base_sym} Dossier")
+        ]
+        return send_whatsapp_interactive_buttons(body, buttons=buttons, recipient=recipient)
+    except Exception as e:
+        logger.error(f"Error in handle_valuation_expectations_query for {base_sym}: {e}", exc_info=True)
+        return send_whatsapp_interactive_buttons(
+            f"⚠️ *Valuation Error*: Could not evaluate expectations for `{base_sym}`: {str(e)}",
+            buttons=[("nav:menu:main", "🏠 Main Menu")],
+            recipient=recipient
+        )
 
 
 def handle_ichart_query(symbol_input: str, mode: str = "breaks", recipient: Optional[str] = None) -> Dict[str, Any]:
@@ -8228,6 +8260,14 @@ def dispatch_incoming_whatsapp_message(text_body: str, sender: Optional[str] = N
     elif upper.startswith("CONFLUENCE "):
         sym = re.sub(r"^CONFLUENCE\s+", "", cleaned, flags=re.IGNORECASE).strip()
         return handle_confluence_story_query(sym, recipient=sender)
+
+    # 5-Year Reverse DCF & Valuation Expectations
+    elif cleaned.startswith("act:val:") or cleaned.startswith("act:dcf:"):
+        sym = re.sub(r"^(?:act:val:|act:dcf:)[\s:]*", "", cleaned, flags=re.IGNORECASE).strip()
+        return handle_valuation_expectations_query(sym, recipient=sender)
+    elif upper.startswith("VAL ") or upper.startswith("DCF ") or upper.startswith("EXPECTATIONS "):
+        sym = re.sub(r"^(?:VAL|DCF|EXPECTATIONS)\s+", "", cleaned, flags=re.IGNORECASE).strip()
+        return handle_valuation_expectations_query(sym, recipient=sender)
 
     # AI Chart Pattern & Vision Diagnostic
     elif cleaned.startswith("act:vision:") or upper.startswith("VISION") or upper.startswith("PATTERN"):

@@ -5681,6 +5681,27 @@ async def get_confluence_top_setups_api(
         raise HTTPException(status_code=500, detail=f"Top confluence setups fetch failed: {str(e)}")
 
 
+@app.get("/api/valuation/expectations")
+async def get_valuation_expectations_endpoint(
+    symbol: str,
+    force_refresh: bool = False
+):
+    """
+    Returns the 5-Year Reverse DCF & Valuation Expectations Dossier
+    including Cash Realization (CFO/PAT) audit, implied growth rate,
+    and 5-Year Bear/Base/Bull CAGR scenario matrix.
+    """
+    if not symbol:
+        raise HTTPException(status_code=400, detail="Symbol parameter is required.")
+    try:
+        from backend.valuation_expectations import generate_valuation_expectations
+        res = await asyncio.to_thread(generate_valuation_expectations, symbol, force_refresh)
+        return res
+    except Exception as e:
+        logger.error(f"Valuation expectations failed for {symbol}: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Valuation expectations failed: {str(e)}")
+
+
 @app.post("/api/chart/chat-analyst")
 async def post_chart_chat_analyst(req: ChartChatRequest):
     ticker = req.symbol

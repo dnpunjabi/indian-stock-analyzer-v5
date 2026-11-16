@@ -7595,6 +7595,10 @@ function renderStockDashboard(p) {
         searchInput.value = p.base_symbol || p.ticker.replace(".NS", "");
     }
 
+    if (typeof window.loadCardValuationExpectations === 'function') {
+        window.loadCardValuationExpectations(p.base_symbol || p.ticker);
+    }
+
     const companyNameEl = document.getElementById('meta-company-name');
     if (companyNameEl) companyNameEl.innerText = p.company_name;
     const tickerEl = document.getElementById('meta-ticker');
@@ -60322,6 +60326,296 @@ window.copyConfluenceStoryMemo = function() {
         if (typeof showToast === 'function') showToast('Clipboard API unavailable', 'warning');
     }
 };
+
+// ==========================================================================
+// 5-YEAR REVERSE DCF & VALUATION EXPECTATIONS CONTROLLER
+// ==========================================================================
+window.activeValuationData = null;
+window.activeValuationSymbol = null;
+let isValuationSpeaking = false;
+
+window.loadCardValuationExpectations = async function(symbol) {
+    if (!symbol) return;
+    const cleanSym = String(symbol).trim().toUpperCase().replace('.NS', '').replace('.BO', '');
+    window.currentActiveSymbol = cleanSym;
+
+    const cfoEl = document.getElementById('card-val-cfo-pat');
+    const impliedEl = document.getElementById('card-val-implied-growth');
+    const histEl = document.getElementById('card-val-hist-growth');
+    const badgeEl = document.getElementById('card-val-mos-badge');
+    const tbody = document.getElementById('card-val-scenario-tbody');
+    const verdictEl = document.getElementById('card-val-verdict-box');
+
+    try {
+        const resp = await fetch(`/api/valuation/expectations?symbol=${encodeURIComponent(cleanSym)}`);
+        if (!resp.ok) return;
+        const data = await resp.json();
+
+        if (cfoEl) cfoEl.textContent = `${data.cash_realization?.conversion_ratio_pct || 100}%`;
+        if (impliedEl) impliedEl.textContent = `${data.implied_5y_growth_pct || 0}% CAGR`;
+        if (histEl) histEl.textContent = `${data.historical_5y_growth_pct || 15}% CAGR`;
+        if (badgeEl) {
+            badgeEl.textContent = data.margin_of_safety?.badge || '🟢 High Margin of Safety';
+            badgeEl.style.color = data.margin_of_safety?.color || '#34d399';
+        }
+        if (verdictEl) {
+            verdictEl.textContent = data.margin_of_safety?.verdict || '';
+        }
+
+        if (tbody && data.scenarios) {
+            const sc = data.scenarios;
+            tbody.innerHTML = `
+                <tr>
+                    <td style="font-weight: 700; color: #f87171;">🐻 Bear Case</td>
+                    <td>+${sc.bear?.growth_pct || 10}%</td>
+                    <td>${sc.bear?.exit_pe || 25}x</td>
+                    <td style="font-weight: 700;">₹${(sc.bear?.future_price || 0).toLocaleString('en-IN')}</td>
+                    <td style="font-weight: 800; color: ${sc.bear?.cagr_pct >= 0 ? '#34d399' : '#f87171'};">${sc.bear?.cagr_pct >= 0 ? '+' : ''}${sc.bear?.cagr_pct || 0}% p.a.</td>
+                </tr>
+                <tr style="background: rgba(56, 189, 248, 0.04);">
+                    <td style="font-weight: 700; color: #38bdf8;">⚖️ Base Case</td>
+                    <td>+${sc.base?.growth_pct || 18}%</td>
+                    <td>${sc.base?.exit_pe || 35}x</td>
+                    <td style="font-weight: 700; color: #38bdf8;">₹${(sc.base?.future_price || 0).toLocaleString('en-IN')}</td>
+                    <td style="font-weight: 800; color: #34d399;">+${sc.base?.cagr_pct || 15}% p.a.</td>
+                </tr>
+                <tr>
+                    <td style="font-weight: 700; color: #34d399;">🐂 Bull Case</td>
+                    <td>+${sc.bull?.growth_pct || 25}%</td>
+                    <td>${sc.bull?.exit_pe || 45}x</td>
+                    <td style="font-weight: 700;">₹${(sc.bull?.future_price || 0).toLocaleString('en-IN')}</td>
+                    <td style="font-weight: 800; color: #34d399;">+${sc.bull?.cagr_pct || 25}% p.a.</td>
+                </tr>
+            `;
+        }
+    } catch (e) {
+        console.debug('Failed to load card valuation expectations:', e);
+    }
+};
+
+window.openValuationExpectationsModal = async function(symbol, forceRefresh = false) {
+    if (!symbol) return;
+    const cleanSym = String(symbol).trim().toUpperCase().replace('.NS', '').replace('.BO', '');
+    window.activeValuationSymbol = cleanSym;
+
+    const modal = document.getElementById('valuation-expectations-modal');
+    if (!modal) return;
+
+    if (window.speechSynthesis) window.speechSynthesis.cancel();
+    isValuationSpeaking = false;
+    const ttsBtn = document.getElementById('val-modal-tts-btn');
+    if (ttsBtn) ttsBtn.innerHTML = '<span>🔊</span> Listen';
+
+    modal.style.display = 'flex';
+    const loader = document.getElementById('val-modal-loading');
+    const content = document.getElementById('val-modal-content');
+    if (loader) loader.style.display = 'block';
+    if (content) content.style.display = 'none';
+
+    // Header initial text
+    const symEl = document.getElementById('val-modal-sym');
+    const cmpEl = document.getElementById('val-modal-cmp');
+    const peEl = document.getElementById('val-modal-pe');
+    const mosBadge = document.getElementById('val-modal-mos-badge');
+    const compEl = document.getElementById('val-modal-comp-name');
+    const modelTag = document.getElementById('val-modal-model-tag');
+    const cacheTag = document.getElementById('val-modal-cache-tag');
+
+    if (symEl) symEl.textContent = cleanSym;
+    if (cmpEl) cmpEl.textContent = 'Loading...';
+    if (peEl) peEl.textContent = 'P/E: --x';
+    if (mosBadge) mosBadge.textContent = 'Margin of Safety';
+    if (compEl) compEl.textContent = 'Evaluating multi-year fundamentals...';
+    if (cacheTag) cacheTag.style.display = 'none';
+
+    try {
+        const url = `/api/valuation/expectations?symbol=${encodeURIComponent(cleanSym)}${forceRefresh ? '&force_refresh=true' : ''}`;
+        const resp = await fetch(url);
+        if (!resp.ok) throw new Error(`HTTP error ${resp.status}`);
+        const data = await resp.json();
+        window.activeValuationData = data;
+
+        // Populate header
+        if (cmpEl) cmpEl.textContent = `₹${(data.cmp || 0).toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+        if (peEl) peEl.textContent = `P/E: ${data.current_pe || 0}x`;
+        if (mosBadge) {
+            mosBadge.textContent = data.margin_of_safety?.badge || 'Margin of Safety';
+            mosBadge.style.color = data.margin_of_safety?.color || '#34d399';
+        }
+        if (compEl) compEl.textContent = data.company_name || cleanSym;
+        if (modelTag) modelTag.textContent = `🤖 ${data.model_label || 'Gemini 2.5 Flash'}`;
+        if (cacheTag) cacheTag.style.display = data.from_cache ? 'inline-block' : 'none';
+
+        // 1. Cash Realization
+        const cfoRatioEl = document.getElementById('val-modal-cfo-ratio');
+        const cfoDetailsEl = document.getElementById('val-modal-cfo-details');
+        const cfoSummaryEl = document.getElementById('val-modal-cfo-summary');
+        if (cfoRatioEl) cfoRatioEl.textContent = `${data.cash_realization?.conversion_ratio_pct || 100}% Conversion`;
+        if (cfoDetailsEl) {
+            cfoDetailsEl.textContent = `5Y Cumulative PAT: ₹${(data.cash_realization?.cumulative_pat_cr || 0).toLocaleString('en-IN')} Cr vs CFO: ₹${(data.cash_realization?.cumulative_cfo_cr || 0).toLocaleString('en-IN')} Cr`;
+        }
+        if (cfoSummaryEl) cfoSummaryEl.textContent = data.cash_realization?.summary || '';
+
+        // 2. Reverse DCF Implied vs Historical Growth
+        const impliedRateEl = document.getElementById('val-modal-implied-rate');
+        const histRateEl = document.getElementById('val-modal-hist-rate');
+        const mosVerdictEl = document.getElementById('val-modal-mos-verdict');
+        if (impliedRateEl) impliedRateEl.textContent = `${data.implied_5y_growth_pct || 0}% CAGR`;
+        if (histRateEl) histRateEl.textContent = `${data.historical_5y_growth_pct || 15}% CAGR`;
+        if (mosVerdictEl) mosVerdictEl.textContent = data.margin_of_safety?.verdict || '';
+
+        // 3. Scenario Matrix
+        const scTbody = document.getElementById('val-modal-scenario-tbody');
+        if (scTbody && data.scenarios) {
+            const sc = data.scenarios;
+            scTbody.innerHTML = `
+                <tr>
+                    <td style="font-weight: 700; color: #f87171;">🐻 Bear Case</td>
+                    <td>+${sc.bear?.growth_pct || 10}%</td>
+                    <td>${sc.bear?.exit_pe || 25}x</td>
+                    <td style="font-weight: 700;">₹${(sc.bear?.future_price || 0).toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
+                    <td style="font-weight: 800; color: ${sc.bear?.cagr_pct >= 0 ? '#34d399' : '#f87171'};">${sc.bear?.cagr_pct >= 0 ? '+' : ''}${sc.bear?.cagr_pct || 0}% p.a.</td>
+                </tr>
+                <tr style="background: rgba(56, 189, 248, 0.05);">
+                    <td style="font-weight: 700; color: #38bdf8;">⚖️ Base Case</td>
+                    <td>+${sc.base?.growth_pct || 18}%</td>
+                    <td>${sc.base?.exit_pe || 35}x</td>
+                    <td style="font-weight: 700; color: #38bdf8;">₹${(sc.base?.future_price || 0).toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
+                    <td style="font-weight: 800; color: #34d399;">+${sc.base?.cagr_pct || 15}% p.a.</td>
+                </tr>
+                <tr>
+                    <td style="font-weight: 700; color: #34d399;">🐂 Bull Case</td>
+                    <td>+${sc.bull?.growth_pct || 25}%</td>
+                    <td>${sc.bull?.exit_pe || 45}x</td>
+                    <td style="font-weight: 700;">₹${(sc.bull?.future_price || 0).toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
+                    <td style="font-weight: 800; color: #34d399;">+${sc.bull?.cagr_pct || 25}% p.a.</td>
+                </tr>
+            `;
+        }
+
+        // 4. Narrative
+        const narrEl = document.getElementById('val-modal-narrative');
+        if (narrEl) {
+            let narrativeText = '';
+            const rawMd = data.formatted_markdown || '';
+            const storyMatch = rawMd.match(/💡\s*\*LONG-TERM ALLOCATION THESIS\*:\s*([\s\S]*?)$/i);
+            if (storyMatch && storyMatch[1]) {
+                narrativeText = storyMatch[1].trim();
+            } else {
+                narrativeText = rawMd;
+            }
+            narrEl.innerHTML = narrativeText
+                .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                .replace(/\*(.*?)\*/g, '<strong>$1</strong>')
+                .replace(/\n\n/g, '<br><br>');
+        }
+
+        // 5. Action Buttons Wiring
+        const ichartBtn = document.getElementById('val-modal-ichart-btn');
+        if (ichartBtn) {
+            ichartBtn.onclick = () => {
+                window.closeValuationExpectationsModal();
+                if (window.openStandaloneInteractiveChart) {
+                    window.openStandaloneInteractiveChart(cleanSym, null, 'breaks', 'Equity Valuation');
+                }
+            };
+        }
+        const tvBtn = document.getElementById('val-modal-tv-btn');
+        if (tvBtn) {
+            tvBtn.onclick = () => {
+                if (window.openTradingViewChart) {
+                    window.openTradingViewChart(cleanSym);
+                }
+            };
+        }
+
+        if (loader) loader.style.display = 'none';
+        if (content) content.style.display = 'flex';
+
+    } catch (err) {
+        console.error('Failed to load valuation expectations:', err);
+        if (loader) {
+            loader.innerHTML = `
+                <div style="color: #f87171; font-size: 14px; font-weight: 700; margin-bottom: 8px;">⚠️ Failed to load Valuation Expectations</div>
+                <div style="color: var(--text-secondary, #94a3b8); font-size: 12px; margin-bottom: 16px;">${err.message || 'Network error or server unavailable'}</div>
+                <button onclick="window.openValuationExpectationsModal('${cleanSym}', true)" class="btn-primary" style="padding: 8px 16px; font-size: 12px; border-radius: 8px; cursor: pointer;">
+                    🔄 Retry
+                </button>
+            `;
+        }
+    }
+};
+
+window.closeValuationExpectationsModal = function() {
+    const modal = document.getElementById('valuation-expectations-modal');
+    if (modal) modal.style.display = 'none';
+    if (window.speechSynthesis) window.speechSynthesis.cancel();
+    isValuationSpeaking = false;
+    const ttsBtn = document.getElementById('val-modal-tts-btn');
+    if (ttsBtn) ttsBtn.innerHTML = '<span>🔊</span> Listen';
+};
+
+window.refreshValuationCurrent = function() {
+    if (window.activeValuationSymbol) {
+        window.openValuationExpectationsModal(window.activeValuationSymbol, true);
+    }
+};
+
+window.toggleValuationTTS = function() {
+    if (!('speechSynthesis' in window)) {
+        if (typeof showToast === 'function') showToast('Text-to-Speech not supported in this browser', 'info');
+        return;
+    }
+    const btn = document.getElementById('val-modal-tts-btn');
+    if (isValuationSpeaking) {
+        window.speechSynthesis.cancel();
+        isValuationSpeaking = false;
+        if (btn) btn.innerHTML = '<span>🔊</span> Listen';
+        return;
+    }
+    const narrEl = document.getElementById('val-modal-narrative');
+    const textToSpeak = (narrEl ? narrEl.innerText : '').trim();
+    if (!textToSpeak) return;
+
+    window.speechSynthesis.cancel();
+    const utter = new SpeechSynthesisUtterance(textToSpeak);
+    utter.rate = 1.0;
+    utter.pitch = 1.0;
+    utter.onend = () => {
+        isValuationSpeaking = false;
+        if (btn) btn.innerHTML = '<span>🔊</span> Listen';
+    };
+    utter.onerror = () => {
+        isValuationSpeaking = false;
+        if (btn) btn.innerHTML = '<span>🔊</span> Listen';
+    };
+    isValuationSpeaking = true;
+    if (btn) btn.innerHTML = '<span>⏹</span> Stop';
+    window.speechSynthesis.speak(utter);
+};
+
+window.copyValuationMemo = function() {
+    if (!window.activeValuationData) return;
+    const text = window.activeValuationData.formatted_markdown || '';
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(() => {
+            if (typeof showToast === 'function') showToast('📋 Valuation Expectations Dossier copied!', 'success');
+        }).catch(() => {
+            if (typeof showToast === 'function') showToast('Failed to copy to clipboard', 'warning');
+        });
+    } else {
+        if (typeof showToast === 'function') showToast('Clipboard API unavailable', 'warning');
+    }
+};
+
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+        const vModal = document.getElementById('valuation-expectations-modal');
+        if (vModal && vModal.style.display !== 'none') {
+            window.closeValuationExpectationsModal();
+        }
+    }
+});
 
 document.addEventListener('keydown', function(e) {
     if (e.key === 'Escape') {

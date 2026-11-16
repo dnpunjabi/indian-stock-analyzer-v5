@@ -10948,6 +10948,76 @@
                             </div>
                         </div>
 
+                        <!-- 5-Year Reverse DCF & Expectations Valuation Card -->
+                        <div class="card col-span-4 card-hidden" id="reverse-dcf-expectations-card" data-subtab="valuation" style="display: flex; flex-direction: column; gap: 14px; border: 1px solid rgba(56, 189, 248, 0.35); background: linear-gradient(135deg, rgba(15, 23, 42, 0.95), rgba(30, 41, 59, 0.9)); border-radius: 14px; padding: 18px 22px; margin-bottom: 16px;">
+                            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; border-bottom: 1px solid var(--border-glass, rgba(255,255,255,0.08)); padding-bottom: 12px;">
+                                <div style="display: flex; align-items: center; gap: 10px;">
+                                    <span style="font-size: 22px;">🎯</span>
+                                    <div>
+                                        <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                                            <h3 style="margin: 0; font-size: 15px; font-weight: 800; color: #38bdf8; letter-spacing: 0.04em;">5-YEAR REVERSE DCF & EXPECTATIONS ENGINE</h3>
+                                            <span id="card-val-mos-badge" style="font-size: 11px; padding: 2px 8px; border-radius: 10px; font-weight: 800; background: rgba(16, 185, 129, 0.2); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.35);">🟢 High Margin of Safety</span>
+                                        </div>
+                                        <div style="font-size: 12px; color: var(--text-secondary, #94a3b8); margin-top: 2px;">
+                                            Solves what annual growth the market price is demanding & maps 5-year annualized CAGR returns.
+                                        </div>
+                                    </div>
+                                </div>
+                                <div style="display: flex; gap: 8px; align-items: center;">
+                                    <button onclick="window.openValuationExpectationsModal && window.openValuationExpectationsModal(window.currentActiveSymbol || 'POLYCAB')" class="btn-primary" style="padding: 7px 14px; font-size: 12px; border-radius: 8px; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; gap: 5px; background: linear-gradient(135deg, #0284c7, #0369a1); border: 1px solid #38bdf8; color: #fff;">
+                                        ⚡ Full Investor Memo
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- 3 Key Metric Blocks Row -->
+                            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px;">
+                                <!-- Metric 1: Cash Realization -->
+                                <div style="background: rgba(255,255,255,0.02); border: 1px solid var(--border-glass, rgba(255,255,255,0.08)); border-radius: 10px; padding: 12px;">
+                                    <div style="font-size: 11px; font-weight: 700; color: #34d399; text-transform: uppercase;">💎 Cash Realization (5Y CFO / PAT)</div>
+                                    <div id="card-val-cfo-pat" style="font-size: 18px; font-weight: 800; color: var(--text-primary, #ffffff); margin: 4px 0 2px 0;">-- %</div>
+                                    <div id="card-val-cfo-sub" style="font-size: 11px; color: var(--text-secondary, #94a3b8);">CFO vs PAT cash conversion</div>
+                                </div>
+
+                                <!-- Metric 2: Implied Growth -->
+                                <div style="background: rgba(255,255,255,0.02); border: 1px solid var(--border-glass, rgba(255,255,255,0.08)); border-radius: 10px; padding: 12px;">
+                                    <div style="font-size: 11px; font-weight: 700; color: #38bdf8; text-transform: uppercase;">🔍 Implied 5Y EPS Growth</div>
+                                    <div id="card-val-implied-growth" style="font-size: 18px; font-weight: 800; color: #38bdf8; margin: 4px 0 2px 0;">-- % CAGR</div>
+                                    <div id="card-val-implied-sub" style="font-size: 11px; color: var(--text-secondary, #94a3b8);">Priced-in market hurdle rate</div>
+                                </div>
+
+                                <!-- Metric 3: Delivered Growth -->
+                                <div style="background: rgba(255,255,255,0.02); border: 1px solid var(--border-glass, rgba(255,255,255,0.08)); border-radius: 10px; padding: 12px;">
+                                    <div style="font-size: 11px; font-weight: 700; color: #f59e0b; text-transform: uppercase;">📈 5Y Historical Compounding</div>
+                                    <div id="card-val-hist-growth" style="font-size: 18px; font-weight: 800; color: #f59e0b; margin: 4px 0 2px 0;">-- % CAGR</div>
+                                    <div id="card-val-hist-sub" style="font-size: 11px; color: var(--text-secondary, #94a3b8);">Delivered earnings pace</div>
+                                </div>
+                            </div>
+
+                            <!-- 5-Year CAGR Scenario Matrix Table -->
+                            <div style="overflow-x: auto; border: 1px solid var(--border-glass, rgba(255,255,255,0.08)); border-radius: 10px;">
+                                <table class="valuation-scenario-table" style="width: 100%; border-collapse: collapse;">
+                                    <thead>
+                                        <tr>
+                                            <th>Investment Scenario</th>
+                                            <th>5Y EPS Growth</th>
+                                            <th>Exit P/E Multiple</th>
+                                            <th>5Y Projected Price</th>
+                                            <th>Expected 5Y CAGR</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="card-val-scenario-tbody">
+                                        <tr><td colspan="5" style="text-align: center; padding: 16px; color: #94a3b8;">Loading 5-Year Expectations Matrix...</td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <!-- Layman Summary Footer -->
+                            <div id="card-val-verdict-box" style="padding: 10px 14px; background: rgba(56, 189, 248, 0.05); border-left: 3px solid #38bdf8; border-radius: 6px; font-size: 12.5px; color: var(--text-secondary, #cbd5e1); line-height: 1.5;">
+                                Analyzing valuation margin of safety...
+                            </div>
+                        </div>
+
                         <!-- Interactive DCF Financial Modeling Sandbox -->
                         <div class="card col-span-2 sandbox-card no-print card-hidden" id="sandbox-card" data-subtab="valuation" style="display: flex; flex-direction: column; justify-content: space-between;">
                             <div>
@@ -18982,6 +19052,132 @@
                             🤖 AI Chart Pattern
                         </button>
                         <button id="confluence-story-tv-btn" class="btn-secondary" style="padding: 8px 14px; font-size: 12px; border-radius: 8px; cursor: pointer; display: inline-flex; align-items: center; gap: 5px; font-weight: 700; background: rgba(56, 189, 248, 0.15); border: 1px solid rgba(56, 189, 248, 0.4); color: #38bdf8;">
+                            Chart ↗
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 5-YEAR REVERSE DCF & VALUATION EXPECTATIONS MODAL -->
+    <div id="valuation-expectations-modal" class="valuation-modal-backdrop" onclick="if(event.target === this) window.closeValuationExpectationsModal && window.closeValuationExpectationsModal()">
+        <div class="valuation-story-card">
+            <!-- Header -->
+            <div class="valuation-story-header">
+                <div style="display: flex; align-items: center; gap: 12px; overflow: hidden; flex: 1; min-width: 240px;">
+                    <div style="font-size: 24px; flex-shrink: 0;">🎯</div>
+                    <div style="overflow: hidden;">
+                        <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                            <span id="val-modal-sym" style="font-size: 18px; font-weight: 800; color: #38bdf8; letter-spacing: 0.5px;">SYMBOL</span>
+                            <span id="val-modal-cmp" style="font-size: 13.5px; font-weight: 700; color: var(--text-secondary, #94a3b8);">₹0.00</span>
+                            <span id="val-modal-pe" style="font-size: 11px; padding: 2px 8px; border-radius: 12px; font-weight: 800; background: rgba(56, 189, 248, 0.2); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.4);">P/E: --x</span>
+                            <span id="val-modal-mos-badge" style="font-size: 10.5px; padding: 2px 8px; border-radius: 12px; font-weight: 700; background: rgba(16, 185, 129, 0.2); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.35);">Margin of Safety</span>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 8px; margin-top: 3px; font-size: 12px; color: var(--text-secondary, #94a3b8); flex-wrap: wrap;">
+                            <span id="val-modal-comp-name">Company Name</span>
+                            <span style="opacity: 0.5;">•</span>
+                            <span id="val-modal-model-tag" style="color: #60a5fa; font-weight: 600;">🤖 Institutional AI</span>
+                            <span id="val-modal-cache-tag" style="display: none; background: rgba(16, 185, 129, 0.15); color: #34d399; padding: 1px 6px; border-radius: 4px; font-size: 10px;">⚡ Cached</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Action Controls -->
+                <div style="display: flex; align-items: center; gap: 8px; flex-shrink: 0; flex-wrap: wrap;">
+                    <button id="val-modal-tts-btn" onclick="window.toggleValuationTTS && window.toggleValuationTTS()" class="btn-secondary" style="padding: 7px 12px; font-size: 12px; border-radius: 8px; display: inline-flex; align-items: center; gap: 5px; font-weight: 700; cursor: pointer;" title="Listen to Institutional Valuation Memo">
+                        <span>🔊</span> Listen
+                    </button>
+                    <button onclick="window.copyValuationMemo && window.copyValuationMemo()" class="btn-secondary" style="padding: 7px 12px; font-size: 12px; border-radius: 8px; display: inline-flex; align-items: center; gap: 5px; font-weight: 700; cursor: pointer;" title="Copy Full Memo to Clipboard">
+                        <span>📋</span> Copy
+                    </button>
+                    <button onclick="window.refreshValuationCurrent && window.refreshValuationCurrent()" class="btn-secondary" style="padding: 7px 10px; font-size: 12px; border-radius: 8px; cursor: pointer;" title="Force Re-Analyze">
+                        🔄
+                    </button>
+                    <button onclick="window.closeValuationExpectationsModal && window.closeValuationExpectationsModal()" style="background: rgba(255,255,255,0.08); border: 1px solid var(--border-glass, rgba(255,255,255,0.12)); color: var(--text-primary, #f1f5f9); width: 34px; height: 34px; border-radius: 50%; font-size: 16px; cursor: pointer; display: flex; align-items: center; justify-content: center;" title="Close Modal (Esc)">
+                        ✕
+                    </button>
+                </div>
+            </div>
+
+            <!-- Body -->
+            <div class="valuation-story-body">
+                <!-- Loader -->
+                <div id="val-modal-loading" style="text-align: center; padding: 60px 20px;">
+                    <div class="spinner" style="border: 3px solid rgba(56, 189, 248, 0.15); border-left-color: #38bdf8; border-radius: 50%; width: 44px; height: 44px; animation: spin 1s linear infinite; margin: 0 auto 16px auto;"></div>
+                    <h4 style="color: var(--text-primary, #f8fafc); margin: 0 0 6px 0; font-size: 16px; font-weight: 700;">Solving 5-Year Reverse DCF & Cash Conversion...</h4>
+                    <p style="color: var(--text-secondary, #94a3b8); font-size: 13px; max-width: 500px; margin: 0 auto; line-height: 1.5;">Auditing 5-year Cash Flow from Operations (CFO), P/E valuation bands, and computing implied hurdle growth rates.</p>
+                </div>
+
+                <!-- Content -->
+                <div id="val-modal-content" style="display: none; flex-direction: column; gap: 16px;">
+                    <!-- Earnings Integrity Box -->
+                    <div style="background: var(--bg-card-sub, rgba(255, 255, 255, 0.02)); border: 1px solid var(--border-glass, rgba(255, 255, 255, 0.08)); border-radius: 12px; padding: 14px 16px; border-left: 4px solid #10b981;">
+                        <div style="font-size: 11px; font-weight: 800; text-transform: uppercase; color: #10b981; letter-spacing: 0.6px; margin-bottom: 6px; display: flex; align-items: center; gap: 6px;">
+                            <span>💎</span> 5-Year Earnings Integrity & Cash Realization
+                        </div>
+                        <div style="display: flex; gap: 16px; align-items: baseline; flex-wrap: wrap;">
+                            <div style="font-size: 20px; font-weight: 800; color: #34d399;" id="val-modal-cfo-ratio">-- %</div>
+                            <div style="font-size: 12px; color: var(--text-secondary, #94a3b8);" id="val-modal-cfo-details">5Y Cumulative PAT vs CFO</div>
+                        </div>
+                        <div id="val-modal-cfo-summary" style="font-size: 12.5px; color: var(--text-primary, #cbd5e1); margin-top: 6px; line-height: 1.45;"></div>
+                    </div>
+
+                    <!-- What is the Market Pricing In? -->
+                    <div style="background: var(--bg-card-sub, rgba(255, 255, 255, 0.02)); border: 1px solid var(--border-glass, rgba(255, 255, 255, 0.08)); border-radius: 12px; padding: 14px 16px; border-left: 4px solid #38bdf8;">
+                        <div style="font-size: 11px; font-weight: 800; text-transform: uppercase; color: #38bdf8; letter-spacing: 0.6px; margin-bottom: 6px; display: flex; align-items: center; gap: 6px;">
+                            <span>🔍</span> What is the Market Currently Pricing In? (Reverse DCF)
+                        </div>
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px; margin-top: 8px;">
+                            <div>
+                                <span style="font-size: 11px; color: var(--text-secondary, #94a3b8);">Implied 5Y EPS Growth:</span>
+                                <div id="val-modal-implied-rate" style="font-size: 17px; font-weight: 800; color: #38bdf8;">-- % CAGR</div>
+                            </div>
+                            <div>
+                                <span style="font-size: 11px; color: var(--text-secondary, #94a3b8);">Historical 5Y Delivered Pace:</span>
+                                <div id="val-modal-hist-rate" style="font-size: 17px; font-weight: 800; color: #f59e0b;">-- % CAGR</div>
+                            </div>
+                        </div>
+                        <div id="val-modal-mos-verdict" style="font-size: 12.5px; color: var(--text-primary, #cbd5e1); margin-top: 8px; line-height: 1.45;"></div>
+                    </div>
+
+                    <!-- 5-Year Scenario Matrix Table -->
+                    <div style="background: var(--bg-card-sub, rgba(255, 255, 255, 0.02)); border: 1px solid var(--border-glass, rgba(255, 255, 255, 0.08)); border-radius: 12px; padding: 14px 16px;">
+                        <div style="font-size: 11px; font-weight: 800; text-transform: uppercase; color: #f59e0b; letter-spacing: 0.6px; margin-bottom: 10px; display: flex; align-items: center; gap: 6px;">
+                            <span>📊</span> 5-Year Investor Return Roadmap (Annualized CAGR Matrix)
+                        </div>
+                        <div style="overflow-x: auto;">
+                            <table class="valuation-scenario-table" style="width: 100%;">
+                                <thead>
+                                    <tr>
+                                        <th>Scenario</th>
+                                        <th>5Y EPS Growth</th>
+                                        <th>Exit Multiple</th>
+                                        <th>5Y Target Price</th>
+                                        <th>5Y Annualized CAGR</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="val-modal-scenario-tbody">
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Long-Term Allocation Memo -->
+                    <div style="background: var(--bg-card-sub, rgba(255, 255, 255, 0.02)); border: 1px solid var(--border-glass, rgba(255, 255, 255, 0.08)); border-radius: 12px; padding: 16px 18px;">
+                        <div style="font-size: 11px; font-weight: 800; text-transform: uppercase; color: #c084fc; letter-spacing: 0.6px; margin-bottom: 8px; display: flex; align-items: center; gap: 6px;">
+                            <span>💡</span> Long-Term Capital Allocation Thesis
+                        </div>
+                        <div id="val-modal-narrative" style="font-size: 13.5px; line-height: 1.65; color: var(--text-primary, #f8fafc); white-space: pre-line;">
+                        </div>
+                    </div>
+
+                    <!-- Direct Navigation Footer -->
+                    <div style="display: flex; gap: 8px; justify-content: flex-end; flex-wrap: wrap; padding-top: 6px; border-top: 1px solid var(--border-glass, rgba(255,255,255,0.06));">
+                        <button id="val-modal-ichart-btn" class="btn-primary" style="padding: 8px 14px; font-size: 12px; border-radius: 8px; cursor: pointer; display: inline-flex; align-items: center; gap: 5px; font-weight: 700; background: rgba(59, 130, 246, 0.2); border: 1px solid #3b82f6; color: #60a5fa;">
+                            📈 Open i-Chart Workstation
+                        </button>
+                        <button id="val-modal-tv-btn" class="btn-secondary" style="padding: 8px 14px; font-size: 12px; border-radius: 8px; cursor: pointer; display: inline-flex; align-items: center; gap: 5px; font-weight: 700; background: rgba(56, 189, 248, 0.15); border: 1px solid rgba(56, 189, 248, 0.4); color: #38bdf8;">
                             Chart ↗
                         </button>
                     </div>
