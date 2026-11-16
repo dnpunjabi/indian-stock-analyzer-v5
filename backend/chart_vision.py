@@ -42,6 +42,34 @@ def _init_vision_cache_table():
         logger.warning(f"Could not initialize cached_chart_vision table: {e}")
 
 
+def get_vision_model_info() -> Tuple[str, str]:
+    """
+    Dynamically returns (model_id, display_label) from environment variables or .env.
+    Allows seamlessly upgrading or switching vision models in Oracle VM / production
+    without hardcoding model version strings or requiring client/APK changes.
+
+    Priority cascade:
+      1. GEMINI_VISION_MODEL
+      2. GEMINI_FAST_MODEL
+      3. GEMINI_HEAVY_MODEL
+      4. Default: "gemini-2.5-flash"
+    """
+    from backend.llm_config import _format_model_label
+    model_id = (
+        os.environ.get("GEMINI_VISION_MODEL")
+        or os.environ.get("GEMINI_FAST_MODEL")
+        or os.environ.get("GEMINI_HEAVY_MODEL")
+        or "gemini-2.5-flash"
+    ).strip()
+
+    model_label = os.environ.get("GEMINI_VISION_LABEL")
+    if not model_label:
+        base_label = _format_model_label(model_id)
+        model_label = f"{base_label} Vision" if "Vision" not in base_label else base_label
+
+    return model_id, model_label
+
+
 def analyze_stock_chart_vision(
     symbol: str,
     indicator_mode: str = "smc",
@@ -49,13 +77,14 @@ def analyze_stock_chart_vision(
 ) -> Dict[str, Any]:
     """
     Renders an institutional candlestick chart for the given stock and passes the
-    image directly to Gemini 2.5 Flash Vision.
+    image directly to Gemini Vision AI (dynamically configured model).
 
     Acts as a Senior Chartered Market Technician (CMT) to identify visual chart
     patterns (Triangles, VCP, Cup & Handle, Flags, Order Blocks) and produces a
     dual-perspective action blueprint for both Long-Term Investors and Swing Traders.
     """
     _init_vision_cache_table()
+    model, model_label = get_vision_model_info()
 
     # 1. Resolve ticker and company details
     clean_sym = symbol.strip().upper().replace(".NS", "").replace(".BO", "")
@@ -79,6 +108,9 @@ def analyze_stock_chart_vision(
             if row and (time.time() - row["created_at"] < cache_ttl):
                 data = json.loads(row["payload_json"])
                 data["from_cache"] = True
+                if "model_label" not in data:
+                    data["model_id"] = model
+                    data["model_label"] = model_label
                 logger.info(f"[Chart Vision] Serving cached diagnosis for {base_sym} ({cache_key})")
                 return data
         except Exception as e:
@@ -175,7 +207,6 @@ def analyze_stock_chart_vision(
         }
     }
 
-    model = "gemini-2.5-flash"
     diagnostic_text = ""
 
     for attempt, k in enumerate(keys):
@@ -225,6 +256,8 @@ def analyze_stock_chart_vision(
         "mode": indicator_mode,
         "success": True,
         "from_cache": False,
+        "model_id": model,
+        "model_label": model_label,
         "formatted_markdown": diagnostic_text,
         "created_at": time.time()
     }

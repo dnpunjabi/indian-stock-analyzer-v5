@@ -56613,7 +56613,7 @@ window.fetchIChartVisionDiagnostic = async function(forceRefresh = false) {
             <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 26px 10px; gap: 14px;">
                 <div class="ichart-spinner" style="width: 34px; height: 34px; border-width: 3px;"></div>
                 <div style="text-align: center;">
-                    <div style="font-size: 14.5px; font-weight: 800; color: #a855f7; letter-spacing: 0.02em;">🤖 Gemini 2.5 Flash Vision is inspecting ${cleanSym} candlestick chart...</div>
+                    <div style="font-size: 14.5px; font-weight: 800; color: #a855f7; letter-spacing: 0.02em;">🤖 AI Vision Engine is inspecting ${cleanSym} candlestick chart...</div>
                     <div style="font-size: 12px; color: #94a3b8; margin-top: 5px;">Analyzing geometric patterns (Triangles, VCP, Flags), base symmetry, volume dry-up, and institutional zones.</div>
                 </div>
             </div>
@@ -56638,6 +56638,11 @@ window.fetchIChartVisionDiagnostic = async function(forceRefresh = false) {
         }
 
         const formatted = window.renderVisionDiagnosticHtml(data);
+        const activeModelLabel = data.model_label || data.model_id || 'Vision AI Engine';
+        const modelBadge = document.getElementById('ichart-vision-model-badge');
+        if (modelBadge && data.model_label) {
+            modelBadge.innerText = data.model_label.toUpperCase();
+        }
 
         if (content) {
             content.innerHTML = `
@@ -56645,7 +56650,7 @@ window.fetchIChartVisionDiagnostic = async function(forceRefresh = false) {
                     ${formatted}
                 </div>
                 <div style="margin-top: 14px; display: flex; justify-content: space-between; align-items: center; font-size: 11.5px; color: #64748b; border-top: 1px solid rgba(255,255,255,0.06); padding-top: 10px; flex-wrap: wrap; gap: 8px;">
-                    <span>Model: <strong style="color: #a855f7;">Gemini 2.5 Flash Vision</strong> • Institutional Chart Vision Engine</span>
+                    <span>Engine: <strong style="color: #a855f7;">${activeModelLabel}</strong> • Institutional Chart Vision Engine</span>
                     <span>CMP: <strong style="color: #38bdf8;">₹${(data.cmp || 0).toLocaleString('en-IN', {minimumFractionDigits: 2})}</strong></span>
                 </div>
             `;
