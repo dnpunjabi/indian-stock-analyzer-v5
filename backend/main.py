@@ -5620,6 +5620,29 @@ async def get_indicator_synthesis(
         raise HTTPException(status_code=500, detail=f"Indicator LLM synthesis failure: {str(e)}")
 
 
+@app.get("/api/chart/vision-diagnostic")
+async def get_chart_vision_diagnostic(
+    symbol: str,
+    mode: str = "smc",
+    force_refresh: bool = False
+):
+    """
+    Renders an institutional dark-mode candlestick chart and passes the image
+    directly to Gemini 2.5 Flash Vision. Detects visual chart patterns (Triangles,
+    Flags, VCP, Wedges, Order Blocks) and returns an institutional dual-perspective
+    trade plan for Long-Term Investors and Swing Traders.
+    """
+    if not symbol:
+        raise HTTPException(status_code=400, detail="Symbol parameter is required.")
+    try:
+        from backend.chart_vision import analyze_stock_chart_vision
+        res = await asyncio.to_thread(analyze_stock_chart_vision, symbol, mode, force_refresh)
+        return res
+    except Exception as e:
+        logger.error(f"Chart vision diagnostic failed for {symbol}: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Chart vision diagnostic failed: {str(e)}")
+
+
 @app.post("/api/chart/chat-analyst")
 async def post_chart_chat_analyst(req: ChartChatRequest):
     ticker = req.symbol

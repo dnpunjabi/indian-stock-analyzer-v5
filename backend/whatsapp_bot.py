@@ -5806,12 +5806,12 @@ def handle_chart_query(symbol_input: str, recipient: Optional[str] = None) -> Di
         time.sleep(0.3)  # Brief delay so buttons appear below image
 
         buttons = [
+            (f"act:vision:{base_sym}", "🤖 AI Pattern"),
             (f"act:ichart:breaks:{base_sym}", "⚡ Breaks"),
-            (f"act:fib:{base_sym}", "🌀 Fibs"),
             (f"act:ichart:smc:{base_sym}", "🏛️ SMC Blocks")
         ]
         return send_whatsapp_interactive_buttons(
-            f"⚡ *Switch Chart View for {base_sym}*:",
+            f"⚡ *Chart Actions for {base_sym}* (Tap '🤖 AI Pattern' for Gemini Vision diagnostic):",
             buttons=buttons,
             recipient=recipient
         )
@@ -5819,6 +5819,42 @@ def handle_chart_query(symbol_input: str, recipient: Optional[str] = None) -> Di
         logger.error(f"Error generating chart for {clean}: {e}")
         return send_whatsapp_interactive_buttons(
             f"⚠️ *Error*: Failed to generate chart for `{clean}`: {str(e)}",
+            buttons=[("nav:menu:main", "🏠 Main Menu")],
+            recipient=recipient
+        )
+
+
+def handle_chart_vision_query(symbol_input: str, recipient: Optional[str] = None) -> Dict[str, Any]:
+    """
+    Invokes Gemini 2.5 Flash Vision to inspect the technical candlestick chart
+    and generates an institutional pattern diagnostic and dual-perspective trade blueprint.
+    """
+    from backend.chart_vision import analyze_stock_chart_vision
+    clean = (symbol_input or "").strip().upper()
+    clean = re.sub(r"^(?:ACT:VISION:|VISION|PATTERN)[\s:]*", "", clean, flags=re.IGNORECASE).strip()
+    if not clean:
+        clean = "BOSCH"
+
+    resolved = resolve_company_ticker(clean)
+    base_sym = resolved.get("base_symbol") if resolved else clean.replace(".NS", "")
+    comp_name = resolved.get("name") if resolved else base_sym
+
+    try:
+        diag = analyze_stock_chart_vision(base_sym, indicator_mode="smc")
+        body = diag.get("formatted_markdown", "")
+        if not body:
+            body = f"⚠️ *Could not generate AI vision diagnostic for {base_sym}*."
+
+        buttons = [
+            (f"act:chart:{base_sym}", f"📈 {base_sym} Chart"),
+            (f"view:stock:{base_sym}", f"📌 {base_sym} Dossier"),
+            ("nav:menu:main", "🏠 Main Menu")
+        ]
+        return send_whatsapp_interactive_buttons(body, buttons=buttons, recipient=recipient)
+    except Exception as e:
+        logger.error(f"Error generating chart vision diagnostic for {base_sym}: {e}", exc_info=True)
+        return send_whatsapp_interactive_buttons(
+            f"⚠️ *AI Vision Error*: Could not analyze chart for `{base_sym}`: {str(e)}",
             buttons=[("nav:menu:main", "🏠 Main Menu")],
             recipient=recipient
         )
@@ -8097,6 +8133,11 @@ def dispatch_incoming_whatsapp_message(text_body: str, sender: Optional[str] = N
     elif cleaned.startswith("log:trade:") or re.match(r"^(?:LOG\s+)?BUY\s+", upper):
         raw_cmd = cleaned.replace("log:trade:", "")
         return handle_log_buy(raw_cmd, recipient=sender)
+
+    # AI Chart Pattern & Vision Diagnostic
+    elif cleaned.startswith("act:vision:") or upper.startswith("VISION") or upper.startswith("PATTERN"):
+        sym = re.sub(r"^(?:act:vision:|VISION|PATTERN)[\s:]*", "", cleaned, flags=re.IGNORECASE).strip()
+        return handle_chart_vision_query(sym, recipient=sender)
 
     # Technical Chart Generation
     elif cleaned.startswith("act:chart:") or upper.startswith("CHART") or upper.startswith("C "):

@@ -56533,6 +56533,146 @@ window.toggleIChartTimeframe = function(mode) {
     }
 };
 
+window.renderVisionDiagnosticHtml = function(data) {
+    if (!data || !data.formatted_markdown) {
+        return `<div style="color: #94a3b8;">No diagnostic content available.</div>`;
+    }
+    const raw = data.formatted_markdown;
+    
+    // Convert markdown bullets and headers
+    let html = raw;
+    // Replace horizontal dividers
+    html = html.replace(/━+/g, '<hr style="border: none; border-top: 1px solid rgba(255,255,255,0.1); margin: 14px 0;">');
+    // WhatsApp single asterisks bold
+    html = html.replace(/\*([^*\n\r]+)\*/g, '<strong style="color: #f8fafc; font-weight: 700;">$1</strong>');
+    // Markdown double asterisks bold
+    html = html.replace(/\*\*([^*\n\r]+)\*\*/g, '<strong style="color: #f8fafc; font-weight: 700;">$1</strong>');
+    // Inline code `code`
+    html = html.replace(/`([^`\n\r]+)`/g, '<code style="background: rgba(168, 85, 247, 0.15); color: #c084fc; padding: 2px 6px; border-radius: 4px; font-size: 12px; font-family: monospace;">$1</code>');
+    // Bullet points
+    html = html.replace(/^\s*•\s+(.*$)/gim, '<li style="margin-left: 18px; margin-bottom: 6px; list-style-type: disc; color: #cbd5e1;"><span style="color: #e2e8f0;">$1</span></li>');
+    html = html.replace(/^\s*-\s+(.*$)/gim, '<li style="margin-left: 18px; margin-bottom: 6px; list-style-type: disc; color: #cbd5e1;"><span style="color: #e2e8f0;">$1</span></li>');
+
+    // Split paragraphs
+    const paragraphs = html.split(/\n\n+/).map(p => {
+        const trimmed = p.trim();
+        if (trimmed.startsWith('<li') || trimmed.startsWith('<hr')) return trimmed;
+        return `<p style="margin-bottom: 8px; line-height: 1.5;">${trimmed.replace(/\n/g, '<br>')}</p>`;
+    }).join('');
+
+    return `
+        <div class="vision-diagnostic-card" style="font-family: inherit; font-size: 13.5px; line-height: 1.6;">
+            ${paragraphs}
+        </div>
+    `;
+};
+
+window.fetchIChartVisionDiagnostic = async function(forceRefresh = false) {
+    let rawTicker = window.getActiveChartSymbol();
+    if (!rawTicker) {
+        const searchInput = document.getElementById('ichart-standalone-search-input');
+        if (searchInput && searchInput.value.trim()) {
+            rawTicker = searchInput.value.trim();
+        }
+    }
+    if (!rawTicker) {
+        rawTicker = 'RELIANCE';
+    }
+
+    const cleanSym = rawTicker.replace('.NS', '').replace('.BO', '').trim().toUpperCase();
+
+    const container = document.getElementById('ichart-vision-ai-container');
+    const content = document.getElementById('ichart-vision-ai-content');
+    const btn = document.getElementById('ichart-vision-ai-btn');
+    const tvBtn = document.getElementById('tv-btn-vision-diagnostic');
+    const cacheBadge = document.getElementById('ichart-vision-cache-badge');
+    const titleEl = document.getElementById('ichart-vision-title');
+
+    if (container) {
+        container.style.display = 'block';
+        try {
+            container.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        } catch(e) {}
+    }
+    if (titleEl) {
+        titleEl.innerText = `${cleanSym} • Gemini Vision Pattern Diagnostic`;
+    }
+    if (cacheBadge) cacheBadge.style.display = 'none';
+
+    if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = `<span>⏳ Inspecting Candlesticks...</span>`;
+    }
+    if (tvBtn) {
+        tvBtn.disabled = true;
+        tvBtn.innerHTML = `<span>⏳ Analyzing...</span>`;
+    }
+
+    if (content) {
+        content.innerHTML = `
+            <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 26px 10px; gap: 14px;">
+                <div class="ichart-spinner" style="width: 34px; height: 34px; border-width: 3px;"></div>
+                <div style="text-align: center;">
+                    <div style="font-size: 14.5px; font-weight: 800; color: #a855f7; letter-spacing: 0.02em;">🤖 Gemini 2.5 Flash Vision is inspecting ${cleanSym} candlestick chart...</div>
+                    <div style="font-size: 12px; color: #94a3b8; margin-top: 5px;">Analyzing geometric patterns (Triangles, VCP, Flags), base symmetry, volume dry-up, and institutional zones.</div>
+                </div>
+            </div>
+        `;
+    }
+
+    try {
+        const url = `/api/chart/vision-diagnostic?symbol=${encodeURIComponent(cleanSym)}&mode=smc${forceRefresh ? '&force_refresh=true' : ''}`;
+        const res = await fetch(url);
+        if (!res.ok) {
+            let errText = "Vision diagnostic request failed.";
+            try {
+                const errJson = await res.json();
+                if (errJson && errJson.detail) errText = errJson.detail;
+            } catch(e) {}
+            throw new Error(errText);
+        }
+
+        const data = await res.json();
+        if (cacheBadge && data.from_cache) {
+            cacheBadge.style.display = 'inline-block';
+        }
+
+        const formatted = window.renderVisionDiagnosticHtml(data);
+
+        if (content) {
+            content.innerHTML = `
+                <div class="vision-diagnostic-result" style="background: rgba(15, 23, 42, 0.4); border-radius: 10px; padding: 18px; border: 1px solid rgba(255,255,255,0.06);">
+                    ${formatted}
+                </div>
+                <div style="margin-top: 14px; display: flex; justify-content: space-between; align-items: center; font-size: 11.5px; color: #64748b; border-top: 1px solid rgba(255,255,255,0.06); padding-top: 10px; flex-wrap: wrap; gap: 8px;">
+                    <span>Model: <strong style="color: #a855f7;">Gemini 2.5 Flash Vision</strong> • Institutional Chart Vision Engine</span>
+                    <span>CMP: <strong style="color: #38bdf8;">₹${(data.cmp || 0).toLocaleString('en-IN', {minimumFractionDigits: 2})}</strong></span>
+                </div>
+            `;
+        }
+    } catch(err) {
+        console.error("fetchIChartVisionDiagnostic error:", err);
+        if (content) {
+            content.innerHTML = `
+                <div style="background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.3); border-radius: 10px; padding: 16px; color: #f87171;">
+                    <div style="font-weight: 700; margin-bottom: 4px;">⚠️ AI Vision Diagnostic Failed</div>
+                    <div style="font-size: 12.5px;">${err.message || "An unexpected error occurred while analyzing the chart."}</div>
+                    <button onclick="window.fetchIChartVisionDiagnostic(true)" style="margin-top: 10px; background: #ef4444; color: #fff; border: none; padding: 6px 14px; border-radius: 6px; font-size: 11.5px; font-weight: 700; cursor: pointer;">Retry Analysis</button>
+                </div>
+            `;
+        }
+    } finally {
+        if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = `<span>🤖 Run AI Vision Diagnostic</span>`;
+        }
+        if (tvBtn) {
+            tvBtn.disabled = false;
+            tvBtn.innerHTML = `<span>👁️ AI Pattern Reader</span>`;
+        }
+    }
+};
+
 window.updateIChartHudBadge = function(data) {
     if (!data) return;
     window.activeIChartState.lastData = data;
