@@ -35581,6 +35581,153 @@ body.light-theme .confluence-action-footer {
     color: #334155 !important;
 }
 
+/* Base Confluence Card Box Sizing & Container Query */
+.confluence-card {
+    box-sizing: border-box !important;
+    width: 100% !important;
+    overflow: hidden !important;
+    container-type: inline-size;
+}
+
+.confluence-action-footer {
+    box-sizing: border-box !important;
+    width: 100% !important;
+}
+
+/* Confluence Card Action Button Grid - Fully Responsive 2x2 Grid, Zero Horizontal Spillage */
+.confluence-card-btn-grid {
+    display: grid !important;
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 8px !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+    margin-top: 10px !important;
+    padding-top: 10px !important;
+    border-top: 1px solid var(--border-glass, rgba(255, 255, 255, 0.08)) !important;
+}
+
+.confluence-card-btn-grid button {
+    width: 100% !important;
+    box-sizing: border-box !important;
+    padding: 7px 8px !important;
+    font-size: 11.5px !important;
+    font-weight: 700 !important;
+    border-radius: 7px !important;
+    cursor: pointer !important;
+    white-space: nowrap !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 4px !important;
+    transition: all 0.2s ease !important;
+    margin: 0 !important;
+}
+
+.confluence-card-btn-grid button:hover {
+    transform: translateY(-1px);
+}
+
+/* 1. AI Story Button (Amber) */
+.confluence-btn-story {
+    background: linear-gradient(135deg, #f59e0b, #d97706) !important;
+    border: 1px solid #f59e0b !important;
+    color: #000000 !important;
+    box-shadow: 0 2px 8px rgba(245, 158, 11, 0.25) !important;
+}
+.confluence-btn-story:hover {
+    background: linear-gradient(135deg, #fbbf24, #f59e0b) !important;
+    box-shadow: 0 4px 12px rgba(245, 158, 11, 0.35) !important;
+}
+
+/* 2. Simulator Button (Purple) */
+.confluence-btn-sim {
+    background: rgba(168, 85, 247, 0.15) !important;
+    border: 1px solid rgba(168, 85, 247, 0.4) !important;
+    color: #c084fc !important;
+}
+.confluence-btn-sim:hover {
+    background: rgba(168, 85, 247, 0.25) !important;
+    border-color: rgba(168, 85, 247, 0.6) !important;
+}
+
+/* 3. i-Chart Button (Blue) */
+.confluence-btn-ichart {
+    background: rgba(59, 130, 246, 0.2) !important;
+    border: 1px solid #3b82f6 !important;
+    color: #60a5fa !important;
+}
+.confluence-btn-ichart:hover {
+    background: rgba(59, 130, 246, 0.3) !important;
+    border-color: #60a5fa !important;
+}
+
+/* 4. TradingView Chart Button (Cyan) */
+.confluence-btn-chart {
+    background: rgba(56, 189, 248, 0.15) !important;
+    border: 1px solid rgba(56, 189, 248, 0.4) !important;
+    color: #38bdf8 !important;
+}
+.confluence-btn-chart:hover {
+    background: rgba(56, 189, 248, 0.25) !important;
+    border-color: rgba(56, 189, 248, 0.6) !important;
+}
+
+/* Wide card adaptation (>= 520px card width) */
+@container (min-width: 520px) {
+    .confluence-card-btn-grid {
+        grid-template-columns: repeat(4, 1fr) !important;
+    }
+}
+
+/* Light Theme Support */
+[data-mode="light"] .confluence-card-btn-grid,
+[data-theme="light"] .confluence-card-btn-grid,
+body.light-theme .confluence-card-btn-grid {
+    border-top: 1px solid #e2e8f0 !important;
+}
+
+[data-mode="light"] .confluence-btn-sim,
+[data-theme="light"] .confluence-btn-sim,
+body.light-theme .confluence-btn-sim {
+    background: #f5f3ff !important;
+    border: 1px solid #ddd6fe !important;
+    color: #7c3aed !important;
+}
+[data-mode="light"] .confluence-btn-sim:hover,
+[data-theme="light"] .confluence-btn-sim:hover,
+body.light-theme .confluence-btn-sim:hover {
+    background: #ede9fe !important;
+    border-color: #c4b5fd !important;
+}
+
+[data-mode="light"] .confluence-btn-ichart,
+[data-theme="light"] .confluence-btn-ichart,
+body.light-theme .confluence-btn-ichart {
+    background: #eff6ff !important;
+    border: 1px solid #bfdbfe !important;
+    color: #1d4ed8 !important;
+}
+[data-mode="light"] .confluence-btn-ichart:hover,
+[data-theme="light"] .confluence-btn-ichart:hover,
+body.light-theme .confluence-btn-ichart:hover {
+    background: #dbeafe !important;
+    border-color: #93c5fd !important;
+}
+
+[data-mode="light"] .confluence-btn-chart,
+[data-theme="light"] .confluence-btn-chart,
+body.light-theme .confluence-btn-chart {
+    background: #f0f9ff !important;
+    border: 1px solid #bae6fd !important;
+    color: #0284c7 !important;
+}
+[data-mode="light"] .confluence-btn-chart:hover,
+[data-theme="light"] .confluence-btn-chart:hover,
+body.light-theme .confluence-btn-chart:hover {
+    background: #e0f2fe !important;
+    border-color: #7dd3fc !important;
+}
+
 @media (max-width: 768px) {
     .confluence-grid {
         grid-template-columns: 1fr !important;

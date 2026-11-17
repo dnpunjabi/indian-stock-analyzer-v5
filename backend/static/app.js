@@ -60020,25 +60020,25 @@ window.renderMultiConfluenceLeaderboard = function(data) {
                         </div>
                     </div>
 
-                    <!-- Action Guidance & Interactive Buttons Footer -->
-                    <div style="display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: auto; padding-top: 10px; border-top: 1px solid var(--border-glass, rgba(255,255,255,0.06)); flex-wrap: wrap;">
-                        <div class="confluence-action-footer" style="font-size: 11.5px; line-height: 1.4; padding: 6px 10px; border-radius: 6px; border-left: 3px solid #f59e0b; flex: 1; min-width: 170px;">
-                            ${item.tactical_action || 'Look for high-volume breakout near pivot level.'}
-                        </div>
-                        <div style="display: flex; gap: 6px; flex-shrink: 0; flex-wrap: wrap;">
-                            <button onclick="event.stopPropagation(); window.openConfluenceStoryModal && window.openConfluenceStoryModal('${cleanSym}')" class="btn-primary quant-story-btn" style="padding: 6px 11px; font-size: 11.5px; border-radius: 7px; cursor: pointer; white-space: nowrap; display: inline-flex; align-items: center; gap: 4px; font-weight: 700; background: linear-gradient(135deg, #f59e0b, #d97706); border: 1px solid #f59e0b; color: #000; box-shadow: 0 2px 8px rgba(245, 158, 11, 0.25);" title="Generate AI Multi-Vector Confluence Story">
-                                ⚡ AI Story
-                            </button>
-                            <button onclick="event.stopPropagation(); window.launchStageSimulator && window.launchStageSimulator('${cleanSym}')" class="btn-secondary quant-sim-btn" style="padding: 6px 11px; font-size: 11.5px; border-radius: 7px; cursor: pointer; white-space: nowrap; display: inline-flex; align-items: center; gap: 4px; font-weight: 700; background: rgba(168, 85, 247, 0.15); border: 1px solid rgba(168, 85, 247, 0.4); color: #c084fc;" title="Scan stock in 4-Stage Life Cycle Masterclass Simulator">
-                                Simulate ⚙️
-                            </button>
-                            <button onclick="event.stopPropagation(); window.openStandaloneInteractiveChart && window.openStandaloneInteractiveChart('${cleanSym}', null, 'confluence', 'Apex Confluence Leaderboard')" class="btn-primary quant-ichart-btn" style="padding: 6px 11px; font-size: 11.5px; border-radius: 7px; cursor: pointer; white-space: nowrap; display: inline-flex; align-items: center; gap: 3px; font-weight: 700; background: rgba(59, 130, 246, 0.2); border: 1px solid #3b82f6; color: #60a5fa;" title="Open i-Chart Workstation & 30W MA Slope">
-                                📈 i-Chart
-                            </button>
-                            <button onclick="event.stopPropagation(); window.openTradingViewChart && window.openTradingViewChart('${cleanSym}')" class="btn-secondary quant-chart-btn" style="padding: 6px 12px; font-size: 11.5px; border-radius: 7px; cursor: pointer; white-space: nowrap; display: inline-flex; align-items: center; gap: 3px; font-weight: 700; background: rgba(56, 189, 248, 0.15); border: 1px solid rgba(56, 189, 248, 0.4); color: #38bdf8;" title="View Interactive Technical Chart">
-                                Chart ↗
-                            </button>
-                        </div>
+                    <!-- Tactical Action Guidance Box -->
+                    <div class="confluence-action-footer" style="font-size: 11.5px; line-height: 1.4; padding: 7px 10px; border-radius: 6px; border-left: 3px solid #f59e0b; margin-top: auto; margin-bottom: 6px; box-sizing: border-box; width: 100%;">
+                        ${item.tactical_action || 'Look for high-volume breakout near pivot level.'}
+                    </div>
+
+                    <!-- Interactive Buttons Grid (Fully Responsive 2x2 Grid, Zero Horizontal Overflow) -->
+                    <div class="confluence-card-btn-grid">
+                        <button onclick="event.stopPropagation(); window.openConfluenceStoryModal && window.openConfluenceStoryModal('${cleanSym}')" class="btn-primary quant-story-btn confluence-btn-story" title="Generate AI Multi-Vector Confluence Story">
+                            ⚡ AI Story
+                        </button>
+                        <button onclick="event.stopPropagation(); window.launchStageSimulator && window.launchStageSimulator('${cleanSym}')" class="btn-secondary quant-sim-btn confluence-btn-sim" title="Scan stock in 4-Stage Life Cycle Masterclass Simulator">
+                            Simulate ⚙️
+                        </button>
+                        <button onclick="event.stopPropagation(); window.openStandaloneInteractiveChart && window.openStandaloneInteractiveChart('${cleanSym}', null, 'confluence', 'Apex Confluence Leaderboard')" class="btn-primary quant-ichart-btn confluence-btn-ichart" title="Open i-Chart Workstation & 30W MA Slope">
+                            📈 i-Chart
+                        </button>
+                        <button onclick="event.stopPropagation(); window.openTradingViewChart && window.openTradingViewChart('${cleanSym}')" class="btn-secondary quant-chart-btn confluence-btn-chart" title="View Interactive Technical Chart">
+                            Chart ↗
+                        </button>
                     </div>
                 </div>
             `;
