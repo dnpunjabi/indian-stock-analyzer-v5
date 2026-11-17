@@ -38058,10 +38058,10 @@ body.light-theme .tech-prospectus-close-btn {
    MULTI-VECTOR CONFLUENCE STORYTELLER MODAL & RESPONSIVE DESIGN
    ========================================================================== */
 .confluence-story-modal-backdrop {
-    position: fixed;
-    inset: 0;
-    z-index: 100000;
-    background: rgba(2, 6, 23, 0.82);
+    position: fixed !important;
+    inset: 0 !important;
+    z-index: 100000 !important;
+    background: rgba(2, 6, 23, 0.85) !important;
     backdrop-filter: blur(14px);
     -webkit-backdrop-filter: blur(14px);
     display: none;
@@ -38073,8 +38073,9 @@ body.light-theme .tech-prospectus-close-btn {
 }
 
 [data-theme="light"] .confluence-story-modal-backdrop,
-[data-mode="light"] .confluence-story-modal-backdrop {
-    background: rgba(15, 23, 42, 0.55);
+[data-mode="light"] .confluence-story-modal-backdrop,
+body.light-theme .confluence-story-modal-backdrop {
+    background: rgba(15, 23, 42, 0.55) !important;
 }
 
 .confluence-story-card {
@@ -38227,10 +38228,10 @@ body.light-theme .tech-prospectus-close-btn {
    5-YEAR REVERSE DCF & VALUATION EXPECTATIONS MODAL & CARDS
    ========================================================================== */
 .valuation-modal-backdrop {
-    position: fixed;
-    inset: 0;
-    z-index: 100000;
-    background: rgba(2, 6, 23, 0.82);
+    position: fixed !important;
+    inset: 0 !important;
+    z-index: 100000 !important;
+    background: rgba(2, 6, 23, 0.85) !important;
     backdrop-filter: blur(14px);
     -webkit-backdrop-filter: blur(14px);
     display: none;
@@ -38242,8 +38243,9 @@ body.light-theme .tech-prospectus-close-btn {
 }
 
 [data-theme="light"] .valuation-modal-backdrop,
-[data-mode="light"] .valuation-modal-backdrop {
-    background: rgba(15, 23, 42, 0.55);
+[data-mode="light"] .valuation-modal-backdrop,
+body.light-theme .valuation-modal-backdrop {
+    background: rgba(15, 23, 42, 0.55) !important;
 }
 
 .valuation-story-card {

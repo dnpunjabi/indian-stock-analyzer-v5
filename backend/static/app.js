@@ -60072,6 +60072,7 @@ window.openConfluenceStoryModal = async function(symbol, forceRefresh = false) {
 
     // Show modal & loader
     modal.style.display = 'flex';
+    try { document.body.style.overflow = 'hidden'; } catch (e) {}
     const loader = document.getElementById('confluence-story-loading');
     const content = document.getElementById('confluence-story-content');
     if (loader) loader.style.display = 'block';
@@ -60268,6 +60269,7 @@ window.openConfluenceStoryModal = async function(symbol, forceRefresh = false) {
 window.closeConfluenceStoryModal = function() {
     const modal = document.getElementById('confluence-story-modal');
     if (modal) modal.style.display = 'none';
+    try { document.body.style.overflow = ''; } catch (e) {}
     if (window.speechSynthesis) window.speechSynthesis.cancel();
     isConfluenceSpeaking = false;
     const ttsBtn = document.getElementById('confluence-story-tts-btn');
@@ -60407,6 +60409,7 @@ window.openValuationExpectationsModal = async function(symbol, forceRefresh = fa
     if (ttsBtn) ttsBtn.innerHTML = '<span>🔊</span> Listen';
 
     modal.style.display = 'flex';
+    try { document.body.style.overflow = 'hidden'; } catch (e) {}
     const loader = document.getElementById('val-modal-loading');
     const content = document.getElementById('val-modal-content');
     if (loader) loader.style.display = 'block';
@@ -60549,6 +60552,7 @@ window.openValuationExpectationsModal = async function(symbol, forceRefresh = fa
 window.closeValuationExpectationsModal = function() {
     const modal = document.getElementById('valuation-expectations-modal');
     if (modal) modal.style.display = 'none';
+    try { document.body.style.overflow = ''; } catch (e) {}
     if (window.speechSynthesis) window.speechSynthesis.cancel();
     isValuationSpeaking = false;
     const ttsBtn = document.getElementById('val-modal-tts-btn');
