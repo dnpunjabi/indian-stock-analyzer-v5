@@ -19,7 +19,7 @@
     <script type="text/javascript" src="https://s3.tradingview.com/tv.js"></script>
     <!-- Marked.js Markdown Parser -->
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-    <link rel="stylesheet" href="styles.css?v=5.5.5">
+    <link rel="stylesheet" href="styles.css?v=5.5.6">
     <link rel="stylesheet" href="modernizer.css?v=5.0.7">
     <link rel="stylesheet" href="shark_radar.css?v=5.0.6">
     <style>
@@ -1203,6 +1203,7 @@
             </span>
         </div>
         <button id="mobile-header-scans-btn" class="mobile-header-scan-pill" title="Technical Scans & Breakouts">⚡ Scans</button>
+        <button id="mobile-header-psych-btn" onclick="window.openTradePsychologistModal && window.openTradePsychologistModal(window.currentActiveSymbol || 'TCS')" class="mobile-header-scan-pill" style="background: rgba(124, 58, 237, 0.25); border: 1px solid rgba(167, 139, 250, 0.5); color: #c084fc; margin-left: 4px;" title="AI Trade Psychologist & Pre-Trade Sanity Mirror">🧠 Psych</button>
         
         <!-- Live WebSocket Status Indicator Dot -->
         <div id="mobile-ws-dot" class="mobile-ws-dot-indicator" title="WebSocket Live Status" style="width: 8px; height: 8px; border-radius: 50%; background: #10b981; box-shadow: 0 0 6px #10b981; margin-left: auto; margin-right: 8px; display: inline-block;"></div>
@@ -1707,6 +1708,9 @@
                     </button>
                     <button class="nav-btn" id="tab-fuzzy-btn-desktop" data-tab-key="fuzzy" data-category="magenta" onclick="window.switchTab && window.switchTab('fuzzy')" title="Fuzzy Intelligence Engine">
                         <span class="btn-icon">🧠</span><span class="btn-text">Fuzzy AI</span>
+                    </button>
+                    <button class="nav-btn" id="tab-trade-psych-row1-btn-desktop" data-category="magenta" onclick="window.openTradePsychologistModal && window.openTradePsychologistModal(window.currentActiveSymbol || 'TCS')" title="AI Trade Psychologist & Pre-Trade Sanity Mirror" style="border: 1px solid rgba(167, 139, 250, 0.4); background: rgba(124, 58, 237, 0.15); color: #c084fc;">
+                        <span class="btn-icon">🛡️</span><span class="btn-text">Trade Psych</span>
                     </button>
                 </div>
 
@@ -18501,7 +18505,7 @@
     <script src="academy_prompts.js"></script>
     <script src="layman_details.js"></script>
     <script src="export_manager.js?v=5.0.1"></script>
-    <script src="app.js?v=5.5.5"></script>
+    <script src="app.js?v=5.5.6"></script>
 
     <!-- Modernization CDNs -->
     <script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js"></script>

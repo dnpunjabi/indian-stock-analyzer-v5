@@ -22204,6 +22204,20 @@ async def trigger_shark_batch_sync(limit: int = Query(15, ge=1, le=50)):
 static_dir = os.path.join(os.path.dirname(__file__), "static")
 os.makedirs(static_dir, exist_ok=True)
 
+@app.get("/")
+@app.get("/index.html")
+async def serve_index():
+    from fastapi.responses import FileResponse
+    index_path = os.path.join(static_dir, "index.html")
+    return FileResponse(
+        index_path,
+        headers={
+            "Cache-Control": "no-cache, no-store, must-revalidate",
+            "Pragma": "no-cache",
+            "Expires": "0"
+        }
+    )
+
 app.mount("/", StaticFiles(directory=static_dir, html=True), name="static")
 
 
