@@ -60352,32 +60352,45 @@ window.loadCardValuationExpectations = async function(symbol) {
             badgeEl.style.color = data.margin_of_safety?.color || '#34d399';
         }
         if (verdictEl) {
-            verdictEl.textContent = data.margin_of_safety?.verdict || '';
+            const ls = data.layman_summary;
+            const hlEl = document.getElementById('card-val-layman-headline');
+            const bgEl = document.getElementById('card-val-layman-badge');
+            const tkEl = document.getElementById('card-val-layman-takeaway');
+            if (hlEl && ls?.headline) hlEl.textContent = ls.headline;
+            if (bgEl && ls?.verdict_badge) bgEl.textContent = ls.verdict_badge;
+            if (tkEl && ls?.takeaway) {
+                tkEl.textContent = ls.takeaway;
+            } else {
+                verdictEl.textContent = data.margin_of_safety?.verdict || '';
+            }
         }
 
         if (tbody && data.scenarios) {
             const sc = data.scenarios;
+            const bearCagr = sc.bear?.cagr_pct ?? 0;
+            const baseCagr = sc.base?.cagr_pct ?? 0;
+            const bullCagr = sc.bull?.cagr_pct ?? 0;
             tbody.innerHTML = `
                 <tr>
                     <td style="font-weight: 700; color: #f87171;">🐻 Bear Case</td>
                     <td>+${sc.bear?.growth_pct || 10}%</td>
                     <td>${sc.bear?.exit_pe || 25}x</td>
                     <td style="font-weight: 700;">₹${(sc.bear?.future_price || 0).toLocaleString('en-IN')}</td>
-                    <td style="font-weight: 800; color: ${sc.bear?.cagr_pct >= 0 ? '#34d399' : '#f87171'};">${sc.bear?.cagr_pct >= 0 ? '+' : ''}${sc.bear?.cagr_pct || 0}% p.a.</td>
+                    <td style="font-weight: 800; color: ${bearCagr >= 0 ? '#34d399' : '#f87171'};">${bearCagr >= 0 ? '+' : ''}${bearCagr}% p.a.</td>
                 </tr>
                 <tr style="background: rgba(56, 189, 248, 0.04);">
                     <td style="font-weight: 700; color: #38bdf8;">⚖️ Base Case</td>
                     <td>+${sc.base?.growth_pct || 18}%</td>
                     <td>${sc.base?.exit_pe || 35}x</td>
                     <td style="font-weight: 700; color: #38bdf8;">₹${(sc.base?.future_price || 0).toLocaleString('en-IN')}</td>
-                    <td style="font-weight: 800; color: #34d399;">+${sc.base?.cagr_pct || 15}% p.a.</td>
+                    <td style="font-weight: 800; color: ${baseCagr >= 0 ? '#34d399' : '#f87171'};">${baseCagr >= 0 ? '+' : ''}${baseCagr}% p.a.</td>
                 </tr>
                 <tr>
                     <td style="font-weight: 700; color: #34d399;">🐂 Bull Case</td>
                     <td>+${sc.bull?.growth_pct || 25}%</td>
                     <td>${sc.bull?.exit_pe || 45}x</td>
                     <td style="font-weight: 700;">₹${(sc.bull?.future_price || 0).toLocaleString('en-IN')}</td>
-                    <td style="font-weight: 800; color: #34d399;">+${sc.bull?.cagr_pct || 25}% p.a.</td>
+                    <td style="font-weight: 800; color: ${bullCagr >= 0 ? '#34d399' : '#f87171'};">${bullCagr >= 0 ? '+' : ''}${bullCagr}% p.a.</td>
                 </tr>
             `;
         }
@@ -60440,6 +60453,22 @@ window.openValuationExpectationsModal = async function(symbol, forceRefresh = fa
         if (modelTag) modelTag.textContent = `🤖 ${data.model_label || 'Gemini 2.5 Flash'}`;
         if (cacheTag) cacheTag.style.display = data.from_cache ? 'inline-block' : 'none';
 
+        // 0. Plain-English Layman Summary
+        const ls = data.layman_summary;
+        const layHeadline = document.getElementById('val-modal-layman-headline');
+        const layBadge = document.getElementById('val-modal-layman-badge');
+        const layCash = document.getElementById('val-modal-layman-cash');
+        const layGrowth = document.getElementById('val-modal-layman-growth');
+        const layReturn = document.getElementById('val-modal-layman-return');
+        const layVerdict = document.getElementById('val-modal-layman-verdict');
+
+        if (layHeadline) layHeadline.textContent = ls?.headline || 'Evaluating plain-english takeaways...';
+        if (layBadge) layBadge.textContent = ls?.verdict_badge || (data.margin_of_safety?.badge || '--');
+        if (layCash) layCash.textContent = ls?.cash_quality || 'Auditing cash conversion...';
+        if (layGrowth) layGrowth.textContent = ls?.growth_hurdle || `Implied growth rate is ${data.implied_5y_growth_pct || 0}% CAGR.`;
+        if (layReturn) layReturn.textContent = ls?.return_outlook || `Base case expectation: +${data.scenarios?.base?.cagr_pct || 0}% p.a.`;
+        if (layVerdict) layVerdict.textContent = ls?.takeaway || (data.margin_of_safety?.verdict || '--');
+
         // 1. Cash Realization
         const cfoRatioEl = document.getElementById('val-modal-cfo-ratio');
         const cfoDetailsEl = document.getElementById('val-modal-cfo-details');
@@ -60462,27 +60491,30 @@ window.openValuationExpectationsModal = async function(symbol, forceRefresh = fa
         const scTbody = document.getElementById('val-modal-scenario-tbody');
         if (scTbody && data.scenarios) {
             const sc = data.scenarios;
+            const bearCagr = sc.bear?.cagr_pct ?? 0;
+            const baseCagr = sc.base?.cagr_pct ?? 0;
+            const bullCagr = sc.bull?.cagr_pct ?? 0;
             scTbody.innerHTML = `
                 <tr>
                     <td style="font-weight: 700; color: #f87171;">🐻 Bear Case</td>
                     <td>+${sc.bear?.growth_pct || 10}%</td>
                     <td>${sc.bear?.exit_pe || 25}x</td>
                     <td style="font-weight: 700;">₹${(sc.bear?.future_price || 0).toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
-                    <td style="font-weight: 800; color: ${sc.bear?.cagr_pct >= 0 ? '#34d399' : '#f87171'};">${sc.bear?.cagr_pct >= 0 ? '+' : ''}${sc.bear?.cagr_pct || 0}% p.a.</td>
+                    <td style="font-weight: 800; color: ${bearCagr >= 0 ? '#34d399' : '#f87171'};">${bearCagr >= 0 ? '+' : ''}${bearCagr}% p.a.</td>
                 </tr>
                 <tr style="background: rgba(56, 189, 248, 0.05);">
                     <td style="font-weight: 700; color: #38bdf8;">⚖️ Base Case</td>
                     <td>+${sc.base?.growth_pct || 18}%</td>
                     <td>${sc.base?.exit_pe || 35}x</td>
                     <td style="font-weight: 700; color: #38bdf8;">₹${(sc.base?.future_price || 0).toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
-                    <td style="font-weight: 800; color: #34d399;">+${sc.base?.cagr_pct || 15}% p.a.</td>
+                    <td style="font-weight: 800; color: ${baseCagr >= 0 ? '#34d399' : '#f87171'};">${baseCagr >= 0 ? '+' : ''}${baseCagr}% p.a.</td>
                 </tr>
                 <tr>
                     <td style="font-weight: 700; color: #34d399;">🐂 Bull Case</td>
                     <td>+${sc.bull?.growth_pct || 25}%</td>
                     <td>${sc.bull?.exit_pe || 45}x</td>
                     <td style="font-weight: 700;">₹${(sc.bull?.future_price || 0).toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
-                    <td style="font-weight: 800; color: #34d399;">+${sc.bull?.cagr_pct || 25}% p.a.</td>
+                    <td style="font-weight: 800; color: ${bullCagr >= 0 ? '#34d399' : '#f87171'};">${bullCagr >= 0 ? '+' : ''}${bullCagr}% p.a.</td>
                 </tr>
             `;
         }

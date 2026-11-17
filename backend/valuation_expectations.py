@@ -265,10 +265,25 @@ def extract_pe_bands_and_profile(symbol: str) -> Dict[str, Any]:
             pe_b = p.get("pe_bands", {})
 
             res["current_pe"] = float(f.get("pe_ratio") or 0.0)
-            res["trailing_eps"] = float(f.get("eps") or 0.0)
             res["roe_pct"] = float(f.get("roe_pct") or 18.0)
             res["roce_pct"] = float(f.get("roce_pct") or 22.0)
             res["debt_to_equity"] = float(f.get("debt_to_equity") or 0.1)
+
+            # Check pe_history for verified 12-month TTM EPS
+            hist_eps = 0.0
+            if pe_b and isinstance(pe_b.get("pe_history"), list) and len(pe_b["pe_history"]) > 0:
+                for entry in reversed(pe_b["pe_history"]):
+                    val = entry.get("eps")
+                    if val is not None and float(val) > 0:
+                        hist_eps = float(val)
+                        break
+
+            if hist_eps > 0:
+                res["trailing_eps"] = round(hist_eps, 2)
+            elif float(f.get("eps") or 0.0) > 0:
+                res["trailing_eps"] = float(f.get("eps"))
+            elif res["current_pe"] > 0 and float(f.get("current_price") or 0.0) > 0:
+                res["trailing_eps"] = round(float(f["current_price"]) / res["current_pe"], 2)
 
             if pe_b:
                 res["mean_pe"] = round(float(pe_b.get("mean_pe") or 32.0), 1)
@@ -331,14 +346,31 @@ def generate_valuation_expectations(
 
     # Trailing EPS & PE resolution
     eps = prof_data.get("trailing_eps", 0.0)
-    if eps <= 0 and cf_data.get("eps_history"):
-        eps = cf_data["eps_history"][-1]
-    if eps <= 0:
-        eps = round(cmp_val / (prof_data.get("current_pe") or 30.0), 2)
-    if eps <= 0:
-        eps = round(cmp_val / 30.0, 2)
+    pe_ratio_f = prof_data.get("current_pe", 0.0)
 
-    pe_current = round(cmp_val / eps, 1) if eps > 0 else 30.0
+    # If trailing_eps is not resolved yet, check fundamentals PE ratio or cf_data
+    if eps <= 0 and pe_ratio_f > 0 and cmp_val > 0:
+        eps = round(cmp_val / pe_ratio_f, 2)
+
+    if eps <= 0 and cf_data.get("eps_history"):
+        raw_eps = cf_data["eps_history"][-1]
+        ref_pe = pe_ratio_f if pe_ratio_f > 0 else (prof_data.get("median_pe") or 30.0)
+        # Guard: Check if raw_eps is quarterly (cmp / raw_eps is > 2.5x higher than ref_pe)
+        if (cmp_val / raw_eps) > (ref_pe * 2.5):
+            eps = round(raw_eps * 4.0, 2)
+        else:
+            eps = raw_eps
+
+    if eps <= 0:
+        ref_pe = pe_ratio_f if pe_ratio_f > 0 else (prof_data.get("median_pe") or 30.0)
+        eps = round(cmp_val / ref_pe, 2)
+
+    # Final sanity guard: Ensure EPS is not a single quarter's EPS
+    ref_pe = pe_ratio_f if pe_ratio_f > 0 else (prof_data.get("median_pe") or 30.0)
+    if ref_pe > 0 and (cmp_val / eps) > (ref_pe * 2.5):
+        eps = round(cmp_val / ref_pe, 2)
+
+    pe_current = round(cmp_val / eps, 1) if eps > 0 else (pe_ratio_f if pe_ratio_f > 0 else 30.0)
 
     # Ensure valid PE band bounds
     median_pe = prof_data.get("median_pe") or 30.0
@@ -398,6 +430,44 @@ def generate_valuation_expectations(
         mos_badge = "🔴 LOW MARGIN OF SAFETY"
         mos_color = "#f87171"
         mos_verdict = f"Priced for perfection. The market demands {implied_growth}% growth (vs historical {hist_growth}%). Any quarterly earnings hiccup risks P/E compression."
+
+    # 6.5. Generate Structured Layman Investor Summary
+    if mos_status == "HIGH_MARGIN_OF_SAFETY":
+        layman_headline = "🟢 Plain English: High Margin of Safety — Strong Long-Term Compounder"
+        layman_verdict_badge = "Strong Value / High Safety Cushion"
+        layman_takeaway = f"The stock is attractively priced relative to its earning power. At CMP ₹{cmp_val:,.2f}, the market demands modest annual growth ({implied_growth}%/yr vs historical {hist_growth}%/yr). Favorable risk/reward for long-term investors."
+    elif mos_status == "FAIRLY_VALUED":
+        layman_headline = "🟡 Plain English: Fairly Priced — Steady Returns Expected"
+        layman_verdict_badge = "Fair Value / Accumulate on Dips"
+        layman_takeaway = f"The stock is trading around fair market value. Market expectations ({implied_growth}%/yr) match historical reality ({hist_growth}%/yr). Base Case expects +{base_scenario['cagr_pct']}% p.a. over 5 years. Accumulate during market pullbacks."
+    else:
+        layman_headline = "🔴 Plain English: Priced for Perfection — Little Room for Error"
+        layman_verdict_badge = "High Expectations / Cautious"
+        layman_takeaway = f"The market demands aggressive profit growth ({implied_growth}%/yr vs historical {hist_growth}%/yr) to justify current prices. Any earnings slowdown risks multiple compression. Prefer waiting for a price correction."
+
+    cfo_ratio = cf_data.get("conversion_ratio_pct", 100.0)
+    if cfo_ratio >= 80.0:
+        cfo_plain = f"Pristine Real Cash: For every ₹100 of reported profit, ₹{cfo_ratio:.1f} landed as hard cash in the company's bank account. Clean and trustworthy books."
+    elif cfo_ratio >= 60.0:
+        cfo_plain = f"Decent Cash Conversion: ₹{cfo_ratio:.1f} of cash collected per ₹100 profit. A portion is tied up in working capital or capacity growth."
+    else:
+        cfo_plain = f"Paper Profit Alert: Only ₹{cfo_ratio:.1f} of cash collected per ₹100 profit. High receivables or inventory buildup."
+
+    growth_plain = f"Growth Hurdle: Today's price implies the business must grow profits by {implied_growth}% annually over 5 years (vs {hist_growth}% historical rate)."
+    
+    if base_scenario['cagr_pct'] >= 0:
+        return_plain = f"5-Year Wealth Expectation: Under normal conditions (+{base_growth}% EPS growth at {base_exit_pe}x P/E), expect around +{base_scenario['cagr_pct']}% return per year (projected price: ₹{base_scenario['future_price']:,.2f})."
+    else:
+        return_plain = f"5-Year Wealth Expectation: Multiple compression poses downside risk ({base_scenario['cagr_pct']}% p.a.) if growth fails to outpace valuation derating."
+
+    layman_summary_obj = {
+        "headline": layman_headline,
+        "verdict_badge": layman_verdict_badge,
+        "cash_quality": cfo_plain,
+        "growth_hurdle": growth_plain,
+        "return_outlook": return_plain,
+        "takeaway": layman_takeaway
+    }
 
     # 7. AI Institutional Synthesis (Gemini / Fast Fallback)
     sys_instruction = (
@@ -472,12 +542,30 @@ def generate_valuation_expectations(
             logger.warning(f"[Valuation Expectations] Key {mask} request failed: {e}. Rotating...")
             continue
 
+    # Build fallback narrative with strict consistency
+    if base_scenario['cagr_pct'] < 0:
+        thesis_text = (
+            f"At current valuation multiples ({pe_current:.1f}x), the expected 5-year annualized return is negative ({base_scenario['cagr_pct']}% p.a.). "
+            f"Investors should exercise caution and wait for a substantial valuation derating or significant earnings acceleration before building long-term exposure."
+        )
+    else:
+        thesis_text = (
+            f"{comp_name} exhibits strong institutional compounding metrics with high capital efficiency (ROE: {prof_data['roe_pct']}% • ROCE: {prof_data['roce_pct']}%). "
+            f"The business maintains conservative balance sheet leverage (Debt/Equity: {prof_data['debt_to_equity']}), giving management significant runway to fund organic capacity expansion. "
+            f"For disciplined long-term allocators, the Base Case provides an expected +{base_scenario['cagr_pct']}% annualized CAGR over a 5-year holding horizon. Accumulate methodically on cyclical dips."
+        )
+
     if not diagnostic_text:
         # High quality algorithmic fallback synthesis
         diagnostic_text = (
             f"🎯 *5-YEAR VALUATION EXPECTATIONS & REALITY CHECK*\n"
             f"🏛️ *{comp_name.upper()}* (`{base_sym}`) • CMP: ₹{cmp_val:,.2f} • P/E: {pe_current:.1f}x\n"
             "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n"
+            "🌱 *PLAIN-ENGLISH INVESTOR SUMMARY (LAYMAN VIEW)*:\n"
+            f"• *Cash Quality:* {cfo_plain}\n"
+            f"• *Growth Hurdle:* {growth_plain}\n"
+            f"• *5-Year Return:* {return_plain}\n"
+            f"• *Bottom Line:* {layman_takeaway}\n\n"
             f"💎 *EARNINGS INTEGRITY (CFO vs PAT)*:\n"
             f"• 5Y Cumulative PAT: ₹{cf_data['cumulative_pat_cr']:,.1f} Cr | Cumulative CFO: ₹{cf_data['cumulative_cfo_cr']:,.1f} Cr\n"
             f"• Cash Realization: {cf_data['conversion_ratio_pct']}% • {cf_data['badge']}\n"
@@ -488,13 +576,11 @@ def generate_valuation_expectations(
             f"• Margin of Safety: {mos_badge}\n"
             f"• Valuation Verdict: {mos_verdict}\n\n"
             "📊 *5-YEAR INVESTOR RETURN ROADMAP (Expected Annualized CAGR)*:\n"
-            f"• 🐻 Bear Case (+{bear_growth}% EPS | {bear_exit_pe}x PE): ₹{bear_scenario['future_price']:,.2f} ({bear_scenario['cagr_pct']}% p.a.)\n"
-            f"• ⚖️ Base Case (+{base_growth}% EPS | {base_exit_pe}x PE): ₹{base_scenario['future_price']:,.2f} ({base_scenario['cagr_pct']}% p.a.)\n"
-            f"• 🐂 Bull Case (+{bull_growth}% EPS | {bull_exit_pe}x PE): ₹{bull_scenario['future_price']:,.2f} ({bull_scenario['cagr_pct']}% p.a.)\n\n"
-            "💡 *LONG-TERM ALLOCATION THESIS*:\n"
-            f"{comp_name} exhibits strong institutional compounding metrics with high capital efficiency (ROE: {prof_data['roe_pct']}% • ROCE: {prof_data['roce_pct']}%). "
-            f"The business maintains conservative balance sheet leverage (Debt/Equity: {prof_data['debt_to_equity']}), giving management significant runway to fund organic capacity expansion. "
-            f"For disciplined long-term allocators, the Base Case provides an expected {base_scenario['cagr_pct']}% annualized CAGR over a 5-year holding horizon. Accumulate methodically on cyclical dips."
+            f"• 🐻 Bear Case (+{bear_growth}% EPS | {bear_exit_pe}x PE): ₹{bear_scenario['future_price']:,.2f} ({'+' if bear_scenario['cagr_pct'] >= 0 else ''}{bear_scenario['cagr_pct']}% p.a.)\n"
+            f"• ⚖️ Base Case (+{base_growth}% EPS | {base_exit_pe}x PE): ₹{base_scenario['future_price']:,.2f} ({'+' if base_scenario['cagr_pct'] >= 0 else ''}{base_scenario['cagr_pct']}% p.a.)\n"
+            f"• 🐂 Bull Case (+{bull_growth}% EPS | {bull_exit_pe}x PE): ₹{bull_scenario['future_price']:,.2f} ({'+' if bull_scenario['cagr_pct'] >= 0 else ''}{bull_scenario['cagr_pct']}% p.a.)\n\n"
+            f"💡 *LONG-TERM ALLOCATION THESIS*:\n"
+            f"{thesis_text}"
         )
 
     result_payload = {
@@ -525,6 +611,7 @@ def generate_valuation_expectations(
             "base": base_scenario,
             "bull": bull_scenario
         },
+        "layman_summary": layman_summary_obj,
         "model_id": model,
         "model_label": model_label,
         "formatted_markdown": diagnostic_text,

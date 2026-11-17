@@ -19,7 +19,7 @@
     <script type="text/javascript" src="https://s3.tradingview.com/tv.js"></script>
     <!-- Marked.js Markdown Parser -->
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-    <link rel="stylesheet" href="styles.css?v=5.5.0">
+    <link rel="stylesheet" href="styles.css?v=5.5.1">
     <link rel="stylesheet" href="modernizer.css?v=5.0.7">
     <link rel="stylesheet" href="shark_radar.css?v=5.0.6">
     <style>
@@ -11013,8 +11013,12 @@
                             </div>
 
                             <!-- Layman Summary Footer -->
-                            <div id="card-val-verdict-box" style="padding: 10px 14px; background: rgba(56, 189, 248, 0.05); border-left: 3px solid #38bdf8; border-radius: 6px; font-size: 12.5px; color: var(--text-secondary, #cbd5e1); line-height: 1.5;">
-                                Analyzing valuation margin of safety...
+                            <div id="card-val-verdict-box" style="padding: 12px 16px; background: rgba(56, 189, 248, 0.06); border-left: 4px solid #10b981; border-radius: 8px; font-size: 12.5px; color: var(--text-secondary, #cbd5e1); line-height: 1.5;">
+                                <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 4px; flex-wrap: wrap;">
+                                    <span id="card-val-layman-headline" style="font-weight: 800; font-size: 12.5px; color: #10b981;">🌱 Plain-English Summary</span>
+                                    <span id="card-val-layman-badge" style="font-size: 10.5px; padding: 1px 7px; border-radius: 10px; font-weight: 700; background: rgba(16, 185, 129, 0.15); color: #34d399;">--</span>
+                                </div>
+                                <div id="card-val-layman-takeaway">Analyzing valuation margin of safety...</div>
                             </div>
                         </div>
 
@@ -18483,7 +18487,7 @@
     <script src="academy_prompts.js"></script>
     <script src="layman_details.js"></script>
     <script src="export_manager.js?v=5.0.1"></script>
-    <script src="app.js?v=5.5.0"></script>
+    <script src="app.js?v=5.5.1"></script>
 
     <!-- Modernization CDNs -->
     <script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js"></script>
@@ -19108,6 +19112,40 @@
 
                 <!-- Content -->
                 <div id="val-modal-content" style="display: none; flex-direction: column; gap: 16px;">
+                    <!-- Plain-English Investor Summary (Layman View) -->
+                    <div id="val-modal-layman-box" class="val-layman-box">
+                        <div class="val-layman-header">
+                            <span style="font-size: 22px; flex-shrink: 0;">🌱</span>
+                            <div style="flex: 1; overflow: hidden;">
+                                <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap;">
+                                    <span style="font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.6px; color: #10b981;">Plain-English Summary (Layman View)</span>
+                                    <span id="val-modal-layman-badge" style="font-size: 11px; padding: 2px 8px; border-radius: 10px; font-weight: 700; background: rgba(16, 185, 129, 0.2); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.35);">--</span>
+                                </div>
+                                <div id="val-modal-layman-headline" style="font-size: 13.5px; font-weight: 800; color: var(--text-primary, #f8fafc); margin-top: 4px; line-height: 1.4;">
+                                    Evaluating simple takeaways...
+                                </div>
+                            </div>
+                        </div>
+                        <div class="val-layman-grid">
+                            <div class="val-layman-card">
+                                <div class="val-layman-card-title">💰 Cash Quality</div>
+                                <div class="val-layman-card-body" id="val-modal-layman-cash">--</div>
+                            </div>
+                            <div class="val-layman-card">
+                                <div class="val-layman-card-title">🎯 Growth Hurdle</div>
+                                <div class="val-layman-card-body" id="val-modal-layman-growth">--</div>
+                            </div>
+                            <div class="val-layman-card">
+                                <div class="val-layman-card-title">📈 5Y Return Outlook</div>
+                                <div class="val-layman-card-body" id="val-modal-layman-return">--</div>
+                            </div>
+                            <div class="val-layman-card">
+                                <div class="val-layman-card-title">💡 Bottom Line Verdict</div>
+                                <div class="val-layman-card-body" id="val-modal-layman-verdict">--</div>
+                            </div>
+                        </div>
+                    </div>
+
                     <!-- Earnings Integrity Box -->
                     <div style="background: var(--bg-card-sub, rgba(255, 255, 255, 0.02)); border: 1px solid var(--border-glass, rgba(255, 255, 255, 0.08)); border-radius: 12px; padding: 14px 16px; border-left: 4px solid #10b981;">
                         <div style="font-size: 11px; font-weight: 800; text-transform: uppercase; color: #10b981; letter-spacing: 0.6px; margin-bottom: 6px; display: flex; align-items: center; gap: 6px;">

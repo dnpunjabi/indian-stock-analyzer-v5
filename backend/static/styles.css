@@ -38366,3 +38366,77 @@ body.light-theme .valuation-modal-backdrop {
         padding: 8px 6px;
     }
 }
+
+/* ==========================================================================
+   Valuation Expectations Plain-English (Layman) Summary Styles
+   ========================================================================== */
+.val-layman-box {
+    background: linear-gradient(135deg, rgba(16, 185, 129, 0.08), rgba(56, 189, 248, 0.05));
+    border: 1px solid rgba(16, 185, 129, 0.35);
+    border-radius: 12px;
+    padding: 16px 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    box-sizing: border-box;
+}
+
+[data-theme="light"] .val-layman-box,
+[data-mode="light"] .val-layman-box {
+    background: linear-gradient(135deg, rgba(16, 185, 129, 0.1), rgba(56, 189, 248, 0.08));
+    border-color: rgba(16, 185, 129, 0.45);
+}
+
+.val-layman-header {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+}
+
+.val-layman-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 10px;
+}
+
+.val-layman-card {
+    background: var(--bg-card-sub, rgba(255, 255, 255, 0.03));
+    border: 1px solid var(--border-glass, rgba(255, 255, 255, 0.08));
+    border-radius: 8px;
+    padding: 10px 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+[data-theme="light"] .val-layman-card,
+[data-mode="light"] .val-layman-card {
+    background: #ffffff;
+    border-color: rgba(0, 0, 0, 0.08);
+    box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+}
+
+.val-layman-card-title {
+    font-size: 11px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: #10b981;
+}
+
+[data-theme="light"] .val-layman-card-title,
+[data-mode="light"] .val-layman-card-title {
+    color: #059669;
+}
+
+.val-layman-card-body {
+    font-size: 12.5px;
+    color: var(--text-primary, #cbd5e1);
+    line-height: 1.45;
+}
+
+[data-theme="light"] .val-layman-card-body,
+[data-mode="light"] .val-layman-card-body {
+    color: #334155;
+}
+
