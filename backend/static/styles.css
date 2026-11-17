@@ -38440,3 +38440,37 @@ body.light-theme .valuation-modal-backdrop {
     color: #334155;
 }
 
+.confluence-layman-box {
+    background: linear-gradient(135deg, rgba(245, 158, 11, 0.08), rgba(16, 185, 129, 0.06));
+    border: 1px solid rgba(245, 158, 11, 0.35);
+    border-radius: 12px;
+    padding: 16px 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    box-sizing: border-box;
+}
+
+[data-theme="light"] .confluence-layman-box,
+[data-mode="light"] .confluence-layman-box {
+    background: linear-gradient(135deg, rgba(245, 158, 11, 0.1), rgba(16, 185, 129, 0.08));
+    border-color: rgba(245, 158, 11, 0.45);
+}
+
+.vision-layman-box {
+    background: linear-gradient(135deg, rgba(168, 85, 247, 0.09), rgba(59, 130, 246, 0.06));
+    border: 1px solid rgba(168, 85, 247, 0.35);
+    border-radius: 12px;
+    padding: 16px 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    box-sizing: border-box;
+}
+
+[data-theme="light"] .vision-layman-box,
+[data-mode="light"] .vision-layman-box {
+    background: linear-gradient(135deg, rgba(168, 85, 247, 0.12), rgba(59, 130, 246, 0.08));
+    border-color: rgba(168, 85, 247, 0.45);
+}
+

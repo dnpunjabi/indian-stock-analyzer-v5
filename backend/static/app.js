@@ -56543,6 +56543,45 @@ window.renderVisionDiagnosticHtml = function(data) {
     }
     const raw = data.formatted_markdown;
     
+    let laymanHtml = '';
+    if (data.layman_summary) {
+        const ls = data.layman_summary;
+        laymanHtml = `
+            <div class="vision-layman-box" style="margin-bottom: 16px;">
+                <div class="val-layman-header">
+                    <span style="font-size: 22px; flex-shrink: 0;">🌱</span>
+                    <div style="flex: 1; overflow: hidden;">
+                        <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap;">
+                            <span style="font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.6px; color: #a855f7;">Plain-English Summary (Layman View)</span>
+                            <span style="font-size: 11px; padding: 2px 8px; border-radius: 10px; font-weight: 700; background: rgba(168, 85, 247, 0.2); color: #c084fc; border: 1px solid rgba(168, 85, 247, 0.35);">${ls.stance_badge || '🟢 Pattern Setup'}</span>
+                        </div>
+                        <div style="font-size: 13.5px; font-weight: 800; color: var(--text-primary, #f8fafc); margin-top: 4px; line-height: 1.4;">
+                            ${ls.tactical_takeaway || 'Constructive chart setup with institutional support.'}
+                        </div>
+                    </div>
+                </div>
+                <div class="val-layman-grid">
+                    <div class="val-layman-card">
+                        <div class="val-layman-card-title" style="color: #a855f7;">🎨 What the Chart Looks Like</div>
+                        <div class="val-layman-card-body">${ls.chart_shape || '--'}</div>
+                    </div>
+                    <div class="val-layman-card">
+                        <div class="val-layman-card-title" style="color: #a855f7;">🥊 Who's in Charge</div>
+                        <div class="val-layman-card-body">${ls.whos_in_charge || '--'}</div>
+                    </div>
+                    <div class="val-layman-card">
+                        <div class="val-layman-card-title" style="color: #a855f7;">⚡ Simple Action Plan</div>
+                        <div class="val-layman-card-body">${ls.simple_action || '--'}</div>
+                    </div>
+                    <div class="val-layman-card">
+                        <div class="val-layman-card-title" style="color: #a855f7;">⚖️ Risk vs Reward Odds</div>
+                        <div class="val-layman-card-body">${ls.risk_odds || '--'}</div>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+
     // Convert markdown bullets and headers
     let html = raw;
     // Replace horizontal dividers
@@ -56566,6 +56605,7 @@ window.renderVisionDiagnosticHtml = function(data) {
 
     return `
         <div class="vision-diagnostic-card" style="font-family: inherit; font-size: 13.5px; line-height: 1.6;">
+            ${laymanHtml}
             ${paragraphs}
         </div>
     `;
@@ -60110,6 +60150,22 @@ window.openConfluenceStoryModal = async function(symbol, forceRefresh = false) {
         if (nameEl) nameEl.textContent = data.company_name || cleanSym;
         if (modelTag) modelTag.textContent = `🤖 ${data.model_label || 'Gemini 2.5 Flash'}`;
         if (cacheTag) cacheTag.style.display = data.from_cache ? 'inline-block' : 'none';
+
+        // 0. Layman Summary
+        const ls = data.layman_summary;
+        const layBadge = document.getElementById('confluence-layman-stance-badge');
+        const layHeadline = document.getElementById('confluence-layman-headline');
+        const layDoing = document.getElementById('confluence-layman-doing');
+        const layPlan = document.getElementById('confluence-layman-plan');
+        const layRR = document.getElementById('confluence-layman-rr');
+        const layVerdict = document.getElementById('confluence-layman-verdict');
+
+        if (layBadge) layBadge.textContent = ls?.stance_badge || (data.tier_label || 'High Confluence');
+        if (layHeadline) layHeadline.textContent = ls?.takeaway || 'High-probability momentum setup with strong institutional sponsorship.';
+        if (layDoing) layDoing.textContent = ls?.what_stock_is_doing || 'Multiple quantitative screeners triggered simultaneously.';
+        if (layPlan) layPlan.textContent = ls?.simple_plan || `Entry pivot at ₹${data.tactical_levels?.pivot_price || '--'}. Stop-loss at ₹${data.tactical_levels?.stop_loss || '--'}.`;
+        if (layRR) layRR.textContent = ls?.risk_odds || `Risking 1 to make ${data.tactical_levels?.rr_ratio || 2.0} (1 : ${data.tactical_levels?.rr_ratio || 2.0} R:R).`;
+        if (layVerdict) layVerdict.textContent = ls?.takeaway || 'Constructive setup. Maintain disciplined execution.';
 
         // 1. Mesh tags
         const meshContainer = document.getElementById('confluence-story-mesh-tags');

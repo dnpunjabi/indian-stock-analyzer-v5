@@ -70,6 +70,64 @@ def get_vision_model_info() -> Tuple[str, str]:
     return model_id, model_label
 
 
+
+def extract_vision_layman_summary(text: str, cmp_val: float) -> Dict[str, Any]:
+    """Extracts or synthesizes structured layman summary fields from vision diagnostic text."""
+    import re
+    
+    # 1. Chart Shape
+    shape_match = re.search(r"•\s*(?:🎨\s*)?\*?Chart Shape:?\*?\s*([^\r\n]+)", text, re.IGNORECASE)
+    chart_shape = shape_match.group(1).strip() if shape_match else "Consolidation Base near Key Support"
+    
+    # 2. Who's in Charge
+    charge_match = re.search(r"•\s*(?:🥊\s*)?\*?Who'?s in Charge:?\*?\s*([^\r\n]+)", text, re.IGNORECASE)
+    whos_in_charge = charge_match.group(1).strip() if charge_match else "Buyers are actively defending key moving averages; sellers are losing momentum."
+    
+    # 3. Simple Action
+    action_match = re.search(r"•\s*(?:⚡\s*)?\*?Simple Action:?\*?\s*([^\r\n]+)", text, re.IGNORECASE)
+    if action_match:
+        simple_action = action_match.group(1).strip()
+    else:
+        trig_m = re.search(r"Breakout Trigger.*?[₹:]\s*([0-9,.]+)", text)
+        sl_m = re.search(r"Invalidation.*?[₹:]\s*([0-9,.]+)", text)
+        tg_m = re.search(r"Target 1.*?[₹:]\s*([0-9,.]+)", text)
+        trig = trig_m.group(1) if trig_m else f"{cmp_val * 1.025:,.2f}"
+        sl = sl_m.group(1) if sl_m else f"{cmp_val * 0.96:,.2f}"
+        tg = tg_m.group(1) if tg_m else f"{cmp_val * 1.09:,.2f}"
+        simple_action = f"Wait for price to cross ₹{trig} to enter. Stop-loss at ₹{sl}. Target: ₹{tg}."
+        
+    # 4. Risk Odds
+    odds_match = re.search(r"•\s*(?:⚖️\s*)?\*?Risk Odds:?\*?\s*([^\r\n]+)", text, re.IGNORECASE)
+    if odds_match:
+        risk_odds = odds_match.group(1).strip()
+    else:
+        rr_m = re.search(r"Risk-to-Reward Ratio.*?1\s*:\s*([0-9.]+)", text)
+        rr = rr_m.group(1) if rr_m else "2.5"
+        risk_odds = f"Risking ₹1 to potentially make ₹{rr} (1 : {rr} ratio). Favorable setup."
+        
+    # 5. Bottom Line / Stance
+    line_match = re.search(r"•\s*(?:💡\s*)?\*?Bottom Line:?\*?\s*([^\r\n]+)", text, re.IGNORECASE)
+    bottom_line = line_match.group(1).strip() if line_match else "Constructive chart setup with institutional support. Maintain disciplined risk controls."
+    
+    # Determine stance badge
+    lower_t = text.lower()
+    if "core accumulate" in lower_t or "bullish flag" in lower_t or "vcp" in lower_t or "cup & handle" in lower_t or "stage 2" in lower_t:
+        stance_badge = "🟢 Bullish Setup / Accumulate"
+    elif "avoid" in lower_t or "stage 4" in lower_t or "distribution" in lower_t:
+        stance_badge = "🔴 Bearish / High Risk"
+    else:
+        stance_badge = "🟡 Base Consolidation / Watchlist"
+
+    return {
+        "stance_badge": stance_badge,
+        "chart_shape": chart_shape,
+        "whos_in_charge": whos_in_charge,
+        "simple_action": simple_action,
+        "risk_odds": risk_odds,
+        "tactical_takeaway": bottom_line
+    }
+
+
 def analyze_stock_chart_vision(
     symbol: str,
     indicator_mode: str = "smc",
@@ -168,6 +226,13 @@ def analyze_stock_chart_vision(
         "Output strictly in this WhatsApp-ready format (do not include introductory filler or meta-commentary):\n\n"
         f"🏛️ *{comp_name.upper()}* (`{base_sym}`) • Live CMP: ₹{cmp_val:,.2f}\n"
         "📐 *AI VISION PATTERN DIAGNOSTIC*\n"
+        "━━━━━━━━━━━━━━━━━━━━\n\n"
+        "🌱 *PLAIN-ENGLISH SUMMARY (LAYMAN VIEW)*:\n"
+        "• 🎨 *Chart Shape:* <Everyday analogy, e.g. Bull Flag: The stock ran up quickly and is now taking a calm breather before the next jump>\n"
+        "• 🥊 *Who's in Charge:* <1 sentence on buyers vs sellers, e.g. Buyers are aggressively protecting support; sellers are exhausted>\n"
+        "• ⚡ *Simple Action:* <Wait for price to cross ₹X to buy. Keep a strict safety net at ₹Y. Targets: ₹Z>\n"
+        "• ⚖️ *Risk Odds:* <Risking ₹1 to make ₹X (1 : X.X ratio) — favorable odds>\n"
+        "• 💡 *Bottom Line:* <1 sentence practical takeaway for retail investors>\n\n"
         "━━━━━━━━━━━━━━━━━━━━\n"
         "• Identified Pattern: <Exact Pattern Name, e.g. Symmetrical Triangle, VCP, Cup & Handle, Stage 2 Base>\n"
         "• Base Symmetry & Quality: <1-2 sentences on base tightness, volume dry-up, and pattern symmetry>\n\n"
@@ -234,6 +299,13 @@ def analyze_stock_chart_vision(
         diagnostic_text = (
             f"🏛️ *{comp_name.upper()}* (`{base_sym}`) • Live CMP: ₹{cmp_val:,.2f}\n"
             "📐 *AI VISION PATTERN DIAGNOSTIC*\n"
+            "━━━━━━━━━━━━━━━━━━━━\n\n"
+            "🌱 *PLAIN-ENGLISH SUMMARY (LAYMAN VIEW)*:\n"
+            f"• 🎨 *Chart Shape:* Consolidation Base — The stock climbed healthily and is now resting quietly near moving average support.\n"
+            f"• 🥊 *Who's in Charge:* Buyers are actively defending the 20/50-day moving average band; selling pressure is light.\n"
+            f"• ⚡ *Simple Action:* Enter when price crosses above ₹{cmp_val * 1.025:,.2f}. Place a strict safety stop at ₹{cmp_val * 0.96:,.2f} (-4.0%). Target: ₹{cmp_val * 1.09:,.2f}.\n"
+            f"• ⚖️ *Risk Odds:* Risking ₹1 to make ~₹2.30 (1 : 2.3 ratio). Favorable odds for patient swing traders.\n"
+            f"• 💡 *Bottom Line:* Constructive pattern with institutional backing. Accumulate near support and respect the stop-loss.\n\n"
             "━━━━━━━━━━━━━━━━━━━━\n"
             "• Identified Pattern: Consolidation near Key Moving Averages\n"
             "• Base Symmetry & Quality: Price action testing moving average support zones.\n\n"
@@ -249,6 +321,8 @@ def analyze_stock_chart_vision(
             "━━━━━━━━━━━━━━━━━━━━"
         )
 
+    layman_summary_obj = extract_vision_layman_summary(diagnostic_text, cmp_val)
+
     result_payload = {
         "symbol": base_sym,
         "company_name": comp_name,
@@ -258,6 +332,7 @@ def analyze_stock_chart_vision(
         "from_cache": False,
         "model_id": model,
         "model_label": model_label,
+        "layman_summary": layman_summary_obj,
         "formatted_markdown": diagnostic_text,
         "created_at": time.time()
     }

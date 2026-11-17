@@ -358,6 +358,55 @@ def generate_confluence_story_for_stock(
         "⭐ TIER 2: HIGH CONFLUENCE SETUP" if final_score >= 78 else "⚡ TIER 3: MOMENTUM CATALYST"
     )
 
+    # 5.5. Build Plain-English Layman Summary
+    if final_score >= 88:
+        stance_badge = "🟢 Prime Breakout Setup (High Institutional Support)"
+        stance_level = "BULLISH_PRIME"
+    elif final_score >= 78:
+        stance_badge = "🟢 Strong Momentum / Buy on Pullback"
+        stance_level = "BULLISH_STRONG"
+    else:
+        stance_badge = "🟡 Constructive Consolidation / Watchlist"
+        stance_level = "NEUTRAL_CONSTRUCTIVE"
+
+    if synergies:
+        top_syn = synergies[0].get("name", "Institutional Confluence")
+        what_stock_is_doing = (
+            f"Multiple top screeners flashed green together with a '{top_syn}' institutional footprint. "
+            f"Big funds are quietly accumulating shares while holding the price steady above key moving averages. "
+            f"Selling pressure is drying up, meaning buyers are taking firm control."
+        )
+    else:
+        what_stock_is_doing = (
+            f"The stock has triggered {len(screener_keys)} independent bullish screeners simultaneously. "
+            f"Institutional money is supporting the price action above its short-term moving average (₹{ema_20:,.2f}), "
+            f"demonstrating steady accumulation rather than volatile churning."
+        )
+
+    simple_plan = (
+        f"Safe entry is above ₹{pivot_price:,.2f} on expanding trading volume. "
+        f"If the stock falls below ₹{stop_loss:,.2f} (-{risk_pct}%), cut the loss immediately to protect your capital. "
+        f"Initial profit target is ₹{target_1:,.2f} (+{gain_pct}%), followed by runner target at ₹{target_2:,.2f}."
+    )
+
+    rr_desc = f"Favorable odds: risking ₹1 to potentially make ₹{rr_ratio:.1f} (1 : {rr_ratio} Risk/Reward)."
+    
+    if final_score >= 85 and rr_ratio >= 2.0:
+        layman_takeaway = "High-probability momentum setup. Big money is providing a strong safety cushion below current price."
+    elif rr_ratio >= 1.5:
+        layman_takeaway = "Solid swing trade opportunity with controlled downside risk. Accumulate methodically near the pivot."
+    else:
+        layman_takeaway = f"Constructive setup, but maintain strict risk management at ₹{stop_loss:,.2f}."
+
+    layman_summary_obj = {
+        "stance_badge": stance_badge,
+        "stance_level": stance_level,
+        "what_stock_is_doing": what_stock_is_doing,
+        "simple_plan": simple_plan,
+        "risk_odds": rr_desc,
+        "takeaway": layman_takeaway
+    }
+
     # 6. Build Institutional Investment Committee Prompt
     synergy_text = " • ".join([s["badge"] for s in synergies]) if synergies else "STANDARD CONFLUENCE"
     screeners_text = " • ".join([f"[{s}]" for s in screener_names_friendly]) if screener_names_friendly else "[Stage 2 Mark-Up]"
@@ -376,6 +425,12 @@ def generate_confluence_story_for_stock(
         f"🎯 *INSTITUTIONAL CONFLUENCE DOSSIER* (Confluence Score: {final_score}/100 • {tier_label})\n"
         f"🏛️ *{comp_name.upper()}* (`{base_sym}`) • Live CMP: ₹{cmp_val:,.2f}\n"
         "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n"
+        "🌱 *PLAIN-ENGLISH SUMMARY (LAYMAN VIEW)*:\n"
+        f"• *🚦 Stance:* {stance_badge}\n"
+        f"• *🏢 What the Stock is Doing:* {what_stock_is_doing}\n"
+        f"• *🎯 Simple Plan:* {simple_plan}\n"
+        f"• *💡 Bottom Line:* {layman_takeaway}\n\n"
+        "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
         f"🔥 *SCREENER CONFLUENCE MESH* ({len(screener_keys)} Setups Active):\n"
         f"{screeners_text}\n"
         f"🧬 *SYNERGY SIGNATURE*: {synergy_text}\n\n"
@@ -442,6 +497,12 @@ def generate_confluence_story_for_stock(
             f"🎯 *INSTITUTIONAL CONFLUENCE DOSSIER* (Confluence Score: {final_score}/100 • {tier_label})\n"
             f"🏛️ *{comp_name.upper()}* (`{base_sym}`) • Live CMP: ₹{cmp_val:,.2f}\n"
             "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n"
+            "🌱 *PLAIN-ENGLISH SUMMARY (LAYMAN VIEW)*:\n"
+            f"• *🚦 Stance:* {stance_badge}\n"
+            f"• *🏢 What the Stock is Doing:* {what_stock_is_doing}\n"
+            f"• *🎯 Simple Plan:* {simple_plan}\n"
+            f"• *💡 Bottom Line:* {layman_takeaway}\n\n"
+            "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
             f"🔥 *SCREENER CONFLUENCE MESH* ({len(screener_keys)} Setups Active):\n"
             f"{screeners_text}\n"
             f"🧬 *SYNERGY SIGNATURE*: {synergy_text}\n\n"
@@ -482,6 +543,7 @@ def generate_confluence_story_for_stock(
             "gain_pct": gain_pct,
             "rr_ratio": rr_ratio
         },
+        "layman_summary": layman_summary_obj,
         "model_id": model,
         "model_label": model_label,
         "formatted_markdown": diagnostic_text,
