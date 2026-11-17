@@ -60230,15 +60230,6 @@ window.openConfluenceStoryModal = async function(symbol, forceRefresh = false) {
                 }
             };
         }
-        const visionBtn = document.getElementById('confluence-story-vision-btn');
-        if (visionBtn) {
-            visionBtn.onclick = () => {
-                window.closeConfluenceStoryModal();
-                if (window.openChartVisionDiagnosticModal) {
-                    window.openChartVisionDiagnosticModal(cleanSym);
-                }
-            };
-        }
         const tvBtn = document.getElementById('confluence-story-tv-btn');
         if (tvBtn) {
             tvBtn.onclick = () => {
