@@ -172,12 +172,43 @@ async def run_background_whatsapp_sandbox_keepalive():
 # META CLOUD API INTERACTIVE DISPATCHERS (WITH HARD TRUNCATION GUARDS)
 # ==============================================================================
 
+def _split_text_into_chunks(text: str, max_chunk: int = 4000) -> List[str]:
+    """Splits long text cleanly along paragraph breaks without cutting mid-sentence or mid-word."""
+    if len(text) <= max_chunk:
+        return [text]
+
+    chunks = []
+    current = ""
+    paragraphs = text.split("\n\n")
+    for p in paragraphs:
+        if len(current) + len(p) + 2 <= max_chunk:
+            current = (current + "\n\n" + p) if current else p
+        else:
+            if current:
+                chunks.append(current)
+                current = ""
+            if len(p) <= max_chunk:
+                current = p
+            else:
+                lines = p.split("\n")
+                for line in lines:
+                    if len(current) + len(line) + 1 <= max_chunk:
+                        current = (current + "\n" + line) if current else line
+                    else:
+                        if current:
+                            chunks.append(current)
+                        current = line
+    if current:
+        chunks.append(current)
+    return chunks
+
+
 def send_whatsapp_text(
     body_text: str,
     recipient: Optional[str] = None,
     retry_on_auth_err: bool = True
 ) -> Dict[str, Any]:
-    """Dispatches a standard text message with auto-heal for Meta errors."""
+    """Dispatches a standard text message with auto-heal for Meta errors and automatic chunking for >4096 chars."""
     token = os.environ.get("WHATSAPP_TOKEN", "")
     phone_id = os.environ.get("WHATSAPP_PHONE_ID", "")
     to_phone = recipient or os.environ.get("WHATSAPP_RECIPIENT", "")
@@ -185,15 +216,67 @@ def send_whatsapp_text(
     if not token or not phone_id or not to_phone:
         return {"status": "error", "message": "Missing WhatsApp credentials."}
 
+    text_str = str(body_text).strip()
+    chunks = _split_text_into_chunks(text_str, max_chunk=4000)
+
+    url = f"https://graph.facebook.com/v21.0/{phone_id}/messages"
+    headers = {"Authorization": f"Bearer {token}", "Content-Type": "application/json"}
+
+    last_res = {"status": "success"}
+    for idx, chunk in enumerate(chunks):
+        payload = {
+            "messaging_product": "whatsapp",
+            "recipient_type": "individual",
+            "to": to_phone,
+            "type": "text",
+            "text": {"preview_url": False, "body": chunk}
+        }
+        try:
+            resp = requests.post(url, headers=headers, json=payload, timeout=12)
+            resp_data = resp.json()
+            if resp.status_code == 200 and "messages" in resp_data:
+                last_res = {"status": "success", "message_id": resp_data["messages"][0]["id"]}
+            else:
+                err_code = resp_data.get("error", {}).get("code")
+                if err_code == 133010 and retry_on_auth_err:
+                    ensure_sandbox_registered()
+                    return send_whatsapp_text(body_text, recipient, retry_on_auth_err=False)
+                elif err_code == 131047 and retry_on_auth_err:
+                    send_sandbox_wake_template(recipient=to_phone)
+                    return send_whatsapp_text(body_text, recipient, retry_on_auth_err=False)
+                return {"status": "error", "message": resp_data.get("error", {}).get("message")}
+        except Exception as e:
+            return {"status": "error", "message": str(e)}
+
+        if idx < len(chunks) - 1:
+            time.sleep(0.3)
+
+    return last_res
+
+
+def _dispatch_meta_interactive_buttons(
+    body_text: str,
+    action_buttons: List[Dict[str, Any]],
+    to_phone: str,
+    token: str,
+    phone_id: str,
+    retry_on_auth_err: bool = True
+) -> Dict[str, Any]:
+    """Internal helper to dispatch raw interactive quick-reply button payloads to Meta."""
     url = f"https://graph.facebook.com/v21.0/{phone_id}/messages"
     headers = {"Authorization": f"Bearer {token}", "Content-Type": "application/json"}
     payload = {
         "messaging_product": "whatsapp",
         "recipient_type": "individual",
         "to": to_phone,
-        "type": "text",
-        "text": {"preview_url": False, "body": str(body_text)[:4096]}
+        "type": "interactive",
+        "interactive": {
+            "type": "button",
+            "body": {"text": str(body_text)[:1024]},
+            "action": {"buttons": action_buttons}
+        }
     }
+
     try:
         resp = requests.post(url, headers=headers, json=payload, timeout=12)
         resp_data = resp.json()
@@ -203,12 +286,14 @@ def send_whatsapp_text(
             err_code = resp_data.get("error", {}).get("code")
             if err_code == 133010 and retry_on_auth_err:
                 ensure_sandbox_registered()
-                return send_whatsapp_text(body_text, recipient, retry_on_auth_err=False)
+                return _dispatch_meta_interactive_buttons(body_text, action_buttons, to_phone, token, phone_id, retry_on_auth_err=False)
             elif err_code == 131047 and retry_on_auth_err:
                 send_sandbox_wake_template(recipient=to_phone)
-                return send_whatsapp_text(body_text, recipient, retry_on_auth_err=False)
+                return _dispatch_meta_interactive_buttons(body_text, action_buttons, to_phone, token, phone_id, retry_on_auth_err=False)
+            send_whatsapp_text(body_text, recipient=to_phone)
             return {"status": "error", "message": resp_data.get("error", {}).get("message")}
     except Exception as e:
+        send_whatsapp_text(body_text, recipient=to_phone)
         return {"status": "error", "message": str(e)}
 
 
@@ -218,7 +303,9 @@ def send_whatsapp_interactive_buttons(
     recipient: Optional[str] = None,
     retry_on_auth_err: bool = True
 ) -> Dict[str, Any]:
-    """Dispatches up to 3 quick-reply buttons with auto-recovery for Meta errors."""
+    """Dispatches up to 3 quick-reply buttons with auto-recovery for Meta errors.
+    GUARANTEES zero truncation: If body_text exceeds Meta's 1024-character interactive limit,
+    it automatically sends the complete untruncated content first, followed by the interactive buttons!"""
     token = os.environ.get("WHATSAPP_TOKEN", "")
     phone_id = os.environ.get("WHATSAPP_PHONE_ID", "")
     to_phone = recipient or os.environ.get("WHATSAPP_RECIPIENT", "")
@@ -243,38 +330,25 @@ def send_whatsapp_interactive_buttons(
             }
         })
 
-    url = f"https://graph.facebook.com/v21.0/{phone_id}/messages"
-    headers = {"Authorization": f"Bearer {token}", "Content-Type": "application/json"}
-    payload = {
-        "messaging_product": "whatsapp",
-        "recipient_type": "individual",
-        "to": to_phone,
-        "type": "interactive",
-        "interactive": {
-            "type": "button",
-            "body": {"text": str(body_text)[:1024]},
-            "action": {"buttons": action_buttons}
-        }
-    }
+    text_str = str(body_text).strip()
 
-    try:
-        resp = requests.post(url, headers=headers, json=payload, timeout=12)
-        resp_data = resp.json()
-        if resp.status_code == 200 and "messages" in resp_data:
-            return {"status": "success", "message_id": resp_data["messages"][0]["id"]}
-        else:
-            err_code = resp_data.get("error", {}).get("code")
-            if err_code == 133010 and retry_on_auth_err:
-                ensure_sandbox_registered()
-                return send_whatsapp_interactive_buttons(body_text, buttons, recipient, retry_on_auth_err=False)
-            elif err_code == 131047 and retry_on_auth_err:
-                send_sandbox_wake_template(recipient=to_phone)
-                return send_whatsapp_interactive_buttons(body_text, buttons, recipient, retry_on_auth_err=False)
-            send_whatsapp_text(body_text, recipient=to_phone)
-            return {"status": "error", "message": resp_data.get("error", {}).get("message")}
-    except Exception as e:
-        send_whatsapp_text(body_text, recipient=to_phone)
-        return {"status": "error", "message": str(e)}
+    # Meta Cloud API limit for interactive button body text is strictly 1024 characters.
+    # When text_str exceeds 1024 characters, NEVER truncate the analysis!
+    # Send the complete report via send_whatsapp_text (supports full length),
+    # followed immediately by the interactive buttons.
+    if len(text_str) > 1024:
+        # Step 1: Send the full untruncated report
+        send_whatsapp_text(text_str, recipient=to_phone, retry_on_auth_err=retry_on_auth_err)
+
+        # Step 2: Extract symbol from header if available for a clean context-aware prompt
+        sym_match = re.search(r"\(\s*`?([A-Z0-9_\.\-]+)`?\s*\)", text_str[:250])
+        sym_name = sym_match.group(1).replace(".NS", "") if sym_match else ""
+        button_prompt = f"⚡ *Quick Actions for {sym_name}:*" if sym_name else "⚡ *Tap an action below to explore further:*"
+
+        # Step 3: Send interactive buttons
+        return _dispatch_meta_interactive_buttons(button_prompt, action_buttons, to_phone, token, phone_id, retry_on_auth_err)
+
+    return _dispatch_meta_interactive_buttons(text_str, action_buttons, to_phone, token, phone_id, retry_on_auth_err)
 
 
 def send_whatsapp_interactive_list(
@@ -320,6 +394,11 @@ def send_whatsapp_interactive_list(
             sanitized_sections.append({"title": sec_title, "rows": sec_rows})
         if total_rows >= 10:
             break
+
+    text_str = str(body_text).strip()
+    if len(text_str) > 1024:
+        send_whatsapp_text(text_str, recipient=to_phone, retry_on_auth_err=retry_on_auth_err)
+        body_text = "⚡ *Select an option from the menu below:*"
 
     interactive_obj: Dict[str, Any] = {
         "type": "list",
@@ -4359,7 +4438,7 @@ def handle_events_calendar(query_arg: Optional[str] = None, recipient: Optional[
                 (f"view:stock:{clean_btn}", f"📌 {clean_btn} Dossier"),
                 ("nav:menu:main", "🏠 Main Menu")
             ]
-            return send_whatsapp_interactive_buttons(body[:1024], buttons=buttons, recipient=recipient)
+            return send_whatsapp_interactive_buttons(body, buttons=buttons, recipient=recipient)
 
     # Mode B: Portfolio & Market-Wide Calendar
     pf_syms = []
@@ -4436,7 +4515,7 @@ def handle_events_calendar(query_arg: Optional[str] = None, recipient: Optional[
         ("view:portfolio", "💼 Active Portfolio"),
         ("nav:menu:main", "🏠 Main Menu")
     ]
-    return send_whatsapp_interactive_buttons(body[:1024], buttons=buttons, recipient=recipient)
+    return send_whatsapp_interactive_buttons(body, buttons=buttons, recipient=recipient)
 
 
 def get_stock_price_context(symbol_clean: str, ticker: str) -> Dict[str, Any]:
@@ -6460,7 +6539,7 @@ def handle_stock_comparison(query_text: str, recipient: Optional[str] = None) ->
         (f"act:chart:{b2_clean}", f"📈 {b2_clean} Chart"),
         ("nav:menu:main", "🏠 Main Menu")
     ]
-    return send_whatsapp_interactive_buttons(body[:1024], buttons=buttons, recipient=recipient)
+    return send_whatsapp_interactive_buttons(body, buttons=buttons, recipient=recipient)
 
 
 # ==============================================================================
@@ -6703,7 +6782,7 @@ def handle_closing_bell(recipient: Optional[str] = None) -> Dict[str, Any]:
         ("run:news:portfolio", "📰 Portfolio News"),
         ("nav:menu:main", "🏠 Main Menu")
     ]
-    return send_whatsapp_interactive_buttons(body[:1024], buttons=buttons, recipient=recipient)
+    return send_whatsapp_interactive_buttons(body, buttons=buttons, recipient=recipient)
 
 
 def handle_alerts_menu(recipient: Optional[str] = None) -> Dict[str, Any]:
