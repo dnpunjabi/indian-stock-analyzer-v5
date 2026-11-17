@@ -38508,6 +38508,12 @@ body.light-theme .valuation-modal-backdrop {
     color: #0f172a !important;
 }
 
+[data-theme="light"] #trade-psychologist-modal #psych-modal-da-invalidation-box,
+[data-mode="light"] #trade-psychologist-modal #psych-modal-da-invalidation-box {
+    background: #f1f5f9 !important;
+    color: #334155 !important;
+}
+
 @media (max-width: 768px) {
     #trade-psychologist-modal {
         padding: 8px !important;

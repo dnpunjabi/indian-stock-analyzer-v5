@@ -63137,6 +63137,46 @@ window.runTradePsychologistCheck = async function(forceRefresh = false) {
         if (croEl) croEl.textContent = data.cro_verdict || '';
         if (recEl) recEl.textContent = data.recommendation || '';
 
+        // Devil's Advocate Counter-Thesis
+        const da = data.devils_advocate || {};
+        const daCard = document.getElementById('psych-modal-da-card');
+        const daIcon = document.getElementById('psych-modal-da-icon');
+        const daTitle = document.getElementById('psych-modal-da-title');
+        const daBadge = document.getElementById('psych-modal-da-stance-badge');
+        const daPointsEl = document.getElementById('psych-modal-da-points');
+        const daInvalEl = document.getElementById('psych-modal-da-invalidation');
+
+        if (daCard) {
+            const isBear = (da.stance || 'BEAR') === 'BEAR';
+            daCard.style.borderColor = isBear ? 'rgba(239, 68, 68, 0.4)' : 'rgba(16, 185, 129, 0.4)';
+            daCard.style.borderLeftColor = isBear ? '#ef4444' : '#10b981';
+            daCard.style.background = isBear ? 'rgba(239, 68, 68, 0.05)' : 'rgba(16, 185, 129, 0.05)';
+            if (daIcon) daIcon.textContent = isBear ? '😈' : '😇';
+            if (daTitle) {
+                daTitle.textContent = da.title || (isBear ? "DEVIL'S ADVOCATE COUNTER-THESIS (THE BEAR CASE)" : "DEVIL'S ADVOCATE COUNTER-THESIS (THE BULL CASE)");
+                daTitle.style.color = isBear ? '#f87171' : '#34d399';
+            }
+            if (daBadge) {
+                daBadge.textContent = isBear ? 'RED TEAM AUDIT' : 'BULL HARVEST AUDIT';
+                daBadge.style.color = isBear ? '#fca5a5' : '#6ee7b7';
+                daBadge.style.background = isBear ? 'rgba(239, 68, 68, 0.2)' : 'rgba(16, 185, 129, 0.2)';
+                daBadge.style.borderColor = isBear ? 'rgba(239, 68, 68, 0.35)' : 'rgba(16, 185, 129, 0.35)';
+            }
+            if (daPointsEl) {
+                const points = da.points || [];
+                daPointsEl.innerHTML = points.map((p, idx) => `
+                    <div style="display: flex; gap: 8px; align-items: flex-start;">
+                        <span style="font-weight: 800; color: ${isBear ? '#f87171' : '#34d399'}; min-width: 16px;">${idx + 1}.</span>
+                        <div>
+                            <strong style="color: ${isBear ? '#fca5a5' : '#a7f3d0'};">${p.title || 'Risk Point'}:</strong>
+                            <span style="color: var(--text-primary, #f1f5f9); margin-left: 4px;">${p.detail || ''}</span>
+                        </div>
+                    </div>
+                `).join('');
+            }
+            if (daInvalEl) daInvalEl.textContent = da.invalidation_trigger || '--';
+        }
+
         // Footer buttons wiring
         const ichartBtn = document.getElementById('psych-modal-ichart-btn');
         if (ichartBtn) {
@@ -63205,8 +63245,17 @@ window.toggleTradePsychologistTTS = function() {
         return;
     }
     const croEl = document.getElementById('psych-modal-cro-text');
+    const daTitle = document.getElementById('psych-modal-da-title');
+    const daPointsEl = document.getElementById('psych-modal-da-points');
+    const daInvalEl = document.getElementById('psych-modal-da-invalidation');
     const recEl = document.getElementById('psych-modal-rec-text');
-    const textToSpeak = ((croEl ? croEl.innerText : '') + '. ' + (recEl ? recEl.innerText : '')).trim();
+    const textToSpeak = [
+        croEl ? croEl.innerText : '',
+        daTitle ? daTitle.innerText : '',
+        daPointsEl ? daPointsEl.innerText : '',
+        daInvalEl ? ('Invalidation trigger: ' + daInvalEl.innerText) : '',
+        recEl ? recEl.innerText : ''
+    ].filter(Boolean).join('. ').trim();
     if (!textToSpeak) return;
 
     const utterance = new SpeechSynthesisUtterance(textToSpeak);

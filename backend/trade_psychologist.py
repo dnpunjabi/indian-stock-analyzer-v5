@@ -63,6 +63,154 @@ def get_psychology_model_info() -> Tuple[str, str]:
     return model_id, model_label
 
 
+def generate_devils_advocate_thesis(
+    action: str,
+    horizon: str,
+    comp_name: str,
+    base_sym: str,
+    eval_price: float,
+    pivot_price: float,
+    pivot_extension_pct: float,
+    ema_20: float,
+    ema20_dist_pct: float,
+    ema_50: float,
+    ema50_dist_pct: float,
+    sma_200: float,
+    dist_52w_high: float,
+    volume_ratio: float,
+    stop_loss: float,
+    target_1: float,
+    current_pe: float,
+    median_pe: float,
+    cfo_ratio: float,
+    debt_to_equity: float,
+    roe_pct: float,
+    implied_5y_growth: float,
+    hist_5y_growth: float,
+    fii_curr: float,
+    fii_prev: float,
+    prom_pledge: float
+) -> Dict[str, Any]:
+    """
+    Constructs an institutional Devil's Advocate Counter-Thesis:
+    - For BUY: The Top 3 Bear Arguments + Invalidation Trigger.
+    - For SELL: The Top 3 Bull Arguments + Invalidation Trigger.
+    """
+    da_points = []
+    
+    if action == "BUY":
+        da_title = "😈 DEVIL'S ADVOCATE COUNTER-THESIS (THE BEAR CASE)"
+        stance = "BEAR"
+        stance_color = "#ef4444"
+
+        # 1. Valuation & Growth Hurdle
+        if current_pe > (median_pe * 1.25) and current_pe > 35.0:
+            premium_pct = round(((current_pe - median_pe) / median_pe) * 100.0, 1) if median_pe > 0 else 25.0
+            da_points.append({
+                "title": "Expectations & Valuation Premium",
+                "detail": f"Current P/E of {current_pe:.1f}x trades at a +{premium_pct}% premium to its 5-year median ({median_pe:.1f}x). With the market demanding aggressive execution, any quarterly margin contraction or earnings miss will trigger severe multiple de-rating."
+            })
+        elif implied_5y_growth > (hist_5y_growth * 1.25) and implied_5y_growth > 25.0:
+            da_points.append({
+                "title": "Market Growth Hurdle Mismatch",
+                "detail": f"At CMP ₹{eval_price:,.2f}, the market demands an implied {implied_5y_growth:.1f}% CAGR EPS growth over 5 years vs its historical delivery of {hist_5y_growth:.1f}%. The bar is set extraordinarily high with minimal margin for execution slip-ups."
+            })
+        else:
+            da_points.append({
+                "title": "Valuation Vulnerability",
+                "detail": f"Current valuation ({current_pe:.1f}x P/E) leaves limited room for multiple expansion unless revenue growth accelerates beyond its historical {hist_5y_growth:.1f}% CAGR pace."
+            })
+
+        # 2. Earnings Quality & Cash Realization
+        if cfo_ratio < 75.0:
+            leak_pct = round(100.0 - cfo_ratio, 1)
+            da_points.append({
+                "title": "Accrual Accounting Risk (CFO vs PAT)",
+                "detail": f"5-Year CFO/PAT cash conversion is only {cfo_ratio:.1f}%. Roughly {leak_pct}% of reported accounting profits are locked up in receivables or working capital rather than converting cleanly into hard operating cash."
+            })
+        elif debt_to_equity > 0.8:
+            da_points.append({
+                "title": "Balance Sheet Leverage Sensitivity",
+                "detail": f"Debt-to-Equity is elevated at {debt_to_equity:.2f}. Higher interest service obligations reduce net profit margins during cyclical economic slowdowns."
+            })
+        elif prom_pledge > 10.0:
+            da_points.append({
+                "title": "Promoter Pledge Encumbrance",
+                "detail": f"Promoters have pledged {prom_pledge:.1f}% of their holdings. High pledge levels pose margin-call sell-off risks if broader markets experience sharp corrections."
+            })
+        else:
+            da_points.append({
+                "title": "Cyclical Margin & Reinvestment Hurdle",
+                "detail": f"While cash conversion is healthy ({cfo_ratio:.1f}%), sustaining a {roe_pct:.1f}% ROE in an inflationary or competitive sector requires higher capex, which could constrain free cash flow."
+            })
+
+        # 3. Technical Extension / Supply / Institutional Flow
+        if ema20_dist_pct > 6.0 or pivot_extension_pct > 4.5:
+            da_points.append({
+                "title": "Technical Overextension & Mean Reversion",
+                "detail": f"The stock is stretched +{ema20_dist_pct}% above its 20-day EMA and +{pivot_extension_pct}% above base pivot. Historically, chasing moves beyond +6% results in sudden 4–7% pullbacks to shake out late retail buyers before any real trend continuation."
+            })
+        elif dist_52w_high < -18.0:
+            da_points.append({
+                "title": "Overhead Supply & Trapped Buyers",
+                "detail": f"The stock trades {abs(dist_52w_high):.1f}% below its 52-week peak. Trapped buyers from previous highs will look to exit near breakeven, creating dense supply overhead on every upward bounce."
+            })
+        elif fii_prev > 0 and (fii_curr < (fii_prev - 0.5)):
+            trim_pct = round(abs(fii_curr - fii_prev), 2)
+            da_points.append({
+                "title": "Smart Money Institutional Trimming",
+                "detail": f"Foreign institutional investors (FIIs) trimmed their stake by -{trim_pct}% QoQ (from {fii_prev:.2f}% to {fii_curr:.2f}%), indicating smart money distribution into recent rallies."
+            })
+        else:
+            dist_sma200 = round(((eval_price - sma_200) / sma_200) * 100.0, 1) if sma_200 > 0 else 12.0
+            da_points.append({
+                "title": "Downside Airbag Gap",
+                "detail": f"The 200-day moving average sits at ₹{sma_200:,.1f} ({abs(dist_sma200):.1f}% below CMP). In a market-wide liquidity flush, structural support is distant."
+            })
+
+        invalidation = f"{comp_name} decisively clears and sustains above ₹{pivot_price:,.2f} on daily volume > 1.3x 20-day average, or retests the 20-day EMA (₹{ema_20:,.2f}) with shrinking volume and immediately prints a bullish reversal candle."
+
+    else:
+        # Action is SELL
+        da_title = "😇 DEVIL'S ADVOCATE COUNTER-THESIS (THE BULL CASE)"
+        stance = "BULL"
+        stance_color = "#10b981"
+
+        # 1. Capitulating into support
+        if abs(ema50_dist_pct) < 3.5 or abs(ema20_dist_pct) < 2.0:
+            da_points.append({
+                "title": "Capitulating into Dynamic Support",
+                "detail": f"Price is resting directly on dynamic moving average support (₹{ema_50:,.2f}) on below-average volume ({volume_ratio:.2f}x). Institutions frequently use light-volume pullbacks to shake out retail stops before resuming the primary uptrend."
+            })
+        else:
+            da_points.append({
+                "title": "Oversold Elasticity",
+                "detail": f"The stock has already absorbed selling pressure and is trading near key technical levels. Cashing out into a red streak risks selling at the temporary cyclical trough."
+            })
+
+        # 2. Operating Cash Flow Engine
+        da_points.append({
+            "title": "High-Quality Cash Flow Anchor",
+            "detail": f"With a 5-year CFO/PAT conversion of {cfo_ratio:.1f}% and ROE of {roe_pct:.1f}%, the business generates genuine operating cash. High-cash-conversion businesses rebound significantly faster from market corrections."
+        })
+
+        # 3. Premature Profit Cutting
+        da_points.append({
+            "title": "Prematurely Cutting Multi-Quarter Leaders",
+            "detail": f"If this stock is in an active Stage 2 institutional markup, liquidating 100% of your position forfeits potential multi-quarter runner legs. Professional desks prefer trailing stops below the 20-EMA rather than guessing the exact top."
+        })
+
+        invalidation = f"{comp_name} breaks and closes decisively below structural support at ₹{stop_loss:,.2f} on expanding delivery volume (> 1.4x 20-day average), confirming institutional distribution."
+
+    return {
+        "title": da_title,
+        "stance": stance,
+        "stance_color": stance_color,
+        "points": da_points,
+        "invalidation_trigger": invalidation
+    }
+
+
 def evaluate_trade_intent(
     symbol: str,
     action: str = "BUY",
@@ -126,6 +274,9 @@ def evaluate_trade_intent(
     stop_loss = round(cmp_val * 0.945, 2)
     target_1 = round(cmp_val * 1.09, 2)
     target_2 = round(cmp_val * 1.18, 2)
+    fii_curr = 0.0
+    fii_prev = 0.0
+    prom_pledge = 0.0
 
     try:
         conn = sqlite3.connect(DATABASE_PATH)
@@ -138,6 +289,7 @@ def evaluate_trade_intent(
             tech = p_obj.get("technicals", {})
             stage = p_obj.get("stage_analysis", {})
             fund = p_obj.get("fundamentals", {})
+            shp = p_obj.get("shareholding", {})
             
             if tech.get("ema_20"): ema_20 = float(tech["ema_20"])
             if tech.get("ema_50"): ema_50 = float(tech["ema_50"])
@@ -149,6 +301,11 @@ def evaluate_trade_intent(
             if stage.get("stop_loss"): stop_loss = float(stage["stop_loss"])
             if stage.get("target_1"): target_1 = float(stage["target_1"])
             if stage.get("target_2"): target_2 = float(stage["target_2"])
+
+            if shp:
+                if shp.get("FIIs"): fii_curr = float(shp["FIIs"])
+                if shp.get("FIIs_prev"): fii_prev = float(shp["FIIs_prev"])
+                if shp.get("Promoter Pledging %"): prom_pledge = float(shp["Promoter Pledging %"])
         conn.close()
     except Exception as e:
         logger.debug(f"[Trade Psychologist] DB profile lookup warning: {e}")
@@ -173,6 +330,8 @@ def evaluate_trade_intent(
     cfo_ratio = cf_data.get("conversion_ratio_pct", 100.0)
     debt_to_equity = prof_data.get("debt_to_equity", 0.2)
     roe_pct = prof_data.get("roe_pct", 16.0)
+    implied_5y_growth = float(prof_data.get("implied_5y_growth_pct", 0.0) or 0.0)
+    hist_5y_growth = float(prof_data.get("historical_5y_growth_pct", 15.0) or 15.0)
 
     # 6. Quantitative Psychology Calculations
     pivot_extension_pct = round(((eval_price - pivot_price) / pivot_price) * 100.0, 1) if pivot_price > 0 else 0.0
@@ -317,9 +476,43 @@ def evaluate_trade_intent(
                 f"Execute the exit smoothly and keep the liberated cash ready for high-confluence setups with 1 : 2.5+ risk-reward ratios."
             )
 
+    # 7b. Generate Devil's Advocate Counter-Thesis
+    devils_advocate = generate_devils_advocate_thesis(
+        action=norm_action,
+        horizon=norm_horizon,
+        comp_name=comp_name,
+        base_sym=base_sym,
+        eval_price=eval_price,
+        pivot_price=pivot_price,
+        pivot_extension_pct=pivot_extension_pct,
+        ema_20=ema_20,
+        ema20_dist_pct=ema20_dist_pct,
+        ema_50=ema_50,
+        ema50_dist_pct=ema50_dist_pct,
+        sma_200=sma_200,
+        dist_52w_high=dist_52w_high,
+        volume_ratio=volume_ratio,
+        stop_loss=stop_loss,
+        target_1=target_1,
+        current_pe=current_pe,
+        median_pe=median_pe,
+        cfo_ratio=cfo_ratio,
+        debt_to_equity=debt_to_equity,
+        roe_pct=roe_pct,
+        implied_5y_growth=implied_5y_growth,
+        hist_5y_growth=hist_5y_growth,
+        fii_curr=fii_curr,
+        fii_prev=fii_prev,
+        prom_pledge=prom_pledge
+    )
+
     # 8. Build Plain-English WhatsApp & Markdown Output
     action_label = "BUY / ACCUMULATE" if norm_action == "BUY" else "SELL / EXIT"
     horizon_label = "⚡ Swing Trade (2–8 Weeks)" if norm_horizon == "swing" else "🏛️ Long-Term (1–3 Years)"
+
+    da_title = devils_advocate["title"]
+    da_points_md = "\n".join([f"{i+1}. *{p['title']}*: {p['detail']}" for i, p in enumerate(devils_advocate["points"])])
+    da_inval = devils_advocate["invalidation_trigger"]
 
     diagnostic_text = (
         f"🧠 *PRE-TRADE BEHAVIORAL MIRROR & RISK AUDIT*\n"
@@ -336,6 +529,9 @@ def evaluate_trade_intent(
         f"• Cash Realization (CFO/PAT): {cfo_ratio:.1f}% • Valuation P/E: {current_pe:.1f}x (5Y Median: {median_pe:.1f}x)\n\n"
         "🧠 *CHIEF RISK OFFICER BEHAVIORAL DIAGNOSTIC*:\n"
         f"{cro_verdict}\n\n"
+        f"{da_title}:\n"
+        f"{da_points_md}\n\n"
+        f"🛑 *Invalidation Trigger*: {da_inval}\n\n"
         "💡 *ACTIONABLE RECOMMENDATION*:\n"
         f"{recommendation}\n"
         "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
@@ -367,6 +563,7 @@ def evaluate_trade_intent(
             "median_pe": median_pe
         },
         "cro_verdict": cro_verdict,
+        "devils_advocate": devils_advocate,
         "recommendation": recommendation,
         "formatted_markdown": diagnostic_text,
         "model_id": model,
