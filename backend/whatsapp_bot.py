@@ -934,6 +934,7 @@ def handle_main_menu(recipient: Optional[str] = None) -> Dict[str, Any]:
         "💡 *Direct Shortcuts:*\n"
         "• Text any ticker (e.g. `BOSCH`, `RELIANCE`) for instant AI analysis\n"
         "• Text `CHART <SYM>` (e.g. `CHART INFY`) for dark technical chart\n"
+        "• Text `CHECK BUY <SYM>` or `CHECK SELL <SYM>` for AI Trade Psychologist\n"
         "• Text `ALERT <SYM> > <PRICE>` or `SL <SYM> <PRICE>` to set live alerts\n"
         "• Text `scan <criteria>` (e.g. `scan midcaps with PE < 15 and RSI < 30`)"
     )
@@ -4901,6 +4902,11 @@ def handle_stock_query_prompt(recipient: Optional[str] = None) -> Dict[str, Any]
                     "id": "nav:act:stock_copilot",
                     "title": "🤖 Conversational Co-Pilot",
                     "description": "Ask any question in plain English (e.g. why stock is down)"
+                },
+                {
+                    "id": "nav:act:stock_psych",
+                    "title": "🧠 AI Trade Psychologist",
+                    "description": "Pre-trade behavioral mirror: detect FOMO, pivot extensions & R:R"
                 }
             ]
         }
@@ -4912,6 +4918,7 @@ def handle_stock_query_prompt(recipient: Optional[str] = None) -> Dict[str, Any]
         "Deep fundamental dossiers, ownership trends & quantitative AI diagnostics.\n\n"
         "⚡ *Fast-Path Shorthand Commands:*\n"
         "• Text `<SYM>` (e.g. `BOSCH` or `RELIANCE`) ➔ Complete dossier\n"
+        "• Text `CHECK BUY <SYM>` (e.g. `CHECK BUY GRANULES`) ➔ Trade intent check\n"
         "• Text `SHP <SYM>` (e.g. `SHP TATACHEM`) ➔ Shareholding & FII/DII\n"
         "• Text `FIN <SYM>` (e.g. `FIN TCS`) ➔ 5-Year Financials & Cash Flow\n"
         "• Text `COMPARE <S1> <S2>` (e.g. `COMPARE INFY TCS`)\n"
@@ -6053,6 +6060,106 @@ def handle_valuation_expectations_query(symbol_input: str, recipient: Optional[s
         logger.error(f"Error in handle_valuation_expectations_query for {base_sym}: {e}", exc_info=True)
         return send_whatsapp_interactive_buttons(
             f"⚠️ *Valuation Error*: Could not evaluate expectations for `{base_sym}`: {str(e)}",
+            buttons=[("nav:menu:main", "🏠 Main Menu")],
+            recipient=recipient
+        )
+
+
+def handle_trade_psychologist_query(cmd_text: str, recipient: Optional[str] = None) -> Dict[str, Any]:
+    """
+    Evaluates Pre-Trade Intent & Behavioral Sanity Check (Trade Psychologist).
+    Zero trade logging: strictly acts as an objective behavioral mirror.
+    Accepts:
+      - act:psych:<action>:<symbol>
+      - act:psych:<symbol>
+      - CHECK BUY/SELL <symbol> [price] [swing/invest]
+      - INTENT BUY/SELL <symbol> [price] [swing/invest]
+      - PSYCH <symbol>
+    """
+    from backend.trade_psychologist import evaluate_trade_intent
+    cleaned = (cmd_text or "").strip()
+
+    action = "BUY"
+    horizon = "swing"
+    intended_price = None
+    symbol = ""
+
+    if cleaned.startswith("act:psych:") or cleaned.startswith("act:intent:"):
+        parts = cleaned.split(":")
+        if len(parts) >= 4:
+            action_candidate = parts[2].upper()
+            if action_candidate in ["BUY", "SELL"]:
+                action = action_candidate
+                symbol = parts[3].strip()
+            elif parts[2].lower() in ["swing", "invest"]:
+                horizon = parts[2].lower()
+                action = parts[3].upper() if len(parts) > 3 else "BUY"
+                symbol = parts[4].strip() if len(parts) > 4 else ""
+            else:
+                symbol = parts[3].strip()
+        elif len(parts) == 3:
+            symbol = parts[2].strip()
+            action = "BUY"
+    else:
+        rem = re.sub(r"^(?:CHECK|INTENT|PSYCH|SANITY)\s*", "", cleaned, flags=re.IGNORECASE).strip()
+        if re.match(r"^BUY\b", rem, re.IGNORECASE):
+            action = "BUY"
+            rem = re.sub(r"^BUY\s*", "", rem, flags=re.IGNORECASE).strip()
+        elif re.match(r"^SELL\b", rem, re.IGNORECASE):
+            action = "SELL"
+            rem = re.sub(r"^SELL\s*", "", rem, flags=re.IGNORECASE).strip()
+
+        if re.search(r"\b(?:INVEST|LONG(?:-TERM)?)\b", rem, re.IGNORECASE):
+            horizon = "invest"
+            rem = re.sub(r"\b(?:INVEST|LONG(?:-TERM)?)\b", "", rem, flags=re.IGNORECASE).strip()
+        elif re.search(r"\b(?:SWING|SHORT(?:-TERM)?)\b", rem, re.IGNORECASE):
+            horizon = "swing"
+            rem = re.sub(r"\b(?:SWING|SHORT(?:-TERM)?)\b", "", rem, flags=re.IGNORECASE).strip()
+
+        tokens = rem.split()
+        sym_tokens = []
+        for t in tokens:
+            cleaned_t = t.replace(",", "")
+            if re.match(r"^\d+(?:\.\d+)?$", cleaned_t) and intended_price is None:
+                try:
+                    intended_price = float(cleaned_t)
+                except ValueError:
+                    sym_tokens.append(t)
+            else:
+                sym_tokens.append(t)
+        symbol = "".join(sym_tokens).strip()
+
+    if not symbol:
+        symbol = "GRANULES"
+
+    resolved = resolve_company_ticker(symbol)
+    base_sym = resolved.get("base_symbol") if resolved else symbol.upper().replace(".NS", "")
+
+    try:
+        eval_res = evaluate_trade_intent(
+            base_sym,
+            action=action,
+            horizon=horizon,
+            intended_price=intended_price,
+            force_refresh=False
+        )
+        body = eval_res.get("formatted_markdown", "")
+        if not body:
+            body = f"⚠️ *Could not evaluate trade intent for {base_sym}*."
+
+        alt_action = "SELL" if action == "BUY" else "BUY"
+        alt_label = "🔴 Check Exit / Sell" if action == "BUY" else "🟢 Check Buy Intent"
+
+        buttons = [
+            (f"act:psych:{alt_action.lower()}:{base_sym}", alt_label),
+            (f"act:chart:{base_sym}", f"📈 {base_sym} Chart"),
+            (f"act:confluence:story:{base_sym}", "🎯 Confluence")
+        ]
+        return send_whatsapp_interactive_buttons(body, buttons=buttons, recipient=recipient)
+    except Exception as e:
+        logger.error(f"Error in handle_trade_psychologist_query for {symbol}: {e}", exc_info=True)
+        return send_whatsapp_interactive_buttons(
+            f"⚠️ *Trade Psychologist Error*: Could not evaluate intent for `{symbol}`: {str(e)}",
             buttons=[("nav:menu:main", "🏠 Main Menu")],
             recipient=recipient
         )
@@ -8318,6 +8425,31 @@ def dispatch_incoming_whatsapp_message(text_body: str, sender: Optional[str] = N
     # Pre-Market Setup & Tactical Radar Visual Card
     elif cleaned.startswith("view:premarket") or upper in ["PREMARKET", "PRE-MARKET", "MORNING", "PRE MARKET", "TACTICAL RADAR", "RADAR"]:
         return handle_premarket_brief(recipient=sender)
+
+    elif cleaned == "nav:act:stock_psych":
+        return send_whatsapp_interactive_buttons(
+            "🧠 *APEX QUANT AI TRADE PSYCHOLOGIST*\n"
+            "━━━━━━━━━━━━━━━━━━━━\n"
+            "Pre-trade behavioral mirror & devil's advocate sanity check.\n\n"
+            "• Text `CHECK BUY <SYM>` (e.g. `CHECK BUY GRANULES 580`)\n"
+            "• Text `CHECK SELL <SYM>` (e.g. `CHECK SELL TATAMOTORS`)\n"
+            "• Add horizon if needed: `SWING` (2-8W) or `INVEST` (1-3Y)\n\n"
+            "Zero trade logging: strictly an objective behavioral risk mirror.",
+            buttons=[
+                ("act:psych:buy:GRANULES", "🟢 Check Buy GRANULES"),
+                ("act:psych:buy:WELSPUNLIV", "🟢 Check Buy WELSPUN"),
+                ("nav:menu:main", "🏠 Main Menu")
+            ],
+            recipient=sender
+        )
+
+    # Trade Intent & Behavioral Psychologist Check (Zero Trade Logging)
+    elif cleaned.startswith("act:psych:") or cleaned.startswith("act:intent:"):
+        return handle_trade_psychologist_query(cleaned, recipient=sender)
+    elif re.match(r"^(?:CHECK|INTENT|PSYCH|SANITY)\b", upper):
+        return handle_trade_psychologist_query(cleaned, recipient=sender)
+    elif re.match(r"^BUY\s+[A-Za-z0-9.]+$", upper) or re.match(r"^SELL\s+[A-Za-z0-9.]+$", upper) or re.match(r"^BUY\s+[A-Za-z0-9.]+\s+\d+(?:\.\d+)?$", upper) or re.match(r"^SELL\s+[A-Za-z0-9.]+\s+\d+(?:\.\d+)?$", upper):
+        return handle_trade_psychologist_query(cleaned, recipient=sender)
 
     # Portfolio & Trade Journal
     elif cleaned.startswith("view:holdings") or cleaned.startswith("view:positions") or upper in ["HOLDINGS", "POSITIONS", "MY STOCKS", "MYSTOCKS", "STOCKS", "ACTIVE STOCKS"]:

@@ -62971,6 +62971,260 @@ window.filterIpoTableSearch = function(query) {
     }
 };
 
+// ==========================================================================
+// 🧠 AI TRADE PSYCHOLOGIST & PRE-TRADE BEHAVIORAL MIRROR CONTROLLER
+// Zero Trade Logging • Pure Pre-Trade Decision Sanity & Risk Audit
+// ==========================================================================
+window.activePsychologySymbol = 'GRANULES';
+window.activePsychologyAction = 'BUY';
+window.activePsychologyHorizon = 'swing';
+window.activePsychologyData = null;
+let isPsychologySpeaking = false;
+
+window.openTradePsychologistModal = async function(symbol, defaultAction = 'BUY', defaultHorizon = 'swing') {
+    const cleanSym = symbol ? String(symbol).trim().toUpperCase().replace('.NS', '').replace('.BO', '') : (window.currentActiveSymbol || 'GRANULES');
+    window.activePsychologySymbol = cleanSym;
+    window.activePsychologyAction = defaultAction ? defaultAction.toUpperCase() : 'BUY';
+    window.activePsychologyHorizon = defaultHorizon ? defaultHorizon.toLowerCase() : 'swing';
+
+    const modal = document.getElementById('trade-psychologist-modal');
+    if (!modal) return;
+
+    if (window.speechSynthesis) window.speechSynthesis.cancel();
+    isPsychologySpeaking = false;
+    const ttsBtn = document.getElementById('psych-modal-tts-btn');
+    if (ttsBtn) ttsBtn.innerHTML = '<span>🔊</span> Listen';
+
+    modal.style.display = 'flex';
+    try { document.body.style.overflow = 'hidden'; } catch (e) {}
+
+    // Synchronize inputs
+    const symInput = document.getElementById('psych-modal-symbol-input');
+    if (symInput) symInput.value = cleanSym;
+    const priceInput = document.getElementById('psych-modal-price-input');
+    if (priceInput) priceInput.value = '';
+
+    window.updateTradePsychologistUIButtons();
+    window.runTradePsychologistCheck(false);
+};
+
+window.closeTradePsychologistModal = function() {
+    const modal = document.getElementById('trade-psychologist-modal');
+    if (modal) modal.style.display = 'none';
+    try { document.body.style.overflow = ''; } catch (e) {}
+    if (window.speechSynthesis) window.speechSynthesis.cancel();
+    isPsychologySpeaking = false;
+    const ttsBtn = document.getElementById('psych-modal-tts-btn');
+    if (ttsBtn) ttsBtn.innerHTML = '<span>🔊</span> Listen';
+};
+
+window.toggleTradePsychologistAction = function(action) {
+    window.activePsychologyAction = action.toUpperCase();
+    window.updateTradePsychologistUIButtons();
+    window.runTradePsychologistCheck(false);
+};
+
+window.toggleTradePsychologistHorizon = function(horizon) {
+    window.activePsychologyHorizon = horizon.toLowerCase();
+    window.updateTradePsychologistUIButtons();
+    window.runTradePsychologistCheck(false);
+};
+
+window.updateTradePsychologistUIButtons = function() {
+    const btnBuy = document.getElementById('psych-btn-action-buy');
+    const btnSell = document.getElementById('psych-btn-action-sell');
+    if (btnBuy && btnSell) {
+        if (window.activePsychologyAction === 'BUY') {
+            btnBuy.style.background = '#10b981';
+            btnBuy.style.color = '#fff';
+            btnSell.style.background = 'transparent';
+            btnSell.style.color = 'var(--text-secondary, #94a3b8)';
+        } else {
+            btnBuy.style.background = 'transparent';
+            btnBuy.style.color = 'var(--text-secondary, #94a3b8)';
+            btnSell.style.background = '#ef4444';
+            btnSell.style.color = '#fff';
+        }
+    }
+
+    const btnSwing = document.getElementById('psych-btn-horizon-swing');
+    const btnInvest = document.getElementById('psych-btn-horizon-invest');
+    if (btnSwing && btnInvest) {
+        if (window.activePsychologyHorizon === 'swing') {
+            btnSwing.style.background = '#3b82f6';
+            btnSwing.style.color = '#fff';
+            btnInvest.style.background = 'transparent';
+            btnInvest.style.color = 'var(--text-secondary, #94a3b8)';
+        } else {
+            btnSwing.style.background = 'transparent';
+            btnSwing.style.color = 'var(--text-secondary, #94a3b8)';
+            btnInvest.style.background = '#8b5cf6';
+            btnInvest.style.color = '#fff';
+        }
+    }
+};
+
+window.runTradePsychologistCheck = async function(forceRefresh = false) {
+    const symInput = document.getElementById('psych-modal-symbol-input');
+    const symbol = (symInput ? symInput.value : window.activePsychologySymbol || 'GRANULES').trim().toUpperCase().replace('.NS', '');
+    if (!symbol) return;
+    window.activePsychologySymbol = symbol;
+
+    const priceInput = document.getElementById('psych-modal-price-input');
+    const priceVal = priceInput && priceInput.value ? parseFloat(priceInput.value) : null;
+
+    const loader = document.getElementById('psych-modal-loading');
+    const content = document.getElementById('psych-modal-content');
+    if (loader) loader.style.display = 'block';
+    if (content) content.style.display = 'none';
+
+    try {
+        let url = `/api/psychology/intent-check?symbol=${encodeURIComponent(symbol)}&action=${encodeURIComponent(window.activePsychologyAction)}&horizon=${encodeURIComponent(window.activePsychologyHorizon)}`;
+        if (priceVal && !isNaN(priceVal) && priceVal > 0) {
+            url += `&intended_price=${encodeURIComponent(priceVal)}`;
+        }
+        if (forceRefresh) {
+            url += '&force_refresh=true';
+        }
+
+        const resp = await fetch(url);
+        if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+        const data = await resp.json();
+        window.activePsychologyData = data;
+
+        // Model badge
+        const modelBadge = document.getElementById('psych-modal-model-badge');
+        if (modelBadge) modelBadge.textContent = data.model_label || 'Gemini 2.5 Flash Risk Officer';
+
+        // Hero Stance Banner
+        const stanceBadge = document.getElementById('psych-modal-stance-badge');
+        const stanceBanner = document.getElementById('psych-modal-stance-banner');
+        const cmpVal = document.getElementById('psych-modal-cmp-val');
+        if (stanceBadge) stanceBadge.textContent = data.badge || '🟢 RATIONAL STAGE 2 BASE BREAKOUT';
+        if (stanceBanner) {
+            const color = data.badge_color || '#10b981';
+            stanceBanner.style.borderColor = color;
+            stanceBanner.style.background = color === '#ef4444' ? 'rgba(239, 68, 68, 0.15)' : (color === '#f59e0b' ? 'rgba(245, 158, 11, 0.15)' : 'rgba(16, 185, 129, 0.15)');
+        }
+        if (cmpVal) cmpVal.textContent = `₹${(data.cmp || 0).toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+
+        // Hard facts
+        const hf = data.hard_facts || {};
+        const pivotVal = document.getElementById('psych-modal-pivot-val');
+        const pivotExt = document.getElementById('psych-modal-pivot-ext');
+        const ema20Val = document.getElementById('psych-modal-ema20-val');
+        const ema20Dist = document.getElementById('psych-modal-ema20-dist');
+        const rrVal = document.getElementById('psych-modal-rr-val');
+        const rrSub = document.getElementById('psych-modal-rr-sub');
+        const cfoVal = document.getElementById('psych-modal-cfo-val');
+        const peSub = document.getElementById('psych-modal-pe-sub');
+
+        if (pivotVal) pivotVal.textContent = `₹${(hf.pivot_price || 0).toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+        if (pivotExt) pivotExt.textContent = `Extension: ${(hf.pivot_extension_pct || 0) >= 0 ? '+' : ''}${hf.pivot_extension_pct || 0}%`;
+        if (ema20Val) ema20Val.textContent = `₹${(hf.ema_20 || 0).toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+        if (ema20Dist) ema20Dist.textContent = `Distance: ${(hf.ema20_dist_pct || 0) >= 0 ? '+' : ''}${hf.ema20_dist_pct || 0}%`;
+        if (rrVal) {
+            rrVal.textContent = `1 : ${hf.rr_ratio || 0}`;
+            rrVal.style.color = (hf.rr_ratio || 0) >= 2.0 ? '#34d399' : ((hf.rr_ratio || 0) >= 1.3 ? '#f59e0b' : '#ef4444');
+        }
+        if (rrSub) rrSub.textContent = `SL: ₹${(hf.stop_loss || 0).toLocaleString('en-IN')} | T1: ₹${(hf.target_1 || 0).toLocaleString('en-IN')}`;
+        if (cfoVal) cfoVal.textContent = `${hf.cfo_ratio_pct || 0}%`;
+        if (peSub) peSub.textContent = `P/E: ${hf.current_pe || 0}x (5Y Med: ${hf.median_pe || 0}x)`;
+
+        // Diagnostic & Recommendation
+        const croEl = document.getElementById('psych-modal-cro-text');
+        const recEl = document.getElementById('psych-modal-rec-text');
+        if (croEl) croEl.textContent = data.cro_verdict || '';
+        if (recEl) recEl.textContent = data.recommendation || '';
+
+        // Footer buttons wiring
+        const ichartBtn = document.getElementById('psych-modal-ichart-btn');
+        if (ichartBtn) {
+            ichartBtn.onclick = () => {
+                if (window.openStandaloneInteractiveChart) {
+                    window.openStandaloneInteractiveChart(symbol, null, 'breaks', 'Trade Psychologist');
+                }
+            };
+        }
+        const storyBtn = document.getElementById('psych-modal-story-btn');
+        if (storyBtn) {
+            storyBtn.onclick = () => {
+                if (window.openConfluenceStoryModal) {
+                    window.openConfluenceStoryModal(symbol);
+                }
+            };
+        }
+        const valBtn = document.getElementById('psych-modal-val-btn');
+        if (valBtn) {
+            valBtn.onclick = () => {
+                if (window.openValuationExpectationsModal) {
+                    window.openValuationExpectationsModal(symbol);
+                }
+            };
+        }
+
+        if (loader) loader.style.display = 'none';
+        if (content) content.style.display = 'flex';
+
+    } catch (err) {
+        console.error('Failed to run trade psychologist check:', err);
+        if (loader) {
+            loader.innerHTML = `
+                <div style="color: #f87171; font-size: 14px; font-weight: 700; margin-bottom: 8px;">⚠️ Failed to evaluate Trade Intent</div>
+                <div style="color: var(--text-secondary, #94a3b8); font-size: 12px; margin-bottom: 16px;">${err.message || 'Server error'}</div>
+                <button onclick="window.runTradePsychologistCheck(true)" class="btn-primary" style="padding: 8px 16px; font-size: 12px; border-radius: 8px; cursor: pointer;">
+                    🔄 Retry
+                </button>
+            `;
+        }
+    }
+};
+
+window.copyTradePsychologistAudit = function() {
+    if (!window.activePsychologyData || !window.activePsychologyData.formatted_markdown) {
+        if (typeof showToast === 'function') showToast('No audit report to copy', 'warning');
+        return;
+    }
+    navigator.clipboard.writeText(window.activePsychologyData.formatted_markdown).then(() => {
+        if (typeof showToast === 'function') showToast('Trade Psychologist audit copied to clipboard!', 'success');
+    }).catch(err => {
+        console.error('Clipboard copy failed:', err);
+    });
+};
+
+window.toggleTradePsychologistTTS = function() {
+    if (!('speechSynthesis' in window)) {
+        if (typeof showToast === 'function') showToast('Text-to-Speech not supported in this browser', 'info');
+        return;
+    }
+    const btn = document.getElementById('psych-modal-tts-btn');
+    if (isPsychologySpeaking) {
+        window.speechSynthesis.cancel();
+        isPsychologySpeaking = false;
+        if (btn) btn.innerHTML = '<span>🔊</span> Listen';
+        return;
+    }
+    const croEl = document.getElementById('psych-modal-cro-text');
+    const recEl = document.getElementById('psych-modal-rec-text');
+    const textToSpeak = ((croEl ? croEl.innerText : '') + '. ' + (recEl ? recEl.innerText : '')).trim();
+    if (!textToSpeak) return;
+
+    const utterance = new SpeechSynthesisUtterance(textToSpeak);
+    utterance.rate = 1.0;
+    utterance.pitch = 1.0;
+    utterance.onend = () => {
+        isPsychologySpeaking = false;
+        if (btn) btn.innerHTML = '<span>🔊</span> Listen';
+    };
+    utterance.onerror = () => {
+        isPsychologySpeaking = false;
+        if (btn) btn.innerHTML = '<span>🔊</span> Listen';
+    };
+    window.speechSynthesis.speak(utterance);
+    isPsychologySpeaking = true;
+    if (btn) btn.innerHTML = '<span>⏹️</span> Stop';
+};
+
 document.addEventListener('DOMContentLoaded', () => {
     setTimeout(() => {
         window.refreshIpoTrackerData && window.refreshIpoTrackerData(false);

@@ -38474,3 +38474,47 @@ body.light-theme .valuation-modal-backdrop {
     border-color: rgba(168, 85, 247, 0.45);
 }
 
+/* ==========================================================================
+   🧠 AI Trade Psychologist & Behavioral Mirror
+   ========================================================================== */
+.psychology-modal-dialog {
+    background: var(--bg-card, #0f172a);
+    color: var(--text-primary, #f8fafc);
+}
+
+[data-theme="light"] #trade-psychologist-modal .psychology-modal-dialog,
+[data-mode="light"] #trade-psychologist-modal .psychology-modal-dialog {
+    background: #ffffff !important;
+    color: #0f172a !important;
+    border-color: rgba(124, 58, 237, 0.35) !important;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.18) !important;
+}
+
+[data-theme="light"] #trade-psychologist-modal input,
+[data-mode="light"] #trade-psychologist-modal input {
+    background: #f8fafc !important;
+    color: #0f172a !important;
+    border-color: #cbd5e1 !important;
+}
+
+[data-theme="light"] #trade-psychologist-modal [style*="var(--bg-card-sub"],
+[data-mode="light"] #trade-psychologist-modal [style*="var(--bg-card-sub"] {
+    background: #f8fafc !important;
+    border-color: #e2e8f0 !important;
+}
+
+[data-theme="light"] #trade-psychologist-modal [style*="var(--text-primary"],
+[data-mode="light"] #trade-psychologist-modal [style*="var(--text-primary"] {
+    color: #0f172a !important;
+}
+
+@media (max-width: 768px) {
+    #trade-psychologist-modal {
+        padding: 8px !important;
+    }
+    #trade-psychologist-modal .psychology-modal-dialog {
+        max-height: 96vh !important;
+        border-radius: 12px !important;
+    }
+}
+

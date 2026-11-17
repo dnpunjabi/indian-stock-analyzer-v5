@@ -5702,6 +5702,30 @@ async def get_valuation_expectations_endpoint(
         raise HTTPException(status_code=500, detail=f"Valuation expectations failed: {str(e)}")
 
 
+@app.get("/api/psychology/intent-check")
+async def get_psychology_intent_check_endpoint(
+    symbol: str,
+    action: str = "BUY",
+    horizon: str = "swing",
+    price: Optional[float] = None,
+    force_refresh: bool = False
+):
+    """
+    Evaluates pre-trade intent against behavioral bias rules (FOMO, panic selling,
+    value traps, valuation extremes) for Swing Traders and Long-Term Investors.
+    Zero trade logging: strictly an objective psychological sanity check.
+    """
+    if not symbol:
+        raise HTTPException(status_code=400, detail="Symbol parameter is required.")
+    try:
+        from backend.trade_psychologist import evaluate_trade_intent
+        res = await asyncio.to_thread(evaluate_trade_intent, symbol, action, horizon, price, force_refresh)
+        return res
+    except Exception as e:
+        logger.error(f"Psychology intent check failed for {symbol}: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Psychology intent check failed: {str(e)}")
+
+
 @app.post("/api/chart/chat-analyst")
 async def post_chart_chat_analyst(req: ChartChatRequest):
     ticker = req.symbol

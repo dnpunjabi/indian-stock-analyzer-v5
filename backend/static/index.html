@@ -19,7 +19,7 @@
     <script type="text/javascript" src="https://s3.tradingview.com/tv.js"></script>
     <!-- Marked.js Markdown Parser -->
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-    <link rel="stylesheet" href="styles.css?v=5.5.2">
+    <link rel="stylesheet" href="styles.css?v=5.5.3">
     <link rel="stylesheet" href="modernizer.css?v=5.0.7">
     <link rel="stylesheet" href="shark_radar.css?v=5.0.6">
     <style>
@@ -9705,6 +9705,11 @@
                                     <span id="meta-ai-conviction-text">Score: --/100</span>
                                 </div>
 
+                                <!-- Trade Psychologist Pre-Trade Intent Pill -->
+                                <button onclick="window.openTradePsychologistModal && window.openTradePsychologistModal(window.currentActiveSymbol || 'TCS')" class="header-action-btn" style="display: inline-flex; align-items: center; gap: 4px; padding: 2px 9px; border-radius: 99px; background: rgba(124, 58, 237, 0.15); border: 1px solid rgba(167, 139, 250, 0.4); font-size: 12px; font-weight: bold; color: #c084fc; cursor: pointer; height: 18px; line-height: 1.1; margin-left: 0; outline: none; transition: all 0.2s;" title="Open AI Trade Psychologist & Pre-Trade Sanity Mirror">
+                                    🧠 Intent Check
+                                </button>
+
                                 <!-- FS Alert Pill -->
                                 <div id="meta-fs-alert-container" style="display: inline-flex; align-items: center; gap: 4px; height: 18px;"></div>
                                 
@@ -10966,6 +10971,9 @@
                                 <div style="display: flex; gap: 8px; align-items: center;">
                                     <button onclick="window.openValuationExpectationsModal && window.openValuationExpectationsModal(window.currentActiveSymbol || 'POLYCAB')" class="btn-primary" style="padding: 7px 14px; font-size: 12px; border-radius: 8px; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; gap: 5px; background: linear-gradient(135deg, #0284c7, #0369a1); border: 1px solid #38bdf8; color: #fff;">
                                         ⚡ Full Investor Memo
+                                    </button>
+                                    <button onclick="window.openTradePsychologistModal && window.openTradePsychologistModal(window.currentActiveSymbol || 'POLYCAB')" class="btn-primary" style="padding: 7px 14px; font-size: 12px; border-radius: 8px; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; gap: 5px; background: linear-gradient(135deg, #7c3aed, #6d28d9); border: 1px solid #a78bfa; color: #fff;">
+                                        🧠 Intent & Sanity Check
                                     </button>
                                 </div>
                             </div>
@@ -18487,7 +18495,7 @@
     <script src="academy_prompts.js"></script>
     <script src="layman_details.js"></script>
     <script src="export_manager.js?v=5.0.1"></script>
-    <script src="app.js?v=5.5.2"></script>
+    <script src="app.js?v=5.5.3"></script>
 
     <!-- Modernization CDNs -->
     <script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js"></script>
@@ -19083,6 +19091,9 @@
 
                     <!-- Direct Navigation Footer -->
                     <div style="display: flex; gap: 8px; justify-content: flex-end; flex-wrap: wrap; padding-top: 6px; border-top: 1px solid var(--border-glass, rgba(255,255,255,0.06));">
+                        <button onclick="window.openTradePsychologistModal && window.openTradePsychologistModal(window.activeConfluenceStorySymbol || window.currentActiveSymbol || 'POLYCAB')" class="btn-secondary" style="padding: 8px 14px; font-size: 12px; border-radius: 8px; cursor: pointer; display: inline-flex; align-items: center; gap: 5px; font-weight: 700; background: rgba(124, 58, 237, 0.15); border: 1px solid rgba(167, 139, 250, 0.4); color: #c084fc;">
+                            🧠 Intent & Sanity Check
+                        </button>
                         <button id="confluence-story-ichart-btn" class="btn-primary" style="padding: 8px 14px; font-size: 12px; border-radius: 8px; cursor: pointer; display: inline-flex; align-items: center; gap: 5px; font-weight: 700; background: rgba(59, 130, 246, 0.2); border: 1px solid #3b82f6; color: #60a5fa;">
                             📈 Open i-Chart Workstation
                         </button>
@@ -19243,6 +19254,9 @@
 
                     <!-- Direct Navigation Footer -->
                     <div style="display: flex; gap: 8px; justify-content: flex-end; flex-wrap: wrap; padding-top: 6px; border-top: 1px solid var(--border-glass, rgba(255,255,255,0.06));">
+                        <button onclick="window.openTradePsychologistModal && window.openTradePsychologistModal(window.activeValuationSymbol || window.currentActiveSymbol || 'POLYCAB')" class="btn-secondary" style="padding: 8px 14px; font-size: 12px; border-radius: 8px; cursor: pointer; display: inline-flex; align-items: center; gap: 5px; font-weight: 700; background: rgba(124, 58, 237, 0.15); border: 1px solid rgba(167, 139, 250, 0.4); color: #c084fc;">
+                            🧠 Intent & Sanity Check
+                        </button>
                         <button id="val-modal-ichart-btn" class="btn-primary" style="padding: 8px 14px; font-size: 12px; border-radius: 8px; cursor: pointer; display: inline-flex; align-items: center; gap: 5px; font-weight: 700; background: rgba(59, 130, 246, 0.2); border: 1px solid #3b82f6; color: #60a5fa;">
                             📈 Open i-Chart Workstation
                         </button>
@@ -19250,6 +19264,177 @@
                             Chart ↗
                         </button>
                     </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 🧠 AI Trade Psychologist & Behavioral Mirror Modal -->
+    <div id="trade-psychologist-modal" style="display: none; position: fixed; inset: 0; z-index: 100000; background: rgba(0, 0, 0, 0.85); backdrop-filter: blur(12px); align-items: center; justify-content: center; padding: 16px;">
+        <div class="psychology-modal-dialog" style="max-width: 860px; width: 100%; max-height: 92vh; overflow-y: auto; background: var(--bg-card, #0f172a); border: 1px solid rgba(124, 58, 237, 0.45); border-radius: 16px; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7); display: flex; flex-direction: column;">
+            
+            <!-- Header -->
+            <div style="padding: 16px 20px; border-bottom: 1px solid var(--border-glass, rgba(255,255,255,0.08)); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; background: rgba(124, 58, 237, 0.08);">
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <span style="font-size: 26px;">🧠</span>
+                    <div>
+                        <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                            <h3 style="margin: 0; font-size: 16px; font-weight: 800; color: #a78bfa; letter-spacing: 0.04em;">PRE-TRADE BEHAVIORAL MIRROR & RISK AUDIT</h3>
+                            <span id="psych-modal-model-badge" style="font-size: 11px; padding: 2px 8px; border-radius: 10px; font-weight: 700; background: rgba(124, 58, 237, 0.2); color: #c084fc; border: 1px solid rgba(167, 139, 250, 0.35);">Gemini 2.5 Flash Risk Officer</span>
+                        </div>
+                        <div style="font-size: 12px; color: var(--text-secondary, #94a3b8); margin-top: 2px;">
+                            Zero trade logging. Purely an objective behavioral check against pivots, 20-EMA extensions, R:R & balance sheet cash flow.
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Header Actions -->
+                <div style="display: flex; align-items: center; gap: 8px; flex-shrink: 0; flex-wrap: wrap;">
+                    <button id="psych-modal-tts-btn" onclick="window.toggleTradePsychologistTTS && window.toggleTradePsychologistTTS()" class="btn-secondary" style="padding: 7px 12px; font-size: 12px; border-radius: 8px; display: inline-flex; align-items: center; gap: 5px; font-weight: 700; cursor: pointer;" title="Listen to Behavioral Audit">
+                        <span>🔊</span> Listen
+                    </button>
+                    <button onclick="window.copyTradePsychologistAudit && window.copyTradePsychologistAudit()" class="btn-secondary" style="padding: 7px 12px; font-size: 12px; border-radius: 8px; display: inline-flex; align-items: center; gap: 5px; font-weight: 700; cursor: pointer;" title="Copy Audit to Clipboard">
+                        <span>📋</span> Copy
+                    </button>
+                    <button onclick="window.runTradePsychologistCheck && window.runTradePsychologistCheck(true)" class="btn-secondary" style="padding: 7px 10px; font-size: 12px; border-radius: 8px; cursor: pointer;" title="Force Re-Analyze">
+                        🔄
+                    </button>
+                    <button onclick="window.closeTradePsychologistModal && window.closeTradePsychologistModal()" style="background: rgba(255,255,255,0.08); border: 1px solid var(--border-glass, rgba(255,255,255,0.12)); color: var(--text-primary, #f1f5f9); width: 34px; height: 34px; border-radius: 50%; font-size: 16px; cursor: pointer; display: flex; align-items: center; justify-content: center;" title="Close Modal (Esc)">
+                        ✕
+                    </button>
+                </div>
+            </div>
+
+            <!-- Pre-Trade Intent Control Bar -->
+            <div style="padding: 12px 20px; background: rgba(0, 0, 0, 0.25); border-bottom: 1px solid var(--border-glass, rgba(255,255,255,0.06)); display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
+                <!-- Symbol -->
+                <div style="display: flex; align-items: center; gap: 6px;">
+                    <label style="font-size: 11px; font-weight: 700; color: var(--text-secondary, #94a3b8); text-transform: uppercase;">Stock:</label>
+                    <input type="text" id="psych-modal-symbol-input" style="padding: 6px 10px; font-size: 13px; font-weight: 700; border-radius: 6px; border: 1px solid rgba(124, 58, 237, 0.4); background: rgba(15, 23, 42, 0.8); color: #fff; width: 110px; text-transform: uppercase;" value="GRANULES" />
+                </div>
+
+                <!-- Action Toggle -->
+                <div style="display: flex; align-items: center; gap: 4px; background: rgba(255,255,255,0.04); padding: 3px; border-radius: 8px; border: 1px solid var(--border-glass, rgba(255,255,255,0.08));">
+                    <button id="psych-btn-action-buy" onclick="window.toggleTradePsychologistAction('BUY')" style="padding: 5px 12px; font-size: 11.5px; font-weight: 800; border-radius: 6px; border: none; cursor: pointer; background: #10b981; color: #fff; transition: all 0.2s;">
+                        🟢 BUY / ACCUMULATE
+                    </button>
+                    <button id="psych-btn-action-sell" onclick="window.toggleTradePsychologistAction('SELL')" style="padding: 5px 12px; font-size: 11.5px; font-weight: 800; border-radius: 6px; border: none; cursor: pointer; background: transparent; color: var(--text-secondary, #94a3b8); transition: all 0.2s;">
+                        🔴 SELL / EXIT
+                    </button>
+                </div>
+
+                <!-- Horizon Toggle -->
+                <div style="display: flex; align-items: center; gap: 4px; background: rgba(255,255,255,0.04); padding: 3px; border-radius: 8px; border: 1px solid var(--border-glass, rgba(255,255,255,0.08));">
+                    <button id="psych-btn-horizon-swing" onclick="window.toggleTradePsychologistHorizon('swing')" style="padding: 5px 12px; font-size: 11.5px; font-weight: 800; border-radius: 6px; border: none; cursor: pointer; background: #3b82f6; color: #fff; transition: all 0.2s;">
+                        ⚡ Swing (2–8W)
+                    </button>
+                    <button id="psych-btn-horizon-invest" onclick="window.toggleTradePsychologistHorizon('invest')" style="padding: 5px 12px; font-size: 11.5px; font-weight: 800; border-radius: 6px; border: none; cursor: pointer; background: transparent; color: var(--text-secondary, #94a3b8); transition: all 0.2s;">
+                        🏛️ Long-Term (1–3Y)
+                    </button>
+                </div>
+
+                <!-- Optional Intended Price -->
+                <div style="display: flex; align-items: center; gap: 6px;">
+                    <label style="font-size: 11px; font-weight: 700; color: var(--text-secondary, #94a3b8); text-transform: uppercase;">Entry/Exit Price (Optional):</label>
+                    <input type="number" step="0.05" id="psych-modal-price-input" placeholder="CMP" style="padding: 6px 10px; font-size: 13px; font-weight: 700; border-radius: 6px; border: 1px solid rgba(255,255,255,0.15); background: rgba(15, 23, 42, 0.8); color: #fff; width: 90px;" />
+                </div>
+
+                <!-- Run Button -->
+                <button onclick="window.runTradePsychologistCheck && window.runTradePsychologistCheck(false)" class="btn-primary" style="padding: 6px 16px; font-size: 12px; font-weight: 800; border-radius: 6px; cursor: pointer; background: linear-gradient(135deg, #7c3aed, #6d28d9); border: 1px solid #a78bfa; color: #fff; margin-left: auto;">
+                    🔍 Audit Trade Intent
+                </button>
+            </div>
+
+            <!-- Body -->
+            <div style="padding: 20px; display: flex; flex-direction: column; gap: 16px;">
+                <!-- Loader -->
+                <div id="psych-modal-loading" style="text-align: center; padding: 60px 20px; display: none;">
+                    <div class="spinner" style="border: 3px solid rgba(124, 58, 237, 0.2); border-left-color: #a78bfa; border-radius: 50%; width: 44px; height: 44px; animation: spin 1s linear infinite; margin: 0 auto 16px auto;"></div>
+                    <h4 style="color: var(--text-primary, #f8fafc); margin: 0 0 6px 0; font-size: 16px; font-weight: 700;">Auditing Pre-Trade Behavioral Psychology...</h4>
+                    <p style="color: var(--text-secondary, #94a3b8); font-size: 13px; max-width: 500px; margin: 0 auto; line-height: 1.5;">Measuring pivot extensions, distance from 20-day EMA, dynamic risk-to-reward ratio, and 5-year cash realization.</p>
+                </div>
+
+                <!-- Content -->
+                <div id="psych-modal-content" style="display: flex; flex-direction: column; gap: 16px;">
+                    
+                    <!-- Hero Stance Banner -->
+                    <div id="psych-modal-stance-banner" style="background: rgba(16, 185, 129, 0.12); border: 1px solid rgba(16, 185, 129, 0.35); border-radius: 12px; padding: 14px 18px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+                        <div>
+                            <div style="font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.6px; color: #34d399;">
+                                🚦 Risk Officer Psychology Stance
+                            </div>
+                            <div id="psych-modal-stance-badge" style="font-size: 16px; font-weight: 800; color: #fff; margin-top: 3px;">
+                                🟢 RATIONAL STAGE 2 BASE BREAKOUT
+                            </div>
+                        </div>
+                        <div style="text-align: right;">
+                            <div style="font-size: 11px; color: var(--text-secondary, #94a3b8); text-transform: uppercase;">Live CMP</div>
+                            <div id="psych-modal-cmp-val" style="font-size: 18px; font-weight: 800; color: #fff;">₹ 0.00</div>
+                        </div>
+                    </div>
+
+                    <!-- 4 Cold Hard Facts Cards Grid -->
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px;">
+                        <!-- Fact 1: Pivot Extension -->
+                        <div style="background: var(--bg-card-sub, rgba(255, 255, 255, 0.02)); border: 1px solid var(--border-glass, rgba(255, 255, 255, 0.08)); border-radius: 10px; padding: 12px;">
+                            <div style="font-size: 10.5px; font-weight: 700; color: #38bdf8; text-transform: uppercase;">🎯 Base Pivot Level</div>
+                            <div id="psych-modal-pivot-val" style="font-size: 17px; font-weight: 800; color: #fff; margin: 4px 0 2px 0;">₹ 0.00</div>
+                            <div id="psych-modal-pivot-ext" style="font-size: 11px; color: var(--text-secondary, #94a3b8);">Extension: 0.0%</div>
+                        </div>
+
+                        <!-- Fact 2: EMA20 Distance -->
+                        <div style="background: var(--bg-card-sub, rgba(255, 255, 255, 0.02)); border: 1px solid var(--border-glass, rgba(255, 255, 255, 0.08)); border-radius: 10px; padding: 12px;">
+                            <div style="font-size: 10.5px; font-weight: 700; color: #a78bfa; text-transform: uppercase;">📏 20-Day EMA</div>
+                            <div id="psych-modal-ema20-val" style="font-size: 17px; font-weight: 800; color: #fff; margin: 4px 0 2px 0;">₹ 0.00</div>
+                            <div id="psych-modal-ema20-dist" style="font-size: 11px; color: var(--text-secondary, #94a3b8);">Distance: 0.0%</div>
+                        </div>
+
+                        <!-- Fact 3: R:R Ratio -->
+                        <div style="background: var(--bg-card-sub, rgba(255, 255, 255, 0.02)); border: 1px solid var(--border-glass, rgba(255, 255, 255, 0.08)); border-radius: 10px; padding: 12px;">
+                            <div style="font-size: 10.5px; font-weight: 700; color: #f59e0b; text-transform: uppercase;">⚖️ Risk / Reward</div>
+                            <div id="psych-modal-rr-val" style="font-size: 17px; font-weight: 800; color: #f59e0b; margin: 4px 0 2px 0;">1 : 2.5</div>
+                            <div id="psych-modal-rr-sub" style="font-size: 11px; color: var(--text-secondary, #94a3b8);">SL: ₹0.00 | T1: ₹0.00</div>
+                        </div>
+
+                        <!-- Fact 4: Cash Realization & P/E -->
+                        <div style="background: var(--bg-card-sub, rgba(255, 255, 255, 0.02)); border: 1px solid var(--border-glass, rgba(255, 255, 255, 0.08)); border-radius: 10px; padding: 12px;">
+                            <div style="font-size: 10.5px; font-weight: 700; color: #34d399; text-transform: uppercase;">💎 CFO Realization & P/E</div>
+                            <div id="psych-modal-cfo-val" style="font-size: 17px; font-weight: 800; color: #34d399; margin: 4px 0 2px 0;">90.3%</div>
+                            <div id="psych-modal-pe-sub" style="font-size: 11px; color: var(--text-secondary, #94a3b8);">P/E: --x (5Y: --x)</div>
+                        </div>
+                    </div>
+
+                    <!-- CRO Behavioral Diagnostic -->
+                    <div style="background: var(--bg-card-sub, rgba(255, 255, 255, 0.02)); border: 1px solid var(--border-glass, rgba(255, 255, 255, 0.08)); border-radius: 12px; padding: 16px 18px; border-left: 4px solid #a78bfa;">
+                        <div style="font-size: 11px; font-weight: 800; text-transform: uppercase; color: #a78bfa; letter-spacing: 0.6px; margin-bottom: 6px; display: flex; align-items: center; gap: 6px;">
+                            <span>🧠</span> Chief Risk Officer Behavioral Diagnostic
+                        </div>
+                        <div id="psych-modal-cro-text" style="font-size: 13.5px; line-height: 1.65; color: var(--text-primary, #f8fafc); white-space: pre-line;">
+                        </div>
+                    </div>
+
+                    <!-- Actionable Recommendation -->
+                    <div style="background: var(--bg-card-sub, rgba(255, 255, 255, 0.02)); border: 1px solid var(--border-glass, rgba(255, 255, 255, 0.08)); border-radius: 12px; padding: 16px 18px; border-left: 4px solid #38bdf8;">
+                        <div style="font-size: 11px; font-weight: 800; text-transform: uppercase; color: #38bdf8; letter-spacing: 0.6px; margin-bottom: 6px; display: flex; align-items: center; gap: 6px;">
+                            <span>💡</span> Actionable Execution Blueprint
+                        </div>
+                        <div id="psych-modal-rec-text" style="font-size: 13.5px; line-height: 1.65; color: var(--text-primary, #f8fafc); white-space: pre-line;">
+                        </div>
+                    </div>
+
+                    <!-- Footer Navigation -->
+                    <div style="display: flex; gap: 8px; justify-content: flex-end; flex-wrap: wrap; padding-top: 6px; border-top: 1px solid var(--border-glass, rgba(255,255,255,0.06));">
+                        <button id="psych-modal-ichart-btn" class="btn-primary" style="padding: 8px 14px; font-size: 12px; border-radius: 8px; cursor: pointer; display: inline-flex; align-items: center; gap: 5px; font-weight: 700; background: rgba(59, 130, 246, 0.2); border: 1px solid #3b82f6; color: #60a5fa;">
+                            📈 Open i-Chart Workstation
+                        </button>
+                        <button id="psych-modal-story-btn" class="btn-secondary" style="padding: 8px 14px; font-size: 12px; border-radius: 8px; cursor: pointer; display: inline-flex; align-items: center; gap: 5px; font-weight: 700; background: rgba(245, 158, 11, 0.15); border: 1px solid rgba(245, 158, 11, 0.4); color: #fbbf24;">
+                            🎯 Confluence Story
+                        </button>
+                        <button id="psych-modal-val-btn" class="btn-secondary" style="padding: 8px 14px; font-size: 12px; border-radius: 8px; cursor: pointer; display: inline-flex; align-items: center; gap: 5px; font-weight: 700; background: rgba(56, 189, 248, 0.15); border: 1px solid rgba(56, 189, 248, 0.4); color: #38bdf8;">
+                            ⚡ 5Y Valuation Expectations
+                        </button>
+                    </div>
+
                 </div>
             </div>
         </div>
