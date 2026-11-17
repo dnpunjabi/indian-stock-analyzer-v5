@@ -50,16 +50,15 @@ def _init_psychology_cache_table():
 
 
 def get_psychology_model_info() -> Tuple[str, str]:
-    """Returns dynamic model id and label."""
-    model_id = (
-        os.environ.get("PSYCHOLOGY_AI_MODEL")
-        or os.environ.get("GEMINI_FAST_MODEL")
-        or "gemini-2.5-flash"
+    """
+    Returns engine id and label.
+    100% deterministic quantitative rules engine (zero LLM / external AI API).
+    """
+    model_id = os.environ.get("PSYCHOLOGY_AI_MODEL", "apex-quant-engine").strip()
+    model_label = os.environ.get(
+        "PSYCHOLOGY_AI_LABEL",
+        "🛡️ Apex Deterministic Quant Engine"
     ).strip()
-    model_label = os.environ.get("PSYCHOLOGY_AI_LABEL")
-    if not model_label:
-        base_label = _format_model_label(model_id)
-        model_label = f"{base_label} Risk Officer"
     return model_id, model_label
 
 
