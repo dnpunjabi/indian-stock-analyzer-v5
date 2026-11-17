@@ -63094,7 +63094,7 @@ window.runTradePsychologistCheck = async function(forceRefresh = false) {
 
         // Model badge
         const modelBadge = document.getElementById('psych-modal-model-badge');
-        if (modelBadge) modelBadge.textContent = data.model_label || 'Gemini 2.5 Flash Risk Officer';
+        if (modelBadge) modelBadge.textContent = data.model_label || '🛡️ Apex Quant Risk Officer';
 
         // Hero Stance Banner
         const stanceBadge = document.getElementById('psych-modal-stance-badge');

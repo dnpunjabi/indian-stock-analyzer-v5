@@ -19,7 +19,7 @@
     <script type="text/javascript" src="https://s3.tradingview.com/tv.js"></script>
     <!-- Marked.js Markdown Parser -->
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-    <link rel="stylesheet" href="styles.css?v=5.5.4">
+    <link rel="stylesheet" href="styles.css?v=5.5.5">
     <link rel="stylesheet" href="modernizer.css?v=5.0.7">
     <link rel="stylesheet" href="shark_radar.css?v=5.0.6">
     <style>
@@ -1763,6 +1763,9 @@
                     <button class="nav-btn" id="tab-trades-btn-desktop" data-tab-key="trades" data-category="emerald" onclick="window.switchTab && window.switchTab('trades')" title="Promoter & Insider Deals Sweep">
                         <span class="btn-icon">🤝</span><span class="btn-text">Deals</span>
                     </button>
+                    <button class="nav-btn" id="tab-trade-psychologist-btn-desktop" data-category="magenta" onclick="window.openTradePsychologistModal && window.openTradePsychologistModal(window.currentActiveSymbol || 'TCS')" title="AI Trade Psychologist & Pre-Trade Sanity Mirror" style="border: 1px solid rgba(167, 139, 250, 0.4); background: rgba(124, 58, 237, 0.15); color: #c084fc;">
+                        <span class="btn-icon">🧠</span><span class="btn-text">Trade Psych</span>
+                    </button>
                     <button class="nav-btn" id="tab-learning-btn-desktop" data-tab-key="learning" data-category="emerald" onclick="window.switchTab && window.switchTab('learning')" title="Learning Academy">
                         <span class="btn-icon">🎓</span><span class="btn-text">Academy</span>
                     </button>
@@ -1878,6 +1881,9 @@
                 </button>
 
                 <div class="nav-category-header">⚡ Tactical Trading</div>
+                <button class="nav-btn" id="tab-trade-psychologist-btn-sidebar" data-title="AI Trade Psychologist & Pre-Trade Sanity Mirror" onclick="window.openTradePsychologistModal && window.openTradePsychologistModal(window.currentActiveSymbol || 'TCS'); window.closeMobileSidebar && window.closeMobileSidebar();" style="border-left: 2px solid #a78bfa;">
+                    <span class="btn-icon">🧠</span> <span class="btn-text">Trade Psychologist</span>
+                </button>
                 <button class="nav-btn" id="tab-swing-scan-btn" data-title="Swing Setup Scanner">
                     <span class="btn-icon">⚡</span> <span class="btn-text">Swing Setup Scanner</span>
                 </button>
@@ -18495,7 +18501,7 @@
     <script src="academy_prompts.js"></script>
     <script src="layman_details.js"></script>
     <script src="export_manager.js?v=5.0.1"></script>
-    <script src="app.js?v=5.5.4"></script>
+    <script src="app.js?v=5.5.5"></script>
 
     <!-- Modernization CDNs -->
     <script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js"></script>
@@ -19280,7 +19286,7 @@
                     <div>
                         <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
                             <h3 style="margin: 0; font-size: 16px; font-weight: 800; color: #a78bfa; letter-spacing: 0.04em;">PRE-TRADE BEHAVIORAL MIRROR & RISK AUDIT</h3>
-                            <span id="psych-modal-model-badge" style="font-size: 11px; padding: 2px 8px; border-radius: 10px; font-weight: 700; background: rgba(124, 58, 237, 0.2); color: #c084fc; border: 1px solid rgba(167, 139, 250, 0.35);">Gemini 2.5 Flash Risk Officer</span>
+                            <span id="psych-modal-model-badge" style="font-size: 11px; padding: 2px 8px; border-radius: 10px; font-weight: 700; background: rgba(124, 58, 237, 0.2); color: #c084fc; border: 1px solid rgba(167, 139, 250, 0.35);">🛡️ Apex Quant Risk Officer</span>
                         </div>
                         <div style="font-size: 12px; color: var(--text-secondary, #94a3b8); margin-top: 2px;">
                             Zero trade logging. Purely an objective behavioral check against pivots, 20-EMA extensions, R:R & balance sheet cash flow.
