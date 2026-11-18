@@ -63108,8 +63108,9 @@ window.runTradePsychologistCheck = async function(forceRefresh = false) {
         }
         if (cmpVal) cmpVal.textContent = `₹${(data.cmp || 0).toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
 
-        // Hard facts
+        // Dynamic Horizon-Aware Hard Facts Cards
         const hf = data.hard_facts || {};
+        const cards = data.cards;
         const pivotVal = document.getElementById('psych-modal-pivot-val');
         const pivotExt = document.getElementById('psych-modal-pivot-ext');
         const ema20Val = document.getElementById('psych-modal-ema20-val');
@@ -63119,17 +63120,39 @@ window.runTradePsychologistCheck = async function(forceRefresh = false) {
         const cfoVal = document.getElementById('psych-modal-cfo-val');
         const peSub = document.getElementById('psych-modal-pe-sub');
 
-        if (pivotVal) pivotVal.textContent = `₹${(hf.pivot_price || 0).toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
-        if (pivotExt) pivotExt.textContent = `Extension: ${(hf.pivot_extension_pct || 0) >= 0 ? '+' : ''}${hf.pivot_extension_pct || 0}%`;
-        if (ema20Val) ema20Val.textContent = `₹${(hf.ema_20 || 0).toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
-        if (ema20Dist) ema20Dist.textContent = `Distance: ${(hf.ema20_dist_pct || 0) >= 0 ? '+' : ''}${hf.ema20_dist_pct || 0}%`;
-        if (rrVal) {
-            rrVal.textContent = `1 : ${hf.rr_ratio || 0}`;
-            rrVal.style.color = (hf.rr_ratio || 0) >= 2.0 ? '#34d399' : ((hf.rr_ratio || 0) >= 1.3 ? '#f59e0b' : '#ef4444');
+        if (Array.isArray(cards) && cards.length === 4) {
+            for (let i = 0; i < 4; i++) {
+                const c = cards[i];
+                const tEl = document.getElementById(`psych-modal-card${i+1}-title`);
+                const vEl = document.getElementById(i === 0 ? 'psych-modal-pivot-val' : (i === 1 ? 'psych-modal-ema20-val' : (i === 2 ? 'psych-modal-rr-val' : 'psych-modal-cfo-val')));
+                const sEl = document.getElementById(i === 0 ? 'psych-modal-pivot-ext' : (i === 1 ? 'psych-modal-ema20-dist' : (i === 2 ? 'psych-modal-rr-sub' : 'psych-modal-pe-sub')));
+                if (tEl) {
+                    tEl.textContent = c.title;
+                    if (c.color) tEl.style.color = c.color;
+                }
+                if (vEl) {
+                    vEl.textContent = c.value;
+                    if (c.val_color) vEl.style.color = c.val_color;
+                    else vEl.style.color = '#fff';
+                }
+                if (sEl) {
+                    sEl.textContent = c.sub;
+                    if (c.sub_color) sEl.style.color = c.sub_color;
+                }
+            }
+        } else {
+            if (pivotVal) pivotVal.textContent = `₹${(hf.pivot_price || 0).toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+            if (pivotExt) pivotExt.textContent = `Extension: ${(hf.pivot_extension_pct || 0) >= 0 ? '+' : ''}${hf.pivot_extension_pct || 0}%`;
+            if (ema20Val) ema20Val.textContent = `₹${(hf.ema_20 || 0).toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+            if (ema20Dist) ema20Dist.textContent = `Distance: ${(hf.ema20_dist_pct || 0) >= 0 ? '+' : ''}${hf.ema20_dist_pct || 0}%`;
+            if (rrVal) {
+                rrVal.textContent = `1 : ${hf.rr_ratio || 0}`;
+                rrVal.style.color = (hf.rr_ratio || 0) >= 2.0 ? '#34d399' : ((hf.rr_ratio || 0) >= 1.3 ? '#f59e0b' : '#ef4444');
+            }
+            if (rrSub) rrSub.textContent = `SL: ₹${(hf.stop_loss || 0).toLocaleString('en-IN')} | T1: ₹${(hf.target_1 || 0).toLocaleString('en-IN')}`;
+            if (cfoVal) cfoVal.textContent = `${hf.cfo_ratio_pct || 0}%`;
+            if (peSub) peSub.textContent = `P/E: ${hf.current_pe || 0}x (5Y Med: ${hf.median_pe || 0}x)`;
         }
-        if (rrSub) rrSub.textContent = `SL: ₹${(hf.stop_loss || 0).toLocaleString('en-IN')} | T1: ₹${(hf.target_1 || 0).toLocaleString('en-IN')}`;
-        if (cfoVal) cfoVal.textContent = `${hf.cfo_ratio_pct || 0}%`;
-        if (peSub) peSub.textContent = `P/E: ${hf.current_pe || 0}x (5Y Med: ${hf.median_pe || 0}x)`;
 
         // Diagnostic & Recommendation
         const croEl = document.getElementById('psych-modal-cro-text');

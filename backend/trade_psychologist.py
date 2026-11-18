@@ -91,115 +91,152 @@ def generate_devils_advocate_thesis(
     prom_pledge: float
 ) -> Dict[str, Any]:
     """
-    Constructs an institutional Devil's Advocate Counter-Thesis:
+    Constructs an institutional Devil's Advocate Counter-Thesis tailored to the investment horizon:
     - For BUY: The Top 3 Bear Arguments + Invalidation Trigger.
     - For SELL: The Top 3 Bull Arguments + Invalidation Trigger.
     """
     da_points = []
-    
+    is_swing = (horizon or "swing").lower() == "swing"
+
     if action == "BUY":
-        da_title = "😈 DEVIL'S ADVOCATE COUNTER-THESIS (THE BEAR CASE)"
         stance = "BEAR"
         stance_color = "#ef4444"
 
-        # 1. Valuation & Growth Hurdle
-        if current_pe > (median_pe * 1.25) and current_pe > 35.0:
-            premium_pct = round(((current_pe - median_pe) / median_pe) * 100.0, 1) if median_pe > 0 else 25.0
+        if is_swing:
+            da_title = "😈 DEVIL'S ADVOCATE: SWING TRADER'S BEAR CASE (2–8 WEEKS)"
+
+            # Point 1: Mean Reversion Pullback Risk
+            if ema20_dist_pct > 3.0 or pivot_extension_pct > 2.5:
+                da_points.append({
+                    "title": "Short-Term Mean-Reversion Pullback",
+                    "detail": f"Price is stretched +{ema20_dist_pct}% above its 20-day EMA (₹{ema_20:,.2f}) and +{pivot_extension_pct}% from base pivot. In Indian swing trading, moves extended >3% frequently experience a sharp 3–6% shakeout back to dynamic support before continuation."
+                })
+            else:
+                da_points.append({
+                    "title": "Low-Volume Breakout Churn",
+                    "detail": f"Volume is running at {volume_ratio:.2f}x average. Entering without decisive institutional volume (> 1.3x) exposes swing capital to sideways range-bound chop and time-decay risk."
+                })
+
+            # Point 2: Overhead Supply & Resistance
+            if dist_52w_high < -6.0:
+                da_points.append({
+                    "title": "Overhead Trapped Supply & Resistance",
+                    "detail": f"The stock is {abs(dist_52w_high):.1f}% below its 52-week high. Prior swing buyers trapped at higher prices create a dense supply ceiling, making immediate clean breakouts difficult."
+                })
+            else:
+                da_points.append({
+                    "title": "All-Time High Exhaustion",
+                    "detail": f"Trading within {abs(dist_52w_high):.1f}% of highs without building a multi-week tight base increases the probability of false breakout 'bull traps' engineered to absorb retail liquidity."
+                })
+
+            # Point 3: Risk-to-Reward Geometry
+            downside_risk = abs((eval_price - stop_loss) / eval_price) * 100.0 if eval_price > 0 else 5.0
+            rr_val = round(((target_1 - eval_price) / eval_price) / (downside_risk / 100.0), 1) if downside_risk > 0 else 1.5
             da_points.append({
-                "title": "Expectations & Valuation Premium",
-                "detail": f"Current P/E of {current_pe:.1f}x trades at a +{premium_pct}% premium to its 5-year median ({median_pe:.1f}x). With the market demanding aggressive execution, any quarterly margin contraction or earnings miss will trigger severe multiple de-rating."
-            })
-        elif implied_5y_growth > (hist_5y_growth * 1.25) and implied_5y_growth > 25.0:
-            da_points.append({
-                "title": "Market Growth Hurdle Mismatch",
-                "detail": f"At CMP ₹{eval_price:,.2f}, the market demands an implied {implied_5y_growth:.1f}% CAGR EPS growth over 5 years vs its historical delivery of {hist_5y_growth:.1f}%. The bar is set extraordinarily high with minimal margin for execution slip-ups."
-            })
-        else:
-            da_points.append({
-                "title": "Valuation Vulnerability",
-                "detail": f"Current valuation ({current_pe:.1f}x P/E) leaves limited room for multiple expansion unless revenue growth accelerates beyond its historical {hist_5y_growth:.1f}% CAGR pace."
+                "title": "Stop-Loss Risk / Reward Asymmetry",
+                "detail": f"Current swing geometry offers a 1 : {rr_val} risk-to-reward ratio with downside risk of -{downside_risk:.1f}% to stop ₹{stop_loss:,.2f}. If broader market indices (Nifty/Sensex) wobble, your stop will likely get triggered before reaching Target 1 (₹{target_1:,.2f})."
             })
 
-        # 2. Earnings Quality & Cash Realization
-        if cfo_ratio < 75.0:
-            leak_pct = round(100.0 - cfo_ratio, 1)
-            da_points.append({
-                "title": "Accrual Accounting Risk (CFO vs PAT)",
-                "detail": f"5-Year CFO/PAT cash conversion is only {cfo_ratio:.1f}%. Roughly {leak_pct}% of reported accounting profits are locked up in receivables or working capital rather than converting cleanly into hard operating cash."
-            })
-        elif debt_to_equity > 0.8:
-            da_points.append({
-                "title": "Balance Sheet Leverage Sensitivity",
-                "detail": f"Debt-to-Equity is elevated at {debt_to_equity:.2f}. Higher interest service obligations reduce net profit margins during cyclical economic slowdowns."
-            })
-        elif prom_pledge > 10.0:
-            da_points.append({
-                "title": "Promoter Pledge Encumbrance",
-                "detail": f"Promoters have pledged {prom_pledge:.1f}% of their holdings. High pledge levels pose margin-call sell-off risks if broader markets experience sharp corrections."
-            })
-        else:
-            da_points.append({
-                "title": "Cyclical Margin & Reinvestment Hurdle",
-                "detail": f"While cash conversion is healthy ({cfo_ratio:.1f}%), sustaining a {roe_pct:.1f}% ROE in an inflationary or competitive sector requires higher capex, which could constrain free cash flow."
-            })
+            invalidation = f"{comp_name} decisively clears and sustains above ₹{pivot_price:,.2f} on volume > 1.3x 20-day average, or executes a clean low-volume retest of 20-day EMA (₹{ema_20:,.2f}) printing an immediate bullish reversal candle."
 
-        # 3. Technical Extension / Supply / Institutional Flow
-        if ema20_dist_pct > 6.0 or pivot_extension_pct > 4.5:
-            da_points.append({
-                "title": "Technical Overextension & Mean Reversion",
-                "detail": f"The stock is stretched +{ema20_dist_pct}% above its 20-day EMA and +{pivot_extension_pct}% above base pivot. Historically, chasing moves beyond +6% results in sudden 4–7% pullbacks to shake out late retail buyers before any real trend continuation."
-            })
-        elif dist_52w_high < -18.0:
-            da_points.append({
-                "title": "Overhead Supply & Trapped Buyers",
-                "detail": f"The stock trades {abs(dist_52w_high):.1f}% below its 52-week peak. Trapped buyers from previous highs will look to exit near breakeven, creating dense supply overhead on every upward bounce."
-            })
-        elif fii_prev > 0 and (fii_curr < (fii_prev - 0.5)):
-            trim_pct = round(abs(fii_curr - fii_prev), 2)
-            da_points.append({
-                "title": "Smart Money Institutional Trimming",
-                "detail": f"Foreign institutional investors (FIIs) trimmed their stake by -{trim_pct}% QoQ (from {fii_prev:.2f}% to {fii_curr:.2f}%), indicating smart money distribution into recent rallies."
-            })
         else:
-            dist_sma200 = round(((eval_price - sma_200) / sma_200) * 100.0, 1) if sma_200 > 0 else 12.0
-            da_points.append({
-                "title": "Downside Airbag Gap",
-                "detail": f"The 200-day moving average sits at ₹{sma_200:,.1f} ({abs(dist_sma200):.1f}% below CMP). In a market-wide liquidity flush, structural support is distant."
-            })
+            da_title = "😈 DEVIL'S ADVOCATE: LONG-TERM INVESTOR'S BEAR CASE (1–3 YEARS)"
 
-        invalidation = f"{comp_name} decisively clears and sustains above ₹{pivot_price:,.2f} on daily volume > 1.3x 20-day average, or retests the 20-day EMA (₹{ema_20:,.2f}) with shrinking volume and immediately prints a bullish reversal candle."
+            # Point 1: Valuation Multiple Compression
+            if current_pe > (median_pe * 1.15) and current_pe > 30.0:
+                premium_pct = round(((current_pe - median_pe) / median_pe) * 100.0, 1) if median_pe > 0 else 20.0
+                da_points.append({
+                    "title": "Valuation Multiple De-Rating Risk",
+                    "detail": f"Current P/E of {current_pe:.1f}x trades at a +{premium_pct}% premium to its 5-year median ({median_pe:.1f}x). Over a 3-year holding period, multiple contraction back to median levels will aggressively erode compounding returns even if earnings grow."
+                })
+            else:
+                da_points.append({
+                    "title": "Terminal Multiple Ceiling",
+                    "detail": f"At {current_pe:.1f}x P/E, valuation already prices in steady execution. Unless revenue growth accelerates significantly beyond its historical {hist_5y_growth:.1f}% CAGR pace, upside from multiple expansion is minimal."
+                })
+
+            # Point 2: Cash Realization & Working Capital Leakage
+            if cfo_ratio < 80.0:
+                leak_pct = round(100.0 - cfo_ratio, 1)
+                da_points.append({
+                    "title": "Accrual Accounting & Free Cash Flow Drag",
+                    "detail": f"5-Year Cash Realization (CFO/PAT) is {cfo_ratio:.1f}%. Roughly {leak_pct}% of reported profits are trapped in working capital and receivables rather than converting into hard distributable free cash flow."
+                })
+            else:
+                da_points.append({
+                    "title": "Capex Reinvestment & Free Cash Flow Hurdle",
+                    "detail": f"While historical cash conversion is sound ({cfo_ratio:.1f}%), sustaining a {roe_pct:.1f}% ROE in an evolving competitive sector demands high continuous capex, which could constrain dividend growth."
+                })
+
+            # Point 3: Moat Durability & Compounding Deceleration
+            if debt_to_equity > 0.6:
+                da_points.append({
+                    "title": "Balance Sheet Leverage Vulnerability",
+                    "detail": f"Debt-to-Equity is {debt_to_equity:.2f}. Over a 3-year horizon, higher debt service obligations reduce resilience during economic downturns."
+                })
+            else:
+                da_points.append({
+                    "title": "Scale Deceleration & Competitive Drag",
+                    "detail": f"As {comp_name}'s revenue base expands, maintaining high double-digit compounding becomes mathematically harder. Larger market-cap leaders naturally experience growth moderation."
+                })
+
+            invalidation = f"Two consecutive quarters of revenue growth decelerating below 8% YoY, or 5-year CFO/PAT cash realization deteriorating below 70%, confirming structural moat erosion."
 
     else:
-        # Action is SELL
-        da_title = "😇 DEVIL'S ADVOCATE COUNTER-THESIS (THE BULL CASE)"
         stance = "BULL"
         stance_color = "#10b981"
 
-        # 1. Capitulating into support
-        if abs(ema50_dist_pct) < 3.5 or abs(ema20_dist_pct) < 2.0:
+        if is_swing:
+            da_title = "😇 DEVIL'S ADVOCATE: SWING TRADER'S BULL CASE (2–8 WEEKS)"
+
+            # Point 1: Support Capitulation
+            if abs(ema50_dist_pct) < 3.5 or abs(ema20_dist_pct) < 2.0:
+                da_points.append({
+                    "title": "Capitulating Directly into Support",
+                    "detail": f"Price is resting directly on dynamic moving average support (₹{ema_50:,.2f}) on below-average volume ({volume_ratio:.2f}x). Selling here capitulates into support right where institutional swing buyers accumulate."
+                })
+            else:
+                da_points.append({
+                    "title": "Oversold Mean-Reversion Bounce",
+                    "detail": f"The stock has absorbed recent selling. Cashing out into a red streak risks selling at the cyclical low right before an algorithmic relief rally."
+                })
+
+            # Point 2: Cutting Runners Too Early
             da_points.append({
-                "title": "Capitulating into Dynamic Support",
-                "detail": f"Price is resting directly on dynamic moving average support (₹{ema_50:,.2f}) on below-average volume ({volume_ratio:.2f}x). Institutions frequently use light-volume pullbacks to shake out retail stops before resuming the primary uptrend."
+                "title": "Cutting Stage 2 Momentum Leaders Prematurely",
+                "detail": f"If {comp_name} is in a confirmed Stage 2 markup, taking full profits on routine pullbacks forfeits subsequent 15–25% runner legs. Trailing a stop below the 20-EMA captures more alpha."
             })
+
+            # Point 3: Volume Confirmation Missing
+            da_points.append({
+                "title": "No Heavy Institutional Distribution",
+                "detail": f"Selling volume is muted ({volume_ratio:.2f}x 20D average). True institutional exit is marked by massive volume spikes. Selling on quiet volume is often an emotional retail exit."
+            })
+
+            invalidation = f"{comp_name} breaks and closes decisively below structural support at ₹{stop_loss:,.2f} on expanding delivery volume (> 1.4x 20-day average), confirming institutional distribution."
+
         else:
+            da_title = "😇 DEVIL'S ADVOCATE: LONG-TERM INVESTOR'S BULL CASE (1–3 YEARS)"
+
+            # Point 1: Compounding Friction
             da_points.append({
-                "title": "Oversold Elasticity",
-                "detail": f"The stock has already absorbed selling pressure and is trading near key technical levels. Cashing out into a red streak risks selling at the temporary cyclical trough."
+                "title": "The Compounding Tax & Reinvestment Friction",
+                "detail": f"Selling a business with {roe_pct:.1f}% ROE and {cfo_ratio:.1f}% cash conversion triggers capital gains tax and creates cash-drag friction. Finding an equal or better multi-year replacement is statistically difficult."
             })
 
-        # 2. Operating Cash Flow Engine
-        da_points.append({
-            "title": "High-Quality Cash Flow Anchor",
-            "detail": f"With a 5-year CFO/PAT conversion of {cfo_ratio:.1f}% and ROE of {roe_pct:.1f}%, the business generates genuine operating cash. High-cash-conversion businesses rebound significantly faster from market corrections."
-        })
+            # Point 2: Cash Realization Engine Intact
+            da_points.append({
+                "title": "Cash Conversion Engine Remains Resilient",
+                "detail": f"5-Year CFO/PAT of {cfo_ratio:.1f}% proves earnings are genuine cash. Elite cash-generating companies consistently compound through business cycles."
+            })
 
-        # 3. Premature Profit Cutting
-        da_points.append({
-            "title": "Prematurely Cutting Multi-Quarter Leaders",
-            "detail": f"If this stock is in an active Stage 2 institutional markup, liquidating 100% of your position forfeits potential multi-quarter runner legs. Professional desks prefer trailing stops below the 20-EMA rather than guessing the exact top."
-        })
+            # Point 3: Multi-Year Economic Runway
+            da_points.append({
+                "title": "Long Industry Compounding Runway",
+                "detail": f"With conservative leverage ({debt_to_equity:.2f} D/E), management has the balance sheet capacity to fund organic expansion and capture market share over a 3-year cycle."
+            })
 
-        invalidation = f"{comp_name} breaks and closes decisively below structural support at ₹{stop_loss:,.2f} on expanding delivery volume (> 1.4x 20-day average), confirming institutional distribution."
+            invalidation = f"Structural impairment in company economics: ROCE dropping permanently below 12% or debt-to-equity surging above 1.0 without corresponding asset expansion."
 
     return {
         "title": da_title,
@@ -513,19 +550,86 @@ def evaluate_trade_intent(
     da_points_md = "\n".join([f"{i+1}. *{p['title']}*: {p['detail']}" for i, p in enumerate(devils_advocate["points"])])
     da_inval = devils_advocate["invalidation_trigger"]
 
+    if norm_horizon == "swing":
+        cards = [
+            {
+                "title": "🎯 Base Breakout Pivot",
+                "value": f"₹{pivot_price:,.2f}",
+                "sub": f"Extension: {'+' if pivot_extension_pct >= 0 else ''}{pivot_extension_pct}%",
+                "color": "#38bdf8"
+            },
+            {
+                "title": "⚡ 20-Day EMA Proximity",
+                "value": f"₹{ema_20:,.2f}",
+                "sub": f"Distance: {'+' if ema20_dist_pct >= 0 else ''}{ema20_dist_pct}%",
+                "color": "#a78bfa"
+            },
+            {
+                "title": "⚖️ Risk / Reward Ratio",
+                "value": f"1 : {rr_ratio}",
+                "sub": f"SL: ₹{stop_loss:,.2f} | T1: ₹{target_1:,.2f}",
+                "color": "#34d399" if rr_ratio >= 2.0 else ("#f59e0b" if rr_ratio >= 1.3 else "#ef4444")
+            },
+            {
+                "title": "📊 Volume & Dynamic Support",
+                "value": f"{volume_ratio:.2f}x Vol",
+                "sub": f"50-EMA: ₹{ema_50:,.2f}",
+                "color": "#34d399" if volume_ratio >= 1.0 else "#94a3b8"
+            }
+        ]
+        facts_md = (
+            "📊 *THE COLD HARD FACTS (SWING GEOMETRY)*:\n"
+            f"• Base Breakout Pivot: ₹{pivot_price:,.2f} (Extension: {'+' if pivot_extension_pct >= 0 else ''}{pivot_extension_pct}%)\n"
+            f"• Distance from 20-Day EMA: {'+' if ema20_dist_pct >= 0 else ''}{ema20_dist_pct}%\n"
+            f"• Potential Downside Risk: -{downside_risk_pct}% (Stop-Loss: ₹{stop_loss:,.2f})\n"
+            f"• Realistic Upside Target: +{upside_target_pct}% (Target 1: ₹{target_1:,.2f})\n"
+            f"• Risk-to-Reward Ratio: 1 : {rr_ratio} ({'Favorable' if rr_ratio >= 2.0 else 'Unfavorable'})\n"
+            f"• Volume Activity: {volume_ratio:.2f}x • 50-EMA Support: ₹{ema_50:,.2f}"
+        )
+    else:
+        pe_diff = round(((current_pe - median_pe) / median_pe) * 100.0, 1) if median_pe > 0 else 0.0
+        cards = [
+            {
+                "title": "💎 5Y Cash Realization",
+                "value": f"{cfo_ratio:.1f}%",
+                "sub": "Pristine Real Cash" if cfo_ratio >= 80 else ("Moderate Cash Flow" if cfo_ratio >= 60 else "Accrual Leakage"),
+                "color": "#34d399" if cfo_ratio >= 80 else ("#f59e0b" if cfo_ratio >= 60 else "#ef4444")
+            },
+            {
+                "title": "⚖️ Valuation Multiple",
+                "value": f"{current_pe:.1f}x P/E",
+                "sub": f"5Y Median: {median_pe:.1f}x ({'+' if pe_diff >= 0 else ''}{pe_diff}%)",
+                "color": "#34d399" if pe_diff <= 0 else ("#f59e0b" if pe_diff <= 25 else "#ef4444")
+            },
+            {
+                "title": "🚀 Capital Compounding",
+                "value": f"{roe_pct:.1f}% ROE",
+                "sub": f"ROCE: {prof_data.get('roce_pct', 0.0):.1f}% capital return",
+                "color": "#38bdf8"
+            },
+            {
+                "title": "🛡️ Balance Sheet Leverage",
+                "value": f"{debt_to_equity:.2f} D/E",
+                "sub": "Virtually Debt-Free" if debt_to_equity < 0.2 else ("Conservative Solvency" if debt_to_equity <= 0.8 else "Elevated Debt Load"),
+                "color": "#34d399" if debt_to_equity < 0.4 else ("#f59e0b" if debt_to_equity <= 0.8 else "#ef4444")
+            }
+        ]
+        facts_md = (
+            "📊 *THE COLD HARD FACTS (COMPOUNDING & VALUATION)*:\n"
+            f"• 5Y Cash Realization (CFO/PAT): {cfo_ratio:.1f}% ({'Pristine Real Cash' if cfo_ratio >= 80 else 'Accrual Drag'})\n"
+            f"• Valuation Multiple: {current_pe:.1f}x P/E (5Y Median: {median_pe:.1f}x | {'+' if pe_diff >= 0 else ''}{pe_diff}%)\n"
+            f"• Capital Efficiency: ROE {roe_pct:.1f}% • ROCE {prof_data.get('roce_pct', 0.0):.1f}%\n"
+            f"• Balance Sheet Leverage: {debt_to_equity:.2f} Debt-to-Equity\n"
+            f"• 5-Year Historical Growth: {hist_5y_growth:.1f}% CAGR vs Market Implied: {implied_5y_growth:.1f}%"
+        )
+
     diagnostic_text = (
         f"🧠 *PRE-TRADE BEHAVIORAL MIRROR & RISK AUDIT*\n"
         f"🏛️ *{comp_name.upper()}* (`{base_sym}`) • Live CMP: ₹{cmp_val:,.2f}\n"
         f"🎯 *Intent:* {action_label} • *Horizon:* {horizon_label}\n"
         "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n"
         f"🚦 *PSYCHOLOGY STANCE*: {badge}\n\n"
-        "📊 *THE COLD HARD FACTS*:\n"
-        f"• Base Breakout Pivot: ₹{pivot_price:,.2f} (Extension: {'+' if pivot_extension_pct >= 0 else ''}{pivot_extension_pct}%)\n"
-        f"• Distance from 20-Day EMA: {'+' if ema20_dist_pct >= 0 else ''}{ema20_dist_pct}%\n"
-        f"• Potential Downside Risk: -{downside_risk_pct}% (Stop: ₹{stop_loss:,.2f})\n"
-        f"• Realistic Upside Target: +{upside_target_pct}% (Target 1: ₹{target_1:,.2f})\n"
-        f"• Risk-to-Reward Ratio: 1 : {rr_ratio} ({'Favorable' if rr_ratio >= 2.0 else 'Unfavorable'})\n"
-        f"• Cash Realization (CFO/PAT): {cfo_ratio:.1f}% • Valuation P/E: {current_pe:.1f}x (5Y Median: {median_pe:.1f}x)\n\n"
+        f"{facts_md}\n\n"
         "🧠 *CHIEF RISK OFFICER BEHAVIORAL DIAGNOSTIC*:\n"
         f"{cro_verdict}\n\n"
         f"{da_title}:\n"
@@ -546,6 +650,7 @@ def evaluate_trade_intent(
         "status": status,
         "badge": badge,
         "badge_color": badge_color,
+        "cards": cards,
         "hard_facts": {
             "pivot_price": pivot_price,
             "pivot_extension_pct": pivot_extension_pct,
@@ -559,7 +664,11 @@ def evaluate_trade_intent(
             "rr_ratio": rr_ratio,
             "cfo_ratio_pct": cfo_ratio,
             "current_pe": current_pe,
-            "median_pe": median_pe
+            "median_pe": median_pe,
+            "roe_pct": roe_pct,
+            "roce_pct": prof_data.get("roce_pct", 0.0),
+            "debt_to_equity": debt_to_equity,
+            "volume_ratio": volume_ratio
         },
         "cro_verdict": cro_verdict,
         "devils_advocate": devils_advocate,

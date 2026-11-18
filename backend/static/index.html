@@ -19,7 +19,7 @@
     <script type="text/javascript" src="https://s3.tradingview.com/tv.js"></script>
     <!-- Marked.js Markdown Parser -->
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-    <link rel="stylesheet" href="styles.css?v=5.5.6">
+    <link rel="stylesheet" href="styles.css?v=5.5.7">
     <link rel="stylesheet" href="modernizer.css?v=5.0.7">
     <link rel="stylesheet" href="shark_radar.css?v=5.0.6">
     <style>
@@ -18505,7 +18505,7 @@
     <script src="academy_prompts.js"></script>
     <script src="layman_details.js"></script>
     <script src="export_manager.js?v=5.0.1"></script>
-    <script src="app.js?v=5.5.6"></script>
+    <script src="app.js?v=5.5.7"></script>
 
     <!-- Modernization CDNs -->
     <script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js"></script>
@@ -19387,28 +19387,28 @@
                     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px;">
                         <!-- Fact 1: Pivot Extension -->
                         <div style="background: var(--bg-card-sub, rgba(255, 255, 255, 0.02)); border: 1px solid var(--border-glass, rgba(255, 255, 255, 0.08)); border-radius: 10px; padding: 12px;">
-                            <div style="font-size: 10.5px; font-weight: 700; color: #38bdf8; text-transform: uppercase;">🎯 Base Pivot Level</div>
+                            <div id="psych-modal-card1-title" style="font-size: 10.5px; font-weight: 700; color: #38bdf8; text-transform: uppercase;">🎯 Base Pivot Level</div>
                             <div id="psych-modal-pivot-val" style="font-size: 17px; font-weight: 800; color: #fff; margin: 4px 0 2px 0;">₹ 0.00</div>
                             <div id="psych-modal-pivot-ext" style="font-size: 11px; color: var(--text-secondary, #94a3b8);">Extension: 0.0%</div>
                         </div>
 
                         <!-- Fact 2: EMA20 Distance -->
                         <div style="background: var(--bg-card-sub, rgba(255, 255, 255, 0.02)); border: 1px solid var(--border-glass, rgba(255, 255, 255, 0.08)); border-radius: 10px; padding: 12px;">
-                            <div style="font-size: 10.5px; font-weight: 700; color: #a78bfa; text-transform: uppercase;">📏 20-Day EMA</div>
+                            <div id="psych-modal-card2-title" style="font-size: 10.5px; font-weight: 700; color: #a78bfa; text-transform: uppercase;">📏 20-Day EMA</div>
                             <div id="psych-modal-ema20-val" style="font-size: 17px; font-weight: 800; color: #fff; margin: 4px 0 2px 0;">₹ 0.00</div>
                             <div id="psych-modal-ema20-dist" style="font-size: 11px; color: var(--text-secondary, #94a3b8);">Distance: 0.0%</div>
                         </div>
 
                         <!-- Fact 3: R:R Ratio -->
                         <div style="background: var(--bg-card-sub, rgba(255, 255, 255, 0.02)); border: 1px solid var(--border-glass, rgba(255, 255, 255, 0.08)); border-radius: 10px; padding: 12px;">
-                            <div style="font-size: 10.5px; font-weight: 700; color: #f59e0b; text-transform: uppercase;">⚖️ Risk / Reward</div>
+                            <div id="psych-modal-card3-title" style="font-size: 10.5px; font-weight: 700; color: #f59e0b; text-transform: uppercase;">⚖️ Risk / Reward</div>
                             <div id="psych-modal-rr-val" style="font-size: 17px; font-weight: 800; color: #f59e0b; margin: 4px 0 2px 0;">1 : 2.5</div>
                             <div id="psych-modal-rr-sub" style="font-size: 11px; color: var(--text-secondary, #94a3b8);">SL: ₹0.00 | T1: ₹0.00</div>
                         </div>
 
                         <!-- Fact 4: Cash Realization & P/E -->
                         <div style="background: var(--bg-card-sub, rgba(255, 255, 255, 0.02)); border: 1px solid var(--border-glass, rgba(255, 255, 255, 0.08)); border-radius: 10px; padding: 12px;">
-                            <div style="font-size: 10.5px; font-weight: 700; color: #34d399; text-transform: uppercase;">💎 CFO Realization & P/E</div>
+                            <div id="psych-modal-card4-title" style="font-size: 10.5px; font-weight: 700; color: #34d399; text-transform: uppercase;">💎 CFO Realization & P/E</div>
                             <div id="psych-modal-cfo-val" style="font-size: 17px; font-weight: 800; color: #34d399; margin: 4px 0 2px 0;">90.3%</div>
                             <div id="psych-modal-pe-sub" style="font-size: 11px; color: var(--text-secondary, #94a3b8);">P/E: --x (5Y: --x)</div>
                         </div>
