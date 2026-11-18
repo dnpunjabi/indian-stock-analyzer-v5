@@ -6070,10 +6070,12 @@ def handle_trade_psychologist_query(cmd_text: str, recipient: Optional[str] = No
     Evaluates Pre-Trade Intent & Behavioral Sanity Check (Trade Psychologist).
     Zero trade logging: strictly acts as an objective behavioral mirror.
     Accepts:
+      - act:psych:<horizon>:<action>:<symbol>
       - act:psych:<action>:<symbol>
       - act:psych:<symbol>
       - CHECK BUY/SELL <symbol> [price] [swing/invest]
       - INTENT BUY/SELL <symbol> [price] [swing/invest]
+      - INVEST/SWING [BUY/SELL] <symbol> [price]
       - PSYCH <symbol>
     """
     from backend.trade_psychologist import evaluate_trade_intent
@@ -6085,36 +6087,39 @@ def handle_trade_psychologist_query(cmd_text: str, recipient: Optional[str] = No
     symbol = ""
 
     if cleaned.startswith("act:psych:") or cleaned.startswith("act:intent:"):
-        parts = cleaned.split(":")
-        if len(parts) >= 4:
-            action_candidate = parts[2].upper()
-            if action_candidate in ["BUY", "SELL"]:
-                action = action_candidate
-                symbol = parts[3].strip()
-            elif parts[2].lower() in ["swing", "invest"]:
-                horizon = parts[2].lower()
-                action = parts[3].upper() if len(parts) > 3 else "BUY"
-                symbol = parts[4].strip() if len(parts) > 4 else ""
+        prefix = "act:psych:" if cleaned.startswith("act:psych:") else "act:intent:"
+        tokens = [p.strip() for p in cleaned[len(prefix):].split(":") if p.strip()]
+        for t in tokens:
+            tl = t.lower()
+            tu = t.upper()
+            if tl in ["swing", "invest", "long", "short"]:
+                horizon = "invest" if tl in ["invest", "long"] else "swing"
+            elif tu in ["BUY", "ACCUMULATE"]:
+                action = "BUY"
+            elif tu in ["SELL", "EXIT"]:
+                action = "SELL"
+            elif re.match(r"^\d+(?:\.\d+)?$", t) and intended_price is None:
+                try:
+                    intended_price = float(t)
+                except ValueError:
+                    pass
             else:
-                symbol = parts[3].strip()
-        elif len(parts) == 3:
-            symbol = parts[2].strip()
-            action = "BUY"
+                symbol = tu
     else:
         rem = re.sub(r"^(?:CHECK|INTENT|PSYCH|SANITY)\s*", "", cleaned, flags=re.IGNORECASE).strip()
-        if re.match(r"^BUY\b", rem, re.IGNORECASE):
-            action = "BUY"
-            rem = re.sub(r"^BUY\s*", "", rem, flags=re.IGNORECASE).strip()
-        elif re.match(r"^SELL\b", rem, re.IGNORECASE):
-            action = "SELL"
-            rem = re.sub(r"^SELL\s*", "", rem, flags=re.IGNORECASE).strip()
-
-        if re.search(r"\b(?:INVEST|LONG(?:-TERM)?)\b", rem, re.IGNORECASE):
+        if re.search(r"\b(?:INVEST|LONG[-\s]?TERM|LONG)\b", rem, re.IGNORECASE):
             horizon = "invest"
-            rem = re.sub(r"\b(?:INVEST|LONG(?:-TERM)?)\b", "", rem, flags=re.IGNORECASE).strip()
-        elif re.search(r"\b(?:SWING|SHORT(?:-TERM)?)\b", rem, re.IGNORECASE):
+            rem = re.sub(r"\b(?:INVEST|LONG[-\s]?TERM|LONG)\b", "", rem, flags=re.IGNORECASE).strip()
+        elif re.search(r"\b(?:SWING|SHORT[-\s]?TERM|SHORT)\b", rem, re.IGNORECASE):
             horizon = "swing"
-            rem = re.sub(r"\b(?:SWING|SHORT(?:-TERM)?)\b", "", rem, flags=re.IGNORECASE).strip()
+            rem = re.sub(r"\b(?:SWING|SHORT[-\s]?TERM|SHORT)\b", "", rem, flags=re.IGNORECASE).strip()
+
+        if re.search(r"\b(?:SELL|EXIT)\b", rem, re.IGNORECASE):
+            action = "SELL"
+            rem = re.sub(r"\b(?:SELL|EXIT)\b", "", rem, flags=re.IGNORECASE).strip()
+        elif re.search(r"\b(?:BUY|ACCUMULATE)\b", rem, re.IGNORECASE):
+            action = "BUY"
+            rem = re.sub(r"\b(?:BUY|ACCUMULATE)\b", "", rem, flags=re.IGNORECASE).strip()
 
         tokens = rem.split()
         sym_tokens = []
@@ -6147,13 +6152,24 @@ def handle_trade_psychologist_query(cmd_text: str, recipient: Optional[str] = No
         if not body:
             body = f"⚠️ *Could not evaluate trade intent for {base_sym}*."
 
+        # Dynamic Horizon & Action Toggle Buttons (strictly <= 20 chars per title)
         alt_action = "SELL" if action == "BUY" else "BUY"
-        alt_label = "🔴 Check Exit / Sell" if action == "BUY" else "🟢 Check Buy Intent"
+        alt_label = "🔴 Check Exit" if action == "BUY" else "🟢 Check Buy"
+
+        if horizon == "invest":
+            toggle_horizon_id = f"act:psych:swing:{action.lower()}:{base_sym}"
+            toggle_horizon_lbl = "⚡ Swing (2-8W)"
+            third_btn = (f"act:val:{base_sym}", "⚡ 5Y Valuation")
+        else:
+            toggle_horizon_id = f"act:psych:invest:{action.lower()}:{base_sym}"
+            toggle_horizon_lbl = "🏛️ Long-Term (1-3Y)"
+            chart_lbl = f"📈 {base_sym[:10]} Chart"
+            third_btn = (f"act:chart:{base_sym}", chart_lbl)
 
         buttons = [
-            (f"act:psych:{alt_action.lower()}:{base_sym}", alt_label),
-            (f"act:chart:{base_sym}", f"📈 {base_sym} Chart"),
-            (f"act:confluence:story:{base_sym}", "🎯 Confluence")
+            (toggle_horizon_id, toggle_horizon_lbl),
+            (f"act:psych:{horizon}:{alt_action.lower()}:{base_sym}", alt_label),
+            third_btn
         ]
         return send_whatsapp_interactive_buttons(body, buttons=buttons, recipient=recipient)
     except Exception as e:
@@ -8431,13 +8447,13 @@ def dispatch_incoming_whatsapp_message(text_body: str, sender: Optional[str] = N
             "🧠 *APEX QUANT AI TRADE PSYCHOLOGIST*\n"
             "━━━━━━━━━━━━━━━━━━━━\n"
             "Pre-trade behavioral mirror & devil's advocate sanity check.\n\n"
-            "• Text `CHECK BUY <SYM>` (e.g. `CHECK BUY GRANULES 580`)\n"
-            "• Text `CHECK SELL <SYM>` (e.g. `CHECK SELL TATAMOTORS`)\n"
-            "• Add horizon if needed: `SWING` (2-8W) or `INVEST` (1-3Y)\n\n"
+            "• Text `CHECK BUY <SYM>` or `CHECK SELL <SYM>`\n"
+            "• Toggle Horizon: `SWING` (2–8W) or `INVEST` (1–3Y)\n"
+            "  e.g. `INVEST TCS` or `SWING RVNL`\n\n"
             "Zero trade logging: strictly an objective behavioral risk mirror.",
             buttons=[
-                ("act:psych:buy:GRANULES", "🟢 Check Buy GRANULES"),
-                ("act:psych:buy:WELSPUNLIV", "🟢 Check Buy WELSPUN"),
+                ("act:psych:swing:buy:GRANULES", "⚡ Swing GRANULES"),
+                ("act:psych:invest:buy:WELSPUNLIV", "🏛️ Invest WELSPUN"),
                 ("nav:menu:main", "🏠 Main Menu")
             ],
             recipient=sender
@@ -8446,9 +8462,7 @@ def dispatch_incoming_whatsapp_message(text_body: str, sender: Optional[str] = N
     # Trade Intent & Behavioral Psychologist Check (Zero Trade Logging)
     elif cleaned.startswith("act:psych:") or cleaned.startswith("act:intent:"):
         return handle_trade_psychologist_query(cleaned, recipient=sender)
-    elif re.match(r"^(?:CHECK|INTENT|PSYCH|SANITY)\b", upper):
-        return handle_trade_psychologist_query(cleaned, recipient=sender)
-    elif re.match(r"^BUY\s+[A-Za-z0-9.]+$", upper) or re.match(r"^SELL\s+[A-Za-z0-9.]+$", upper) or re.match(r"^BUY\s+[A-Za-z0-9.]+\s+\d+(?:\.\d+)?$", upper) or re.match(r"^SELL\s+[A-Za-z0-9.]+\s+\d+(?:\.\d+)?$", upper):
+    elif re.match(r"^(?:CHECK|INTENT|PSYCH|SANITY)\b", upper) or re.match(r"^(?:INVEST|SWING)\b", upper) or re.match(r"^(?:BUY|SELL)\s+[A-Za-z0-9.]+(?:\s+\d+(?:\.\d+)?)?(?:\s+(?:SWING|INVEST|LONG|SHORT|LONG[-\s]?TERM))?$", upper):
         return handle_trade_psychologist_query(cleaned, recipient=sender)
 
     # Portfolio & Trade Journal
