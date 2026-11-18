@@ -320,9 +320,19 @@ def generate_valuation_expectations(
             conn.close()
             if row and (time.time() - row["created_at"] < cache_ttl):
                 data = json.loads(row["payload_json"])
-                data["from_cache"] = True
-                logger.info(f"[Valuation Expectations] Serving cached expectations for {clean_sym}")
-                return data
+                # Sanity guard: discard stale cache missing layman summary or with unnormalized EPS / anomalous P/E
+                is_valid = (
+                    "layman_summary" in data
+                    and data.get("current_pe", 0) > 0
+                    and data.get("current_pe", 0) < 150
+                    and not (data.get("cmp", 0) > 100 and data.get("trailing_eps", 0) < 1.5)
+                )
+                if is_valid:
+                    data["from_cache"] = True
+                    logger.info(f"[Valuation Expectations] Serving verified cached expectations for {clean_sym}")
+                    return data
+                else:
+                    logger.info(f"[Valuation Expectations] Stale or anomalous cached valuation detected for {clean_sym}. Purging and recalculating...")
         except Exception as e:
             logger.debug(f"[Valuation Expectations] Cache check warning: {e}")
 
