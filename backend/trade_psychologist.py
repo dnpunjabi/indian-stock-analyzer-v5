@@ -14,6 +14,8 @@ import math
 import sqlite3
 import logging
 from typing import Dict, Any, List, Optional, Tuple
+from datetime import datetime
+from collections import defaultdict
 
 import requests
 
@@ -28,6 +30,126 @@ from backend.valuation_expectations import extract_pe_bands_and_profile, extract
 
 DATABASE_DIR = os.environ.get("DATABASE_DIR", os.path.join(os.path.dirname(__file__), "data"))
 DATABASE_PATH = os.path.join(DATABASE_DIR, "watchlist_database.db")
+
+
+def get_user_portfolio_position(base_sym: str, cmp_val: float) -> Dict[str, Any]:
+    """
+    Checks portfolio_items in SQLite for active holdings of base_sym using FIFO matching.
+    Returns exact position metrics:
+      is_held: bool
+      held_qty: float
+      avg_buy_price: float
+      invested_cost: float
+      current_val: float
+      unrealized_pnl: float
+      unrealized_pnl_pct: float
+      portfolio_weight_pct: float
+      tranches_count: int
+      first_buy_date: Optional[str]
+      holding_days: int
+    """
+    clean_sym = (base_sym or "").strip().upper().replace(".NS", "").replace(".BO", "")
+    res = {
+        "is_held": False,
+        "held_qty": 0.0,
+        "avg_buy_price": 0.0,
+        "invested_cost": 0.0,
+        "current_val": 0.0,
+        "unrealized_pnl": 0.0,
+        "unrealized_pnl_pct": 0.0,
+        "portfolio_weight_pct": 0.0,
+        "tranches_count": 0,
+        "first_buy_date": None,
+        "holding_days": 0
+    }
+    try:
+        if not os.path.exists(DATABASE_PATH):
+            return res
+        conn = sqlite3.connect(DATABASE_PATH)
+        conn.row_factory = sqlite3.Row
+        cur = conn.cursor()
+        cur.execute("SELECT id, symbol, name, sector, quantity, purchase_price, purchase_date, transaction_type FROM portfolio_items")
+        rows = [dict(r) for r in cur.fetchall()]
+        conn.close()
+
+        if not rows:
+            return res
+
+        # Group by symbol and run FIFO chronological netting
+        grouped = defaultdict(list)
+        for tx in rows:
+            sym = (tx.get("symbol") or "").strip().upper().replace(".NS", "").replace(".BO", "")
+            if sym:
+                grouped[sym].append(tx)
+
+        total_port_val = 0.0
+        active_by_symbol = defaultdict(list)
+
+        for sym, tx_list in grouped.items():
+            tx_list.sort(key=lambda x: (x.get("purchase_date") or "", x.get("id") or 0))
+            buys = []
+            for tx in tx_list:
+                tt = (tx.get("transaction_type") or "buy").strip().lower()
+                qty = float(tx.get("quantity") or 0.0)
+                if qty <= 0:
+                    continue
+                if tt == "buy":
+                    buys.append({
+                        "id": tx.get("id"),
+                        "symbol": sym,
+                        "quantity": qty,
+                        "purchase_price": float(tx.get("purchase_price") or 0.0),
+                        "purchase_date": tx.get("purchase_date")
+                    })
+                elif tt == "sell":
+                    sell_rem = qty
+                    while sell_rem > 0 and buys:
+                        oldest = buys[0]
+                        if oldest["quantity"] <= sell_rem:
+                            sell_rem -= oldest["quantity"]
+                            buys.pop(0)
+                        else:
+                            oldest["quantity"] -= sell_rem
+                            sell_rem = 0.0
+            for b in buys:
+                if b["quantity"] > 0:
+                    total_port_val += (b["quantity"] * b["purchase_price"])
+                    active_by_symbol[sym].append(b)
+
+        my_tranches = active_by_symbol.get(clean_sym, [])
+        if my_tranches:
+            tot_qty = sum(t["quantity"] for t in my_tranches)
+            tot_cost = sum(t["quantity"] * t["purchase_price"] for t in my_tranches)
+            if tot_qty > 0:
+                avg_p = tot_cost / tot_qty
+                curr_v = tot_qty * cmp_val if cmp_val > 0 else tot_cost
+                pnl = curr_v - tot_cost
+                pnl_pct = ((cmp_val - avg_p) / avg_p) * 100.0 if avg_p > 0 and cmp_val > 0 else 0.0
+                wt = (tot_cost / total_port_val * 100.0) if total_port_val > 0 else 0.0
+
+                first_dt_str = my_tranches[0].get("purchase_date")
+                h_days = 0
+                if first_dt_str:
+                    try:
+                        p_dt = datetime.strptime(first_dt_str, "%Y-%m-%d")
+                        h_days = max(0, (datetime.now() - p_dt).days)
+                    except Exception:
+                        pass
+
+                res["is_held"] = True
+                res["held_qty"] = tot_qty
+                res["avg_buy_price"] = round(avg_p, 2)
+                res["invested_cost"] = round(tot_cost, 2)
+                res["current_val"] = round(curr_v, 2)
+                res["unrealized_pnl"] = round(pnl, 2)
+                res["unrealized_pnl_pct"] = round(pnl_pct, 1)
+                res["portfolio_weight_pct"] = round(wt, 1)
+                res["tranches_count"] = len(my_tranches)
+                res["first_buy_date"] = first_dt_str
+                res["holding_days"] = h_days
+    except Exception as e:
+        logger.warning(f"Error computing portfolio position for {base_sym}: {e}")
+    return res
 
 
 def _init_psychology_cache_table():
@@ -88,19 +210,43 @@ def generate_devils_advocate_thesis(
     hist_5y_growth: float,
     fii_curr: float,
     fii_prev: float,
-    prom_pledge: float
+    prom_pledge: float,
+    position_info: Optional[Dict[str, Any]] = None
 ) -> Dict[str, Any]:
     """
-    Constructs an institutional Devil's Advocate Counter-Thesis tailored to the investment horizon:
-    - For BUY: The Top 3 Bear Arguments + Invalidation Trigger.
-    - For SELL: The Top 3 Bull Arguments + Invalidation Trigger.
+    Constructs an institutional Devil's Advocate Counter-Thesis tailored to the investment horizon
+    and the user's active portfolio position (cost basis, unrealized P&L, holding quantity):
+    - For BUY: The Top 3 Bear Arguments + Invalidation Trigger (checks pyramiding cost dilution vs loser averaging).
+    - For SELL: The Top 3 Bull Arguments + Invalidation Trigger (checks premature compounder exit vs bottom panic).
     """
     da_points = []
     is_swing = (horizon or "swing").lower() == "swing"
+    pos = position_info or {}
+    is_held = bool(pos.get("is_held"))
+    held_qty = float(pos.get("held_qty") or 0.0)
+    avg_buy_price = float(pos.get("avg_buy_price") or 0.0)
+    pnl_pct = float(pos.get("unrealized_pnl_pct") or 0.0)
+    unrealized_pnl = float(pos.get("unrealized_pnl") or 0.0)
 
     if action == "BUY":
         stance = "BEAR"
         stance_color = "#ef4444"
+
+        # 1. Position-Aware Red-Team Challenge
+        if is_held:
+            if pnl_pct >= 0:
+                add_q = max(1.0, round(held_qty * 0.5))
+                new_blended = round(((held_qty * avg_buy_price) + (add_q * eval_price)) / (held_qty + add_q), 2)
+                pnl_erosion = round((eval_price - new_blended) * (held_qty + add_q), 2)
+                da_points.append({
+                    "title": "Cost-Basis Dilution & Profit Erosion Risk",
+                    "detail": f"You currently hold {held_qty:g} shares at an average of ₹{avg_buy_price:,.2f} (+{pnl_pct:.1f}% profit). Adding {add_q:g} shares at CMP ₹{eval_price:,.2f} pulls your safe baseline cost up to ₹{new_blended:,.2f}. A routine 5% market pullback that previously left you safely in the green will now wipe out ₹{abs(pnl_erosion):,.0f} of your hard-earned unrealized gain."
+                })
+            else:
+                da_points.append({
+                    "title": "Martingale Averaging-Down Liquidity Trap",
+                    "detail": f"You are sitting on a -{abs(pnl_pct):.1f}% drawdown (-₹{abs(unrealized_pnl):,.2f}) on your {held_qty:g} shares (Cost: ₹{avg_buy_price:,.2f}). The market has already rejected your premise. Adding more capital here doubles your downside risk on an asset actively in distribution, violating core risk management rules."
+                })
 
         if is_swing:
             da_title = "😈 DEVIL'S ADVOCATE: SWING TRADER'S BEAR CASE (2–8 WEEKS)"
@@ -137,7 +283,14 @@ def generate_devils_advocate_thesis(
                 "detail": f"Current swing geometry offers a 1 : {rr_val} risk-to-reward ratio with downside risk of -{downside_risk:.1f}% to stop ₹{stop_loss:,.2f}. If broader market indices (Nifty/Sensex) wobble, your stop will likely get triggered before reaching Target 1 (₹{target_1:,.2f})."
             })
 
-            invalidation = f"{comp_name} decisively clears and sustains above ₹{pivot_price:,.2f} on volume > 1.3x 20-day average, or executes a clean low-volume retest of 20-day EMA (₹{ema_20:,.2f}) printing an immediate bullish reversal candle."
+            if is_held and pnl_pct < 0:
+                invalidation = f"Further capital commitment to {comp_name} is strictly prohibited until price decisively reclaims the 20-day EMA (₹{ema_20:,.2f}) and establishes a multi-week higher low."
+            elif is_held and pnl_pct >= 0:
+                add_q = max(1.0, round(held_qty * 0.5))
+                new_blended = round(((held_qty * avg_buy_price) + (add_q * eval_price)) / (held_qty + add_q), 2)
+                invalidation = f"Protective stop for the ENTIRE {held_qty + add_q:g} position MUST be raised to at least ₹{new_blended:,.2f} (or 20-EMA ₹{ema_20:,.2f}) immediately to guarantee this trade cannot become a net loss."
+            else:
+                invalidation = f"{comp_name} decisively clears and sustains above ₹{pivot_price:,.2f} on volume > 1.3x 20-day average, or executes a clean low-volume retest of 20-day EMA (₹{ema_20:,.2f}) printing an immediate bullish reversal candle."
 
         else:
             da_title = "😈 DEVIL'S ADVOCATE: LONG-TERM INVESTOR'S BEAR CASE (1–3 YEARS)"
@@ -180,11 +333,33 @@ def generate_devils_advocate_thesis(
                     "detail": f"As {comp_name}'s revenue base expands, maintaining high double-digit compounding becomes mathematically harder. Larger market-cap leaders naturally experience growth moderation."
                 })
 
-            invalidation = f"Two consecutive quarters of revenue growth decelerating below 8% YoY, or 5-year CFO/PAT cash realization deteriorating below 70%, confirming structural moat erosion."
+            if is_held and pnl_pct < 0:
+                invalidation = f"Do NOT average down on hope. Wait for 2 consecutive quarters of operational cash recovery before committing new capital."
+            else:
+                invalidation = f"Two consecutive quarters of revenue growth decelerating below 8% YoY, or 5-year CFO/PAT cash realization deteriorating below 70%, confirming structural moat erosion."
 
     else:
         stance = "BULL"
         stance_color = "#10b981"
+
+        # 1. Position-Aware Red-Team Challenge
+        if is_held:
+            if pnl_pct >= 0:
+                harv_q = max(1.0, round(held_qty * 0.5))
+                da_points.append({
+                    "title": "Cutting Stage 2 Super-Performers Prematurely",
+                    "detail": f"You have banked a pristine +{pnl_pct:.1f}% gain (+₹{unrealized_pnl:,.2f}) on {held_qty:g} shares. The stock is still respecting its trend. Liquidating 100% forfeits subsequent multi-month runner legs and triggers short-term tax friction. Instead of a binary exit, harvest 50% ({harv_q:g} shares) and let the remainder ride with a trailing stop below the 20-day EMA."
+                })
+            elif pnl_pct <= -20.0:
+                da_points.append({
+                    "title": "Capitulating at Deep Technical Support",
+                    "detail": f"You are down -{abs(pnl_pct):.1f}% (-₹{abs(unrealized_pnl):,.2f}) on {held_qty:g} shares. Panic-selling after an extended decline often dumps shares right into institutional demand zones at the cyclical bottom. Verify whether the stock is deeply oversold before market dumping."
+                })
+            else:
+                da_points.append({
+                    "title": "Disciplined Stop-Loss Capital Preservation",
+                    "detail": f"Exiting at a -{abs(pnl_pct):.1f}% loss on {held_qty:g} shares executes textbook risk control. A small paper loss is paying an insurance premium to protect against catastrophic -30% portfolio ulcer damage."
+                })
 
         if is_swing:
             da_title = "😇 DEVIL'S ADVOCATE: SWING TRADER'S BULL CASE (2–8 WEEKS)"
@@ -242,7 +417,7 @@ def generate_devils_advocate_thesis(
         "title": da_title,
         "stance": stance,
         "stance_color": stance_color,
-        "points": da_points,
+        "points": da_points[:3],
         "invalidation_trigger": invalidation
     }
 
@@ -273,10 +448,20 @@ def evaluate_trade_intent(
     comp_name = resolved.get("name") if resolved else base_sym
     ticker = resolved.get("yf_ticker") if resolved else f"{base_sym}.NS"
 
-    cache_key = f"{base_sym}_{norm_action}_{norm_horizon}_{int(intended_price or 0)}"
+    # 2. Resolve Live Market Data & Portfolio Position
+    p_ctx = get_stock_price_context(base_sym, ticker)
+    cmp_val = float(p_ctx.get("cmp", 0.0))
+    if cmp_val <= 0:
+        cmp_val = 1000.0
+
+    eval_price = float(intended_price) if intended_price and intended_price > 0 else cmp_val
+    pos = get_user_portfolio_position(base_sym, cmp_val)
+
+    # Cache key includes portfolio held state to auto-bust when trades are executed
+    cache_key = f"{base_sym}_{norm_action}_{norm_horizon}_{int(intended_price or 0)}_{int(pos.get('held_qty', 0))}_{int(pos.get('avg_buy_price', 0))}"
     cache_ttl = 3600  # 1 hour cache
 
-    # 2. Check Cache
+    # 3. Check Cache
     if not force_refresh:
         try:
             conn = sqlite3.connect(DATABASE_PATH)
@@ -291,14 +476,6 @@ def evaluate_trade_intent(
                 return data
         except Exception as e:
             logger.debug(f"[Trade Psychologist] Cache lookup warning: {e}")
-
-    # 3. Resolve Live Market Data
-    p_ctx = get_stock_price_context(base_sym, ticker)
-    cmp_val = float(p_ctx.get("cmp", 0.0))
-    if cmp_val <= 0:
-        cmp_val = 1000.0
-
-    eval_price = float(intended_price) if intended_price and intended_price > 0 else cmp_val
 
     # 4. Resolve Technical Indicators & Base Pivots
     ema_20 = cmp_val * 0.97
@@ -378,16 +555,55 @@ def evaluate_trade_intent(
     upside_target_pct = round(((target_1 - eval_price) / eval_price) * 100.0, 1) if eval_price > 0 else 10.0
     rr_ratio = round(upside_target_pct / downside_risk_pct, 1) if downside_risk_pct > 0 else 2.0
 
-    # 7. Behavioral Decision Engine (Devil's Advocate Rules)
+    # 7. Behavioral Decision Engine (Devil's Advocate Rules with Portfolio Intelligence)
     status = "NEUTRAL"
     badge = "🟡 CONSTRUCTIVE EVALUATION"
     badge_color = "#f59e0b"
     cro_verdict = ""
     recommendation = ""
 
+    is_held = bool(pos.get("is_held"))
+    held_qty = float(pos.get("held_qty") or 0.0)
+    avg_buy_price = float(pos.get("avg_buy_price") or 0.0)
+    pnl_pct = float(pos.get("unrealized_pnl_pct") or 0.0)
+    unrealized_pnl = float(pos.get("unrealized_pnl") or 0.0)
+
     if norm_action == "BUY":
-        if norm_horizon == "swing":
-            # Swing Trading Bias Detection
+        if is_held:
+            # Portfolio-Aware Buy Intent
+            if pnl_pct >= 0:
+                status = "PYRAMID_WINNER"
+                badge = "🏆 PYRAMIDING INTO A WINNING ASSET"
+                badge_color = "#10b981"
+                add_q = max(1.0, round(held_qty * 0.5))
+                new_blended = round(((held_qty * avg_buy_price) + (add_q * cmp_val)) / (held_qty + add_q), 2)
+                cro_verdict = (
+                    f"Disciplined trend behavior. You already hold {held_qty:g} shares of {comp_name} at an average cost of ₹{avg_buy_price:,.2f}, "
+                    f"currently sitting on a +{pnl_pct:.1f}% unrealized gain (+₹{unrealized_pnl:,.2f}). "
+                    f"Adding into strength is how seasoned traders compound alpha without gambling. "
+                    f"However, adding at CMP ₹{cmp_val:,.2f} pulls your average cost up to ₹{new_blended:,.2f}."
+                )
+                recommendation = (
+                    f"Limit your new tranche to at most {add_q:g} shares (50% of existing holding) to prevent building an inverted top-heavy pyramid. "
+                    f"Mandatory Risk Rule: Immediately raise your protective stop-loss for the ENTIRE {held_qty + add_q:g} position to ₹{stop_loss:,.2f} "
+                    f"(or 20-EMA ₹{ema_20:,.2f}) to guarantee this winning trade never turns negative."
+                )
+            else:
+                status = "LOSER_AVERAGING_ALERT"
+                badge = "🚨 MARTINGALE / LOSER AVERAGING DETECTED"
+                badge_color = "#ef4444"
+                cro_verdict = (
+                    f"CRITICAL BEHAVIORAL WARNING: You already hold {held_qty:g} shares of {comp_name} at an average of ₹{avg_buy_price:,.2f}, "
+                    f"currently sitting on a -{abs(pnl_pct):.1f}% drawdown (-₹{abs(unrealized_pnl):,.2f}). "
+                    f"Adding more capital here is textbook 'Martingale averaging down' driven by the sunk-cost fallacy. "
+                    f"The market has already rejected your thesis and deducted capital."
+                )
+                recommendation = (
+                    f"CEASE BUYING IMMEDIATELY. In institutional risk management, winning setups are funded and losing setups are contained. "
+                    f"Do NOT average down or commit fresh capital until {comp_name} decisively reclaims its 20-day EMA (₹{ema_20:,.2f}) on heavy institutional volume."
+                )
+        elif norm_horizon == "swing":
+            # Swing Trading Bias Detection (Fresh Entry)
             if pivot_extension_pct >= 6.5 or ema20_dist_pct >= 8.5 or rr_ratio < 1.3:
                 status = "FOMO_CHASING"
                 badge = "⚠️ HIGH FOMO RISK (CHASING EXTENSION)"
@@ -438,7 +654,7 @@ def evaluate_trade_intent(
                         f"hard stop-loss at ₹{stop_loss:,.2f}."
                     )
         else:
-            # Long-Term Investment Bias Detection
+            # Long-Term Investment Bias Detection (Fresh Entry)
             if dist_52w_high < -25.0 and (cfo_ratio < 55.0 or debt_to_equity > 1.2):
                 status = "FALLING_KNIFE"
                 badge = "⚠️ VALUE TRAP / FALLING KNIFE WARNING"
@@ -476,43 +692,87 @@ def evaluate_trade_intent(
                     f"Sound long-term decision. Accumulate methodically around CMP ₹{cmp_val:,.2f}. Hold for a 2–3 year investment horizon."
                 )
     else:
-        # SELL Intent Diagnostics
-        if (abs(ema50_dist_pct) < 2.5 or abs(ema20_dist_pct) < 1.5) and volume_ratio < 0.85:
-            status = "PANIC_SELL"
-            badge = "🛡️ PANIC SELL WARNING (SELLING AT SUPPORT)"
-            badge_color = "#f87171"
-            cro_verdict = (
-                f"{comp_name} has experienced a pullback, but it is currently resting directly on dynamic moving average support "
-                f"(₹{ema_50:,.2f}) with volume drying up ({volume_ratio:.2f}x average volume). Selling here is capitulating into support "
-                f"out of short-term emotional fatigue."
-            )
-            recommendation = (
-                f"Hold your fire. Professional traders do not sell at support on light volume. Wait for a reaction bounce. "
-                f"Only trigger your exit if the price decisively closes below ₹{stop_loss:,.2f}."
-            )
-        elif pivot_extension_pct > 20.0 or ema20_dist_pct > 14.0:
-            status = "PRUDENT_PROFIT_TAKING"
-            badge = "🟢 DISCIPLINED PROFIT-TAKING (CLIMACTIC RUN)"
-            badge_color = "#10b981"
-            cro_verdict = (
-                f"{comp_name} is +{pivot_extension_pct}% extended above its base and +{ema20_dist_pct}% above the 20-EMA. "
-                f"Booking profits into climactic strength is the hallmark of professional risk management."
-            )
-            recommendation = (
-                f"Excellent decision. Lock in profits on 50% of your position now, and trail the remainder with a protective stop at the 20-EMA."
-            )
+        # SELL Intent Diagnostics (Position-Aware)
+        if is_held:
+            if pnl_pct >= 0:
+                status = "PROFIT_HARVEST"
+                badge = "💰 STRATEGIC PROFIT HARVESTING & DE-RISKING"
+                badge_color = "#10b981"
+                harv_q = max(1.0, round(held_qty * 0.5))
+                rem_q = held_qty - harv_q
+                cro_verdict = (
+                    f"You hold {held_qty:g} shares of {comp_name} at an average cost of ₹{avg_buy_price:,.2f}, "
+                    f"currently enjoying a +{pnl_pct:.1f}% unrealized gain (+₹{unrealized_pnl:,.2f}). "
+                    f"Exiting into strength is rational, but selling 100% of your position risks cutting a confirmed Stage 2 super-performer prematurely."
+                )
+                recommendation = (
+                    f"Execute a balanced 50% partial harvest: Sell {harv_q:g} shares at CMP ₹{cmp_val:,.2f} to bank hard cash profit, "
+                    f"and hold the remaining {rem_q:g} shares as a risk-free runner trailing the 20-day EMA (₹{ema_20:,.2f})."
+                )
+            elif pnl_pct <= -20.0:
+                status = "CAPITULATION_CHECK"
+                badge = "🩹 CAPITULATION vs RATIONAL REALLOCATION"
+                badge_color = "#f59e0b"
+                cro_verdict = (
+                    f"You hold {held_qty:g} shares of {comp_name} with an average cost of ₹{avg_buy_price:,.2f}, "
+                    f"sitting at a severe -{abs(pnl_pct):.1f}% drawdown (-₹{abs(unrealized_pnl):,.2f}). "
+                    f"Selling after a massive decline often capitulates at cyclical support right where institutions accumulate."
+                )
+                recommendation = (
+                    f"Check if {comp_name} is testing structural 200-SMA support (₹{sma_200:,.2f}). If cash flow is stable (CFO/PAT: {cfo_ratio:.1f}%), "
+                    f"execute your exit into the next relief bounce towards the 20-EMA (₹{ema_20:,.2f}) rather than a panic market dump."
+                )
+            else:
+                status = "STOP_EXECUTION"
+                badge = "🛡️ DISCIPLINED STOP-LOSS PRESERVATION"
+                badge_color = "#3b82f6"
+                cro_verdict = (
+                    f"Disciplined risk management. You hold {held_qty:g} shares of {comp_name} at an average of ₹{avg_buy_price:,.2f} "
+                    f"with a manageable -{abs(pnl_pct):.1f}% loss (-₹{abs(unrealized_pnl):,.2f}). "
+                    f"Honoring your stop-loss prevents minor paper scratches from metastasizing into deep portfolio ulcer wounds."
+                )
+                recommendation = (
+                    f"Execute the exit on all {held_qty:g} shares at CMP ₹{cmp_val:,.2f}. Protect your remaining capital and redeploy "
+                    f"into high-confluence leaders printing fresh stage breakouts."
+                )
         else:
-            status = "RATIONAL_EXIT"
-            badge = "🟡 RATIONAL EXIT EVALUATION"
-            badge_color = "#f59e0b"
-            cro_verdict = (
-                f"Exiting {comp_name} at ₹{eval_price:,.2f} is consistent with disciplined capital protection or portfolio rebalancing."
-            )
-            recommendation = (
-                f"Execute the exit smoothly and keep the liberated cash ready for high-confluence setups with 1 : 2.5+ risk-reward ratios."
-            )
+            if (abs(ema50_dist_pct) < 2.5 or abs(ema20_dist_pct) < 1.5) and volume_ratio < 0.85:
+                status = "PANIC_SELL"
+                badge = "🛡️ PANIC SELL WARNING (SELLING AT SUPPORT)"
+                badge_color = "#f87171"
+                cro_verdict = (
+                    f"{comp_name} has experienced a pullback, but it is currently resting directly on dynamic moving average support "
+                    f"(₹{ema_50:,.2f}) with volume drying up ({volume_ratio:.2f}x average volume). Selling here is capitulating into support "
+                    f"out of short-term emotional fatigue."
+                )
+                recommendation = (
+                    f"Hold your fire. Professional traders do not sell at support on light volume. Wait for a reaction bounce. "
+                    f"Only trigger your exit if the price decisively closes below ₹{stop_loss:,.2f}."
+                )
+            elif pivot_extension_pct > 20.0 or ema20_dist_pct > 14.0:
+                status = "PRUDENT_PROFIT_TAKING"
+                badge = "🟢 DISCIPLINED PROFIT-TAKING (CLIMACTIC RUN)"
+                badge_color = "#10b981"
+                cro_verdict = (
+                    f"{comp_name} is +{pivot_extension_pct}% extended above its base and +{ema20_dist_pct}% above the 20-EMA. "
+                    f"Booking profits into climactic strength is the hallmark of professional risk management."
+                )
+                recommendation = (
+                    f"Excellent decision. Lock in profits on 50% of your position now, and trail the remainder with a protective stop at the 20-EMA."
+                )
+            else:
+                status = "NO_POSITION"
+                badge = "ℹ️ NO RECORDED POSITION IN PORTFOLIO"
+                badge_color = "#94a3b8"
+                cro_verdict = (
+                    f"No active holdings of {comp_name} were found in your recorded portfolio. "
+                    f"If you hold this stock in an external broker account, CMP ₹{cmp_val:,.2f} is currently {'above' if ema20_dist_pct >= 0 else 'below'} the 20-day EMA."
+                )
+                recommendation = (
+                    f"If exiting an external position, ensure your stop-loss at ₹{stop_loss:,.2f} is respected. Keep liberated cash ready for fresh confluence setups."
+                )
 
-    # 7b. Generate Devil's Advocate Counter-Thesis
+    # 7b. Generate Devil's Advocate Counter-Thesis (Position-Aware)
     devils_advocate = generate_devils_advocate_thesis(
         action=norm_action,
         horizon=norm_horizon,
@@ -539,7 +799,8 @@ def evaluate_trade_intent(
         hist_5y_growth=hist_5y_growth,
         fii_curr=fii_curr,
         fii_prev=fii_prev,
-        prom_pledge=prom_pledge
+        prom_pledge=prom_pledge,
+        position_info=pos
     )
 
     # 8. Build Plain-English WhatsApp & Markdown Output
@@ -549,6 +810,17 @@ def evaluate_trade_intent(
     da_title = devils_advocate["title"]
     da_points_md = "\n".join([f"{i+1}. *{p['title']}*: {p['detail']}" for i, p in enumerate(devils_advocate["points"])])
     da_inval = devils_advocate["invalidation_trigger"]
+
+    if pos.get("is_held"):
+        pnl_sign = "+" if pos["unrealized_pnl_pct"] >= 0 else ""
+        pos_md = (
+            "💼 *YOUR PORTFOLIO POSITION*:\n"
+            f"• Active Holdings: {pos['held_qty']:g} Shares @ Avg ₹{pos['avg_buy_price']:,.2f}\n"
+            f"• Unrealized P&L: {pnl_sign}{pos['unrealized_pnl_pct']}% ({pnl_sign}₹{pos['unrealized_pnl']:,.2f})\n"
+            f"• Holding Duration: {pos['holding_days']} days • Portfolio Weight: {pos['portfolio_weight_pct']}%\n\n"
+        )
+    else:
+        pos_md = "💼 *YOUR PORTFOLIO POSITION*: Fresh Idea (0 Shares recorded in Portfolio)\n\n"
 
     if norm_horizon == "swing":
         cards = [
@@ -627,7 +899,8 @@ def evaluate_trade_intent(
         f"🧠 *PRE-TRADE BEHAVIORAL MIRROR & RISK AUDIT*\n"
         f"🏛️ *{comp_name.upper()}* (`{base_sym}`) • Live CMP: ₹{cmp_val:,.2f}\n"
         f"🎯 *Intent:* {action_label} • *Horizon:* {horizon_label}\n"
-        "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n"
+        "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
+        f"{pos_md}"
         f"🚦 *PSYCHOLOGY STANCE*: {badge}\n\n"
         f"{facts_md}\n\n"
         "🧠 *CHIEF RISK OFFICER BEHAVIORAL DIAGNOSTIC*:\n"
@@ -651,6 +924,7 @@ def evaluate_trade_intent(
         "badge": badge,
         "badge_color": badge_color,
         "cards": cards,
+        "position_info": pos,
         "hard_facts": {
             "pivot_price": pivot_price,
             "pivot_extension_pct": pivot_extension_pct,

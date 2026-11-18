@@ -63096,6 +63096,58 @@ window.runTradePsychologistCheck = async function(forceRefresh = false) {
         const modelBadge = document.getElementById('psych-modal-model-badge');
         if (modelBadge) modelBadge.textContent = data.model_label || '🛡️ Apex Deterministic Quant Engine';
 
+        // Portfolio Position Banner
+        const posBanner = document.getElementById('psych-modal-position-banner');
+        const posTitle = document.getElementById('psych-modal-pos-title');
+        const posDetails = document.getElementById('psych-modal-pos-details');
+        const posBadge = document.getElementById('psych-modal-pos-badge');
+        const pos = data.position_info;
+
+        if (pos && pos.is_held) {
+            const pnlPct = pos.unrealized_pnl_pct || 0;
+            const pnlAmt = pos.unrealized_pnl || 0;
+            const pnlSign = pnlPct >= 0 ? '+' : '';
+            const pnlColor = pnlPct >= 0 ? '#34d399' : '#f87171';
+            const pnlBg = pnlPct >= 0 ? 'rgba(16, 185, 129, 0.2)' : 'rgba(239, 68, 68, 0.2)';
+            const pnlBorder = pnlPct >= 0 ? 'rgba(16, 185, 129, 0.35)' : 'rgba(239, 68, 68, 0.35)';
+
+            if (posBanner) {
+                posBanner.style.borderColor = pnlBorder;
+                posBanner.style.background = pnlPct >= 0 ? 'rgba(16, 185, 129, 0.08)' : 'rgba(239, 68, 68, 0.08)';
+            }
+            if (posTitle) {
+                posTitle.textContent = `💼 ACTIVE PORTFOLIO POSITION (${pos.holding_days || 0}D HELD)`;
+                posTitle.style.color = pnlColor;
+            }
+            if (posDetails) {
+                posDetails.innerHTML = `${pos.held_qty} Shares @ ₹${(pos.avg_buy_price || 0).toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})} • Unrealized: <span style="color:${pnlColor}; font-weight:800;">${pnlSign}${pnlPct}% (${pnlSign}₹${pnlAmt.toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})})</span>`;
+            }
+            if (posBadge) {
+                posBadge.textContent = pnlPct >= 0 ? `PROFIT: +${pnlPct}%` : `LOSS: ${pnlPct}%`;
+                posBadge.style.color = pnlColor;
+                posBadge.style.background = pnlBg;
+                posBadge.style.borderColor = pnlBorder;
+            }
+        } else {
+            if (posBanner) {
+                posBanner.style.borderColor = 'rgba(148, 163, 184, 0.2)';
+                posBanner.style.background = 'rgba(255, 255, 255, 0.02)';
+            }
+            if (posTitle) {
+                posTitle.textContent = 'Active Portfolio Position';
+                posTitle.style.color = '#94a3b8';
+            }
+            if (posDetails) {
+                posDetails.textContent = 'Fresh Idea (0 Shares recorded in Portfolio)';
+            }
+            if (posBadge) {
+                posBadge.textContent = 'NO RECORDED HOLDING';
+                posBadge.style.color = '#94a3b8';
+                posBadge.style.background = 'rgba(148, 163, 184, 0.15)';
+                posBadge.style.borderColor = 'rgba(148, 163, 184, 0.3)';
+            }
+        }
+
         // Hero Stance Banner
         const stanceBadge = document.getElementById('psych-modal-stance-badge');
         const stanceBanner = document.getElementById('psych-modal-stance-banner');
