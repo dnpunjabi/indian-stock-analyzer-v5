@@ -14,7 +14,7 @@ import math
 import sqlite3
 import logging
 from typing import Dict, Any, List, Optional, Tuple
-from datetime import datetime
+from datetime import datetime, date, timedelta
 from collections import defaultdict
 
 import requests
@@ -27,6 +27,14 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")
 from backend.llm_config import _get_gemini_keys_pool, _format_model_label
 from backend.whatsapp_bot import resolve_company_ticker, get_stock_price_context
 from backend.valuation_expectations import extract_pe_bands_and_profile, extract_cash_flow_and_earnings
+
+try:
+    from backend.events_scraper import get_stock_events_cached
+except ImportError:
+    try:
+        from events_scraper import get_stock_events_cached
+    except ImportError:
+        def get_stock_events_cached(s): return []
 
 DATABASE_DIR = os.environ.get("DATABASE_DIR", os.path.join(os.path.dirname(__file__), "data"))
 DATABASE_PATH = os.path.join(DATABASE_DIR, "watchlist_database.db")
@@ -184,6 +192,193 @@ def get_psychology_model_info() -> Tuple[str, str]:
     return model_id, model_label
 
 
+def get_market_regime_summary() -> Dict[str, Any]:
+    """
+    Computes top-down market breadth from cached profiles (500+ NSE universe).
+    Determines whether the broader market is in Bullish Markup, Neutral Chop, or Bearish Distribution.
+    """
+    try:
+        conn = sqlite3.connect(DATABASE_PATH)
+        cur = conn.cursor()
+        cur.execute("SELECT profile_json FROM cached_profiles")
+        rows = cur.fetchall()
+        adv, dec, unch = 0, 0, 0
+        for r in rows:
+            if r[0]:
+                try:
+                    p = json.loads(r[0])
+                    chg = p.get("technicals", {}).get("price_change_pct", 0.0)
+                    if chg > 0.05: adv += 1
+                    elif chg < -0.05: dec += 1
+                    else: unch += 1
+                except Exception:
+                    pass
+        conn.close()
+        tot = adv + dec
+        ratio = (adv / tot) * 100.0 if tot > 0 else 50.0
+        if ratio >= 60.0:
+            regime = "Bullish Markup 🚀"
+            status = "BULLISH"
+        elif ratio <= 40.0:
+            regime = "Bearish Distribution 🔴"
+            status = "BEARISH"
+        else:
+            regime = "Neutral / Choppy 🟡"
+            status = "NEUTRAL"
+        return {
+            "regime": regime,
+            "status": status,
+            "breadth_ratio": round(ratio, 1),
+            "adv_dec": f"{adv} Adv / {dec} Dec",
+            "label": f"{regime} ({ratio:.0f}% Breadth • {adv} Adv / {dec} Dec)"
+        }
+    except Exception as e:
+        logger.debug(f"[Trade Psychologist] Market regime lookup error: {e}")
+        return {
+            "regime": "Neutral 🟡",
+            "status": "NEUTRAL",
+            "breadth_ratio": 50.0,
+            "adv_dec": "N/A",
+            "label": "Neutral 🟡"
+        }
+
+
+def get_delivery_volume_activity(base_sym: str) -> Dict[str, Any]:
+    """
+    Fetches delivery metrics from daily_delivery_stats and daily_delivery_history in SQLite.
+    Identifies institutional accumulation (delivery % >= 35% & volume >= 1.0x avg)
+    vs speculative day-trading churn (delivery % < 25%).
+    """
+    clean_sym = (base_sym or "").strip().upper().replace(".NS", "").replace(".BO", "")
+    target_sym = f"{clean_sym}.NS"
+    try:
+        conn = sqlite3.connect(DATABASE_PATH)
+        conn.row_factory = sqlite3.Row
+        cur = conn.cursor()
+        cur.execute("""
+            SELECT delivery_qty, traded_qty, delivery_percentage
+            FROM daily_delivery_stats
+            WHERE symbol = ? OR symbol = ?
+        """, (target_sym, clean_sym))
+        stat_row = cur.fetchone()
+        
+        cur.execute("""
+            SELECT delivery_qty, traded_qty, delivery_percentage
+            FROM daily_delivery_history
+            WHERE symbol = ? OR symbol = ?
+            ORDER BY trade_date DESC
+            LIMIT 20
+        """, (target_sym, clean_sym))
+        hist_rows = cur.fetchall()
+        conn.close()
+        
+        if not stat_row and not hist_rows:
+            return {
+                "latest_delivery_pct": 30.0,
+                "latest_delivery_qty": 0,
+                "avg_20d_delivery_pct": 30.0,
+                "delivery_volume_mult": 1.0,
+                "is_accumulation": False,
+                "is_speculative_churn": False,
+                "tag": "Neutral Delivery",
+                "label": "30.0% Delivery (1.0x 20D Avg)"
+            }
+            
+        latest_del_pct = float(stat_row["delivery_percentage"]) if stat_row else float(hist_rows[0]["delivery_percentage"])
+        latest_del_qty = int(stat_row["delivery_qty"]) if stat_row else int(hist_rows[0]["delivery_qty"])
+        
+        if hist_rows:
+            avg_del_qty = sum(r["delivery_qty"] for r in hist_rows) / len(hist_rows)
+            avg_del_pct = sum(r["delivery_percentage"] for r in hist_rows) / len(hist_rows)
+            del_mult = round(latest_del_qty / avg_del_qty, 2) if avg_del_qty > 0 else 1.0
+        else:
+            avg_del_qty = latest_del_qty
+            avg_del_pct = latest_del_pct
+            del_mult = 1.0
+            
+        is_accum = latest_del_pct >= 35.0 and del_mult >= 1.0
+        is_churn = latest_del_pct < 25.0 and del_mult > 1.2
+        
+        if is_accum:
+            tag = "💎 Institutional Accumulation"
+        elif is_churn:
+            tag = "⚠️ Speculative Day-Trader Churn"
+        elif latest_del_pct >= 40.0:
+            tag = "High Delivery Absorption"
+        else:
+            tag = "Moderate Delivery"
+            
+        return {
+            "latest_delivery_pct": round(latest_del_pct, 1),
+            "latest_delivery_qty": latest_del_qty,
+            "avg_20d_delivery_pct": round(avg_del_pct, 1),
+            "delivery_volume_mult": del_mult,
+            "is_accumulation": is_accum,
+            "is_speculative_churn": is_churn,
+            "tag": tag,
+            "label": f"{latest_del_pct:.1f}% Delivery ({del_mult:.2f}x 20D Avg) [{tag}]"
+        }
+    except Exception as e:
+        logger.debug(f"[Trade Psychologist] Delivery metrics lookup error for {base_sym}: {e}")
+        return {
+            "latest_delivery_pct": 30.0,
+            "latest_delivery_qty": 0,
+            "avg_20d_delivery_pct": 30.0,
+            "delivery_volume_mult": 1.0,
+            "is_accumulation": False,
+            "is_speculative_churn": False,
+            "tag": "Neutral Delivery",
+            "label": "30.0% Delivery (1.0x 20D Avg)"
+        }
+
+
+def get_earnings_blackout_status(symbol: str, blackout_days: int = 5) -> Dict[str, Any]:
+    """
+    Checks stock_events in SQLite for upcoming Quarterly Results / Earnings announcements.
+    Activates a strict blackout guard if results are scheduled within the next <= blackout_days.
+    """
+    clean_sym = (symbol or "").strip().upper().replace(".NS", "").replace(".BO", "")
+    today = date.today()
+    try:
+        events = get_stock_events_cached(clean_sym)
+        for ev in events:
+            ev_type = (ev.get("event_type") or "").lower()
+            ev_date_str = ev.get("event_date")
+            if not ev_date_str:
+                continue
+            try:
+                ev_date = datetime.strptime(ev_date_str, "%Y-%m-%d").date()
+                diff_days = (ev_date - today).days
+                if "quarterly" in ev_type or "earnings" in ev_type or "result" in ev_type:
+                    if -1 <= diff_days <= blackout_days:
+                        return {
+                            "blackout_active": True,
+                            "event_name": ev.get("description") or "Quarterly Results",
+                            "event_date": ev_date_str,
+                            "countdown_days": diff_days,
+                            "details": ev.get("details", {})
+                        }
+                    elif diff_days > blackout_days:
+                        return {
+                            "blackout_active": False,
+                            "event_name": ev.get("description") or "Quarterly Results",
+                            "event_date": ev_date_str,
+                            "countdown_days": diff_days,
+                            "details": ev.get("details", {})
+                        }
+            except Exception:
+                pass
+    except Exception as e:
+        logger.debug(f"[Trade Psychologist] Earnings blackout check error for {clean_sym}: {e}")
+    return {
+        "blackout_active": False,
+        "event_name": None,
+        "event_date": None,
+        "countdown_days": None,
+        "details": {}
+    }
+
+
 ORDERED_SCREENERS = [
     ("vcp", "Minervini VCP"),
     ("weinstein_stage2", "Weinstein Stage 2"),
@@ -324,7 +519,11 @@ def generate_devils_advocate_thesis(
     fii_prev: float,
     prom_pledge: float,
     position_info: Optional[Dict[str, Any]] = None,
-    quant_matrix: Optional[Dict[str, Any]] = None
+    quant_matrix: Optional[Dict[str, Any]] = None,
+    market_regime: Optional[Dict[str, Any]] = None,
+    delivery_activity: Optional[Dict[str, Any]] = None,
+    earnings_blackout: Optional[Dict[str, Any]] = None,
+    atr_val: float = 0.0
 ) -> Dict[str, Any]:
     """
     Constructs an institutional Devil's Advocate Counter-Thesis tailored to the investment horizon,
@@ -349,6 +548,26 @@ def generate_devils_advocate_thesis(
     if action == "BUY":
         stance = "BEAR"
         stance_color = "#ef4444"
+
+        # 0. Institutional Event Risk & Macro Circuit Breakers
+        if earnings_blackout and earnings_blackout.get("blackout_active"):
+            eb = earnings_blackout
+            da_points.append({
+                "title": f"🚨 Binary Earnings Event Blackout ({eb.get('event_name') or 'Results'})",
+                "detail": f"{comp_name} is scheduled to announce quarterly results on {eb.get('event_date')} (in {eb.get('countdown_days')} days). Entering fresh breakouts right before earnings is gambling on a binary coin-flip; guidance misses routinely cause 10–20% overnight gap-downs."
+            })
+
+        if delivery_activity and delivery_activity.get("is_speculative_churn"):
+            da_points.append({
+                "title": "⚠️ Speculative Day-Trader Churn vs Delivery",
+                "detail": f"Delivery is only {delivery_activity.get('latest_delivery_pct')}% (vs 20D avg: {delivery_activity.get('avg_20d_delivery_pct')}%), indicating volume is driven by intraday day-traders rather than delivery-backed institutional buying."
+            })
+
+        if market_regime and market_regime.get("status") == "BEARISH":
+            da_points.append({
+                "title": "⚠️ Adverse Market Regime & Breadth Drag",
+                "detail": f"Broader market breadth is in Bearish Distribution ({market_regime.get('adv_dec')}). In a distributing market, breakout failure rates rise significantly."
+            })
 
         # 1. Position-Aware Red-Team Challenge
         if is_held:
@@ -481,6 +700,14 @@ def generate_devils_advocate_thesis(
 
         if is_swing:
             da_title = "😇 DEVIL'S ADVOCATE: SWING TRADER'S BULL CASE (2–8 WEEKS)"
+
+            # Undercut & Rally Spring Detection
+            is_ur = qm.get("screener_status", {}).get("undercut_and_rally", {}).get("qualified")
+            if is_ur:
+                da_points.append({
+                    "title": "🐻 Institutional Spring / Undercut & Rally Trap",
+                    "detail": f"{comp_name} has triggered an Undercut & Rally setup. The recent breach of structural swing support on dry volume followed by a quick close recovery indicates an institutional bear trap (shakeout). Panic-dumping into an institutional spring risks exiting right at the algorithmic inflection bottom."
+                })
 
             if is_held:
                 if pnl_pct >= 0:
@@ -670,8 +897,9 @@ def evaluate_trade_intent(
     eval_price = float(intended_price) if intended_price and intended_price > 0 else cmp_val
     pos = get_user_portfolio_position(base_sym, cmp_val)
 
-    # Cache key includes portfolio held state, stage number, and qualified count
-    cache_key = f"{base_sym}_{norm_action}_{norm_horizon}_{int(intended_price or 0)}_{int(pos.get('held_qty', 0))}_{int(pos.get('avg_buy_price', 0))}_{stage_num}_{qualified_count}"
+    # Cache key includes portfolio held state, stage number, qualified count, and date for event countdown accuracy
+    today_str = date.today().isoformat()
+    cache_key = f"{base_sym}_{norm_action}_{norm_horizon}_{int(intended_price or 0)}_{int(pos.get('held_qty', 0))}_{int(pos.get('avg_buy_price', 0))}_{stage_num}_{qualified_count}_{today_str}"
     cache_ttl = 3600  # 1 hour cache
 
     # 3. Check Cache
@@ -757,6 +985,35 @@ def evaluate_trade_intent(
     if raw_m.get("vol_ratio") is not None:
         volume_ratio = float(raw_m["vol_ratio"])
 
+    # 4b. Extract ATR and Institutional Risk Filters
+    atr_val = 0.0
+    try:
+        if tech.get("atr"):
+            atr_val = round(float(tech["atr"]), 2)
+    except Exception:
+        atr_val = 0.0
+    if atr_val <= 0:
+        atr_val = round(eval_price * 0.035, 2)
+
+    market_regime = get_market_regime_summary()
+    delivery_activity = get_delivery_volume_activity(base_sym)
+    earnings_blackout = get_earnings_blackout_status(clean_sym, blackout_days=5)
+
+    # Dynamic ATR Calibration:
+    # Stop-loss anchored to at least 1.5 * ATR below entry if not explicitly set tighter
+    atr_stop = round(eval_price - (1.5 * atr_val), 2)
+    if stop_loss <= 0 or abs(eval_price - stop_loss) / eval_price < 0.01:
+        stop_loss = atr_stop
+
+    # Ensure Target 1 is at least 2.0x Risk (2R)
+    risk_rupees = max(1.0, eval_price - stop_loss)
+    min_2r_target = round(eval_price + (2.0 * risk_rupees), 2)
+    if target_1 < min_2r_target:
+        target_1 = min_2r_target
+
+    # Ensure Target 2 is at 3.5x Risk (3.5R)
+    target_2 = round(eval_price + (3.5 * risk_rupees), 2)
+
     # Fallback sanity for pivot & stops if missing
     if pivot_price <= 0: pivot_price = round(cmp_val * 0.98, 2)
     if stop_loss <= 0: stop_loss = round(eval_price * 0.95, 2)
@@ -803,7 +1060,23 @@ def evaluate_trade_intent(
     unrealized_pnl = float(pos.get("unrealized_pnl") or 0.0)
 
     if norm_action == "BUY":
-        if is_held:
+        if earnings_blackout.get("blackout_active"):
+            eb = earnings_blackout
+            status = "EARNINGS_BLACKOUT_VETO"
+            badge = f"🛑 EARNINGS BLACKOUT VETO ({eb.get('countdown_days')}D TO RESULTS)"
+            badge_color = "#ef4444"
+            cro_verdict = (
+                f"Institutional Blackout Circuit-Breaker: {comp_name} is scheduled to announce {eb.get('event_name')} "
+                f"on {eb.get('event_date')} ({eb.get('countdown_days')} days away). Entering fresh swing trades ahead of earnings "
+                f"is strictly prohibited by institutional risk management rules. Even technically sound setups can gap down 10–20% "
+                f"overnight on guidance disappointment, completely bypassing stop-loss orders."
+            )
+            recommendation = (
+                f"HARD STAND-DOWN: Do NOT initiate new swing buy orders. Never coin-toss capital into quarterly reports. "
+                f"Wait for the earnings release. If the company delivers an institutional beat and gaps up on expanding delivery, "
+                f"enter on the subsequent Episodic Pivot (EP) or Day 2 consolidation base."
+            )
+        elif is_held:
             # Portfolio-Aware Buy Intent
             if pnl_pct >= 0:
                 add_q = max(1.0, round(held_qty * 0.5))
@@ -1154,8 +1427,36 @@ def evaluate_trade_intent(
         fii_prev=fii_prev,
         prom_pledge=prom_pledge,
         position_info=pos,
-        quant_matrix=qm
+        quant_matrix=qm,
+        market_regime=market_regime,
+        delivery_activity=delivery_activity,
+        earnings_blackout=earnings_blackout,
+        atr_val=atr_val
     )
+
+    # 7c. Append Staged Tranche Blueprint to Recommendation
+    if norm_action == "BUY" and status not in ["STAGE4_VETO", "EARNINGS_BLACKOUT_VETO", "STAGE4_FALLING_KNIFE", "LOSER_AVERAGING_ALERT", "STAGE4_VALUE_TRAP"]:
+        recommendation += (
+            f"\n\n📐 *STAGED TRANCHE BLUEPRINT*:\n"
+            f"• Tranche 1 (Starter - 30%): Enter near CMP/Pivot ₹{pivot_price:,.2f} with strict ATR stop ₹{stop_loss:,.2f} (-{downside_risk_pct}%).\n"
+            f"• Tranche 2 (Confirmation - 70%): Add remaining allocation ONLY after price clears Day 1 high with >35% delivery volume.\n"
+            f"• Profit Blueprint: Bank 50% at Target 1 ₹{target_1:,.2f} (2R), let remaining 50% ride trailing the 20-EMA (₹{ema_20:,.2f})."
+        )
+    elif norm_action == "SELL" and pos.get("is_held"):
+        if pnl_pct >= 0:
+            harv_q = max(1.0, round(held_qty * 0.5))
+            rem_q = held_qty - harv_q
+            recommendation += (
+                f"\n\n📐 *STAGED HARVEST BLUEPRINT*:\n"
+                f"• Tranche 1 (Bank Profit - 50%): Sell {harv_q:g} shares at CMP ₹{cmp_val:,.2f} to bank realized cash profit.\n"
+                f"• Tranche 2 (Runner - 50%): Hold remaining {rem_q:g} shares with a trailing stop pegged to the 20-EMA (₹{ema_20:,.2f})."
+            )
+        elif pnl_pct <= -20.0:
+            recommendation += (
+                f"\n\n📐 *CAPITAL PRESERVATION BLUEPRINT*:\n"
+                f"• Staged Exit: Place limit orders into the next relief bounce towards the declining 20-EMA (₹{ema_20:,.2f}).\n"
+                f"• Hard Invalidation: If price closes below structural support (₹{stop_loss:,.2f}) on expanding delivery, exit immediately to cut further losses."
+            )
 
     # 8. Build Plain-English WhatsApp & Markdown Output
     action_label = "BUY / ACCUMULATE" if norm_action == "BUY" else "SELL / EXIT"
@@ -1187,16 +1488,16 @@ def evaluate_trade_intent(
                 "color": "#38bdf8"
             },
             {
-                "title": "⚡ 20-Day EMA Proximity",
-                "value": f"₹{ema_20:,.2f}",
-                "sub": f"Distance: {'+' if ema20_dist_pct >= 0 else ''}{ema20_dist_pct}%",
-                "color": "#a78bfa"
-            },
-            {
                 "title": "⚖️ Risk / Reward Ratio",
                 "value": f"1 : {rr_ratio}",
                 "sub": f"SL: ₹{stop_loss:,.2f} | T1: ₹{target_1:,.2f}",
                 "color": "#34d399" if rr_ratio >= 2.0 else ("#f59e0b" if rr_ratio >= 1.3 else "#ef4444")
+            },
+            {
+                "title": "📦 Delivery Activity",
+                "value": f"{delivery_activity['latest_delivery_pct']}% Delivery",
+                "sub": f"{delivery_activity['delivery_volume_mult']}x 20D ({delivery_activity['tag']})",
+                "color": "#10b981" if delivery_activity['is_accumulation'] else ("#ef4444" if delivery_activity['is_speculative_churn'] else "#38bdf8")
             },
             {
                 "title": "🔬 Quant Screener Score",
@@ -1209,13 +1510,15 @@ def evaluate_trade_intent(
             "📊 *THE COLD HARD FACTS (SWING GEOMETRY & QUANT MATRIX)*:\n"
             f"• Quant Screener Matrix: {qualified_count}/11 Qualified ({stage_name})\n"
             f"{active_screeners_line}"
+            f"• Market Regime: {market_regime['label']}\n"
+            f"• Delivery Activity: {delivery_activity['label']}\n"
             f"• 30-Week MA Slope: {'+' if ma_30wk_slope >= 0 else ''}{ma_30wk_slope:.1f}% • 52W High Dist: {dist_52w_high:+.1f}%\n"
             f"• Base Breakout Pivot: ₹{pivot_price:,.2f} (Extension: {'+' if pivot_extension_pct >= 0 else ''}{pivot_extension_pct}%)\n"
             f"• Distance from 20-Day EMA: {'+' if ema20_dist_pct >= 0 else ''}{ema20_dist_pct}%\n"
-            f"• Potential Downside Risk: -{downside_risk_pct}% (Stop-Loss: ₹{stop_loss:,.2f})\n"
-            f"• Realistic Upside Target: +{upside_target_pct}% (Target 1: ₹{target_1:,.2f})\n"
+            f"• Volatility Risk (14D ATR): ₹{atr_val:,.2f} (Stop-Loss: ₹{stop_loss:,.2f} | -{downside_risk_pct}%)\n"
+            f"• Realistic Upside Target: +{upside_target_pct}% (Target 1: ₹{target_1:,.2f} | 2R)\n"
             f"• Risk-to-Reward Ratio: 1 : {rr_ratio} ({'Favorable' if rr_ratio >= 2.0 else 'Unfavorable'})\n"
-            f"• Volume Activity: {volume_ratio:.2f}x • 50-EMA Support: ₹{ema_50:,.2f}"
+            f"• 50-EMA Support: ₹{ema_50:,.2f}"
         )
     else:
         pe_diff = round(((current_pe - median_pe) / median_pe) * 100.0, 1) if median_pe > 0 else 0.0
@@ -1239,16 +1542,18 @@ def evaluate_trade_intent(
                 "color": "#34d399" if pe_diff <= 0 else ("#f59e0b" if pe_diff <= 25 else "#ef4444")
             },
             {
-                "title": "🛡️ Balance Sheet Leverage",
-                "value": f"{debt_to_equity:.2f} D/E",
-                "sub": "Virtually Debt-Free" if debt_to_equity < 0.2 else ("Conservative Solvency" if debt_to_equity <= 0.8 else "Elevated Debt Load"),
-                "color": "#34d399" if debt_to_equity < 0.4 else ("#f59e0b" if debt_to_equity <= 0.8 else "#ef4444")
+                "title": "📦 Delivery Activity",
+                "value": f"{delivery_activity['latest_delivery_pct']}% Delivery",
+                "sub": f"{delivery_activity['delivery_volume_mult']}x 20D ({delivery_activity['tag']})",
+                "color": "#10b981" if delivery_activity['is_accumulation'] else ("#ef4444" if delivery_activity['is_speculative_churn'] else "#38bdf8")
             }
         ]
         facts_md = (
             "📊 *THE COLD HARD FACTS (COMPOUNDING & QUANT MATRIX)*:\n"
             f"• Quant Screener Matrix: {qualified_count}/11 Qualified ({stage_name})\n"
             f"{active_screeners_line}"
+            f"• Market Regime: {market_regime['label']}\n"
+            f"• Delivery Activity: {delivery_activity['label']}\n"
             f"• 30-Week MA Slope: {'+' if ma_30wk_slope >= 0 else ''}{ma_30wk_slope:.1f}% • 52W High Dist: {dist_52w_high:+.1f}%\n"
             f"• 5Y Cash Realization (CFO/PAT): {cfo_ratio:.1f}% ({'Pristine Real Cash' if cfo_ratio >= 80 else 'Accrual Drag'})\n"
             f"• Valuation Multiple: {current_pe:.1f}x P/E (5Y Median: {median_pe:.1f}x | {'+' if pe_diff >= 0 else ''}{pe_diff}%)\n"
@@ -1303,6 +1608,11 @@ def evaluate_trade_intent(
             "qualified_count": qualified_count,
             "qualified_screeners": qualified_screeners,
             "ma_30wk_slope_pct": ma_30wk_slope,
+            "market_regime": market_regime.get("label"),
+            "delivery_pct": delivery_activity.get("latest_delivery_pct"),
+            "delivery_mult": delivery_activity.get("delivery_volume_mult"),
+            "atr": atr_val,
+            "blackout_active": earnings_blackout.get("blackout_active"),
             "pivot_price": pivot_price,
             "pivot_extension_pct": pivot_extension_pct,
             "ema_20": ema_20,
@@ -1321,6 +1631,10 @@ def evaluate_trade_intent(
             "debt_to_equity": debt_to_equity,
             "volume_ratio": volume_ratio
         },
+        "market_regime": market_regime,
+        "delivery_activity": delivery_activity,
+        "earnings_blackout": earnings_blackout,
+        "atr": atr_val,
         "cro_verdict": cro_verdict,
         "devils_advocate": devils_advocate,
         "recommendation": recommendation,
