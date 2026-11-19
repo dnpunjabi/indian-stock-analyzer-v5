@@ -184,6 +184,118 @@ def get_psychology_model_info() -> Tuple[str, str]:
     return model_id, model_label
 
 
+ORDERED_SCREENERS = [
+    ("vcp", "Minervini VCP"),
+    ("weinstein_stage2", "Weinstein Stage 2"),
+    ("htf", "High-Tight Flag"),
+    ("three_wt", "3-Weeks Tight"),
+    ("flat_base", "Modern Flat Base"),
+    ("episodic_pivot", "Episodic Pivot"),
+    ("pocket_pivot", "Pocket Pivot"),
+    ("oliver_kell", "Oliver Kell 10/20"),
+    ("cup_with_handle", "Cup with Handle"),
+    ("rs_line_new_high", "RS Line New High"),
+    ("undercut_and_rally", "Undercut & Rally"),
+]
+
+
+def _get_stage_matrix_sync(ticker: str, clean_sym: str, cmp_val: float, high_52w: float, sma_50: float, sma_200: float) -> Dict[str, Any]:
+    """
+    Fetches the 11-screener quantitative stage diagnostic from backend.main,
+    with threadpool execution and caching to ensure instant, non-blocking execution.
+    Falls back to mathematical moving-average and 52W geometry if historical data is unavailable.
+    """
+    dist_52w = ((cmp_val - high_52w) / high_52w) * 100.0 if high_52w > 0 else 0.0
+    stage_num = 2
+    stage_name = "Stage 2: Mark-Up 🚀"
+    qualified_screeners = []
+    qualified_count = 0
+    ma_30wk_slope = 0.0
+    rs_rating = 50
+
+    try:
+        from backend.main import get_stage_diagnostic
+        import asyncio
+        import concurrent.futures
+
+        def _sync_call():
+            try:
+                return asyncio.run(get_stage_diagnostic(ticker))
+            except RuntimeError:
+                with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
+                    return executor.submit(asyncio.run, get_stage_diagnostic(ticker)).result()
+
+        diag = _sync_call()
+        if diag and diag.get("status") == "success":
+            stage_num = int(diag.get("stage_number", 2))
+            stage_name = diag.get("stage_name", "Stage 2: Mark-Up 🚀")
+            metrics = diag.get("metrics", {})
+            ma_30wk_slope = float(metrics.get("ma_30wk_slope_pct") or 0.0)
+            dist_52w = float(metrics.get("dist_52wk_high_pct") or dist_52w)
+            rs_rating = int(metrics.get("rs_rating") or 50)
+            screener_status = diag.get("screener_status") or {}
+            for k, label in ORDERED_SCREENERS:
+                if screener_status.get(k, {}).get("qualified"):
+                    qualified_screeners.append(label)
+            qualified_count = len(qualified_screeners)
+            return {
+                "stage_number": stage_num,
+                "stage_name": stage_name,
+                "qualified_count": qualified_count,
+                "total_screeners": 11,
+                "qualified_screeners": qualified_screeners,
+                "ma_30wk_slope_pct": ma_30wk_slope,
+                "dist_52wk_high_pct": dist_52w,
+                "rs_rating": rs_rating,
+                "screener_status": screener_status,
+                "raw_diag": diag
+            }
+    except Exception as e:
+        logger.debug(f"[Trade Psychologist] Could not fetch stage diagnostic for {clean_sym}: {e}")
+
+    # Fallback to MA/Geometry classification
+    if sma_200 > 0 and cmp_val < (sma_200 * 0.92) and dist_52w < -25.0:
+        stage_num = 4
+        stage_name = "Stage 4: Capitulation 📉"
+        ma_30wk_slope = -3.5
+        rs_rating = 35
+    elif dist_52w > -20.0 and sma_50 > 0 and cmp_val < sma_50 and sma_200 > 0 and cmp_val > sma_200:
+        stage_num = 3
+        stage_name = "Stage 3: Distribution Top ⚠️"
+        ma_30wk_slope = 0.1
+        rs_rating = 55
+    elif dist_52w <= -20.0 and sma_200 > 0 and abs(cmp_val - sma_200) / sma_200 < 0.12:
+        stage_num = 1
+        stage_name = "Stage 1: Basing 🟡"
+        ma_30wk_slope = 0.2
+        rs_rating = 60
+    elif dist_52w > -25.0 and (sma_50 == 0 or cmp_val >= sma_50):
+        stage_num = 2
+        stage_name = "Stage 2: Mark-Up 🚀"
+        ma_30wk_slope = 2.5
+        rs_rating = 80
+        qualified_screeners = ["Weinstein Stage 2"]
+        qualified_count = 1
+    elif dist_52w < -30.0:
+        stage_num = 4
+        stage_name = "Stage 4: Capitulation 📉"
+        ma_30wk_slope = -4.0
+        rs_rating = 30
+
+    return {
+        "stage_number": stage_num,
+        "stage_name": stage_name,
+        "qualified_count": qualified_count,
+        "total_screeners": 11,
+        "qualified_screeners": qualified_screeners,
+        "ma_30wk_slope_pct": ma_30wk_slope,
+        "dist_52wk_high_pct": dist_52w,
+        "rs_rating": rs_rating,
+        "screener_status": {},
+        "raw_diag": {}
+    }
+
+
 def generate_devils_advocate_thesis(
     action: str,
     horizon: str,
@@ -211,13 +323,12 @@ def generate_devils_advocate_thesis(
     fii_curr: float,
     fii_prev: float,
     prom_pledge: float,
-    position_info: Optional[Dict[str, Any]] = None
+    position_info: Optional[Dict[str, Any]] = None,
+    quant_matrix: Optional[Dict[str, Any]] = None
 ) -> Dict[str, Any]:
     """
-    Constructs an institutional Devil's Advocate Counter-Thesis tailored to the investment horizon
-    and the user's active portfolio position (cost basis, unrealized P&L, holding quantity):
-    - For BUY: The Top 3 Bear Arguments + Invalidation Trigger (checks pyramiding cost dilution vs loser averaging).
-    - For SELL: The Top 3 Bull Arguments + Invalidation Trigger (checks premature compounder exit vs bottom panic).
+    Constructs an institutional Devil's Advocate Counter-Thesis tailored to the investment horizon,
+    the 11-screener quantitative matrix, and the user's active portfolio position.
     """
     da_points = []
     is_swing = (horizon or "swing").lower() == "swing"
@@ -227,6 +338,13 @@ def generate_devils_advocate_thesis(
     avg_buy_price = float(pos.get("avg_buy_price") or 0.0)
     pnl_pct = float(pos.get("unrealized_pnl_pct") or 0.0)
     unrealized_pnl = float(pos.get("unrealized_pnl") or 0.0)
+
+    qm = quant_matrix or {}
+    stage_num = int(qm.get("stage_number") or 2)
+    stage_name = qm.get("stage_name") or "Stage 2: Mark-Up 🚀"
+    qualified_count = int(qm.get("qualified_count") or 0)
+    qualified_screeners = qm.get("qualified_screeners") or []
+    ma_30wk_slope = float(qm.get("ma_30wk_slope_pct") or 0.0)
 
     if action == "BUY":
         stance = "BEAR"
@@ -251,8 +369,18 @@ def generate_devils_advocate_thesis(
         if is_swing:
             da_title = "😈 DEVIL'S ADVOCATE: SWING TRADER'S BEAR CASE (2–8 WEEKS)"
 
-            # Point 1: Mean Reversion Pullback Risk
-            if ema20_dist_pct > 3.0 or pivot_extension_pct > 2.5:
+            # Point 1: Stage 4 Institutional Breakdown or Pullback Risk
+            if stage_num == 4 or (qualified_count == 0 and dist_52w_high < -20.0):
+                da_points.append({
+                    "title": "Stage 4 Institutional Markdown Trap",
+                    "detail": f"{comp_name} fails all 11 quantitative screeners with a negative 30-week MA slope ({ma_30wk_slope:.1f}%). The stock is in an active Stage 4 markdown. Buying here fights institutional distribution. Professional funds do not accumulate stocks below a declining 30-week SMA."
+                })
+            elif stage_num == 3:
+                da_points.append({
+                    "title": f"Stage 3 Distribution Top Churn ({qualified_count}/11 Screeners)",
+                    "detail": f"{comp_name} is in late-stage distribution (only {qualified_count}/11 screeners passed). Elevated volume on rallies indicates institutions are dumping shares into retail liquidity."
+                })
+            elif ema20_dist_pct > 3.0 or pivot_extension_pct > 2.5:
                 da_points.append({
                     "title": "Short-Term Mean-Reversion Pullback",
                     "detail": f"Price is stretched +{ema20_dist_pct}% above its 20-day EMA (₹{ema_20:,.2f}) and +{pivot_extension_pct}% from base pivot. In Indian swing trading, moves extended >3% frequently experience a sharp 3–6% shakeout back to dynamic support before continuation."
@@ -283,7 +411,9 @@ def generate_devils_advocate_thesis(
                 "detail": f"Current swing geometry offers a 1 : {rr_val} risk-to-reward ratio with downside risk of -{downside_risk:.1f}% to stop ₹{stop_loss:,.2f}. If broader market indices (Nifty/Sensex) wobble, your stop will likely get triggered before reaching Target 1 (₹{target_1:,.2f})."
             })
 
-            if is_held and pnl_pct < 0:
+            if stage_num == 4:
+                invalidation = f"{comp_name} is in confirmed Stage 4 capitulation. Fresh buying is strictly invalidated until price builds a multi-month base and reclaims the 30-week moving average on expanding volume."
+            elif is_held and pnl_pct < 0:
                 invalidation = f"Further capital commitment to {comp_name} is strictly prohibited until price decisively reclaims the 20-day EMA (₹{ema_20:,.2f}) and establishes a multi-week higher low."
             elif is_held and pnl_pct >= 0:
                 add_q = max(1.0, round(held_qty * 0.5))
@@ -295,8 +425,13 @@ def generate_devils_advocate_thesis(
         else:
             da_title = "😈 DEVIL'S ADVOCATE: LONG-TERM INVESTOR'S BEAR CASE (1–3 YEARS)"
 
-            # Point 1: Valuation Multiple Compression
-            if current_pe > (median_pe * 1.15) and current_pe > 30.0:
+            # Point 1: Stage 4 Value Trap or Valuation Multiple De-rating
+            if stage_num == 4:
+                da_points.append({
+                    "title": "Stage 4 Value Trap & Moat Deterioration",
+                    "detail": f"{comp_name} is in a confirmed Stage 4 Capitulation markdown (0/11 screeners passed, 30W MA slope {ma_30wk_slope:.1f}%). Extended drawdowns rarely bottom quickly; cheap valuations frequently become cheaper as business fundamentals decay."
+                })
+            elif current_pe > (median_pe * 1.15) and current_pe > 30.0:
                 premium_pct = round(((current_pe - median_pe) / median_pe) * 100.0, 1) if median_pe > 0 else 20.0
                 da_points.append({
                     "title": "Valuation Multiple De-Rating Risk",
@@ -333,7 +468,9 @@ def generate_devils_advocate_thesis(
                     "detail": f"As {comp_name}'s revenue base expands, maintaining high double-digit compounding becomes mathematically harder. Larger market-cap leaders naturally experience growth moderation."
                 })
 
-            if is_held and pnl_pct < 0:
+            if stage_num == 4:
+                invalidation = f"{comp_name} is in Stage 4 capitulation. Fresh multi-year allocation is invalidated until operational cash flow turns positive and a confirmed Stage 1 basing structure emerges."
+            elif is_held and pnl_pct < 0:
                 invalidation = f"Do NOT average down on hope. Wait for 2 consecutive quarters of operational cash recovery before committing new capital."
             else:
                 invalidation = f"Two consecutive quarters of revenue growth decelerating below 8% YoY, or 5-year CFO/PAT cash realization deteriorating below 70%, confirming structural moat erosion."
@@ -516,12 +653,25 @@ def evaluate_trade_intent(
     cmp_val = float(p_ctx.get("cmp", 0.0))
     if cmp_val <= 0:
         cmp_val = 1000.0
+    high_52w = float(p_ctx.get("high_52w", 0.0))
+    low_52w = float(p_ctx.get("low_52w", 0.0))
+    sma_50 = float(p_ctx.get("sma_50", 0.0))
+    sma_200 = float(p_ctx.get("sma_200", 0.0))
+
+    # 2b. Resolve 11-Screener Quantitative Matrix & Weinstein Stage
+    qm = _get_stage_matrix_sync(ticker, clean_sym, cmp_val, high_52w, sma_50, sma_200)
+    stage_num = int(qm.get("stage_number") or 2)
+    stage_name = str(qm.get("stage_name") or "Stage 2: Mark-Up 🚀")
+    qualified_count = int(qm.get("qualified_count") or 0)
+    qualified_screeners = list(qm.get("qualified_screeners") or [])
+    ma_30wk_slope = float(qm.get("ma_30wk_slope_pct") or 0.0)
+    rs_rating = int(qm.get("rs_rating") or 50)
 
     eval_price = float(intended_price) if intended_price and intended_price > 0 else cmp_val
     pos = get_user_portfolio_position(base_sym, cmp_val)
 
-    # Cache key includes portfolio held state to auto-bust when trades are executed
-    cache_key = f"{base_sym}_{norm_action}_{norm_horizon}_{int(intended_price or 0)}_{int(pos.get('held_qty', 0))}_{int(pos.get('avg_buy_price', 0))}"
+    # Cache key includes portfolio held state, stage number, and qualified count
+    cache_key = f"{base_sym}_{norm_action}_{norm_horizon}_{int(intended_price or 0)}_{int(pos.get('held_qty', 0))}_{int(pos.get('avg_buy_price', 0))}_{stage_num}_{qualified_count}"
     cache_ttl = 3600  # 1 hour cache
 
     # 3. Check Cache
@@ -542,9 +692,15 @@ def evaluate_trade_intent(
 
     # 4. Resolve Technical Indicators & Base Pivots
     ema_20 = cmp_val * 0.97
-    ema_50 = cmp_val * 0.94
-    sma_200 = cmp_val * 0.88
-    dist_52w_high = -4.0
+    if sma_50 > 0:
+        ema_50 = sma_50
+    else:
+        ema_50 = cmp_val * 0.94
+    if sma_200 > 0:
+        sma_200 = sma_200
+    else:
+        sma_200 = cmp_val * 0.88
+    dist_52w_high = ((cmp_val - high_52w) / high_52w) * 100.0 if high_52w > 0 else -4.0
     volume_ratio = 1.0
     pivot_price = round(cmp_val * 0.98, 2)
     stop_loss = round(cmp_val * 0.945, 2)
@@ -585,6 +741,21 @@ def evaluate_trade_intent(
         conn.close()
     except Exception as e:
         logger.debug(f"[Trade Psychologist] DB profile lookup warning: {e}")
+
+    # Synchronize pivots and stops with Quant Matrix metrics if active
+    raw_m = qm.get("raw_diag", {}).get("metrics") or {}
+    if float(raw_m.get("pivot_price") or 0) > 0:
+        pivot_price = float(raw_m["pivot_price"])
+    if float(raw_m.get("stop_loss") or 0) > 0:
+        stop_loss = float(raw_m["stop_loss"])
+    if float(raw_m.get("target_1") or 0) > 0:
+        target_1 = float(raw_m["target_1"])
+    if float(raw_m.get("target_2") or 0) > 0:
+        target_2 = float(raw_m["target_2"])
+    if raw_m.get("dist_52wk_high_pct") is not None:
+        dist_52w_high = float(raw_m["dist_52wk_high_pct"])
+    if raw_m.get("vol_ratio") is not None:
+        volume_ratio = float(raw_m["vol_ratio"])
 
     # Fallback sanity for pivot & stops if missing
     if pivot_price <= 0: pivot_price = round(cmp_val * 0.98, 2)
@@ -635,39 +806,103 @@ def evaluate_trade_intent(
         if is_held:
             # Portfolio-Aware Buy Intent
             if pnl_pct >= 0:
-                status = "PYRAMID_WINNER"
-                badge = "🏆 PYRAMIDING INTO A WINNING ASSET"
-                badge_color = "#10b981"
                 add_q = max(1.0, round(held_qty * 0.5))
                 new_blended = round(((held_qty * avg_buy_price) + (add_q * cmp_val)) / (held_qty + add_q), 2)
-                cro_verdict = (
-                    f"Disciplined trend behavior. You already hold {held_qty:g} shares of {comp_name} at an average cost of ₹{avg_buy_price:,.2f}, "
-                    f"currently sitting on a +{pnl_pct:.1f}% unrealized gain (+₹{unrealized_pnl:,.2f}). "
-                    f"Adding into strength is how seasoned traders compound alpha without gambling. "
-                    f"However, adding at CMP ₹{cmp_val:,.2f} pulls your average cost up to ₹{new_blended:,.2f}."
-                )
-                recommendation = (
-                    f"Limit your new tranche to at most {add_q:g} shares (50% of existing holding) to prevent building an inverted top-heavy pyramid. "
-                    f"Mandatory Risk Rule: Immediately raise your protective stop-loss for the ENTIRE {held_qty + add_q:g} position to ₹{stop_loss:,.2f} "
-                    f"(or 20-EMA ₹{ema_20:,.2f}) to guarantee this winning trade never turns negative."
-                )
+                if stage_num == 4:
+                    status = "DANGEROUS_PYRAMID"
+                    badge = "⚠️ PYRAMIDING INTO A BROKEN TREND (STAGE 4)"
+                    badge_color = "#ef4444"
+                    cro_verdict = (
+                        f"You are sitting on a +{pnl_pct:.1f}% gain on earlier shares, but {comp_name} has broken into Stage 4 Capitulation "
+                        f"({dist_52w_high:.1f}% off 52W high, 30W MA slope {ma_30wk_slope:.1f}%). Adding capital here averages up into an active institutional distribution structure."
+                    )
+                    recommendation = (
+                        f"Do NOT add new shares. Cease capital deployment into {comp_name}. Trail a strict protective stop-loss on your existing "
+                        f"{held_qty:g} shares at the 20-EMA (₹{ema_20:,.2f}) to bank your hard-earned gains before further trend erosion."
+                    )
+                else:
+                    status = "PYRAMID_WINNER"
+                    badge = f"🏆 PYRAMIDING INTO A STAGE {stage_num} WINNER"
+                    badge_color = "#10b981"
+                    cro_verdict = (
+                        f"Disciplined trend behavior. You already hold {held_qty:g} shares of {comp_name} at an average cost of ₹{avg_buy_price:,.2f}, "
+                        f"currently sitting on a +{pnl_pct:.1f}% unrealized gain (+₹{unrealized_pnl:,.2f}). "
+                        f"Adding into strength is how seasoned traders compound alpha without gambling. "
+                        f"However, adding at CMP ₹{cmp_val:,.2f} pulls your average cost up to ₹{new_blended:,.2f}."
+                    )
+                    recommendation = (
+                        f"Limit your new tranche to at most {add_q:g} shares (50% of existing holding) to prevent building an inverted top-heavy pyramid. "
+                        f"Mandatory Risk Rule: Immediately raise your protective stop-loss for the ENTIRE {held_qty + add_q:g} position to ₹{stop_loss:,.2f} "
+                        f"(or 20-EMA ₹{ema_20:,.2f}) to guarantee this winning trade never turns negative."
+                    )
             else:
                 status = "LOSER_AVERAGING_ALERT"
-                badge = "🚨 MARTINGALE / LOSER AVERAGING DETECTED"
+                if stage_num == 4 or (qualified_count == 0 and dist_52w_high < -20.0):
+                    badge = "🚨 STAGE 4 FALLING KNIFE / MARTINGALE TRAP (0/11 SCREENERS)"
+                    badge_color = "#ef4444"
+                    cro_verdict = (
+                        f"CRITICAL BEHAVIORAL WARNING: You already hold {held_qty:g} shares of {comp_name} at an average of ₹{avg_buy_price:,.2f}, "
+                        f"currently sitting on a -{abs(pnl_pct):.1f}% drawdown (-₹{abs(unrealized_pnl):,.2f}). "
+                        f"The Quant Screener Matrix confirms {comp_name} is in Stage 4 Capitulation markdown ({dist_52w_high:.1f}% from 52W high) "
+                        f"with 0/11 institutional screeners qualified and a declining 30-week MA ({ma_30wk_slope:.1f}%). "
+                        f"Averaging down on a Stage 4 asset is textbook gambler's ruin. Institutional funds are dumping inventory, not accumulating."
+                    )
+                    recommendation = (
+                        f"CEASE BUYING IMMEDIATELY. Institutional Rule: Never allocate fresh capital to an asset in Stage 4 markdown. "
+                        f"Do NOT average down on hope. Wait for a confirmed multi-month Stage 1 base before even considering capital deployment. Protect remaining cash for confirmed Stage 2 leaders."
+                    )
+                else:
+                    badge = "🚨 MARTINGALE / LOSER AVERAGING DETECTED"
+                    badge_color = "#ef4444"
+                    cro_verdict = (
+                        f"CRITICAL BEHAVIORAL WARNING: You already hold {held_qty:g} shares of {comp_name} at an average of ₹{avg_buy_price:,.2f}, "
+                        f"currently sitting on a -{abs(pnl_pct):.1f}% drawdown (-₹{abs(unrealized_pnl):,.2f}). "
+                        f"Adding more capital here is textbook 'Martingale averaging down' driven by the sunk-cost fallacy. "
+                        f"The market has already rejected your thesis and deducted capital."
+                    )
+                    recommendation = (
+                        f"CEASE BUYING IMMEDIATELY. In institutional risk management, winning setups are funded and losing setups are contained. "
+                        f"Do NOT average down or commit fresh capital until {comp_name} decisively reclaims its 20-day EMA (₹{ema_20:,.2f}) on heavy institutional volume."
+                    )
+        elif norm_horizon == "swing":
+            # Swing Trading Bias Detection (Fresh Entry) with Quant Screener Matrix
+            if stage_num == 4 or (qualified_count == 0 and dist_52w_high < -20.0):
+                status = "STAGE4_VETO"
+                badge = "🛑 HARD CAPITAL VETO (STAGE 4 CAPITULATION - 0/11 SCREENERS)"
                 badge_color = "#ef4444"
                 cro_verdict = (
-                    f"CRITICAL BEHAVIORAL WARNING: You already hold {held_qty:g} shares of {comp_name} at an average of ₹{avg_buy_price:,.2f}, "
-                    f"currently sitting on a -{abs(pnl_pct):.1f}% drawdown (-₹{abs(unrealized_pnl):,.2f}). "
-                    f"Adding more capital here is textbook 'Martingale averaging down' driven by the sunk-cost fallacy. "
-                    f"The market has already rejected your thesis and deducted capital."
+                    f"Institutional Red Alert. You are eyeing {comp_name} for a swing entry, but the Quant Screener Matrix "
+                    f"mathematically classifies it as Stage 4 Capitulation (0/11 screeners qualified). "
+                    f"The 30-week MA is declining at {ma_30wk_slope:.1f}%, and the stock is {abs(dist_52w_high):.1f}% below its 52-week peak. "
+                    f"Zero institutional demand patterns (no VCP, no Pocket Pivot, no RS line leadership) are active. Buying into a mature markdown carries ~78% statistical odds of further downside erosion."
                 )
                 recommendation = (
-                    f"CEASE BUYING IMMEDIATELY. In institutional risk management, winning setups are funded and losing setups are contained. "
-                    f"Do NOT average down or commit fresh capital until {comp_name} decisively reclaims its 20-day EMA (₹{ema_20:,.2f}) on heavy institutional volume."
+                    f"HARD VETO: Abort this trade. Professional swing traders never buy below a declining 30-week moving average. "
+                    f"Pass on {comp_name} and deploy capital exclusively into confirmed Stage 2 momentum leaders displaying relative strength."
                 )
-        elif norm_horizon == "swing":
-            # Swing Trading Bias Detection (Fresh Entry)
-            if pivot_extension_pct >= 6.5 or ema20_dist_pct >= 8.5 or rr_ratio < 1.3:
+            elif stage_num == 3:
+                status = "STAGE3_CHURN"
+                badge = f"⚠️ LATE-STAGE DISTRIBUTION TOP (STAGE 3 CHURN - {qualified_count}/11 SCREENERS)"
+                badge_color = "#f59e0b"
+                cro_verdict = (
+                    f"{comp_name} is in Weinstein Stage 3 Distribution Top (only {qualified_count}/11 screeners passed). High-volume churn and distribution spikes dominate near highs. Breakout failure rates at this stage exceed 65%."
+                )
+                recommendation = (
+                    f"Pass on fresh long entries. If holding existing shares, tighten stops below the 20-EMA (₹{ema_20:,.2f}) to protect gains against a Stage 4 transition."
+                )
+            elif stage_num == 2 and qualified_count >= 3:
+                status = "STAGE2_CONFLUENCE"
+                badge = f"🚀 HIGH-CONFLUENCE INSTITUTIONAL ENTRY ({qualified_count}/11 SCREENERS)"
+                badge_color = "#10b981"
+                passing_str = ", ".join(qualified_screeners[:3])
+                cro_verdict = (
+                    f"High-Conviction Institutional Setup. {comp_name} is in a confirmed Stage 2 Markup with {qualified_count}/11 screeners qualified ({passing_str}). "
+                    f"The 30-week MA slope is bullish (+{ma_30wk_slope:.1f}%) and price is respecting key moving averages."
+                )
+                recommendation = (
+                    f"Favorable odds. Execute planned entry methodically around pivot ₹{pivot_price:,.2f} with a strict stop-loss at ₹{stop_loss:,.2f} (-{downside_risk_pct}%). Target 1: ₹{target_1:,.2f} (1 : {rr_ratio} risk-to-reward)."
+                )
+            elif pivot_extension_pct >= 6.5 or ema20_dist_pct >= 8.5 or rr_ratio < 1.3:
                 status = "FOMO_CHASING"
                 badge = "⚠️ HIGH FOMO RISK (CHASING EXTENSION)"
                 badge_color = "#f87171"
@@ -717,8 +952,20 @@ def evaluate_trade_intent(
                         f"hard stop-loss at ₹{stop_loss:,.2f}."
                     )
         else:
-            # Long-Term Investment Bias Detection (Fresh Entry)
-            if dist_52w_high < -25.0 and (cfo_ratio < 55.0 or debt_to_equity > 1.2):
+            # Long-Term Investment Bias Detection (Fresh Entry) with Quant Screener Matrix
+            if stage_num == 4 or (qualified_count == 0 and dist_52w_high < -25.0):
+                status = "STAGE4_VALUE_TRAP"
+                badge = "🩸 VALUE TRAP / STAGE 4 CAPITULATION (0/11 SCREENERS)"
+                badge_color = "#ef4444"
+                cro_verdict = (
+                    f"{comp_name} is down {abs(dist_52w_high):.1f}% from its 52-week peak, making it appear psychologically 'cheap'. "
+                    f"However, the Quant Screener Matrix confirms Stage 4 Capitulation with 0/11 screeners passing, and 5Y Cash Realization is {cfo_ratio:.1f}%. "
+                    f"Buying here anchors to past peak prices rather than present institutional accumulation."
+                )
+                recommendation = (
+                    f"Do NOT allocate capital on the hope of a turnaround. Wait for at least 2 consecutive quarters of operational cash recovery and for the stock to build a verified Stage 1 accumulation base before committing multi-year capital."
+                )
+            elif dist_52w_high < -25.0 and (cfo_ratio < 55.0 or debt_to_equity > 1.2):
                 status = "FALLING_KNIFE"
                 badge = "⚠️ VALUE TRAP / FALLING KNIFE WARNING"
                 badge_color = "#f87171"
@@ -755,47 +1002,75 @@ def evaluate_trade_intent(
                     f"Sound long-term decision. Accumulate methodically around CMP ₹{cmp_val:,.2f}. Hold for a 2–3 year investment horizon."
                 )
     else:
-        # SELL Intent Diagnostics (Position-Aware)
+        # SELL Intent Diagnostics (Position-Aware) with Quant Screener Matrix
         if is_held:
             if pnl_pct >= 0:
-                status = "PROFIT_HARVEST"
-                badge = "💰 STRATEGIC PROFIT HARVESTING & DE-RISKING"
-                badge_color = "#10b981"
                 harv_q = max(1.0, round(held_qty * 0.5))
                 rem_q = held_qty - harv_q
-                cro_verdict = (
-                    f"You hold {held_qty:g} shares of {comp_name} at an average cost of ₹{avg_buy_price:,.2f}, "
-                    f"currently enjoying a +{pnl_pct:.1f}% unrealized gain (+₹{unrealized_pnl:,.2f}). "
-                    f"Exiting into strength is rational, but selling 100% of your position risks cutting a confirmed Stage 2 super-performer prematurely."
-                )
-                recommendation = (
-                    f"Execute a balanced 50% partial harvest: Sell {harv_q:g} shares at CMP ₹{cmp_val:,.2f} to bank hard cash profit, "
-                    f"and hold the remaining {rem_q:g} shares as a risk-free runner trailing the 20-day EMA (₹{ema_20:,.2f})."
-                )
-            elif pnl_pct <= -20.0:
-                status = "CAPITULATION_CHECK"
-                badge = "🩹 CAPITULATION vs RATIONAL REALLOCATION"
-                badge_color = "#f59e0b"
-                cro_verdict = (
-                    f"You hold {held_qty:g} shares of {comp_name} with an average cost of ₹{avg_buy_price:,.2f}, "
-                    f"sitting at a severe -{abs(pnl_pct):.1f}% drawdown (-₹{abs(unrealized_pnl):,.2f}). "
-                )
-                if sma_200 > 0 and cmp_val < sma_200 * 0.95:
-                    cro_verdict += f"The stock has broken well below its 200-day SMA (₹{sma_200:,.2f}), confirming sustained institutional distribution (Stage 4 markdown). Holding indefinitely on hope exposes you to further capital decay."
+                if stage_num == 2 and qualified_count >= 3:
+                    status = "STAGE2_HARVEST_CAUTION"
+                    badge = f"💰 STAGE 2 SUPER-PERFORMER HARVEST ({qualified_count}/11 SCREENERS)"
+                    badge_color = "#10b981"
+                    cro_verdict = (
+                        f"You hold {held_qty:g} shares of {comp_name} at an average cost of ₹{avg_buy_price:,.2f}, currently enjoying a +{pnl_pct:.1f}% profit (+₹{unrealized_pnl:,.2f}). "
+                        f"Quant Screener Matrix shows {qualified_count}/11 institutional setups still active ({', '.join(qualified_screeners[:2])}) in Stage 2 Markup. "
+                        f"Selling 100% of your position forfeits subsequent runner legs."
+                    )
                     recommendation = (
-                        f"Price is trading well below its 200-SMA (₹{sma_200:,.2f}), which has flipped to heavy overhead resistance. "
-                        f"Rather than an emotional panic dump at CMP ₹{cmp_val:,.2f}, place an exit limit order into an intraday relief bounce "
-                        f"towards the declining 20-EMA (₹{ema_20:,.2f}) to preserve capital for Stage 2 leaders."
+                        f"Execute a balanced 50% partial harvest: Sell {harv_q:g} shares at CMP ₹{cmp_val:,.2f} to bank hard cash profit, "
+                        f"and hold the remaining {rem_q:g} shares as a risk-free runner trailing the 20-day EMA (₹{ema_20:,.2f})."
+                    )
+                else:
+                    status = "PROFIT_HARVEST"
+                    badge = "💰 STRATEGIC PROFIT HARVESTING & DE-RISKING"
+                    badge_color = "#10b981"
+                    cro_verdict = (
+                        f"You hold {held_qty:g} shares of {comp_name} at an average cost of ₹{avg_buy_price:,.2f}, "
+                        f"currently enjoying a +{pnl_pct:.1f}% unrealized gain (+₹{unrealized_pnl:,.2f}). "
+                        f"Exiting into strength is rational risk management."
+                    )
+                    recommendation = (
+                        f"Execute a balanced 50% partial harvest: Sell {harv_q:g} shares at CMP ₹{cmp_val:,.2f} to bank hard cash profit, "
+                        f"and hold the remaining {rem_q:g} shares as a risk-free runner trailing the 20-day EMA (₹{ema_20:,.2f})."
+                    )
+            elif pnl_pct <= -20.0:
+                if stage_num == 4 or (sma_200 > 0 and cmp_val < sma_200 * 0.95):
+                    status = "STAGE4_EXIT_VALIDATION"
+                    badge = "🩹 STAGE 4 LOSS HARVEST & REALLOCATION (0/11 SCREENERS)"
+                    badge_color = "#f59e0b"
+                    cro_verdict = (
+                        f"You hold {held_qty:g} shares of {comp_name} with an average cost of ₹{avg_buy_price:,.2f}, "
+                        f"sitting at a severe -{abs(pnl_pct):.1f}% drawdown (-₹{abs(unrealized_pnl):,.2f}). "
+                        f"Quant Screener Matrix confirms 0/11 institutional setups active in a confirmed Stage 4 Capitulation markdown. "
+                        f"The stock has decisively broken below its 200-day SMA (₹{sma_200:,.2f}), confirming sustained institutional distribution. Holding indefinitely on hope exposes you to further capital decay."
+                    )
+                    recommendation = (
+                        f"Quant Screener Matrix fully endorses an orderly exit. Price is trading well below its 200-SMA (₹{sma_200:,.2f}), which has flipped to heavy overhead resistance. "
+                        f"Rather than an emotional panic dump at CMP ₹{cmp_val:,.2f}, place an exit limit order into an intraday relief bounce towards the declining 20-EMA (₹{ema_20:,.2f}) to preserve capital for Stage 2 leaders."
                     )
                 elif sma_200 > 0 and abs(cmp_val - sma_200) / sma_200 <= 0.05:
-                    cro_verdict += f"Selling after an extended decline often capitulates at cyclical 200-SMA support right where institutional swing buyers accumulate."
+                    status = "CAPITULATION_CHECK"
+                    badge = "🩹 CAPITULATION vs RATIONAL REALLOCATION"
+                    badge_color = "#f59e0b"
+                    cro_verdict = (
+                        f"You hold {held_qty:g} shares of {comp_name} with an average cost of ₹{avg_buy_price:,.2f}, "
+                        f"sitting at a severe -{abs(pnl_pct):.1f}% drawdown (-₹{abs(unrealized_pnl):,.2f}). "
+                        f"Selling after an extended decline often capitulates at cyclical 200-SMA support right where institutional swing buyers accumulate."
+                    )
                     recommendation = (
                         f"Check if {comp_name} is stabilizing around structural 200-SMA support (₹{sma_200:,.2f}). If the 200-SMA holds, "
                         f"execute your exit into a relief bounce towards the 20-EMA (₹{ema_20:,.2f}). A daily close below ₹{sma_200 * 0.97:,.2f} "
                         f"invalidates support and mandates an immediate stop-loss exit."
                     )
                 else:
-                    cro_verdict += f"Selling after a massive decline often capitulates at cyclical support right where institutions accumulate."
+                    status = "CAPITULATION_CHECK"
+                    badge = "🩹 CAPITULATION vs RATIONAL REALLOCATION"
+                    badge_color = "#f59e0b"
+                    cro_verdict = (
+                        f"You hold {held_qty:g} shares of {comp_name} with an average cost of ₹{avg_buy_price:,.2f}, "
+                        f"sitting at a severe -{abs(pnl_pct):.1f}% drawdown (-₹{abs(unrealized_pnl):,.2f}). "
+                        f"Selling after a massive decline often capitulates at cyclical support right where institutions accumulate."
+                    )
                     recommendation = (
                         f"Given the deep drawdown (-{abs(pnl_pct):.1f}%), avoid an emotional market exit at lows. Plan your exit into the next "
                         f"relief bounce towards the 20-EMA (₹{ema_20:,.2f}) to preserve capital for higher-probability stage setups."
@@ -850,7 +1125,7 @@ def evaluate_trade_intent(
                     f"If exiting an external position, ensure your stop-loss at ₹{stop_loss:,.2f} is respected. Keep liberated cash ready for fresh confluence setups."
                 )
 
-    # 7b. Generate Devil's Advocate Counter-Thesis (Position-Aware)
+    # 7b. Generate Devil's Advocate Counter-Thesis (Position & Quant Matrix-Aware)
     devils_advocate = generate_devils_advocate_thesis(
         action=norm_action,
         horizon=norm_horizon,
@@ -878,7 +1153,8 @@ def evaluate_trade_intent(
         fii_curr=fii_curr,
         fii_prev=fii_prev,
         prom_pledge=prom_pledge,
-        position_info=pos
+        position_info=pos,
+        quant_matrix=qm
     )
 
     # 8. Build Plain-English WhatsApp & Markdown Output
@@ -899,6 +1175,8 @@ def evaluate_trade_intent(
         )
     else:
         pos_md = "💼 *YOUR PORTFOLIO POSITION*: Fresh Idea (0 Shares recorded in Portfolio)\n\n"
+
+    active_screeners_line = f"• Active Confluence: {', '.join(qualified_screeners[:4])}\n" if qualified_screeners else "• Active Confluence: None (0/11 passed — Institutional Distribution)\n"
 
     if norm_horizon == "swing":
         cards = [
@@ -921,14 +1199,17 @@ def evaluate_trade_intent(
                 "color": "#34d399" if rr_ratio >= 2.0 else ("#f59e0b" if rr_ratio >= 1.3 else "#ef4444")
             },
             {
-                "title": "📊 Volume & Dynamic Support",
-                "value": f"{volume_ratio:.2f}x Vol",
-                "sub": f"50-EMA: ₹{ema_50:,.2f}",
-                "color": "#34d399" if volume_ratio >= 1.0 else "#94a3b8"
+                "title": "🔬 Quant Screener Score",
+                "value": f"{qualified_count}/11 Passed",
+                "sub": f"{stage_name.split(':')[0]} ({'Leader' if qualified_count >= 4 else ('Laggard' if qualified_count == 0 else 'Neutral')})",
+                "color": "#10b981" if qualified_count >= 4 else ("#ef4444" if qualified_count == 0 else "#f59e0b")
             }
         ]
         facts_md = (
-            "📊 *THE COLD HARD FACTS (SWING GEOMETRY)*:\n"
+            "📊 *THE COLD HARD FACTS (SWING GEOMETRY & QUANT MATRIX)*:\n"
+            f"• Quant Screener Matrix: {qualified_count}/11 Qualified ({stage_name})\n"
+            f"{active_screeners_line}"
+            f"• 30-Week MA Slope: {'+' if ma_30wk_slope >= 0 else ''}{ma_30wk_slope:.1f}% • 52W High Dist: {dist_52w_high:+.1f}%\n"
             f"• Base Breakout Pivot: ₹{pivot_price:,.2f} (Extension: {'+' if pivot_extension_pct >= 0 else ''}{pivot_extension_pct}%)\n"
             f"• Distance from 20-Day EMA: {'+' if ema20_dist_pct >= 0 else ''}{ema20_dist_pct}%\n"
             f"• Potential Downside Risk: -{downside_risk_pct}% (Stop-Loss: ₹{stop_loss:,.2f})\n"
@@ -946,16 +1227,16 @@ def evaluate_trade_intent(
                 "color": "#34d399" if cfo_ratio >= 80 else ("#f59e0b" if cfo_ratio >= 60 else "#ef4444")
             },
             {
+                "title": "🔬 Quant Screener Score",
+                "value": f"{qualified_count}/11 Passed",
+                "sub": f"{stage_name.split(':')[0]} ({'Leader' if qualified_count >= 4 else ('Laggard' if qualified_count == 0 else 'Neutral')})",
+                "color": "#10b981" if qualified_count >= 4 else ("#ef4444" if qualified_count == 0 else "#f59e0b")
+            },
+            {
                 "title": "⚖️ Valuation Multiple",
                 "value": f"{current_pe:.1f}x P/E",
                 "sub": f"5Y Median: {median_pe:.1f}x ({'+' if pe_diff >= 0 else ''}{pe_diff}%)",
                 "color": "#34d399" if pe_diff <= 0 else ("#f59e0b" if pe_diff <= 25 else "#ef4444")
-            },
-            {
-                "title": "🚀 Capital Compounding",
-                "value": f"{roe_pct:.1f}% ROE",
-                "sub": f"ROCE: {prof_data.get('roce_pct', 0.0):.1f}% capital return",
-                "color": "#38bdf8"
             },
             {
                 "title": "🛡️ Balance Sheet Leverage",
@@ -965,7 +1246,10 @@ def evaluate_trade_intent(
             }
         ]
         facts_md = (
-            "📊 *THE COLD HARD FACTS (COMPOUNDING & VALUATION)*:\n"
+            "📊 *THE COLD HARD FACTS (COMPOUNDING & QUANT MATRIX)*:\n"
+            f"• Quant Screener Matrix: {qualified_count}/11 Qualified ({stage_name})\n"
+            f"{active_screeners_line}"
+            f"• 30-Week MA Slope: {'+' if ma_30wk_slope >= 0 else ''}{ma_30wk_slope:.1f}% • 52W High Dist: {dist_52w_high:+.1f}%\n"
             f"• 5Y Cash Realization (CFO/PAT): {cfo_ratio:.1f}% ({'Pristine Real Cash' if cfo_ratio >= 80 else 'Accrual Drag'})\n"
             f"• Valuation Multiple: {current_pe:.1f}x P/E (5Y Median: {median_pe:.1f}x | {'+' if pe_diff >= 0 else ''}{pe_diff}%)\n"
             f"• Capital Efficiency: ROE {roe_pct:.1f}% • ROCE {prof_data.get('roce_pct', 0.0):.1f}%\n"
@@ -1003,7 +1287,22 @@ def evaluate_trade_intent(
         "badge_color": badge_color,
         "cards": cards,
         "position_info": pos,
+        "quant_matrix": {
+            "stage_number": stage_num,
+            "stage_name": stage_name,
+            "qualified_count": qualified_count,
+            "total_screeners": 11,
+            "qualified_screeners": qualified_screeners,
+            "ma_30wk_slope_pct": ma_30wk_slope,
+            "dist_52wk_high_pct": dist_52w_high,
+            "rs_rating": rs_rating
+        },
         "hard_facts": {
+            "stage_number": stage_num,
+            "stage_name": stage_name,
+            "qualified_count": qualified_count,
+            "qualified_screeners": qualified_screeners,
+            "ma_30wk_slope_pct": ma_30wk_slope,
             "pivot_price": pivot_price,
             "pivot_extension_pct": pivot_extension_pct,
             "ema_20": ema_20,
