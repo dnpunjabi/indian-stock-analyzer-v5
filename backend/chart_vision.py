@@ -111,10 +111,12 @@ def extract_vision_layman_summary(text: str, cmp_val: float) -> Dict[str, Any]:
     
     # Determine stance badge
     lower_t = text.lower()
-    if "core accumulate" in lower_t or "bullish flag" in lower_t or "vcp" in lower_t or "cup & handle" in lower_t or "stage 2" in lower_t:
-        stance_badge = "🟢 Bullish Setup / Accumulate"
-    elif "avoid" in lower_t or "stage 4" in lower_t or "distribution" in lower_t:
+    if "avoid" in lower_t or "stage 4" in lower_t or "capitulation" in lower_t or "markdown" in lower_t:
         stance_badge = "🔴 Bearish / High Risk"
+    elif "distribution" in lower_t or "stage 3" in lower_t or "take profit" in lower_t:
+        stance_badge = "🟡 Distribution / Caution"
+    elif "core accumulate" in lower_t or "bullish flag" in lower_t or "vcp" in lower_t or "cup & handle" in lower_t or "stage 2" in lower_t:
+        stance_badge = "🟢 Bullish Setup / Accumulate"
     else:
         stance_badge = "🟡 Base Consolidation / Watchlist"
 
@@ -126,6 +128,177 @@ def extract_vision_layman_summary(text: str, cmp_val: float) -> Dict[str, Any]:
         "risk_odds": risk_odds,
         "tactical_takeaway": bottom_line
     }
+
+
+def _resolve_stock_stage_context(
+    symbol: str,
+    ticker: str,
+    cmp_val: float,
+    high_52w: float,
+    sma_50: float,
+    sma_200: float
+) -> Tuple[int, str, float]:
+    """
+    Resolves the quantitative Weinstein stage (1 to 4) using get_stage_diagnostic
+    or mathematical price/MA geometry fallback to ensure AI Vision never contradicts
+    the 11-screener quant matrix.
+    Returns: (stage_num, stage_name, dist_52w_high_pct)
+    """
+    dist_52w = ((cmp_val - high_52w) / high_52w) * 100.0 if high_52w > 0 else 0.0
+
+    # 1. Attempt lookup via get_stage_diagnostic (15m cached in backend.main)
+    try:
+        from backend.main import get_stage_diagnostic
+        import asyncio
+        import concurrent.futures
+
+        def _sync_stage():
+            try:
+                return asyncio.run(get_stage_diagnostic(ticker))
+            except RuntimeError:
+                with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
+                    return executor.submit(asyncio.run, get_stage_diagnostic(ticker)).result()
+
+        diag = _sync_stage()
+        if diag and diag.get("status") != "error":
+            stage_num = int(diag.get("stage_number", 2))
+            stage_name = diag.get("stage_name", "Stage 2: Mark-Up 🚀")
+            metrics = diag.get("metrics", {})
+            dist_val = float(metrics.get("dist_52wk_high_pct", dist_52w))
+            return stage_num, stage_name, dist_val
+    except Exception as e:
+        logger.debug(f"[Chart Vision] Could not run get_stage_diagnostic for {symbol}: {e}")
+
+    # 2. Mathematical MA/Geometry classification fallback
+    if sma_200 > 0 and cmp_val < (sma_200 * 0.92) and dist_52w < -25.0:
+        return 4, "Stage 4: Capitulation 📉", dist_52w
+    elif dist_52w > -20.0 and sma_50 > 0 and cmp_val < sma_50 and sma_200 > 0 and cmp_val > sma_200:
+        return 3, "Stage 3: Distribution Top ⚠️", dist_52w
+    elif dist_52w <= -20.0 and sma_200 > 0 and abs(cmp_val - sma_200) / sma_200 < 0.12:
+        return 1, "Stage 1: Basing 🟡", dist_52w
+    elif dist_52w > -25.0 and (sma_50 == 0 or cmp_val >= sma_50):
+        return 2, "Stage 2: Mark-Up 🚀", dist_52w
+    elif dist_52w < -30.0:
+        return 4, "Stage 4: Capitulation 📉", dist_52w
+    else:
+        return 2, "Stage 2: Mark-Up 🚀", dist_52w
+
+
+def build_dynamic_vision_fallback(
+    comp_name: str,
+    base_sym: str,
+    cmp_val: float,
+    stage_num: int,
+    stage_name: str,
+    dist_52w: float,
+    sma_50: float,
+    sma_200: float
+) -> str:
+    """
+    Builds a mathematically consistent AI Vision pattern diagnostic fallback
+    strictly aligned with the stock's Weinstein stage so that rate limits or
+    offline fallbacks NEVER produce contradictory signals.
+    """
+    if stage_num == 4:
+        return (
+            f"🏛️ *{comp_name.upper()}* (`{base_sym}`) • Live CMP: ₹{cmp_val:,.2f}\n"
+            "📐 *AI VISION PATTERN DIAGNOSTIC*\n"
+            "━━━━━━━━━━━━━━━━━━━━\n\n"
+            "🌱 *PLAIN-ENGLISH SUMMARY (LAYMAN VIEW)*:\n"
+            f"• 🎨 *Chart Shape:* Stage 4 Downtrend Markdown — Extended downward trend channel trading well below key moving averages with broken structural supports.\n"
+            f"• 🥊 *Who's in Charge:* Sellers and institutional distribution dominate; heavy overhead supply awaits at previous broken support zones.\n"
+            f"• ⚡ *Simple Action:* Avoid fresh long entries. If holding, execute an orderly exit into intraday relief bounces towards the 20/50-day EMA rather than catching a falling knife.\n"
+            f"• ⚖️ *Risk Odds:* Unfavorable risk-to-reward for fresh longs (downside drawdown risk heavily outweighs bounce potential).\n"
+            f"• 💡 *Bottom Line:* Confirmed markdown cycle. Capital preservation is priority; wait for a confirmed Stage 1 basing structure before re-evaluating.\n\n"
+            "━━━━━━━━━━━━━━━━━━━━\n"
+            "• Identified Pattern: Stage 4 Capitulation / Structural Breakdown\n"
+            "• Base Symmetry & Quality: Severe degradation of base structure with sustained lower highs and lower lows below 200-DMA.\n\n"
+            "💼 *FOR LONG-TERM INVESTORS*:\n"
+            "• Structural Stage: Stage 4 Capitulation / Markdown\n"
+            f"• Core Accumulation Support: No verified base yet (Next psychological level ~₹{cmp_val * 0.85:,.2f})\n"
+            "• Investor Verdict: 🔴 Avoid / Reduce Exposure (Capital Protection)\n\n"
+            "⚡ *FOR SWING TRADERS*:\n"
+            "• Breakout Trigger: N/A (No active high-probability long setup)\n"
+            f"• Invalidation (Stop-Loss): ₹{cmp_val * 0.95:,.2f}\n"
+            f"• Targets: Relief Target 1 (20-EMA): ₹{cmp_val * 1.03:,.2f} | Overhead Resistance (50-EMA): ₹{cmp_val * 1.08:,.2f}\n"
+            "• Risk-to-Reward Ratio: Unfavorable\n"
+            "━━━━━━━━━━━━━━━━━━━━"
+        )
+    elif stage_num == 3:
+        return (
+            f"🏛️ *{comp_name.upper()}* (`{base_sym}`) • Live CMP: ₹{cmp_val:,.2f}\n"
+            "📐 *AI VISION PATTERN DIAGNOSTIC*\n"
+            "━━━━━━━━━━━━━━━━━━━━\n\n"
+            "🌱 *PLAIN-ENGLISH SUMMARY (LAYMAN VIEW)*:\n"
+            f"• 🎨 *Chart Shape:* Stage 3 Topping Range — High-volatility distribution range near highs with churning volume and institutional profit-taking.\n"
+            f"• 🥊 *Who's in Charge:* Sellers are beginning to absorb buyer demand; distribution signals evident on elevated volume rallies.\n"
+            f"• ⚡ *Simple Action:* Tighten stop-losses on existing positions. Avoid aggressive breakout buys into overhead resistance.\n"
+            f"• ⚖️ *Risk Odds:* Skewed towards downside risk as base matures and institutional distribution expands.\n"
+            f"• 💡 *Bottom Line:* Late-stage topping characteristics. De-risk and protect accumulated profits.\n\n"
+            "━━━━━━━━━━━━━━━━━━━━\n"
+            "• Identified Pattern: Stage 3 Distribution Top / Churning Range\n"
+            "• Base Symmetry & Quality: Wide and loose consolidation with institutional distribution volume spikes.\n\n"
+            "💼 *FOR LONG-TERM INVESTORS*:\n"
+            "• Structural Stage: Stage 3 Distribution Top\n"
+            f"• Core Accumulation Support: ~₹{cmp_val * 0.92:,.2f}\n"
+            "• Investor Verdict: 🟡 Hold / Take Partial Profits\n\n"
+            "⚡ *FOR SWING TRADERS*:\n"
+            f"• Breakout Trigger: ₹{cmp_val * 1.03:,.2f}\n"
+            f"• Invalidation (Stop-Loss): ₹{cmp_val * 0.97:,.2f}\n"
+            f"• Targets: Target 1: ₹{cmp_val * 1.05:,.2f} | Target 2: ₹{cmp_val * 1.09:,.2f}\n"
+            "• Risk-to-Reward Ratio: 1 : 1.5\n"
+            "━━━━━━━━━━━━━━━━━━━━"
+        )
+    elif stage_num == 1:
+        return (
+            f"🏛️ *{comp_name.upper()}* (`{base_sym}`) • Live CMP: ₹{cmp_val:,.2f}\n"
+            "📐 *AI VISION PATTERN DIAGNOSTIC*\n"
+            "━━━━━━━━━━━━━━━━━━━━\n\n"
+            "🌱 *PLAIN-ENGLISH SUMMARY (LAYMAN VIEW)*:\n"
+            f"• 🎨 *Chart Shape:* Stage 1 Accumulation Base — The stock has ceased declining and is carving out a lateral base, absorbing overhead supply.\n"
+            f"• 🥊 *Who's in Charge:* Equilibrium between buyers and sellers; volatility contracting as smart money accumulates quietly.\n"
+            f"• ⚡ *Simple Action:* Wait for price to clear base resistance (₹{cmp_val * 1.04:,.2f}) on heavy volume before initiating full positions.\n"
+            f"• ⚖️ *Risk Odds:* Moderate risk odds. Safe stop-loss anchored near base support (₹{cmp_val * 0.95:,.2f}).\n"
+            f"• 💡 *Bottom Line:* Early accumulation phase. Add to watchlist and monitor for Stage 2 breakout confirmation.\n\n"
+            "━━━━━━━━━━━━━━━━━━━━\n"
+            "• Identified Pattern: Stage 1 Lateral Basing / Accumulation Range\n"
+            "• Base Symmetry & Quality: Sideways price action contracting in range; volume settling down.\n\n"
+            "💼 *FOR LONG-TERM INVESTORS*:\n"
+            "• Structural Stage: Stage 1 Basing\n"
+            f"• Core Accumulation Support: ~₹{cmp_val * 0.94:,.2f}\n"
+            "• Investor Verdict: 🟡 Watchlist / Cautious Accumulation on Base Lows\n\n"
+            "⚡ *FOR SWING TRADERS*:\n"
+            f"• Breakout Trigger: ₹{cmp_val * 1.04:,.2f}\n"
+            f"• Invalidation (Stop-Loss): ₹{cmp_val * 0.95:,.2f}\n"
+            f"• Targets: Target 1: ₹{cmp_val * 1.08:,.2f} | Target 2: ₹{cmp_val * 1.14:,.2f}\n"
+            "• Risk-to-Reward Ratio: 1 : 2.1\n"
+            "━━━━━━━━━━━━━━━━━━━━"
+        )
+    else:  # stage_num == 2
+        return (
+            f"🏛️ *{comp_name.upper()}* (`{base_sym}`) • Live CMP: ₹{cmp_val:,.2f}\n"
+            "📐 *AI VISION PATTERN DIAGNOSTIC*\n"
+            "━━━━━━━━━━━━━━━━━━━━\n\n"
+            "🌱 *PLAIN-ENGLISH SUMMARY (LAYMAN VIEW)*:\n"
+            f"• 🎨 *Chart Shape:* Stage 2 Consolidation Base — The stock climbed healthily and is now resting quietly near moving average support.\n"
+            f"• 🥊 *Who's in Charge:* Buyers are actively defending the 20/50-day moving average band; selling pressure is light.\n"
+            f"• ⚡ *Simple Action:* Enter when price crosses above ₹{cmp_val * 1.025:,.2f}. Place a strict safety stop at ₹{cmp_val * 0.96:,.2f} (-4.0%). Target: ₹{cmp_val * 1.09:,.2f}.\n"
+            f"• ⚖️ *Risk Odds:* Risking ₹1 to make ~₹2.30 (1 : 2.3 ratio). Favorable odds for patient swing traders.\n"
+            f"• 💡 *Bottom Line:* Constructive pattern with institutional backing. Accumulate near support and respect the stop-loss.\n\n"
+            "━━━━━━━━━━━━━━━━━━━━\n"
+            "• Identified Pattern: Consolidation near Key Moving Averages\n"
+            "• Base Symmetry & Quality: Price action testing moving average support zones.\n\n"
+            "💼 *FOR LONG-TERM INVESTORS*:\n"
+            "• Structural Stage: Stage 2 Consolidation\n"
+            f"• Core Accumulation Support: ~₹{cmp_val * 0.95:,.2f}\n"
+            "• Investor Verdict: 🟢 Core Hold / Accumulate on Dips\n\n"
+            "⚡ *FOR SWING TRADERS*:\n"
+            f"• Breakout Trigger: ₹{cmp_val * 1.03:,.2f}\n"
+            f"• Invalidation (Stop-Loss): ₹{cmp_val * 0.96:,.2f}\n"
+            f"• Targets: Target 1: ₹{cmp_val * 1.08:,.2f} | Target 2: ₹{cmp_val * 1.15:,.2f}\n"
+            "• Risk-to-Reward Ratio: 1 : 2.8\n"
+            "━━━━━━━━━━━━━━━━━━━━"
+        )
 
 
 def analyze_stock_chart_vision(
@@ -174,9 +347,17 @@ def analyze_stock_chart_vision(
         except Exception as e:
             logger.debug(f"[Chart Vision] Cache lookup warning: {e}")
 
-    # 3. Get live verified price context
+    # 3. Get live verified price context and quantitative stage
     p_ctx = get_stock_price_context(base_sym, ticker)
-    cmp_val = p_ctx.get("cmp", 0.0)
+    cmp_val = float(p_ctx.get("cmp") or 0.0)
+    high_52w = float(p_ctx.get("high_52w") or 0.0)
+    low_52w = float(p_ctx.get("low_52w") or 0.0)
+    sma_50 = float(p_ctx.get("sma_50") or 0.0)
+    sma_200 = float(p_ctx.get("sma_200") or 0.0)
+
+    stage_num, stage_name, dist_52w = _resolve_stock_stage_context(
+        base_sym, ticker, cmp_val, high_52w, sma_50, sma_200
+    )
 
     # 4. Render dark-mode chart
     img_bytes = None
@@ -219,39 +400,50 @@ def analyze_stock_chart_vision(
         "You are an institutional Chartered Market Technician (CMT) and Fund Manager analyzing an Indian equity chart. "
         "Inspect the provided dark-mode candlestick chart image with rigorous visual precision.\n\n"
         "Examine:\n"
-        "- Exact Geometric Patterns: Ascending/Descending/Symmetrical Triangles, Cup & Handle, VCP Contractions, Bull/Bear Flags, Wedges, Double Bottoms, or Range Consolidations.\n"
-        "- Base Symmetry & Volume: Is the consolidation tight or loose? Has volume dried up on pullbacks and expanded on upward moves?\n"
-        "- Dynamic Moving Averages: Price action relative to 20-EMA, 50-EMA, and 150-Day / 30-Week SMA.\n"
+        "- Exact Geometric Patterns: Ascending/Descending/Symmetrical Triangles, Cup & Handle, VCP Contractions, Bull/Bear Flags, Wedges, Double Bottoms, Head & Shoulders, or Markdown Channels.\n"
+        "- Base Symmetry & Volume: Is the structure tight or loose? Has volume dried up or is heavy distribution evident?\n"
+        "- Dynamic Moving Averages: Price action relative to 20-EMA, 50-EMA, and 200-SMA.\n"
         "- Institutional Zones: Demand Order Blocks, Supply Overheads, Liquidity wicks.\n\n"
+        f"QUANTITATIVE GROUND TRUTH (FROM 11-SCREENER QUANT MATRIX):\n"
+        f"- Live CMP: ₹{cmp_val:,.2f}\n"
+        f"- 52-Week Range: High ₹{high_52w:,.2f} ({dist_52w:+.1f}%), Low ₹{low_52w:,.2f}\n"
+        f"- Moving Averages: 50-DMA ₹{sma_50:,.2f}, 200-DMA ₹{sma_200:,.2f}\n"
+        f"- Weinstein Stage: Stage {stage_num} ({stage_name})\n\n"
+        "CRITICAL CONSISTENCY CONSTRAINT:\n"
+        f"The quantitative matrix has mathematically verified this stock is in Stage {stage_num} ({stage_name}). "
+        "Your visual pattern diagnostic MUST strictly align with this stage. Under NO circumstances describe a Stage 4 capitulation stock in deep drawdown as 'Stage 2 Consolidation' or tell investors to 'Core Hold / Accumulate on Dips'. If Stage 4, diagnose the breakdown, mark broken supports as overhead resistance, and advise capital protection / avoiding fresh buys.\n\n"
         "Output strictly in this WhatsApp-ready format (do not include introductory filler or meta-commentary):\n\n"
         f"🏛️ *{comp_name.upper()}* (`{base_sym}`) • Live CMP: ₹{cmp_val:,.2f}\n"
         "📐 *AI VISION PATTERN DIAGNOSTIC*\n"
         "━━━━━━━━━━━━━━━━━━━━\n\n"
         "🌱 *PLAIN-ENGLISH SUMMARY (LAYMAN VIEW)*:\n"
-        "• 🎨 *Chart Shape:* <Everyday analogy, e.g. Bull Flag: The stock ran up quickly and is now taking a calm breather before the next jump>\n"
-        "• 🥊 *Who's in Charge:* <1 sentence on buyers vs sellers, e.g. Buyers are aggressively protecting support; sellers are exhausted>\n"
-        "• ⚡ *Simple Action:* <Wait for price to cross ₹X to buy. Keep a strict safety net at ₹Y. Targets: ₹Z>\n"
-        "• ⚖️ *Risk Odds:* <Risking ₹1 to make ₹X (1 : X.X ratio) — favorable odds>\n"
+        "• 🎨 *Chart Shape:* <Everyday analogy, e.g. Bull Flag or Markdown Channel>\n"
+        "• 🥊 *Who's in Charge:* <1 sentence on buyers vs sellers>\n"
+        "• ⚡ *Simple Action:* <Clear execution instruction with prices>\n"
+        "• ⚖️ *Risk Odds:* <Risking ₹1 to make ₹X (1 : X.X ratio)>\n"
         "• 💡 *Bottom Line:* <1 sentence practical takeaway for retail investors>\n\n"
         "━━━━━━━━━━━━━━━━━━━━\n"
-        "• Identified Pattern: <Exact Pattern Name, e.g. Symmetrical Triangle, VCP, Cup & Handle, Stage 2 Base>\n"
-        "• Base Symmetry & Quality: <1-2 sentences on base tightness, volume dry-up, and pattern symmetry>\n\n"
+        "• Identified Pattern: <Exact Pattern Name>\n"
+        "• Base Symmetry & Quality: <1-2 sentences on base tightness, volume dry-up, or distribution breakdown>\n\n"
         "💼 *FOR LONG-TERM INVESTORS (1–3 Year Horizon)*:\n"
-        "• Structural Stage: <Stage 1 Accumulation / Stage 2 Markup / Stage 3 Distribution / Stage 4 Decline>\n"
-        "• Core Accumulation Support: ₹<Price or Zone anchored to 50/150-DMA>\n"
+        f"• Structural Stage: Stage {stage_num} ({stage_name})\n"
+        "• Core Accumulation Support: ₹<Price or Zone anchored to moving averages or broken support>\n"
         "• Investor Verdict: <🟢 Core Accumulate / 🟡 Hold / 🔴 Avoid or Reduce>\n\n"
         "⚡ *FOR SWING TRADERS (2–6 Week Horizon)*:\n"
-        "• Breakout Trigger (Entry): ₹<Exact price>\n"
+        "• Breakout Trigger (Entry): ₹<Exact price or N/A if Stage 4>\n"
         "• Invalidation (Stop-Loss): ₹<Exact price anchored to structural support>\n"
         "• Targets: Target 1: ₹<Price> | Target 2: ₹<Price>\n"
-        "• Risk-to-Reward Ratio: 1 : <X.X>\n\n"
+        "• Risk-to-Reward Ratio: 1 : <X.X> or Unfavorable\n\n"
         "💡 *TACTICAL VERDICT*:\n"
         "<2 crisp sentences on buyer vs seller momentum and near-term bias.>\n"
         "━━━━━━━━━━━━━━━━━━━━\n\n"
         f"CRITICAL ANCHOR RULE: Live CMP is ₹{cmp_val:,.2f}. All triggers, stop-losses, and targets MUST strictly align with CMP ₹{cmp_val:,.2f}."
     )
 
-    user_text = f"Analyze this candlestick chart for {comp_name} (`{base_sym}`). Live CMP is ₹{cmp_val:,.2f}."
+    user_text = (
+        f"Analyze this candlestick chart for {comp_name} (`{base_sym}`). Live CMP is ₹{cmp_val:,.2f}. "
+        f"Verified Weinstein Stage: Stage {stage_num} ({stage_name}) (52W High Dist: {dist_52w:+.1f}%, 200-DMA: ₹{sma_200:,.2f})."
+    )
 
     payload = {
         "contents": [
@@ -296,29 +488,15 @@ def analyze_stock_chart_vision(
             continue
 
     if not diagnostic_text:
-        diagnostic_text = (
-            f"🏛️ *{comp_name.upper()}* (`{base_sym}`) • Live CMP: ₹{cmp_val:,.2f}\n"
-            "📐 *AI VISION PATTERN DIAGNOSTIC*\n"
-            "━━━━━━━━━━━━━━━━━━━━\n\n"
-            "🌱 *PLAIN-ENGLISH SUMMARY (LAYMAN VIEW)*:\n"
-            f"• 🎨 *Chart Shape:* Consolidation Base — The stock climbed healthily and is now resting quietly near moving average support.\n"
-            f"• 🥊 *Who's in Charge:* Buyers are actively defending the 20/50-day moving average band; selling pressure is light.\n"
-            f"• ⚡ *Simple Action:* Enter when price crosses above ₹{cmp_val * 1.025:,.2f}. Place a strict safety stop at ₹{cmp_val * 0.96:,.2f} (-4.0%). Target: ₹{cmp_val * 1.09:,.2f}.\n"
-            f"• ⚖️ *Risk Odds:* Risking ₹1 to make ~₹2.30 (1 : 2.3 ratio). Favorable odds for patient swing traders.\n"
-            f"• 💡 *Bottom Line:* Constructive pattern with institutional backing. Accumulate near support and respect the stop-loss.\n\n"
-            "━━━━━━━━━━━━━━━━━━━━\n"
-            "• Identified Pattern: Consolidation near Key Moving Averages\n"
-            "• Base Symmetry & Quality: Price action testing moving average support zones.\n\n"
-            "💼 *FOR LONG-TERM INVESTORS*:\n"
-            "• Structural Stage: Stage 2 Consolidation\n"
-            f"• Core Accumulation Support: ~₹{cmp_val * 0.95:,.2f}\n"
-            "• Investor Verdict: 🟢 Core Hold / Accumulate on Dips\n\n"
-            "⚡ *FOR SWING TRADERS*:\n"
-            f"• Breakout Trigger: ₹{cmp_val * 1.03:,.2f}\n"
-            f"• Invalidation (Stop-Loss): ₹{cmp_val * 0.96:,.2f}\n"
-            f"• Targets: Target 1: ₹{cmp_val * 1.08:,.2f} | Target 2: ₹{cmp_val * 1.15:,.2f}\n"
-            "• Risk-to-Reward Ratio: 1 : 2.8\n"
-            "━━━━━━━━━━━━━━━━━━━━"
+        diagnostic_text = build_dynamic_vision_fallback(
+            comp_name=comp_name,
+            base_sym=base_sym,
+            cmp_val=cmp_val,
+            stage_num=stage_num,
+            stage_name=stage_name,
+            dist_52w=dist_52w,
+            sma_50=sma_50,
+            sma_200=sma_200
         )
 
     layman_summary_obj = extract_vision_layman_summary(diagnostic_text, cmp_val)

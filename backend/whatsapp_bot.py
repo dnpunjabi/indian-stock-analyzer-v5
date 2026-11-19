@@ -5646,7 +5646,8 @@ def handle_stock_financials(symbol_input: str, recipient: Optional[str] = None) 
         if sales_start > 0 and sales_end > 0 and len(sales) > 1:
             cagr = ((sales_end / sales_start) ** (1 / (len(sales) - 1)) - 1) * 100
             cagr_badge = "🟢" if cagr >= 12 else ("🟡" if cagr >= 5 else "🔴")
-            cagr_str = f"{cagr_badge} *+{cagr:.1f}% p.a.*"
+            cagr_sign = "+" if cagr >= 0 else ""
+            cagr_str = f"{cagr_badge} *{cagr_sign}{cagr:.1f}% p.a.*"
 
         opm_str = " ➔ ".join([f"{v:.0f}%" for v in opm]) if opm else "N/A"
 
@@ -5659,12 +5660,14 @@ def handle_stock_financials(symbol_input: str, recipient: Optional[str] = None) 
         if pat_start > 0 and pat_end > 0 and len(net_profit) > 1:
             pat_cagr = ((pat_end / pat_start) ** (1 / (len(net_profit) - 1)) - 1) * 100
             pat_badge = "🟢" if pat_cagr >= 12 else ("🟡" if pat_cagr >= 5 else "🔴")
-            pat_cagr_str = f"{pat_badge} *+{pat_cagr:.1f}% p.a.*"
+            pat_sign = "+" if pat_cagr >= 0 else ""
+            pat_cagr_str = f"{pat_badge} *{pat_sign}{pat_cagr:.1f}% p.a.*"
 
         # CFO / PAT Cash Conversion
         cfo_latest = cfo[-1] if cfo else 0
         conv_str = "N/A"
-        if pat_end > 0 and cfo_latest:
+        conv_ratio = 0.0
+        if pat_end > 0 and cfo_latest is not None:
             conv_ratio = (cfo_latest / pat_end) * 100
             conv_badge = "🟢" if conv_ratio >= 90 else ("🟡" if conv_ratio >= 60 else "⚠️")
             conv_str = f"{conv_badge} *{conv_ratio:.1f}%* (High Earnings Quality)" if conv_ratio >= 90 else f"{conv_badge} *{conv_ratio:.1f}%*"
@@ -5676,10 +5679,16 @@ def handle_stock_financials(symbol_input: str, recipient: Optional[str] = None) 
         y_end = years[-1] if years else "Latest"
 
         # Quant Compounder Verdict
-        if (sales_start > 0 and sales_end > sales_start) and total_fcf > 0 and (pat_end > pat_start):
+        if (sales_start > 0 and sales_end > sales_start) and total_fcf > 0 and (pat_end > pat_start) and conv_ratio >= 75:
             v_title = "💎 High-Grade Cash Compounder"
             v_desc = "Double-digit top-line growth with consistent positive free cash flow and expanding operational scale."
-        elif total_fcf > 0:
+        elif cfo_latest < 0 or conv_ratio < 0:
+            v_title = "⚠️ Accrual Leakage & Cash Flow Drain"
+            v_desc = f"Latest CFO is negative (₹ {cfo_latest:,.0f} Cr) with negative cash conversion ({conv_ratio:.1f}%). Reported earnings are trapped in working capital rather than converting to real cash."
+        elif conv_ratio < 50:
+            v_title = "⚠️ Significant Accrual Drag"
+            v_desc = f"Weak cash realization ({conv_ratio:.1f}%). A large portion of operating earnings is not translating into operational cash flow."
+        elif total_fcf > 0 and conv_ratio >= 60:
             v_title = "🛡️ Stable Cash Generator"
             v_desc = "Healthy operating cash conversion cushioning cyclical revenue phases."
         else:

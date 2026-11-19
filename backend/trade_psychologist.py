@@ -342,76 +342,139 @@ def generate_devils_advocate_thesis(
         stance = "BULL"
         stance_color = "#10b981"
 
-        # 1. Position-Aware Red-Team Challenge
-        if is_held:
-            if pnl_pct >= 0:
-                harv_q = max(1.0, round(held_qty * 0.5))
-                da_points.append({
-                    "title": "Cutting Stage 2 Super-Performers Prematurely",
-                    "detail": f"You have banked a pristine +{pnl_pct:.1f}% gain (+₹{unrealized_pnl:,.2f}) on {held_qty:g} shares. The stock is still respecting its trend. Liquidating 100% forfeits subsequent multi-month runner legs and triggers short-term tax friction. Instead of a binary exit, harvest 50% ({harv_q:g} shares) and let the remainder ride with a trailing stop below the 20-day EMA."
-                })
-            elif pnl_pct <= -20.0:
-                da_points.append({
-                    "title": "Capitulating at Deep Technical Support",
-                    "detail": f"You are down -{abs(pnl_pct):.1f}% (-₹{abs(unrealized_pnl):,.2f}) on {held_qty:g} shares. Panic-selling after an extended decline often dumps shares right into institutional demand zones at the cyclical bottom. Verify whether the stock is deeply oversold before market dumping."
-                })
-            else:
-                da_points.append({
-                    "title": "Disciplined Stop-Loss Capital Preservation",
-                    "detail": f"Exiting at a -{abs(pnl_pct):.1f}% loss on {held_qty:g} shares executes textbook risk control. A small paper loss is paying an insurance premium to protect against catastrophic -30% portfolio ulcer damage."
-                })
-
         if is_swing:
             da_title = "😇 DEVIL'S ADVOCATE: SWING TRADER'S BULL CASE (2–8 WEEKS)"
 
-            # Point 1: Support Capitulation
-            if abs(ema50_dist_pct) < 3.5 or abs(ema20_dist_pct) < 2.0:
-                da_points.append({
-                    "title": "Capitulating Directly into Support",
-                    "detail": f"Price is resting directly on dynamic moving average support (₹{ema_50:,.2f}) on below-average volume ({volume_ratio:.2f}x). Selling here capitulates into support right where institutional swing buyers accumulate."
-                })
+            if is_held:
+                if pnl_pct >= 0:
+                    harv_q = max(1.0, round(held_qty * 0.5))
+                    da_points.append({
+                        "title": "Cutting Stage 2 Momentum Leaders Prematurely",
+                        "detail": f"You have banked a pristine +{pnl_pct:.1f}% gain (+₹{unrealized_pnl:,.2f}) on {held_qty:g} shares. The stock is still respecting its trend. Liquidating 100% forfeits subsequent multi-month runner legs and triggers short-term tax friction. Instead of a binary exit, harvest 50% ({harv_q:g} shares) and let the remainder ride with a trailing stop below the 20-day EMA."
+                    })
+                    da_points.append({
+                        "title": "No Heavy Institutional Distribution",
+                        "detail": f"Selling volume is muted ({volume_ratio:.2f}x 20D average). True institutional exit is marked by massive volume spikes. Selling on quiet volume is often an emotional retail exit."
+                    })
+                    da_points.append({
+                        "title": "Trend Continuation Probability",
+                        "detail": f"Price is still trading above key dynamic moving averages (50-EMA ₹{ema_50:,.2f}). As long as higher lows are respected, the path of least resistance remains upward."
+                    })
+                    invalidation = f"{comp_name} breaks and closes decisively below structural support at ₹{stop_loss:,.2f} on expanding delivery volume (> 1.4x 20-day average), confirming institutional distribution."
+                elif pnl_pct <= -20.0:
+                    da_points.append({
+                        "title": "Capitulating at Deep Technical Support",
+                        "detail": f"You are down -{abs(pnl_pct):.1f}% (-₹{abs(unrealized_pnl):,.2f}) on {held_qty:g} shares. Panic-selling after an extended decline often dumps shares right into institutional demand zones at the cyclical bottom. Verify whether the stock is deeply oversold before market dumping."
+                    })
+                    if abs(ema20_dist_pct) < 2.5 or abs(ema50_dist_pct) < 3.5:
+                        da_points.append({
+                            "title": "Selling Directly Into Moving Average Support",
+                            "detail": f"Price is resting near dynamic moving average support (₹{ema_20:,.2f}) on light volume ({volume_ratio:.2f}x). Dumping shares here risks capitulating right at a short-term bounce zone."
+                        })
+                    else:
+                        da_points.append({
+                            "title": "Oversold Mean-Reversion Relief Bounce",
+                            "detail": f"The stock is stretched below its moving averages. Cashing out into deep oversold territory risks executing at the cyclical trough right before an algorithmic relief rally towards the 20-day EMA (₹{ema_20:,.2f})."
+                        })
+                    da_points.append({
+                        "title": "Tactical Limit Order vs Market Panic",
+                        "detail": f"Selling locks in a permanent capital loss of -₹{abs(unrealized_pnl):,.2f}. Instead of executing an emotional market dump at CMP ₹{eval_price:,.2f}, placing a limit order into an intraday bounce towards ₹{ema_20:,.2f} can recover valuable percentage points."
+                    })
+                    if sma_200 > 0 and eval_price < sma_200 * 0.95:
+                        invalidation = f"Price is already in a confirmed Stage 4 markdown below 200-SMA (₹{sma_200:,.2f}). An immediate disciplined exit is mandated if price breaks below ₹{stop_loss:,.2f} without staging a relief bounce."
+                    else:
+                        invalidation = f"{comp_name} breaks and closes decisively below structural support at ₹{stop_loss:,.2f} on expanding delivery volume (> 1.4x 20-day average), confirming institutional distribution."
+                else:
+                    da_points.append({
+                        "title": "Disciplined Stop-Loss Capital Preservation",
+                        "detail": f"Exiting at a -{abs(pnl_pct):.1f}% loss on {held_qty:g} shares executes textbook risk control. A small paper loss is paying an insurance premium to protect against catastrophic -30% portfolio ulcer damage."
+                    })
+                    da_points.append({
+                        "title": "Potential False Breakdown Shakeout",
+                        "detail": f"Volume on the pullback is {volume_ratio:.2f}x average. Whipsaws below stops on dry volume are frequently engineered shakeouts before trend continuation."
+                    })
+                    da_points.append({
+                        "title": "Capital Rotation Opportunity Cost",
+                        "detail": f"Exiting frees up liquidity to deploy into high-confluence Stage 2 momentum leaders showing relative strength vs Nifty."
+                    })
+                    invalidation = f"{comp_name} reclaims the 20-day EMA (₹{ema_20:,.2f}) with volume expansion > 1.3x 20-day average, signaling an undercut-and-rally reversal."
             else:
-                da_points.append({
-                    "title": "Oversold Mean-Reversion Bounce",
-                    "detail": f"The stock has absorbed recent selling. Cashing out into a red streak risks selling at the cyclical low right before an algorithmic relief rally."
-                })
-
-            # Point 2: Cutting Runners Too Early
-            da_points.append({
-                "title": "Cutting Stage 2 Momentum Leaders Prematurely",
-                "detail": f"If {comp_name} is in a confirmed Stage 2 markup, taking full profits on routine pullbacks forfeits subsequent 15–25% runner legs. Trailing a stop below the 20-EMA captures more alpha."
-            })
-
-            # Point 3: Volume Confirmation Missing
-            da_points.append({
-                "title": "No Heavy Institutional Distribution",
-                "detail": f"Selling volume is muted ({volume_ratio:.2f}x 20D average). True institutional exit is marked by massive volume spikes. Selling on quiet volume is often an emotional retail exit."
-            })
-
-            invalidation = f"{comp_name} breaks and closes decisively below structural support at ₹{stop_loss:,.2f} on expanding delivery volume (> 1.4x 20-day average), confirming institutional distribution."
+                if eval_price > ema_50 and dist_52w_high > -15.0:
+                    da_points.append({
+                        "title": "Cutting Stage 2 Momentum Leaders Prematurely",
+                        "detail": f"If {comp_name} is in a confirmed Stage 2 markup, selling or shorting pullbacks forfeits subsequent 15–25% runner legs. Trailing a stop below the 20-EMA captures more alpha."
+                    })
+                    da_points.append({
+                        "title": "No Heavy Institutional Distribution",
+                        "detail": f"Selling volume is muted ({volume_ratio:.2f}x 20D average). True institutional exit is marked by massive volume spikes. Selling on quiet volume is often an emotional retail exit."
+                    })
+                    da_points.append({
+                        "title": "Trend Continuation Geometry",
+                        "detail": f"Price is holding above dynamic 50-EMA support (₹{ema_50:,.2f}). As long as moving averages trend upward, odds favor continuation."
+                    })
+                else:
+                    da_points.append({
+                        "title": "Mature Downtrend Exhaustion Risk",
+                        "detail": f"The stock is already {abs(dist_52w_high):.1f}% off its 52-week high. Initiating short/exit bets after extended drops carries high risk of getting caught in sharp short-covering relief spikes."
+                    })
+                    da_points.append({
+                        "title": "Volume Diminishing at Depressed Levels",
+                        "detail": f"Selling volume is drying up ({volume_ratio:.2f}x average), indicating seller exhaustion near structural demand levels."
+                    })
+                    da_points.append({
+                        "title": "Asymmetric Risk-to-Reward on Downside",
+                        "detail": f"Downside momentum is extended. Risking further capital on downside continuation offers poor risk-to-reward."
+                    })
+                invalidation = f"{comp_name} breaks and closes decisively below structural support at ₹{stop_loss:,.2f} on expanding delivery volume (> 1.4x 20-day average), confirming institutional distribution."
 
         else:
             da_title = "😇 DEVIL'S ADVOCATE: LONG-TERM INVESTOR'S BULL CASE (1–3 YEARS)"
 
-            # Point 1: Compounding Friction
-            da_points.append({
-                "title": "The Compounding Tax & Reinvestment Friction",
-                "detail": f"Selling a business with {roe_pct:.1f}% ROE and {cfo_ratio:.1f}% cash conversion triggers capital gains tax and creates cash-drag friction. Finding an equal or better multi-year replacement is statistically difficult."
-            })
+            # Point 1: Compounding Friction / Cyclical Reality
+            if is_held and pnl_pct < 0:
+                da_points.append({
+                    "title": "Cyclical Trough Capitulation vs Business Moat",
+                    "detail": f"You are sitting on a -{abs(pnl_pct):.1f}% drawdown on {held_qty:g} shares. Distinguish whether this is a temporary cyclical downcycle or permanent business impairment. Liquidating at cyclical lows permanently locks in a ₹{abs(unrealized_pnl):,.2f} capital loss."
+                })
+            else:
+                da_points.append({
+                    "title": "The Compounding Tax & Reinvestment Friction",
+                    "detail": f"Selling a business with {roe_pct:.1f}% ROE triggers capital gains tax friction and cash-drag. Finding an equal or better multi-year replacement compounder in the Indian market is statistically difficult."
+                })
 
-            # Point 2: Cash Realization Engine Intact
-            da_points.append({
-                "title": "Cash Conversion Engine Remains Resilient",
-                "detail": f"5-Year CFO/PAT of {cfo_ratio:.1f}% proves earnings are genuine cash. Elite cash-generating companies consistently compound through business cycles."
-            })
+            # Point 2: Cash Realization Engine Reality
+            if cfo_ratio >= 75.0:
+                da_points.append({
+                    "title": "Cash Conversion Engine Remains Resilient",
+                    "detail": f"5-Year CFO/PAT of {cfo_ratio:.1f}% proves earnings convert reliably into real cash flow. Elite cash-generating companies consistently compound through business cycles."
+                })
+            elif cfo_ratio >= 45.0:
+                da_points.append({
+                    "title": "Working Capital Normalization Potential",
+                    "detail": f"While recent 5-year cash conversion is moderate ({cfo_ratio:.1f}% CFO/PAT), capital-intensive businesses frequently experience multi-year cash flow normalization as receivables unlock."
+                })
+            else:
+                da_points.append({
+                    "title": "Accrual Drag Heavily Discounted by Market",
+                    "detail": f"At {current_pe:.1f}x P/E and after a {abs(dist_52w_high):.1f}% drawdown from highs, weak cash realization ({cfo_ratio:.1f}% CFO/PAT) is already acknowledged by the market. Liquidating after the de-rating forfeits potential turnaround re-rating."
+                })
 
-            # Point 3: Multi-Year Economic Runway
-            da_points.append({
-                "title": "Long Industry Compounding Runway",
-                "detail": f"With conservative leverage ({debt_to_equity:.2f} D/E), management has the balance sheet capacity to fund organic expansion and capture market share over a 3-year cycle."
-            })
+            # Point 3: Balance Sheet Runway & Macro Optionality
+            if debt_to_equity <= 0.6:
+                da_points.append({
+                    "title": "Conservative Balance Sheet Runway",
+                    "detail": f"With manageable leverage ({debt_to_equity:.2f} D/E), management has the solvency capacity to navigate sector downcycles without dilutive equity raises."
+                })
+            else:
+                da_points.append({
+                    "title": "Order Book & Macro Turnaround Optionality",
+                    "detail": f"While leverage is {debt_to_equity:.2f} D/E, market leaders in capital-intensive sectors often benefit from sector turnaround tailwinds that restore balance sheet health over a 3-year cycle."
+                })
 
-            invalidation = f"Structural impairment in company economics: ROCE dropping permanently below 12% or debt-to-equity surging above 1.0 without corresponding asset expansion."
+            if is_held and pnl_pct < 0:
+                invalidation = f"Structural impairment confirmed: ROCE dropping permanently below 10%, debt-to-equity surging above 1.2x, or two consecutive quarters of negative operational cash flow with zero backlog growth."
+            else:
+                invalidation = f"Structural impairment in company economics: ROCE dropping permanently below 12% or debt-to-equity surging above 1.0 without corresponding asset expansion."
 
     return {
         "title": da_title,
@@ -716,12 +779,27 @@ def evaluate_trade_intent(
                 cro_verdict = (
                     f"You hold {held_qty:g} shares of {comp_name} with an average cost of ₹{avg_buy_price:,.2f}, "
                     f"sitting at a severe -{abs(pnl_pct):.1f}% drawdown (-₹{abs(unrealized_pnl):,.2f}). "
-                    f"Selling after a massive decline often capitulates at cyclical support right where institutions accumulate."
                 )
-                recommendation = (
-                    f"Check if {comp_name} is testing structural 200-SMA support (₹{sma_200:,.2f}). If cash flow is stable (CFO/PAT: {cfo_ratio:.1f}%), "
-                    f"execute your exit into the next relief bounce towards the 20-EMA (₹{ema_20:,.2f}) rather than a panic market dump."
-                )
+                if sma_200 > 0 and cmp_val < sma_200 * 0.95:
+                    cro_verdict += f"The stock has broken well below its 200-day SMA (₹{sma_200:,.2f}), confirming sustained institutional distribution (Stage 4 markdown). Holding indefinitely on hope exposes you to further capital decay."
+                    recommendation = (
+                        f"Price is trading well below its 200-SMA (₹{sma_200:,.2f}), which has flipped to heavy overhead resistance. "
+                        f"Rather than an emotional panic dump at CMP ₹{cmp_val:,.2f}, place an exit limit order into an intraday relief bounce "
+                        f"towards the declining 20-EMA (₹{ema_20:,.2f}) to preserve capital for Stage 2 leaders."
+                    )
+                elif sma_200 > 0 and abs(cmp_val - sma_200) / sma_200 <= 0.05:
+                    cro_verdict += f"Selling after an extended decline often capitulates at cyclical 200-SMA support right where institutional swing buyers accumulate."
+                    recommendation = (
+                        f"Check if {comp_name} is stabilizing around structural 200-SMA support (₹{sma_200:,.2f}). If the 200-SMA holds, "
+                        f"execute your exit into a relief bounce towards the 20-EMA (₹{ema_20:,.2f}). A daily close below ₹{sma_200 * 0.97:,.2f} "
+                        f"invalidates support and mandates an immediate stop-loss exit."
+                    )
+                else:
+                    cro_verdict += f"Selling after a massive decline often capitulates at cyclical support right where institutions accumulate."
+                    recommendation = (
+                        f"Given the deep drawdown (-{abs(pnl_pct):.1f}%), avoid an emotional market exit at lows. Plan your exit into the next "
+                        f"relief bounce towards the 20-EMA (₹{ema_20:,.2f}) to preserve capital for higher-probability stage setups."
+                    )
             else:
                 status = "STOP_EXECUTION"
                 badge = "🛡️ DISCIPLINED STOP-LOSS PRESERVATION"
