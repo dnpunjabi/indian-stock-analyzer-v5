@@ -933,6 +933,7 @@ def handle_main_menu(recipient: Optional[str] = None) -> Dict[str, Any]:
         "Tap *Open Menu* below to explore strategies, markets, or sentinel alerts.\n\n"
         "💡 *Direct Shortcuts:*\n"
         "• Text any ticker (e.g. `BOSCH`, `RELIANCE`) for instant AI analysis\n"
+        "• Text `STAGE <SYM>` (e.g. `STAGE BOSCH`) for 4-Stage Life Cycle Masterclass\n"
         "• Text `CHART <SYM>` (e.g. `CHART INFY`) for dark technical chart\n"
         "• Text `CHECK BUY <SYM>` or `CHECK SELL <SYM>` for AI Trade Psychologist\n"
         "• Text `ALERT <SYM> > <PRICE>` or `SL <SYM> <PRICE>` to set live alerts\n"
@@ -1906,6 +1907,11 @@ def handle_screeners_menu(recipient: Optional[str] = None) -> Dict[str, Any]:
             "title": "📐 Price Action & Patterns",
             "rows": [
                 {
+                    "id": "nav:sub:stage_masterclass",
+                    "title": "🏛️ 4-Stage Life Cycle",
+                    "description": "Stan Weinstein & David Ryan Stages + 11-Screener Audit"
+                },
+                {
                     "id": "run:screen:confluence",
                     "title": "⭐ Apex Confluence",
                     "description": "Stocks passing 2+ institutional quant algorithms"
@@ -1968,6 +1974,7 @@ def handle_screeners_family(family_key: str, recipient: Optional[str] = None) ->
     elif family_key == "trend":
         title = "📈 Stage & Trend Following"
         rows = [
+            {"id": "nav:sub:stage_masterclass", "title": "🏛️ 4-Stage Life Cycle", "description": "Stan Weinstein & David Ryan Stages"},
             {"id": "run:screen:weinstein_stage2", "title": "📈 Stage 2 Mark-Up", "description": "Above rising 30-week moving average"},
             {"id": "run:screen:rs_line_new_high", "title": "💎 RS Line New High", "description": "RS line precedes price new high"},
             {"id": "run:screen:3weeks_tight", "title": "🧱 3-Weeks Tight", "description": "Weekly closes within 1.5% range"},
@@ -3146,19 +3153,55 @@ def handle_watchlist_audit(wl_id: int, recipient: Optional[str] = None) -> Dict[
     return send_whatsapp_interactive_buttons(body, buttons=buttons, recipient=recipient)
 
 
+def handle_stage_masterclass_hub(recipient: Optional[str] = None) -> Dict[str, Any]:
+    """
+    Renders Level 1 Hub for Stan Weinstein & David Ryan 4-Stage Life Cycle Masterclass.
+    Matches the Web App 4-Stage Life Cycle Masterclass tab and interactive search simulator.
+    """
+    body = (
+        "🏛️ *STAN WEINSTEIN & DAVID RYAN 4-STAGE LIFE CYCLE ENGINE*\n"
+        "───────────────────────────\n"
+        "Master the complete lifespan of Indian stocks: from institutional accumulation "
+        "(Stage 1) to explosive Mark-Up fortunes (Stage 2), top distribution (Stage 3), "
+        "and wealth-destroying capitulation (Stage 4).\n\n"
+        "⚡ *Interactive Stage 1-4 Diagnostic Simulator & Screener Qualification:*\n"
+        "Analyze any Indian stock symbol live to compute its Stage Phase (1, 2, 3, or 4), "
+        "30-week MA slope, and qualification against all 11 quant screeners:\n"
+        "• Mark Minervini VCP & CANSLIM\n"
+        "• Stan Weinstein Stage 2 Breakout\n"
+        "• David Ryan High-Tight Flag (HTF)\n"
+        "• 3-Weeks Tight (3WT) & Modern Flat Base\n"
+        "• Kristjan Qullamaggie Episodic Pivot (EP)\n"
+        "• Gil Morales Pocket Pivot Accumulation\n"
+        "• Oliver Kell 10/20 EMA Reversal & Wedge Pop\n"
+        "• William O'Neil Cup with Handle & RS Line New High\n"
+        "• Mark Minervini Undercut & Rally (U&R)\n\n"
+        "💡 *How to Run:*\n"
+        "• Text `STAGE <SYM>` (e.g. `STAGE BOSCH`, `STAGE POLYCAB`, `STAGE TRENT`)\n"
+        "• Text `WEINSTEIN <SYM>` or `RYAN <SYM>`\n\n"
+        "Or tap an instant Nifty 500 preset below to run live:"
+    )
+    buttons = [
+        ("run:stage:BOSCHLTD", "🏛️ BOSCH"),
+        ("run:stage:RELIANCE", "🏛️ RELIANCE"),
+        ("run:stage:TRENT", "🏛️ TRENT")
+    ]
+    return send_whatsapp_interactive_buttons(body, buttons=buttons, recipient=recipient)
+
+
 def handle_stock_stage_diagnostic(symbol_input: str, recipient: Optional[str] = None) -> Dict[str, Any]:
     """
     Renders Stage 1-4 Quantitative Life Cycle Alignment Map for a single stock.
     Diagnoses Stan Weinstein Stage 1-4, 30-week MA slope, 11-screener confluence status,
-    and algorithmic execution plan (pivot, stop-loss, targets).
+    and 3-part tactical action playbook (pivot, stop-loss, targets).
+    Parity match with Web App 4-Stage Masterclass UI.
     """
     clean_sym = (symbol_input or "").strip().upper()
-    clean_sym = re.sub(r"^(?:STAGE|MATRIX|QUANT)[\s:]+", "", clean_sym, flags=re.IGNORECASE).strip()
-    clean_sym = clean_sym.replace("RUN:STAGE:", "").replace("VIEW:STAGE:", "").strip()
+    clean_sym = re.sub(r"^(?:STAGE|MATRIX|QUANT|WEINSTEIN|RYAN|LIFECYCLE|4\s*STAGE)[\s:]+", "", clean_sym, flags=re.IGNORECASE).strip()
+    clean_sym = clean_sym.replace("RUN:STAGE:", "").replace("VIEW:STAGE:", "").replace("ACT:STAGE:", "").strip()
 
     if not clean_sym:
-        primary_id = get_primary_watchlist_id()
-        return handle_watchlist_stage_matrix(primary_id, recipient=recipient)
+        return handle_stage_masterclass_hub(recipient=recipient)
 
     resolved = resolve_company_ticker(clean_sym)
     base_sym = resolved.get("base_symbol") if resolved else clean_sym.replace(".NS", "").replace(".BO", "")
@@ -3192,7 +3235,8 @@ def handle_stock_stage_diagnostic(symbol_input: str, recipient: Optional[str] = 
         return send_whatsapp_interactive_buttons(
             body,
             buttons=[
-                ("nav:sub:watchlists", "⭐ Watchlists"),
+                ("run:stage:BOSCHLTD", "🏛️ BOSCH"),
+                ("run:stage:RELIANCE", "🏛️ RELIANCE"),
                 ("nav:menu:main", "🏠 Main Menu")
             ],
             recipient=recipient
@@ -3204,150 +3248,204 @@ def handle_stock_stage_diagnostic(symbol_input: str, recipient: Optional[str] = 
     slope = float(metrics.get("ma_30wk_slope_pct") or 0.0)
     dist_high = float(metrics.get("dist_52wk_high_pct") or 0.0)
     stage_num = diag.get("stage_number", 1)
+    stage_name = diag.get("stage_name") or f"Stage {stage_num}"
+    stage_conf = float(diag.get("stage_confidence") or 90.0)
+    ema_50 = float(metrics.get("ema_50") or 0.0)
+    ema_200 = float(metrics.get("ema_200") or 0.0)
+    vol_ratio = float(metrics.get("vol_ratio") or 1.0)
+    rs_rating = int(metrics.get("rs_rating") or 50)
 
-    stage_badge = (
-        "🟢 STAGE 2: MARK-UP 🚀" if stage_num == 2
-        else ("🟡 STAGE 1: BASING ⏳" if stage_num == 1
-        else ("🔴 STAGE 3: DISTRIBUTION TOP ⚠️" if stage_num == 3
-        else "🔻 STAGE 4: CAPITULATION 📉"))
-    )
+    # Executive Verdict & Summary (exact parity with Desktop app.js lines 61004-61016)
+    if stage_num == 2:
+        verdict_badge = f"🟢 STAGE 2: MARK-UP (BULLISH / BUY ZONE) | {stage_conf:.0f}% Confidence"
+        verdict_summary = "Institutions are actively accumulating. Favorable risk-reward for long position entries."
+    elif stage_num == 1:
+        verdict_badge = f"🟡 STAGE 1: BASING (WATCHLIST ZONE) | {stage_conf:.0f}% Confidence"
+        verdict_summary = "Stock is forming a base. Wait for volume expansion breakout before entering long positions."
+    elif stage_num == 3:
+        verdict_badge = f"🔴 STAGE 3: TOP DISTRIBUTION (CAUTION ZONE) | {stage_conf:.0f}% Confidence"
+        verdict_summary = "Rally is losing momentum. Tighten stop-losses or lock in partial profits."
+    else:
+        verdict_badge = f"🔻 STAGE 4: CAPITULATION (DANGER / AVOID) | {stage_conf:.0f}% Confidence"
+        verdict_summary = "Heavy institutional selling. Avoid buying or averaging down on declining prices."
 
     ORDERED_SCREENERS = [
-        ("vcp", "Minervini VCP"),
-        ("weinstein_stage2", "Weinstein Stage 2"),
-        ("htf", "High-Tight Flag"),
-        ("three_wt", "3-Weeks Tight"),
-        ("flat_base", "Modern Flat Base"),
-        ("episodic_pivot", "Episodic Pivot"),
-        ("pocket_pivot", "Pocket Pivot"),
-        ("oliver_kell", "Oliver Kell 10/20"),
-        ("cup_with_handle", "Cup with Handle"),
-        ("rs_line_new_high", "RS Line New High"),
-        ("undercut_and_rally", "Undercut & Rally"),
+        ("vcp", "Mark Minervini VCP & CANSLIM"),
+        ("weinstein_stage2", "Stan Weinstein Stage 2 Breakout"),
+        ("htf", "David Ryan High-Tight Flag (HTF)"),
+        ("three_wt", "3-Weeks Tight (3WT)"),
+        ("flat_base", "Modern Flat Base Breakout"),
+        ("episodic_pivot", "Kristjan Qullamaggie Episodic Pivot (EP)"),
+        ("pocket_pivot", "Gil Morales Pocket Pivot Accumulation"),
+        ("oliver_kell", "Oliver Kell 10/20 EMA Reversal & Wedge Pop"),
+        ("cup_with_handle", "William O'Neil / CANSLIM Cup with Handle"),
+        ("rs_line_new_high", "William O'Neil RS Line New High (RSNH)"),
+        ("undercut_and_rally", "Mark Minervini Undercut & Rally (U&R)"),
     ]
 
-    def _clean_reason(key: str, reason: str, qualified: bool) -> str:
-        r = (reason or "").strip()
-        if qualified:
-            if "U&R Reclaim Active" in r or key == "undercut_and_rally":
-                return "U&R shakeout reclaim active"
-            if "VCP structure" in r or key == "vcp":
-                return "Active VCP contraction"
-            if "Stage 2 Breakout" in r or key == "weinstein_stage2":
-                return "Stage 2 institutional markup"
-            if "EP Gap-Up" in r or key == "episodic_pivot":
-                return "Catalyst gap-up with high RVOL"
-            if "Pocket Pivot" in r or key == "pocket_pivot":
-                return "Pocket pivot vol accumulation"
-            if "RS Line at 52-Week" in r or key == "rs_line_new_high":
-                return "RS line at 52W high"
-            if "Flat Base" in r or key == "flat_base":
-                return "Flat base breakout ready"
-            if "3WT Status" in r or key == "three_wt":
-                return "3-weeks tight consolidation"
-            if "HTF Status" in r or key == "htf":
-                return "High-tight flag active"
-            if "Oliver Kell" in r or key == "oliver_kell":
-                return "Oliver Kell 10/20 EMA reversal"
-            if "Cup & Handle" in r or key == "cup_with_handle":
-                return "Cup with handle pattern active"
-            return r[:26] if len(r) > 26 else r
-        else:
-            if "No active VCP" in r:
-                return "No active contraction pattern"
-            if "Base pivot" in r and "is > 3%" in r:
-                return "Pivot > 3% above current price"
-            if "Requires 100%+" in r:
-                return "Req 100%+ rally in <8 wks"
-            if "Close variance > 2.0%" in r:
-                return "Close variance > 2.0%"
-            if "Volume Dry-Up" in r:
-                return "Volume dry-up ratio loose"
-            if "No recent catalyst gap" in r:
-                return "No recent catalyst gap-up"
-            if "Gap < 4%" in r:
-                return "Gap < 4% or RVOL < 2.5x"
-            if "Price is not holding key MA" in r:
-                return "Below key MA support"
-            if "30-Wk MA slope" in r or "30-Week (150 SMA) slope" in r:
-                return "30-Wk MA slope not positive"
-            if "Fails Oliver Kell" in r:
-                return "Fails 10>20>50 EMA stack"
-            if "Failed Stage 2 Trend Template" in r:
-                return "Fails EMA trend template"
-            if "Fails Stage 2 trend alignment" in r:
-                return "Fails EMA trend alignment"
-            if "Price is < 35% above 52W Low" in r:
-                return "Price < 35% above 52W low"
-            if "Price is only" in r and "above 52W Low" in r:
-                return "Price < 30% above 52W low"
-            if "Low liquidity" in r:
-                return "Low avg daily volume"
-            if "RS Line not at 52W" in r or "RS line not at 52W" in r:
-                return "RS line not at 52W max"
-            if "Stock not in Stage 2" in r:
-                return "Not in Stage 2 markup"
-            if "No active Undercut & Rally" in r:
-                return "No active U&R setup"
-            if "exceeds 20% cap" in r or "exceeds 15% limit" in r or "below 52w high" in r.lower():
-                return "Price > 15-20% below 52W high"
-            if "Volume lower than highest" in r:
-                return "Vol below 10D down max"
-            if "Cup depth > 35%" in r:
-                return "Cup depth > 35% or <7 wks"
-            if "Base depth > 15%" in r:
-                return "Base depth > 15% or <5 wks"
-            if "RS rating < 60" in r:
-                return "RS rating < 60 or EMA off"
-            if "No institutional distribution" in r:
-                return "No institutional distribution"
-            return r[:28] if len(r) > 28 else r
+    pivot_p = float(metrics.get("pivot_price") or (curr_p * 1.01))
+    stop_l = float(metrics.get("stop_loss") or (pivot_p * 0.95))
+    target_1 = float(metrics.get("target_1") or (pivot_p * 1.15))
+    target_2 = float(metrics.get("target_2") or (pivot_p * 1.25))
 
+    sl_pct = ((stop_l - curr_p) / curr_p * 100.0) if curr_p > 0 else -5.0
+    t1_pct = ((target_1 - curr_p) / curr_p * 100.0) if curr_p > 0 else 15.0
+
+    def _clean_reason(key: str, reason: str, qualified: bool) -> str:
+        r = (reason or "").lower()
+        if key == "vcp":
+            if qualified:
+                return "Active VCP contraction with price tightening near pivot resistance"
+            if "30-wk ma" in r or "30-week" in r or "30w" in r:
+                return "Stock is below 30-week MA. Wait for long-term uptrend to establish"
+            if "50-day" in r or "200-day" in r or "ema" in r:
+                return "Price is below key moving averages (50D/200D EMA)"
+            if "52w" in r or "52-week" in r:
+                return "Price is >25% below 52-week high (outside Minervini trend template)"
+            if "pivot" in r or "contraction" in r:
+                return "Volatility contraction is not yet tight enough near breakout pivot level"
+            if "wave" in r or "vdu" in r:
+                return "Contraction waves or volume dry-up criteria not fully met"
+            return "Volatility contraction is not yet tight enough near breakout pivot level"
+
+        if key in ["weinstein_stage2", "stage2"]:
+            if qualified:
+                return "Confirmed Stage 2 institutional mark-up with rising 30-week MA & price above 200D EMA"
+            if "slope" in r:
+                return "30-week moving average slope is flat or negative. Stage 2 trend not active"
+            if "200" in r:
+                return "Stock is below 200-day EMA. Heavy institutional overhead resistance"
+            pivot_val = f"₹{pivot_p:,.2f}" if pivot_p > 0 else "base pivot"
+            return f"Stock in Stage 2 trend, but price is consolidating below base pivot {pivot_val}. Awaiting volume breakout"
+
+        if key == "htf":
+            if qualified:
+                return "High-Tight Flag setup! Prior surge >100% with tight flag pullback <20%"
+            if "gain" in r or "rally" in r or "100%" in r or "prior" in r or "pole" in r:
+                return "Lacks explosive prior rally (requires ≥100% gain within 4-8 weeks)"
+            if "pullback" in r or "depth" in r or "flag" in r:
+                return "Flag pullback depth exceeds maximum 25% allowed"
+            return "Lacks explosive prior rally (requires ≥100% gain within 4-8 weeks)"
+
+        if key in ["three_wt", "3wt"]:
+            if qualified:
+                return "3-Weeks Tight pattern! Weekly closes within 1.5% range showing institutional absorption"
+            if "forming" in r:
+                return "3-Weeks Tight pattern forming. Awaiting 3rd consecutive tight weekly close"
+            return "Weekly closing prices fluctuating >1.5%—tightness not established"
+
+        if key in ["flat_base", "flat"]:
+            if qualified:
+                return "Flat Base pattern complete (5+ weeks of horizontal base with <15% correction depth)"
+            if "depth" in r:
+                return "Base depth exceeds maximum 15% allowed for flat base"
+            return "Base duration or consolidation age is under 5 weeks minimum requirement"
+
+        if key in ["episodic_pivot", "episodic", "ep"]:
+            if qualified:
+                return "Episodic Pivot! Massive gap-up on huge institutional volume following catalyst"
+            if "vol" in r or "rvol" in r:
+                return "Volume on catalyst day was below 2.5x-3.0x average volume threshold"
+            return "Requires a massive price gap-up (≥5%–8%) on fundamental catalyst"
+
+        if key in ["pocket_pivot", "pocket", "pp"]:
+            if qualified:
+                return "Pocket Pivot buy point inside base! Up-volume higher than largest down-volume in 10 days"
+            if "extend" in r:
+                return "Price is extended >5% above 10-day / 50-day moving average"
+            return "Up-day volume was not larger than highest down-day volume in last 10 sessions"
+
+        if key in ["oliver_kell", "kell"]:
+            if qualified:
+                return "Oliver Kell Trend Reversal setup (Wedge Pop / Extension Break out of EMA structure)"
+            if "slope" in r or "declin" in r:
+                return "10-day or 20-day EMA slope is declining (requires upward sloping EMAs)"
+            if "ema" in r or "reclaim" in r:
+                return "Price is not reclaiming or riding 10-day / 20-day EMA support"
+            return "Oliver Kell structural reversal criteria not confirmed"
+
+        if key in ["cup_with_handle", "cup_handle", "ch"]:
+            if qualified:
+                return "Cup with Handle base complete with U-shaped bowl and tight handle consolidation"
+            if "depth" in r:
+                return "Cup depth is outside 12%–33% ideal range"
+            if "handle" in r:
+                return "Handle is drifting downward or not formed in upper half of cup"
+            return "Average daily volume is too low (<50,000 shares) for institutional Cup with Handle threshold"
+
+        if key in ["rs_line_new_high", "rsnh"]:
+            if qualified:
+                return "RS Line at new 52-week high BEFORE price breakout! Outperforming broader market"
+            return "Relative strength line is lagging or moving sideways"
+
+        if key in ["undercut_and_rally", "undercut", "ur"]:
+            if qualified:
+                return "Undercut & Rally (U&R)! Key swing low undercut & reclaimed—classic shakeout trap"
+            return "Undercut & Rally shakeout setup not present"
+
+        if reason:
+            return reason[:60]
+        return "Met all algorithmic criteria" if qualified else "Did not meet specific technical threshold"
+
+    screener_audit = diag.get("screener_audit", {})
     screener_status = diag.get("screener_status", {})
     screener_lines = []
     qual_count = 0
     for k, name in ORDERED_SCREENERS:
-        v = screener_status.get(k, {})
-        is_qual = bool(v.get("qualified"))
+        audit_obj = screener_audit.get(k) or screener_status.get(k) or {}
+        is_qual = bool(audit_obj.get("qualified"))
         if is_qual:
             qual_count += 1
         icon = "✅" if is_qual else "❌"
-        r_text = _clean_reason(k, v.get("reason", ""), is_qual)
-        screener_lines.append(f"{icon} *{name}*: {r_text}")
+        status_label = "QUALIFIED" if is_qual else "REJECTED"
+        r_text = _clean_reason(k, audit_obj.get("reason", ""), is_qual)
+        screener_lines.append(f"{icon} *{name}* ({status_label})\n   └ _{r_text}_")
 
-    pivot_p = float(metrics.get("pivot_price") or (curr_p * 1.01))
-    stop_l = float(metrics.get("stop_loss") or (pivot_p * 0.95))
-    target_1 = float(metrics.get("target_1") or (pivot_p * 1.10))
-    target_2 = float(metrics.get("target_2") or (pivot_p * 1.20))
+    # 3-Part Tactical Playbook (parity match with desktop app.js lines 61128-61171)
+    if stage_num == 2:
+        if pivot_p > 0 and curr_p < pivot_p:
+            breakout_catalyst = f"Stock is in a confirmed Stage 2 uptrend. Watch for high-volume breakout (≥1.40x avg volume) above ₹{pivot_p:,.2f} pivot resistance for optimal entry."
+        else:
+            breakout_catalyst = f"High-conviction Stage 2 institutional mark-up leader. Hold position with trailing 50-day EMA stop-loss at ₹{ema_50:,.2f}."
+    elif stage_num == 1:
+        breakout_catalyst = "Stock is in Stage 1 basing phase. Add to watchlist and wait for volume expansion breakout above pivot resistance before entering long."
+    elif stage_num == 3:
+        breakout_catalyst = "Stage 3 Distribution Top. Tighten stop-loss or trim positions to protect profits as institutional selling increases."
+    else:
+        breakout_catalyst = "Stage 4 Capitulation downtrend. Avoid buying or averaging down on declining prices."
 
-    sl_pct = ((stop_l - pivot_p) / pivot_p * 100.0) if pivot_p > 0 else -5.0
-    t1_pct = ((target_1 - pivot_p) / pivot_p * 100.0) if pivot_p > 0 else 10.0
-    t2_pct = ((target_2 - pivot_p) / pivot_p * 100.0) if pivot_p > 0 else 20.0
-
-    comp_disp = comp_name[:24] if comp_name != base_sym else base_sym
+    comp_disp = comp_name[:28] if comp_name != base_sym else base_sym
 
     body_lines = [
-        f"🔬 *{base_sym} • 11-SCREENER QUANT MATRIX*",
-        f"*{comp_disp}*",
+        "🏛️ *STAN WEINSTEIN & DAVID RYAN 4-STAGE ENGINE*",
+        f"*{comp_disp} ({base_sym})* • ₹{curr_p:,.2f} ({day_chg:+.2f}%)",
         "━━━━━━━━━━━━━━━━━━━━",
-        f"💰 *LTP*: ₹ {curr_p:,.1f} ({day_chg:+.2f}%) • {stage_badge}",
-        f"• 30W Slope: {slope:+.1f}% | 52W High Dist: {dist_high:.1f}%\n",
-        f"🎯 *11-SCREENER ALIGNMENT ({qual_count}/11 QUALIFIED)*:"
+        f"🎯 *STAGE STATUS:*\n{verdict_badge}",
+        f"📌 *Executive Summary & Recommendation:*\n_{verdict_summary}_\n",
+        "📊 *KEY TECHNICAL METRICS:*",
+        f"• 30-Wk MA Slope: *{slope:+.2f}%*",
+        f"• 50-Day EMA: *₹{ema_50:,.2f}*",
+        f"• 200-Day EMA: *₹{ema_200:,.2f}*",
+        f"• Dist to 52W High: *{dist_high:+.2f}%*",
+        f"• RS Rating: *{rs_rating} / 99*",
+        f"• Vol Surge: *{vol_ratio:.1f}x SMA*\n",
+        f"🎯 *11-SCREENER QUALIFICATION ({qual_count}/11 QUALIFIED):*"
     ]
     body_lines.extend(screener_lines)
-    body_lines.append("\n🎯 *Execution Plan & Risk Guard:*")
-    body_lines.append(f"• Pivot: ₹ {pivot_p:,.1f} | SL: ₹ {stop_l:,.1f} ({sl_pct:.1f}%)")
-    body_lines.append(f"• T1: ₹ {target_1:,.1f} (+{t1_pct:.1f}%) | T2: ₹ {target_2:,.1f} (+{t2_pct:.1f}%)")
+    body_lines.append("\n━━━━━━━━━━━━━━━━━━━━")
+    body_lines.append("📌 *KEY TAKEAWAYS & STRATEGIC ACTIONABLE INSIGHTS:*")
+    body_lines.append(f"1️⃣ *Stage Cycle & Structural Position:*\nStock is currently in *{stage_name}* with a 30-week MA slope of {slope:+.2f}%. {verdict_summary}\n")
+    body_lines.append(f"2️⃣ *Key Technical Levels & Risk Plan:*\n• Pivot Resistance: *₹{pivot_p:,.2f}*\n• Protective Risk Stop: *₹{stop_l:,.2f}* ({sl_pct:.1f}%)\n• Target 1: *₹{target_1:,.2f}* (+{t1_pct:.1f}%)\n")
+    body_lines.append(f"3️⃣ *Breakout Catalysts & Action Steps:*\n{breakout_catalyst}")
     body_lines.append("━━━━━━━━━━━━━━━━━━━━")
-    body_lines.append("Tap below to view dark-mode chart or dossier:")
 
     body = "\n".join(body_lines)
 
     clean_btn = base_sym[:8]
     buttons = [
         (f"act:chart:{clean_btn}", f"📈 {clean_btn} Chart"),
-        (f"view:stock:{clean_btn}", f"📌 {clean_btn} Dossier"),
-        ("nav:sub:watchlists", "⭐ Watchlists")
+        (f"act:confluence:story:{clean_btn}", "🎯 Confluence"),
+        (f"view:stock:{clean_btn}", f"📌 {clean_btn} Dossier")
     ]
 
     if len(body) > 1020:
@@ -5942,8 +6040,8 @@ def handle_chart_vision_query(symbol_input: str, recipient: Optional[str] = None
 
         buttons = [
             (f"act:chart:{base_sym}", f"📈 {base_sym} Chart"),
-            (f"view:stock:{base_sym}", f"📌 {base_sym} Dossier"),
-            ("nav:menu:main", "🏠 Main Menu")
+            (f"run:stage:{base_sym}", "🏛️ 4-Stage"),
+            (f"view:stock:{base_sym}", f"📌 {base_sym} Dossier")
         ]
         return send_whatsapp_interactive_buttons(body, buttons=buttons, recipient=recipient)
     except Exception as e:
@@ -5976,7 +6074,7 @@ def handle_confluence_story_query(symbol_input: str, recipient: Optional[str] = 
 
         buttons = [
             (f"act:chart:{base_sym}", f"📈 {base_sym} Chart"),
-            (f"act:vision:{base_sym}", "🤖 AI Pattern"),
+            (f"run:stage:{base_sym}", "🏛️ 4-Stage"),
             (f"view:stock:{base_sym}", f"📌 {base_sym} Dossier")
         ]
         return send_whatsapp_interactive_buttons(body, buttons=buttons, recipient=recipient)
@@ -8002,10 +8100,15 @@ def dispatch_incoming_whatsapp_message(text_body: str, sender: Optional[str] = N
     ):
         return handle_events_calendar(cleaned, recipient=sender)
 
-    # 1e. Stage 1-4 Quant Matrix Interceptors (STAGE <SYM> / MATRIX <SYM> / WL MATRIX)
-    if cleaned.startswith("run:stage:") or cleaned.startswith("view:stage:"):
-        sym = cleaned.replace("run:stage:", "").replace("view:stage:", "").strip()
-        return handle_stock_stage_diagnostic(sym, recipient=sender)
+    # 1e. Stan Weinstein & David Ryan 4-Stage Life Cycle Interceptors
+    if cleaned in ["nav:sub:stage_masterclass", "menu:stage", "view:stage:menu", "run:stage:menu"]:
+        return handle_stage_masterclass_hub(recipient=sender)
+
+    if cleaned.startswith("run:stage:") or cleaned.startswith("view:stage:") or cleaned.startswith("act:stage:"):
+        sym = re.sub(r"^(?:run:stage:|view:stage:|act:stage:)", "", cleaned).strip()
+        if sym:
+            return handle_stock_stage_diagnostic(sym, recipient=sender)
+        return handle_stage_masterclass_hub(recipient=sender)
 
     if cleaned.startswith("run:wl:matrix:") or cleaned.startswith("view:wl:matrix:"):
         raw_id = cleaned.replace("run:wl:matrix:", "").replace("view:wl:matrix:", "").strip()
@@ -8016,14 +8119,22 @@ def dispatch_incoming_whatsapp_message(text_body: str, sender: Optional[str] = N
         primary_id = get_primary_watchlist_id()
         return handle_watchlist_stage_matrix(primary_id, recipient=sender)
 
-    if upper.startswith("STAGE ") or upper.startswith("STAGE:") or upper.startswith("MATRIX ") or upper.startswith("MATRIX:") or upper.startswith("QUANT "):
-        target_sym = re.sub(r"^(?:STAGE|MATRIX|QUANT)[\s:]+", "", cleaned, flags=re.IGNORECASE).strip()
-        if target_sym and target_sym.upper() not in ["MATRIX", "SCAN", "RADAR"]:
+    if (
+        upper.startswith("STAGE ") or upper.startswith("STAGE:")
+        or upper.startswith("WEINSTEIN ") or upper.startswith("WEINSTEIN:")
+        or upper.startswith("RYAN ") or upper.startswith("RYAN:")
+        or upper.startswith("LIFECYCLE ") or upper.startswith("LIFECYCLE:")
+        or upper.startswith("4 STAGE ") or upper.startswith("4STAGE ")
+        or upper.startswith("MATRIX ") or upper.startswith("MATRIX:")
+        or upper.startswith("QUANT ")
+    ):
+        target_sym = re.sub(r"^(?:STAGE|WEINSTEIN|RYAN|LIFECYCLE|4\s*STAGE|MATRIX|QUANT)[\s:]+", "", cleaned, flags=re.IGNORECASE).strip()
+        if target_sym and target_sym.upper() not in ["MATRIX", "SCAN", "RADAR", "MENU", "HUB"]:
             return handle_stock_stage_diagnostic(target_sym, recipient=sender)
-        return handle_watchlist_stage_matrix(get_primary_watchlist_id(), recipient=sender)
+        return handle_stage_masterclass_hub(recipient=sender)
 
-    if upper in ["STAGE", "MATRIX"]:
-        return handle_watchlist_stage_matrix(get_primary_watchlist_id(), recipient=sender)
+    if upper in ["STAGE", "WEINSTEIN", "DAVID RYAN", "RYAN", "LIFECYCLE", "4 STAGE", "4STAGE", "STAGE 2", "STAGE MASTERCLASS"]:
+        return handle_stage_masterclass_hub(recipient=sender)
 
     # 1f. Institutional i-Chart Suite Interceptors (Breaks, SMC, Mxwll, LRTC)
     if cleaned.startswith("chart:engine:") or cleaned.startswith("chart:guide:"):

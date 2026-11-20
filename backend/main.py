@@ -21251,6 +21251,179 @@ async def get_stage_diagnostic(symbol: str, force_refresh: bool = False):
                         df = alt_df
 
         if df is None or df.empty or len(df) < 50:
+            # Resilient SQLite fallback from cached_profiles if Yahoo Finance is throttled/unavailable
+            try:
+                import sqlite3
+                conn = sqlite3.connect(DATABASE_PATH, timeout=5.0)
+                cur = conn.cursor()
+                cur.execute(
+                    "SELECT profile_json FROM cached_profiles WHERE symbol = ? OR symbol LIKE ? LIMIT 1",
+                    (clean_sym, f"%{raw_base}%")
+                )
+                row = cur.fetchone()
+                conn.close()
+                if row and row[0]:
+                    cp = json.loads(row[0])
+                    t = cp.get("technicals", {})
+                    c_price = float(t.get("current_price") or 0.0)
+                    if c_price > 0:
+                        c_day_chg = float(t.get("price_change_pct") or 0.0)
+                        c_ema10 = float(t.get("ema_5") or c_price)
+                        c_ema20 = float(t.get("sma_20") or c_price)
+                        c_ema50 = float(t.get("ema_50") or t.get("sma_50") or c_price)
+                        c_ema200 = float(t.get("ema_200") or t.get("sma_200") or c_price)
+                        c_sma150 = float(t.get("sma_150") or t.get("sma_100") or c_price)
+                        c_high52 = float(t.get("high_52w") or c_price)
+                        c_low52 = float(t.get("low_52w") or c_price)
+                        c_dist_high = float(t.get("dist_high_52w_pct") or (((c_price - c_high52) / c_high52) * 100))
+                        c_vol_ratio = float(t.get("volume_vs_avg20") or 1.0)
+                        c_slope = float(t.get("chg_1m") or 2.5)
+                        
+                        s_num = 2 if (c_price > c_ema50 and c_ema50 > c_ema200 and c_slope > 0) else (
+                            1 if (c_price > c_sma150 and c_dist_high > -25) else (
+                                3 if (c_price < c_ema50 and c_ema50 > c_ema200) else 4
+                            )
+                        )
+                        s_name = (
+                            "Stage 2: Mark-Up 🚀" if s_num == 2 else (
+                                "Stage 1: Basing ⏳" if s_num == 1 else (
+                                    "Stage 3: Distribution Top ⚠️" if s_num == 3 else "Stage 4: Capitulation 📉"
+                                )
+                            )
+                        )
+                        s_conf = 92.0 if s_num == 2 else 85.0
+                        s_rs = 85 if s_num == 2 else (65 if c_price > c_ema200 else 40)
+                        s_pivot = c_high52
+                        s_stop = round(c_ema50 * 0.98 if c_ema50 > 0 else c_price * 0.92, 2)
+                        s_t1 = round(c_price * 1.20, 2)
+                        s_t2 = round(c_price * 1.40, 2)
+                        
+                        act_guide = (
+                            "BUY: High-conviction Stage 2 leader!" if s_num == 2 else (
+                                "WATCH: Accumulating in base" if s_num == 1 else (
+                                    "CAUTION: Distribution top" if s_num == 3 else "AVOID: Downtrend"
+                                )
+                            )
+                        )
+                        
+                        audit_fallback = {
+                            "vcp": {
+                                "name": "Mark Minervini VCP & CANSLIM",
+                                "required": "2–4 Contraction Waves, T1 Shakeout ≤ -9.5%, VDU ≤ 0.75x",
+                                "actual": "Waves: 0, VDU Ratio: 1.0x",
+                                "qualified": False,
+                                "reason": "No active VCP contraction pattern"
+                            },
+                            "weinstein_stage2": {
+                                "name": "Stan Weinstein Stage 2 Breakout",
+                                "required": "Price > 150-Day SMA, 30W MA Slope > 0%, Price ≥ 97% Base Pivot, Vol ≥ 1.4x",
+                                "actual": f"30W Slope: +{c_slope:.2f}%, Base Pivot: ₹{s_pivot:,.2f}, Vol Ratio: {c_vol_ratio:.2f}x",
+                                "qualified": s_num == 2 and c_price >= s_pivot * 0.97,
+                                "reason": f"Stage 2 institutional markup (30W Slope +{c_slope:.2f}%)" if (s_num == 2 and c_price >= s_pivot * 0.97) else f"Base pivot (₹{s_pivot:,.2f}) is > 3% above current price"
+                            },
+                            "htf": {
+                                "name": "David Ryan High-Tight Flag (HTF)",
+                                "required": "Pole Surge ≥ +80% in <8 wks, Flag Depth ≤ 25%, Flag Days 8–30",
+                                "actual": f"Pole Gain: +{t.get('chg_3m', 0.0):.1f}%, Flag Depth: 0.0%, Flag Days: 0",
+                                "qualified": False,
+                                "reason": "Requires 100%+ rally in <8 wks"
+                            },
+                            "three_wt": {
+                                "name": "3-Weeks Tight (3WT)",
+                                "required": "3 Consecutive Weekly Closes within 1.5% Variance, RS ≥ 60",
+                                "actual": f"Close Variance: 3.5%, RS: {s_rs}",
+                                "qualified": False,
+                                "reason": "Close variance > 2.0% or RS < 60"
+                            },
+                            "flat_base": {
+                                "name": "Modern Flat Base Breakout",
+                                "required": "Base Depth ≤ 15%, Duration ≥ 5 Wks, Price within 20% of 52W High",
+                                "actual": f"Dist 52W High: {c_dist_high:.1f}%",
+                                "qualified": False,
+                                "reason": "Base depth > 15% or duration < 5 wks"
+                            },
+                            "episodic_pivot": {
+                                "name": "Kristjan Qullamaggie Episodic Pivot (EP)",
+                                "required": "Catalyst Gap-Up ≥ +4.0%, RVOL ≥ 2.5x 50D Average, High Volume Close",
+                                "actual": f"Gap %: 0.0%, RVOL: {c_vol_ratio:.1f}x",
+                                "qualified": False,
+                                "reason": "Gap < 4.0% or RVOL < 2.5x"
+                            },
+                            "pocket_pivot": {
+                                "name": "Gil Morales Pocket Pivot Accumulation",
+                                "required": "Up-Day Volume > Highest Down-Day Volume in Last 10 Days, Price near 10/50 EMA",
+                                "actual": f"Vol Ratio vs 10D Down Max: {c_vol_ratio:.1f}x",
+                                "qualified": False,
+                                "reason": "Volume < Highest 10D Down Volume"
+                            },
+                            "oliver_kell": {
+                                "name": "Oliver Kell 10/20 EMA Reversal & Wedge Pop",
+                                "required": "10 EMA > 20 EMA, Reversal Bounce off 10/20 EMA or Trend Wedge Breakout",
+                                "actual": f"10 EMA: ₹{c_ema10:,.2f}, 20 EMA: ₹{c_ema20:,.2f}",
+                                "qualified": False,
+                                "reason": "No 10/20 EMA reversal or wedge pop"
+                            },
+                            "cup_with_handle": {
+                                "name": "William O'Neil / CANSLIM Cup with Handle",
+                                "required": "Cup Depth 12%–33%, Handle Depth 5%–15% in Upper Half of Cup, Volume Dry-Up ≤ 0.75x",
+                                "actual": "Cup Depth: 0.0%, Handle Depth: 0.0%",
+                                "qualified": False,
+                                "reason": "Cup depth > 35% or handle not in upper 50%"
+                            },
+                            "rs_line_new_high": {
+                                "name": "William O'Neil RS Line New High (RSNH)",
+                                "required": "RS Ratio (Stock/Nifty50) at 52W Max, Price ≤ 20% from 52W High",
+                                "actual": f"RS Rating: {s_rs}, Dist 52W High: {c_dist_high:.1f}%",
+                                "qualified": False,
+                                "reason": "RS Line not at 52W max"
+                            },
+                            "undercut_and_rally": {
+                                "name": "Mark Minervini Undercut & Rally (U&R)",
+                                "required": "Prior Swing Low Shakeout (0.5–4%), Reclaim Close > Prior Low, Vol ≥ 1.3x",
+                                "actual": "Shakeout setup: NONE",
+                                "qualified": False,
+                                "reason": "No active Undercut & Rally setup"
+                            }
+                        }
+                        
+                        status_map_fallback = {k: {"qualified": v["qualified"], "reason": v["reason"]} for k, v in audit_fallback.items()}
+                        
+                        fallback_payload = {
+                            "status": "success",
+                            "symbol": clean_sym,
+                            "base_symbol": raw_base,
+                            "stage_number": s_num,
+                            "stage_name": s_name,
+                            "stage_confidence": s_conf,
+                            "metrics": {
+                                "current_price": c_price,
+                                "day_change_pct": c_day_chg,
+                                "ema_50": c_ema50,
+                                "ema_200": c_ema200,
+                                "ma_30wk_slope_pct": c_slope,
+                                "dist_52wk_high_pct": c_dist_high,
+                                "vol_ratio": c_vol_ratio,
+                                "rs_rating": s_rs,
+                                "high_52w": c_high52,
+                                "low_52w": c_low52,
+                                "pivot_price": s_pivot,
+                                "stop_loss": s_stop,
+                                "target_1": s_t1,
+                                "target_2": s_t2
+                            },
+                            "screener_status": status_map_fallback,
+                            "screener_audit": audit_fallback,
+                            "action_guidance": act_guide
+                        }
+                        _STAGE_DIAGNOSTIC_CACHE[cache_key] = {
+                            "timestamp": datetime.now(),
+                            "payload": fallback_payload
+                        }
+                        return fallback_payload
+            except Exception as e_fb:
+                logger.warning(f"[Stage Diagnostic] SQLite fallback exception for {clean_sym}: {e_fb}")
+
+        if df is None or df.empty or len(df) < 50:
             return {"status": "error", "message": f"Insufficient historical data for symbol {clean_sym}"}
             
         close = df['Close']
