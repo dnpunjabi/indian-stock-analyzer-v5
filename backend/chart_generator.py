@@ -597,6 +597,7 @@ def generate_stock_technical_chart(
         df = df.xs(df.columns.levels[1][0], axis=1, level=1) if len(df.columns.levels) > 1 else df
 
     close = df["Close"]
+    ema_20 = close.ewm(span=20, adjust=False).mean()
     sma_50 = close.rolling(50, min_periods=10).mean()
     sma_200 = close.rolling(200, min_periods=30).mean()
 
@@ -663,7 +664,8 @@ def generate_stock_technical_chart(
     ax_price.plot(x_dates, close, color=ACCENT_BLUE, linewidth=1.8, label="Price", zorder=3)
     ax_price.fill_between(x_dates, close, close.min() * 0.98, color=ACCENT_BLUE, alpha=0.08, zorder=2)
 
-    # Moving Averages
+    # Moving Averages Triad (20-EMA, 50-SMA, 200-SMA)
+    ax_price.plot(x_dates, ema_20, color="#38BDF8", linewidth=1.2, linestyle="-.", label="20-day EMA", zorder=3)
     ax_price.plot(x_dates, sma_50, color="#F59E0B", linewidth=1.4, linestyle="--", label="50-day SMA", zorder=3)
     if not sma_200.isna().all():
         ax_price.plot(x_dates, sma_200, color="#A855F7", linewidth=1.4, linestyle=":", label="200-day SMA", zorder=3)
