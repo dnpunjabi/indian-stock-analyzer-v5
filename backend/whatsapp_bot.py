@@ -3193,14 +3193,19 @@ def handle_stock_stage_diagnostic(symbol_input: str, recipient: Optional[str] = 
     """
     Renders Stage 1-4 Quantitative Life Cycle Alignment Map for a single stock.
     Diagnoses Stan Weinstein Stage 1-4, 30-week MA slope, 11-screener confluence status,
+    and algorithmic execution plan (pivot, stop-loss, targets).
     and 3-part tactical action playbook (pivot, stop-loss, targets).
     Parity match with Web App 4-Stage Masterclass UI.
     """
     clean_sym = (symbol_input or "").strip().upper()
+    clean_sym = re.sub(r"^(?:STAGE|MATRIX|QUANT)[\s:]+", "", clean_sym, flags=re.IGNORECASE).strip()
+    clean_sym = clean_sym.replace("RUN:STAGE:", "").replace("VIEW:STAGE:", "").strip()
     clean_sym = re.sub(r"^(?:STAGE|MATRIX|QUANT|WEINSTEIN|RYAN|LIFECYCLE|4\s*STAGE)[\s:]+", "", clean_sym, flags=re.IGNORECASE).strip()
     clean_sym = clean_sym.replace("RUN:STAGE:", "").replace("VIEW:STAGE:", "").replace("ACT:STAGE:", "").strip()
 
     if not clean_sym:
+        primary_id = get_primary_watchlist_id()
+        return handle_watchlist_stage_matrix(primary_id, recipient=recipient)
         return handle_stage_masterclass_hub(recipient=recipient)
 
     resolved = resolve_company_ticker(clean_sym)
@@ -3235,6 +3240,7 @@ def handle_stock_stage_diagnostic(symbol_input: str, recipient: Optional[str] = 
         return send_whatsapp_interactive_buttons(
             body,
             buttons=[
+                ("nav:sub:watchlists", "⭐ Watchlists"),
                 ("run:stage:BOSCHLTD", "🏛️ BOSCH"),
                 ("run:stage:RELIANCE", "🏛️ RELIANCE"),
                 ("nav:menu:main", "🏠 Main Menu")
@@ -3255,6 +3261,12 @@ def handle_stock_stage_diagnostic(symbol_input: str, recipient: Optional[str] = 
     vol_ratio = float(metrics.get("vol_ratio") or 1.0)
     rs_rating = int(metrics.get("rs_rating") or 50)
 
+    stage_badge = (
+        "🟢 STAGE 2: MARK-UP 🚀" if stage_num == 2
+        else ("🟡 STAGE 1: BASING ⏳" if stage_num == 1
+        else ("🔴 STAGE 3: DISTRIBUTION TOP ⚠️" if stage_num == 3
+        else "🔻 STAGE 4: CAPITULATION 📉"))
+    )
     # Executive Verdict & Summary (exact parity with Desktop app.js lines 61004-61016)
     if stage_num == 2:
         verdict_badge = f"🟢 STAGE 2: MARK-UP (BULLISH / BUY ZONE) | {stage_conf:.0f}% Confidence"
@@ -3270,6 +3282,17 @@ def handle_stock_stage_diagnostic(symbol_input: str, recipient: Optional[str] = 
         verdict_summary = "Heavy institutional selling. Avoid buying or averaging down on declining prices."
 
     ORDERED_SCREENERS = [
+        ("vcp", "Minervini VCP"),
+        ("weinstein_stage2", "Weinstein Stage 2"),
+        ("htf", "High-Tight Flag"),
+        ("three_wt", "3-Weeks Tight"),
+        ("flat_base", "Modern Flat Base"),
+        ("episodic_pivot", "Episodic Pivot"),
+        ("pocket_pivot", "Pocket Pivot"),
+        ("oliver_kell", "Oliver Kell 10/20"),
+        ("cup_with_handle", "Cup with Handle"),
+        ("rs_line_new_high", "RS Line New High"),
+        ("undercut_and_rally", "Undercut & Rally"),
         ("vcp", "Mark Minervini VCP & CANSLIM"),
         ("weinstein_stage2", "Stan Weinstein Stage 2 Breakout"),
         ("htf", "David Ryan High-Tight Flag (HTF)"),
@@ -3292,6 +3315,81 @@ def handle_stock_stage_diagnostic(symbol_input: str, recipient: Optional[str] = 
     t1_pct = ((target_1 - curr_p) / curr_p * 100.0) if curr_p > 0 else 15.0
 
     def _clean_reason(key: str, reason: str, qualified: bool) -> str:
+        r = (reason or "").strip()
+        if qualified:
+            if "U&R Reclaim Active" in r or key == "undercut_and_rally":
+                return "U&R shakeout reclaim active"
+            if "VCP structure" in r or key == "vcp":
+                return "Active VCP contraction"
+            if "Stage 2 Breakout" in r or key == "weinstein_stage2":
+                return "Stage 2 institutional markup"
+            if "EP Gap-Up" in r or key == "episodic_pivot":
+                return "Catalyst gap-up with high RVOL"
+            if "Pocket Pivot" in r or key == "pocket_pivot":
+                return "Pocket pivot vol accumulation"
+            if "RS Line at 52-Week" in r or key == "rs_line_new_high":
+                return "RS line at 52W high"
+            if "Flat Base" in r or key == "flat_base":
+                return "Flat base breakout ready"
+            if "3WT Status" in r or key == "three_wt":
+                return "3-weeks tight consolidation"
+            if "HTF Status" in r or key == "htf":
+                return "High-tight flag active"
+            if "Oliver Kell" in r or key == "oliver_kell":
+                return "Oliver Kell 10/20 EMA reversal"
+            if "Cup & Handle" in r or key == "cup_with_handle":
+                return "Cup with handle pattern active"
+            return r[:26] if len(r) > 26 else r
+        else:
+            if "No active VCP" in r:
+                return "No active contraction pattern"
+            if "Base pivot" in r and "is > 3%" in r:
+                return "Pivot > 3% above current price"
+            if "Requires 100%+" in r:
+                return "Req 100%+ rally in <8 wks"
+            if "Close variance > 2.0%" in r:
+                return "Close variance > 2.0%"
+            if "Volume Dry-Up" in r:
+                return "Volume dry-up ratio loose"
+            if "No recent catalyst gap" in r:
+                return "No recent catalyst gap-up"
+            if "Gap < 4%" in r:
+                return "Gap < 4% or RVOL < 2.5x"
+            if "Price is not holding key MA" in r:
+                return "Below key MA support"
+            if "30-Wk MA slope" in r or "30-Week (150 SMA) slope" in r:
+                return "30-Wk MA slope not positive"
+            if "Fails Oliver Kell" in r:
+                return "Fails 10>20>50 EMA stack"
+            if "Failed Stage 2 Trend Template" in r:
+                return "Fails EMA trend template"
+            if "Fails Stage 2 trend alignment" in r:
+                return "Fails EMA trend alignment"
+            if "Price is < 35% above 52W Low" in r:
+                return "Price < 35% above 52W low"
+            if "Price is only" in r and "above 52W Low" in r:
+                return "Price < 30% above 52W low"
+            if "Low liquidity" in r:
+                return "Low avg daily volume"
+            if "RS Line not at 52W" in r or "RS line not at 52W" in r:
+                return "RS line not at 52W max"
+            if "Stock not in Stage 2" in r:
+                return "Not in Stage 2 markup"
+            if "No active Undercut & Rally" in r:
+                return "No active U&R setup"
+            if "exceeds 20% cap" in r or "exceeds 15% limit" in r or "below 52w high" in r.lower():
+                return "Price > 15-20% below 52W high"
+            if "Volume lower than highest" in r:
+                return "Vol below 10D down max"
+            if "Cup depth > 35%" in r:
+                return "Cup depth > 35% or <7 wks"
+            if "Base depth > 15%" in r:
+                return "Base depth > 15% or <5 wks"
+            if "RS rating < 60" in r:
+                return "RS rating < 60 or EMA off"
+            if "No institutional distribution" in r:
+                return "No institutional distribution"
+            return r[:28] if len(r) > 28 else r
         r = (reason or "").lower()
         if key == "vcp":
             if qualified:
@@ -3392,15 +3490,23 @@ def handle_stock_stage_diagnostic(symbol_input: str, recipient: Optional[str] = 
     screener_lines = []
     qual_count = 0
     for k, name in ORDERED_SCREENERS:
+        v = screener_status.get(k, {})
+        is_qual = bool(v.get("qualified"))
         audit_obj = screener_audit.get(k) or screener_status.get(k) or {}
         is_qual = bool(audit_obj.get("qualified"))
         if is_qual:
             qual_count += 1
         icon = "✅" if is_qual else "❌"
+        r_text = _clean_reason(k, v.get("reason", ""), is_qual)
+        screener_lines.append(f"{icon} *{name}*: {r_text}")
         status_label = "QUALIFIED" if is_qual else "REJECTED"
         r_text = _clean_reason(k, audit_obj.get("reason", ""), is_qual)
         screener_lines.append(f"{icon} *{name}* ({status_label})\n   └ _{r_text}_")
 
+    pivot_p = float(metrics.get("pivot_price") or (curr_p * 1.01))
+    stop_l = float(metrics.get("stop_loss") or (pivot_p * 0.95))
+    target_1 = float(metrics.get("target_1") or (pivot_p * 1.10))
+    target_2 = float(metrics.get("target_2") or (pivot_p * 1.20))
     # 3-Part Tactical Playbook (parity match with desktop app.js lines 61128-61171)
     if stage_num == 2:
         if pivot_p > 0 and curr_p < pivot_p:
@@ -3414,12 +3520,22 @@ def handle_stock_stage_diagnostic(symbol_input: str, recipient: Optional[str] = 
     else:
         breakout_catalyst = "Stage 4 Capitulation downtrend. Avoid buying or averaging down on declining prices."
 
+    sl_pct = ((stop_l - pivot_p) / pivot_p * 100.0) if pivot_p > 0 else -5.0
+    t1_pct = ((target_1 - pivot_p) / pivot_p * 100.0) if pivot_p > 0 else 10.0
+    t2_pct = ((target_2 - pivot_p) / pivot_p * 100.0) if pivot_p > 0 else 20.0
     comp_disp = comp_name[:28] if comp_name != base_sym else base_sym
 
+    comp_disp = comp_name[:24] if comp_name != base_sym else base_sym
+
     body_lines = [
+        f"🔬 *{base_sym} • 11-SCREENER QUANT MATRIX*",
+        f"*{comp_disp}*",
         "🏛️ *STAN WEINSTEIN & DAVID RYAN 4-STAGE ENGINE*",
         f"*{comp_disp} ({base_sym})* • ₹{curr_p:,.2f} ({day_chg:+.2f}%)",
         "━━━━━━━━━━━━━━━━━━━━",
+        f"💰 *LTP*: ₹ {curr_p:,.1f} ({day_chg:+.2f}%) • {stage_badge}",
+        f"• 30W Slope: {slope:+.1f}% | 52W High Dist: {dist_high:.1f}%\n",
+        f"🎯 *11-SCREENER ALIGNMENT ({qual_count}/11 QUALIFIED)*:"
         f"🎯 *STAGE STATUS:*\n{verdict_badge}",
         f"📌 *Executive Summary & Recommendation:*\n_{verdict_summary}_\n",
         "📊 *KEY TECHNICAL METRICS:*",
@@ -3432,12 +3548,16 @@ def handle_stock_stage_diagnostic(symbol_input: str, recipient: Optional[str] = 
         f"🎯 *11-SCREENER QUALIFICATION ({qual_count}/11 QUALIFIED):*"
     ]
     body_lines.extend(screener_lines)
+    body_lines.append("\n🎯 *Execution Plan & Risk Guard:*")
+    body_lines.append(f"• Pivot: ₹ {pivot_p:,.1f} | SL: ₹ {stop_l:,.1f} ({sl_pct:.1f}%)")
+    body_lines.append(f"• T1: ₹ {target_1:,.1f} (+{t1_pct:.1f}%) | T2: ₹ {target_2:,.1f} (+{t2_pct:.1f}%)")
     body_lines.append("\n━━━━━━━━━━━━━━━━━━━━")
     body_lines.append("📌 *KEY TAKEAWAYS & STRATEGIC ACTIONABLE INSIGHTS:*")
     body_lines.append(f"1️⃣ *Stage Cycle & Structural Position:*\nStock is currently in *{stage_name}* with a 30-week MA slope of {slope:+.2f}%. {verdict_summary}\n")
     body_lines.append(f"2️⃣ *Key Technical Levels & Risk Plan:*\n• Pivot Resistance: *₹{pivot_p:,.2f}*\n• Protective Risk Stop: *₹{stop_l:,.2f}* ({sl_pct:.1f}%)\n• Target 1: *₹{target_1:,.2f}* (+{t1_pct:.1f}%)\n")
     body_lines.append(f"3️⃣ *Breakout Catalysts & Action Steps:*\n{breakout_catalyst}")
     body_lines.append("━━━━━━━━━━━━━━━━━━━━")
+    body_lines.append("Tap below to view dark-mode chart or dossier:")
 
     body = "\n".join(body_lines)
 
@@ -5693,15 +5813,110 @@ def handle_stock_shareholding(symbol_input: str, recipient: Optional[str] = None
         )
 
 
+def _map_financial_table_rows(table: Dict[str, Any]) -> Dict[str, Dict[str, Any]]:
+    """
+    Maps table rows into {row_label_lower: {column_header: value}}.
+    Correctly aligns each value with its exact column header, preventing off-by-one errors.
+    """
+    raw_headers = table.get("headers", [])
+    if not raw_headers:
+        return {}
+    col_headers = [h.strip() for h in raw_headers[1:] if h and h.strip()]
+    result = {}
+    for r in table.get("rows", []):
+        lbl = r.get("label", "").strip().lower()
+        vals = r.get("values", [])
+        if lbl and vals:
+            row_dict = {}
+            for idx, col in enumerate(col_headers):
+                if idx < len(vals):
+                    row_dict[col] = vals[idx]
+            result[lbl] = row_dict
+    return result
+
+
+def generate_layman_financial_summary(
+    comp_name: str,
+    base_sym: str,
+    y_start: str,
+    y_end: str,
+    num_years: int,
+    sales_start: float,
+    sales_end: float,
+    cagr: float,
+    ttm_sales: Optional[float],
+    opm_str: str,
+    ttm_opm: Optional[float],
+    pat_start: float,
+    pat_end: float,
+    pat_cagr: float,
+    ttm_pat: Optional[float],
+    cfo_latest: float,
+    conv_ratio: float,
+    fcf_latest: float,
+    total_fcf: float,
+    capex_latest: float
+) -> str:
+    """
+    Invokes Gemini LLM (via call_llm / TASK_FAST) to produce a razor-sharp,
+    objective, plain-English layman breakdown of the multi-year audited financial health.
+    """
+    try:
+        from backend.llm_config import call_llm, TASK_FAST
+        sys_prompt = (
+            "You are an elite equity research analyst explaining a company's audited multi-year financials "
+            "to a retail investor / beginner in simple, plain English.\n"
+            "Translate accounting numbers into clear real-world business meaning:\n"
+            "1. Real Growth: Are sales and profits genuinely compounding, or is it low/cyclical growth?\n"
+            "2. Cash Quality: Are profits converting into real bank cash (CFO), or are they stuck in unpaid customer bills?\n"
+            "3. CapEx & Free Cash Flow: Explain whether Free Cash Flow is positive or negative (e.g. heavy expansion capex building new capacity/ports vs asset-light cash machine).\n"
+            "4. Margins: Are operating margins expanding, steady, or compressing (and why)?\n"
+            "5. Bottom Line: 1-sentence practical takeaway for long-term investors.\n\n"
+            "Formatting Rules:\n"
+            "- Use WhatsApp formatting: *bold* for key terms, _italics_ for subtext.\n"
+            "- Strictly 4 concise bullet points (total response strictly under 500 characters).\n"
+            "- Do NOT use markdown tables, ### headers, or HTML tags."
+        )
+        u_prompt = (
+            f"Company: {comp_name} ({base_sym})\n"
+            f"Audited Period: {y_start} to {y_end} ({num_years} elapsed years)\n"
+            f"Top-Line Sales: ₹{sales_start:,.0f} Cr ({y_start}) -> ₹{sales_end:,.0f} Cr ({y_end}) ({cagr:+.1f}% CAGR)"
+            + (f", TTM: ₹{ttm_sales:,.0f} Cr\n" if ttm_sales else "\n")
+            + f"OPM % Trajectory: {opm_str}"
+            + (f" (TTM: {ttm_opm:.1f}%)\n" if ttm_opm else "\n")
+            + f"Net Profit (PAT): ₹{pat_start:,.0f} Cr ({y_start}) -> ₹{pat_end:,.0f} Cr ({y_end}) ({pat_cagr:+.1f}% CAGR)"
+            + (f", TTM: ₹{ttm_pat:,.0f} Cr\n" if ttm_pat else "\n")
+            + f"Latest {y_end} CFO: ₹{cfo_latest:,.0f} Cr vs PAT: ₹{pat_end:,.0f} Cr (Cash Conversion: {conv_ratio:.1f}%)\n"
+            + f"Free Cash Flow: Latest {y_end} FCF: ₹{fcf_latest:,.0f} Cr (CapEx: ~₹{capex_latest:,.0f} Cr), Cumulative {num_years}Y FCF: ₹{total_fcf:,.0f} Cr"
+        )
+        resp = call_llm(TASK_FAST, system_prompt=sys_prompt, user_prompt=u_prompt, max_tokens=260, enable_web_search=False)
+        if resp and len(resp.strip()) > 30:
+            return html.unescape(resp.strip())
+    except Exception as e:
+        logger.warning(f"Error generating layman financial summary: {e}")
+
+    # Deterministic fallback if LLM is offline
+    growth_desc = f"Sales compounded at *{cagr:+.1f}% p.a.* while profit grew at *{pat_cagr:+.1f}% p.a.*"
+    cash_desc = f"High cash conversion (*{conv_ratio:.0f}%* of PAT converts to real bank cash)" if conv_ratio >= 80 else f"Moderate cash realization (*{conv_ratio:.0f}%* conversion)"
+    fcf_desc = f"Reinvesting heavily in capacity (CapEx ~₹{capex_latest:,.0f} Cr turned latest FCF to ₹{fcf_latest:,.0f} Cr; cumulative FCF is +₹{total_fcf:,.0f} Cr)" if fcf_latest < 0 else f"Generating positive free cash flow (+₹{total_fcf:,.0f} Cr over {num_years} years)"
+    return (
+        f"• *Growth Reality*: {growth_desc}.\n"
+        f"• *Cash Quality*: {cash_desc}.\n"
+        f"• *CapEx & Reinvestment*: {fcf_desc}.\n"
+        f"• *Bottom Line*: Sustainable core business; monitor return on reinvested capital."
+    )
+
+
 def handle_stock_financials(symbol_input: str, recipient: Optional[str] = None) -> Dict[str, Any]:
     """
-    Renders 5-Year Multi-Year Financial Statements & Cash Flow Trajectory:
-    - 5-Year Sales / Revenue trajectory & Sales CAGR %
-    - 5-Year Operating Profit & OPM % expansion
-    - 5-Year Net Profit (PAT) trajectory & PAT CAGR %
+    Renders Multi-Year Financial Statements & Cash Flow Trajectory:
+    - Sales / Revenue trajectory & CAGR % (accurately period-aligned)
+    - Operating Profit & OPM % expansion / compression
+    - Net Profit (PAT) trajectory & PAT CAGR %
     - Cash Flow from Operations (CFO) vs Net Profit conversion ratio
-    - Cumulative 5-Year Free Cash Flow (FCF)
+    - Latest FY Free Cash Flow (FCF) with CapEx context + Cumulative FCF
     - Quant Financial Compounder Profile & Quality assessment
+    - AI-Powered Plain-English Layman Summary
     """
     clean_sym = symbol_input.strip().upper().replace(" ", "")
     clean_sym = re.sub(r"^(?:FIN|FINANCIALS|PL|CASHFLOW|CFO)[\s:]+", "", clean_sym, flags=re.IGNORECASE).strip()
@@ -5721,65 +5936,109 @@ def handle_stock_financials(symbol_input: str, recipient: Optional[str] = None) 
         pl = data.get("profit_loss", {})
         cf = data.get("cash_flow", {})
 
-        headers = [h for h in pl.get("headers", []) if h and h.lower() != "ttm"]
-        years = headers[-5:] if len(headers) >= 5 else headers
+        pl_map = _map_financial_table_rows(pl)
+        cf_map = _map_financial_table_rows(cf)
 
-        def find_row_vals(table, label):
-            for r in table.get("rows", []):
-                if r.get("label", "").strip().lower() == label.lower():
-                    vals = r.get("values", [])
-                    return vals[-len(years):] if len(vals) >= len(years) else vals
-            return []
+        # Extract audited annual financial years (strictly exclude TTM from annual horizon)
+        raw_headers = pl.get("headers", [])
+        period_headers = [h.strip() for h in raw_headers[1:] if h and h.strip()]
+        annual_cols = [c for c in period_headers if c.lower() != "ttm"]
 
-        sales = find_row_vals(pl, "Sales")
-        op_profit = find_row_vals(pl, "Operating Profit")
-        opm = find_row_vals(pl, "OPM %")
-        net_profit = find_row_vals(pl, "Net Profit")
-        cfo = find_row_vals(cf, "Cash from Operating Activity")
-        fcf = find_row_vals(cf, "Free Cash Flow")
+        if not annual_cols:
+            annual_cols = [c for c in cf.get("headers", [])[1:] if c and c.strip().lower() != "ttm"]
 
-        sales_start = sales[0] if sales else 0
-        sales_end = sales[-1] if sales else 0
+        # Select last 6 reporting years for a true 5-year CAGR, or all available if <6
+        years = annual_cols[-6:] if len(annual_cols) >= 6 else annual_cols
+
+        if not years:
+            return send_whatsapp_interactive_buttons(
+                f"⚠️ *Financials Unavailable*: Multi-year statements for `{b_sym}` could not be retrieved.",
+                buttons=[("nav:menu:main", "🏠 Main Menu")],
+                recipient=recipient
+            )
+
+        y_start = years[0]
+        y_end = years[-1]
+        num_years = max(1, len(years) - 1)
+
+        # Extract values correctly aligned with selected fiscal years
+        sales = [pl_map.get("sales", {}).get(y) for y in years]
+        op_profit = [pl_map.get("operating profit", {}).get(y) for y in years]
+        opm = [pl_map.get("opm %", {}).get(y) for y in years]
+        net_profit = [pl_map.get("net profit", {}).get(y) for y in years]
+        cfo = [cf_map.get("cash from operating activity", {}).get(y) for y in years]
+        fcf = [cf_map.get("free cash flow", {}).get(y) for y in years]
+
+        # Extract TTM metrics cleanly
+        ttm_sales = pl_map.get("sales", {}).get("TTM")
+        ttm_op = pl_map.get("operating profit", {}).get("TTM")
+        ttm_opm = pl_map.get("opm %", {}).get("TTM")
+        ttm_pat = pl_map.get("net profit", {}).get("TTM")
+
+        sales_start = sales[0] if (sales and sales[0] is not None) else 0
+        sales_end = sales[-1] if (sales and sales[-1] is not None) else 0
+        cagr = 0.0
         cagr_str = "N/A"
-        if sales_start > 0 and sales_end > 0 and len(sales) > 1:
-            cagr = ((sales_end / sales_start) ** (1 / (len(sales) - 1)) - 1) * 100
+        if sales_start > 0 and sales_end > 0 and num_years > 0:
+            cagr = ((sales_end / sales_start) ** (1 / num_years) - 1) * 100
             cagr_badge = "🟢" if cagr >= 12 else ("🟡" if cagr >= 5 else "🔴")
             cagr_sign = "+" if cagr >= 0 else ""
             cagr_str = f"{cagr_badge} *{cagr_sign}{cagr:.1f}% p.a.*"
 
-        opm_str = " ➔ ".join([f"{v:.0f}%" for v in opm]) if opm else "N/A"
+        op_start = op_profit[0] if (op_profit and op_profit[0] is not None) else 0
+        op_end = op_profit[-1] if (op_profit and op_profit[-1] is not None) else 0
 
-        op_start = op_profit[0] if op_profit else 0
-        op_end = op_profit[-1] if op_profit else 0
+        opm_valid = [v for v in opm if v is not None and isinstance(v, (int, float))]
+        opm_str = " ➔ ".join([f"{v:.0f}%" for v in opm_valid]) if opm_valid else "N/A"
+        opm_start = opm_valid[0] if opm_valid else 0.0
+        opm_end = opm_valid[-1] if opm_valid else 0.0
+        if len(opm_valid) > 1:
+            opm_diff = opm_end - opm_start
+            opm_trend_desc = f"Compressed by {abs(opm_diff):.1f}%" if opm_diff < -1.5 else (
+                f"Expanded by {opm_diff:+.1f}%" if opm_diff > 1.5 else "Stable"
+            )
+        else:
+            opm_trend_desc = "Stable"
 
-        pat_start = net_profit[0] if net_profit else 0
-        pat_end = net_profit[-1] if net_profit else 0
+        pat_start = net_profit[0] if (net_profit and net_profit[0] is not None) else 0
+        pat_end = net_profit[-1] if (net_profit and net_profit[-1] is not None) else 0
+        pat_cagr = 0.0
         pat_cagr_str = "N/A"
-        if pat_start > 0 and pat_end > 0 and len(net_profit) > 1:
-            pat_cagr = ((pat_end / pat_start) ** (1 / (len(net_profit) - 1)) - 1) * 100
+        if pat_start > 0 and pat_end > 0 and num_years > 0:
+            pat_cagr = ((pat_end / pat_start) ** (1 / num_years) - 1) * 100
             pat_badge = "🟢" if pat_cagr >= 12 else ("🟡" if pat_cagr >= 5 else "🔴")
             pat_sign = "+" if pat_cagr >= 0 else ""
             pat_cagr_str = f"{pat_badge} *{pat_sign}{pat_cagr:.1f}% p.a.*"
 
-        # CFO / PAT Cash Conversion
-        cfo_latest = cfo[-1] if cfo else 0
+        # CFO / PAT Cash Conversion (strictly matched to the same year: y_end)
+        cfo_latest = cfo[-1] if (cfo and cfo[-1] is not None) else 0
         conv_str = "N/A"
         conv_ratio = 0.0
         if pat_end > 0 and cfo_latest is not None:
             conv_ratio = (cfo_latest / pat_end) * 100
             conv_badge = "🟢" if conv_ratio >= 90 else ("🟡" if conv_ratio >= 60 else "⚠️")
-            conv_str = f"{conv_badge} *{conv_ratio:.1f}%* (High Earnings Quality)" if conv_ratio >= 90 else f"{conv_badge} *{conv_ratio:.1f}%*"
+            conv_str = f"{conv_badge} *{conv_ratio:.1f}%*"
 
-        total_fcf = sum(fcf) if fcf else 0
+        # Free Cash Flow (Latest FY + Cumulative)
+        fcf_latest = fcf[-1] if (fcf and fcf[-1] is not None) else 0
+        valid_fcfs = [v for v in fcf if v is not None and isinstance(v, (int, float))]
+        total_fcf = sum(valid_fcfs) if valid_fcfs else 0
+        capex_latest = (cfo_latest - fcf_latest) if (cfo_latest is not None and fcf_latest is not None) else 0
+
         fcf_badge = "🟢" if total_fcf > 0 else "🔴"
+        latest_fcf_badge = "🟢" if fcf_latest >= 0 else "🔴"
+        if fcf_latest < 0 and capex_latest > 0:
+            latest_fcf_str = f"{latest_fcf_badge} *₹ {fcf_latest:,.0f} Cr* (CapEx: ~₹ {capex_latest:,.0f} Cr)"
+        else:
+            latest_fcf_str = f"{latest_fcf_badge} *₹ {fcf_latest:,.0f} Cr*"
 
-        y_start = years[0] if years else "Start"
-        y_end = years[-1] if years else "Latest"
-
-        # Quant Compounder Verdict
-        if (sales_start > 0 and sales_end > sales_start) and total_fcf > 0 and (pat_end > pat_start) and conv_ratio >= 75:
+        # Quant Compounder Verdict (rigorous multi-condition evaluation)
+        if (sales_start > 0 and sales_end > sales_start) and total_fcf > 0 and fcf_latest > 0 and (pat_end > pat_start) and conv_ratio >= 75:
             v_title = "💎 High-Grade Cash Compounder"
             v_desc = "Double-digit top-line growth with consistent positive free cash flow and expanding operational scale."
+        elif (sales_start > 0 and sales_end > sales_start) and total_fcf > 0 and fcf_latest <= 0 and (pat_end > pat_start) and conv_ratio >= 75:
+            v_title = "🏗️ Capital-Intensive Growth Compounder"
+            v_desc = f"Strong operational cash generation (CFO: ₹{cfo_latest:,.0f} Cr), but massive capex reinvestment absorbed latest FCF (₹{fcf_latest:,.0f} Cr) to expand capacity."
         elif cfo_latest < 0 or conv_ratio < 0:
             v_title = "⚠️ Accrual Leakage & Cash Flow Drain"
             v_desc = f"Latest CFO is negative (₹ {cfo_latest:,.0f} Cr) with negative cash conversion ({conv_ratio:.1f}%). Reported earnings are trapped in working capital rather than converting to real cash."
@@ -5793,40 +6052,76 @@ def handle_stock_financials(symbol_input: str, recipient: Optional[str] = None) 
             v_title = "⏳ Capital Intensive Reinvestment"
             v_desc = "Heavy capex cycle absorbing operating cash; monitor future margin payoff."
 
+        # Plain-English Layman Summary via Gemini LLM
+        layman_summary = generate_layman_financial_summary(
+            comp_name=d_name,
+            base_sym=b_sym,
+            y_start=y_start,
+            y_end=y_end,
+            num_years=num_years,
+            sales_start=sales_start,
+            sales_end=sales_end,
+            cagr=cagr,
+            ttm_sales=ttm_sales,
+            opm_str=opm_str,
+            ttm_opm=ttm_opm,
+            pat_start=pat_start,
+            pat_end=pat_end,
+            pat_cagr=pat_cagr,
+            ttm_pat=ttm_pat,
+            cfo_latest=cfo_latest,
+            conv_ratio=conv_ratio,
+            fcf_latest=fcf_latest,
+            total_fcf=total_fcf,
+            capex_latest=capex_latest
+        )
+
         lines = [
-            f"📊 *{d_name.upper()}* (`{b_sym}`) • *5Y FINANCIALS*",
+            f"📊 *{d_name.upper()}* (`{b_sym}`) • *{num_years}Y FINANCIALS*",
             "━━━━━━━━━━━━━━━━━━━━",
-            f"📅 *Multi-Year Horizon*: {y_start} – {y_end}\n",
+            f"📅 *Audited Horizon*: {y_start} – {y_end} ({num_years} Elapsed Years)\n",
             "📈 *TOP-LINE SALES (REVENUE)*:",
-            f"• {y_start}: ₹ {sales_start:,.0f} Cr  ➔  {y_end}: ₹ {sales_end:,.0f} Cr",
-            f"• *5-Year Revenue CAGR*: {cagr_str}\n",
+            f"• {y_start}: ₹ {sales_start:,.0f} Cr  ➔  {y_end}: ₹ {sales_end:,.0f} Cr" + (f" (TTM: ₹ {ttm_sales:,.0f} Cr)" if ttm_sales else ""),
+            f"• *{num_years}-Year Revenue CAGR*: {cagr_str}\n",
             "⚡ *OPERATING PROFIT & MARGINS*:",
-            f"• Operating Profit: ₹ {op_start:,.0f} Cr ➔ ₹ {op_end:,.0f} Cr",
-            f"• *OPM % Trajectory*: {opm_str}\n",
+            f"• Operating Profit: ₹ {op_start:,.0f} Cr ➔ ₹ {op_end:,.0f} Cr" + (f" (TTM: ₹ {ttm_op:,.0f} Cr)" if ttm_op else ""),
+            f"• *OPM % Trajectory*: {opm_str}" + (f" (TTM: {ttm_opm:.0f}%)" if ttm_opm else ""),
+            f"• *Margin Trend*: {opm_trend_desc}\n",
             "💰 *BOTTOM-LINE NET PROFIT (PAT)*:",
-            f"• {y_start}: ₹ {pat_start:,.0f} Cr ➔ {y_end}: ₹ {pat_end:,.0f} Cr",
-            f"• *5-Year PAT CAGR*: {pat_cagr_str}\n",
+            f"• {y_start}: ₹ {pat_start:,.0f} Cr ➔ {y_end}: ₹ {pat_end:,.0f} Cr" + (f" (TTM: ₹ {ttm_pat:,.0f} Cr)" if ttm_pat else ""),
+            f"• *{num_years}-Year PAT CAGR*: {pat_cagr_str}\n",
             "🌊 *CASH CONVERSION & FREE CASH FLOW*:",
             f"• Cash Flow from Ops (CFO): ₹ {cfo_latest:,.0f} Cr ({y_end})",
-            f"• CFO / PAT Cash Conversion: {conv_str}",
-            f"• *5-Year Cumulative FCF*: {fcf_badge} *₹ {total_fcf:,.0f} Cr*\n",
+            f"• CFO / PAT Cash Conversion: {conv_str} (₹{cfo_latest:,.0f} Cr CFO / ₹{pat_end:,.0f} Cr PAT)",
+            f"• Latest {y_end} Free Cash Flow: {latest_fcf_str}",
+            f"• *{num_years}-Year Cumulative FCF*: {fcf_badge} *₹ {total_fcf:,.0f} Cr*\n",
             "🧠 *QUANT FINANCIAL ASSESSMENT*:",
             f"• *Verdict*: {v_title}",
-            f"• *Health*: _{v_desc}_",
+            f"• *Profile*: _{v_desc}_\n",
+            "🌱 *PLAIN-ENGLISH LAYMAN SUMMARY (AI)*:",
+            f"{layman_summary}",
             "━━━━━━━━━━━━━━━━━━━━",
-            "Tap below to inspect shareholding or charts:"
+            "Tap below to inspect shareholding, charts, or stage:"
         ]
         body = "\n".join(lines)
         buttons = [
             (f"act:shp:{btn_sym}", f"🏛️ {btn_sym} Holding"),
             (f"act:chart:{btn_sym}", f"📈 {btn_sym} Chart"),
-            ("nav:sub:stock", "🤖 Equity Hub")
+            (f"run:stage:{btn_sym}", "🏛️ 4-Stage")
         ]
+
+        if len(body) > 1020:
+            send_whatsapp_text(body, recipient=recipient)
+            return send_whatsapp_interactive_buttons(
+                f"⚡ *Actions for {b_sym}*:",
+                buttons=buttons,
+                recipient=recipient
+            )
         return send_whatsapp_interactive_buttons(body, buttons=buttons, recipient=recipient)
     except Exception as e:
         logger.error(f"Error computing financials for {clean_sym}: {e}", exc_info=True)
         return send_whatsapp_interactive_buttons(
-            f"⚠️ Failed to retrieve financial statements for `{clean_sym}`: {e}",
+            f"⚠️ *Financials Error*: Could not compute financial statements for `{clean_sym}`: {str(e)}",
             buttons=[("nav:menu:main", "🏠 Main Menu")],
             recipient=recipient
         )
@@ -6074,6 +6369,7 @@ def handle_confluence_story_query(symbol_input: str, recipient: Optional[str] = 
 
         buttons = [
             (f"act:chart:{base_sym}", f"📈 {base_sym} Chart"),
+            (f"act:vision:{base_sym}", "🤖 AI Pattern"),
             (f"run:stage:{base_sym}", "🏛️ 4-Stage"),
             (f"view:stock:{base_sym}", f"📌 {base_sym} Dossier")
         ]
@@ -8100,6 +8396,10 @@ def dispatch_incoming_whatsapp_message(text_body: str, sender: Optional[str] = N
     ):
         return handle_events_calendar(cleaned, recipient=sender)
 
+    # 1e. Stage 1-4 Quant Matrix Interceptors (STAGE <SYM> / MATRIX <SYM> / WL MATRIX)
+    if cleaned.startswith("run:stage:") or cleaned.startswith("view:stage:"):
+        sym = cleaned.replace("run:stage:", "").replace("view:stage:", "").strip()
+        return handle_stock_stage_diagnostic(sym, recipient=sender)
     # 1e. Stan Weinstein & David Ryan 4-Stage Life Cycle Interceptors
     if cleaned in ["nav:sub:stage_masterclass", "menu:stage", "view:stage:menu", "run:stage:menu"]:
         return handle_stage_masterclass_hub(recipient=sender)
