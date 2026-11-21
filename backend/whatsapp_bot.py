@@ -5855,7 +5855,11 @@ def generate_layman_financial_summary(
     conv_ratio: float,
     fcf_latest: float,
     total_fcf: float,
-    capex_latest: float
+    capex_latest: float,
+    de_ratio: Optional[float] = None,
+    borrowings: Optional[float] = None,
+    int_cov: Optional[float] = None,
+    roce: Optional[float] = None
 ) -> str:
     """
     Invokes Gemini LLM (via call_llm / TASK_FAST) to produce a razor-sharp,
@@ -5870,13 +5874,25 @@ def generate_layman_financial_summary(
             "1. Real Growth: Are sales and profits genuinely compounding, or is it low/cyclical growth?\n"
             "2. Cash Quality: Are profits converting into real bank cash (CFO), or are they stuck in unpaid customer bills?\n"
             "3. CapEx & Free Cash Flow: Explain whether Free Cash Flow is positive or negative (e.g. heavy expansion capex building new capacity/ports vs asset-light cash machine).\n"
-            "4. Margins: Are operating margins expanding, steady, or compressing (and why)?\n"
+            "4. Balance Sheet & Capital Efficiency: State clearly if the balance sheet is safe (debt-free vs manageable leverage vs debt-heavy) and if return on capital (ROCE) is high or capital-intensive.\n"
             "5. Bottom Line: 1-sentence practical takeaway for long-term investors.\n\n"
             "Formatting Rules:\n"
             "- Use WhatsApp formatting: *bold* for key terms, _italics_ for subtext.\n"
             "- Strictly 4 concise bullet points (total response strictly under 500 characters).\n"
             "- Do NOT use markdown tables, ### headers, or HTML tags."
         )
+        bs_info = ""
+        if de_ratio is not None and borrowings is not None:
+            bs_info = f"Balance Sheet: Debt/Equity: {de_ratio:.2f}x (Borrowings: ₹{borrowings:,.0f} Cr)"
+            if int_cov is not None:
+                bs_info += f", Interest Coverage: {int_cov:.1f}x"
+            if roce is not None:
+                bs_info += f", ROCE: {roce:.1f}%\n"
+            else:
+                bs_info += "\n"
+        elif roce is not None:
+            bs_info = f"Capital Efficiency (ROCE): {roce:.1f}%\n"
+
         u_prompt = (
             f"Company: {comp_name} ({base_sym})\n"
             f"Audited Period: {y_start} to {y_end} ({num_years} elapsed years)\n"
@@ -5887,7 +5903,8 @@ def generate_layman_financial_summary(
             + f"Net Profit (PAT): ₹{pat_start:,.0f} Cr ({y_start}) -> ₹{pat_end:,.0f} Cr ({y_end}) ({pat_cagr:+.1f}% CAGR)"
             + (f", TTM: ₹{ttm_pat:,.0f} Cr\n" if ttm_pat else "\n")
             + f"Latest {y_end} CFO: ₹{cfo_latest:,.0f} Cr vs PAT: ₹{pat_end:,.0f} Cr (Cash Conversion: {conv_ratio:.1f}%)\n"
-            + f"Free Cash Flow: Latest {y_end} FCF: ₹{fcf_latest:,.0f} Cr (CapEx: ~₹{capex_latest:,.0f} Cr), Cumulative {num_years}Y FCF: ₹{total_fcf:,.0f} Cr"
+            + f"Free Cash Flow: Latest {y_end} FCF: ₹{fcf_latest:,.0f} Cr (CapEx: ~₹{capex_latest:,.0f} Cr), Cumulative {num_years}Y FCF: ₹{total_fcf:,.0f} Cr\n"
+            + bs_info
         )
         resp = call_llm(TASK_FAST, system_prompt=sys_prompt, user_prompt=u_prompt, max_tokens=260, enable_web_search=False)
         if resp and len(resp.strip()) > 30:
@@ -5899,11 +5916,12 @@ def generate_layman_financial_summary(
     growth_desc = f"Sales compounded at *{cagr:+.1f}% p.a.* while profit grew at *{pat_cagr:+.1f}% p.a.*"
     cash_desc = f"High cash conversion (*{conv_ratio:.0f}%* of PAT converts to real bank cash)" if conv_ratio >= 80 else f"Moderate cash realization (*{conv_ratio:.0f}%* conversion)"
     fcf_desc = f"Reinvesting heavily in capacity (CapEx ~₹{capex_latest:,.0f} Cr turned latest FCF to ₹{fcf_latest:,.0f} Cr; cumulative FCF is +₹{total_fcf:,.0f} Cr)" if fcf_latest < 0 else f"Generating positive free cash flow (+₹{total_fcf:,.0f} Cr over {num_years} years)"
+    bs_desc = f"virtually debt-free balance sheet (D/E {de_ratio:.2f}x)" if (de_ratio is not None and de_ratio <= 0.05) else (f"manageable leverage (D/E {de_ratio:.2f}x, ROCE {roce:.1f}%)" if (de_ratio is not None and roce is not None) else "stable capital structure")
     return (
         f"• *Growth Reality*: {growth_desc}.\n"
         f"• *Cash Quality*: {cash_desc}.\n"
         f"• *CapEx & Reinvestment*: {fcf_desc}.\n"
-        f"• *Bottom Line*: Sustainable core business; monitor return on reinvested capital."
+        f"• *Balance Sheet & Verdict*: {bs_desc.capitalize()}; sustainable core operations for long-term investors."
     )
 
 
@@ -5935,9 +5953,11 @@ def handle_stock_financials(symbol_input: str, recipient: Optional[str] = None) 
         data = scrape_financial_statements(b_sym)
         pl = data.get("profit_loss", {})
         cf = data.get("cash_flow", {})
+        bs = data.get("balance_sheet", {})
 
         pl_map = _map_financial_table_rows(pl)
         cf_map = _map_financial_table_rows(cf)
+        bs_map = _map_financial_table_rows(bs)
 
         # Extract audited annual financial years (strictly exclude TTM from annual horizon)
         raw_headers = pl.get("headers", [])
@@ -6032,10 +6052,88 @@ def handle_stock_financials(symbol_input: str, recipient: Optional[str] = None) 
         else:
             latest_fcf_str = f"{latest_fcf_badge} *₹ {fcf_latest:,.0f} Cr*"
 
+        # Balance Sheet & Solvency (Debt-to-Equity & Borrowings)
+        bs_borrowings = bs_map.get("borrowings", {})
+        bs_annual_keys = [k for k in bs_borrowings.keys() if not any(m in k.lower() for m in ["sep", "jun", "dec"])]
+        bs_key = y_end if (y_end in bs_borrowings) else (bs_annual_keys[-1] if bs_annual_keys else y_end)
+
+        borrowings_val = bs_borrowings.get(bs_key)
+        reserves_val = bs_map.get("reserves", {}).get(bs_key) or 0
+        share_cap_val = (bs_map.get("equity capital", {}) or bs_map.get("share capital", {})).get(bs_key) or 0
+        total_equity = reserves_val + share_cap_val
+
+        de_ratio = None
+        de_str = "N/A"
+        if borrowings_val is not None and total_equity > 0:
+            de_ratio = borrowings_val / total_equity
+            if borrowings_val <= 10 or de_ratio <= 0.05:
+                de_badge = "🟢"
+                de_desc = "Virtually Debt-Free"
+            elif de_ratio <= 0.5:
+                de_badge = "🟢"
+                de_desc = "Low Leverage"
+            elif de_ratio <= 1.0:
+                de_badge = "🟡"
+                de_desc = "Moderate Leverage"
+            else:
+                de_badge = "🔴"
+                de_desc = "High Leverage"
+            de_str = f"{de_badge} *{de_ratio:.2f}x* ({de_desc} | Borrowings: ₹ {borrowings_val:,.0f} Cr)"
+        elif borrowings_val is not None:
+            de_str = f"Borrowings: ₹ {borrowings_val:,.0f} Cr"
+
+        # Interest Coverage
+        interest_val = pl_map.get("interest", {}).get(y_end)
+        pbt_val = pl_map.get("profit before tax", {}).get(y_end)
+        int_cov_str = "N/A"
+        int_cov = None
+        if interest_val is not None and pbt_val is not None:
+            ebit_val = pbt_val + interest_val
+            if interest_val <= 1:
+                int_cov_str = "🟢 *Negligible* (Near zero interest cost)"
+            else:
+                int_cov = ebit_val / interest_val
+                if int_cov >= 6.0:
+                    int_badge = "🟢"
+                    int_desc = "Comfortable debt servicing"
+                elif int_cov >= 2.5:
+                    int_badge = "🟡"
+                    int_desc = "Adequate coverage"
+                else:
+                    int_badge = "🔴"
+                    int_desc = "High interest burden"
+                int_cov_str = f"{int_badge} *{int_cov:.1f}x* ({int_desc})"
+        elif interest_val is not None and interest_val <= 1:
+            int_cov_str = "🟢 *Negligible* (Near zero interest cost)"
+
+        # Return on Capital Employed (ROCE)
+        roce_str = "N/A"
+        roce = None
+        ebit_for_roce = (pbt_val + interest_val) if (pbt_val is not None and interest_val is not None) else pl_map.get("operating profit", {}).get(y_end)
+        capital_employed = (total_equity + (borrowings_val or 0)) if total_equity > 0 else 0
+        if capital_employed > 0 and ebit_for_roce is not None and ebit_for_roce > 0:
+            roce = (ebit_for_roce / capital_employed) * 100
+            if roce >= 20.0:
+                roce_badge = "🟢"
+                roce_desc = "High Capital Productivity"
+            elif roce >= 12.0:
+                roce_badge = "🟢"
+                roce_desc = "Healthy Return on Capital"
+            elif roce >= 8.0:
+                roce_badge = "🟡"
+                roce_desc = "Moderate Return on Capital"
+            else:
+                roce_badge = "🔴"
+                roce_desc = "Sub-par Return on Capital"
+            roce_str = f"{roce_badge} *{roce:.1f}%* ({roce_desc})"
+
         # Quant Compounder Verdict (rigorous multi-condition evaluation)
-        if (sales_start > 0 and sales_end > sales_start) and total_fcf > 0 and fcf_latest > 0 and (pat_end > pat_start) and conv_ratio >= 75:
+        if de_ratio is not None and de_ratio > 2.0 and (int_cov is not None and int_cov < 2.0):
+            v_title = "⚠️ High Debt Overhang & Solvency Risk"
+            v_desc = f"Heavy balance sheet debt load (D/E: {de_ratio:.1f}x) with weak interest coverage ({int_cov:.1f}x) consuming operational cash flow."
+        elif (sales_start > 0 and sales_end > sales_start) and total_fcf > 0 and fcf_latest > 0 and (pat_end > pat_start) and conv_ratio >= 75:
             v_title = "💎 High-Grade Cash Compounder"
-            v_desc = "Double-digit top-line growth with consistent positive free cash flow and expanding operational scale."
+            v_desc = "Double-digit top-line growth with consistent positive free cash flow, healthy balance sheet, and expanding operational scale."
         elif (sales_start > 0 and sales_end > sales_start) and total_fcf > 0 and fcf_latest <= 0 and (pat_end > pat_start) and conv_ratio >= 75:
             v_title = "🏗️ Capital-Intensive Growth Compounder"
             v_desc = f"Strong operational cash generation (CFO: ₹{cfo_latest:,.0f} Cr), but massive capex reinvestment absorbed latest FCF (₹{fcf_latest:,.0f} Cr) to expand capacity."
@@ -6073,7 +6171,11 @@ def handle_stock_financials(symbol_input: str, recipient: Optional[str] = None) 
             conv_ratio=conv_ratio,
             fcf_latest=fcf_latest,
             total_fcf=total_fcf,
-            capex_latest=capex_latest
+            capex_latest=capex_latest,
+            de_ratio=de_ratio,
+            borrowings=borrowings_val,
+            int_cov=int_cov,
+            roce=roce
         )
 
         lines = [
@@ -6095,6 +6197,10 @@ def handle_stock_financials(symbol_input: str, recipient: Optional[str] = None) 
             f"• CFO / PAT Cash Conversion: {conv_str} (₹{cfo_latest:,.0f} Cr CFO / ₹{pat_end:,.0f} Cr PAT)",
             f"• Latest {y_end} Free Cash Flow: {latest_fcf_str}",
             f"• *{num_years}-Year Cumulative FCF*: {fcf_badge} *₹ {total_fcf:,.0f} Cr*\n",
+            "🏛️ *BALANCE SHEET & CAPITAL EFFICIENCY*:",
+            f"• Debt-to-Equity (D/E): {de_str}",
+            f"• Interest Coverage: {int_cov_str}",
+            f"• Return on Capital (ROCE): {roce_str}\n",
             "🧠 *QUANT FINANCIAL ASSESSMENT*:",
             f"• *Verdict*: {v_title}",
             f"• *Profile*: _{v_desc}_\n",
