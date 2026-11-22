@@ -854,6 +854,83 @@ def handle_send_guide_pdf(recipient: Optional[str] = None) -> Dict[str, Any]:
         return send_whatsapp_text(f"⚠️ Failed to generate PDF guide: {e}", recipient=recipient)
 
 
+def handle_stock_dossier_pdf(symbol_input: str, recipient: Optional[str] = None) -> Dict[str, Any]:
+    """
+    Generates and dispatches the 6-page Institutional Equity Research Dossier (PDF)
+    directly to the user via Meta WhatsApp Cloud API Document endpoint.
+    Sends an immediate tactile acknowledgment, compiles/fetches the PDF in background,
+    and delivers it as a native document attachment with inline preview and follow-up buttons.
+    """
+    clean_sym = re.sub(r"^(?:PDF|REPORT|DOSSIER|STOCKPDF|EXPORT|GETPDF)[\s:\-_/]+|run:stock_pdf:|act:stock:pdf:", "", symbol_input, flags=re.IGNORECASE).strip().upper()
+    clean_sym = clean_sym.replace(".NS", "").replace(".BO", "")
+    if not clean_sym:
+        clean_sym = "RELIANCE"
+
+    try:
+        # 1. Send instant tactile acknowledgment
+        ack_body = (
+            f"⏳ *Compiling Institutional Research Dossier for {clean_sym}...*\n"
+            f"───────────────────────────\n"
+            f"📊 Synthesizing 6M Technical Charts, 8Q Heatmap, DuPont Decomposition, "
+            f"5Y Valuation Models, SerpAPI News & Dual-Horizon Strategy Matrix.\n\n"
+            f"⚡ *Dispatching PDF document in a few moments...*"
+        )
+        send_whatsapp_text(ack_body, recipient=recipient)
+
+        # 2. Generate or retrieve cached PDF
+        from backend.pdf_generator import generate_stock_research_dossier_pdf
+        today_str = datetime.now().strftime("%Y%m%d")
+        reports_dir = os.path.join("data", "reports", "stocks")
+        os.makedirs(reports_dir, exist_ok=True)
+        pdf_path = os.path.join(reports_dir, f"{clean_sym}_Institutional_Dossier_{today_str}.pdf")
+
+        # Check freshness (< 4 hrs)
+        needs_gen = not os.path.exists(pdf_path)
+        if not needs_gen:
+            if (time.time() - os.path.getmtime(pdf_path)) > 14400:
+                needs_gen = True
+
+        if needs_gen:
+            generate_stock_research_dossier_pdf(clean_sym, pdf_path)
+
+        caption = (
+            f"📄 *APEXQUANT • {clean_sym} INSTITUTIONAL DOSSIER*\n"
+            f"Official 6-Page Institutional Research & Quant Intelligence Memo.\n\n"
+            f"• 6M Price/SMA/RSI Chart & Fibonacci Scale\n"
+            f"• 8-Quarter Color Performance Heatmap\n"
+            f"• DuPont ROE 3-Factor Tree & 5Y Financials\n"
+            f"• Reverse DCF Valuation & Football Field\n"
+            f"• SerpAPI News & Dual-Horizon Strategy Matrix\n\n"
+            f"💡 Save, star, or print this document for your trade plan."
+        )
+
+        send_whatsapp_document(
+            file_path=pdf_path,
+            caption=caption,
+            filename=f"{clean_sym}_Institutional_Dossier.pdf",
+            recipient=recipient
+        )
+
+        return send_whatsapp_interactive_buttons(
+            f"⚡ *{clean_sym} Quick Follow-Ups*:",
+            buttons=[
+                (f"run:chart:{clean_sym}", f"📊 Live Chart"),
+                (f"run:stage:{clean_sym}", f"📐 Stage Setup"),
+                ("nav:menu:main", "🏠 Main Menu")
+            ],
+            recipient=recipient
+        )
+    except Exception as e:
+        logger.error(f"[WHATSAPP STOCK PDF] Exception generating PDF for {clean_sym}: {e}", exc_info=True)
+        err_msg = (
+            f"⚠️ *Could not compile PDF Dossier for {clean_sym}*\n\n"
+            f"Error: `{str(e)}`\n"
+            f"💡 Please check the ticker spelling or try again in a few moments."
+        )
+        return send_whatsapp_text(err_msg, recipient=recipient)
+
+
+
 def handle_main_menu(recipient: Optional[str] = None) -> Dict[str, Any]:
     """
     Renders Level 0: Master Terminal Navigation Menu.
@@ -6676,7 +6753,7 @@ def handle_stock_technical_timing(
         body = "\n".join(lines)
 
         buttons = [
-            (f"act:shp:{btn_sym}", f"🏛️ {btn_sym} Holding"),
+            (f"act:stock:pdf:{btn_sym}", f"📄 {btn_sym} PDF"),
             (f"act:fin:{btn_sym}", f"📊 {btn_sym} 5Y Fin"),
             (f"act:chart:{btn_sym}", f"📈 {btn_sym} Chart")
         ]
@@ -9132,6 +9209,21 @@ def dispatch_incoming_whatsapp_message(text_body: str, sender: Optional[str] = N
 
     if upper in ["GUIDE PDF", "PDF GUIDE", "CHEAT SHEET PDF", "COMMANDS PDF", "HELP PDF"]:
         return handle_send_guide_pdf(recipient=sender)
+
+    # 0a. Stock Research Dossier PDF Commands & Callbacks (e.g. PDF TCS, REPORT RELIANCE, act:stock:pdf:BOSCHLTD)
+    if (
+        cleaned.startswith("act:stock:pdf:")
+        or cleaned.startswith("run:stock_pdf:")
+        or upper.startswith("PDF ")
+        or upper.startswith("REPORT ")
+        or upper.startswith("STOCKPDF ")
+        or upper.startswith("DOSSIER ")
+        or (upper.endswith(" PDF") and len(upper.split()) == 2 and upper not in ["GUIDE PDF", "HELP PDF", "COMMANDS PDF", "CHEAT SHEET PDF"])
+    ):
+        raw_sym = re.sub(r"^(?:PDF|REPORT|STOCKPDF|DOSSIER)[\s:]+|act:stock:pdf:|run:stock_pdf:", "", cleaned, flags=re.IGNORECASE).strip()
+        raw_sym = re.sub(r"[\s:]+PDF$", "", raw_sym, flags=re.IGNORECASE).strip()
+        if raw_sym:
+            return handle_stock_dossier_pdf(raw_sym, recipient=sender)
 
     if upper in ["HELP CHARTS", "GUIDE CHARTS", "CHART GUIDE", "CHARTS GUIDE", "HELP CHART"]:
         return handle_guide_module("charts", recipient=sender)

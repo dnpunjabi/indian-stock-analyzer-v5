@@ -53,3 +53,4 @@ outputs/
 
 # Generated reports
 data/reports/*.pdf
+data/reports/stocks/

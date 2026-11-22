@@ -3066,6 +3066,55 @@ async def get_portfolio_catalyst_pdf(download: bool = Query(False)):
         headers={"Content-Disposition": f'{disposition}; filename="Portfolio_Catalyst_Report.pdf"'}
     )
 
+
+@app.get("/api/stocks/{symbol}/pdf")
+async def get_stock_research_dossier_pdf_endpoint(
+    symbol: str, 
+    download: bool = Query(True), 
+    force_refresh: bool = False
+):
+    """
+    Generates or retrieves the 6-page Institutional Equity Research Dossier (PDF).
+    Features 6M price/RSI charts, 8Q performance heatmap, DuPont decomposition,
+    5Y valuation & reverse DCF models, SerpAPI news, and dual-horizon trade matrix.
+    Fast L1 disk-caching serves subsequent requests in < 50ms.
+    """
+    clean_sym = symbol.strip().upper().replace(".NS", "").replace(".BO", "")
+    today_str = datetime.now().strftime("%Y%m%d")
+    reports_dir = os.path.join("data", "reports", "stocks")
+    os.makedirs(reports_dir, exist_ok=True)
+    pdf_path = os.path.join(reports_dir, f"{clean_sym}_Institutional_Dossier_{today_str}.pdf")
+
+    # Check cache freshness (valid for 4 hours)
+    needs_gen = force_refresh or not os.path.exists(pdf_path)
+    if not needs_gen:
+        file_age_secs = time.time() - os.path.getmtime(pdf_path)
+        if file_age_secs > 14400: # 4 hours
+            needs_gen = True
+
+    if needs_gen:
+        try:
+            from backend.pdf_generator import generate_stock_research_dossier_pdf
+            await asyncio.to_thread(generate_stock_research_dossier_pdf, clean_sym, pdf_path)
+        except Exception as e:
+            logger.error(f"[STOCK PDF ENDPOINT] Failed to generate PDF for {clean_sym}: {e}", exc_info=True)
+            if not os.path.exists(pdf_path):
+                raise HTTPException(status_code=500, detail=f"Failed to generate stock research PDF: {str(e)}")
+
+    if not os.path.exists(pdf_path):
+        raise HTTPException(status_code=404, detail="Stock research PDF dossier not available.")
+
+    from fastapi.responses import FileResponse
+    disposition = "attachment" if download else "inline"
+    filename = f"{clean_sym}_Institutional_Research_Dossier.pdf"
+    return FileResponse(
+        path=pdf_path,
+        media_type="application/pdf",
+        filename=filename,
+        headers={"Content-Disposition": f'{disposition}; filename="{filename}"'}
+    )
+
+
 @app.get("/api/search")
 async def search_ticker(q: str):
     """Resolves conversational company queries into NSE tickers."""

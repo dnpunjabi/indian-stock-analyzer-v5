@@ -16218,98 +16218,33 @@ function appendChatMessage(role, content, useTypewriter = false, llmMeta = null)
     return msgId;
 }
 
-// 10. PDF Export Stylesheet Binding
+// 10. Institutional Stock PDF Dossier Export
 function setupPDFExport() {
-    document.getElementById('export-pdf-btn').addEventListener('click', () => {
-        // 1. Store the currently active sub-tab so we can restore it afterwards
-        const activeSubtabBtn = document.querySelector('.subtab-btn.active');
-        const activeSubtab = activeSubtabBtn ? activeSubtabBtn.getAttribute('data-subtab') : 'summary';
-
-        // 1b. Temporarily change document.title to set a standard saved PDF filename
-        const originalTitle = document.title;
-        const tickerEl = document.getElementById('meta-ticker');
-        const tickerRaw = tickerEl ? tickerEl.innerText.trim() : 'STOCK';
-        const ticker = tickerRaw.replace('.NS', '').replace('.BO', '');
-
-        const now = new Date();
-        const yyyy = now.getFullYear();
-        const mm = String(now.getMonth() + 1).padStart(2, '0');
-        const dd = String(now.getDate()).padStart(2, '0');
-        const hh = String(now.getHours()).padStart(2, '0');
-        const min = String(now.getMinutes()).padStart(2, '0');
-        const timestamp = `${yyyy}${mm}${dd}_${hh}${min}`;
-
-        document.title = `${ticker}_Equity_Research_Report_${timestamp}`;
-
-        // Helper to synchronously resize and update all Chart.js instances
-        const forceUpdateCharts = () => {
-            const chartInstances = [
-                typeof activeChartInstance !== 'undefined' ? activeChartInstance : null,
-                typeof activePeerChartInstance !== 'undefined' ? activePeerChartInstance : null,
-                typeof activeFibChartInstance !== 'undefined' ? activeFibChartInstance : null,
-                typeof activeDrawdownChartInstance !== 'undefined' ? activeDrawdownChartInstance : null,
-                typeof miniCharts !== 'undefined' ? miniCharts.bb : null,
-                typeof miniCharts !== 'undefined' ? miniCharts.atr : null,
-                typeof miniCharts !== 'undefined' ? miniCharts.macd : null,
-                typeof miniCharts !== 'undefined' ? miniCharts.vpt : null
-            ];
-            chartInstances.forEach(chart => {
-                if (chart && typeof chart.resize === 'function') {
-                    try {
-                        chart.resize();
-                        chart.update();
-                    } catch (e) {
-                        console.warn("Chart resize failed during print prep:", e);
-                    }
-                }
-            });
-        };
-
-        // 2. Temporarily remove 'card-hidden' class from all cards that should print
-        const cards = document.querySelectorAll('.dashboard-grid > .card');
-        cards.forEach(card => {
-            if (!card.classList.contains('print-exclude') && !card.classList.contains('no-print')) {
-                card.classList.remove('card-hidden');
+    const exportBtn = document.getElementById('export-pdf-btn');
+    if (exportBtn) {
+        exportBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            const tickerEl = document.getElementById('meta-ticker');
+            const tickerRaw = tickerEl ? tickerEl.innerText.trim() : (window.currentActiveSymbol || 'TCS');
+            const symbol = tickerRaw.replace('.NS', '').replace('.BO', '').trim();
+            if (symbol) {
+                window.exportStockPDF(symbol);
             }
         });
+    }
 
-        // 3. Temporarily expand the business summary content accordion
-        const summaryContent = document.getElementById('business-summary-content');
-        let originalMaxHeight = '';
-        if (summaryContent) {
-            originalMaxHeight = summaryContent.style.maxHeight;
-            summaryContent.style.maxHeight = 'none';
-        }
-
-        // 4. Force a window resize event and run synchronous chart updates on visible DOM elements
-        window.dispatchEvent(new Event('resize'));
-        forceUpdateCharts();
-
-        // 5. Allow a 150ms delay for Chart.js rendering cycle, then fire the print dialog
-        setTimeout(() => {
-            window.print();
-
-            // 6. Print dialog completed (or cancelled), restore active tab card visibilities
-            cards.forEach(card => {
-                const subtabAttr = card.getAttribute('data-subtab');
-                if (subtabAttr !== activeSubtab) {
-                    card.classList.add('card-hidden');
-                }
-            });
-
-            // 7. Restore the business summary content accordion max-height
-            if (summaryContent) {
-                summaryContent.style.maxHeight = originalMaxHeight;
+    const fabPdfBtn = document.getElementById('fab-action-pdf');
+    if (fabPdfBtn) {
+        fabPdfBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            const tickerEl = document.getElementById('meta-ticker');
+            const tickerRaw = tickerEl ? tickerEl.innerText.trim() : (window.currentActiveSymbol || 'TCS');
+            const symbol = tickerRaw.replace('.NS', '').replace('.BO', '').trim();
+            if (symbol) {
+                window.exportStockPDF(symbol);
             }
-
-            // 7b. Restore the original document title
-            document.title = originalTitle;
-
-            // 8. Re-trigger resize and sync charts to realign to active tab
-            window.dispatchEvent(new Event('resize'));
-            forceUpdateCharts();
-        }, 150);
-    });
+        });
+    }
 
     document.querySelectorAll('.print-toggle').forEach(checkbox => {
         // Initialize target classes on page load based on initial checkbox state
@@ -16356,6 +16291,55 @@ function setupPDFExport() {
         });
     }
 }
+
+window.exportStockPDF = async function(symbol) {
+    const cleanSym = (symbol || window.currentActiveSymbol || 'TCS').replace('.NS', '').replace('.BO', '').trim().toUpperCase();
+    const exportBtn = document.getElementById('export-pdf-btn');
+    const originalText = exportBtn ? exportBtn.innerHTML : '📄 PDF Report';
+
+    try {
+        if (exportBtn) {
+            exportBtn.innerHTML = '⏳ Generating PDF...';
+            exportBtn.style.opacity = '0.75';
+            exportBtn.style.pointerEvents = 'none';
+        }
+
+        if (window.showToast) {
+            window.showToast(`📊 Compiling 6-page Institutional Dossier for ${cleanSym}...`, 'info');
+        }
+
+        const downloadUrl = `/api/stocks/${cleanSym}/pdf?download=true`;
+
+        // Mobile Capacitor Browser / File Opener or standard Web anchor download
+        if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.Browser) {
+            await window.Capacitor.Plugins.Browser.open({ url: window.location.origin + downloadUrl });
+        } else {
+            const a = document.createElement('a');
+            a.href = downloadUrl;
+            a.download = `${cleanSym}_Institutional_Research_Dossier.pdf`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+        }
+
+        if (window.showToast) {
+            setTimeout(() => {
+                window.showToast(`✅ ${cleanSym} Institutional Research Dossier downloaded!`, 'success');
+            }, 1200);
+        }
+    } catch (err) {
+        console.error('[EXPORT PDF] Error:', err);
+        if (window.showToast) {
+            window.showToast(`⚠️ Failed to export PDF: ${err.message}`, 'error');
+        }
+    } finally {
+        if (exportBtn) {
+            exportBtn.innerHTML = originalText;
+            exportBtn.style.opacity = '1';
+            exportBtn.style.pointerEvents = 'auto';
+        }
+    }
+};
 
 // 11. Custom Advanced Interactive Charts drawing routines (Fibonacci, Volatility Grid)
 let activeFibChartInstance = null;
