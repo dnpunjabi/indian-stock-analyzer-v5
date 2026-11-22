@@ -26,7 +26,7 @@ import sqlite3
 import logging
 import asyncio
 import time
-from datetime import datetime
+from datetime import datetime, timedelta, date
 from typing import Dict, Any, Optional, Tuple, List
 
 import yfinance as yf
@@ -934,8 +934,9 @@ def handle_main_menu(recipient: Optional[str] = None) -> Dict[str, Any]:
         "💡 *Direct Shortcuts:*\n"
         "• Text any ticker (e.g. `BOSCH`, `RELIANCE`) for instant AI analysis\n"
         "• Text `STAGE <SYM>` (e.g. `STAGE BOSCH`) for 4-Stage Life Cycle Masterclass\n"
+        "• Text `Q <SYM>` (e.g. `Q BOSCH`) for latest Quarterly Earnings Flash\n"
+        "• Text `FIN <SYM>` (e.g. `FIN BOSCH`) for 5-Year Financial Statements & FCF\n"
         "• Text `CHART <SYM>` (e.g. `CHART INFY`) for dark technical chart\n"
-        "• Text `CHECK BUY <SYM>` or `CHECK SELL <SYM>` for AI Trade Psychologist\n"
         "• Text `ALERT <SYM> > <PRICE>` or `SL <SYM> <PRICE>` to set live alerts\n"
         "• Text `scan <criteria>` (e.g. `scan midcaps with PE < 15 and RSI < 30`)"
     )
@@ -3564,7 +3565,7 @@ def handle_stock_stage_diagnostic(symbol_input: str, recipient: Optional[str] = 
     clean_btn = base_sym[:8]
     buttons = [
         (f"act:chart:{clean_btn}", f"📈 {clean_btn} Chart"),
-        (f"act:confluence:story:{clean_btn}", "🎯 Confluence"),
+        (f"act:qtr:{clean_btn}", f"📑 {clean_btn} Qtr"),
         (f"view:stock:{clean_btn}", f"📌 {clean_btn} Dossier")
     ]
 
@@ -4606,10 +4607,20 @@ def handle_events_calendar(query_arg: Optional[str] = None, recipient: Optional[
 
     today = datetime.now().strftime("%Y-%m-%d")
 
+    # Check if query_arg is asking for general calendar or a specific company
+    is_general_calendar = (
+        not query_arg or query_arg.strip().lower() in [
+            "all", "calendar", "events", "market", "today", "week", "this week",
+            "this_week", "upcoming", "results", "quarterly", "quarterly_results",
+            "earnings", "results today", "earnings today"
+        ]
+    )
+
     # Mode A: Specific company requested (e.g. EVENTS BOSCH, DIVIDENDS INFY)
-    if query_arg and query_arg.strip():
-        sym_clean = query_arg.strip().upper().replace("EVENTS", "").replace("DIVIDENDS", "").replace("EARNINGS", "").replace("CALENDAR", "").strip()
-        if sym_clean:
+    if not is_general_calendar and query_arg and query_arg.strip():
+        sym_clean = re.sub(r"(?i)\b(?:events|dividends|earnings|calendar|results|quarterly|qtr|today|this\s*week|week|market|upcoming|all)\b", "", query_arg).strip()
+        sym_clean = re.sub(r"[^A-Za-z0-9&.-]+", "", sym_clean).strip()
+        if sym_clean and len(sym_clean) >= 2:
             resolved = resolve_company_ticker(sym_clean)
             base_sym = resolved.get("base_symbol") if resolved else sym_clean
             comp_name = resolved.get("name") if resolved else base_sym
@@ -4648,18 +4659,22 @@ def handle_events_calendar(query_arg: Optional[str] = None, recipient: Optional[
                     body += f"• {badge} • {fmt_date(ed)}\n  _{clean_desc}_\n"
                 body += (
                     "━━━━━━━━━━━━━━━━━━━━\n"
-                    "Tap below to view dark-mode chart or valuation dossier:"
+                    "Tap below to view dark-mode chart, quarterly scorecard, or valuation dossier:"
                 )
 
             clean_btn = base_sym[:8]
             buttons = [
+                (f"act:qtr:{clean_btn}", f"📑 {clean_btn} Qtr"),
                 (f"act:chart:{clean_btn}", f"📈 {clean_btn} Chart"),
-                (f"view:stock:{clean_btn}", f"📌 {clean_btn} Dossier"),
-                ("nav:menu:main", "🏠 Main Menu")
+                (f"view:stock:{clean_btn}", f"📌 {clean_btn} Dossier")
             ]
             return send_whatsapp_interactive_buttons(body, buttons=buttons, recipient=recipient)
 
     # Mode B: Portfolio & Market-Wide Calendar
+    start_date = (datetime.now() - timedelta(days=7)).strftime("%Y-%m-%d")
+    only_results = bool(query_arg and any(w in query_arg.lower() for w in ["result", "earning", "qtr", "quarter"]))
+    ev_clause = " AND event_type = 'quarterly_results'" if only_results else ""
+
     pf_syms = []
     try:
         with get_db() as conn:
@@ -4682,8 +4697,8 @@ def handle_events_calendar(query_arg: Optional[str] = None, recipient: Optional[
                 q_marks = ",".join(["?"] * len(pf_syms))
                 cursor.execute(
                     f"SELECT symbol, company_name, event_type, event_date, description FROM stock_events "
-                    f"WHERE symbol IN ({q_marks}) AND event_date >= ? ORDER BY event_date ASC LIMIT 6",
-                    pf_syms + [today]
+                    f"WHERE symbol IN ({q_marks}) AND event_date >= ? {ev_clause} ORDER BY event_date ASC LIMIT 6",
+                    pf_syms + [start_date]
                 )
                 pf_events = [dict(r) for r in cursor.fetchall()]
 
@@ -4691,15 +4706,16 @@ def handle_events_calendar(query_arg: Optional[str] = None, recipient: Optional[
             mkt_limit = 6 if not pf_events else 4
             cursor.execute(
                 f"SELECT symbol, company_name, event_type, event_date, description FROM stock_events "
-                f"WHERE event_date >= ? ORDER BY event_date ASC LIMIT {mkt_limit}",
-                [today]
+                f"WHERE event_date >= ? {ev_clause} ORDER BY event_date ASC LIMIT {mkt_limit}",
+                [start_date]
             )
             mkt_events = [dict(r) for r in cursor.fetchall()]
     except Exception as e:
         logger.warning(f"Error reading stock_events for calendar: {e}")
 
+    hdr_title = "📊 *QUARTERLY EARNINGS CALENDAR*" if only_results else "📅 *CORPORATE & EARNINGS CALENDAR*"
     body = (
-        "📅 *CORPORATE & EARNINGS CALENDAR*\n"
+        f"{hdr_title}\n"
         "━━━━━━━━━━━━━━━━━━━━\n"
         "Forward-looking earnings pipeline & dividend announcements:\n\n"
         "💼 *Your Active Portfolio:*\n"
@@ -6207,11 +6223,11 @@ def handle_stock_financials(symbol_input: str, recipient: Optional[str] = None) 
             "🌱 *PLAIN-ENGLISH LAYMAN SUMMARY (AI)*:",
             f"{layman_summary}",
             "━━━━━━━━━━━━━━━━━━━━",
-            "Tap below to inspect shareholding, charts, or stage:"
+            "Tap below to inspect quarterly results, charts, or stage:"
         ]
         body = "\n".join(lines)
         buttons = [
-            (f"act:shp:{btn_sym}", f"🏛️ {btn_sym} Holding"),
+            (f"act:qtr:{btn_sym}", f"📑 {btn_sym} Qtr"),
             (f"act:chart:{btn_sym}", f"📈 {btn_sym} Chart"),
             (f"run:stage:{btn_sym}", "🏛️ 4-Stage")
         ]
@@ -6228,6 +6244,310 @@ def handle_stock_financials(symbol_input: str, recipient: Optional[str] = None) 
         logger.error(f"Error computing financials for {clean_sym}: {e}", exc_info=True)
         return send_whatsapp_interactive_buttons(
             f"⚠️ *Financials Error*: Could not compute financial statements for `{clean_sym}`: {str(e)}",
+            buttons=[("nav:menu:main", "🏠 Main Menu")],
+            recipient=recipient
+        )
+
+
+def generate_layman_quarterly_summary(
+    comp_name: str,
+    base_sym: str,
+    latest_q: str,
+    yoy_q: Optional[str],
+    prev_q: Optional[str],
+    s_curr: float,
+    s_yoy_chg: float,
+    s_qoq_chg: float,
+    opm_curr: float,
+    opm_diff: float,
+    core_pbt_curr: float,
+    core_pbt_growth: float,
+    pat_curr: float,
+    pat_growth: float,
+    distortion_note: Optional[str] = None,
+    stage_info: Optional[str] = None
+) -> str:
+    """
+    Invokes Gemini LLM (via call_llm / TASK_FAST) to produce a razor-sharp,
+    tactical, plain-English breakdown of the latest quarterly earnings results.
+    """
+    try:
+        from backend.llm_config import call_llm, TASK_FAST
+        sys_prompt = (
+            "You are an elite equity research analyst explaining a company's latest quarterly earnings results "
+            "to a retail trader / investor on WhatsApp in simple, plain English.\n"
+            "Translate accounting numbers into clear tactical business and trading reality:\n"
+            "1. Operational Momentum: Are sales and core profits accelerating or decelerating (YoY and QoQ)?\n"
+            "2. Margins: Are operating margins expanding, steady, or under pressure (and why)?\n"
+            "3. Distortion Alert: If there is an Other Income spike or tax distortion, clarify the true core operating picture.\n"
+            "4. Tactical Catalyst: 1-sentence bottom line on how this quarterly performance impacts the trade setup.\n\n"
+            "Formatting Rules:\n"
+            "- Use WhatsApp formatting: *bold* for key terms, _italics_ for subtext.\n"
+            "- Strictly 3 concise bullet points (total response strictly under 400 characters).\n"
+            "- Do NOT use markdown tables, ### headers, or HTML tags."
+        )
+        u_prompt = (
+            f"Company: {comp_name} ({base_sym})\n"
+            f"Latest Quarter: {latest_q} (vs YoY: {yoy_q or 'N/A'}, vs QoQ: {prev_q or 'N/A'})\n"
+            f"Sales: ₹{s_curr:,.0f} Cr (YoY: {s_yoy_chg:+.1f}%, QoQ: {s_qoq_chg:+.1f}%)\n"
+            f"Operating Profit Margin: {opm_curr:.1f}% (YoY diff: {opm_diff:+.1f}%)\n"
+            f"Core Operating PBT: ₹{core_pbt_curr:,.0f} Cr (YoY: {core_pbt_growth:+.1f}%)\n"
+            f"Reported PAT: ₹{pat_curr:,.0f} Cr (YoY: {pat_growth:+.1f}%)\n"
+        )
+        if distortion_note:
+            u_prompt += f"Distortion Note: {distortion_note}\n"
+        if stage_info:
+            u_prompt += f"Technical/Stage Context: {stage_info}\n"
+
+        resp = call_llm(TASK_FAST, system_prompt=sys_prompt, user_prompt=u_prompt, max_tokens=220, enable_web_search=False)
+        if resp and len(resp.strip()) > 30:
+            return html.unescape(resp.strip())
+    except Exception as e:
+        logger.warning(f"Error generating layman quarterly summary: {e}")
+
+    # Deterministic fallback if LLM is offline
+    sales_badge = "Accelerating" if s_yoy_chg >= 15 else ("Steady" if s_yoy_chg >= 5 else "Subdued")
+    margin_badge = "expanding" if opm_diff > 0.5 else ("compressing" if opm_diff < -0.5 else "stable")
+    return (
+        f"• *Operational Momentum*: {sales_badge} top-line growth (*{s_yoy_chg:+.1f}% YoY*, *{s_qoq_chg:+.1f}% QoQ*).\n"
+        f"• *Margin Health*: Operating margins are {margin_badge} at *{opm_curr:.0f}%* ({opm_diff:+.1f}% YoY).\n"
+        f"• *Core Takeaway*: Core Operating PBT grew *{core_pbt_growth:+.1f}% YoY*; solid underlying execution."
+    )
+
+
+def handle_stock_quarterly_results(symbol_input: str, recipient: Optional[str] = None) -> Dict[str, Any]:
+    """
+    Renders Latest Quarterly Earnings Flash Scorecard:
+    - Top-line Revenue with YoY % and QoQ % growth
+    - Operating Profit & OPM % expansion / compression
+    - Core Operating PBT vs Reported PAT (Anti-misleading filter for Other Income spikes)
+    - Diluted Quarterly EPS
+    - 4-Quarter Trajectory Sparklines (Sales & OPM)
+    - Technical Catalyst & Stage 2 breakout connection
+    - Rupee Translation (from Equity Research Terminal)
+    - AI Layman Summary (Gemini 2.5 Flash)
+    """
+    clean_sym = (symbol_input or "").strip().upper().replace(" ", "")
+    clean_sym = re.sub(r"^(?:Q|QTR|QUARTER|QUARTERLY|RESULT|RESULTS|EARNINGS)[\s:]+", "", clean_sym, flags=re.IGNORECASE).strip()
+    clean_sym = re.sub(r"^(?:ACT:QTR:|VIEW:QTR:|RUN:QTR:)", "", clean_sym, flags=re.IGNORECASE).strip()
+    clean_sym = re.sub(r"^Q[1-4][\s:]+", "", clean_sym, flags=re.IGNORECASE).strip()
+    if not clean_sym:
+        clean_sym = "RELIANCE"
+
+    resolved = resolve_company_ticker(clean_sym)
+    lookup_ticker = resolved.get("yf_ticker") if resolved else f"{clean_sym}.NS"
+    b_sym = resolved.get("base_symbol") if resolved else lookup_ticker.replace(".NS", "")
+    d_name = resolved.get("name") if resolved else b_sym
+    btn_sym = b_sym[:8]
+
+    try:
+        from backend.financial_statements_scraper import scrape_financial_statements
+        data = scrape_financial_statements(b_sym)
+        q_table = data.get("quarters", {})
+        raw_headers = q_table.get("headers", [])
+        col_headers = [h.strip() for h in raw_headers[1:] if h and h.strip()]
+        if not col_headers:
+            return send_whatsapp_interactive_buttons(
+                f"⚠️ *Quarterly Results Unavailable*: No quarterly statements found for `{b_sym}`.",
+                buttons=[("nav:menu:main", "🏠 Main Menu")],
+                recipient=recipient
+            )
+
+        q_map = _map_financial_table_rows(q_table)
+        latest_q = col_headers[-1]
+        prev_q = col_headers[-2] if len(col_headers) >= 2 else None
+
+        # Identify YoY quarter (same month prior year)
+        parts = latest_q.split()
+        yoy_q = None
+        if len(parts) == 2 and parts[1].isdigit():
+            target_yoy = f"{parts[0]} {int(parts[1]) - 1}"
+            if target_yoy in col_headers:
+                yoy_q = target_yoy
+        if not yoy_q and len(col_headers) >= 5:
+            yoy_q = col_headers[-5]
+
+        # 1. Top-Line Sales
+        s_curr = q_map.get("sales", {}).get(latest_q) or 0
+        s_prev = q_map.get("sales", {}).get(prev_q) or 0
+        s_yoy = q_map.get("sales", {}).get(yoy_q) or 0
+        s_yoy_chg = ((s_curr - s_yoy) / s_yoy * 100) if s_yoy > 0 else 0.0
+        s_qoq_chg = ((s_curr - s_prev) / s_prev * 100) if s_prev > 0 else 0.0
+        s_badge = "🟢" if s_yoy_chg >= 12 else ("🟡" if s_yoy_chg >= 4 else "🔴")
+        s_sign = "+" if s_yoy_chg >= 0 else ""
+        s_qoq_sign = "+" if s_qoq_chg >= 0 else ""
+
+        # 2. Operating Profit & Margin
+        op_curr = q_map.get("operating profit", {}).get(latest_q) or 0
+        op_yoy = q_map.get("operating profit", {}).get(yoy_q) or 0
+        opm_curr = q_map.get("opm %", {}).get(latest_q) or 0.0
+        opm_yoy = q_map.get("opm %", {}).get(yoy_q) or 0.0
+        opm_diff = opm_curr - opm_yoy
+        if opm_diff > 1.0:
+            opm_trend = f"🟢 Expanded by {opm_diff:+.1f}% YoY"
+        elif opm_diff < -1.0:
+            opm_trend = f"🔴 Compressed by {abs(opm_diff):.1f}% YoY"
+        else:
+            opm_trend = "🟢 Steady YoY"
+
+        # 3. Core Operating PBT vs Reported PAT (Anti-misleading filter)
+        depr_curr = q_map.get("depreciation", {}).get(latest_q) or 0
+        int_curr = q_map.get("interest", {}).get(latest_q) or 0
+        core_pbt_curr = op_curr - depr_curr - int_curr
+
+        depr_yoy = q_map.get("depreciation", {}).get(yoy_q) or 0
+        int_yoy = q_map.get("interest", {}).get(yoy_q) or 0
+        core_pbt_yoy = op_yoy - depr_yoy - int_yoy
+        core_pbt_growth = ((core_pbt_curr - core_pbt_yoy) / abs(core_pbt_yoy) * 100) if core_pbt_yoy != 0 else 0.0
+
+        pat_curr = q_map.get("net profit", {}).get(latest_q) or 0
+        pat_yoy = q_map.get("net profit", {}).get(yoy_q) or 0
+        pat_growth = ((pat_curr - pat_yoy) / abs(pat_yoy) * 100) if pat_yoy != 0 else 0.0
+
+        oth_curr = q_map.get("other income", {}).get(latest_q) or 0
+        oth_yoy = q_map.get("other income", {}).get(yoy_q) or 0
+        pbt_yoy = q_map.get("profit before tax", {}).get(yoy_q) or 0
+        pbt_curr = q_map.get("profit before tax", {}).get(latest_q) or 0
+
+        distortion_msg = ""
+        if pbt_yoy > 0 and (oth_yoy > 0.3 * pbt_yoy):
+            distortion_msg = f"⚠️ *One-Time Item Alert*: Base quarter ({yoy_q}) had high Other Income (₹{oth_yoy:,.0f} Cr). Core Operating PBT grew *{core_pbt_growth:+.1f}% YoY*."
+        elif pbt_curr > 0 and (oth_curr > 0.3 * pbt_curr):
+            distortion_msg = f"⚠️ *One-Time Item Alert*: Current quarter ({latest_q}) has high Other Income (₹{oth_curr:,.0f} Cr). Core Operating PBT is ₹{core_pbt_curr:,.0f} Cr (*{core_pbt_growth:+.1f}% YoY*)."
+
+        # 4. Diluted EPS
+        eps_curr = q_map.get("eps in rs", {}).get(latest_q)
+        eps_yoy = q_map.get("eps in rs", {}).get(yoy_q)
+        eps_str = f"₹ {eps_curr:.2f}" if eps_curr is not None else "N/A"
+        if eps_curr is not None and eps_yoy is not None and eps_yoy > 0:
+            eps_growth = ((eps_curr - eps_yoy) / eps_yoy) * 100
+            eps_badge = "🟢" if eps_growth >= 10 else ("🟡" if eps_growth >= 0 else "🔴")
+            eps_str += f" ({eps_badge} *{eps_growth:+.1f}% YoY*)"
+
+        # 5. 4-Quarter Trajectory Sparkline
+        last4 = col_headers[-4:]
+        sales_spark = " ➔ ".join([f"₹{q_map.get('sales', {}).get(q, 0):,.0f}" for q in last4])
+        opm_spark = " ➔ ".join([f"{q_map.get('opm %', {}).get(q, 0):.0f}%" for q in last4])
+        trend_dir = "Expanding ↗️" if (len(last4) >= 2 and (q_map.get('sales', {}).get(last4[-1]) or 0) > (q_map.get('sales', {}).get(last4[0]) or 0)) else "Consolidating ➡️"
+
+        # 6. Technical Catalyst & Stage 2 Connection
+        stage_catalyst_desc = ""
+        try:
+            from backend.main import get_stage_diagnostic
+            import concurrent.futures
+            def _quick_stage():
+                try:
+                    return asyncio.run(get_stage_diagnostic(lookup_ticker))
+                except RuntimeError:
+                    with concurrent.futures.ThreadPoolExecutor(max_workers=1) as ex:
+                        return ex.submit(asyncio.run, get_stage_diagnostic(lookup_ticker)).result()
+            st_diag = _quick_stage()
+            if st_diag and st_diag.get("status") != "error":
+                st_num = st_diag.get("stage_number", 2)
+                st_name = st_diag.get("stage_name", f"Stage {st_num}")
+                met = st_diag.get("metrics", {})
+                cmp = float(met.get("current_price") or 0.0)
+                pivot = float(met.get("pivot_resistance") or 0.0)
+                dist_52w = float(met.get("dist_52wk_high_pct") or 0.0)
+
+                if pivot > 0 and cmp > 0:
+                    dist_pivot = ((pivot - cmp) / cmp) * 100
+                    if s_yoy_chg >= 12 and core_pbt_growth >= 10:
+                        stage_catalyst_desc = f"⚡ *Breakout Catalyst*: Strong quarterly velocity provides institutional fuel for {st_name}. Stock is {dist_pivot:.1f}% below pivot resistance (₹{pivot:,.2f})."
+                    else:
+                        stage_catalyst_desc = f"⚖️ *Technical Stance*: In {st_name}. Pivot resistance at ₹{pivot:,.2f} ({dist_pivot:.1f}% away). Watch price/volume reaction."
+                else:
+                    stage_catalyst_desc = f"⚖️ *Technical Stance*: In {st_name} ({dist_52w:+.1f}% from 52W High)."
+        except Exception as st_err:
+            logger.debug(f"Stage check error in quarterly scorecard: {st_err}")
+
+        # 7. Rupee Translation (from Equity Research Terminal)
+        bs_map = _map_financial_table_rows(data.get("balance_sheet", {}))
+        pl_map = _map_financial_table_rows(data.get("profit_loss", {}))
+        npm_val = (pat_curr / s_curr * 100) if s_curr > 0 else 0.0
+        ann_years = [c for c in pl_map.get("sales", {}).keys() if c.lower() != "ttm"]
+        latest_ann = ann_years[-1] if ann_years else "Mar 2026"
+        borr = bs_map.get("borrowings", {}).get(latest_ann) or 0
+        res = bs_map.get("reserves", {}).get(latest_ann) or 0
+        eq_cap = (bs_map.get("equity capital", {}) or bs_map.get("share capital", {})).get(latest_ann) or 0
+        tot_eq = res + eq_cap
+        de_ratio = (borr / tot_eq) if tot_eq > 0 else 0.0
+        de_rupee = de_ratio * 100
+
+        # 8. Gemini AI Layman Summary
+        layman = generate_layman_quarterly_summary(
+            comp_name=d_name,
+            base_sym=b_sym,
+            latest_q=latest_q,
+            yoy_q=yoy_q,
+            prev_q=prev_q,
+            s_curr=s_curr,
+            s_yoy_chg=s_yoy_chg,
+            s_qoq_chg=s_qoq_chg,
+            opm_curr=opm_curr,
+            opm_diff=opm_diff,
+            core_pbt_curr=core_pbt_curr,
+            core_pbt_growth=core_pbt_growth,
+            pat_curr=pat_curr,
+            pat_growth=pat_growth,
+            distortion_note=distortion_msg,
+            stage_info=stage_catalyst_desc
+        )
+
+        lines = [
+            f"📑 *{d_name.upper()}* (`{b_sym}`) • *QUARTERLY SCORECARD*",
+            "━━━━━━━━━━━━━━━━━━━━",
+            f"📅 *Latest Quarter*: *{latest_q}* (vs YoY: {yoy_q or 'N/A'}, QoQ: {prev_q or 'N/A'})\n",
+            "📈 *TOP-LINE REVENUE*:",
+            f"• {latest_q} Sales: *₹ {s_curr:,.0f} Cr*",
+            f"• YoY Growth (vs {yoy_q}): {s_badge} *{s_sign}{s_yoy_chg:.1f}%*",
+            f"• QoQ Growth (vs {prev_q}): *{s_qoq_sign}{s_qoq_chg:.1f}%*\n",
+            "⚡ *OPERATING PROFIT & MARGINS*:",
+            f"• Operating Profit: *₹ {op_curr:,.0f} Cr* (vs ₹ {op_yoy:,.0f} Cr YoY)",
+            f"• OPM %: *{opm_curr:.1f}%* ({opm_trend})\n",
+            "💰 *BOTTOM-LINE PAT & EPS*:",
+            f"• Reported PAT: *₹ {pat_curr:,.0f} Cr* ({pat_growth:+.1f}% YoY)",
+            f"• Core Operating PBT: *₹ {core_pbt_curr:,.0f} Cr* (🟢 *{core_pbt_growth:+.1f}% YoY*)",
+            f"• Diluted EPS: {eps_str}",
+        ]
+        if distortion_msg:
+            lines.append(f"\n{distortion_msg}")
+        lines.extend([
+            "\n📊 *4-QUARTER TRAJECTORY*:",
+            f"• Revenue: {sales_spark} ({trend_dir})",
+            f"• OPM Margin: {opm_spark}\n",
+        ])
+        if stage_catalyst_desc:
+            lines.append(f"{stage_catalyst_desc}\n")
+        lines.extend([
+            "💰 *THE RUPEE TRANSLATION (₹100 BENCHMARK)*:",
+            f"• Net Margin: Pockets *₹ {npm_val:.1f}* profit per ₹ 100 sales",
+            f"• Debt Load: Owes *₹ {de_rupee:.1f}* debt per ₹ 100 equity\n",
+            "🌱 *AI EARNINGS VERDICT*:",
+            f"{layman}",
+            "━━━━━━━━━━━━━━━━━━━━",
+            "Tap below for 5Y statements, charts, or stage:"
+        ])
+
+        body = "\n".join(lines)
+        buttons = [
+            (f"act:fin:{btn_sym}", f"📊 {btn_sym} 5Y Fin"),
+            (f"act:chart:{btn_sym}", f"📈 {btn_sym} Chart"),
+            (f"run:stage:{btn_sym}", "🏛️ 4-Stage")
+        ]
+
+        if len(body) > 1020:
+            send_whatsapp_text(body, recipient=recipient)
+            return send_whatsapp_interactive_buttons(
+                f"⚡ *Actions for {b_sym}*:",
+                buttons=buttons,
+                recipient=recipient
+            )
+        return send_whatsapp_interactive_buttons(body, buttons=buttons, recipient=recipient)
+    except Exception as e:
+        logger.error(f"Error computing quarterly scorecard for {clean_sym}: {e}", exc_info=True)
+        return send_whatsapp_interactive_buttons(
+            f"⚠️ *Quarterly Scorecard Error*: Could not retrieve results for `{clean_sym}`: {str(e)}",
             buttons=[("nav:menu:main", "🏠 Main Menu")],
             recipient=recipient
         )
@@ -8883,6 +9203,27 @@ def dispatch_incoming_whatsapp_message(text_body: str, sender: Optional[str] = N
     if cleaned.startswith("view:fin:") or cleaned.startswith("act:fin:"):
         sym = cleaned.replace("view:fin:", "").replace("act:fin:", "").strip()
         return handle_stock_financials(sym, recipient=sender)
+
+    # Dedicated Quarterly Earnings Flash Command (Q <SYM> / RESULT <SYM> / QTR <SYM> / QUARTER <SYM>)
+    if cleaned.startswith("view:qtr:") or cleaned.startswith("act:qtr:") or cleaned.startswith("run:qtr:"):
+        sym = re.sub(r"^(?:view:qtr:|act:qtr:|run:qtr:)", "", cleaned).strip()
+        if sym:
+            return handle_stock_quarterly_results(sym, recipient=sender)
+
+    if (
+        upper.startswith("Q ") or upper.startswith("Q:")
+        or upper.startswith("QTR ") or upper.startswith("QTR:")
+        or upper.startswith("QUARTER ") or upper.startswith("QUARTER:")
+        or upper.startswith("QUARTERLY ") or upper.startswith("QUARTERLY:")
+        or upper.startswith("RESULT ") or upper.startswith("RESULT:")
+        or upper.startswith("RESULTS ") or upper.startswith("RESULTS:")
+        or bool(re.match(r"^Q[1-4][\s:]+[A-Za-z0-9_&.-]+$", upper))
+    ):
+        raw_target = re.sub(r"^(?:QUARTERLY|QUARTER|RESULTS|RESULT|QTR|Q[1-4]|Q)[\s:]+", "", cleaned, flags=re.IGNORECASE).strip()
+        if raw_target.upper() in ["TODAY", "THIS WEEK", "WEEK", "CALENDAR", "DATES", "UPCOMING", "MARKET"]:
+            return handle_events_calendar("quarterly_results", recipient=sender)
+        elif raw_target:
+            return handle_stock_quarterly_results(raw_target, recipient=sender)
 
     # Equity Hub Sub-Action Prompts
     elif cleaned == "nav:act:stock_dossier":
