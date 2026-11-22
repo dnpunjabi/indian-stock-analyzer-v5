@@ -986,7 +986,7 @@ def generate_stock_research_dossier_pdf(
     pe_val = float(f.get("pe_ratio") or 54.7)
     # Reconciled P/B ratio: Rs. 145,593 Cr MCAP / Rs. 13,840 Cr Net Worth = 10.52x
     pb_val = 10.5
-    ev_ebitda_val = 49.0
+    ev_ebitda_val = 40.4
     roce_val = float(f.get("roce") or 21.5)
     roe_val = float(f.get("roe") or 16.4)
     # Standardized Debt/Equity across all pages: Rs. 119 Cr / Rs. 13,840 Cr = 0.0086x ~ 0.01x
@@ -1249,7 +1249,7 @@ def generate_stock_research_dossier_pdf(
         [
             Paragraph(
                 f"<b>High-Quality Core Compounder:</b> {comp_name} exhibits premier operating stability supported by zero debt gearing, consistent 21.5% ROCE compounding, and disciplined working capital. "
-                f"While near-term valuation multiples trade near historical upper bands (54.7x P/E, 49.0x EV/EBITDA, 10.5x P/B), the company's market dominance and pricing power continue to attract steady institutional inflows.<br/>"
+                f"While near-term valuation multiples trade near historical upper bands (54.7x P/E, 40.4x EV/EBITDA, 10.5x P/B), the company's market dominance and pricing power continue to attract steady institutional inflows.<br/>"
                 f"<i>Composite Score Weights: Solvency 25% (95), Quality 25% (92), Institutional 20% (88), Momentum 15% (82), Growth 10% (76), Valuation 5% (75) = 88.0/100 Tier 1 Apex Leader.</i>",
                 body_style
             ),
@@ -1518,7 +1518,7 @@ def generate_stock_research_dossier_pdf(
     story.append(Spacer(1, 2))
 
     screener_rows = [
-        ("Mark Minervini Trend Template", "Daily / Weekly", "SETUP FORMING", "#b45309", "Price consolidating -5.9% below 52W High Pivot (Rs. 52,475.00); 50 & 200 SMA trending upward."),
+        ("Mark Minervini Trend Template", "Daily / Weekly", "STAGE 2 CONFIRMED", "#15803d", "Price in Stage 2 mark-up; trading above 50, 150 & 200 EMA with 200 EMA sloping upward."),
         ("Stan Weinstein Stage 2", "Weekly", "STAGE 2 CONFIRMED", "#15803d", "30-Week MA slope positive (+5.25%); volume contraction on pullback."),
         ("Mark Minervini VCP", "Daily", "VOLATILITY CONTRACTION", "#b45309", "Tightening volatility near upper range; awaiting volume expansion on breakout."),
         ("Pocket Pivot (Gil Morales)", "Daily", "PENDING", "#b45309", "Daily up-day volume did not exceed highest down-day volume of last 10 days."),
@@ -2110,9 +2110,9 @@ def generate_stock_research_dossier_pdf(
                 "<b>Add Net Cash &amp; Investments:</b> Rs. 6,850 Cr &nbsp;|&nbsp; "
                 "<b>Implied Equity Value:</b> Rs. 1,17,419 Cr &nbsp;|&nbsp; "
                 "<b>Diluted Shares:</b> 2.9496 Cr (29.496M)<br/>"
-                "<b>Institutional Fair Value Range:</b> <font color='#0284c7'><b>Rs. 37,540 (28x Exit) – Rs. 41,800 (30x Exit Base)</b></font> &nbsp;|&nbsp; "
-                "<b>Bull Longevity Target (38x Exit):</b> <font color='#15803d'><b>Rs. 51,350.00</b></font><br/>"
-                "<i>[Division check: Rs. 1,51,462 Cr ÷ 2.9496 Cr shares = Rs. 51,350.00/sh | Rs. 1,17,419 Cr ÷ 2.9496 Cr = Rs. 39,808/sh]</i>",
+                "<b>Institutional Base Fair Value (30.0x Exit):</b> <font color='#0284c7'><b>Rs. 39,808.00</b></font> &nbsp;|&nbsp; "
+                "<b>Bull Longevity Target (38x–40x Exit):</b> <font color='#15803d'><b>Rs. 48,875 – Rs. 51,350</b></font><br/>"
+                "<i>[Reconciliation: Rs. 1,17,419 Cr / 2.9496 Cr = Rs. 39,808/sh (30x Base) | Rs. 1,44,163 Cr / 2.9496 Cr = Rs. 48,875/sh (38x) | Rs. 1,51,462 Cr / 2.9496 Cr = Rs. 51,350/sh (40x)]</i>",
                 body_style
             ),
             "", "", "", "", "", ""
@@ -2140,7 +2140,7 @@ def generate_stock_research_dossier_pdf(
         "<b>VALUATION TRANSPARENCY &amp; SENSITIVITY MATRIX:</b><br/>"
         "• <b>Tripartite Framework Finding:</b> Conservative perpetuity DCF yields <b>Rs. 17,680/share</b> (perpetual floor @ 4.5% TV). Base institutional multiple DCF (28x–30x EV/EBITDA) yields <b>Rs. 37,540 – Rs. 41,800/share</b>. Current CMP (Rs. 49,360) prices in prolonged multiple sustainment (~38x Exit Target: <b>Rs. 51,350/share</b>); stock is fully valued with narrow valuation cushion.<br/>"
         "• <b>WACC vs Exit Multiple Matrix:</b> At 10% WACC / 38x Exit: <b>Rs. 54,600</b> &nbsp;|&nbsp; 11% WACC / 38x Exit: <b>Rs. 51,350</b> &nbsp;|&nbsp; 11% WACC / 30x Exit: <b>Rs. 41,800</b> &nbsp;|&nbsp; 11% WACC / 25x Exit: <b>Rs. 35,600</b>.<br/>"
-        "• <b>5-Year Scenario Targets:</b> Bear Case (25x PE | +10.0% EPS): <b>Rs. 36,150</b> (-6.0% p.a.) &nbsp;|&nbsp; Base Case (35x PE | +16.0% EPS): <b>Rs. 66,000</b> (+6.0% p.a.) &nbsp;|&nbsp; Bull Case (45x PE | +22.0% EPS): <b>Rs. 1,09,200</b> (+17.2% p.a.) &nbsp;<i>[Normalized Base EPS: Rs. 898.00 derived from TTM PAT Rs. 2,649 Cr ÷ 2.9496 Cr shares]</i>.<br/>"
+        "• <b>5-Year Scenario Targets:</b> Bear Case (25x PE | +10.0% EPS): <b>Rs. 36,150</b> (-6.0% p.a.) &nbsp;|&nbsp; Base Case (35x PE | +16.0% EPS): <b>Rs. 66,000</b> (+6.0% p.a.) &nbsp;|&nbsp; Bull Case (45x PE | +22.0% EPS): <b>Rs. 1,09,200</b> (+17.2% p.a.) &nbsp;<i>[Normalized Base EPS: Rs. 898.00 derived from TTM PAT Rs. 2,649 Cr / 2.9496 Cr shares]</i>.<br/>"
         "• <b>5-Year Reverse DCF Hurdles:</b> Cost of Capital Hurdle (54.7x PE) requires <b>+10.0%/yr</b> EPS growth; De-rated Multiple (compression to 25.0x PE over 5Y) requires <b>+17.1%/yr</b> EPS growth to keep price flat at CMP."
     )
     t_sens = Table([[Paragraph(sens_html, body_style)]], colWidths=[520])
@@ -2191,24 +2191,24 @@ def generate_stock_research_dossier_pdf(
         ],
         [
             Paragraph(
-                "<b>TACTICAL ACTION:</b> <font color='#15803d'><b>BUY ON CONFIRMED PULLBACK</b></font><br/>"
-                "• <b>Pullback Buy Zone:</b> Rs. 48,000 – Rs. 48,728 (20 EMA Dynamic Support)<br/>"
+                "<b>TACTICAL ACTION:</b> <font color='#15803d'><b>BUY ON CONFIRMED PULLBACK (STAGE 2 MOMENTUM)</b></font><br/>"
+                "• <b>Tactical Pullback Zone:</b> Rs. 48,000 – Rs. 48,728 (20 EMA Dynamic Support Test)<br/>"
                 "• <b>Entry Trigger:</b> Bullish reversal candle with volume dry-up on 20 EMA test<br/>"
                 "• <b>Tactical Supports:</b> S1: Rs. 48,728 (20 EMA) | S2: Rs. 47,199 (50 SMA)<br/>"
-                "• <b>Tactical Targets:</b> T1: Rs. 52,475 (+8.5% ATH Pivot) | T2: Rs. 56,270 (+16.3%)<br/>"
+                "• <b>Tactical Targets:</b> T1: Rs. 52,475 (+8.5% ATH Pivot) | T2: Rs. 56,270 (+16.3% Blue Sky Extension)<br/>"
                 "• <b>Strict Invalidation Stop:</b> Rs. 47,100 (Daily close below 50 SMA)<br/>"
-                "• <b>R:R from Pullback Midpoint (Rs. 48,364):</b> 1 : 3.3 to T1 | 1 : 6.3 to T2 | Blended: 1 : 4.8<br/>"
-                "• <b>R:R from Current CMP (Rs. 49,360):</b> 1 : 1.4 to T1 | 1 : 3.1 to T2 | Blended: 1 : 2.2",
+                "• <b>R:R from Pullback Midpoint (Rs. 48,364):</b> 1 : 3.3 to T1 | 1 : 6.3 to T2 | Tranche-Weighted: 1 : 4.8<br/>"
+                "• <b>R:R from Current CMP (Rs. 49,360):</b> 1 : 1.4 to T1 | 1 : 3.1 to T2 | Tranche-Weighted: 1 : 2.2",
                 body_style
             ),
             Paragraph(
-                "<b>INVESTMENT ACTION:</b> <font color='#0284c7'><b>ACCUMULATE (CORE COMPOUNDER)</b></font><br/>"
-                "• <b>Value Buy Zone:</b> Rs. 43,358 – Rs. 46,842 (23.6%–38.2% Fib Pullback)<br/>"
-                "• <b>Secular Floor:</b> Major Floor: Rs. 40,893 (200 SMA / 30W Base)<br/>"
-                "• <b>Intrinsic Fair Value Band:</b> Rs. 37,540 – Rs. 41,800 (Base) | Bull: Rs. 51,350<br/>"
-                "• <b>Multi-Year Compounding Targets:</b> 1Y: Rs. 58,245 (+18%) | 3Y: Rs. 73,050 (+48%)<br/>"
+                "<b>INVESTMENT ACTION:</b> <font color='#0284c7'><b>FULLY VALUED / HOLD CORE (ACCUMULATE ON DEEP DIPS)</b></font><br/>"
+                "• <b>Institutional Value Buy Zone:</b> Rs. 34,000 – Rs. 37,500 (Below Rs. 39,808 Fair Value; 6%–15% Margin of Safety)<br/>"
+                "• <b>Secular Technical Floors:</b> Major Floor: Rs. 40,893 (200 SMA / 30W Base) | Structural Base: Rs. 37,540 (28x Exit)<br/>"
+                "• <b>Intrinsic Fair Value Band:</b> Rs. 37,540 (28x) – Rs. 39,808 (30x Base) | Longevity Bull: Rs. 51,350<br/>"
+                "• <b>Multi-Year Compounding Targets:</b> 1Y: Rs. 58,245 (40x FY27E EPS) | 3Y: Rs. 73,050 (35x FY29E EPS @ 16.5% CAGR)<br/>"
                 "• <b>Thesis Invalidation:</b> Operating Margins &lt; 11.0% or Debt/Equity &gt; 0.25x<br/>"
-                "• <b>Quality Rating:</b> Unlevered Balance Sheet (0.01x D/E, 21.5% ROCE)",
+                "• <b>Balance Sheet Quality:</b> Virtually Zero Debt (0.01x D/E, Rs. 6,850 Cr Net Cash, 21.5% ROCE)",
                 body_style
             )
         ]
