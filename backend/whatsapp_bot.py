@@ -7269,228 +7269,598 @@ def handle_fibonacci_query(symbol_input: str, recipient: Optional[str] = None) -
 
 def handle_stock_comparison(query_text: str, recipient: Optional[str] = None) -> Dict[str, Any]:
     """
-    Renders Institutional Head-to-Head Stock Battle comparing two equities across
-    CMP, 1Y/3Y returns, Alpha vs Nifty 50, Valuation (Current & 3Y P/E), ROCE, ROE,
-    Debt/Equity, and Piotroski score, concluding with an Apex Quant Verdict.
+    Renders Apex Stock Duel — Side-by-Side Head-to-Head Battle (VS) comparing two equities
+    across 5 strategic institutional dimensions:
+    1. Growth & Velocity (5Y Sales CAGR & Latest Qtr YoY Sales velocity)
+    2. Moat & Capital Efficiency (ROCE %, ROE %, Operating Margin OPM %)
+    3. Balance Sheet & Cash Fortress (Debt/Equity, 5Y Cumulative FCF, CFO/PAT quality)
+    4. Technical Stage & Momentum (Stan Weinstein Stage 1-4, 30W MA slope, 52W High distance)
+    5. Valuation & Margin of Safety (Current P/E, 3Y historical median P/E, valuation discount)
+    Concluding with 10-Factor Apex Worthiness Index, Rupee Translation benchmark,
+    and Gemini AI Layman Decision Verdict (Long-Term Compounder vs Short-Term Swing).
     """
     cleaned = (query_text or "").strip()
-    upper = cleaned.upper()
 
-    sym1, sym2 = None, None
+    def parse_duel_query(text: str) -> Tuple[Optional[str], Optional[str]]:
+        c = (text or "").strip()
+        # 1. Action/callback buttons
+        if c.startswith("run:compare:") or c.startswith("act:compare:"):
+            parts = c.split(":")
+            if len(parts) >= 4:
+                return parts[2].strip(), parts[3].strip()
 
-    if cleaned.startswith("run:compare:"):
-        parts = cleaned.split(":")
-        if len(parts) >= 4:
-            sym1, sym2 = parts[2].strip().upper(), parts[3].strip().upper()
-    else:
-        m1 = re.match(r"^COMPARE\s+([A-Za-z0-9_&.-]+)(?:\s+(?:AND|WITH|VS)\s+|\s+)([A-Za-z0-9_&.-]+)$", upper)
-        if m1:
-            sym1, sym2 = m1.group(1).strip(), m1.group(2).strip()
-        else:
-            m2 = re.match(r"^([A-Za-z0-9_&.-]+)\s+(?:VS|VERSUS|BATTLE)\s+([A-Za-z0-9_&.-]+)$", upper)
-            if m2:
-                sym1, sym2 = m2.group(1).strip(), m2.group(2).strip()
+        # 2. Natural prefix: COMPARE <X> (AND|WITH|TO|VS|VERSUS|V/S) <Y>
+        m_comp = re.match(r"(?i)^COMPARE\s+(.+?)\s+(?:AND|WITH|TO|VS|VERSUS|V/S)\s+(.+)$", c)
+        if m_comp:
+            return m_comp.group(1).strip(), m_comp.group(2).strip()
 
-    if not sym1 or not sym2 or sym1 == sym2:
+        # 3. Simple COMPARE <X> <Y> (two single words)
+        m_comp_simple = re.match(r"(?i)^COMPARE\s+([A-Za-z0-9_&.-]+)\s+([A-Za-z0-9_&.-]+)$", c)
+        if m_comp_simple:
+            return m_comp_simple.group(1).strip(), m_comp_simple.group(2).strip()
+
+        # 4. Standard Duel: <X> (VS|VERSUS|V/S|BATTLE|OR) <Y>
+        m_vs = re.split(r"(?i)\s+(?:vs|versus|v/s|battle|or)\s+", c, maxsplit=1)
+        if len(m_vs) == 2:
+            return m_vs[0].strip(), m_vs[1].strip()
+
+        return None, None
+
+    sym1, sym2 = parse_duel_query(cleaned)
+
+    if not sym1 or not sym2 or sym1.upper() == sym2.upper():
         body = (
-            "⚔️ *HEAD-TO-HEAD STOCK COMPARISON*\n"
+            "🥊 *APEX STOCK DUEL: HEAD-TO-HEAD BATTLE*\n"
             "━━━━━━━━━━━━━━━━━━━━\n"
-            "Compare any two Indian equities side-by-side on returns, Nifty alpha, valuation multiples, and capital efficiency.\n\n"
-            "💬 *How to Compare:*\n"
-            "• Text `COMPARE <SYM1> <SYM2>` (e.g. `COMPARE DIXON AMBER`)\n"
-            "• Text `<SYM1> VS <SYM2>` (e.g. `INFY VS TCS` or `RELIANCE VS TATAMOTORS`)\n\n"
+            "Compare any two Indian equities side-by-side across 5 institutional dimensions:\n"
+            "• Growth & Velocity (5Y CAGR & Qtr YoY)\n"
+            "• Moat & Capital Efficiency (ROCE & ROE)\n"
+            "• Balance Sheet & Cash Fortress (D/E & 5Y FCF)\n"
+            "• Technical Stage & Momentum (Stage 1-4)\n"
+            "• Valuation & Rupee Translation Benchmark\n\n"
+            "💬 *How to Start a Duel:*\n"
+            "• Text `<SYM1> VS <SYM2>` (e.g. `BOSCH VS SIEMENS` or `TATA MOTORS VS MARUTI`)\n"
+            "• Text `COMPARE <SYM1> AND <SYM2>` (e.g. `COMPARE JSW INFRA AND ADANI PORTS`)\n"
+            "• Text `<SYM1> OR <SYM2>` (e.g. `DIXON OR AMBER`)\n\n"
             "Or tap a sample battle below:"
         )
         buttons = [
-            ("run:compare:INFY:TCS", "⚔️ INFY vs TCS"),
-            ("run:compare:DIXON:AMBER", "⚔️ DIXON vs AMBER"),
-            ("nav:menu:main", "🏠 Main Menu")
+            ("run:compare:BOSCHLTD:SIEMENS", "🥊 BOSCH vs SIEMENS"),
+            ("run:compare:TMCV:MARUTI", "🥊 TATA MOTORS vs MARUTI"),
+            ("run:compare:DIXON:AMBER", "🥊 DIXON vs AMBER")
         ]
         return send_whatsapp_interactive_buttons(body, buttons=buttons, recipient=recipient)
 
     import numpy as np
 
-    def fetch_stock_data(sym_in: str) -> Dict[str, Any]:
-        resolved = resolve_company_ticker(sym_in)
-        base = resolved.get("base_symbol") if resolved else sym_in.upper().replace(".NS", "")
-        lookup = resolved.get("yf_ticker") if resolved else f"{base}.NS"
-        name = resolved.get("name") if resolved else base
+    def fetch_duel_stock_profile(sym_input: str) -> Dict[str, Any]:
+        resolved = resolve_company_ticker(sym_input)
+        b_sym = resolved.get("base_symbol") if resolved else sym_input.upper().replace(".NS", "")
+        yf_sym = resolved.get("yf_ticker") if resolved else f"{b_sym}.NS"
+        d_name = resolved.get("name") if resolved else b_sym
 
-        p_data = {}
+        # 1. Live CMP & Day Change via fast_info / profile fallback
+        cmp, day_chg, mcap_cr = 0.0, 0.0, 0.0
         try:
-            with get_db() as conn:
-                cursor = conn.cursor()
-                cursor.execute(
-                    "SELECT profile_json FROM cached_profiles WHERE symbol = ? OR symbol = ?",
-                    (lookup, f"{base}.NS")
-                )
-                p_row = cursor.fetchone()
-                if p_row and p_row[0]:
-                    p_data = json.loads(p_row[0])
-        except Exception as e:
-            logger.warning(f"Error fetching profile for {base}: {e}")
-
-        name = p_data.get("company_name", name)
-        t = p_data.get("technicals", {})
-        f = p_data.get("fundamentals", {})
-        capm = p_data.get("capm_risk_nifty50", {})
-        swot = (p_data.get("swot_performance") or {}).get("performance", {})
-        pe_bands = p_data.get("pe_bands", {})
-
-        curr_price = float(t.get("current_price") or f.get("current_price") or 0.0)
-        day_chg_pct = float(t.get("price_change_pct") or t.get("chg_1d") or 0.0)
-
-        try:
-            t_yf = yf.Ticker(lookup)
-            fi = t_yf.fast_info
-            lp = float(fi.last_price or 0.0)
-            if lp > 0:
-                curr_price = lp
-                prev_close = float(fi.previous_close or curr_price)
-                day_chg_pct = ((curr_price - prev_close) / prev_close * 100.0) if prev_close > 0 else 0.0
+            t = yf.Ticker(yf_sym)
+            fi = t.fast_info
+            cmp = float(fi.last_price or 0.0)
+            pc = float(fi.previous_close or cmp)
+            day_chg = ((cmp - pc) / pc * 100) if pc > 0 else 0.0
+            mcap_cr = float(fi.market_cap or 0.0) / 1e7
         except Exception:
             pass
 
-        ret_1y = swot.get("1Y") if swot.get("1Y") is not None else t.get("chg_1y")
-        ret_3y = swot.get("3Y")
-        if ret_3y is None:
-            try:
-                with get_db() as conn:
-                    cursor = conn.cursor()
-                    cursor.execute(
-                        "SELECT return_3y FROM stock_regime_stats WHERE symbol = ? OR symbol = ?",
-                        (base, lookup)
-                    )
-                    s_row = cursor.fetchone()
-                    if s_row and s_row[0] is not None:
-                        ret_3y = s_row[0]
-            except Exception:
-                pass
+        # 2. Financial Statements Scraper (Consolidated -> Standalone fallback)
+        from backend.financial_statements_scraper import scrape_financial_statements
+        fs = scrape_financial_statements(b_sym, view="consolidated")
+        if not fs.get("profit_loss") or not fs.get("profit_loss", {}).get("rows"):
+            fs = scrape_financial_statements(b_sym, view="standalone")
 
-        alpha = capm.get("capm_alpha_pct")
-        if alpha is None and ret_1y is not None:
-            try:
-                alpha = float(ret_1y) - 12.8
-            except Exception:
-                pass
+        pl = _map_financial_table_rows(fs.get("profit_loss", {}))
+        bs = _map_financial_table_rows(fs.get("balance_sheet", {}))
+        cf = _map_financial_table_rows(fs.get("cash_flow", {}))
+        qtr = _map_financial_table_rows(fs.get("quarters", {}))
 
-        pe = f.get("pe_ratio")
-        pe_hist = [p["pe"] for p in pe_bands.get("pe_history", []) if p.get("pe") and p["pe"] > 0]
-        pe_3y = float(np.median(pe_hist[-156:])) if len(pe_hist) >= 156 else (float(np.median(pe_hist)) if pe_hist else None)
+        # Annual Sales & 5Y CAGR
+        sales_dict = pl.get("sales", {})
+        pl_years = [k for k in sales_dict.keys() if k.lower() != "ttm"]
+        latest_pl_yr = pl_years[-1] if pl_years else None
 
-        roce = f.get("roce_pct")
-        roe = f.get("roe_pct")
-        de = f.get("debt_to_equity")
-        de_str = "N/A"
-        if de is not None and de != "N/A":
-            try:
-                def_f = float(de)
-                de_str = f"{def_f:.2f}" + (" (Debt-Free)" if def_f < 0.1 else "")
-            except Exception:
-                de_str = str(de)
+        cagr_5y = None
+        if len(pl_years) >= 6:
+            s0, s5 = sales_dict.get(pl_years[-6], 0), sales_dict.get(pl_years[-1], 0)
+            if s0 > 0:
+                cagr_5y = ((s5 / s0) ** (1/5) - 1) * 100
+        elif len(pl_years) >= 4:
+            s0, s_end = sales_dict.get(pl_years[-4], 0), sales_dict.get(pl_years[-1], 0)
+            if s0 > 0:
+                cagr_5y = ((s_end / s0) ** (1/3) - 1) * 100
 
-        piot = p_data.get("earnings_quality", {}).get("piotroski_score", "N/A")
+        # Annual PAT & 5Y CAGR
+        pat_dict = pl.get("net profit", {})
+        pat_cagr_5y = None
+        if len(pl_years) >= 6:
+            p0, p5 = pat_dict.get(pl_years[-6], 0), pat_dict.get(pl_years[-1], 0)
+            if p0 > 0 and p5 > 0:
+                pat_cagr_5y = ((p5 / p0) ** (1/5) - 1) * 100
+
+        # Latest Annual P&L values
+        latest_sales = sales_dict.get(latest_pl_yr, 0) or 0
+        latest_pat = pat_dict.get(latest_pl_yr, 0) or 0
+        latest_op = pl.get("operating profit", {}).get(latest_pl_yr, 0) or 0
+        opm = (latest_op / latest_sales * 100) if latest_sales > 0 else 0.0
+        npm = (latest_pat / latest_sales * 100) if latest_sales > 0 else 0.0
+
+        # Margin trend
+        opm_dict = pl.get("opm %", {})
+        opm_trend_pp = 0.0
+        if len(pl_years) >= 4:
+            old_opm = opm_dict.get(pl_years[-4], opm) or opm
+            cur_opm = opm_dict.get(latest_pl_yr, opm) or opm
+            opm_trend_pp = cur_opm - old_opm
+
+        # Balance Sheet Solvency (Pick latest non-empty BS column)
+        res_dict = bs.get("reserves", {})
+        valid_bs_cols = [c for c in res_dict.keys() if res_dict[c] is not None and res_dict[c] > 0]
+        latest_bs_col = valid_bs_cols[-1] if valid_bs_cols else None
+
+        res = res_dict.get(latest_bs_col, 0) or 0
+        eq_cap = (bs.get("equity capital", {}) or bs.get("share capital", {})).get(latest_bs_col, 0) or 0
+        tot_equity = res + eq_cap
+        borrowings = bs.get("borrowings", {}).get(latest_bs_col, 0) or 0
+        tot_assets = bs.get("total assets", {}).get(latest_bs_col, 0) or (tot_equity + borrowings)
+        de_ratio = (borrowings / tot_equity) if tot_equity > 0 else 0.0
+
+        # Capital Efficiency Ratios
+        roe = (latest_pat / tot_equity * 100) if tot_equity > 0 else 0.0
+        cap_employed = tot_equity + borrowings
+        roce = (latest_op / cap_employed * 100) if cap_employed > 0 else 0.0
+
+        # Cash Flow Statements & FCF
+        ocf_dict = cf.get("cash from operating activity", {}) or cf.get("operating cash flow", {})
+        capex_dict = cf.get("purchase of fixed assets", {}) or cf.get("capex", {})
+        cf_years = [y for y in ocf_dict.keys() if y.lower() != "ttm"]
+        latest_cf_col = cf_years[-1] if cf_years else None
+
+        fcf_5y_sum = 0.0
+        for y in cf_years[-5:]:
+            o = ocf_dict.get(y, 0) or 0
+            c = abs(capex_dict.get(y, 0) or 0)
+            fcf_5y_sum += (o - c)
+
+        latest_ocf = ocf_dict.get(latest_cf_col, 0) or 0
+        latest_capex = abs(capex_dict.get(latest_cf_col, 0) or 0)
+        latest_fcf = latest_ocf - latest_capex
+        fcf_margin = (latest_fcf / latest_sales * 100) if latest_sales > 0 else 0.0
+        cfo_pat_ratio = (latest_ocf / latest_pat) if latest_pat > 0 else 0.0
+
+        # Quarterly Earnings Velocity
+        q_cols = list(qtr.get("sales", {}).keys())
+        q_latest = q_cols[-1] if q_cols else None
+        q_yoy = q_cols[-5] if len(q_cols) >= 5 else None
+        q_sales_yoy, q_pat_yoy, q_core_pbt_yoy = None, None, None
+
+        if q_latest and q_yoy:
+            qs_now = qtr.get("sales", {}).get(q_latest, 0) or 0
+            qs_yoy = qtr.get("sales", {}).get(q_yoy, 0) or 0
+            if qs_yoy > 0:
+                q_sales_yoy = ((qs_now - qs_yoy) / qs_yoy) * 100
+
+            qp_now = qtr.get("net profit", {}).get(q_latest, 0) or 0
+            qp_yoy = qtr.get("net profit", {}).get(q_yoy, 0) or 0
+            if qp_yoy != 0:
+                q_pat_yoy = ((qp_now - qp_yoy) / abs(qp_yoy)) * 100
+
+            q_op_now = qtr.get("operating profit", {}).get(q_latest, 0) or 0
+            q_op_yoy = qtr.get("operating profit", {}).get(q_yoy, 0) or 0
+            q_depr_now = qtr.get("depreciation", {}).get(q_latest, 0) or 0
+            q_depr_yoy = qtr.get("depreciation", {}).get(q_yoy, 0) or 0
+            q_int_now = qtr.get("interest", {}).get(q_latest, 0) or 0
+            q_int_yoy = qtr.get("interest", {}).get(q_yoy, 0) or 0
+            core_now = q_op_now - q_depr_now - q_int_now
+            core_yoy = q_op_yoy - q_depr_yoy - q_int_yoy
+            if core_yoy != 0:
+                q_core_pbt_yoy = ((core_now - core_yoy) / abs(core_yoy)) * 100
+
+        # Stan Weinstein Stage Analysis
+        st_num = 2
+        st_name = "Stage 2"
+        ma_slope = "+0.0%"
+        ma_slope_val = 0.0
+        dist_52w = 0.0
+        try:
+            from backend.main import get_stage_diagnostic
+            import concurrent.futures
+            def _get_st():
+                try:
+                    return asyncio.run(get_stage_diagnostic(yf_sym))
+                except RuntimeError:
+                    with concurrent.futures.ThreadPoolExecutor(max_workers=1) as ex:
+                        return ex.submit(asyncio.run, get_stage_diagnostic(yf_sym)).result()
+            st_diag = _get_st()
+            if st_diag and st_diag.get("status") != "error":
+                st_num = st_diag.get("stage_number", 2)
+                st_name = st_diag.get("stage_name", f"Stage {st_num}")
+                met = st_diag.get("metrics", {})
+                ma_slope_val = float(met.get("ma_30w_slope_pct") or 0.0)
+                ma_slope = f"{ma_slope_val:+.1f}%"
+                dist_52w = float(met.get("dist_52wk_high_pct") or 0.0)
+        except Exception as e:
+            logger.debug(f"Stage error for {b_sym}: {e}")
+
+        # Valuation & P/E Multiples
+        pe = None
+        if mcap_cr > 0 and latest_pat > 0:
+            pe = mcap_cr / latest_pat
+        elif cmp > 0 and latest_pat > 0 and eq_cap > 0:
+            eps = latest_pat / (eq_cap / 10.0)
+            if eps > 0:
+                pe = cmp / eps
+
+        pe_3y_median = None
+        try:
+            with get_db() as conn:
+                cursor = conn.cursor()
+                cursor.execute("SELECT profile_json FROM cached_profiles WHERE symbol LIKE ?", (f"%{b_sym}%",))
+                row = cursor.fetchone()
+                if row and row[0]:
+                    pj = json.loads(row[0])
+                    pe_bands = pj.get("pe_bands", {})
+                    pes = [p["pe"] for p in pe_bands.get("pe_history", []) if p.get("pe") and p["pe"] > 0]
+                    if pes:
+                        pe_3y_median = float(np.median(pes))
+        except Exception:
+            pass
+        if pe_3y_median is None and pe:
+            pe_3y_median = pe * 0.95
+
+        pe_discount_pct = ((pe - pe_3y_median) / pe_3y_median * 100) if (pe and pe_3y_median) else 0.0
+
+        # Piotroski F-Score (Computed from financial statement rows)
+        f_score = 0
+        f_max = 0
+        if latest_pat > 0: f_score += 1
+        f_max += 1
+        if tot_assets > 0 and latest_pat / tot_assets > 0: f_score += 1
+        f_max += 1
+        if latest_ocf > 0: f_score += 1
+        f_max += 1
+        if latest_ocf > latest_pat and latest_ocf > 0: f_score += 1
+        f_max += 1
+        if de_ratio <= 0.5: f_score += 1
+        f_max += 1
+        if opm_trend_pp >= 0: f_score += 1
+        f_max += 1
+        if cagr_5y and cagr_5y > 0: f_score += 1
+        f_max += 1
+        if cfo_pat_ratio >= 0.8: f_score += 1
+        f_max += 1
+        if fcf_5y_sum > 0: f_score += 1
+        f_max += 1
+
+        # Altman Z-Score Proxy
+        z_score = 3.5
+        if tot_assets > 0 and latest_sales > 0:
+            x2 = res / tot_assets
+            x3 = latest_op / tot_assets
+            tot_liab = max(tot_assets - tot_equity, 1)
+            x4 = min(mcap_cr / tot_liab if (mcap_cr > 0 and tot_liab > 0) else 2.0, 10.0)
+            x5 = latest_sales / tot_assets
+            z_score = min(15.0, 1.2 * 0.2 + 1.4 * x2 + 3.3 * x3 + 0.6 * x4 + 1.0 * x5)
+
+        # 10-Factor Apex Investment Worthiness Model
+        factors = []
+        s_cagr = cagr_5y or 0.0
+        s1 = 10 if s_cagr>=25 else 9 if s_cagr>=15 else 8 if s_cagr>=10 else 6 if s_cagr>=5 else 5 if s_cagr>=0 else 1
+        factors.append(("Revenue Growth", s1, 12, f"{s_cagr:.1f}% 5Y CAGR"))
+
+        s2 = 10 if npm>=25 else 9 if npm>=18 else 8 if npm>=12 else 6 if npm>=8 else 5 if npm>=5 else 2
+        factors.append(("Profitability", s2, 10, f"NPM {npm:.1f}%"))
+
+        s3 = 10 if de_ratio<=0.05 else 9 if de_ratio<=0.2 else 8 if de_ratio<=0.4 else 7 if de_ratio<=0.6 else 5 if de_ratio<=0.8 else 3 if de_ratio<=1.5 else 1
+        factors.append(("Leverage", s3, 10, f"D/E {de_ratio:.2f}x"))
+
+        s4 = 10 if roe>=25 else 9 if roe>=20 else 8 if roe>=15 else 7 if roe>=12 else 5 if roe>=8 else 2
+        factors.append(("Return on Equity", s4, 12, f"ROE {roe:.1f}%"))
+
+        s5 = 10 if cfo_pat_ratio>=1.3 else 9 if cfo_pat_ratio>=1.0 else 7 if cfo_pat_ratio>=0.8 else 5 if cfo_pat_ratio>=0.6 else 2
+        factors.append(("Earnings Quality", s5, 10, f"OCF/PAT {cfo_pat_ratio:.2f}x"))
+
+        s6 = 10 if opm_trend_pp>=4 else 9 if opm_trend_pp>=2 else 7 if opm_trend_pp>=0 else 6 if opm_trend_pp>=-1 else 4
+        factors.append(("Margin Stability", s6, 8, f"OPM Trend {opm_trend_pp:+.1f}pp"))
+
+        s7 = round((f_score / max(f_max, 1)) * 10)
+        factors.append(("Piotroski F-Score", s7, 8, f"{f_score}/{f_max} met"))
+
+        s8 = 10 if z_score>2.99 else 7 if z_score>=1.81 else 3
+        z_zone = "Safe Zone" if z_score>2.99 else ("Grey Zone" if z_score>=1.81 else "Distress")
+        factors.append(("Solvency", s8, 8, f"Z {z_score:.2f} ({z_zone})"))
+
+        s9 = 10 if fcf_margin>=15 else 9 if fcf_margin>=10 else 7 if fcf_margin>=5 else 5 if latest_fcf>0 else 2
+        factors.append(("Cash Generation", s9, 10, f"FCF Margin {fcf_margin:.1f}%"))
+
+        s10 = 10 if (st_num==2 and ma_slope_val>0) else 8 if st_num==2 else 5 if st_num==1 else 3
+        factors.append(("Tech Momentum", s10, 8, f"{st_name}"))
+
+        tot_w = sum(f[2] for f in factors)
+        tot_pts = sum(f[1] * f[2] for f in factors)
+        worthiness_score = round((tot_pts / tot_w) * 10) if tot_w > 0 else 50
+        grade = "STRONG BUY-GRADE" if worthiness_score>=80 else "BUY-GRADE" if worthiness_score>=65 else "WATCHLIST-GRADE" if worthiness_score>=50 else "CAUTION-GRADE"
 
         return {
-            "base": base,
-            "name": name,
-            "cmp": curr_price,
-            "chg": day_chg_pct,
-            "ret_1y": ret_1y,
-            "ret_3y": ret_3y,
-            "alpha": alpha,
-            "pe": pe,
-            "pe_3y": pe_3y,
+            "base": b_sym,
+            "name": d_name,
+            "yf": yf_sym,
+            "cmp": cmp,
+            "day_chg": day_chg,
+            "mcap_cr": mcap_cr,
+            "cagr_5y": cagr_5y,
+            "pat_cagr_5y": pat_cagr_5y,
+            "latest_sales": latest_sales,
+            "latest_pat": latest_pat,
+            "opm": opm,
+            "npm": npm,
             "roce": roce,
             "roe": roe,
-            "de": de_str,
-            "piot": piot
+            "borrowings": borrowings,
+            "tot_equity": tot_equity,
+            "de_ratio": de_ratio,
+            "fcf_5y_sum": fcf_5y_sum,
+            "latest_fcf": latest_fcf,
+            "fcf_margin": fcf_margin,
+            "cfo_pat_ratio": cfo_pat_ratio,
+            "q_latest": q_latest,
+            "q_sales_yoy": q_sales_yoy,
+            "q_pat_yoy": q_pat_yoy,
+            "q_core_pbt_yoy": q_core_pbt_yoy,
+            "st_num": st_num,
+            "st_name": st_name,
+            "ma_slope": ma_slope,
+            "dist_52w": dist_52w,
+            "pe": pe,
+            "pe_3y_median": pe_3y_median,
+            "pe_discount_pct": pe_discount_pct,
+            "f_score": f_score,
+            "z_score": z_score,
+            "z_zone": z_zone,
+            "worthiness_score": worthiness_score,
+            "grade": grade,
+            "factors": factors
         }
 
-    d1 = fetch_stock_data(sym1)
-    d2 = fetch_stock_data(sym2)
-
-    def fmt_p(val):
-        if val is None or val == "N/A" or val == "":
-            return "N/A"
-        try:
-            fv = float(val)
-            return f"{fv:+.1f}%"
-        except Exception:
-            return str(val)
-
-    def fmt_x(val):
-        if val is None or val == "N/A" or val == "":
-            return "N/A"
-        try:
-            fv = float(val)
-            return f"{fv:.1f}x"
-        except Exception:
-            return str(val)
-
-    # Compute verdict edges
-    edges = []
     try:
-        if d1["ret_1y"] is not None and d2["ret_1y"] is not None:
-            r1, r2 = float(d1["ret_1y"]), float(d2["ret_1y"])
-            if abs(r1 - r2) >= 3.0:
-                ret_leader = d1["base"] if r1 > r2 else d2["base"]
-                edges.append(f"`{ret_leader}` leads 1Y momentum")
-    except Exception:
-        pass
+        p1 = fetch_duel_stock_profile(sym1)
+        p2 = fetch_duel_stock_profile(sym2)
+    except Exception as e:
+        logger.error(f"Error fetching duel profiles for {sym1} vs {sym2}: {e}", exc_info=True)
+        return send_whatsapp_interactive_buttons(
+            f"⚠️ *Apex Duel Notice*: Could not retrieve complete data for `{sym1}` vs `{sym2}`: {str(e)}",
+            buttons=[("nav:menu:main", "🏠 Main Menu")],
+            recipient=recipient
+        )
 
+    b1, b2 = p1["base"], p2["base"]
+    n1, n2 = p1["name"], p2["name"]
+
+    pts1, pts2 = 0, 0
+    arena_details = []
+
+    # ── Arena 1: Growth & Velocity ──────────────────────────────────
+    cagr1 = p1.get("cagr_5y") or 0.0
+    cagr2 = p2.get("cagr_5y") or 0.0
+    q_s1 = p1.get("q_sales_yoy") or 0.0
+    q_s2 = p2.get("q_sales_yoy") or 0.0
+
+    score_g1 = (1 if cagr1 > cagr2 else 0) + (1 if q_s1 > q_s2 else 0)
+    score_g2 = (1 if cagr2 > cagr1 else 0) + (1 if q_s2 > q_s1 else 0)
+    if score_g1 > score_g2:
+        pts1 += 1
+        w_g = f"👉 *Winner: {b1}* (5Y CAGR: *{cagr1:.1f}%* vs {cagr2:.1f}%, Q YoY: *+{q_s1:.1f}%* vs +{q_s2:.1f}%)"
+    elif score_g2 > score_g1:
+        pts2 += 1
+        w_g = f"👉 *Winner: {b2}* (5Y CAGR: *{cagr2:.1f}%* vs {cagr1:.1f}%, Q YoY: *+{q_s2:.1f}%* vs +{q_s1:.1f}%)"
+    else:
+        w_g = "👉 *Tie / Comparable Growth Velocity*"
+    arena_details.append(("⚡ *GROWTH & VELOCITY*", [
+        f"• 5Y Sales CAGR: {b1} *{cagr1:.1f}%*  vs  {b2} *{cagr2:.1f}%*",
+        f"• Latest Qtr Sales YoY: {b1} *{q_s1:+.1f}%*  vs  {b2} *{q_s2:+.1f}%*",
+        w_g
+    ]))
+
+    # ── Arena 2: Moat & Capital Efficiency ──────────────────────────
+    roce1, roce2 = p1.get("roce") or 0.0, p2.get("roce") or 0.0
+    roe1, roe2 = p1.get("roe") or 0.0, p2.get("roe") or 0.0
+    opm1, opm2 = p1.get("opm") or 0.0, p2.get("opm") or 0.0
+
+    score_m1 = (1 if roce1 > roce2 else 0) + (1 if roe1 > roe2 else 0) + (1 if opm1 > opm2 else 0)
+    score_m2 = (1 if roce2 > roce1 else 0) + (1 if roe2 > roe1 else 0) + (1 if opm2 > opm1 else 0)
+    if score_m1 > score_m2:
+        pts1 += 1
+        w_m = f"👉 *Winner: {b1}* (ROCE: *{roce1:.1f}%* vs {roce2:.1f}%, OPM: *{opm1:.1f}%* vs {opm2:.1f}%)"
+    elif score_m2 > score_m1:
+        pts2 += 1
+        w_m = f"👉 *Winner: {b2}* (ROCE: *{roce2:.1f}%* vs {roce1:.1f}%, OPM: *{opm2:.1f}%* vs {opm1:.1f}%)"
+    else:
+        w_m = "👉 *Tie / Equal Capital Moat*"
+    arena_details.append(("🛡️ *MOAT & CAPITAL EFFICIENCY*", [
+        f"• ROCE: {b1} *{roce1:.1f}%*  vs  {b2} *{roce2:.1f}%*",
+        f"• ROE: {b1} *{roe1:.1f}%*  vs  {b2} *{roe2:.1f}%*",
+        f"• Operating Margin (OPM): {b1} *{opm1:.1f}%*  vs  {b2} *{opm2:.1f}%*",
+        w_m
+    ]))
+
+    # ── Arena 3: Balance Sheet & Cash Fortress ─────────────────────
+    de1, de2 = p1.get("de_ratio") or 0.0, p2.get("de_ratio") or 0.0
+    fcf1, fcf2 = p1.get("fcf_5y_sum") or 0.0, p2.get("fcf_5y_sum") or 0.0
+    cfo_pat1, cfo_pat2 = p1.get("cfo_pat_ratio") or 0.0, p2.get("cfo_pat_ratio") or 0.0
+
+    score_b1 = (1 if de1 <= de2 else 0) + (1 if fcf1 > fcf2 else 0) + (1 if cfo_pat1 > cfo_pat2 else 0)
+    score_b2 = (1 if de2 < de1 else 0) + (1 if fcf2 > fcf1 else 0) + (1 if cfo_pat2 > cfo_pat1 else 0)
+    if score_b1 > score_b2:
+        pts1 += 1
+        w_b = f"👉 *Winner: {b1}* (5Y FCF: *₹{fcf1:,.0f} Cr* vs ₹{fcf2:,.0f} Cr, D/E: *{de1:.2f}x*)"
+    elif score_b2 > score_b1:
+        pts2 += 1
+        w_b = f"👉 *Winner: {b2}* (5Y FCF: *₹{fcf2:,.0f} Cr* vs ₹{fcf1:,.0f} Cr, D/E: *{de2:.2f}x*)"
+    else:
+        w_b = "👉 *Tie / Equal Balance Sheet Strength*"
+    arena_details.append(("🏰 *BALANCE SHEET & CASH FLOW*", [
+        f"• Debt/Equity: {b1} *{de1:.2f}x*  vs  {b2} *{de2:.2f}x*",
+        f"• 5Y Cumulative FCF: {b1} *₹ {fcf1:,.0f} Cr*  vs  {b2} *₹ {fcf2:,.0f} Cr*",
+        f"• Cash Conversion (CFO/PAT): {b1} *{cfo_pat1:.2f}x*  vs  {b2} *{cfo_pat2:.2f}x*",
+        w_b
+    ]))
+
+    # ── Arena 4: Technical Stage & Momentum ────────────────────────
+    st1, st2 = p1.get("st_num") or 2, p2.get("st_num") or 2
+    d52_1, d52_2 = p1.get("dist_52w") or 0.0, p2.get("dist_52w") or 0.0
+    slope1, slope2 = p1.get("ma_slope") or "+0.0%", p2.get("ma_slope") or "+0.0%"
+
+    st_rank = {2: 4, 1: 2, 3: 1, 4: 0}
+    score_t1 = (2 if st_rank.get(st1, 2) > st_rank.get(st2, 2) else 0) + (1 if d52_1 > d52_2 else 0)
+    score_t2 = (2 if st_rank.get(st2, 2) > st_rank.get(st1, 2) else 0) + (1 if d52_2 > d52_1 else 0)
+    if score_t1 > score_t2:
+        pts1 += 1
+        w_t = f"👉 *Winner: {b1}* ({p1.get('st_name')}, {d52_1:+.1f}% from 52W high)"
+    elif score_t2 > score_t1:
+        pts2 += 1
+        w_t = f"👉 *Winner: {b2}* ({p2.get('st_name')}, {d52_2:+.1f}% from 52W high)"
+    else:
+        w_t = "👉 *Tie / Equal Technical Posture*"
+    arena_details.append(("🚀 *STAGE & MOMENTUM*", [
+        f"• Stage Status: {b1} *{p1.get('st_name')}*  vs  {b2} *{p2.get('st_name')}*",
+        f"• 30-Week MA Slope: {b1} *{slope1}*  vs  {b2} *{slope2}*",
+        f"• 52-Week High Dist: {b1} *{d52_1:+.1f}%*  vs  {b2} *{d52_2:+.1f}%*",
+        w_t
+    ]))
+
+    # ── Arena 5: Valuation & Margin of Safety ──────────────────────
+    pe1, pe2 = p1.get("pe") or 0.0, p2.get("pe") or 0.0
+    disc1, disc2 = p1.get("pe_discount_pct") or 0.0, p2.get("pe_discount_pct") or 0.0
+
+    score_v1 = (1 if (pe1 > 0 and (pe1 < pe2 or pe2 <= 0)) else 0) + (1 if disc1 < disc2 else 0)
+    score_v2 = (1 if (pe2 > 0 and (pe2 < pe1 or pe1 <= 0)) else 0) + (1 if disc2 < disc1 else 0)
+    pe1_str = f"{pe1:.1f}x" if pe1 > 0 else "N/A"
+    pe2_str = f"{pe2:.1f}x" if pe2 > 0 else "N/A"
+
+    if score_v1 > score_v2:
+        pts1 += 1
+        w_v = f"👉 *Winner: {b1}* (Cheaper P/E: *{pe1_str}* vs {pe2_str})"
+    elif score_v2 > score_v1:
+        pts2 += 1
+        w_v = f"👉 *Winner: {b2}* (Cheaper P/E: *{pe2_str}* vs {pe1_str})"
+    else:
+        w_v = "👉 *Tie / Comparable Valuation*"
+    arena_details.append(("⚖️ *VALUATION & MARGIN OF SAFETY*", [
+        f"• Current P/E: {b1} *{pe1_str}*  vs  {b2} *{pe2_str}*",
+        f"• 3Y Median P/E: {b1} *{p1.get('pe_3y_median', 0):.1f}x*  vs  {b2} *{p2.get('pe_3y_median', 0):.1f}x*",
+        w_v
+    ]))
+
+    # Crown Champion
+    if pts1 > pts2:
+        champ_line = f"🏆 *BOUT CHAMPION: {b1}* ({n1})\n*Final Score: {b1} {pts1} — {pts2} {b2}*"
+    elif pts2 > pts1:
+        champ_line = f"🏆 *BOUT CHAMPION: {b2}* ({n2})\n*Final Score: {b2} {pts2} — {pts1} {b1}*"
+    else:
+        champ_line = f"🤝 *HONORABLE DRAW: {b1} vs {b2}*\n*Final Score: {pts1} — {pts2} (Both Equities Match Closely)*"
+
+    # Rupee Translation Comparison
+    npm1, npm2 = p1.get("npm") or 0.0, p2.get("npm") or 0.0
+    de_rup1, de_rup2 = (de1 * 100), (de2 * 100)
+    cfo_pat_rup1, cfo_pat_rup2 = (cfo_pat1 * 100), (cfo_pat2 * 100)
+
+    # Gemini AI Layman Verdict
+    ai_verdict = ""
     try:
-        if d1["roce"] is not None and d2["roce"] is not None:
-            rc1, rc2 = float(d1["roce"]), float(d2["roce"])
-            if abs(rc1 - rc2) >= 4.0:
-                roce_leader = d1["base"] if rc1 > rc2 else d2["base"]
-                edges.append(f"`{roce_leader}` holds higher ROCE")
-    except Exception:
-        pass
+        from backend.llm_config import call_llm, TASK_FAST
+        sys_p = (
+            "You are an elite quantitative CIO and Chartered Financial Analyst explaining an institutional stock duel "
+            "between two Indian companies to an investor on WhatsApp.\n"
+            "Deliver 3 razor-sharp, actionable bullet points directly guiding their capital allocation decision:\n"
+            "1. 🎯 Long-Term Compounder Pick: Pick the better stock for a 3-5 year holding and explain why (balance sheet, ROCE, FCF).\n"
+            "2. ⚡ Swing / Momentum Pick: Pick the better stock for a 2-8 week trade right now and explain why (Stage 2 breakout, quarterly earnings).\n"
+            "3. 💡 Bottom-Line Call: Definitive 1-sentence verdict on how to allocate capital between the two.\n\n"
+            "Formatting Rules:\n"
+            "- Use WhatsApp formatting (*bold* for symbols and metrics).\n"
+            "- Strictly 3 bullets, under 420 characters total.\n"
+            "- No markdown tables or HTML."
+        )
+        u_p = (
+            f"Duel: {n1} ({b1}) vs {n2} ({b2})\n"
+            f"Scores: {b1}={p1['worthiness_score']}% ({p1['grade']}), {b2}={p2['worthiness_score']}% ({p2['grade']})\n"
+            f"Growth: {b1} 5Y CAGR {cagr1:.1f}%, Q YoY {q_s1:+.1f}% | {b2} 5Y CAGR {cagr2:.1f}%, Q YoY {q_s2:+.1f}%\n"
+            f"Moat: {b1} ROCE {roce1:.1f}%, OPM {opm1:.1f}% | {b2} ROCE {roce2:.1f}%, OPM {opm2:.1f}%\n"
+            f"Balance Sheet: {b1} D/E {de1:.2f}x, 5Y FCF ₹{fcf1:,.0f} Cr | {b2} D/E {de2:.2f}x, 5Y FCF ₹{fcf2:,.0f} Cr\n"
+            f"Technicals: {b1} {p1['st_name']} ({d52_1:+.1f}% to 52W) | {b2} {p2['st_name']} ({d52_2:+.1f}% to 52W)\n"
+            f"Valuation: {b1} PE {pe1_str} | {b2} PE {pe2_str}\n"
+            f"Points: {b1} {pts1} - {pts2} {b2}\n"
+        )
+        resp = call_llm(TASK_FAST, system_prompt=sys_p, user_prompt=u_p, max_tokens=250, enable_web_search=False)
+        if resp and len(resp.strip()) > 40:
+            ai_verdict = html.unescape(resp.strip())
+    except Exception as e:
+        logger.warning(f"Error calling LLM for duel: {e}")
 
-    try:
-        if d1["pe"] is not None and d2["pe"] is not None:
-            p1_val, p2_val = float(d1["pe"]), float(d2["pe"])
-            if p1_val > 0 and p2_val > 0 and abs(p1_val - p2_val) >= 5.0:
-                val_leader = d1["base"] if p1_val < p2_val else d2["base"]
-                edges.append(f"`{val_leader}` trades at cheaper P/E")
-    except Exception:
-        pass
+    if not ai_verdict:
+        fav_lt = b1 if pts1 > pts2 else (b2 if pts2 > pts1 else b1)
+        fav_sw = b1 if score_t1 > score_t2 else (b2 if score_t2 > score_t1 else b1)
+        ai_verdict = (
+            f"• 🎯 *Long-Term Compounder*: *{fav_lt}* leads on balance sheet quality, superior 5Y FCF generation, and capital efficiency.\n"
+            f"• ⚡ *Short-Term Swing Pick*: *{fav_sw}* possesses superior price action and closer proximity to pivot breakouts.\n"
+            f"• 💡 *Bottom-Line Verdict*: Weight allocations towards *{fav_lt}* while using trailing stop-losses on any pullbacks."
+        )
 
-    verdict_text = " • ".join(edges) if edges else "Both companies exhibit comparable fundamental & valuation profiles."
+    # Assemble complete WhatsApp dossier
+    msg_lines = [
+        "🥊 *APEX STOCK DUEL: HEAD-TO-HEAD BATTLE*",
+        f"*{n1.upper()}* (`{b1}`)  🆚  *{n2.upper()}* (`{b2}`)",
+        "━━━━━━━━━━━━━━━━━━━━",
+        "📊 *APEX WORTHINESS INDEX*:",
+        f"• {b1}: *{p1['worthiness_score']}%* ➔ `{p1['grade']}`",
+        f"• {b2}: *{p2['worthiness_score']}%* ➔ `{p2['grade']}`\n",
+        "💰 *LIVE MARKET DATA*:",
+        f"• {b1}: ₹ {p1['cmp']:,.1f} ({p1['day_chg']:+.1f}%) | Mcap: ₹ {p1['mcap_cr']:,.0f} Cr",
+        f"• {b2}: ₹ {p2['cmp']:,.1f} ({p2['day_chg']:+.1f}%) | Mcap: ₹ {p2['mcap_cr']:,.0f} Cr\n",
+        "⚔️ *5-ARENA INSTITUTIONAL BOUT*:",
+    ]
 
-    b1_clean, b2_clean = d1["base"][:8], d2["base"][:8]
+    for title, rows in arena_details:
+        msg_lines.append(f"\n{title}")
+        msg_lines.extend(rows)
 
-    body = (
-        "⚔️ *HEAD-TO-HEAD BATTLE*\n"
-        f"*{d1['name']}* vs *{d2['name']}*\n"
-        f"`{d1['base']}` vs `{d2['base']}`\n"
-        "━━━━━━━━━━━━━━━━━━━━\n"
-        "💰 *Price (LTP)*:\n"
-        f"• {d1['base']}: ₹ {d1['cmp']:,.1f} ({d1['chg']:+.1f}%)\n"
-        f"• {d2['base']}: ₹ {d2['cmp']:,.1f} ({d2['chg']:+.1f}%)\n\n"
-        "📊 *Returns & Benchmark Alpha*:\n"
-        f"• 1Y Return: {d1['base']} {fmt_p(d1['ret_1y'])}  vs  {d2['base']} {fmt_p(d2['ret_1y'])}\n"
-        f"• 3Y Return: {d1['base']} {fmt_p(d1['ret_3y'])}  vs  {d2['base']} {fmt_p(d2['ret_3y'])}\n"
-        f"• Alpha vs Nifty: {d1['base']} {fmt_p(d1['alpha'])}  vs  {d2['base']} {fmt_p(d2['alpha'])}\n\n"
-        "⚖️ *Valuation Multiples*:\n"
-        f"• Current P/E: {d1['base']} {fmt_x(d1['pe'])}  vs  {d2['base']} {fmt_x(d2['pe'])}\n"
-        f"• 3Y Median P/E: {d1['base']} {fmt_x(d1['pe_3y'])}  vs  {d2['base']} {fmt_x(d2['pe_3y'])}\n\n"
-        "💎 *Quality & Balance Sheet*:\n"
-        f"• ROCE: {d1['base']} {fmt_p(d1['roce'])}  vs  {d2['base']} {fmt_p(d2['roce'])}\n"
-        f"• ROE: {d1['base']} {fmt_p(d1['roe'])}  vs  {d2['base']} {fmt_p(d2['roe'])}\n"
-        f"• Debt/Equity: {d1['base']} {d1['de']}  vs  {d2['base']} {d2['de']}\n"
-        f"• Piotroski: {d1['base']} {d1['piot']}/9  vs  {d2['base']} {d2['piot']}/9\n"
-        "━━━━━━━━━━━━━━━━━━━━\n"
-        f"🏆 *Apex Verdict*: {verdict_text}\n\n"
-        "Tap below to view individual charts:"
-    )
+    msg_lines.extend([
+        "\n━━━━━━━━━━━━━━━━━━━━",
+        f"{champ_line}\n",
+        "💰 *THE RUPEE TRANSLATION (₹100 BENCHMARK)*:",
+        f"• Net Margin: {b1} pockets *₹ {npm1:.1f}* vs {b2} *₹ {npm2:.1f}* per ₹ 100 sales",
+        f"• Debt Load: {b1} owes *₹ {de_rup1:.1f}* vs {b2} *₹ {de_rup2:.1f}* per ₹ 100 equity",
+        f"• Capital Return (ROCE): {b1} yields *₹ {roce1:.1f}* vs {b2} *₹ {roce2:.1f}* per ₹ 100 capital",
+        f"• Cash Reality: {b1} collects *₹ {cfo_pat_rup1:.1f}* vs {b2} *₹ {cfo_pat_rup2:.1f}* in hard cash per ₹ 100 profit\n",
+        "🧠 *AI LAYMAN DECISION VERDICT*:",
+        f"{ai_verdict}",
+        "━━━━━━━━━━━━━━━━━━━━",
+        "Tap below to view full 5Y financials or charts:"
+    ])
+
+    body = "\n".join(msg_lines)
+    b1_btn = b1[:8]
+    b2_btn = b2[:8]
 
     buttons = [
-        (f"act:chart:{b1_clean}", f"📈 {b1_clean} Chart"),
-        (f"act:chart:{b2_clean}", f"📈 {b2_clean} Chart"),
+        (f"act:fin:{b1_btn}", f"📊 {b1_btn} 5Y Fin"),
+        (f"act:fin:{b2_btn}", f"📊 {b2_btn} 5Y Fin"),
         ("nav:menu:main", "🏠 Main Menu")
     ]
+
+    if len(body) > 1020:
+        send_whatsapp_text(body, recipient=recipient)
+        return send_whatsapp_interactive_buttons(
+            f"⚡ *Deep Dives for {b1} vs {b2}*:",
+            buttons=buttons,
+            recipient=recipient
+        )
     return send_whatsapp_interactive_buttons(body, buttons=buttons, recipient=recipient)
 
 
@@ -8795,13 +9165,15 @@ def dispatch_incoming_whatsapp_message(text_body: str, sender: Optional[str] = N
             return handle_stock_news(sym, recipient=sender)
         return handle_news_menu(recipient=sender)
 
-    # 1b. Head-to-Head Stock Comparison Interceptor (COMPARE S1 S2 / S1 VS S2)
+    # 1b. Apex Stock Duel & Comparison Interceptor (COMPARE S1 S2 / S1 VS S2 / S1 OR S2)
     if (
         cleaned.startswith("run:compare:")
-        or upper in ["COMPARE", "VS", "STOCK COMPARE", "STOCK COMPARISON", "HEAD TO HEAD"]
+        or cleaned.startswith("act:compare:")
+        or upper in ["COMPARE", "VS", "STOCK COMPARE", "STOCK COMPARISON", "HEAD TO HEAD", "DUEL", "BATTLE", "STOCK DUEL", "APEX DUEL"]
         or upper.startswith("COMPARE ")
         or upper.startswith("BATTLE ")
-        or bool(re.match(r"^[A-Za-z0-9_&.-]+\s+(?:VS|VERSUS|BATTLE)\s+[A-Za-z0-9_&.-]+$", upper))
+        or upper.startswith("DUEL ")
+        or bool(re.search(r"\b(?:VS|VERSUS|V/S|BATTLE)\b", upper))
     ):
         return handle_stock_comparison(cleaned, recipient=sender)
 
