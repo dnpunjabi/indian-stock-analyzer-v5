@@ -1072,7 +1072,7 @@ def generate_stock_research_dossier_pdf(
     tiles_data = [
         [
             Paragraph("P/E RATIO", th_style),
-            Paragraph("EV/EBITDA", th_style),
+            Paragraph("EV/EBITDA (TTM)", th_style),
             Paragraph("P/B RATIO", th_style),
             Paragraph("ROE %", th_style),
             Paragraph("ROCE %", th_style),
@@ -1689,7 +1689,7 @@ def generate_stock_research_dossier_pdf(
     # Dedicated Full-Width Callout for Ownership Float (Zero vertical cell cuts! SEBI Float Definition)
     sh_note_text = (
         "<b>SEBI Public Shareholding Breakdown:</b> Promoter Holding: <b>70.54%</b> (Zero Pledge) &nbsp;|&nbsp; "
-        "<b>Total Public Shareholding:</b> <b>29.46% (~Rs. 42,890 Cr)</b> (Institutions: <b>22.27%</b> [Domestic Mutual Funds 15.17%, Foreign Portfolio Investors 7.10%], Retail Non-Institutional: <b>7.19% (~Rs. 10,468 Cr)</b>)."
+        "<b>Total Public Shareholding:</b> <b>29.46% (~Rs. 42,890 Cr)</b> (Institutions: <b>22.27%</b> [Domestic Mutual Funds 15.17%, Foreign Portfolio Investors 7.10%], Non-Institutional Corporates &amp; Retail: <b>7.19% (~Rs. 10,468 Cr)</b>)."
     )
     t_sh_note = Table([[Paragraph(sh_note_text, body_style)]], colWidths=[520])
     t_sh_note.setStyle(TableStyle([
@@ -2110,8 +2110,8 @@ def generate_stock_research_dossier_pdf(
                 "<b>Implied Equity Value:</b> Rs. 1,17,419 Cr &nbsp;|&nbsp; "
                 "<b>Diluted Shares:</b> 2.9496 Cr (29.496M)<br/>"
                 "<b>Institutional Base Fair Value (30.0x Exit):</b> <font color='#0284c7'><b>Rs. 39,808.00</b></font> &nbsp;|&nbsp; "
-                "<b>Bull Longevity Target (38x–40x Exit):</b> <font color='#15803d'><b>Rs. 48,875 – Rs. 51,350</b></font><br/>"
-                "<i>[Reconciliation: Rs. 1,17,419 Cr / 2.9496 Cr = Rs. 39,808/sh (30x Base) | Rs. 1,44,163 Cr / 2.9496 Cr = Rs. 48,875/sh (38x) | Rs. 1,51,462 Cr / 2.9496 Cr = Rs. 51,350/sh (40x)]</i>",
+                "<b>Bull Longevity Target (38x–40x Exit):</b> <font color='#15803d'><b>Rs. 48,875 – Rs. 51,142</b></font><br/>"
+                "<i>[Reconciliation: Rs. 1,17,419 Cr / 2.9496 Cr = Rs. 39,808/sh (30x Base) | Rs. 1,44,163 Cr / 2.9496 Cr = Rs. 48,875/sh (38x) | Rs. 1,50,848 Cr / 2.9496 Cr = Rs. 51,142/sh (40x)]</i>",
                 body_style
             ),
             "", "", "", "", "", ""
@@ -2137,9 +2137,9 @@ def generate_stock_research_dossier_pdf(
     # Tripartite Framework & Sensitivity Matrix (Transparent Disclosure)
     sens_html = (
         "<b>DUAL-TERMINAL DCF SENSITIVITY &amp; MULTI-HORIZON VALUATION MATRIX:</b><br/>"
-        "• <b>Terminal Methodology Finding:</b> Conservative perpetuity DCF yields <b>Rs. 17,680/share</b> (perpetual floor @ 4.5% TV). Base exit multiple DCF (30.0x EV/EBITDA) yields <b>Rs. 39,808/share</b> (28x Exit Floor: <b>Rs. 37,540</b>; reflects franchise moat and implies an aggressive ~8.6% perpetual reinvestment compounding rate). Current CMP (Rs. 49,360) trades at a <b>+24.0% premium</b> to Base Fair Value, pricing in sustained multiple longevity (38x Exit: <b>Rs. 48,875</b>; 40x Exit Target: <b>Rs. 51,350/share</b>); stock is fully priced with narrow valuation cushion.<br/>"
-        "• <b>Exit Multiple Sensitivity Matrix (@ 11.0% WACC):</b> 25.0x Exit: <b>Rs. 34,140</b> (-30.8% vs CMP) &nbsp;|&nbsp; 28.0x Exit: <b>Rs. 37,540</b> (-23.9%) &nbsp;|&nbsp; 30.0x Base Exit: <b>Rs. 39,808</b> (-19.3%) &nbsp;|&nbsp; 38.0x Exit: <b>Rs. 48,875</b> (-1.0%) &nbsp;|&nbsp; 40.0x Longevity Target: <b>Rs. 51,142 – Rs. 51,350</b> (+3.6% to +4.0%).<br/>"
-        "• <b>5-Year Forward Nominal Targets (FY31E Forward, Un-discounted):</b> Bear Case (25x PE | +10.0% EPS): <b>Rs. 36,150</b> (Discounted PV: Rs. 21,450) &nbsp;|&nbsp; Base Case (35x PE | +16.0% EPS): <b>Rs. 66,000</b> (Discounted PV: <b>Rs. 39,170</b>, reconciling to Base DCF PV of Rs. 39,808) &nbsp;|&nbsp; Bull Case (45x PE | +22.0% EPS): <b>Rs. 1,09,200</b> (Discounted PV: Rs. 64,800) &nbsp;<i>[Normalized Base EPS: Rs. 898.00 derived from TTM PAT Rs. 2,649 Cr / 2.9496 Cr shares]</i>.<br/>"
+        "• <b>Terminal Methodology Finding:</b> Conservative perpetuity DCF yields <b>Rs. 17,680/share</b> (perpetual floor @ 4.5% TV). Base exit multiple DCF (30.0x EV/EBITDA) yields <b>Rs. 39,808/share</b> (28x Exit Floor: <b>Rs. 37,540</b>; mathematically equates to an implied ~8.6% perpetual reinvestment compounding rate). Current CMP (Rs. 49,360) trades at a <b>+24.0% premium</b> to Base Fair Value, pricing in sustained multiple longevity (38x Exit: <b>Rs. 48,875</b>; 40x Exit Target: <b>Rs. 51,142/share</b>); stock is fully priced with narrow valuation cushion.<br/>"
+        "• <b>Exit Multiple Sensitivity Matrix (@ 11.0% WACC):</b> 25.0x Exit: <b>Rs. 34,140</b> (-30.8% vs CMP) &nbsp;|&nbsp; 28.0x Exit: <b>Rs. 37,540</b> (-23.9%) &nbsp;|&nbsp; 30.0x Base Exit: <b>Rs. 39,808</b> (-19.3%) &nbsp;|&nbsp; 38.0x Exit: <b>Rs. 48,875</b> (-1.0%) &nbsp;|&nbsp; 40.0x Longevity Target: <b>Rs. 51,142</b> (+3.6% vs CMP).<br/>"
+        "• <b>5-Year Forward Nominal Targets (FY31E Forward, Un-discounted):</b> Bear Case (25x PE | +10.0% EPS): <b>Rs. 36,150</b> (Discounted PV: Rs. 21,450) &nbsp;|&nbsp; Base Case (35x PE | +16.0% EPS): <b>Rs. 66,000</b> (Discounted PV: <b>Rs. 39,170</b>, ~1.6% variance to DCF Base Fair Value Rs. 39,808 due to cash-flow timing) &nbsp;|&nbsp; Bull Case (45x PE | +22.0% EPS): <b>Rs. 1,09,200</b> (Discounted PV: Rs. 64,800) &nbsp;<i>[Normalized Base EPS: Rs. 898.00 derived from TTM PAT Rs. 2,649 Cr / 2.9496 Cr shares]</i>.<br/>"
         "• <b>5-Year Reverse DCF Hurdles:</b> Cost of Capital Hurdle (54.7x PE) requires <b>+10.0%/yr</b> EPS growth; De-rated Multiple (compression to 25.0x PE over 5Y) requires <b>+17.1%/yr</b> EPS growth to keep price flat at CMP."
     )
     t_sens = Table([[Paragraph(sens_html, body_style)]], colWidths=[520])
@@ -2220,8 +2220,8 @@ def generate_stock_research_dossier_pdf(
                 "<b>INVESTMENT ACTION:</b> <font color='#0284c7'><b>FULLY VALUED / HOLD CORE (ACCUMULATE ON DEEP DIPS)</b></font><br/>"
                 "• <b>Institutional Value Buy Zone:</b> Rs. 34,000 – Rs. 37,500 (Below Rs. 39,808 Fair Value; 6%–15% Margin of Safety)<br/>"
                 "• <b>Secular Technical Floors:</b> Major Floor: Rs. 40,893 (200 SMA / 30W Base) | Structural Base: Rs. 37,540 (28x Exit)<br/>"
-                "• <b>Intrinsic Fair Value Band (PV Today):</b> Rs. 37,540 (28x) – Rs. 39,808 (30x Base) | Longevity Bull: Rs. 51,350<br/>"
-                "• <b>Multi-Year Nominal Targets:</b> 1Y: Rs. 58,245 (40x FY27E EPS Rs. 1,456) | 3Y: Rs. 73,050 (35x FY29E EPS Rs. 2,087 @ 16.5% CAGR)<br/>"
+                "• <b>Intrinsic Fair Value Band (PV Today):</b> Rs. 37,540 (28x) – Rs. 39,808 (30x Base) | Longevity Bull: Rs. 51,142<br/>"
+                "• <b>Multi-Year Nominal Targets:</b> 1Y: Rs. 46,875 (45x FY27E EPS Rs. 1,042 @ +16% growth) | 3Y: Rs. 56,070 (40x FY29E EPS Rs. 1,402 @ +16% CAGR)<br/>"
                 "• <b>Thesis Invalidation:</b> Operating Margins &lt; 11.0% or Debt/Equity &gt; 0.25x<br/>"
                 "• <b>Balance Sheet Quality:</b> Virtually Zero Debt (0.01x D/E, Rs. 6,850 Cr Net Cash, 21.5% ROCE)",
                 body_style
