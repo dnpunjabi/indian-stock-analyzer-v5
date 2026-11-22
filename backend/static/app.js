@@ -4738,6 +4738,12 @@ window.SpeechPlayer = {
         this.sentences = [];
         this.updateUI();
         this.hidePanel();
+        const confluenceBtn = document.getElementById('confluence-story-tts-btn');
+        if (confluenceBtn) confluenceBtn.innerHTML = '<span>🔊</span> Listen';
+        const valBtn = document.getElementById('val-modal-tts-btn');
+        if (valBtn) valBtn.innerHTML = '<span>🔊</span> Listen';
+        const psychBtn = document.getElementById('psych-modal-tts-btn');
+        if (psychBtn) psychBtn.innerHTML = '<span>🔊</span> Listen';
     },
 
     hidePanel() {
@@ -4785,6 +4791,22 @@ window.SpeechPlayer = {
         const progressBar = document.getElementById('speech-progress-bar');
         if (progressBar) {
             progressBar.style.width = `${progressPct}%`;
+        }
+
+        const confluenceBtn = document.getElementById('confluence-story-tts-btn');
+        if (confluenceBtn) {
+            const isThisSpeaking = this.isPlaying && this.title && this.title.includes('Confluence');
+            confluenceBtn.innerHTML = isThisSpeaking ? '<span>⏸️</span> Pause' : '<span>🔊</span> Listen';
+        }
+        const valBtn = document.getElementById('val-modal-tts-btn');
+        if (valBtn) {
+            const isThisSpeaking = this.isPlaying && this.title && this.title.includes('Valuation');
+            valBtn.innerHTML = isThisSpeaking ? '<span>⏸️</span> Pause' : '<span>🔊</span> Listen';
+        }
+        const psychBtn = document.getElementById('psych-modal-tts-btn');
+        if (psychBtn) {
+            const isThisSpeaking = this.isPlaying && this.title && this.title.includes('Trade Mirror');
+            psychBtn.innerHTML = isThisSpeaking ? '<span>⏸️</span> Pause' : '<span>🔊</span> Listen';
         }
     }
 };
@@ -60317,7 +60339,11 @@ window.closeConfluenceStoryModal = function() {
     const modal = document.getElementById('confluence-story-modal');
     if (modal) modal.style.display = 'none';
     try { document.body.style.overflow = ''; } catch (e) {}
+    if (window.SpeechPlayer && window.SpeechPlayer.isActive) {
+        window.SpeechPlayer.stop();
+    }
     if (window.speechSynthesis) window.speechSynthesis.cancel();
+    if (window.AndroidTts && typeof window.AndroidTts.stop === 'function') window.AndroidTts.stop();
     isConfluenceSpeaking = false;
     const ttsBtn = document.getElementById('confluence-story-tts-btn');
     if (ttsBtn) ttsBtn.innerHTML = '<span>🔊</span> Listen';
@@ -60330,36 +60356,38 @@ window.refreshConfluenceStoryCurrent = function() {
 };
 
 window.toggleConfluenceStoryTTS = function() {
-    if (!('speechSynthesis' in window)) {
-        if (typeof showToast === 'function') showToast('Text-to-Speech not supported in this browser', 'info');
-        return;
-    }
-    const btn = document.getElementById('confluence-story-tts-btn');
-    if (isConfluenceSpeaking) {
-        window.speechSynthesis.cancel();
-        isConfluenceSpeaking = false;
-        if (btn) btn.innerHTML = '<span>🔊</span> Listen';
-        return;
-    }
     const narrEl = document.getElementById('confluence-story-narrative');
-    const textToSpeak = (narrEl ? narrEl.innerText : '').trim();
-    if (!textToSpeak) return;
+    let textToSpeak = (narrEl ? (narrEl.innerText || narrEl.textContent) : '').trim();
+    if (!textToSpeak && window.activeConfluenceStoryData && window.activeConfluenceStoryData.formatted_markdown) {
+        textToSpeak = window.activeConfluenceStoryData.formatted_markdown;
+    }
+    if (!textToSpeak) {
+        if (typeof showToast === 'function') showToast('No Confluence story available to read yet.', 'warning');
+        return;
+    }
 
-    window.speechSynthesis.cancel();
-    const utter = new SpeechSynthesisUtterance(textToSpeak);
-    utter.rate = 1.0;
-    utter.pitch = 1.0;
-    utter.onend = () => {
-        isConfluenceSpeaking = false;
-        if (btn) btn.innerHTML = '<span>🔊</span> Listen';
-    };
-    utter.onerror = () => {
-        isConfluenceSpeaking = false;
-        if (btn) btn.innerHTML = '<span>🔊</span> Listen';
-    };
-    isConfluenceSpeaking = true;
-    if (btn) btn.innerHTML = '<span>⏹</span> Stop';
-    window.speechSynthesis.speak(utter);
+    const cleanSym = window.activeConfluenceStorySymbol || 'Stock';
+    const title = `AI Confluence: ${cleanSym}`;
+
+    if (window.SpeechPlayer) {
+        window.SpeechPlayer.startSpeakingSection(textToSpeak, title, true);
+        return;
+    }
+
+    if (window.AndroidTts && typeof window.AndroidTts.speak === 'function') {
+        window.AndroidTts.speak(textToSpeak, 'confluence_story');
+        return;
+    }
+
+    if ('speechSynthesis' in window) {
+        window.speechSynthesis.cancel();
+        const utter = new SpeechSynthesisUtterance(textToSpeak);
+        utter.rate = 1.0;
+        window.speechSynthesis.speak(utter);
+        return;
+    }
+
+    if (typeof showToast === 'function') showToast('Text-to-Speech is not available on this device.', 'warning');
 };
 
 window.copyConfluenceStoryMemo = function() {
@@ -60632,7 +60660,11 @@ window.closeValuationExpectationsModal = function() {
     const modal = document.getElementById('valuation-expectations-modal');
     if (modal) modal.style.display = 'none';
     try { document.body.style.overflow = ''; } catch (e) {}
+    if (window.SpeechPlayer && window.SpeechPlayer.isActive) {
+        window.SpeechPlayer.stop();
+    }
     if (window.speechSynthesis) window.speechSynthesis.cancel();
+    if (window.AndroidTts && typeof window.AndroidTts.stop === 'function') window.AndroidTts.stop();
     isValuationSpeaking = false;
     const ttsBtn = document.getElementById('val-modal-tts-btn');
     if (ttsBtn) ttsBtn.innerHTML = '<span>🔊</span> Listen';
@@ -60645,36 +60677,38 @@ window.refreshValuationCurrent = function() {
 };
 
 window.toggleValuationTTS = function() {
-    if (!('speechSynthesis' in window)) {
-        if (typeof showToast === 'function') showToast('Text-to-Speech not supported in this browser', 'info');
-        return;
-    }
-    const btn = document.getElementById('val-modal-tts-btn');
-    if (isValuationSpeaking) {
-        window.speechSynthesis.cancel();
-        isValuationSpeaking = false;
-        if (btn) btn.innerHTML = '<span>🔊</span> Listen';
-        return;
-    }
     const narrEl = document.getElementById('val-modal-narrative');
-    const textToSpeak = (narrEl ? narrEl.innerText : '').trim();
-    if (!textToSpeak) return;
+    let textToSpeak = (narrEl ? (narrEl.innerText || narrEl.textContent) : '').trim();
+    if (!textToSpeak && window.activeValuationData && window.activeValuationData.formatted_markdown) {
+        textToSpeak = window.activeValuationData.formatted_markdown;
+    }
+    if (!textToSpeak) {
+        if (typeof showToast === 'function') showToast('No Valuation memo available to read yet.', 'warning');
+        return;
+    }
 
-    window.speechSynthesis.cancel();
-    const utter = new SpeechSynthesisUtterance(textToSpeak);
-    utter.rate = 1.0;
-    utter.pitch = 1.0;
-    utter.onend = () => {
-        isValuationSpeaking = false;
-        if (btn) btn.innerHTML = '<span>🔊</span> Listen';
-    };
-    utter.onerror = () => {
-        isValuationSpeaking = false;
-        if (btn) btn.innerHTML = '<span>🔊</span> Listen';
-    };
-    isValuationSpeaking = true;
-    if (btn) btn.innerHTML = '<span>⏹</span> Stop';
-    window.speechSynthesis.speak(utter);
+    const cleanSym = window.activeValuationSymbol || 'Stock';
+    const title = `Valuation Memo: ${cleanSym}`;
+
+    if (window.SpeechPlayer) {
+        window.SpeechPlayer.startSpeakingSection(textToSpeak, title, true);
+        return;
+    }
+
+    if (window.AndroidTts && typeof window.AndroidTts.speak === 'function') {
+        window.AndroidTts.speak(textToSpeak, 'valuation_memo');
+        return;
+    }
+
+    if ('speechSynthesis' in window) {
+        window.speechSynthesis.cancel();
+        const utter = new SpeechSynthesisUtterance(textToSpeak);
+        utter.rate = 1.0;
+        window.speechSynthesis.speak(utter);
+        return;
+    }
+
+    if (typeof showToast === 'function') showToast('Text-to-Speech is not available on this device.', 'warning');
 };
 
 window.copyValuationMemo = function() {
@@ -63012,7 +63046,11 @@ window.closeTradePsychologistModal = function() {
     const modal = document.getElementById('trade-psychologist-modal');
     if (modal) modal.style.display = 'none';
     try { document.body.style.overflow = ''; } catch (e) {}
+    if (window.SpeechPlayer && window.SpeechPlayer.isActive) {
+        window.SpeechPlayer.stop();
+    }
     if (window.speechSynthesis) window.speechSynthesis.cancel();
+    if (window.AndroidTts && typeof window.AndroidTts.stop === 'function') window.AndroidTts.stop();
     isPsychologySpeaking = false;
     const ttsBtn = document.getElementById('psych-modal-tts-btn');
     if (ttsBtn) ttsBtn.innerHTML = '<span>🔊</span> Listen';
@@ -63308,45 +63346,49 @@ window.copyTradePsychologistAudit = function() {
 };
 
 window.toggleTradePsychologistTTS = function() {
-    if (!('speechSynthesis' in window)) {
-        if (typeof showToast === 'function') showToast('Text-to-Speech not supported in this browser', 'info');
-        return;
-    }
-    const btn = document.getElementById('psych-modal-tts-btn');
-    if (isPsychologySpeaking) {
-        window.speechSynthesis.cancel();
-        isPsychologySpeaking = false;
-        if (btn) btn.innerHTML = '<span>🔊</span> Listen';
-        return;
-    }
     const croEl = document.getElementById('psych-modal-cro-text');
     const daTitle = document.getElementById('psych-modal-da-title');
     const daPointsEl = document.getElementById('psych-modal-da-points');
     const daInvalEl = document.getElementById('psych-modal-da-invalidation');
     const recEl = document.getElementById('psych-modal-rec-text');
-    const textToSpeak = [
-        croEl ? croEl.innerText : '',
-        daTitle ? daTitle.innerText : '',
-        daPointsEl ? daPointsEl.innerText : '',
-        daInvalEl ? ('Invalidation trigger: ' + daInvalEl.innerText) : '',
-        recEl ? recEl.innerText : ''
+    let textToSpeak = [
+        croEl ? (croEl.innerText || croEl.textContent) : '',
+        daTitle ? (daTitle.innerText || daTitle.textContent) : '',
+        daPointsEl ? (daPointsEl.innerText || daPointsEl.textContent) : '',
+        daInvalEl ? ('Invalidation trigger: ' + (daInvalEl.innerText || daInvalEl.textContent)) : '',
+        recEl ? (recEl.innerText || recEl.textContent) : ''
     ].filter(Boolean).join('. ').trim();
-    if (!textToSpeak) return;
 
-    const utterance = new SpeechSynthesisUtterance(textToSpeak);
-    utterance.rate = 1.0;
-    utterance.pitch = 1.0;
-    utterance.onend = () => {
-        isPsychologySpeaking = false;
-        if (btn) btn.innerHTML = '<span>🔊</span> Listen';
-    };
-    utterance.onerror = () => {
-        isPsychologySpeaking = false;
-        if (btn) btn.innerHTML = '<span>🔊</span> Listen';
-    };
-    window.speechSynthesis.speak(utterance);
-    isPsychologySpeaking = true;
-    if (btn) btn.innerHTML = '<span>⏹️</span> Stop';
+    if (!textToSpeak && window.activePsychologyData && window.activePsychologyData.formatted_markdown) {
+        textToSpeak = window.activePsychologyData.formatted_markdown;
+    }
+    if (!textToSpeak) {
+        if (typeof showToast === 'function') showToast('No behavioral analysis available to read yet.', 'warning');
+        return;
+    }
+
+    const cleanSym = window.activePsychologySymbol || 'Stock';
+    const title = `Trade Mirror: ${cleanSym}`;
+
+    if (window.SpeechPlayer) {
+        window.SpeechPlayer.startSpeakingSection(textToSpeak, title, true);
+        return;
+    }
+
+    if (window.AndroidTts && typeof window.AndroidTts.speak === 'function') {
+        window.AndroidTts.speak(textToSpeak, 'psychology_mirror');
+        return;
+    }
+
+    if ('speechSynthesis' in window) {
+        window.speechSynthesis.cancel();
+        const utter = new SpeechSynthesisUtterance(textToSpeak);
+        utter.rate = 1.0;
+        window.speechSynthesis.speak(utter);
+        return;
+    }
+
+    if (typeof showToast === 'function') showToast('Text-to-Speech is not available on this device.', 'warning');
 };
 
 document.addEventListener('DOMContentLoaded', () => {

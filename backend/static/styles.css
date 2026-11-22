@@ -15809,7 +15809,7 @@ details[open] .academy-hud-arrow {
     position: fixed;
     bottom: 20px;
     right: 20px;
-    z-index: 100000;
+    z-index: 200000 !important;
     width: 340px;
     background: rgba(17, 24, 39, 0.85);
     backdrop-filter: blur(16px);
@@ -15957,6 +15957,7 @@ details[open] .academy-hud-arrow {
         bottom: auto !important;
         top: 12px !important;
         padding: 10px 12px !important;
+        z-index: 200000 !important;
     }
     .speech-controls-row {
         justify-content: center !important;
