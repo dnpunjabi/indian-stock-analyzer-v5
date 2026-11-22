@@ -1518,7 +1518,7 @@ def generate_stock_research_dossier_pdf(
     story.append(Spacer(1, 2))
 
     screener_rows = [
-        ("Mark Minervini Trend Template", "Daily / Weekly", "STAGE 2 CONFIRMED (BASING)", "#15803d", "Price in confirmed Stage 2 mark-up; trading above 50, 150 & 200 EMA with 200 EMA sloping upward. Consolidating -13% below 52W High (Pre-Breakout Base; 0/8 immediate breakout triggers active)."),
+        ("Mark Minervini Trend Template", "Daily / Weekly", "STAGE 2 CONFIRMED (BASING)", "#15803d", "Price in confirmed Stage 2 mark-up; trading above 50, 150 & 200 EMA with 200 EMA sloping upward. Consolidating -5.9% below 52W High (Pre-Breakout Base; 0/8 immediate breakout triggers active)."),
         ("Stan Weinstein Stage 2", "Weekly", "STAGE 2 CONFIRMED", "#15803d", "30-Week MA slope positive (+5.25%); volume contraction on pullback."),
         ("Mark Minervini VCP", "Daily", "VOLATILITY CONTRACTION", "#b45309", "Tightening volatility near upper range; awaiting volume expansion on breakout."),
         ("Pocket Pivot (Gil Morales)", "Daily", "PENDING", "#b45309", "Daily up-day volume did not exceed highest down-day volume of last 10 days."),
