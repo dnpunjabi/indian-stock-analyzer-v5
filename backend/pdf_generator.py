@@ -1105,11 +1105,8 @@ def _generate_segment_breakdown_bar(segments: List[Tuple[str, float, str]], tota
         ax.barh(0, pct, left=left, height=0.55, color=color, edgecolor='#ffffff', linewidth=1.5)
         
         # Add text label if segment is wide enough
-        if pct >= 12.0:
+        if pct >= 15.0:
             ax.text(left + pct/2.0, 0, f"{name}: {pct:.0f}% (Rs. {sales_part:,.0f} Cr)", 
-                    ha='center', va='center', color='#ffffff', fontsize=6.8, fontweight='bold')
-        elif pct >= 5.0:
-            ax.text(left + pct/2.0, 0, f"{pct:.0f}%", 
                     ha='center', va='center', color='#ffffff', fontsize=6.8, fontweight='bold')
         left += pct
 
@@ -1369,41 +1366,41 @@ def _generate_risk_reward_bracket_chart(
     ax.plot([t1, t2], [y, y], color='#047857', linewidth=3.5, solid_capstyle='round')
 
     # Stop Loss Pin
-    ax.scatter(stop_loss, y, s=80, color='#dc2626', zorder=5, edgecolor='#ffffff', linewidth=1.2)
-    ax.text(stop_loss, y - 0.23, f"STOP LOSS\nRs. {stop_loss:,.0f}", ha='center', va='top', fontsize=5.3, fontweight='bold', color='#dc2626')
+    ax.scatter(stop_loss, y, s=75, color='#dc2626', zorder=5, edgecolor='#ffffff', linewidth=1.2)
+    ax.text(stop_loss, y - 0.23, f"STOP LOSS\nRs. {stop_loss:,.0f}", ha='center', va='top', fontsize=4.8, fontweight='bold', color='#dc2626')
 
     # Entry Zone Box
     rect = patches.Rectangle((entry_low, y-0.12), max(entry_high-entry_low, 10.0), 0.24, facecolor='#fef08a', edgecolor='#ca8a04', linewidth=0.8, zorder=4)
     ax.add_patch(rect)
-    ax.text(entry_mid, y + 0.23, f"PULLBACK BUY ZONE\nRs. {entry_low:,.0f} - {entry_high:,.0f}", ha='center', va='bottom', fontsize=5.3, fontweight='bold', color='#854d0e')
+    ax.text(entry_mid, y + 0.23, f"PULLBACK BUY ZONE\nRs. {entry_low:,.0f} - {entry_high:,.0f}", ha='center', va='bottom', fontsize=4.8, fontweight='bold', color='#854d0e')
 
     # CMP Pin
-    ax.scatter(cmp_val, y, s=75, color='#0f172a', zorder=6, marker='v')
-    ax.text(cmp_val, y - 0.23, f"CMP\nRs. {cmp_val:,.0f}", ha='center', va='top', fontsize=5.3, fontweight='bold', color='#0f172a')
+    ax.scatter(cmp_val, y, s=70, color='#0f172a', zorder=6, marker='v')
+    ax.text(cmp_val, y - 0.23, f"CMP\nRs. {cmp_val:,.0f}", ha='center', va='top', fontsize=4.8, fontweight='bold', color='#0f172a')
 
     # Target 1 Pin
-    ax.scatter(t1, y, s=80, color='#10b981', zorder=5, edgecolor='#ffffff', linewidth=1.2)
-    ax.text(t1, y + 0.23, f"TARGET 1 (ATH)\nRs. {t1:,.0f} (+{(rew1_val/entry_mid*100):.1f}%)", ha='center', va='bottom', fontsize=5.3, fontweight='bold', color='#047857')
+    ax.scatter(t1, y, s=75, color='#10b981', zorder=5, edgecolor='#ffffff', linewidth=1.2)
+    ax.text(t1, y + 0.23, f"TARGET 1 (ATH)\nRs. {t1:,.0f} (+{(rew1_val/entry_mid*100):.1f}%)", ha='center', va='bottom', fontsize=4.8, fontweight='bold', color='#047857')
 
     # Target 2 Pin
-    ax.scatter(t2, y, s=80, color='#047857', zorder=5, edgecolor='#ffffff', linewidth=1.2)
-    ax.text(t2, y + 0.23, f"TARGET 2 (EXP)\nRs. {t2:,.0f} (+{(rew2_val/entry_mid*100):.1f}%)", ha='center', va='bottom', fontsize=5.3, fontweight='bold', color='#065f46')
+    ax.scatter(t2, y, s=75, color='#047857', zorder=5, edgecolor='#ffffff', linewidth=1.2)
+    ax.text(t2, y + 0.23, f"TARGET 2 (EXP)\nRs. {t2:,.0f} (+{(rew2_val/entry_mid*100):.1f}%)", ha='center', va='bottom', fontsize=4.8, fontweight='bold', color='#065f46')
 
     # R:R Callout badge safely padded from right edge
     span = t2 - stop_loss
     rr_x = t2 + (span * 0.05)
-    ax.text(rr_x, y, f"Tranche R:R\n1 : {((rr1+rr2)/2):.1f}", ha='left', va='center', fontsize=5.8, fontweight='bold', color='#15803d',
+    ax.text(rr_x, y, f"Tranche R:R\n1 : {((rr1+rr2)/2):.1f}", ha='left', va='center', fontsize=5.4, fontweight='bold', color='#15803d',
             bbox=dict(boxstyle="round,pad=0.25", fc="#f0fdf4", ec="#15803d", lw=0.8))
 
-    pad_left = span * 0.08
-    pad_right = span * 0.25
+    pad_left = span * 0.12
+    pad_right = span * 0.32
     ax.set_xlim(stop_loss - pad_left, t2 + pad_right)
     ax.set_ylim(0.0, 1.0)
     ax.axis('off')
 
     plt.subplots_adjust(left=0.01, right=0.99, top=0.95, bottom=0.05)
     buf = io.BytesIO()
-    fig.savefig(buf, format='png', dpi=150, bbox_inches='tight', pad_inches=0.04)
+    fig.savefig(buf, format='png', dpi=150, bbox_inches='tight', pad_inches=0.06)
     buf.seek(0)
     plt.close(fig)
     return buf
@@ -1451,7 +1448,7 @@ def _generate_composite_score_gauge(score: float, tier_label: str) -> io.BytesIO
     ax.add_patch(hub_inner)
 
     ax.text(0, -0.12, f"{clamped_score:.1f}", ha='center', va='top', fontsize=12.5, fontweight='bold', color='#0f172a')
-    ax.text(0, -0.32, "OUT OF 100", ha='center', va='top', fontsize=5.5, color='#64748b', fontweight='bold')
+    ax.text(0, -0.32, "/ 100", ha='center', va='top', fontsize=6.2, color='#64748b', fontweight='bold')
     clean_tier = tier_label.split(":")[0].strip() if ":" in tier_label else tier_label
     ax.text(0, -0.45, clean_tier.upper(), ha='center', va='top', fontsize=6.0, fontweight='bold', color='#15803d' if clamped_score >= 80 else '#0284c7')
 
@@ -1629,8 +1626,8 @@ def _extract_dossier_intelligence(clean_sym: str) -> dict:
     if clean_sym == "BOSCHLTD":
         shares_count = 2.9496
         mcap_val = 145593.0
-        pb_val = 19.0
-        bv_val = 2599.0
+        pb_val = 10.5
+        bv_val = 4692.0
         ev_ebitda_val = 40.4
         de_val = 0.01
         roce_val = 21.5
@@ -2190,7 +2187,7 @@ def generate_stock_research_dossier_pdf(
             [
                 Paragraph(
                     f"<b>High-Quality Core Compounder:</b> {comp_name} exhibits premier operating stability supported by zero debt gearing, consistent 21.5% ROCE compounding, and disciplined working capital. "
-                    f"While near-term valuation multiples trade near historical upper bands (54.7x P/E, 40.4x EV/EBITDA, 19.0x P/B), the company's market dominance and pricing power continue to attract steady institutional inflows [See Section 9: 5Y DCF Bridge].<br/>"
+                    f"While near-term valuation multiples trade near historical upper bands (54.7x P/E, 40.4x EV/EBITDA, 10.5x P/B), the company's market dominance and pricing power continue to attract steady institutional inflows [See Section 9: 5Y DCF Bridge].<br/>"
                     f"<i>Multi-Factor Score Breakdown: Solvency 25% (95), Quality 25% (92), Institutional 20% (88), Momentum 15% (82), Growth 10% (76), Valuation 5% (75) = 88.0/100 (Tier 1 Confluence Leader).</i>",
                     body_style
                 ),
@@ -2477,7 +2474,7 @@ def generate_stock_research_dossier_pdf(
 
     screener_rows = [
         ("Mark Minervini Trend Template", "Daily / Weekly", "STAGE 2 CONFIRMED (BASING)", "#15803d", minervini_reason),
-        ("Stan Weinstein Stage 2", "Weekly", "STAGE 2 CONFIRMED", "#15803d", "30-Week MA slope positive (+5.25%); volume contraction on pullback."),
+        ("Stan Weinstein Stage 2", "Weekly", "STAGE 2 CONFIRMED", "#15803d", "30-Week&nbsp;MA slope positive (+5.25%); volume contraction on pullback."),
         ("Mark Minervini VCP", "Daily", "VOLATILITY CONTRACTION", "#b45309", "Tightening volatility near upper range; awaiting volume expansion on breakout."),
         ("Pocket Pivot (Gil Morales)", "Daily", "PENDING", "#b45309", "Daily up-day volume did not exceed highest down-day volume of last 10 days."),
         ("Oliver Kell 10/20 EMA", "Daily", "CONSOLIDATING", "#b45309", "Price tracking along 20-day EMA support without active momentum reclaim."),
@@ -3322,7 +3319,7 @@ def generate_stock_research_dossier_pdf(
         brk_t2 = high_52w * 1.08
 
     buf_bracket = _generate_risk_reward_bracket_chart(brk_stop, brk_el, brk_eh, cmp_val, brk_t1, brk_t2)
-    story.append(Image(buf_bracket, width=520, height=33))
+    story.append(Image(buf_bracket, width=520, height=35))
     story.append(Spacer(1, 1.2))
 
     if clean_sym == "BOSCHLTD":
