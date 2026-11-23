@@ -1508,7 +1508,12 @@ def _extract_dossier_intelligence(clean_sym: str) -> dict:
     r_prof = cur.fetchone()
     prof = json.loads(r_prof[0]) if r_prof else {}
 
-    cur.execute("SELECT data_json FROM cached_financial_statements WHERE symbol = ? OR symbol = ? OR symbol LIKE ? LIMIT 1", (clean_sym, f"{clean_sym}.NS", f"{clean_sym}%"))
+    cur.execute("""
+        SELECT data_json FROM cached_financial_statements 
+        WHERE symbol = ? OR symbol = ? OR symbol LIKE ? 
+        ORDER BY CASE WHEN view = 'consolidated' THEN 1 ELSE 2 END, last_updated DESC 
+        LIMIT 1
+    """, (clean_sym, f"{clean_sym}.NS", f"{clean_sym}%"))
     r_fs = cur.fetchone()
     fs = json.loads(r_fs[0]) if r_fs else {}
 
