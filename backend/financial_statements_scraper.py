@@ -225,7 +225,7 @@ def scrape_financial_statements(symbol: str, view: str = "consolidated", session
             p_el = quarters_sec.find("p")
             if p_el:
                 p_text = p_el.text.strip()
-        actual_is_consolidated = "consolidated figures" in p_text.lower()
+        actual_is_consolidated = ("consolidated" in p_text.lower() or "/consolidated" in response.url.lower())
         
         # Parse the warehouse_id (or company_id as fallback) from main page to call peers API
         warehouse_id_match = re.search(r'data-warehouse-id=["\'](\d+)["\']', response.text)

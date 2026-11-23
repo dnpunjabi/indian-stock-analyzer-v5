@@ -1509,13 +1509,32 @@ def _extract_dossier_intelligence(clean_sym: str) -> dict:
     prof = json.loads(r_prof[0]) if r_prof else {}
 
     cur.execute("""
-        SELECT data_json FROM cached_financial_statements 
+        SELECT data_json, view FROM cached_financial_statements 
         WHERE symbol = ? OR symbol = ? OR symbol LIKE ? 
         ORDER BY CASE WHEN view = 'consolidated' THEN 1 ELSE 2 END, last_updated DESC 
         LIMIT 1
     """, (clean_sym, f"{clean_sym}.NS", f"{clean_sym}%"))
     r_fs = cur.fetchone()
     fs = json.loads(r_fs[0]) if r_fs else {}
+    cached_view = r_fs[1] if r_fs and len(r_fs) > 1 else ""
+
+    # If the cached statement is not consolidated, or missing, fetch consolidated live
+    if not fs or cached_view != "consolidated" or not fs.get("is_consolidated"):
+        try:
+            from backend.financial_statements_scraper import scrape_financial_statements
+            live_fs = scrape_financial_statements(clean_sym, view="consolidated")
+            if live_fs and not live_fs.get("error") and live_fs.get("quarters", {}).get("rows"):
+                fs = live_fs
+                try:
+                    cur.execute(
+                        "INSERT OR REPLACE INTO cached_financial_statements (symbol, view, data_json, last_updated) VALUES (?, ?, ?, datetime('now'))",
+                        (clean_sym, "consolidated", json.dumps(live_fs))
+                    )
+                    conn.commit()
+                except Exception:
+                    pass
+        except Exception:
+            pass
 
     cur.execute("SELECT data_json FROM cached_shareholdings WHERE symbol = ? OR symbol = ? OR symbol LIKE ? LIMIT 1", (clean_sym, f"{clean_sym}.NS", f"{clean_sym}%"))
     r_sh = cur.fetchone()
@@ -1649,20 +1668,37 @@ def _extract_dossier_intelligence(clean_sym: str) -> dict:
     bv_val = consol_bv if consol_bv > 0 else standalone_bv
     has_consol_divergence = (standalone_bv > 0 and consol_bv > 0 and abs(consol_bv - standalone_bv) / standalone_bv > 0.05)
 
-    # Dynamic refinement of Core Ratios from Consolidated Financial Statements
-    de_val = round(borrowings / net_worth, 2) if net_worth > 0 else _safe_float(f.get("debt_to_equity"), 0.01)
-    pe_val = round(cmp_val / ttm_eps, 1) if ttm_eps > 0 else _safe_float(f.get("pe_ratio"), 25.0)
+    # Dynamic refinement of Core Ratios from Consolidated Financial Statements with sanity anchors
+    official_pe = _safe_float(f.get("pe_ratio"), 0.0)
+    official_roe = _safe_float(f.get("roe_pct") or f.get("roe"), 0.0)
+    official_de = _safe_float(f.get("debt_to_equity"), 0.0)
+
+    de_val = round(borrowings / net_worth, 2) if net_worth > 0 else (official_de if official_de > 0 else 0.01)
+
+    calc_pe = round(cmp_val / ttm_eps, 1) if ttm_eps > 0 else official_pe
+    if official_pe > 0 and (calc_pe > official_pe * 1.8 or calc_pe < official_pe * 0.5):
+        pe_val = official_pe
+    else:
+        pe_val = calc_pe if calc_pe > 0 else (official_pe if official_pe > 0 else 25.0)
 
     # EV & EV/EBITDA
     ev_val = mcap_val + borrowings - investments
-    ev_ebitda_val = round(ev_val / ttm_op, 1) if ttm_op > 0 else round(float(pe_val * 0.75), 1)
+    calc_ev_ebitda = round(ev_val / ttm_op, 1) if ttm_op > 0 else round(float(pe_val * 0.75), 1)
+    if calc_ev_ebitda > 90.0 or calc_ev_ebitda <= 0:
+        ev_ebitda_val = round(float(pe_val * 0.65), 1)
+    else:
+        ev_ebitda_val = calc_ev_ebitda
 
     # DuPont 3-Factor Decomposition
     dp_npm = npm_val
     dp_at = (ttm_sales / tot_assets) if tot_assets > 0 else 1.0
     dp_em = (tot_assets / net_worth) if net_worth > 0 else 1.46
-    dp_roe = round(ttm_pat / net_worth * 100.0, 1) if net_worth > 0 else _safe_float(f.get("roe_pct"), 16.4)
-    roe_val = dp_roe
+    calc_roe = round(ttm_pat / net_worth * 100.0, 1) if net_worth > 0 else official_roe
+    if official_roe > 0 and abs(calc_roe - official_roe) > 4.0:
+        roe_val = official_roe
+    else:
+        roe_val = calc_roe if calc_roe > 0 else (official_roe if official_roe > 0 else 16.4)
+    dp_roe = roe_val
 
     # Technical Indicators & Moving Averages
     sma20 = _safe_float(t.get("sma_20"), cmp_val * 0.98)
@@ -1943,7 +1979,8 @@ def _extract_dossier_intelligence(clean_sym: str) -> dict:
         "technicals": t,
         "pe_bands": prof.get("pe_bands", {}),
         "news": prof.get("news", []),
-        "score_metrics": prof.get("score_metrics", {})
+        "score_metrics": prof.get("score_metrics", {}),
+        "is_consolidated": fs.get("is_consolidated", True)
     }
 
 
@@ -2117,10 +2154,13 @@ def generate_stock_research_dossier_pdf(
     # ══════════════════════════════════════════════════════════════════════════
     # PAGE 1: EXECUTIVE SNAPSHOT, SCORECARD, SECTIONS 1, 2, 3, 4
     # ══════════════════════════════════════════════════════════════════════════
+    is_consol = info.get("is_consolidated", True)
+    basis_label = "Consolidated Audit" if is_consol else "Standalone Audit"
+
     header_col_left = [
         Paragraph("<a name='page_1'/><b>APEX QUANT AI | INSTITUTIONAL EQUITIES INTELLIGENCE DOSSIER</b>", subtitle_style),
         Paragraph(f"<b>{comp_name.upper()} ({clean_sym}.NS)</b>", title_style),
-        Paragraph(f"<b>Sector:</b> {sector} &nbsp; | &nbsp; <b>Industry:</b> {industry} &nbsp; | &nbsp; <b>Basis:</b> Consolidated Audit", meta_style)
+        Paragraph(f"<b>Sector:</b> {sector} &nbsp; | &nbsp; <b>Industry:</b> {industry} &nbsp; | &nbsp; <b>Basis:</b> {basis_label}", meta_style)
     ]
     header_col_right = [
         Paragraph(f"<b>REPORT GENERATED:</b> {now_display}", meta_style),
@@ -2142,11 +2182,15 @@ def generate_stock_research_dossier_pdf(
     # Scorecard Badge & Tiles
     tier_label = f"Multi-Factor Score: {score_val:.1f}/100 (Tier 1 Leader)" if score_val >= 80 else (f"Multi-Factor Score: {score_val:.1f}/100 (Tier 2)" if score_val >= 65 else f"Multi-Factor Score: {score_val:.1f}/100 (Watchlist)")
 
+    az_sub = "Premier Safe Zone | Zero Debt" if de_val <= 0.05 else ("Safe Zone" if altman_z >= 3.0 else ("Grey Zone" if altman_z >= 1.8 else "Distress Alert"))
+    ps_sub = "High Financial Strength" if piotroski >= 7 else ("Sound Fundamentals" if piotroski >= 5 else "Operational Watch")
+    de_sub = "Virtually Zero" if de_val <= 0.05 else ("Prudent Leverage" if de_val <= 0.7 else ("Moderate Debt" if de_val <= 1.5 else "Leveraged"))
+
     buf_gauge = _generate_composite_score_gauge(score_val, "Tier 1: Confluence Leader" if score_val >= 80 else "Tier 2: Compounder")
     score_card_content = [
         Image(buf_gauge, width=145, height=54),
-        Paragraph(f"Altman Z: <b>{altman_z:.1f}</b> (Premier Safe Zone | Zero Debt)", ParagraphStyle('AZ', parent=meta_style, fontSize=6.0, leading=7.2, alignment=1)),
-        Paragraph(f"Piotroski: <b>{piotroski}/9</b> (High Financial Strength)", ParagraphStyle('PS', parent=meta_style, fontSize=6.0, leading=7.2, alignment=1))
+        Paragraph(f"Altman Z: <b>{altman_z:.1f}</b> ({az_sub})", ParagraphStyle('AZ', parent=meta_style, fontSize=6.0, leading=7.2, alignment=1)),
+        Paragraph(f"Piotroski: <b>{piotroski}/9</b> ({ps_sub})", ParagraphStyle('PS', parent=meta_style, fontSize=6.0, leading=7.2, alignment=1))
     ]
 
     if has_consol_divergence:
@@ -2183,7 +2227,7 @@ def generate_stock_research_dossier_pdf(
             Paragraph(pb_tile_sub, meta_style),
             Paragraph("Net Worth Ret.", meta_style),
             Paragraph("Capital Employed", meta_style),
-            Paragraph("Virtually Zero", meta_style),
+            Paragraph(de_sub, meta_style),
             Paragraph("Liquid Buffer", meta_style)
         ]
     ]
