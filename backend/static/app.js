@@ -45523,8 +45523,111 @@ function renderDuPontTreeChart(npm, turn, leverage, roe) {
                     <div style="font-size: 7px; color: var(--text-muted); margin-top: 2px; font-style: italic;">Assets ÷ Equity</div>
                 </div>
             </div>
+
+            <!-- Interactive DuPont Scenario Simulation Sandbox -->
+            <div style="width: 100%; margin-top: 6px; padding: 10px; background: rgba(0,0,0,0.18); border: 1px solid var(--border-glass); border-radius: 8px; box-sizing: border-box;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                    <div style="font-size: 11px; font-weight: 700; color: var(--text-primary); text-transform: uppercase; letter-spacing: 0.05em; display: flex; align-items: center; gap: 6px;">
+                        <span>🎛️ DuPont Scenario Simulation Sandbox</span>
+                    </div>
+                    <button id="dupont-sim-reset-btn" type="button" style="background: rgba(255,255,255,0.06); border: 1px solid var(--border-glass); border-radius: 4px; padding: 2px 8px; font-size: 10px; color: var(--text-muted); cursor: pointer; transition: all 0.2s;">Reset Actuals</button>
+                </div>
+                
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; margin-bottom: 10px;">
+                    <!-- NPM Slider -->
+                    <div>
+                        <div style="display: flex; justify-content: space-between; font-size: 10.5px; color: var(--text-secondary); margin-bottom: 2px;">
+                            <span>Net Profit Margin</span>
+                            <strong id="dupont-sim-npm-val" style="color: var(--color-primary);">${npm.toFixed(1)}%</strong>
+                        </div>
+                        <input type="range" id="dupont-sim-npm" min="1.0" max="40.0" step="0.5" value="${npm.toFixed(1)}" style="width: 100%; cursor: pointer;">
+                    </div>
+                    <!-- Turnover Slider -->
+                    <div>
+                        <div style="display: flex; justify-content: space-between; font-size: 10.5px; color: var(--text-secondary); margin-bottom: 2px;">
+                            <span>Asset Turnover</span>
+                            <strong id="dupont-sim-turn-val" style="color: var(--color-emerald);">${turn.toFixed(2)}x</strong>
+                        </div>
+                        <input type="range" id="dupont-sim-turn" min="0.2" max="3.0" step="0.05" value="${turn.toFixed(2)}" style="width: 100%; cursor: pointer;">
+                    </div>
+                    <!-- Leverage Slider -->
+                    <div>
+                        <div style="display: flex; justify-content: space-between; font-size: 10.5px; color: var(--text-secondary); margin-bottom: 2px;">
+                            <span>Equity Multiplier</span>
+                            <strong id="dupont-sim-lev-val" style="color: var(--color-amber);">${leverage.toFixed(2)}x</strong>
+                        </div>
+                        <input type="range" id="dupont-sim-lev" min="1.0" max="4.0" step="0.05" value="${leverage.toFixed(2)}" style="width: 100%; cursor: pointer;">
+                    </div>
+                </div>
+
+                <!-- Simulation Output Banner -->
+                <div style="display: flex; justify-content: space-between; align-items: center; padding: 6px 12px; background: rgba(59, 130, 246, 0.08); border: 1px solid rgba(59, 130, 246, 0.2); border-radius: 6px; font-size: 11px;">
+                    <div>
+                        <span style="color: var(--text-muted);">Simulated ROE:</span>
+                        <strong id="dupont-sim-roe-result" style="font-size: 13.5px; color: #38bdf8; margin-left: 6px;">${roe.toFixed(2)}%</strong>
+                    </div>
+                    <div id="dupont-sim-delta-badge" style="font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 10px; background: rgba(255,255,255,0.08); color: var(--text-secondary);">
+                        Baseline Actual
+                    </div>
+                </div>
+            </div>
         </div>
     `;
+
+    // Attach DuPont Sandbox Event Listeners
+    setTimeout(() => {
+        const npmSlider = document.getElementById('dupont-sim-npm');
+        const turnSlider = document.getElementById('dupont-sim-turn');
+        const levSlider = document.getElementById('dupont-sim-lev');
+        const npmVal = document.getElementById('dupont-sim-npm-val');
+        const turnVal = document.getElementById('dupont-sim-turn-val');
+        const levVal = document.getElementById('dupont-sim-lev-val');
+        const roeResult = document.getElementById('dupont-sim-roe-result');
+        const deltaBadge = document.getElementById('dupont-sim-delta-badge');
+        const resetBtn = document.getElementById('dupont-sim-reset-btn');
+
+        function updateDuPontSimulation() {
+            if (!npmSlider || !turnSlider || !levSlider) return;
+            const sN = parseFloat(npmSlider.value);
+            const sT = parseFloat(turnSlider.value);
+            const sL = parseFloat(levSlider.value);
+            const simRoe = sN * sT * sL;
+            const diff = simRoe - roe;
+
+            if (npmVal) npmVal.textContent = sN.toFixed(1) + '%';
+            if (turnVal) turnVal.textContent = sT.toFixed(2) + 'x';
+            if (levVal) levVal.textContent = sL.toFixed(2) + 'x';
+            if (roeResult) roeResult.textContent = simRoe.toFixed(2) + '%';
+
+            if (deltaBadge) {
+                if (Math.abs(diff) < 0.05) {
+                    deltaBadge.textContent = 'Baseline Actual';
+                    deltaBadge.style.background = 'rgba(255,255,255,0.08)';
+                    deltaBadge.style.color = 'var(--text-secondary)';
+                } else if (diff > 0) {
+                    deltaBadge.textContent = `+${diff.toFixed(2)}% Expansion`;
+                    deltaBadge.style.background = 'rgba(16, 185, 129, 0.15)';
+                    deltaBadge.style.color = '#34d399';
+                } else {
+                    deltaBadge.textContent = `${diff.toFixed(2)}% Compression`;
+                    deltaBadge.style.background = 'rgba(239, 68, 68, 0.15)';
+                    deltaBadge.style.color = '#f87171';
+                }
+            }
+        }
+
+        if (npmSlider) npmSlider.addEventListener('input', updateDuPontSimulation);
+        if (turnSlider) turnSlider.addEventListener('input', updateDuPontSimulation);
+        if (levSlider) levSlider.addEventListener('input', updateDuPontSimulation);
+        if (resetBtn) {
+            resetBtn.addEventListener('click', () => {
+                if (npmSlider) npmSlider.value = npm.toFixed(1);
+                if (turnSlider) turnSlider.value = turn.toFixed(2);
+                if (levSlider) levSlider.value = leverage.toFixed(2);
+                updateDuPontSimulation();
+            });
+        }
+    }, 0);
 }
 
 function calculateWorthinessAndDupont() {
