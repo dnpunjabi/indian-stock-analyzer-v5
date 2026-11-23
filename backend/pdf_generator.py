@@ -1,6 +1,7 @@
 import os
 import io
 import re
+import math
 import sqlite3
 import json
 from datetime import datetime
@@ -631,8 +632,36 @@ class StockDossierNumberedCanvas(canvas.Canvas):
         symbol = getattr(self, "dossier_symbol", "EQUITY")
         cmp_str = getattr(self, "dossier_cmp", "")
         now_str = getattr(self, "dossier_date", datetime.now().strftime("%d %b %Y"))
+        firm_str = getattr(self, "dossier_firm", "APEX QUANT AI")
+        watermark_str = getattr(self, "dossier_watermark", None)
 
-        # Running Header (Pages 2 and later)
+        # 1. Native PDF Bookmarks & Reader Outline Entries
+        bm_name = f"page_{self._pageNumber}"
+        self.bookmarkPage(bm_name)
+        page_outline_titles = {
+            1: f"{symbol} - 1. Executive Snapshot & Valuation Matrix",
+            2: f"{symbol} - 2. Technical Microstructure & Timing",
+            3: f"{symbol} - 3. Quant Factor Engine & Sector Peers",
+            4: f"{symbol} - 4. 8-Quarter Financials & Tax Bridge",
+            5: f"{symbol} - 5. 5-Year Compounding & DuPont ROE Tree",
+            6: f"{symbol} - 6. DCF Valuation & Trade Strategy"
+        }
+        if self._pageNumber in page_outline_titles:
+            self.addOutlineEntry(page_outline_titles[self._pageNumber], bm_name, level=0, closed=False)
+
+        # 2. Optional Institutional Watermark (45 degree subtle diagonal)
+        if watermark_str:
+            self.saveState()
+            self.setFont("Helvetica-Bold", 46)
+            self.setFillColor(colors.HexColor("#0f172a"))
+            if hasattr(self, 'setFillAlpha'):
+                self.setFillAlpha(0.035)
+            self.translate(width / 2.0, height / 2.0)
+            self.rotate(45)
+            self.drawCentredString(0, 0, str(watermark_str).upper())
+            self.restoreState()
+
+        # 3. Running Header (Pages 2 and later)
         if self._pageNumber > 1:
             self.setStrokeColor(colors.HexColor("#cbd5e1"))
             self.setLineWidth(0.5)
@@ -640,27 +669,29 @@ class StockDossierNumberedCanvas(canvas.Canvas):
 
             self.setFont("Helvetica-Bold", 8)
             self.setFillColor(colors.HexColor("#0f172a"))
-            self.drawString(36, height - 20, "APEX QUANT AI")
+            self.drawString(36, height - 20, firm_str)
 
             self.setFont("Helvetica", 7.5)
             self.setFillColor(colors.HexColor("#64748b"))
-            self.drawString(108, height - 20, f"| INSTITUTIONAL EQUITY RESEARCH DOSSIER • {symbol}")
+            prefix_len = max(len(firm_str) * 5.2 + 8, 80)
+            self.drawString(36 + prefix_len, height - 20, f"| INSTITUTIONAL EQUITY RESEARCH DOSSIER • {symbol}")
 
             right_text = f"CMP: Rs. {cmp_str} • {now_str}" if cmp_str else now_str
             self.drawRightString(width - 36, height - 20, right_text)
 
-        # Running Footer (All pages)
+        # 4. Running Footer (All pages)
         self.setStrokeColor(colors.HexColor("#e2e8f0"))
         self.setLineWidth(0.5)
         self.line(36, 24, width - 36, 24)
 
         self.setFont("Helvetica-Bold", 6.5)
         self.setFillColor(colors.HexColor("#0284c7"))
-        self.drawString(36, 15, "APEX QUANT AI")
+        self.drawString(36, 15, firm_str)
 
         self.setFont("Helvetica", 6.5)
         self.setFillColor(colors.HexColor("#64748b"))
-        self.drawString(95, 15, "| CONFIDENTIAL & PROPRIETARY • STRICTLY FOR PERSONAL RESEARCH & RISK MANAGEMENT")
+        footer_pfx = max(len(firm_str) * 4.2 + 6, 65)
+        self.drawString(36 + footer_pfx, 15, "| CONFIDENTIAL & PROPRIETARY • STRICTLY FOR RESEARCH & RISK MANAGEMENT")
 
         page_str = f"Page {self._pageNumber} of {page_count}"
         self.drawRightString(width - 36, 15, page_str)
@@ -884,7 +915,7 @@ def _generate_annual_compounding_chart(years: List[str], rev: List[float], ebitd
 
 def _generate_valuation_football_field(categories: List[str], lows: List[float], highs: List[float], midpoints: List[float], cmp_val: float) -> io.BytesIO:
     """Renders institutional Valuation Football Field with generous left padding for long labels."""
-    fig, ax = plt.subplots(figsize=(7.5, 1.85), dpi=150)
+    fig, ax = plt.subplots(figsize=(7.5, 1.50), dpi=150)
     fig.patch.set_facecolor('#ffffff')
     ax.set_facecolor('#ffffff')
 
@@ -910,7 +941,7 @@ def _generate_valuation_football_field(categories: List[str], lows: List[float],
 
     fig.subplots_adjust(left=0.32, right=0.96, top=0.92, bottom=0.22)
     buf = io.BytesIO()
-    fig.savefig(buf, format='png', dpi=150, bbox_inches='tight', pad_inches=0.3)
+    fig.savefig(buf, format='png', dpi=150, bbox_inches='tight', pad_inches=0.04)
     buf.seek(0)
     plt.close(fig)
     return buf
@@ -1152,7 +1183,7 @@ def _generate_risk_reward_bracket_chart(
     Renders an institutional horizontal trade bracket visual:
     [STOP LOSS] --- [ENTRY ZONE] --- [CMP] --- [TARGET 1] --- [TARGET 2]
     """
-    fig, ax = plt.subplots(figsize=(7.2, 0.58), dpi=150)
+    fig, ax = plt.subplots(figsize=(7.2, 0.50), dpi=150)
     fig.patch.set_facecolor('#ffffff')
     ax.set_facecolor('#ffffff')
 
@@ -1199,6 +1230,67 @@ def _generate_risk_reward_bracket_chart(
     ax.axis('off')
 
     plt.subplots_adjust(left=0.01, right=0.99, top=0.95, bottom=0.05)
+    buf = io.BytesIO()
+    fig.savefig(buf, format='png', dpi=150, bbox_inches='tight', pad_inches=0.02)
+    buf.seek(0)
+    plt.close(fig)
+    return buf
+
+
+def _generate_composite_score_gauge(score: float, tier_label: str) -> io.BytesIO:
+    """
+    Renders a 180-degree radial speedometer gauge:
+    0-40: High Risk (Crimson #ef4444) | 40-65: Neutral (#f59e0b) | 65-80: High Quality (#0284c7) | 80-100: Apex Leader (#10b981)
+    """
+    fig, ax = plt.subplots(figsize=(2.5, 1.25), dpi=150)
+    fig.patch.set_facecolor('#ffffff')
+    ax.set_facecolor('#ffffff')
+
+    r_outer = 1.0
+    r_inner = 0.62
+
+    bands = [
+        (108, 180, '#ef4444'),
+        (63, 108, '#f59e0b'),
+        (36, 63, '#0284c7'),
+        (0, 36, '#10b981')
+    ]
+
+    for theta1, theta2, col in bands:
+        wedge = patches.Wedge(
+            center=(0, 0), r=r_outer, theta1=theta1, theta2=theta2,
+            width=(r_outer - r_inner), facecolor=col, edgecolor='#ffffff', linewidth=1.2
+        )
+        ax.add_patch(wedge)
+
+    clamped_score = max(0.0, min(100.0, score))
+    needle_angle_deg = 180.0 - (clamped_score / 100.0 * 180.0)
+    needle_angle_rad = math.radians(needle_angle_deg)
+
+    needle_len = 0.80
+    nx = needle_len * math.cos(needle_angle_rad)
+    ny = needle_len * math.sin(needle_angle_rad)
+
+    ax.plot([0, nx], [0, ny], color='#0f172a', linewidth=2.0, zorder=6, solid_capstyle='round')
+
+    hub_outer = patches.Circle((0, 0), 0.22, facecolor='#0f172a', zorder=7)
+    hub_inner = patches.Circle((0, 0), 0.12, facecolor='#ffffff', zorder=8)
+    ax.add_patch(hub_outer)
+    ax.add_patch(hub_inner)
+
+    ax.text(0, -0.14, f"{clamped_score:.1f}", ha='center', va='top', fontsize=12, fontweight='bold', color='#0f172a')
+    ax.text(0, -0.32, "/ 100", ha='center', va='top', fontsize=5.8, color='#64748b', fontweight='semibold')
+    clean_tier = tier_label.split(":")[0].strip() if ":" in tier_label else tier_label
+    ax.text(0, -0.44, clean_tier.upper(), ha='center', va='top', fontsize=6.2, fontweight='bold', color='#15803d' if clamped_score >= 80 else '#0284c7')
+
+    ax.text(-0.95, -0.05, "0", ha='center', va='top', fontsize=5.5, color='#94a3b8', fontweight='bold')
+    ax.text(0.95, -0.05, "100", ha='center', va='top', fontsize=5.5, color='#94a3b8', fontweight='bold')
+
+    ax.set_xlim(-1.12, 1.12)
+    ax.set_ylim(-0.52, 1.05)
+    ax.axis('off')
+
+    plt.subplots_adjust(left=0.01, right=0.99, top=0.98, bottom=0.02)
     buf = io.BytesIO()
     fig.savefig(buf, format='png', dpi=150, bbox_inches='tight', pad_inches=0.02)
     buf.seek(0)
@@ -1506,7 +1598,11 @@ def _extract_dossier_intelligence(clean_sym: str) -> dict:
 
 def generate_stock_research_dossier_pdf(
     symbol: str,
-    output_path: Optional[str] = None
+    output_path: Optional[str] = None,
+    watermark: Optional[str] = None,
+    firm_name: str = "APEX QUANT AI",
+    analyst_name: Optional[str] = None,
+    license_no: Optional[str] = None
 ) -> str:
     clean_sym = symbol.strip().upper().replace(".NS", "").replace(".BO", "")
     today_str = datetime.now().strftime("%Y%m%d")
@@ -1599,7 +1695,10 @@ def generate_stock_research_dossier_pdf(
         leftMargin=36,
         rightMargin=36,
         topMargin=46,
-        bottomMargin=30
+        bottomMargin=30,
+        title=f"{clean_sym} - Institutional Equities Intelligence Dossier",
+        author=analyst_name or firm_name,
+        subject=f"Institutional Equity Research Dossier - {comp_name}"
     )
 
     styles = getSampleStyleSheet()
@@ -1622,7 +1721,7 @@ def generate_stock_research_dossier_pdf(
     # PAGE 1: EXECUTIVE SNAPSHOT, SCORECARD, SECTIONS 1, 2, 3, 4
     # ══════════════════════════════════════════════════════════════════════════
     header_col_left = [
-        Paragraph("<b>APEX QUANT AI | INSTITUTIONAL EQUITIES INTELLIGENCE DOSSIER</b>", subtitle_style),
+        Paragraph("<a name='page_1'/><b>APEX QUANT AI | INSTITUTIONAL EQUITIES INTELLIGENCE DOSSIER</b>", subtitle_style),
         Paragraph(f"<b>{comp_name.upper()} ({clean_sym}.NS)</b>", title_style),
         Paragraph(f"<b>Sector:</b> {sector} &nbsp; | &nbsp; <b>Industry:</b> {industry} &nbsp; | &nbsp; <b>Basis:</b> Consolidated Audit", meta_style)
     ]
@@ -1649,14 +1748,11 @@ def generate_stock_research_dossier_pdf(
     altman_z = 2.78 if clean_sym == "BOSCHLTD" else 3.25
     piotroski = 7 if clean_sym == "BOSCHLTD" else 8
 
+    buf_gauge = _generate_composite_score_gauge(score_val, tier_label)
     score_card_content = [
-        Paragraph("<b>APEX COMPOSITE SCORE</b>", ParagraphStyle('ScoreTitle', parent=meta_style, alignment=1)),
-        Spacer(1, 1),
-        Paragraph(f"<b>{score_val} / 100</b>", score_big_style),
-        Paragraph(f"<b>{tier_label}</b>", badge_label_style),
-        Spacer(1, 1),
-        Paragraph(f"Altman Z: <b>{altman_z:.2f}</b> (Safe Operating Zone)", ParagraphStyle('AZ', parent=meta_style, fontSize=6.2, leading=7.5, alignment=1)),
-        Paragraph(f"Piotroski: <b>{piotroski}/9</b> (High Financial Strength)", ParagraphStyle('PS', parent=meta_style, fontSize=6.2, leading=7.5, alignment=1))
+        Image(buf_gauge, width=145, height=54),
+        Paragraph(f"Altman Z: <b>{altman_z:.2f}</b> (Safe Operating Zone)", ParagraphStyle('AZ', parent=meta_style, fontSize=6.0, leading=7.2, alignment=1)),
+        Paragraph(f"Piotroski: <b>{piotroski}/9</b> (High Financial Strength)", ParagraphStyle('PS', parent=meta_style, fontSize=6.0, leading=7.2, alignment=1))
     ]
 
     tiles_data = [
@@ -1673,8 +1769,8 @@ def generate_stock_research_dossier_pdf(
             Paragraph(f"<b>{pe_val:.1f}x</b>", td_num),
             Paragraph(f"<b>{ev_ebitda_val:.1f}x</b>", td_num),
             Paragraph(f"<b>{pb_val:.1f}x</b>", td_num),
-            Paragraph(f"<b>{roe_val:.1f}%</b>", td_num),
-            Paragraph(f"<b>{roce_val:.1f}%</b>", td_num),
+            Paragraph(f"<font color='#0284c7'><u><a href='#page_5'><b>{roe_val:.1f}%</b></a></u></font>", td_num),
+            Paragraph(f"<font color='#0284c7'><u><a href='#page_3'><b>{roce_val:.1f}%</b></a></u></font>", td_num),
             Paragraph(f"<b>{de_val:.2f}x</b>", td_num),
             Paragraph(f"<b>{curr_rat:.2f}x</b>", td_num)
         ],
@@ -1915,7 +2011,7 @@ def generate_stock_research_dossier_pdf(
             [
                 Paragraph(
                     f"<b>High-Quality Core Compounder:</b> {comp_name} exhibits premier operating stability supported by zero debt gearing, consistent 21.5% ROCE compounding, and disciplined working capital. "
-                    f"While near-term valuation multiples trade near historical upper bands (54.7x P/E, 40.4x EV/EBITDA, 10.5x P/B), the company's market dominance and pricing power continue to attract steady institutional inflows.<br/>"
+                    f"While near-term valuation multiples trade near historical upper bands (54.7x P/E, 40.4x EV/EBITDA, 10.5x P/B), the company's market dominance and pricing power continue to attract steady institutional inflows (<font color='#0284c7'><u><a href='#page_6'><b>View DCF Target</b></a></u></font>).<br/>"
                     f"<i>Composite Score Weights: Solvency 25% (95), Quality 25% (92), Institutional 20% (88), Momentum 15% (82), Growth 10% (76), Valuation 5% (75) = 88.0/100 Tier 1 Apex Leader.</i>",
                     body_style
                 ),
@@ -1968,7 +2064,7 @@ def generate_stock_research_dossier_pdf(
     # ══════════════════════════════════════════════════════════════════════════
     story.append(PageBreak())
 
-    story.append(Paragraph("<b>5. TECHNICAL TIMING, PRICE MICROSTRUCTURE &amp; VOLUME STUDIO</b>", sec_header_style))
+    story.append(Paragraph("<a name='page_2'/><b>5. TECHNICAL TIMING, PRICE MICROSTRUCTURE &amp; VOLUME STUDIO</b>", sec_header_style))
     story.append(Spacer(1, 2))
 
     tech_strip_text = (
@@ -2151,7 +2247,7 @@ def generate_stock_research_dossier_pdf(
     # ══════════════════════════════════════════════════════════════════════════
     story.append(PageBreak())
 
-    story.append(Paragraph("<b>6. QUANT MULTI-FACTOR ENGINE, 11-SCREENER MATRIX &amp; SECTOR PEERS</b>", sec_header_style))
+    story.append(Paragraph("<a name='page_3'/><b>6. QUANT MULTI-FACTOR ENGINE, 11-SCREENER MATRIX &amp; SECTOR PEERS</b>", sec_header_style))
     story.append(Spacer(1, 2))
 
     scores_dict = {
@@ -2238,6 +2334,7 @@ def generate_stock_research_dossier_pdf(
     story.append(Spacer(1, 3))
 
     # Peer Grid
+    story.append(Paragraph("<b>SECTOR PEER DECILE BENCHMARK GRID</b>", sec_header_style))
     story.append(Paragraph("<b>SECTOR PEER DECILE BENCHMARK GRID &amp; VALUATION-QUALITY FRONTIER</b>", sec_header_style))
     story.append(Spacer(1, 2))
 
@@ -2514,7 +2611,7 @@ def generate_stock_research_dossier_pdf(
     # ══════════════════════════════════════════════════════════════════════════
     story.append(PageBreak())
 
-    story.append(Paragraph("<b>7. 8-QUARTER FINANCIAL PERFORMANCE &amp; MOMENTUM HEATMAP</b>", sec_header_style))
+    story.append(Paragraph("<a name='page_4'/><b>7. 8-QUARTER FINANCIAL PERFORMANCE &amp; MOMENTUM HEATMAP</b>", sec_header_style))
     story.append(Spacer(1, 2))
 
     if clean_sym == "BOSCHLTD":
@@ -2575,6 +2672,8 @@ def generate_stock_research_dossier_pdf(
     story.append(Spacer(1, 3))
 
     buf_quarterly = _generate_quarterly_performance_chart(q_headers_plot, q_sales_plot, q_pat_plot, q_opm_plot)
+    story.append(Image(buf_quarterly, width=520, height=185))
+    story.append(Spacer(1, 3))
     story.append(Image(buf_quarterly, width=520, height=130))
     story.append(Spacer(1, 2))
 
@@ -2649,7 +2748,7 @@ def generate_stock_research_dossier_pdf(
     # ══════════════════════════════════════════════════════════════════════════
     story.append(PageBreak())
 
-    story.append(Paragraph("<b>8. 5-YEAR ANNUAL STATEMENTS &amp; DUPONT ROE DECOMPOSITION</b>", sec_header_style))
+    story.append(Paragraph("<a name='page_5'/><b>8. 5-YEAR ANNUAL STATEMENTS &amp; DUPONT ROE DECOMPOSITION</b>", sec_header_style))
     story.append(Spacer(1, 2))
 
     if clean_sym == "BOSCHLTD":
@@ -2759,7 +2858,7 @@ def generate_stock_research_dossier_pdf(
     # ══════════════════════════════════════════════════════════════════════════
     story.append(PageBreak())
 
-    story.append(Paragraph("<b>9. DUAL-TERMINAL DCF FRAMEWORK, CATALYSTS &amp; ACTIONABLE STRATEGY</b>", sec_header_style))
+    story.append(Paragraph("<a name='page_6'/><b>9. DUAL-TERMINAL DCF FRAMEWORK, CATALYSTS &amp; ACTIONABLE STRATEGY</b>", sec_header_style))
     story.append(Spacer(1, 2))
 
     if clean_sym == "BOSCHLTD":
@@ -2774,11 +2873,11 @@ def generate_stock_research_dossier_pdf(
         ff_mids = [(low_52w + high_52w)/2, pe_val*base_eps, dcf_targets[30.0], cmp_val * 1.10]
 
     buf_football = _generate_valuation_football_field(ff_cats, ff_lows, ff_highs, ff_mids, cmp_val)
-    story.append(Image(buf_football, width=520, height=115))
-    story.append(Spacer(1, 3))
+    story.append(Image(buf_football, width=520, height=90))
+    story.append(Spacer(1, 1.5))
 
     story.append(Paragraph("<b>INTRINSIC VALUATION: TRIPARTITE 5-YEAR DCF MODEL &amp; CASH FLOW SCHEDULE</b>", sec_header_style))
-    story.append(Spacer(1, 2))
+    story.append(Spacer(1, 1.5))
 
     dcf_assump_data = [
         [
@@ -2819,7 +2918,7 @@ def generate_stock_research_dossier_pdf(
         ('ROWBACKGROUNDS', (0,1), (-1,-1), [colors.HexColor("#f8fafc")])
     ]))
     story.append(t_dcf_assump)
-    story.append(Spacer(1, 2))
+    story.append(Spacer(1, 1.5))
 
     if clean_sym == "BOSCHLTD":
         rev_proj = [23830.0, 26930.0, 30430.0, 34380.0, 38850.0]
@@ -2918,7 +3017,7 @@ def generate_stock_research_dossier_pdf(
         ('VALIGN', (0,0), (-1,-1), 'MIDDLE')
     ]))
     story.append(t_dcf_forecast)
-    story.append(Spacer(1, 2))
+    story.append(Spacer(1, 1.5))
 
     if clean_sym == "BOSCHLTD":
         sens_html = (
@@ -2946,10 +3045,10 @@ def generate_stock_research_dossier_pdf(
         ('RIGHTPADDING', (0,0), (-1,-1), 6),
     ]))
     story.append(t_sens)
-    story.append(Spacer(1, 1.5))
+    story.append(Spacer(1, 1.2))
 
     story.append(Paragraph("<b>INSTITUTIONAL MARKET NEWS &amp; RECENT CATALYSTS</b>", sec_header_style))
-    story.append(Spacer(1, 2))
+    story.append(Spacer(1, 1.5))
 
     news_items = info.get("news", [])
     if clean_sym == "BOSCHLTD" or not news_items:
@@ -2985,7 +3084,7 @@ def generate_stock_research_dossier_pdf(
         ('ROWBACKGROUNDS', (0,0), (-1,-1), [colors.HexColor("#ffffff"), colors.HexColor("#f8fafc")])
     ]))
     story.append(t_news)
-    story.append(Spacer(1, 1.5))
+    story.append(Spacer(1, 1.2))
 
     story.append(Paragraph("<b>DUAL-HORIZON ACTIONABLE VERDICTS: SWING TRADING vs LONG-TERM INVESTMENT</b>", sec_header_style))
     story.append(Spacer(1, 1))
@@ -3020,8 +3119,8 @@ def generate_stock_research_dossier_pdf(
         brk_t2 = high_52w * 1.08
 
     buf_bracket = _generate_risk_reward_bracket_chart(brk_stop, brk_el, brk_eh, cmp_val, brk_t1, brk_t2)
-    story.append(Image(buf_bracket, width=520, height=38))
-    story.append(Spacer(1, 1.5))
+    story.append(Image(buf_bracket, width=520, height=33))
+    story.append(Spacer(1, 1.2))
 
     if clean_sym == "BOSCHLTD":
         strat_data = [
@@ -3032,7 +3131,7 @@ def generate_stock_research_dossier_pdf(
             [
                 Paragraph(
                     "<b>TACTICAL ACTION:</b> <font color='#15803d'><b>BUY ON CONFIRMED PULLBACK (STAGE 2 MOMENTUM)</b></font><br/>"
-                    "• <b>Tactical Pullback Zone:</b> Rs. 48,000 – Rs. 48,728 (20 EMA Dynamic Support Test)<br/>"
+                    "• <b>Tactical Pullback Zone:</b> <font color='#0284c7'><u><a href='#page_2'><b>Rs. 48,000 – Rs. 48,728 (View 6M Chart)</b></a></u></font><br/>"
                     "• <b>Entry Trigger:</b> Bullish reversal candle with volume dry-up on 20 EMA test<br/>"
                     "• <b>Tactical Supports:</b> S1: Rs. 48,728 (20 EMA) | S2: Rs. 47,199 (50 SMA)<br/>"
                     "• <b>Tactical Targets:</b> T1: Rs. 52,475 (+8.5% from Entry / +6.3% from CMP) | T2: Rs. 56,270 (+16.3% from Entry / +14.0% from CMP)<br/>"
@@ -3069,7 +3168,7 @@ def generate_stock_research_dossier_pdf(
             [
                 Paragraph(
                     f"<b>TACTICAL ACTION:</b> <font color='#15803d'><b>BUY ON CONFIRMED PULLBACK (STAGE 2 MOMENTUM)</b></font><br/>"
-                    f"• <b>Tactical Pullback Zone:</b> Rs. {sma50:,.0f} – Rs. {sma20:,.0f} (20 EMA Dynamic Support Test)<br/>"
+                    f"• <b>Tactical Pullback Zone:</b> <font color='#0284c7'><u><a href='#page_2'><b>Rs. {sma50:,.0f} – Rs. {sma20:,.0f} (View Chart)</b></a></u></font><br/>"
                     f"• <b>Entry Trigger:</b> Bullish reversal candle with volume dry-up on 20 EMA test<br/>"
                     f"• <b>Tactical Supports:</b> S1: Rs. {sma20:,.0f} (20 EMA) | S2: Rs. {sma50:,.0f} (50 SMA)<br/>"
                     f"• <b>Tactical Targets:</b> T1: Rs. {sw_t1:,.0f} (+{((sw_t1-cmp_val)/cmp_val*100):+.1f}% from CMP) | T2: Rs. {sw_t2:,.0f} (+{((sw_t2-cmp_val)/cmp_val*100):+.1f}%)<br/>"
@@ -3102,14 +3201,20 @@ def generate_stock_research_dossier_pdf(
         ('VALIGN', (0,0), (-1,-1), 'TOP')
     ]))
     story.append(t_strat)
-    story.append(Spacer(1, 3))
+    story.append(Spacer(1, 1.5))
 
-    # Regulatory Disclaimer
+    # Regulatory Disclaimer & Analyst Certification
     disclaimer_text = (
         "<b>REGULATORY NOTICE &amp; RESEARCH DISCLAIMER:</b> Synthesized autonomously via quantitative models, audited financial filings, "
         "and exchange feeds. Intended strictly for institutional research, risk management, and personal portfolio analysis. Not registered investment "
         "advice under SEBI guidelines. Please consult a qualified financial advisor before deploying capital."
     )
+    if analyst_name:
+        disclaimer_text += f"<br/><b>ANALYST CERTIFICATION &amp; DISCLOSURE:</b> Supervised and certified by <b>{analyst_name}</b>"
+        if license_no:
+            disclaimer_text += f" (SEBI Reg. No: <b>{license_no}</b>)"
+        disclaimer_text += " • All model valuations and technical thresholds represent objective mathematical frameworks."
+
     t_disc = Table([[Paragraph(disclaimer_text, meta_style)]], colWidths=[520])
     t_disc.setStyle(TableStyle([
         ('BACKGROUND', (0,0), (-1,-1), colors.HexColor("#f8fafc")),
@@ -3126,6 +3231,10 @@ def generate_stock_research_dossier_pdf(
     canvas_maker.dossier_symbol = clean_sym
     canvas_maker.dossier_cmp = f"{cmp_val:,.2f}"
     canvas_maker.dossier_date = now_display
+    canvas_maker.dossier_watermark = watermark
+    canvas_maker.dossier_firm = firm_name
+    canvas_maker.dossier_analyst = analyst_name
+    canvas_maker.dossier_license = license_no
 
     doc.build(story, canvasmaker=canvas_maker)
     return output_path
