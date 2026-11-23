@@ -31,6 +31,24 @@ from backend.financial_utils import (
 )
 from backend.catalyst_scraper import fetch_stock_news_headlines
 
+
+def _safe_float(val: Any, default: float = 0.0) -> float:
+    """Robust conversion of any input (string, int, float, complex, None) to a real float."""
+    if val is None:
+        return default
+    if isinstance(val, (int, float)):
+        return default if (math.isnan(val) or math.isinf(val)) else float(val)
+    if isinstance(val, complex):
+        return float(val.real)
+    try:
+        clean = str(val).replace(",", "").replace("%", "").replace("₹", "").replace("Rs.", "").strip()
+        if not clean or clean.lower() in ("-", "--", "n/a", "na", "none", "nan", "null", "company", "s.no.", "s.no", "name", "ticker"):
+            return default
+        res = float(clean)
+        return default if (math.isnan(res) or math.isinf(res)) else res
+    except Exception:
+        return default
+
 class NumberedCanvas(canvas.Canvas):
     """
     Two-pass canvas to dynamically compute total page count and render
@@ -1203,9 +1221,9 @@ def _generate_peer_bubble_scatter_chart(peers_data: List[Dict[str, Any]], target
     fig.patch.set_facecolor('#ffffff')
     ax.set_facecolor('#ffffff')
 
-    pe_vals = [float(p.get('pe', 30.0)) for p in peers_data]
-    roce_vals = [float(p.get('roce', 15.0)) for p in peers_data]
-    mcaps = [float(p.get('mcap', 20000.0)) for p in peers_data]
+    pe_vals = [_safe_float(p.get('pe'), 30.0) for p in peers_data]
+    roce_vals = [_safe_float(p.get('roce'), 15.0) for p in peers_data]
+    mcaps = [_safe_float(p.get('mcap'), 20000.0) for p in peers_data]
 
     max_mcap = max(mcaps) if mcaps else 100000.0
     sizes = [max(120.0, (m / max_mcap) * 500.0) for m in mcaps]
@@ -1218,8 +1236,8 @@ def _generate_peer_bubble_scatter_chart(peers_data: List[Dict[str, Any]], target
 
     for idx, (p, sz) in enumerate(zip(peers_data, sizes)):
         is_tgt = p.get('is_target', False) or p['name'].startswith(target_symbol)
-        x = float(p.get('pe', 30.0))
-        y = float(p.get('roce', 15.0))
+        x = _safe_float(p.get('pe'), 30.0)
+        y = _safe_float(p.get('roce'), 15.0)
         lbl = p['name']
 
         if is_tgt:
@@ -1508,33 +1526,38 @@ def _extract_dossier_intelligence(clean_sym: str) -> dict:
     t = prof.get("technicals", {})
 
     # Fundamental pricing & ranges
-    cmp_val = float(f.get("current_price") or f.get("cmp") or 0.0)
-    low_52w = float(t.get("low_52w") or f.get("low_52week") or f.get("low_52w") or (cmp_val * 0.70))
-    high_52w = float(t.get("high_52w") or f.get("high_52week") or f.get("high_52w") or (cmp_val * 1.20))
+    cmp_val = _safe_float(f.get("current_price") or f.get("cmp"), 0.0)
+    low_52w = _safe_float(t.get("low_52w") or f.get("low_52week") or f.get("low_52w"), cmp_val * 0.70)
+    high_52w = _safe_float(t.get("high_52w") or f.get("high_52week") or f.get("high_52w"), cmp_val * 1.20)
 
     # Market Cap & Shares
-    mcap_val = float(f.get("market_cap_cr") or f.get("market_cap") or 0.0)
+    mcap_val = _safe_float(f.get("market_cap_cr") or f.get("market_cap"), 0.0)
     if mcap_val <= 0 and cmp_val > 0:
         for p in fs.get("peers", {}).get("rows", []):
-            if clean_sym in p.get("label", "").upper() or p.get("label", "").upper() in clean_sym:
+            lbl_p = str(p.get("label", "")).strip()
+            if not lbl_p or lbl_p.lower() in ("s.no.", "s.no", "no.", "no", "#", "company", "name", "ticker"):
+                continue
+            if clean_sym in lbl_p.upper() or lbl_p.upper() in clean_sym:
                 vals = p.get("values", [])
-                if len(vals) > 2 and vals[2] > 100:
-                    mcap_val = float(vals[2])
+                v2 = _safe_float(vals[2] if len(vals) > 2 else 0)
+                v12 = _safe_float(vals[12] if len(vals) > 12 else 0)
+                if v2 > 100:
+                    mcap_val = v2
                     break
-                elif len(vals) > 12 and vals[12] > 0:
-                    mcap_val = float(vals[12])
+                elif v12 > 0:
+                    mcap_val = v12
                     break
     if mcap_val <= 0:
         mcap_val = cmp_val * 10.0
 
     shares_count = mcap_val / cmp_val if cmp_val > 0 else 1.0  # in Crores
 
-    pe_val = float(f.get("pe_ratio") or 25.0)
-    roce_val = float(f.get("roce_pct") or f.get("roce") or 20.0)
-    roe_val = float(f.get("roe_pct") or f.get("roe") or 18.0)
-    de_val = float(f.get("debt_to_equity") or 0.01)
-    curr_rat = float(f.get("current_ratio") or 1.31)
-    cfo_pat = float(f.get("cfo_to_pat") or 0.95)
+    pe_val = _safe_float(f.get("pe_ratio"), 25.0)
+    roce_val = _safe_float(f.get("roce_pct") or f.get("roce"), 20.0)
+    roe_val = _safe_float(f.get("roe_pct") or f.get("roe"), 18.0)
+    de_val = _safe_float(f.get("debt_to_equity"), 0.01)
+    curr_rat = _safe_float(f.get("current_ratio"), 1.31)
+    cfo_pat = _safe_float(f.get("cfo_to_pat"), 0.95)
 
     # 8-Quarter Financials
     q_data = fs.get("quarters", {})
@@ -1542,11 +1565,11 @@ def _extract_dossier_intelligence(clean_sym: str) -> dict:
     q_rows = {r.get("label"): r.get("values", []) for r in q_data.get("rows", [])}
 
     q_headers = [h.replace(" 20", " ") for h in q_headers_raw[-8:]]
-    q_sales = [float(v) for v in q_rows.get("Sales", [])[-8:]] if "Sales" in q_rows else []
-    q_pat = [float(v) for v in q_rows.get("Net Profit", [])[-8:]] if "Net Profit" in q_rows else []
-    q_opm = [float(v) for v in q_rows.get("OPM %", [])[-8:]] if "OPM %" in q_rows else []
-    q_op = [float(v) for v in q_rows.get("Operating Profit", [])[-8:]] if "Operating Profit" in q_rows else []
-    q_eps = [float(v) for v in q_rows.get("EPS in Rs", [])[-8:]] if "EPS in Rs" in q_rows else []
+    q_sales = [_safe_float(v) for v in q_rows.get("Sales", [])[-8:]] if "Sales" in q_rows else []
+    q_pat = [_safe_float(v) for v in q_rows.get("Net Profit", [])[-8:]] if "Net Profit" in q_rows else []
+    q_opm = [_safe_float(v) for v in q_rows.get("OPM %", [])[-8:]] if "OPM %" in q_rows else []
+    q_op = [_safe_float(v) for v in q_rows.get("Operating Profit", [])[-8:]] if "Operating Profit" in q_rows else []
+    q_eps = [_safe_float(v) for v in q_rows.get("EPS in Rs", [])[-8:]] if "EPS in Rs" in q_rows else []
 
     if not q_opm and q_op and q_sales:
         q_opm = [(op / s * 100.0) if s > 0 else 14.0 for op, s in zip(q_op, q_sales)]
@@ -1561,16 +1584,16 @@ def _extract_dossier_intelligence(clean_sym: str) -> dict:
     headers_clean = [h for h in pl_headers_raw if h and h.lower() != 'ttm']
     y_labels = headers_clean[-5:] if len(headers_clean) >= 5 else headers_clean
     has_ttm = (pl_headers_raw and pl_headers_raw[-1] and pl_headers_raw[-1].strip().lower() == 'ttm')
-    y_rev = [float(v) for v in (pl_rows.get("Sales", [])[-6:-1] if has_ttm else pl_rows.get("Sales", [])[-5:])] if "Sales" in pl_rows else []
-    y_op = [float(v) for v in (pl_rows.get("Operating Profit", [])[-6:-1] if has_ttm else pl_rows.get("Operating Profit", [])[-5:])] if "Operating Profit" in pl_rows else []
-    y_pat = [float(v) for v in (pl_rows.get("Net Profit", [])[-6:-1] if has_ttm else pl_rows.get("Net Profit", [])[-5:])] if "Net Profit" in pl_rows else []
+    y_rev = [_safe_float(v) for v in (pl_rows.get("Sales", [])[-6:-1] if has_ttm else pl_rows.get("Sales", [])[-5:])] if "Sales" in pl_rows else []
+    y_op = [_safe_float(v) for v in (pl_rows.get("Operating Profit", [])[-6:-1] if has_ttm else pl_rows.get("Operating Profit", [])[-5:])] if "Operating Profit" in pl_rows else []
+    y_pat = [_safe_float(v) for v in (pl_rows.get("Net Profit", [])[-6:-1] if has_ttm else pl_rows.get("Net Profit", [])[-5:])] if "Net Profit" in pl_rows else []
 
     cf_data = fs.get("cash_flow", {})
     cf_rows = {r.get("label"): r.get("values", []) for r in cf_data.get("rows", [])}
     if "Cash from Operating Activity" in cf_rows and cf_rows["Cash from Operating Activity"]:
-        y_ocf = [float(v) for v in cf_rows["Cash from Operating Activity"][-5:]]
+        y_ocf = [_safe_float(v) for v in cf_rows["Cash from Operating Activity"][-5:]]
     else:
-        y_ocf = [float(v) * cfo_pat for v in y_pat]
+        y_ocf = [_safe_float(v) * cfo_pat for v in y_pat]
 
     # CAGRs with complex number guards
     def _calc_cagr(start_val: float, end_val: float, periods: float, default: float) -> float:
@@ -1598,22 +1621,22 @@ def _extract_dossier_intelligence(clean_sym: str) -> dict:
     base_eps = ttm_eps if ttm_eps > 0 else (ttm_pat / shares_count if shares_count > 0 else 100.0)
 
     # Margins
-    npm_val = (ttm_pat / ttm_sales * 100.0) if ttm_sales > 0 else float(f.get("net_margin_pct") or 11.0)
-    opm_val = (ttm_op / ttm_sales * 100.0) if ttm_sales > 0 else float(f.get("ebitda_margin_pct") or 14.0)
+    npm_val = (ttm_pat / ttm_sales * 100.0) if ttm_sales > 0 else _safe_float(f.get("net_margin_pct"), 11.0)
+    opm_val = (ttm_op / ttm_sales * 100.0) if ttm_sales > 0 else _safe_float(f.get("ebitda_margin_pct"), 14.0)
 
     # Balance Sheet & Equity Bases (Standalone vs Consolidated)
     bs_data = fs.get("balance_sheet", {})
     bs_rows = {r.get("label"): r.get("values", []) for r in bs_data.get("rows", [])}
-    eq_cap = float(bs_rows.get("Equity Capital", [0])[-1]) if "Equity Capital" in bs_rows else 0.0
-    reserves = float(bs_rows.get("Reserves", [0])[-1]) if "Reserves" in bs_rows else 0.0
+    eq_cap = _safe_float(bs_rows.get("Equity Capital", [0])[-1], 0.0) if "Equity Capital" in bs_rows else 0.0
+    reserves = _safe_float(bs_rows.get("Reserves", [0])[-1], 0.0) if "Reserves" in bs_rows else 0.0
     net_worth = (eq_cap + reserves) if (eq_cap + reserves) > 0 else (mcap_val * 0.25)
-    tot_assets = float(bs_rows.get("Total Assets", [0])[-1]) if "Total Assets" in bs_rows and bs_rows.get("Total Assets", [0])[-1] > 0 else (net_worth * 1.5)
-    borrowings = float(bs_rows.get("Borrowings", [0])[-1]) if "Borrowings" in bs_rows else (net_worth * de_val)
-    investments = float(bs_rows.get("Investments", [0])[-1]) if "Investments" in bs_rows else (net_worth * 0.3)
+    tot_assets = _safe_float(bs_rows.get("Total Assets", [0])[-1], 0.0) if "Total Assets" in bs_rows and _safe_float(bs_rows.get("Total Assets", [0])[-1], 0.0) > 0 else (net_worth * 1.5)
+    borrowings = _safe_float(bs_rows.get("Borrowings", [0])[-1], 0.0) if "Borrowings" in bs_rows else (net_worth * de_val)
+    investments = _safe_float(bs_rows.get("Investments", [0])[-1], 0.0) if "Investments" in bs_rows else (net_worth * 0.3)
     net_cash = max(investments - borrowings, 0.0)
 
     # Standalone vs Consolidated Book Value & P/B
-    standalone_bv = float(f.get("book_value") or 0.0)
+    standalone_bv = _safe_float(f.get("book_value"), 0.0)
     consol_bv = (net_worth / shares_count) if shares_count > 0 else standalone_bv
     consol_pb = (cmp_val / consol_bv) if consol_bv > 0 else 0.0
     standalone_pb = (cmp_val / standalone_bv) if standalone_bv > 0 else consol_pb
@@ -1622,8 +1645,8 @@ def _extract_dossier_intelligence(clean_sym: str) -> dict:
     has_consol_divergence = (standalone_bv > 0 and consol_bv > 0 and abs(consol_bv - standalone_bv) / standalone_bv > 0.05)
 
     # Dynamic refinement of Core Ratios from Consolidated Financial Statements
-    de_val = round(borrowings / net_worth, 2) if net_worth > 0 else float(f.get("debt_to_equity") or 0.01)
-    pe_val = round(cmp_val / ttm_eps, 1) if ttm_eps > 0 else float(f.get("pe_ratio") or 25.0)
+    de_val = round(borrowings / net_worth, 2) if net_worth > 0 else _safe_float(f.get("debt_to_equity"), 0.01)
+    pe_val = round(cmp_val / ttm_eps, 1) if ttm_eps > 0 else _safe_float(f.get("pe_ratio"), 25.0)
 
     # EV & EV/EBITDA
     ev_val = mcap_val + borrowings - investments
@@ -1633,35 +1656,35 @@ def _extract_dossier_intelligence(clean_sym: str) -> dict:
     dp_npm = npm_val
     dp_at = (ttm_sales / tot_assets) if tot_assets > 0 else 1.0
     dp_em = (tot_assets / net_worth) if net_worth > 0 else 1.46
-    dp_roe = round(ttm_pat / net_worth * 100.0, 1) if net_worth > 0 else float(f.get("roe_pct") or 16.4)
+    dp_roe = round(ttm_pat / net_worth * 100.0, 1) if net_worth > 0 else _safe_float(f.get("roe_pct"), 16.4)
     roe_val = dp_roe
 
     # Technical Indicators & Moving Averages
-    sma20 = float(t.get("sma_20") or cmp_val * 0.98)
-    sma50 = float(t.get("sma_50") or cmp_val * 0.95)
-    sma100 = float(t.get("sma_100") or cmp_val * 0.90)
-    sma150 = float(t.get("sma_150") or cmp_val * 0.88)
-    sma200 = float(t.get("sma_200") or cmp_val * 0.85)
-    rsi_val = float(t.get("rsi") or 55.0)
-    adx_val = float(t.get("adx") or 30.0)
-    chg_1w = float(t.get("chg_1w") or -0.1)
-    chg_1m = float(t.get("chg_1m") or 5.0)
-    chg_3m = float(t.get("chg_3m") or 8.0)
-    chg_1y = float(t.get("chg_1y") or 25.0)
+    sma20 = _safe_float(t.get("sma_20"), cmp_val * 0.98)
+    sma50 = _safe_float(t.get("sma_50"), cmp_val * 0.95)
+    sma100 = _safe_float(t.get("sma_100"), cmp_val * 0.90)
+    sma150 = _safe_float(t.get("sma_150"), cmp_val * 0.88)
+    sma200 = _safe_float(t.get("sma_200"), cmp_val * 0.85)
+    rsi_val = _safe_float(t.get("rsi"), 55.0)
+    adx_val = _safe_float(t.get("adx"), 30.0)
+    chg_1w = _safe_float(t.get("chg_1w"), -0.1)
+    chg_1m = _safe_float(t.get("chg_1m"), 5.0)
+    chg_3m = _safe_float(t.get("chg_3m"), 8.0)
+    chg_1y = _safe_float(t.get("chg_1y"), 25.0)
 
     # 3-Year Stock Return
     pe_hist = prof.get("pe_bands", {}).get("pe_history", [])
-    chg_3y = float(t.get("chg_3y") or 0.0)
+    chg_3y = _safe_float(t.get("chg_3y"), 0.0)
     if chg_3y <= 0 and pe_hist and len(pe_hist) >= 100:
         idx_3y = max(0, len(pe_hist) - 158)
-        p_3y = float(pe_hist[idx_3y].get("price") or 0.0)
-        chg_3y = round(((cmp_val - p_3y) / p_3y * 100.0), 1) if p_3y > 0 else float(f.get("sales_growth_3y_pct") or 50.0)
+        p_3y = _safe_float(pe_hist[idx_3y].get("price"), 0.0)
+        chg_3y = round(((cmp_val - p_3y) / p_3y * 100.0), 1) if p_3y > 0 else _safe_float(f.get("sales_growth_3y_pct"), 50.0)
     elif chg_3y <= 0:
-        chg_3y = float(f.get("sales_growth_3y_pct") or 50.0)
+        chg_3y = _safe_float(f.get("sales_growth_3y_pct"), 50.0)
 
     # CAPM & True Jensen's Alpha
     capm = prof.get("capm_risk_nifty50", {})
-    beta = float(capm.get("beta") or 0.85)
+    beta = _safe_float(capm.get("beta"), 0.85)
     rf = 6.85
     erp = 6.50
     ke = rf + beta * erp
@@ -1670,10 +1693,10 @@ def _extract_dossier_intelligence(clean_sym: str) -> dict:
     alpha_1y = chg_1y - capm_exp
     bench_spread = chg_1y - 12.0
 
-    capture_up = float(prof.get("capture_ratios", {}).get("up_capture") or (169.0 if beta < 0.8 else 110.0))
-    capture_dn = float(prof.get("capture_ratios", {}).get("down_capture") or (6.5 if beta < 0.8 else 70.0))
-    max_dd = float(prof.get("drawdown_metrics", {}).get("max_drawdown_pct") or -27.1)
-    recovery_days = int(prof.get("drawdown_metrics", {}).get("worst_drawdown_duration_days") or 162)
+    capture_up = _safe_float(prof.get("capture_ratios", {}).get("up_capture"), 169.0 if beta < 0.8 else 110.0)
+    capture_dn = _safe_float(prof.get("capture_ratios", {}).get("down_capture"), 6.5 if beta < 0.8 else 70.0)
+    max_dd = _safe_float(prof.get("drawdown_metrics", {}).get("max_drawdown_pct"), -27.1)
+    recovery_days = int(_safe_float(prof.get("drawdown_metrics", {}).get("worst_drawdown_duration_days"), 162))
 
     # DCF Framework
     c_sales_f = cagr_sales.real if isinstance(cagr_sales, complex) else float(cagr_sales)
@@ -1705,8 +1728,8 @@ def _extract_dossier_intelligence(clean_sym: str) -> dict:
     # Health & Score Metrics
     eq_data = prof.get("earnings_quality", {})
     altman_z_raw = eq_data.get("altman_z")
-    if altman_z_raw is not None and float(altman_z_raw) > 0:
-        altman_z = float(altman_z_raw)
+    if altman_z_raw is not None and _safe_float(altman_z_raw) > 0:
+        altman_z = _safe_float(altman_z_raw)
     else:
         tot_liab = max(tot_assets - net_worth, 1.0)
         ebit_val = y_op[-1] if y_op else ttm_op
@@ -1717,13 +1740,13 @@ def _extract_dossier_intelligence(clean_sym: str) -> dict:
         x5 = ttm_sales / tot_assets if tot_assets > 0 else 1.0
         altman_z = round(1.2 * x1 + 1.4 * x2 + 3.3 * x3 + 0.6 * x4 + 0.999 * x5, 1)
 
-    piotroski = int(eq_data.get("piotroski_score") or (8 if de_val <= 0.1 and roce_val >= 18.0 else 7))
+    piotroski = int(_safe_float(eq_data.get("piotroski_score"), 8 if de_val <= 0.1 and roce_val >= 18.0 else 7))
 
     # 6-Pillar Quant Factor Scoring Engine (Dynamic Multi-Factor Analysis)
     sh_rows = {r.get("label"): r.get("values", []) for r in sh.get("rows", [])}
-    promoter_val = float(sh_rows.get("Promoters", [0])[-1]) if "Promoters" in sh_rows else 60.0
-    fii_val = float(sh_rows.get("FIIs", [0])[-1]) if "FIIs" in sh_rows else 15.0
-    dii_val = float(sh_rows.get("DIIs", [0])[-1]) if "DIIs" in sh_rows else 15.0
+    promoter_val = _safe_float(sh_rows.get("Promoters", [0])[-1], 60.0) if "Promoters" in sh_rows else 60.0
+    fii_val = _safe_float(sh_rows.get("FIIs", [0])[-1], 15.0) if "FIIs" in sh_rows else 15.0
+    dii_val = _safe_float(sh_rows.get("DIIs", [0])[-1], 15.0) if "DIIs" in sh_rows else 15.0
     inst_total = promoter_val + fii_val + dii_val
 
     q_score = 92.0 if roce_val >= 20.0 else (85.0 if roce_val >= 15.0 else (75.0 if roce_val >= 10.0 else 65.0))
@@ -1756,17 +1779,25 @@ def _extract_dossier_intelligence(clean_sym: str) -> dict:
     peers_raw = fs.get("peers", {})
     p_headers = [h.strip() for h in peers_raw.get("headers", [])]
     if peers_raw.get("rows"):
-        for r in peers_raw.get("rows", [])[:6]:
-            lbl = r.get("label", "")
+        for r in peers_raw.get("rows", []):
+            lbl = r.get("label", "").strip()
+            # 1. Skip index or header rows
+            if not lbl or lbl.lower() in ("s.no.", "s.no", "no.", "no", "#", "company", "name", "ticker"):
+                continue
             vals = r.get("values", [])
+            # 2. Skip rows where values are header text
+            val_strs = [str(v).strip().lower() for v in vals[:4]]
+            if any(h in val_strs for h in ("company", "name", "cmp", "p/e", "mar cap")):
+                continue
+
             val_map = dict(zip(p_headers[1:], vals)) if len(p_headers) > 1 else {}
 
-            p_cmp = float(val_map.get("CMP Rs.") or (vals[0] if len(vals) > 0 else 0))
-            p_pe = float(val_map.get("P/E") or (vals[1] if len(vals) > 1 else 0))
-            p_mcap = float(val_map.get("Mar Cap Rs.Cr.") or (vals[2] if len(vals) > 2 and vals[2] > 100 else (vals[12] if len(vals) > 12 else 0)))
-            p_roce = float(val_map.get("ROCE %") or (vals[8] if len(vals) > 8 and vals[8] < 100 else (vals[13] if len(vals) > 13 else 0)))
-            p_sales3 = float(val_map.get("Profit Var 3Yrs %") or val_map.get("Qtr Sales Var %") or (vals[7] if len(vals) > 7 else 0))
-            p_de = float(val_map.get("Debt / Eq") or (vals[14] if len(vals) > 14 else 0.05))
+            p_cmp = _safe_float(val_map.get("CMP Rs."), _safe_float(vals[0] if len(vals) > 0 else 0, cmp_val))
+            p_pe = _safe_float(val_map.get("P/E"), _safe_float(vals[1] if len(vals) > 1 else 0, pe_val))
+            p_mcap = _safe_float(val_map.get("Mar Cap Rs.Cr."), _safe_float(vals[2] if len(vals) > 2 else (vals[12] if len(vals) > 12 else 0), mcap_val))
+            p_roce = _safe_float(val_map.get("ROCE %"), _safe_float(vals[8] if len(vals) > 8 else (vals[13] if len(vals) > 13 else 0), roce_val))
+            p_sales3 = _safe_float(val_map.get("Profit Var 3Yrs %") or val_map.get("Qtr Sales Var %"), _safe_float(vals[7] if len(vals) > 7 else 0, 12.0))
+            p_de = _safe_float(val_map.get("Debt / Eq"), _safe_float(vals[14] if len(vals) > 14 else 0, 0.05))
 
             clean_tok = clean_sym.replace(".NS", "").replace(".BO", "").replace("LTD", "").replace("LIMITED", "").strip()
             is_target = (clean_sym in lbl.upper() or lbl.upper() in clean_sym or (len(clean_tok) >= 3 and clean_tok in lbl.upper()))
@@ -1787,6 +1818,8 @@ def _extract_dossier_intelligence(clean_sym: str) -> dict:
                 "de": p_de,
                 "is_target": is_target
             })
+            if len(peer_rows) >= 6:
+                break
 
     has_target = any(pr["is_target"] for pr in peer_rows)
     if not has_target:
