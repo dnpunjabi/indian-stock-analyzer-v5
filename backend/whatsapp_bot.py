@@ -863,6 +863,13 @@ def handle_stock_dossier_pdf(symbol_input: str, recipient: Optional[str] = None)
     """
     clean_sym = re.sub(r"^(?:PDF|REPORT|DOSSIER|STOCKPDF|EXPORT|GETPDF)[\s:\-_/]+|run:stock_pdf:|act:stock:pdf:", "", symbol_input, flags=re.IGNORECASE).strip().upper()
     clean_sym = clean_sym.replace(".NS", "").replace(".BO", "")
+    try:
+        from backend.financial_utils import resolve_company_ticker
+        resolved = resolve_company_ticker(clean_sym)
+        if resolved and resolved.get("base_symbol"):
+            clean_sym = resolved["base_symbol"].replace(".NS", "").replace(".BO", "")
+    except Exception:
+        pass
     if not clean_sym:
         clean_sym = "RELIANCE"
 

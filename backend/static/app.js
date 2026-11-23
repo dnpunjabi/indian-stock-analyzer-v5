@@ -6316,6 +6316,11 @@ function drawPeerScatterChart(peers, targetSymbol) {
     const canvas = document.getElementById('peer-scatter-chart');
     if (!canvas) return;
 
+    if (typeof Chart === 'undefined') {
+        console.warn('[Peer Scatter] Chart.js is not loaded, skipping chart render.');
+        return;
+    }
+
     if (activePeerScatterChart) {
         activePeerScatterChart.destroy();
         activePeerScatterChart = null;

@@ -1474,6 +1474,15 @@ def _generate_composite_score_gauge(score: float, tier_label: str) -> io.BytesIO
 
 def _extract_dossier_intelligence(clean_sym: str) -> dict:
     """Extracts, normalizes, and computes comprehensive equity intelligence dynamically for any NSE ticker."""
+    clean_sym = clean_sym.strip().upper().replace(".NS", "").replace(".BO", "")
+    try:
+        from backend.financial_utils import resolve_company_ticker
+        resolved = resolve_company_ticker(clean_sym)
+        if resolved and resolved.get("base_symbol"):
+            clean_sym = resolved["base_symbol"].replace(".NS", "").replace(".BO", "")
+    except Exception:
+        pass
+
     conn = sqlite3.connect("backend/data/watchlist_database.db")
     cur = conn.cursor()
 
@@ -1563,11 +1572,23 @@ def _extract_dossier_intelligence(clean_sym: str) -> dict:
     else:
         y_ocf = [float(v) * cfo_pat for v in y_pat]
 
-    # CAGRs
-    cagr_sales = ((y_rev[-1] / y_rev[0]) ** (1.0 / (len(y_rev)-1)) - 1.0) * 100.0 if len(y_rev) > 1 and y_rev[0] > 0 else 12.0
-    cagr_op = ((y_op[-1] / y_op[0]) ** (1.0 / (len(y_op)-1)) - 1.0) * 100.0 if len(y_op) > 1 and y_op[0] > 0 else 14.0
-    cagr_pat = ((y_pat[-1] / y_pat[0]) ** (1.0 / (len(y_pat)-1)) - 1.0) * 100.0 if len(y_pat) > 1 and y_pat[0] > 0 else 15.0
-    cagr_ocf = ((y_ocf[-1] / y_ocf[0]) ** (1.0 / (len(y_ocf)-1)) - 1.0) * 100.0 if len(y_ocf) > 1 and y_ocf[0] > 0 else cagr_op
+    # CAGRs with complex number guards
+    def _calc_cagr(start_val: float, end_val: float, periods: float, default: float) -> float:
+        try:
+            if periods > 0 and start_val > 0 and end_val > 0:
+                val = ((end_val / start_val) ** (1.0 / periods) - 1.0) * 100.0
+                if isinstance(val, complex):
+                    return float(val.real)
+                if not math.isnan(val) and not math.isinf(val):
+                    return float(val)
+        except Exception:
+            pass
+        return default
+
+    cagr_sales = _calc_cagr(y_rev[0] if y_rev else 0, y_rev[-1] if y_rev else 0, len(y_rev)-1 if y_rev else 0, 12.0)
+    cagr_op = _calc_cagr(y_op[0] if y_op else 0, y_op[-1] if y_op else 0, len(y_op)-1 if y_op else 0, 14.0)
+    cagr_pat = _calc_cagr(y_pat[0] if y_pat else 0, y_pat[-1] if y_pat else 0, len(y_pat)-1 if y_pat else 0, 15.0)
+    cagr_ocf = _calc_cagr(y_ocf[0] if y_ocf else 0, y_ocf[-1] if y_ocf else 0, len(y_ocf)-1 if y_ocf else 0, cagr_op)
 
     # TTM Trailing Values strictly calculated from latest 4 quarters
     ttm_sales = sum(q_sales[-4:]) if len(q_sales) >= 4 else (y_rev[-1] if y_rev else 10000.0)
@@ -1655,10 +1676,12 @@ def _extract_dossier_intelligence(clean_sym: str) -> dict:
     recovery_days = int(prof.get("drawdown_metrics", {}).get("worst_drawdown_duration_days") or 162)
 
     # DCF Framework
-    growth_rate = min(max(cagr_sales / 100.0, 0.08), 0.16)
+    c_sales_f = cagr_sales.real if isinstance(cagr_sales, complex) else float(cagr_sales)
+    growth_rate = min(max(c_sales_f / 100.0, 0.08), 0.16)
     start_fcf = round((y_ocf[-1] * 0.9885) if (y_ocf and y_ocf[-1] > 0) else (ttm_pat * cfo_pat), 0)
     fcf_proj = [round(start_fcf * ((1.0 + growth_rate)**(yr - 1)), 0) for yr in range(1, 6)]
-    op_growth = min(max(cagr_op / 100.0, growth_rate), 0.1628)
+    c_op_f = cagr_op.real if isinstance(cagr_op, complex) else float(cagr_op)
+    op_growth = min(max(c_op_f / 100.0, growth_rate), 0.1628)
     term_op = round((y_op[-1] if y_op else ttm_op) * ((1.0 + op_growth)**5), 0)
     net_cash_dcf = net_cash
 
@@ -1706,7 +1729,7 @@ def _extract_dossier_intelligence(clean_sym: str) -> dict:
     q_score = 92.0 if roce_val >= 20.0 else (85.0 if roce_val >= 15.0 else (75.0 if roce_val >= 10.0 else 65.0))
     v_score = 85.0 if pe_val <= 25.0 else (80.0 if pe_val <= 40.0 else (75.0 if pe_val <= 55.0 else 65.0))
     m_score = 82.0 if (cmp_val > sma20 and cmp_val > sma50) else (78.0 if cmp_val > sma50 else 68.0)
-    g_score = 76.0 if cagr_sales >= 14.0 else (72.0 if cagr_sales >= 10.0 else (68.0 if cagr_sales >= 5.0 else 60.0))
+    g_score = 76.0 if c_sales_f >= 14.0 else (72.0 if c_sales_f >= 10.0 else (68.0 if c_sales_f >= 5.0 else 60.0))
     s_score = 95.0 if de_val <= 0.05 else (90.0 if de_val <= 0.2 else (80.0 if de_val <= 0.5 else 65.0))
     i_score = 88.0 if inst_total >= 88.0 else (85.0 if inst_total >= 75.0 else 75.0)
 
@@ -1916,6 +1939,13 @@ def generate_stock_research_dossier_pdf(
     license_no: Optional[str] = None
 ) -> str:
     clean_sym = symbol.strip().upper().replace(".NS", "").replace(".BO", "")
+    try:
+        from backend.financial_utils import resolve_company_ticker
+        resolved = resolve_company_ticker(clean_sym)
+        if resolved and resolved.get("base_symbol"):
+            clean_sym = resolved["base_symbol"].replace(".NS", "").replace(".BO", "")
+    except Exception:
+        pass
     today_str = datetime.now().strftime("%Y%m%d")
     now_display = datetime.now().strftime("%d %b %Y, %I:%M %p IST")
 
@@ -2341,9 +2371,18 @@ def generate_stock_research_dossier_pdf(
         pb_narrative = f"{pb_val:.1f}x P/B"
 
     term_pe = 35.0 if roce_val >= 20.0 else (28.0 if roce_val >= 15.0 else 20.0)
-    proj_cagr = min(max(info["cagr_pat"] / 100.0, info["cagr_sales"] / 100.0), 0.16)
+    c_pat = info["cagr_pat"].real if isinstance(info["cagr_pat"], complex) else float(info["cagr_pat"])
+    c_sales = info["cagr_sales"].real if isinstance(info["cagr_sales"], complex) else float(info["cagr_sales"])
+    proj_cagr = min(max(c_pat / 100.0, c_sales / 100.0), 0.16)
+    proj_cagr = max(proj_cagr, -0.9)
     fwd_5y_nom = base_eps * ((1.0 + proj_cagr)**5) * term_pe
-    fwd_5y_cagr = ((fwd_5y_nom / cmp_val) ** 0.2 - 1.0) * 100.0 if cmp_val > 0 else 0.0
+    fwd_5y_cagr = 0.0
+    if cmp_val > 0 and fwd_5y_nom > 0:
+        try:
+            res_cagr = ((fwd_5y_nom / cmp_val) ** 0.2 - 1.0) * 100.0
+            fwd_5y_cagr = float(res_cagr.real) if isinstance(res_cagr, complex) else float(res_cagr)
+        except Exception:
+            fwd_5y_cagr = 0.0
 
     if prem_to_dcf > 15.0:
         val_text = (
@@ -3176,10 +3215,21 @@ def generate_stock_research_dossier_pdf(
     story.append(Spacer(1, 1.5))
 
     g_implied = round((((tv_30x * (wacc/100.0) - fcf_vals[-1]) / (tv_30x + fcf_vals[-1])) * 100.0), 1)
-    comp_hurdle = (((cmp_val / 25.0) / base_eps) ** 0.2 - 1.0) * 100.0 if base_eps > 0 else 16.0
+    comp_hurdle = 16.0
+    if base_eps > 0 and cmp_val > 0:
+        try:
+            h_ratio = (cmp_val / 25.0) / base_eps
+            if h_ratio > 0:
+                h_res = (h_ratio ** 0.2 - 1.0) * 100.0
+                comp_hurdle = float(h_res.real) if isinstance(h_res, complex) else float(h_res)
+        except Exception:
+            comp_hurdle = 16.0
 
     term_pe = 35.0 if roce_val >= 20.0 else (28.0 if roce_val >= 15.0 else 20.0)
-    proj_cagr = min(max(info["cagr_pat"] / 100.0, info["cagr_sales"] / 100.0), 0.16)
+    c_pat = info["cagr_pat"].real if isinstance(info["cagr_pat"], complex) else float(info["cagr_pat"])
+    c_sales = info["cagr_sales"].real if isinstance(info["cagr_sales"], complex) else float(info["cagr_sales"])
+    proj_cagr = min(max(c_pat / 100.0, c_sales / 100.0), 0.16)
+    proj_cagr = max(proj_cagr, -0.9)
 
     # Smooth multiple compression glide path across 1Y, 3Y, and 5Y horizons:
     if pe_val > term_pe:
@@ -3197,7 +3247,13 @@ def generate_stock_research_dossier_pdf(
 
     scarcity_prem = max(base_target - gordon_target, 0.0)
     scarcity_pct = (scarcity_prem / base_target * 100.0) if base_target > 0 else 0.0
-    fwd_cagr_nom = ((fwd_5y / cmp_val) ** 0.2 - 1.0) * 100.0 if cmp_val > 0 else 0.0
+    fwd_cagr_nom = 0.0
+    if cmp_val > 0 and fwd_5y > 0:
+        try:
+            cagr_nom_res = ((fwd_5y / cmp_val) ** 0.2 - 1.0) * 100.0
+            fwd_cagr_nom = float(cagr_nom_res.real) if isinstance(cagr_nom_res, complex) else float(cagr_nom_res)
+        except Exception:
+            fwd_cagr_nom = 0.0
 
     sens_html = (
         "<b>DUAL-TERMINAL DCF SENSITIVITY &amp; MULTI-HORIZON VALUATION MATRIX:</b><br/>"
