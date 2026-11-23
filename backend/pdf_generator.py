@@ -1447,13 +1447,14 @@ def _generate_composite_score_gauge(score: float, tier_label: str) -> io.BytesIO
     ax.add_patch(hub_outer)
     ax.add_patch(hub_inner)
 
-    ax.text(0, -0.12, f"{clamped_score:.1f}", ha='center', va='top', fontsize=12.5, fontweight='bold', color='#0f172a')
-    ax.text(0, -0.32, "/ 100", ha='center', va='top', fontsize=6.2, color='#64748b', fontweight='bold')
+    fn = 'DejaVu Sans'
+    score_str = "88.0 / 100" if round(clamped_score, 1) == 88.0 else f"{clamped_score:.1f} / 100"
+    ax.text(0, -0.15, score_str, ha='center', va='top', fontsize=9.2, fontweight='bold', color='#0f172a', fontname=fn)
     clean_tier = tier_label.split(":")[0].strip() if ":" in tier_label else tier_label
-    ax.text(0, -0.45, clean_tier.upper(), ha='center', va='top', fontsize=6.0, fontweight='bold', color='#15803d' if clamped_score >= 80 else '#0284c7')
+    ax.text(0, -0.38, clean_tier.upper(), ha='center', va='top', fontsize=5.8, fontweight='bold', color='#15803d' if clamped_score >= 80 else '#0284c7', fontname=fn)
 
-    ax.text(-0.95, -0.05, "0", ha='center', va='top', fontsize=5.5, color='#94a3b8', fontweight='bold')
-    ax.text(0.95, -0.05, "100", ha='center', va='top', fontsize=5.5, color='#94a3b8', fontweight='bold')
+    ax.text(-0.95, -0.05, "0", ha='center', va='top', fontsize=5.5, color='#94a3b8', fontweight='bold', fontname=fn)
+    ax.text(0.95, -0.05, "100", ha='center', va='top', fontsize=5.5, color='#94a3b8', fontweight='bold', fontname=fn)
 
     ax.set_xlim(-1.12, 1.12)
     ax.set_ylim(-0.54, 1.05)
@@ -1626,8 +1627,8 @@ def _extract_dossier_intelligence(clean_sym: str) -> dict:
     if clean_sym == "BOSCHLTD":
         shares_count = 2.9496
         mcap_val = 145593.0
-        pb_val = 10.5
-        bv_val = 4692.0
+        pb_val = 19.0
+        bv_val = 2599.0
         ev_ebitda_val = 40.4
         de_val = 0.01
         roce_val = 21.5
@@ -2187,7 +2188,7 @@ def generate_stock_research_dossier_pdf(
             [
                 Paragraph(
                     f"<b>High-Quality Core Compounder:</b> {comp_name} exhibits premier operating stability supported by zero debt gearing, consistent 21.5% ROCE compounding, and disciplined working capital. "
-                    f"While near-term valuation multiples trade near historical upper bands (54.7x P/E, 40.4x EV/EBITDA, 10.5x P/B), the company's market dominance and pricing power continue to attract steady institutional inflows [See Section 9: 5Y DCF Bridge].<br/>"
+                    f"While near-term valuation multiples trade near historical upper bands (54.7x P/E, 40.4x EV/EBITDA, 19.0x P/B), the company's market dominance and pricing power continue to attract steady institutional inflows [See Section 9: 5Y DCF Bridge].<br/>"
                     f"<i>Multi-Factor Score Breakdown: Solvency 25% (95), Quality 25% (92), Institutional 20% (88), Momentum 15% (82), Growth 10% (76), Valuation 5% (75) = 88.0/100 (Tier 1 Confluence Leader).</i>",
                     body_style
                 ),
@@ -3318,9 +3319,39 @@ def generate_stock_research_dossier_pdf(
         brk_t1 = high_52w
         brk_t2 = high_52w * 1.08
 
-    buf_bracket = _generate_risk_reward_bracket_chart(brk_stop, brk_el, brk_eh, cmp_val, brk_t1, brk_t2)
-    story.append(Image(buf_bracket, width=520, height=35))
-    story.append(Spacer(1, 1.2))
+    entry_mid = (brk_el + brk_eh) / 2.0
+    risk_val = max(entry_mid - brk_stop, 1.0)
+    rew1_val = max(brk_t1 - entry_mid, 1.0)
+    rew2_val = max(brk_t2 - entry_mid, 2.0)
+    rr_avg = (rew1_val / risk_val + rew2_val / risk_val) / 2.0
+
+    stat_bar_data = [
+        [
+            Paragraph("<font color='#b91c1c' size='6'><b>STOP LOSS (STRICT)</b></font><br/><font color='#dc2626' size='8'><b>Rs. " + f"{brk_stop:,.0f}" + "</b></font><br/><font color='#64748b' size='5.2'>-" + f"{((cmp_val-brk_stop)/cmp_val*100):.1f}" + "% close below 50 SMA</font>", ParagraphStyle('SB1', parent=meta_style, fontName='Helvetica', alignment=1, leading=8)),
+            Paragraph("<font color='#854d0e' size='6'><b>PULLBACK BUY ZONE</b></font><br/><font color='#b45309' size='8'><b>Rs. " + f"{brk_el:,.0f} – {brk_eh:,.0f}" + "</b></font><br/><font color='#64748b' size='5.2'>20 EMA test &amp; volume dry-up</font>", ParagraphStyle('SB2', parent=meta_style, fontName='Helvetica', alignment=1, leading=8)),
+            Paragraph("<font color='#0f172a' size='6'><b>CURRENT PRICE (CMP)</b></font><br/><font color='#0f172a' size='8'><b>Rs. " + f"{cmp_val:,.0f}" + "</b></font><br/><font color='#64748b' size='5.2'>Stage 2 consolidation base</font>", ParagraphStyle('SB3', parent=meta_style, fontName='Helvetica', alignment=1, leading=8)),
+            Paragraph("<font color='#047857' size='6'><b>TARGETS (R:R 1 : " + f"{rr_avg:.1f}" + ")</b></font><br/><font color='#15803d' size='7.5'><b>T1: Rs. " + f"{brk_t1:,.0f}" + " &bull; T2: Rs. " + f"{brk_t2:,.0f}" + "</b></font><br/><font color='#64748b' size='5.2'>T1: +" + f"{((brk_t1-entry_mid)/entry_mid*100):.1f}" + "% (ATH) | T2: +" + f"{((brk_t2-entry_mid)/entry_mid*100):.1f}" + "%</font>", ParagraphStyle('SB4', parent=meta_style, fontName='Helvetica', alignment=1, leading=8))
+        ]
+    ]
+
+    t_stat_bar = Table(stat_bar_data, colWidths=[115, 140, 105, 160])
+    t_stat_bar.setStyle(TableStyle([
+        ('BACKGROUND', (0,0), (0,0), colors.HexColor("#fef2f2")),
+        ('BACKGROUND', (1,0), (1,0), colors.HexColor("#fefce8")),
+        ('BACKGROUND', (2,0), (2,0), colors.HexColor("#f1f5f9")),
+        ('BACKGROUND', (3,0), (3,0), colors.HexColor("#f0fdf4")),
+        ('BOX', (0,0), (0,0), 0.5, colors.HexColor("#fca5a5")),
+        ('BOX', (1,0), (1,0), 0.5, colors.HexColor("#fde047")),
+        ('BOX', (2,0), (2,0), 0.5, colors.HexColor("#cbd5e1")),
+        ('BOX', (3,0), (3,0), 0.5, colors.HexColor("#86efac")),
+        ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
+        ('TOPPADDING', (0,0), (-1,-1), 2),
+        ('BOTTOMPADDING', (0,0), (-1,-1), 2),
+        ('LEFTPADDING', (0,0), (-1,-1), 3),
+        ('RIGHTPADDING', (0,0), (-1,-1), 3),
+    ]))
+    story.append(t_stat_bar)
+    story.append(Spacer(1, 1.5))
 
     if clean_sym == "BOSCHLTD":
         strat_data = [
