@@ -3080,10 +3080,17 @@ async def get_stock_research_dossier_pdf_endpoint(
     Fast L1 disk-caching serves subsequent requests in < 50ms.
     """
     clean_sym = symbol.strip().upper().replace(".NS", "").replace(".BO", "")
-    today_str = datetime.now().strftime("%Y%m%d")
     reports_dir = os.path.join("data", "reports", "stocks")
     os.makedirs(reports_dir, exist_ok=True)
-    pdf_path = os.path.join(reports_dir, f"{clean_sym}_Institutional_Dossier_{today_str}.pdf")
+
+    # Housekeeping: Purge any stale PDFs older than 24h to keep Oracle VM storage lean
+    try:
+        from backend.pdf_generator import cleanup_stale_reports
+        cleanup_stale_reports(reports_dir, max_age_secs=86400)
+    except Exception:
+        pass
+
+    pdf_path = os.path.join(reports_dir, f"{clean_sym}_Institutional_Dossier.pdf")
 
     # Check cache freshness (valid for 4 hours)
     needs_gen = force_refresh or not os.path.exists(pdf_path)

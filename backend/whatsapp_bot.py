@@ -878,11 +878,11 @@ def handle_stock_dossier_pdf(symbol_input: str, recipient: Optional[str] = None)
         send_whatsapp_text(ack_body, recipient=recipient)
 
         # 2. Generate or retrieve cached PDF
-        from backend.pdf_generator import generate_stock_research_dossier_pdf
-        today_str = datetime.now().strftime("%Y%m%d")
+        from backend.pdf_generator import generate_stock_research_dossier_pdf, cleanup_stale_reports
         reports_dir = os.path.join("data", "reports", "stocks")
         os.makedirs(reports_dir, exist_ok=True)
-        pdf_path = os.path.join(reports_dir, f"{clean_sym}_Institutional_Dossier_{today_str}.pdf")
+        cleanup_stale_reports(reports_dir, max_age_secs=86400)
+        pdf_path = os.path.join(reports_dir, f"{clean_sym}_Institutional_Dossier.pdf")
 
         # Check freshness (< 4 hrs)
         needs_gen = not os.path.exists(pdf_path)
