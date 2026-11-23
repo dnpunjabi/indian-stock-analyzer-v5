@@ -11,6 +11,7 @@ import pandas as pd
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
+import matplotlib.patches as patches
 
 from reportlab.lib.pagesizes import A4
 from reportlab.lib import colors
@@ -847,7 +848,7 @@ def _generate_quarterly_performance_chart(headers: List[str], sales: List[float]
 
 def _generate_annual_compounding_chart(years: List[str], rev: List[float], ebitda: List[float], pat: List[float], ocf: List[float]) -> io.BytesIO:
     """Renders 5-year Revenue, EBITDA, PAT, and Operating Cash Flow with generous Y-axis headroom."""
-    fig, ax = plt.subplots(figsize=(7.2, 2.1), dpi=150)
+    fig, ax = plt.subplots(figsize=(7.2, 1.8), dpi=150)
     fig.patch.set_facecolor('#ffffff')
     ax.set_facecolor('#ffffff')
 
@@ -910,6 +911,111 @@ def _generate_valuation_football_field(categories: List[str], lows: List[float],
     fig.subplots_adjust(left=0.32, right=0.96, top=0.92, bottom=0.22)
     buf = io.BytesIO()
     fig.savefig(buf, format='png', dpi=150, bbox_inches='tight', pad_inches=0.3)
+    buf.seek(0)
+    plt.close(fig)
+    return buf
+
+
+def _generate_segment_breakdown_bar(segments: List[Tuple[str, float, str]], total_sales_cr: float) -> io.BytesIO:
+    """
+    Renders an institutional horizontal 100% stacked bar with percentage labels and value annotations.
+    segments: list of (name, percentage, hex_color)
+    """
+    fig, ax = plt.subplots(figsize=(7.2, 0.42), dpi=150)
+    fig.patch.set_facecolor('#ffffff')
+    ax.set_facecolor('#ffffff')
+
+    left = 0.0
+    for name, pct, color in segments:
+        sales_part = total_sales_cr * (pct / 100.0)
+        ax.barh(0, pct, left=left, height=0.55, color=color, edgecolor='#ffffff', linewidth=1.5)
+        
+        # Add text label if segment is wide enough
+        if pct >= 12.0:
+            ax.text(left + pct/2.0, 0, f"{name}: {pct:.0f}% (Rs. {sales_part:,.0f} Cr)", 
+                    ha='center', va='center', color='#ffffff', fontsize=6.8, fontweight='bold')
+        elif pct >= 5.0:
+            ax.text(left + pct/2.0, 0, f"{pct:.0f}%", 
+                    ha='center', va='center', color='#ffffff', fontsize=6.8, fontweight='bold')
+        left += pct
+
+    ax.set_xlim(0, 100)
+    ax.set_ylim(-0.4, 0.4)
+    ax.axis('off')
+    plt.subplots_adjust(left=0, right=1, top=1, bottom=0)
+
+    buf = io.BytesIO()
+    fig.savefig(buf, format='png', dpi=150, bbox_inches='tight', pad_inches=0.02)
+    buf.seek(0)
+    plt.close(fig)
+    return buf
+
+
+def _generate_dupont_tree_chart(
+    npm: float, at: float, em: float, roe: float,
+    net_worth_cr: float, ttm_sales_cr: float, tot_assets_cr: float, ttm_pat_cr: float
+) -> io.BytesIO:
+    """
+    Renders a publication-grade DuPont 3-Factor flow tree diagram with cards, connectors, and arithmetic.
+    """
+    fig, ax = plt.subplots(figsize=(7.2, 1.25), dpi=150)
+    fig.patch.set_facecolor('#ffffff')
+    ax.set_facecolor('#ffffff')
+    ax.set_xlim(0, 100)
+    ax.set_ylim(0, 100)
+    ax.axis('off')
+
+    # Draw Root Node: Return on Equity (ROE) on Left
+    root_box = patches.FancyBboxPatch((2, 22), 22, 56, boxstyle="round,pad=0.8,rounding_size=3",
+                                      facecolor='#f0fdf4', edgecolor='#15803d', linewidth=1.2)
+    ax.add_patch(root_box)
+    ax.text(13, 62, "RETURN ON EQUITY", ha='center', va='center', fontsize=6.5, fontweight='bold', color='#166534')
+    ax.text(13, 45, f"{roe:.1f}%", ha='center', va='center', fontsize=15, fontweight='bold', color='#15803d')
+    ax.text(13, 30, "Net Profit / Net Worth", ha='center', va='center', fontsize=5.8, color='#475569')
+
+    # Connecting branch lines from Root to 3 Factors
+    ax.plot([24, 32], [50, 50], color='#cbd5e1', linewidth=1.5)
+    ax.plot([32, 32], [20, 80], color='#cbd5e1', linewidth=1.5)
+    ax.plot([32, 36], [80, 80], color='#cbd5e1', linewidth=1.5)
+    ax.plot([32, 36], [50, 50], color='#cbd5e1', linewidth=1.5)
+    ax.plot([32, 36], [20, 20], color='#cbd5e1', linewidth=1.5)
+
+    # Factor 1: Net Profit Margin (Top)
+    f1_box = patches.FancyBboxPatch((36, 68), 34, 25, boxstyle="round,pad=0.6,rounding_size=2.5",
+                                    facecolor='#f0f9ff', edgecolor='#0284c7', linewidth=1.0)
+    ax.add_patch(f1_box)
+    ax.text(39, 84, "NET PROFIT MARGIN (NPM)", ha='left', va='center', fontsize=6.0, fontweight='bold', color='#0369a1')
+    ax.text(67, 82, f"{npm:.1f}%", ha='right', va='center', fontsize=10.5, fontweight='bold', color='#0284c7')
+    ax.text(39, 73, f"PAT Rs. {ttm_pat_cr:,.0f} Cr / Sales Rs. {ttm_sales_cr:,.0f} Cr", ha='left', va='center', fontsize=5.5, color='#64748b')
+
+    # Factor 2: Asset Turnover (Middle)
+    f2_box = patches.FancyBboxPatch((36, 38), 34, 25, boxstyle="round,pad=0.6,rounding_size=2.5",
+                                    facecolor='#f0fdfa', edgecolor='#0f766e', linewidth=1.0)
+    ax.add_patch(f2_box)
+    ax.text(39, 54, "ASSET TURNOVER (AT)", ha='left', va='center', fontsize=6.0, fontweight='bold', color='#115e59')
+    ax.text(67, 52, f"{at:.2f}x", ha='right', va='center', fontsize=10.5, fontweight='bold', color='#0f766e')
+    ax.text(39, 43, f"Sales Rs. {ttm_sales_cr:,.0f} Cr / Assets Rs. {tot_assets_cr:,.0f} Cr", ha='left', va='center', fontsize=5.5, color='#64748b')
+
+    # Factor 3: Equity Multiplier (Bottom)
+    f3_box = patches.FancyBboxPatch((36, 8), 34, 25, boxstyle="round,pad=0.6,rounding_size=2.5",
+                                    facecolor='#fffbeb', edgecolor='#d97706', linewidth=1.0)
+    ax.add_patch(f3_box)
+    ax.text(39, 24, "EQUITY MULTIPLIER (EM)", ha='left', va='center', fontsize=6.0, fontweight='bold', color='#b45309')
+    ax.text(67, 22, f"{em:.2f}x", ha='right', va='center', fontsize=10.5, fontweight='bold', color='#d97706')
+    ax.text(39, 13, f"Assets Rs. {tot_assets_cr:,.0f} Cr / Equity Rs. {net_worth_cr:,.0f} Cr", ha='left', va='center', fontsize=5.5, color='#64748b')
+
+    # Summary Callout on Right
+    summary_box = patches.FancyBboxPatch((74, 22), 24, 56, boxstyle="round,pad=0.8,rounding_size=3",
+                                        facecolor='#f8fafc', edgecolor='#cbd5e1', linewidth=1.0)
+    ax.add_patch(summary_box)
+    ax.text(86, 64, "DUPONT IDENTITY", ha='center', va='center', fontsize=6.2, fontweight='bold', color='#0f172a')
+    ax.text(86, 50, f"{npm:.1f}%", ha='center', va='center', fontsize=8.5, fontweight='bold', color='#0284c7')
+    ax.text(86, 42, f"x  {at:.2f}  x  {em:.2f}", ha='center', va='center', fontsize=7.5, fontweight='bold', color='#475569')
+    ax.text(86, 31, f"= {roe:.1f}% ROE", ha='center', va='center', fontsize=9.0, fontweight='bold', color='#15803d')
+
+    plt.subplots_adjust(left=0.01, right=0.99, top=0.98, bottom=0.02)
+    buf = io.BytesIO()
+    fig.savefig(buf, format='png', dpi=150, bbox_inches='tight', pad_inches=0.05)
     buf.seek(0)
     plt.close(fig)
     return buf
@@ -1521,6 +1627,11 @@ def generate_stock_research_dossier_pdf(
     story.append(Spacer(1, 2))
 
     if clean_sym == "BOSCHLTD":
+        seg_tuples = [
+            ("Automotive & Mobility", 86.0, "#0284c7"),
+            ("Consumer Goods & Tools", 11.0, "#10b981"),
+            ("Energy & Industrial", 3.0, "#f59e0b")
+        ]
         segment_data = [
             [
                 Paragraph("<b>AUTOMOTIVE &amp; MOBILITY (86% OF REVENUE)</b>", th_style),
@@ -1534,6 +1645,11 @@ def generate_stock_research_dossier_pdf(
             ]
         ]
     elif "tech" in sector.lower() or "software" in industry.lower():
+        seg_tuples = [
+            ("BFSI & Fintech Platforms", 38.0, "#0284c7"),
+            ("Retail, CPG & Consumer", 32.0, "#10b981"),
+            ("Cloud, AI & Digital", 30.0, "#8b5cf6")
+        ]
         segment_data = [
             [
                 Paragraph("<b>BFSI &amp; FINTECH PLATFORMS (38% REVENUE)</b>", th_style),
@@ -1547,6 +1663,11 @@ def generate_stock_research_dossier_pdf(
             ]
         ]
     elif "oil" in sector.lower() or "energy" in sector.lower() or "refin" in industry.lower():
+        seg_tuples = [
+            ("Energy & Petrochem", 58.0, "#0284c7"),
+            ("Digital Services & 5G", 22.0, "#10b981"),
+            ("Organized Retail", 20.0, "#f59e0b")
+        ]
         segment_data = [
             [
                 Paragraph("<b>ENERGY, REFINING &amp; PETROCHEM (58%)</b>", th_style),
@@ -1560,6 +1681,11 @@ def generate_stock_research_dossier_pdf(
             ]
         ]
     else:
+        seg_tuples = [
+            ("Core Operations", 62.0, "#0284c7"),
+            ("Aftermarket & Services", 23.0, "#10b981"),
+            ("Emerging Tech & Exports", 15.0, "#f59e0b")
+        ]
         segment_data = [
             [
                 Paragraph("<b>CORE FLAGSHIP OPERATIONS (62% REVENUE)</b>", th_style),
@@ -1572,6 +1698,10 @@ def generate_stock_research_dossier_pdf(
                 Paragraph(f"<b>Sales: Rs. {ttm_sales*0.15:,.0f} Cr</b><br/>Cross-border shipments, green transition initiatives, localized product assembly, and ongoing R&amp;D pilot platforms.", body_style)
             ]
         ]
+
+    buf_seg = _generate_segment_breakdown_bar(seg_tuples, ttm_sales)
+    story.append(Image(buf_seg, width=520, height=20))
+    story.append(Spacer(1, 2))
 
     t_seg = Table(segment_data, colWidths=[185, 175, 160])
     t_seg.setStyle(TableStyle([
@@ -2331,42 +2461,24 @@ def generate_stock_research_dossier_pdf(
         )
 
     buf_annual = _generate_annual_compounding_chart(y_labels_plot, y_rev_plot, y_ebitda_plot, y_pat_plot, y_ocf_plot)
-    story.append(Image(buf_annual, width=520, height=180))
+    story.append(Image(buf_annual, width=520, height=140))
     story.append(Spacer(1, 3))
 
     story.append(Paragraph("<b>DUPONT ROE 3-FACTOR DECOMPOSITION TREE (AUDITED BENCHMARK)</b>", sec_header_style))
     story.append(Spacer(1, 2))
 
-    dupont_data = [
-        [
-            Paragraph("NET PROFIT MARGIN", th_style),
-            Paragraph("ASSET TURNOVER", th_style),
-            Paragraph("EQUITY MULTIPLIER", th_style),
-            Paragraph("RETURN ON EQUITY (ROE)", th_style)
-        ],
-        [
-            Paragraph(f"<b>{dp_npm_val:.1f}%</b>", ParagraphStyle('DP1', parent=td_style, fontSize=9, alignment=1, textColor=colors.HexColor("#0284c7"))),
-            Paragraph(f"<b>{dp_at_val:.2f}x</b>", ParagraphStyle('DP2', parent=td_style, fontSize=9, alignment=1, textColor=colors.HexColor("#0f766e"))),
-            Paragraph(f"<b>{dp_em_val:.2f}x</b>", ParagraphStyle('DP3', parent=td_style, fontSize=9, alignment=1, textColor=colors.HexColor("#b45309"))),
-            Paragraph(f"<b>{dp_roe_val:.1f}%</b>", ParagraphStyle('DP4', parent=td_style, fontSize=9, alignment=1, textColor=colors.HexColor("#15803d")))
-        ],
-        [
-            Paragraph("Net Profit / Revenue", meta_style),
-            Paragraph("Revenue / Total Assets", meta_style),
-            Paragraph(dp_em_sub, meta_style),
-            Paragraph(f"{dp_npm_val:.1f}% x {dp_at_val:.2f} x {dp_em_val:.2f} = {dp_roe_val:.1f}%", meta_style)
-        ]
-    ]
-    t_dupont = Table(dupont_data, colWidths=[130, 130, 130, 130])
-    t_dupont.setStyle(TableStyle([
-        ('BACKGROUND', (0,0), (-1,0), colors.HexColor("#0f172a")),
-        ('GRID', (0,0), (-1,-1), 0.5, colors.HexColor("#cbd5e1")),
-        ('TOPPADDING', (0,0), (-1,-1), 2),
-        ('BOTTOMPADDING', (0,0), (-1,-1), 2),
-        ('ALIGN', (0,0), (-1,-1), 'CENTER'),
-        ('ROWBACKGROUNDS', (0,1), (-1,-1), [colors.HexColor("#f8fafc"), colors.HexColor("#ffffff")])
-    ]))
-    story.append(t_dupont)
+    tot_assets_calc = net_worth * dp_em_val if net_worth > 0 and dp_em_val > 0 else (ttm_sales / max(dp_at_val, 0.01))
+    buf_dupont = _generate_dupont_tree_chart(
+        npm=dp_npm_val,
+        at=dp_at_val,
+        em=dp_em_val,
+        roe=dp_roe_val,
+        net_worth_cr=net_worth,
+        ttm_sales_cr=ttm_sales,
+        tot_assets_cr=tot_assets_calc,
+        ttm_pat_cr=ttm_pat
+    )
+    story.append(Image(buf_dupont, width=520, height=85))
     story.append(Spacer(1, 3))
 
     story.append(Paragraph(f"<b>5-YEAR HISTORICAL FINANCIAL SUMMARY ({y_labels_plot[0].upper()} – {y_labels_plot[-1].upper()} AUDITED CONSOLIDATED)</b>", sec_header_style))
