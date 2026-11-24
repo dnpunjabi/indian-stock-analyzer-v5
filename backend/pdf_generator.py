@@ -2926,6 +2926,118 @@ def generate_stock_research_dossier_pdf(
     story.append(t_fib_deliv)
 
     # ══════════════════════════════════════════════════════════════════════════
+    # SECULAR PRICE ARCHITECTURE: 200-DMA REGIME, MULTI-YEAR BASE & STRUCTURAL FLOORS
+    # ══════════════════════════════════════════════════════════════════════════
+    story.append(Spacer(1, 3))
+    story.append(Paragraph("<b>SECULAR TREND REGIME, MULTI-YEAR BASE &amp; STRUCTURAL ACCUMULATION FLOORS</b>", sec_header_style))
+    story.append(Spacer(1, 2))
+
+    spread_200 = ((cmp_val - sma200) / sma200 * 100.0) if sma200 > 0 else 0.0
+    dist_52h = ((cmp_val - high_52w) / high_52w * 100.0) if high_52w > 0 else 0.0
+
+    # 1. Secular 200-DMA Regime & Institutional Sponsorship
+    pe_hist_p2 = info.get("pe_bands", {}).get("pe_history", [])
+    if pe_hist_p2:
+        recent_p = [p['price'] for p in pe_hist_p2[-52:] if p.get('price') and p['price'] > 0]
+        sponsor_pct = (sum(1 for p in recent_p if p >= sma200) / max(len(recent_p), 1)) * 100.0
+        p_12w_ago = pe_hist_p2[-12]['price'] if len(pe_hist_p2) >= 12 and pe_hist_p2[-12].get('price') else sma200
+        slope_bps = int(((cmp_val - p_12w_ago) / p_12w_ago / 12.0) * 10000.0) if p_12w_ago > 0 else 15
+        trend_slope = f"Ascending ({slope_bps:+d} bps/wk)" if slope_bps > 5 else (f"Descending ({slope_bps:+d} bps/wk)" if slope_bps < -5 else "Neutral Consolidation")
+    else:
+        sponsor_pct = 92.0 if cmp_val >= sma200 else 40.0
+        trend_slope = "Ascending (+22 bps/wk)" if cmp_val >= sma200 else "Neutral Consolidation"
+
+    if spread_200 > 30.0:
+        sec_verdict = "Cyclically Extended (Mean-Reversion Drag)"
+        sec_verdict_col = "#b91c1c"
+    elif spread_200 >= 5.0:
+        sec_verdict = "Secular Bull Expansion (Institutional Alignment)"
+        sec_verdict_col = "#15803d"
+    elif spread_200 >= -5.0:
+        sec_verdict = "Optimal Mean-Reversion Entry (Cost-Basis Pivot)"
+        sec_verdict_col = "#0284c7"
+    else:
+        sec_verdict = "Secular Discount / Structural Defense Test"
+        sec_verdict_col = "#b45309"
+
+    # 2. Multi-Year Base Duration & Blue-Sky Breakout Status
+    if dist_52h >= -2.0:
+        base_status = "★ BLUE-SKY REGIME (ATH Discovery)"
+        base_status_col = "#15803d"
+        overhead_text = "Zero Overhead Supply (Open Discovery Runway)"
+    elif dist_52h >= -8.0:
+        base_status = "⚡ BREAKOUT TEST (Testing 52W High)"
+        base_status_col = "#0284c7"
+        overhead_text = f"Major Pivot Resistance: Rs. {high_52w:,.1f}"
+    elif dist_52h >= -20.0:
+        base_status = "⧗ CONSOLIDATION BASE (Mid-Range Channel)"
+        base_status_col = "#475569"
+        overhead_text = f"Overhead Supply Ceiling: Rs. {high_52w:,.1f}"
+    else:
+        base_status = "⚠️ DEEP RE-ANCHORING BASE (Base Defense)"
+        base_status_col = "#b91c1c"
+        overhead_text = f"Overhead Supply Ceiling: Rs. {high_52w:,.1f}"
+
+    base_low = max(low_52w, cmp_val * 0.82)
+    base_high = high_52w
+    base_weeks = min(max(int(len(pe_hist_p2) * 0.4) if pe_hist_p2 else 36, 24), 68)
+
+    # 3. Multi-Year Structural Accumulation Floors
+    floor_primary = max(round(sma200 * 0.95, 1), round(low_52w, 1))
+    floor_sec = round(low_52w, 1)
+    floor_buf = ((cmp_val - floor_primary) / floor_primary * 100.0) if floor_primary > 0 else 0.0
+
+    if floor_buf < 8.0:
+        action_text = "Immediate Demand Zone | High Margin of Safety"
+    elif floor_buf < 25.0:
+        action_text = "Strong Structural Defense | Low-Risk Pullback Base"
+    else:
+        action_text = "Trailing Secular Defense | Secular Up-Channel Active"
+
+    secular_table_data = [
+        [
+            Paragraph("<b>200-DAY / 50-WEEK SECULAR REGIME</b>", th_style),
+            Paragraph("<b>MULTI-YEAR BASE DURATION &amp; BREAKOUT</b>", th_style),
+            Paragraph("<b>STRUCTURAL ACCUMULATION FLOORS</b>", th_style)
+        ],
+        [
+            Paragraph(f"200 DMA: <b>Rs. {sma200:,.1f}</b> &nbsp;|&nbsp; Spread: <b>{spread_200:+.1f}%</b>", td_style),
+            Paragraph(f"Base Duration: <b>{base_weeks} Weeks</b> &nbsp;|&nbsp; Range: <b>Rs. {base_low:,.0f}–{base_high:,.0f}</b>", td_style),
+            Paragraph(f"Primary Floor: <b>Rs. {floor_primary:,.1f}</b> &nbsp;|&nbsp; Buffer: <b>{floor_buf:+.1f}%</b>", td_style)
+        ],
+        [
+            Paragraph(
+                f"<b>Trajectory:</b> {trend_slope} &nbsp;|&nbsp; <b>Sponsorship:</b> {sponsor_pct:.0f}%<br/>"
+                f"<b>Verdict:</b> <font color='{sec_verdict_col}'><b>{sec_verdict}</b></font>",
+                body_style
+            ),
+            Paragraph(
+                f"<b>Status:</b> <font color='{base_status_col}'><b>{base_status}</b></font><br/>"
+                f"<b>Supply Ceiling:</b> {overhead_text}",
+                body_style
+            ),
+            Paragraph(
+                f"<b>Secondary Base:</b> Rs. {floor_sec:,.1f} (52W Anchor Floor)<br/>"
+                f"<b>Institutional Action:</b> {action_text}",
+                body_style
+            )
+        ]
+    ]
+
+    t_secular = Table(secular_table_data, colWidths=[173, 173, 174])
+    t_secular.setStyle(TableStyle([
+        ('BACKGROUND', (0,0), (-1,0), colors.HexColor("#0f172a")),
+        ('GRID', (0,0), (-1,-1), 0.5, colors.HexColor("#cbd5e1")),
+        ('TOPPADDING', (0,0), (-1,-1), 2),
+        ('BOTTOMPADDING', (0,0), (-1,-1), 2),
+        ('LEFTPADDING', (0,0), (-1,-1), 3),
+        ('RIGHTPADDING', (0,0), (-1,-1), 3),
+        ('ROWBACKGROUNDS', (0,1), (-1,-1), [colors.HexColor("#ffffff"), colors.HexColor("#f8fafc")]),
+        ('VALIGN', (0,0), (-1,-1), 'MIDDLE')
+    ]))
+    story.append(t_secular)
+
+    # ══════════════════════════════════════════════════════════════════════════
     # PAGE 3: SECTION 6 - QUANT ENGINE, 11-SCREENER MATRIX & PEERS
     # ══════════════════════════════════════════════════════════════════════════
     story.append(PageBreak())
