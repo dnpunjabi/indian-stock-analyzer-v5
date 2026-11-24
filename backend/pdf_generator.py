@@ -3458,11 +3458,11 @@ def generate_stock_research_dossier_pdf(
     story.append(t_capex)
 
     # ══════════════════════════════════════════════════════════════════════════
-    # PAGE 6: SECTION 9 - DCF FRAMEWORK, CATALYSTS & ACTIONABLE STRATEGY
+    # PAGE 6: SECTION 8 - DCF FRAMEWORK & DUAL-HORIZON ACTIONABLE STRATEGY
     # ══════════════════════════════════════════════════════════════════════════
     story.append(PageBreak())
 
-    story.append(Paragraph("<a name='page_6'/><b>8. DUAL-TERMINAL DCF FRAMEWORK, CATALYSTS &amp; ACTIONABLE STRATEGY</b>", sec_header_style))
+    story.append(Paragraph("<a name='page_6'/><b>8. DUAL-TERMINAL DCF INTRINSIC VALUATION &amp; DUAL-HORIZON ACTIONABLE STRATEGY</b>", sec_header_style))
     story.append(Spacer(1, 2))
 
     pe_b = info.get("pe_bands", {})
@@ -3757,71 +3757,7 @@ def generate_stock_research_dossier_pdf(
         ('RIGHTPADDING', (0,0), (-1,-1), 6),
     ]))
     story.append(t_sens)
-    story.append(Spacer(1, 1.2))
-
-    story.append(Paragraph("<b>INSTITUTIONAL MARKET NEWS &amp; RECENT CATALYSTS</b>", sec_header_style))
-    story.append(Spacer(1, 1.5))
-
-    news_items = info.get("news", [])
-    clean_news_items = []
-    seen_titles = set()
-    for n in news_items:
-        raw_t = n.get("title", "")
-        raw_s = n.get("publisher", "Exchange Disclosures")
-        raw_d = n.get("date", "")
-
-        c_date = raw_d
-        if raw_d and "-" in raw_d:
-            try:
-                p = raw_d.split("-")
-                if len(p) == 3:
-                    c_date = datetime(int(p[0]), int(p[1]), int(p[2])).strftime("%d %b %Y")
-            except:
-                c_date = raw_d
-
-        if "quarterly_results" in raw_t.lower():
-            c_title = f"NSE Corporate Filing: Board Consideration & Audited Consolidated Financial Results."
-        elif "dividend" in raw_t.lower():
-            div_val = raw_t.split("₹")[-1].strip() if "₹" in raw_t else ""
-            c_title = f"NSE Corporate Action: Board Approval & Record Date for Equity Dividend (Rs. {div_val}/sh)." if div_val else "NSE Corporate Action: Equity Dividend Distribution."
-        else:
-            c_title = raw_t.replace("_", " ").title()
-
-        if c_title in seen_titles:
-            c_title = "Exchange Disclosure: Operational Update & Institutional Investor Presentation Filing."
-
-        seen_titles.add(c_title)
-        c_source = "NSE Filings" if "NSE" in raw_s else raw_s
-        clean_news_items.append({"title": c_title, "source": c_source, "date": c_date})
-        if len(clean_news_items) == 2:
-            break
-
-    if not clean_news_items:
-        clean_news_items = [
-            {"title": f"{comp_name} maintains disciplined operational execution and operating margin resilience across core product portfolios.", "source": "CNBC-TV18", "date": "20 Nov 2026"},
-            {"title": f"{comp_name} Board reaffirms fortress capital structure with zero long-term debt and disciplined capital allocation.", "source": "The Economic Times", "date": "20 Nov 2026"}
-        ]
-
-    news_rows = []
-    for it in clean_news_items[:2]:
-        t_str = it.get("title", "")
-        s_str = it.get("source", "")
-        d_str = it.get("date", "")
-        badge_str = f"[{s_str} • {d_str}]" if s_str and d_str else (f"[{s_str}]" if s_str else "")
-        news_rows.append([
-            Paragraph(f"• {t_str} &nbsp; <font color='#64748b'><b>{badge_str}</b></font>", body_style)
-        ])
-    t_news = Table(news_rows, colWidths=[520])
-    t_news.setStyle(TableStyle([
-        ('GRID', (0,0), (-1,-1), 0.5, colors.HexColor("#cbd5e1")),
-        ('TOPPADDING', (0,0), (-1,-1), 1.2),
-        ('BOTTOMPADDING', (0,0), (-1,-1), 1.2),
-        ('LEFTPADDING', (0,0), (-1,-1), 5),
-        ('RIGHTPADDING', (0,0), (-1,-1), 5),
-        ('ROWBACKGROUNDS', (0,0), (-1,-1), [colors.HexColor("#ffffff"), colors.HexColor("#f8fafc")])
-    ]))
-    story.append(t_news)
-    story.append(Spacer(1, 1.2))
+    story.append(Spacer(1, 2.5))
 
     story.append(Paragraph("<b>DUAL-HORIZON ACTIONABLE VERDICTS: SWING TRADING vs LONG-TERM INVESTMENT</b>", sec_header_style))
     story.append(Spacer(1, 1))
