@@ -3094,12 +3094,23 @@ def generate_stock_research_dossier_pdf(
     story.append(t_peers)
     story.append(Spacer(1, 3))
 
-    # Shareholding Table
-    q_cols = [q.upper() for q in sh_quarters[-4:]]
-    prom_v = sh_cats.get("Promoters", [70.0]*4)[-4:]
-    dii_v = sh_cats.get("DIIs", [15.0]*4)[-4:]
-    fii_v = sh_cats.get("FIIs", [10.0]*4)[-4:]
-    pub_v = sh_cats.get("Public", [5.0]*4)[-4:]
+    # Shareholding Table - Guaranteed 4-column normalization
+    raw_q_cols = [q.upper() for q in (sh_quarters if sh_quarters else [])]
+    while len(raw_q_cols) < 4:
+        raw_q_cols.insert(0, f"Q{4 - len(raw_q_cols)}")
+    q_cols = raw_q_cols[-4:]
+
+    def _pad_sh_list(cat_name: str, fallback_val: float) -> list:
+        raw_v = sh_cats.get(cat_name, [fallback_val] * 4) if sh_cats else [fallback_val] * 4
+        v_list = list(raw_v) if raw_v else [fallback_val] * 4
+        while len(v_list) < 4:
+            v_list.insert(0, fallback_val)
+        return v_list[-4:]
+
+    prom_v = _pad_sh_list("Promoters", 0.0)
+    dii_v = _pad_sh_list("DIIs", 15.0)
+    fii_v = _pad_sh_list("FIIs", 15.0)
+    pub_v = _pad_sh_list("Public", 70.0)
 
     sh_data = [
         [
@@ -3606,9 +3617,17 @@ def generate_stock_research_dossier_pdf(
     story.append(Spacer(1, 1.5))
 
     rev_proj = [round((y_rev[-1] if y_rev else ttm_sales) * ((1.0 + growth_rate)**i), 0) for i in range(1, 6)]
+    while len(rev_proj) < 5:
+        rev_proj.append(rev_proj[-1] if rev_proj else 1000.0)
 
-    fcf_vals = fcf_proj
-    pv_fcf_vals = pv_proj
+    fcf_vals = list(fcf_proj) if fcf_proj else []
+    while len(fcf_vals) < 5:
+        fcf_vals.append(fcf_vals[-1] if fcf_vals else 100.0)
+
+    pv_fcf_vals = list(pv_proj) if pv_proj else []
+    while len(pv_fcf_vals) < 5:
+        pv_fcf_vals.append(pv_fcf_vals[-1] if pv_fcf_vals else 80.0)
+
     base_target = dcf_targets[30.0]
     bull_target_low = dcf_targets[38.0]
     bull_target_high = dcf_targets[40.0]
