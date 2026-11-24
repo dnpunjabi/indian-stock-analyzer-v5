@@ -1213,101 +1213,189 @@ def _generate_dupont_tree_chart(
 
 def _generate_peer_bubble_scatter_chart(peers_data: List[Dict[str, Any]], target_symbol: str) -> io.BytesIO:
     """
-    Renders 2D Valuation vs. Quality Frontier Bubble Chart:
-    X-axis: P/E Multiple | Y-axis: ROCE % | Bubble Size: Market Cap
-    Target stock highlighted in electric blue with badge; peers in slate gray.
+    Renders an institutional-grade 2D Valuation vs. Quality Frontier Bubble Exhibit:
+    - 4 elegantly tinted quadrant zones (Value Sweet Spot, Moat Compounders, Cyclical Base, Valuation Drag)
+    - Proportional bubble sizes based on Market Cap with halo glows
+    - Collision-free crisp label pills with background masks so text is never cut off or overlapping
+    - Dynamic axis padding preventing border slams
     """
-    fig, ax = plt.subplots(figsize=(7.2, 1.35), dpi=150)
+    fig, ax = plt.subplots(figsize=(7.2, 1.85), dpi=160)
     fig.patch.set_facecolor('#ffffff')
     ax.set_facecolor('#ffffff')
 
-    pe_vals = [_safe_float(p.get('pe'), 30.0) for p in peers_data]
+    if not peers_data:
+        peers_data = [{'name': target_symbol, 'pe': 25.0, 'roce': 18.0, 'mcap': 50000.0, 'is_target': True}]
+
+    pe_vals = [_safe_float(p.get('pe'), 25.0) for p in peers_data]
     roce_vals = [_safe_float(p.get('roce'), 15.0) for p in peers_data]
     mcaps = [_safe_float(p.get('mcap'), 20000.0) for p in peers_data]
 
+    med_pe = float(np.median(pe_vals)) if pe_vals else 30.0
+    med_roce = float(np.median(roce_vals)) if roce_vals else 15.0
+
+    raw_min_pe, raw_max_pe = min(pe_vals), max(pe_vals)
+    raw_min_roce, raw_max_roce = min(roce_vals), max(roce_vals)
+
+    # Compute generous axis limits with padding to prevent label clipping
+    x_span = max(raw_max_pe - raw_min_pe, 15.0)
+    x_min = max(0.0, raw_min_pe - x_span * 0.18)
+    x_max = raw_max_pe + x_span * 0.22
+
+    y_span = max(raw_max_roce - raw_min_roce, 10.0)
+    y_min = max(0.0, raw_min_roce - y_span * 0.22)
+    y_max = raw_max_roce + y_span * 0.25
+
+    ax.set_xlim(x_min, x_max)
+    ax.set_ylim(y_min, y_max)
+
+    # 4-Quadrant Soft Shaded Backgrounds
+    # Top-Left: High ROCE / Lower PE (Value & Quality Sweet Spot)
+    ax.add_patch(patches.Rectangle((x_min, med_roce), med_pe - x_min, y_max - med_roce,
+                                   facecolor='#f0fdf4', alpha=0.55, edgecolor='none', zorder=0))
+    # Top-Right: High ROCE / Higher PE (Quality Moat Compounders)
+    ax.add_patch(patches.Rectangle((med_pe, med_roce), x_max - med_pe, y_max - med_roce,
+                                   facecolor='#f0f9ff', alpha=0.55, edgecolor='none', zorder=0))
+    # Bottom-Left: Lower ROCE / Lower PE (Cyclical / Value Reinvestment)
+    ax.add_patch(patches.Rectangle((x_min, y_min), med_pe - x_min, med_roce - y_min,
+                                   facecolor='#f8fafc', alpha=0.65, edgecolor='none', zorder=0))
+    # Bottom-Right: Lower ROCE / Higher PE (Valuation Drag / Risk)
+    ax.add_patch(patches.Rectangle((med_pe, y_min), x_max - med_pe, med_roce - y_min,
+                                   facecolor='#fff1f2', alpha=0.55, edgecolor='none', zorder=0))
+
+    # Median Benchmark Crosshairs
+    ax.axvline(med_pe, color='#94a3b8', linestyle='--', linewidth=0.9, alpha=0.85, zorder=1)
+    ax.axhline(med_roce, color='#94a3b8', linestyle='--', linewidth=0.9, alpha=0.85, zorder=1)
+
+    # Quadrant Corner Watermark Badges
+    q_props = dict(boxstyle="round,pad=0.25,rounding_size=2", alpha=0.85, lw=0.5)
+    ax.text(x_min + (med_pe - x_min) * 0.04, y_max - y_span * 0.05,
+            "VALUATION SWEET SPOT\n(High ROCE / Attractive P/E)",
+            fontsize=5.2, color='#15803d', fontweight='bold', va='top', ha='left',
+            bbox=dict(fc='#ffffff', ec='#86efac', **q_props), zorder=2)
+
+    ax.text(x_max - (x_max - med_pe) * 0.04, y_max - y_span * 0.05,
+            "QUALITY COMPOUNDERS\n(High ROCE / Premium Multiple)",
+            fontsize=5.2, color='#0284c7', fontweight='bold', va='top', ha='right',
+            bbox=dict(fc='#ffffff', ec='#7dd3fc', **q_props), zorder=2)
+
+    ax.text(x_min + (med_pe - x_min) * 0.04, y_min + y_span * 0.05,
+            "CYCLICAL / REINVESTMENT\n(Lower Multiple / Capital Build)",
+            fontsize=5.2, color='#475569', fontweight='bold', va='bottom', ha='left',
+            bbox=dict(fc='#ffffff', ec='#cbd5e1', **q_props), zorder=2)
+
+    ax.text(x_max - (x_max - med_pe) * 0.04, y_min + y_span * 0.05,
+            "VALUATION DRAG RISK\n(Low ROCE / Extended Multiple)",
+            fontsize=5.2, color='#dc2626', fontweight='bold', va='bottom', ha='right',
+            bbox=dict(fc='#ffffff', ec='#fca5a5', **q_props), zorder=2)
+
+    # Median Benchmark Labels on Axis edges
+    ax.text(med_pe, y_max - y_span * 0.02, f" Peer Median P/E: {med_pe:.1f}x ",
+            fontsize=5.0, color='#64748b', fontweight='semibold', ha='center', va='bottom',
+            bbox=dict(boxstyle="round,pad=0.15", fc='#ffffff', ec='#94a3b8', lw=0.4), zorder=2)
+
+    # Market Cap proportional bubble sizing
     max_mcap = max(mcaps) if mcaps else 100000.0
-    sizes = [max(120.0, (m / max_mcap) * 500.0) for m in mcaps]
+    min_mcap = min(mcaps) if mcaps else 1000.0
 
-    med_pe = float(np.median(pe_vals)) if pe_vals else 45.0
-    med_roce = float(np.median(roce_vals)) if roce_vals else 18.0
+    def get_bubble_size(m):
+        norm = (math.sqrt(max(m, 100.0)) - math.sqrt(min_mcap)) / (math.sqrt(max_mcap) - math.sqrt(min_mcap) + 1e-5)
+        return 140.0 + norm * 450.0
 
-    ax.axvline(med_pe, color='#e2e8f0', linestyle='--', linewidth=0.8)
-    ax.axhline(med_roce, color='#e2e8f0', linestyle='--', linewidth=0.8)
+    # Sort peers by P/E to systematically alternate placement
+    sorted_peers = sorted(peers_data, key=lambda p: _safe_float(p.get('pe'), 0.0))
 
-    for idx, (p, sz) in enumerate(zip(peers_data, sizes)):
-        is_tgt = p.get('is_target', False) or p['name'].startswith(target_symbol)
-        x = _safe_float(p.get('pe'), 30.0)
+    for i, p in enumerate(sorted_peers):
+        is_tgt = p.get('is_target', False) or p['name'].upper().startswith(target_symbol.upper())
+        x = _safe_float(p.get('pe'), 25.0)
         y = _safe_float(p.get('roce'), 15.0)
-        lbl = p['name']
+        m = _safe_float(p.get('mcap'), 20000.0)
+        lbl = p['name'].replace(" (Target)", "").strip()
+        sz = get_bubble_size(m)
 
         if is_tgt:
-            ax.scatter(x, y, s=sz*1.2, color='#0284c7', alpha=0.35, edgecolors='#0284c7', linewidth=1.8, zorder=5)
-            ax.scatter(x, y, s=sz*0.45, color='#0284c7', alpha=0.95, zorder=6)
+            # Luxury Target Highlighting: Multi-layer Glowing Pulse
+            ax.scatter(x, y, s=sz * 2.2, color='#38bdf8', alpha=0.20, edgecolors='none', zorder=4)
+            ax.scatter(x, y, s=sz * 1.3, color='#0284c7', alpha=0.35, edgecolors='#0284c7', linewidth=1.5, zorder=5)
+            ax.scatter(x, y, s=sz * 0.55, color='#0369a1', alpha=0.95, edgecolors='#ffffff', linewidth=1.2, zorder=6)
+
+            if y > med_roce:
+                tgt_xytext = (0, -28)
+                tgt_va = 'top'
+            else:
+                tgt_xytext = (0, 26)
+                tgt_va = 'bottom'
+
+            tgt_ha = 'center'
+            if x < x_min + x_span * 0.25:
+                tgt_ha = 'left'
+                tgt_xytext = (10, tgt_xytext[1])
+            elif x > x_max - x_span * 0.25:
+                tgt_ha = 'right'
+                tgt_xytext = (-10, tgt_xytext[1])
+
             ax.annotate(
-                f"TARGET: {lbl}\n({x:.1f}x P/E, {y:.1f}% ROCE)",
-                xy=(x, y), xytext=(0, 14), textcoords="offset points",
-                ha='center', va='bottom', fontsize=6.2, fontweight='bold', color='#0369a1',
-                bbox=dict(boxstyle="round,pad=0.25", fc="#f0f9ff", ec="#0284c7", lw=0.8),
-                zorder=7
+                f"TARGET: {lbl.upper()}\n{x:.1f}x P/E  |  {y:.1f}% ROCE  |  Rs. {m:,.0f} Cr",
+                xy=(x, y), xytext=tgt_xytext, textcoords="offset points",
+                ha=tgt_ha, va=tgt_va, fontsize=6.2, fontweight='bold', color='#0284c7',
+                bbox=dict(boxstyle="round,pad=0.35,rounding_size=3", fc="#ffffff", ec="#0284c7", lw=1.2, alpha=0.95),
+                arrowprops=dict(arrowstyle="->", color="#0284c7", lw=0.8, shrinkA=3, shrinkB=3),
+                zorder=8
             )
         else:
-            ax.scatter(x, y, s=sz, color='#64748b', alpha=0.25, edgecolors='#475569', linewidth=1.0, zorder=3)
-            ax.scatter(x, y, s=sz*0.35, color='#475569', alpha=0.8, zorder=4)
+            # Elegant Peer Bubble: Soft translucent outer ring + solid core
+            ax.scatter(x, y, s=sz * 1.1, color='#64748b', alpha=0.25, edgecolors='#475569', linewidth=0.8, zorder=3)
+            ax.scatter(x, y, s=sz * 0.40, color='#334155', alpha=0.85, edgecolors='#ffffff', linewidth=0.8, zorder=4)
 
-            # Smart non-overlapping offsets for tight clusters
-            lbl_low = lbl.lower()
-            if 'minda' in lbl_low and 'uno' not in lbl_low:
-                xy_off = (-30, 8)
-                ha_align = 'right'
-                va_align = 'bottom'
-            elif 'endurance' in lbl_low:
-                xy_off = (0, -18)
-                ha_align = 'center'
-                va_align = 'top'
-            elif 'samvardhana' in lbl_low or 'motherson' in lbl_low:
-                xy_off = (28, 8)
-                ha_align = 'left'
-                va_align = 'bottom'
-            elif 'uno' in lbl_low:
-                xy_off = (0, 10)
-                ha_align = 'center'
-                va_align = 'bottom'
+            # Smart Anti-Collision Offset Algorithm
+            close_neighbors = [other for other in sorted_peers if other != p and abs(_safe_float(other.get('pe'), 0.0) - x) < x_span * 0.12]
+
+            if close_neighbors:
+                higher_count = sum(1 for o in close_neighbors if _safe_float(o.get('roce'), 0.0) > y)
+                lower_count = sum(1 for o in close_neighbors if _safe_float(o.get('roce'), 0.0) <= y)
+                if higher_count >= lower_count and y > y_min + y_span * 0.18:
+                    y_off = -18
+                    va = 'top'
+                else:
+                    y_off = 16
+                    va = 'bottom'
             else:
-                staggers = [(0, 10), (22, -14), (-22, -14), (0, -16), (24, 8)]
-                xy_off = staggers[idx % len(staggers)]
-                ha_align = 'center'
-                va_align = 'bottom' if xy_off[1] > 0 else 'top'
+                y_off = 16 if (i % 2 == 0) else -18
+                va = 'bottom' if y_off > 0 else 'top'
+
+            if x < x_min + x_span * 0.18:
+                x_off = 8
+                ha = 'left'
+            elif x > x_max - x_span * 0.18:
+                x_off = -8
+                ha = 'right'
+            else:
+                x_off = 0
+                ha = 'center'
+
+            clean_pname = lbl
+            if len(clean_pname) > 16:
+                clean_pname = clean_pname[:15] + ".."
 
             ax.annotate(
-                f"{lbl}\n{x:.1f}x | {y:.1f}%",
-                xy=(x, y), xytext=xy_off, textcoords="offset points",
-                ha=ha_align, va=va_align,
-                fontsize=5.5, color='#334155', fontweight='semibold',
-                zorder=5
+                f"{clean_pname}\n{x:.1f}x | {y:.1f}%",
+                xy=(x, y), xytext=(x_off, y_off), textcoords="offset points",
+                ha=ha, va=va, fontsize=5.6, color='#1e293b', fontweight='bold',
+                bbox=dict(boxstyle="round,pad=0.25,rounding_size=2", fc="#ffffff", ec="#cbd5e1", lw=0.6, alpha=0.92),
+                zorder=6
             )
 
-    x_min, x_max = min(pe_vals)*0.75, max(pe_vals)*1.25
-    y_min, y_max = min(roce_vals)*0.75, max(roce_vals)*1.35
-    ax.set_xlim(max(0, x_min), x_max)
-    ax.set_ylim(max(0, y_min), y_max)
-
-    ax.text(x_min + (med_pe-x_min)*0.05, y_max*0.93, "High ROCE / Value", fontsize=5.5, color='#15803d', fontweight='bold', alpha=0.7)
-    ax.text(x_max*0.75, y_max*0.93, "Quality Moat / Premium", fontsize=5.5, color='#0369a1', fontweight='bold', alpha=0.7)
-    ax.text(x_min + (med_pe-x_min)*0.05, y_min + (med_roce-y_min)*0.1, "Cyclical / Reinvestment", fontsize=5.5, color='#64748b', fontweight='bold', alpha=0.7)
-    ax.text(x_max*0.75, y_min + (med_roce-y_min)*0.1, "Multiple Drag Risk", fontsize=5.5, color='#b91c1c', fontweight='bold', alpha=0.7)
-
-    ax.set_xlabel("Valuation Multiple (P/E Ratio)", fontsize=6.5, color='#475569', fontweight='bold')
-    ax.set_ylabel("ROCE %", fontsize=6.5, color='#475569', fontweight='bold')
-    ax.tick_params(axis='both', labelsize=6.0, labelcolor='#475569')
-    ax.grid(True, linestyle=':', linewidth=0.5, color='#e2e8f0', alpha=0.8)
+    ax.set_xlabel("Valuation Multiple (P/E Ratio)", fontsize=6.8, color='#0f172a', fontweight='bold', labelpad=4)
+    ax.set_ylabel("Operating Quality (ROCE %)", fontsize=6.8, color='#0f172a', fontweight='bold', labelpad=4)
+    ax.tick_params(axis='both', labelsize=6.2, labelcolor='#334155', length=3, width=0.6)
+    ax.grid(True, linestyle=':', linewidth=0.5, color='#cbd5e1', alpha=0.6, zorder=1)
 
     for spine in ['top', 'right', 'left', 'bottom']:
         ax.spines[spine].set_color('#cbd5e1')
-        ax.spines[spine].set_linewidth(0.5)
+        ax.spines[spine].set_linewidth(0.8)
 
-    plt.subplots_adjust(left=0.07, right=0.96, top=0.85, bottom=0.22)
+    plt.subplots_adjust(left=0.08, right=0.96, top=0.90, bottom=0.18)
     buf = io.BytesIO()
-    fig.savefig(buf, format='png', dpi=150, bbox_inches='tight', pad_inches=0.03)
+    fig.savefig(buf, format='png', dpi=160, bbox_inches='tight', pad_inches=0.03)
     buf.seek(0)
     plt.close(fig)
     return buf
@@ -1840,8 +1928,19 @@ def _extract_dossier_intelligence(clean_sym: str) -> dict:
             p_sales3 = _safe_float(val_map.get("Profit Var 3Yrs %") or val_map.get("Qtr Sales Var %"), _safe_float(vals[7] if len(vals) > 7 else 0, 12.0))
             p_de = _safe_float(val_map.get("Debt / Eq"), _safe_float(vals[14] if len(vals) > 14 else 0, 0.05))
 
-            clean_tok = clean_sym.replace(".NS", "").replace(".BO", "").replace("LTD", "").replace("LIMITED", "").strip()
-            is_target = (clean_sym in lbl.upper() or lbl.upper() in clean_sym or (len(clean_tok) >= 3 and clean_tok in lbl.upper()))
+            def _norm_co(name: str) -> str:
+                return re.sub(r'[^A-Z0-9]', '', str(name).upper().replace("LIMITED", "").replace("LTD", "").replace(".NS", "").replace(".BO", ""))
+
+            norm_lbl = _norm_co(lbl)
+            norm_sym = _norm_co(clean_sym)
+            norm_comp = _norm_co(comp_name)
+
+            is_target = (
+                norm_sym in norm_lbl or norm_lbl in norm_sym or
+                (len(norm_sym) >= 4 and norm_lbl.startswith(norm_sym[:4])) or
+                (len(norm_comp) >= 4 and norm_lbl.startswith(norm_comp[:4])) or
+                (len(norm_lbl) >= 4 and norm_comp.startswith(norm_lbl[:4]))
+            )
             if is_target:
                 p_cmp = cmp_val
                 p_pe = pe_val
@@ -1850,7 +1949,7 @@ def _extract_dossier_intelligence(clean_sym: str) -> dict:
                 p_de = de_val
 
             peer_rows.append({
-                "label": f"{lbl} (Target)" if is_target else lbl,
+                "label": f"{comp_name} (Target)" if is_target else lbl,
                 "cmp": p_cmp,
                 "pe": p_pe,
                 "mcap": p_mcap,
@@ -1859,7 +1958,7 @@ def _extract_dossier_intelligence(clean_sym: str) -> dict:
                 "de": p_de,
                 "is_target": is_target
             })
-            if len(peer_rows) >= 6:
+            if len(peer_rows) >= 8:
                 break
 
     has_target = any(pr["is_target"] for pr in peer_rows)
@@ -1874,7 +1973,26 @@ def _extract_dossier_intelligence(clean_sym: str) -> dict:
             "de": de_val,
             "is_target": True
         })
-    peer_rows = peer_rows[:5]
+    else:
+        # Move target to top position (institutional standard)
+        tgt_idx = next(i for i, pr in enumerate(peer_rows) if pr["is_target"])
+        if tgt_idx > 0:
+            tgt_row = peer_rows.pop(tgt_idx)
+            peer_rows.insert(0, tgt_row)
+
+    # Strict deduplication: ensure target or any peer is never duplicated
+    dedup_peers = []
+    seen_norms = set()
+    for pr in peer_rows:
+        raw_n = pr["label"].replace(" (Target)", "").strip()
+        n_lbl = re.sub(r'[^A-Z0-9]', '', raw_n.upper().replace("LIMITED", "").replace("LTD", ""))
+        key = "__TARGET__" if pr["is_target"] else (n_lbl[:6] if len(n_lbl) >= 6 else n_lbl)
+        if key in seen_norms:
+            continue
+        seen_norms.add(key)
+        dedup_peers.append(pr)
+
+    peer_rows = dedup_peers[:5]
 
     # Extract Shareholding dynamically
     sh_quarters = sh.get("quarters", [])[-4:] if sh.get("quarters") else ["Sep 25", "Dec 25", "Mar 26", "Jun 26"]
@@ -2816,7 +2934,7 @@ def generate_stock_research_dossier_pdf(
         ])
 
     buf_peer_scatter = _generate_peer_bubble_scatter_chart(peers_scatter_list, clean_sym)
-    story.append(Image(buf_peer_scatter, width=520, height=88))
+    story.append(Image(buf_peer_scatter, width=520, height=110))
     story.append(Spacer(1, 2))
 
     t_peers = Table(peer_data, colWidths=[110, 60, 45, 75, 52, 53, 55, 70])
