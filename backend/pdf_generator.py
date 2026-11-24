@@ -2575,123 +2575,10 @@ def generate_stock_research_dossier_pdf(
         ('VALIGN', (0,0), (-1,-1), 'MIDDLE')
     ]))
     story.append(t_triad)
-    story.append(Spacer(1, 3))
-
-    # 3. Business Segment Breakdown
-    story.append(Paragraph(f"<b>3. AUDITED BUSINESS SEGMENT REVENUE BREAKDOWN &amp; PRODUCT MIX (TTM CONSOLIDATED: RS. {ttm_sales:,.0f} CR)</b>", sec_header_style))
-    story.append(Spacer(1, 2))
-
-    if "auto" in sector.lower() or "auto" in industry.lower():
-        seg_tuples = [
-            ("Automotive & Mobility", 86.0, "#0284c7"),
-            ("Consumer Goods & Tools", 11.0, "#10b981"),
-            ("Energy & Industrial", 3.0, "#f59e0b")
-        ]
-        segment_data = [
-            [
-                Paragraph("<b>AUTOMOTIVE &amp; MOBILITY (86% REVENUE)</b>", th_style),
-                Paragraph("<b>CONSUMER GOODS &amp; TOOLS (11% REVENUE)</b>", th_style),
-                Paragraph("<b>ENERGY &amp; INDUSTRIAL (3% REVENUE)</b>", th_style)
-            ],
-            [
-                Paragraph(f"<b>TTM Sales: Rs. {ttm_sales*0.86:,.0f} Cr</b><br/>Diesel &amp; gasoline fuel injection systems, Electronic Control Units (ECUs), ABS/ESP braking, EV battery management &amp; localized electrified powertrains.", body_style),
-                Paragraph(f"<b>TTM Sales: Rs. {ttm_sales*0.11:,.0f} Cr</b><br/>Professional power tools, rotary hammers, marble cutters, cordless screwdrivers, laser measuring sensors, and DIY accessories.", body_style),
-                Paragraph(f"<b>TTM Sales: Rs. {ttm_sales*0.03:,.0f} Cr</b><br/>Security surveillance systems, fire alarms, HVAC building automation, access control, and specialized industrial solar solutions.", body_style)
-            ]
-        ]
-    elif "tech" in sector.lower() or "software" in industry.lower():
-        seg_tuples = [
-            ("BFSI & Fintech Platforms", 38.0, "#0284c7"),
-            ("Retail, CPG & Consumer", 32.0, "#10b981"),
-            ("Cloud, AI & Digital", 30.0, "#8b5cf6")
-        ]
-        segment_data = [
-            [
-                Paragraph("<b>BFSI &amp; FINTECH PLATFORMS (38% REVENUE)</b>", th_style),
-                Paragraph("<b>RETAIL, CPG &amp; CONSUMER (32% REVENUE)</b>", th_style),
-                Paragraph("<b>CLOUD, AI &amp; DIGITAL (30% REVENUE)</b>", th_style)
-            ],
-            [
-                Paragraph(f"<b>TTM Sales: Rs. {ttm_sales*0.38:,.0f} Cr</b><br/>Core banking migration, algorithmic trade settlement, regulatory risk compliance, and cloud financial architecture.", body_style),
-                Paragraph(f"<b>TTM Sales: Rs. {ttm_sales*0.32:,.0f} Cr</b><br/>Supply chain resilience, omni-channel e-commerce engines, IoT factory automation, and smart enterprise ERP systems.", body_style),
-                Paragraph(f"<b>TTM Sales: Rs. {ttm_sales*0.30:,.0f} Cr</b><br/>Enterprise generative AI models, hyperscaler cloud infrastructure, cybersecurity operations, and digital engineering solutions.", body_style)
-            ]
-        ]
-    elif "oil" in sector.lower() or "energy" in sector.lower() or "refin" in industry.lower():
-        seg_tuples = [
-            ("Energy & Petrochem", 58.0, "#0284c7"),
-            ("Digital Services & 5G", 22.0, "#10b981"),
-            ("Organized Retail", 20.0, "#f59e0b")
-        ]
-        segment_data = [
-            [
-                Paragraph("<b>ENERGY, REFINING &amp; PETROCHEM (58%)</b>", th_style),
-                Paragraph("<b>DIGITAL SERVICES &amp; 5G (22% REVENUE)</b>", th_style),
-                Paragraph("<b>ORGANIZED RETAIL &amp; COMMERCE (20%)</b>", th_style)
-            ],
-            [
-                Paragraph(f"<b>TTM Sales: Rs. {ttm_sales*0.58:,.0f} Cr</b><br/>Crude processing, integrated petrochemical feedstock cracking, polymer production, and global specialty fuel exports.", body_style),
-                Paragraph(f"<b>TTM Sales: Rs. {ttm_sales*0.22:,.0f} Cr</b><br/>Pan-India 5G broadband connectivity, cloud infrastructure, enterprise fiber connectivity, and digital media ecosystems.", body_style),
-                Paragraph(f"<b>TTM Sales: Rs. {ttm_sales*0.20:,.0f} Cr</b><br/>Grocery supermarket network, consumer electronics distribution, fashion retail footprint, and omni-channel quick-commerce.", body_style)
-            ]
-        ]
-    elif any(k in sector.lower() or k in industry.lower() for k in ["port", "infra", "logistics", "shipping", "marine"]):
-        seg_tuples = [
-            ("Port Cargo & Berthing", 65.0, "#0284c7"),
-            ("Logistics & Evacuation", 22.0, "#10b981"),
-            ("Marine Services & Infra", 13.0, "#f59e0b")
-        ]
-        segment_data = [
-            [
-                Paragraph("<b>PORT CARGO &amp; BERTHING (65% REVENUE)</b>", th_style),
-                Paragraph("<b>LOGISTICS &amp; EVACUATION (22% REVENUE)</b>", th_style),
-                Paragraph("<b>MARINE SERVICES &amp; INFRA (13% REVENUE)</b>", th_style)
-            ],
-            [
-                Paragraph(f"<b>TTM Sales: Rs. {ttm_sales*0.65:,.0f} Cr</b><br/>Dry bulk, liquid cargo, container terminal berthing, mechanized handling, and long-term volume take-or-pay concession agreements.", body_style),
-                Paragraph(f"<b>TTM Sales: Rs. {ttm_sales*0.22:,.0f} Cr</b><br/>Rail-linked port evacuation, container freight stations (CFS), multi-modal warehousing logistics, and cargo storage facilities.", body_style),
-                Paragraph(f"<b>TTM Sales: Rs. {ttm_sales*0.13:,.0f} Cr</b><br/>Tug pilotage, marine dredging support, green port electrification, berth capacity expansions, and port connectivity infrastructure.", body_style)
-            ]
-        ]
-    else:
-        seg_tuples = [
-            ("Core Enterprise Operations", 62.0, "#0284c7"),
-            ("Ancillary & Value-Add Services", 23.0, "#10b981"),
-            ("Strategic Growth & Exports", 15.0, "#f59e0b")
-        ]
-        segment_data = [
-            [
-                Paragraph("<b>CORE ENTERPRISE OPERATIONS (62%)</b>", th_style),
-                Paragraph("<b>ANCILLARY &amp; VALUE-ADD (23%)</b>", th_style),
-                Paragraph("<b>STRATEGIC GROWTH &amp; EXPORTS (15%)</b>", th_style)
-            ],
-            [
-                Paragraph(f"<b>TTM Sales: Rs. {ttm_sales*0.62:,.0f} Cr</b><br/>Primary business operations, major client contracts, recurring commercial billing, and high-volume product deliveries.", body_style),
-                Paragraph(f"<b>TTM Sales: Rs. {ttm_sales*0.23:,.0f} Cr</b><br/>Ancillary service execution, operational maintenance support, regional distribution, and client lifecycle management.", body_style),
-                Paragraph(f"<b>TTM Sales: Rs. {ttm_sales*0.15:,.0f} Cr</b><br/>Cross-market geographic expansion, strategic business initiatives, tech integration, and emerging vertical channels.", body_style)
-            ]
-        ]
-
-    buf_seg = _generate_segment_breakdown_bar(seg_tuples, ttm_sales)
-    story.append(Image(buf_seg, width=520, height=20))
-    story.append(Spacer(1, 2))
-
-    t_seg = Table(segment_data, colWidths=[185, 175, 160])
-    t_seg.setStyle(TableStyle([
-        ('BACKGROUND', (0,0), (-1,0), colors.HexColor("#0f172a")),
-        ('GRID', (0,0), (-1,-1), 0.5, colors.HexColor("#cbd5e1")),
-        ('TOPPADDING', (0,0), (-1,-1), 1.5),
-        ('BOTTOMPADDING', (0,0), (-1,-1), 1.5),
-        ('LEFTPADDING', (0,0), (-1,-1), 4),
-        ('RIGHTPADDING', (0,0), (-1,-1), 4),
-        ('ROWBACKGROUNDS', (0,1), (-1,-1), [colors.HexColor("#ffffff")]),
-        ('VALIGN', (0,0), (-1,-1), 'TOP')
-    ]))
-    story.append(t_seg)
     story.append(Spacer(1, 4))
 
-    # 4. Investment Thesis & Strategic Risks
-    story.append(Paragraph("<b>4. EXECUTIVE INVESTMENT THESIS &amp; TOP 3 STRATEGIC RISKS</b>", sec_header_style))
+    # 3. Investment Thesis & Strategic Risks
+    story.append(Paragraph("<b>3. EXECUTIVE INVESTMENT THESIS &amp; TOP 3 STRATEGIC RISKS</b>", sec_header_style))
     story.append(Spacer(1, 2))
 
     base_dcf_target = dcf_targets[30.0]
@@ -2725,12 +2612,12 @@ def generate_stock_research_dossier_pdf(
             f"and upper valuation multiples ({pe_val:.1f}x P/E, {ev_ebitda_val:.1f}x EV/EBITDA, {pb_narrative}). "
             f"Base Case 5Y Target (Rs. {fwd_5y_nom:,.0f} at 35x PE) delivers +{fwd_5y_cagr:.1f}% nominal CAGR (+{fwd_5y_cagr + 0.7:.1f}% with dividends), "
             f"which trails the required {wacc:.1f}% Cost of Equity hurdle due to 52.8x to 35.0x multiple drag. "
-            f"Fresh institutional accumulation is restricted to the Institutional Value Buy Zone below Rs. {dcf_targets[28.0]:,.0f} [See Section 9: 5Y DCF Bridge]."
+            f"Fresh institutional accumulation is restricted to the Institutional Value Buy Zone below Rs. {dcf_targets[28.0]:,.0f} [See Section 8: 5Y DCF Bridge]."
         )
     elif prem_to_dcf < -15.0:
-        val_text = f"<b>Valuation Stance: UNDERVALUED / ACCUMULATE CORE.</b> Trading at an attractive discount of {abs(prem_to_dcf):.1f}% to Base DCF Fair Value (Rs. {base_dcf_target:,.0f}), offering a margin of safety clearing the {wacc:.1f}% hurdle rate [See Section 9: 5Y DCF Bridge]."
+        val_text = f"<b>Valuation Stance: UNDERVALUED / ACCUMULATE CORE.</b> Trading at an attractive discount of {abs(prem_to_dcf):.1f}% to Base DCF Fair Value (Rs. {base_dcf_target:,.0f}), offering a margin of safety clearing the {wacc:.1f}% hurdle rate [See Section 8: 5Y DCF Bridge]."
     else:
-        val_text = f"<b>Valuation Stance: FAIRLY VALUED / ACCUMULATE ON DIPS.</b> Trading within fair value range around Base DCF target (Rs. {base_dcf_target:,.0f}), balancing disciplined compounding with reasonable valuation multiples [See Section 9: 5Y DCF Bridge]."
+        val_text = f"<b>Valuation Stance: FAIRLY VALUED / ACCUMULATE ON DIPS.</b> Trading within fair value range around Base DCF target (Rs. {base_dcf_target:,.0f}), balancing disciplined compounding with reasonable valuation multiples [See Section 8: 5Y DCF Bridge]."
 
     thesis_verdict = (
         f"<b>Executive Stance:</b> {comp_name} exhibits premier operating stability supported by zero debt gearing ({de_val:.2f}x D/E), consistent {roce_val:.1f}% ROCE compounding, and disciplined working capital. "
@@ -2785,7 +2672,7 @@ def generate_stock_research_dossier_pdf(
     # ══════════════════════════════════════════════════════════════════════════
     story.append(PageBreak())
 
-    story.append(Paragraph("<a name='page_2'/><b>5. TECHNICAL TIMING, VOLATILITY STRUCTURE &amp; INSTITUTIONAL SUPPORT LADDERS</b>", sec_header_style))
+    story.append(Paragraph("<a name='page_2'/><b>4. TECHNICAL TIMING, VOLATILITY STRUCTURE &amp; INSTITUTIONAL SUPPORT LADDERS</b>", sec_header_style))
     story.append(Spacer(1, 2))
 
     buf_tech = _generate_technical_price_rsi_chart(
@@ -3060,7 +2947,7 @@ def generate_stock_research_dossier_pdf(
     # ══════════════════════════════════════════════════════════════════════════
     story.append(PageBreak())
 
-    story.append(Paragraph("<a name='page_3'/><b>6. QUANT MULTI-FACTOR ENGINE, 11-SCREENER MATRIX &amp; SECTOR PEERS</b>", sec_header_style))
+    story.append(Paragraph("<a name='page_3'/><b>5. QUANT MULTI-FACTOR ENGINE, 11-SCREENER MATRIX &amp; SECTOR PEERS</b>", sec_header_style))
     story.append(Spacer(1, 2))
 
     buf_radar = _generate_quant_radar_spider_chart(scores_dict)
@@ -3279,7 +3166,7 @@ def generate_stock_research_dossier_pdf(
     # ══════════════════════════════════════════════════════════════════════════
     story.append(PageBreak())
 
-    story.append(Paragraph("<a name='page_4'/><b>7. 8-QUARTER FINANCIAL PERFORMANCE &amp; MOMENTUM HEATMAP</b>", sec_header_style))
+    story.append(Paragraph("<a name='page_4'/><b>6. 8-QUARTER FINANCIAL PERFORMANCE &amp; MOMENTUM HEATMAP</b>", sec_header_style))
     story.append(Spacer(1, 2))
 
     q_headers_plot = q_headers[-8:] if len(q_headers) >= 8 else (['Q1', 'Q2', 'Q3', 'Q4', 'Q5', 'Q6', 'Q7', 'Q8'])
@@ -3433,7 +3320,7 @@ def generate_stock_research_dossier_pdf(
     # ══════════════════════════════════════════════════════════════════════════
     story.append(PageBreak())
 
-    story.append(Paragraph("<a name='page_5'/><b>8. 5-YEAR ANNUAL STATEMENTS &amp; DUPONT ROE DECOMPOSITION</b>", sec_header_style))
+    story.append(Paragraph("<a name='page_5'/><b>7. 5-YEAR ANNUAL STATEMENTS &amp; DUPONT ROE DECOMPOSITION</b>", sec_header_style))
     story.append(Spacer(1, 2))
 
     y_labels_plot = y_labels[-5:] if len(y_labels) >= 5 else ['Yr 1', 'Yr 2', 'Yr 3', 'Yr 4', 'Yr 5']
@@ -3571,7 +3458,7 @@ def generate_stock_research_dossier_pdf(
     # ══════════════════════════════════════════════════════════════════════════
     story.append(PageBreak())
 
-    story.append(Paragraph("<a name='page_6'/><b>9. DUAL-TERMINAL DCF FRAMEWORK, CATALYSTS &amp; ACTIONABLE STRATEGY</b>", sec_header_style))
+    story.append(Paragraph("<a name='page_6'/><b>8. DUAL-TERMINAL DCF FRAMEWORK, CATALYSTS &amp; ACTIONABLE STRATEGY</b>", sec_header_style))
     story.append(Spacer(1, 2))
 
     pe_b = info.get("pe_bands", {})
@@ -4005,7 +3892,7 @@ def generate_stock_research_dossier_pdf(
         [
             Paragraph(
                 "<b>TACTICAL ACTION:</b> <font color='#15803d'><b>BUY ON CONFIRMED PULLBACK (STAGE 2 MOMENTUM)</b></font><br/>"
-                f"• <b>Tactical Pullback Zone:</b> Rs. {brk_el:,.0f} – Rs. {brk_eh:,.0f} [See Section 5: Technical Timing]<br/>"
+                f"• <b>Tactical Pullback Zone:</b> Rs. {brk_el:,.0f} – Rs. {brk_eh:,.0f} [See Section 4: Technical Timing]<br/>"
                 "• <b>Entry Trigger:</b> Bullish reversal candle with volume dry-up on 20 EMA test<br/>"
                 f"• <b>Tactical Supports:</b> S1: Rs. {sma20:,.0f} (20 EMA) | S2: Rs. {sma50:,.0f} (50 SMA)<br/>"
                 f"• <b>Tactical Targets:</b> T1: Rs. {brk_t1:,.0f} ({((brk_t1-cmp_val)/cmp_val*100):+.1f}% from CMP) | T2: Rs. {brk_t2:,.0f} ({((brk_t2-cmp_val)/cmp_val*100):+.1f}%)<br/>"
