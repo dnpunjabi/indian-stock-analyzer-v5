@@ -3693,15 +3693,15 @@ def generate_stock_research_dossier_pdf(
         except Exception:
             comp_hurdle = 16.0
 
-    term_pe = 35.0 if roce_val >= 20.0 else (28.0 if roce_val >= 15.0 else 20.0)
+    term_pe = min(max(round(base_target / max(base_eps, 0.1) * 0.65, 1), 28.0), 35.0)
     c_pat = info["cagr_pat"].real if isinstance(info["cagr_pat"], complex) else float(info["cagr_pat"])
     c_sales = info["cagr_sales"].real if isinstance(info["cagr_sales"], complex) else float(info["cagr_sales"])
     proj_cagr = min(max(c_pat / 100.0, c_sales / 100.0), 0.16)
     proj_cagr = max(proj_cagr, -0.9)
 
-    # Smooth multiple compression glide path across 1Y, 3Y, and 5Y horizons:
+    # Multiple compression glide path across 1Y, 3Y, and 5Y horizons:
     if pe_val > term_pe:
-        pe_1y = round(pe_val - (pe_val - term_pe) * 0.20, 1)
+        pe_1y = round(pe_val - (pe_val - term_pe) * 0.25, 1)
         pe_3y = round(pe_val - (pe_val - term_pe) * 0.60, 1)
     else:
         pe_1y = pe_val
@@ -3871,18 +3871,31 @@ def generate_stock_research_dossier_pdf(
     if prem_to_dcf > 15.0:
         inv_title = "FULLY VALUED / HOLD CORE (ACCUMULATE ON DEEP DIPS)"
         inv_action_badge = f"<font color='#0284c7'><b>{inv_title}</b></font>"
-        inv_buy_zone = f"Rs. {dcf_targets[25.0]:,.0f} – Rs. {dcf_targets[28.0]:,.0f} (Anchored between 25x Exit and 28x Exit Floor; represents margin of safety to Rs. {base_target:,.0f} Base Fair Value)"
-        inv_rationale = f"At CMP (Rs. {cmp_val:,.0f}), 5Y nominal CAGR (+{fwd_cagr_nom:.1f}%) trails the {wacc:.1f}% Cost of Equity hurdle due to 52.8x to 35.0x multiple drag. Accumulating inside the Value Buy Zone (< Rs. {dcf_targets[28.0]:,.0f}) restores 5Y CAGR to > 13.5%, clearing the institutional hurdle."
+        inv_buy_zone = f"Rs. {dcf_targets[25.0]:,.0f} – Rs. {dcf_targets[28.0]:,.0f} (Anchored at 25x–28x DCF Exit Floor; {abs(prem_to_dcf):.1f}% margin of safety to Rs. {base_target:,.0f} Base Fair Value)"
+        inv_rationale = f"At CMP (Rs. {cmp_val:,.0f}), trading above DCF Fair Value (Rs. {base_target:,.0f}). Accumulating on pullbacks below Rs. {dcf_targets[28.0]:,.0f} restores attractive 5Y risk-adjusted compounding."
     elif prem_to_dcf < -15.0:
         inv_title = "UNDERVALUED / STRONG BUY (ACCUMULATE CORE)"
         inv_action_badge = f"<font color='#15803d'><b>{inv_title}</b></font>"
-        inv_buy_zone = f"Rs. {cmp_val*0.95:,.0f} – Rs. {cmp_val:,.0f} (Attractive entry with {abs(prem_to_dcf):.1f}% margin of safety to Rs. {base_target:,.0f} Base Fair Value)"
+        inv_buy_zone = f"Current CMP (Rs. {cmp_val:,.0f}) up to Rs. {base_target*0.95:,.0f} (Offers {abs(prem_to_dcf):.1f}% margin of safety to Rs. {base_target:,.0f} Base Fair Value)"
         inv_rationale = f"Substantial upside potential clearing the {wacc:.1f}% hurdle as market prices converge toward institutional intrinsic valuation."
     else:
         inv_title = "ACCUMULATE ON INSTITUTIONAL DIPS"
         inv_action_badge = f"<font color='#0284c7'><b>{inv_title}</b></font>"
-        inv_buy_zone = f"Rs. {dcf_targets[28.0]:,.0f} – Rs. {base_target:,.0f}"
+        if cmp_val < dcf_targets[28.0]:
+            inv_buy_zone = f"Current CMP (Rs. {cmp_val:,.0f}) up to Rs. {dcf_targets[28.0]:,.0f} (Trading at {abs(prem_to_dcf):.1f}% discount to Base Fair Value of Rs. {base_target:,.0f})"
+        elif cmp_val <= base_target:
+            inv_buy_zone = f"Pullback Floor: Rs. {max(sma200, cmp_val * 0.90):,.0f} – Rs. {cmp_val:,.0f} (Within Fair Value band; Base DCF: Rs. {base_target:,.0f})"
+        else:
+            inv_buy_zone = f"Rs. {dcf_targets[28.0]:,.0f} – Rs. {base_target:,.0f} (Pullback to Intrinsic Fair Value corridor)"
         inv_rationale = f"Balanced risk-reward profile tracking historical earnings growth at reasonable margin of safety."
+
+    # Dynamic Balance Sheet Quality
+    if de_val <= 0.05:
+        bs_quality_text = f"Virtually Zero Debt (Net Cash Surplus: Rs. {max(investments - borrowings, 0.0):,.0f} Cr | {de_val:.2f}x D/E, {roce_val:.1f}% ROCE)"
+    elif de_val <= 0.50:
+        bs_quality_text = f"Prudent Gearing (Net Debt: Rs. {max(borrowings - investments, 0.0):,.0f} Cr | {de_val:.2f}x D/E, {roce_val:.1f}% ROCE)"
+    else:
+        bs_quality_text = f"Leveraged Capital Structure (Net Debt: Rs. {max(borrowings - investments, 0.0):,.0f} Cr | {de_val:.2f}x D/E, {roce_val:.1f}% ROCE)"
 
     strat_data = [
         [
@@ -3908,7 +3921,7 @@ def generate_stock_research_dossier_pdf(
                 f"• <b>Multi-Year Forward Targets:</b> 1Y: Rs. {fwd_1y:,.0f} ({((fwd_1y-cmp_val)/cmp_val*100):+.1f}% @ {pe_1y:.0f}x PE) | 3Y: Rs. {fwd_3y:,.0f} ({((fwd_3y-cmp_val)/cmp_val*100):+.1f}% @ {pe_3y:.0f}x PE) | 5Y: Rs. {fwd_5y:,.0f} ({((fwd_5y-cmp_val)/cmp_val*100):+.1f}% @ {pe_5y:.0f}x PE | Discounted PV: Rs. {fwd_5y_pv:,.0f})<br/>"
                 f"• <b>Hold Core Rationale:</b> {inv_rationale}<br/>"
                 f"• <b>Thesis Invalidation:</b> Operating Margins &lt; {opm_val*0.75:.1f}% (25% margin contraction from TTM {opm_val:.1f}%) or Debt/Equity &gt; {max(de_val*2.5, 0.25):.2f}x<br/>"
-                f"• <b>Balance Sheet Quality:</b> Virtually Zero Debt ({de_val:.2f}x D/E, Rs. {net_cash:,.0f} Cr Net Cash, {roce_val:.1f}% ROCE)",
+                f"• <b>Balance Sheet Quality:</b> {bs_quality_text}",
                 body_style
             )
         ]
