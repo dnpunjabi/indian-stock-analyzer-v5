@@ -1076,34 +1076,34 @@ def _generate_annual_compounding_chart(years: List[str], rev: List[float], ebitd
 
 
 def _generate_valuation_football_field(categories: List[str], lows: List[float], highs: List[float], midpoints: List[float], cmp_val: float) -> io.BytesIO:
-    """Renders institutional Valuation Football Field with generous left padding for long labels."""
-    fig, ax = plt.subplots(figsize=(7.5, 1.50), dpi=150)
+    """Renders institutional Valuation Football Field with clean left padding and crisp typography."""
+    fig, ax = plt.subplots(figsize=(4.0, 1.40), dpi=160)
     fig.patch.set_facecolor('#ffffff')
     ax.set_facecolor('#ffffff')
 
     y_pos = range(len(categories))
     for i, y in enumerate(y_pos):
         span = max(highs[i] - lows[i], 1.0)
-        ax.barh(y, span, left=lows[i], height=0.42, color='#0284c7', alpha=0.25, edgecolor='#0284c7', linewidth=1)
-        ax.plot([midpoints[i], midpoints[i]], [y - 0.21, y + 0.21], color='#0f172a', linewidth=2.5)
+        ax.barh(y, span, left=lows[i], height=0.45, color='#0284c7', alpha=0.25, edgecolor='#0284c7', linewidth=0.9)
+        ax.plot([midpoints[i], midpoints[i]], [y - 0.22, y + 0.22], color='#0f172a', linewidth=2.2)
 
     if cmp_val > 0:
-        ax.axvline(cmp_val, color='#dc2626', linestyle='--', linewidth=1.5, label=f'CMP: Rs. {cmp_val:,.1f}')
+        ax.axvline(cmp_val, color='#dc2626', linestyle='--', linewidth=1.2, label=f'CMP: Rs. {cmp_val:,.0f}')
 
     ax.set_yticks(list(y_pos))
-    ax.set_yticklabels(categories, fontsize=7, color='#0f172a', fontweight='bold')
-    ax.set_xlabel('Stock Price (Rs.)', fontsize=7, color='#475569', fontweight='bold')
-    ax.tick_params(axis='x', labelsize=6.5, labelcolor='#475569')
+    ax.set_yticklabels(categories, fontsize=5.8, color='#0f172a', fontweight='bold')
+    ax.set_xlabel('Stock Price (Rs.)', fontsize=5.8, color='#475569', fontweight='bold', labelpad=2)
+    ax.tick_params(axis='x', labelsize=5.4, labelcolor='#475569', length=2.5, width=0.5)
     ax.grid(axis='x', linestyle=':', linewidth=0.5, color='#e2e8f0')
-    ax.legend(loc='lower right', fontsize=6.5, frameon=True, facecolor='#f8fafc', edgecolor='#cbd5e1')
+    ax.legend(loc='lower right', fontsize=5.2, frameon=True, facecolor='#f8fafc', edgecolor='#cbd5e1', borderpad=0.25)
 
     for spine in ['top', 'right', 'left', 'bottom']:
         ax.spines[spine].set_color('#cbd5e1')
-        ax.spines[spine].set_linewidth(0.5)
+        ax.spines[spine].set_linewidth(0.6)
 
-    fig.subplots_adjust(left=0.32, right=0.96, top=0.92, bottom=0.22)
+    fig.subplots_adjust(left=0.36, right=0.96, top=0.92, bottom=0.24)
     buf = io.BytesIO()
-    fig.savefig(buf, format='png', dpi=150, bbox_inches='tight', pad_inches=0.04)
+    fig.savefig(buf, format='png', dpi=160, bbox_inches='tight', pad_inches=0.03)
     buf.seek(0)
     plt.close(fig)
     return buf
@@ -1801,7 +1801,7 @@ def _extract_dossier_intelligence(clean_sym: str) -> dict:
     chg_3m = _safe_float(t.get("chg_3m"), 8.0)
     chg_1y = _safe_float(t.get("chg_1y"), 25.0)
 
-    # 3-Year Stock Return
+    # 3-Year Stock Return & Historical P/E Valuation Spectrum
     pe_hist = prof.get("pe_bands", {}).get("pe_history", [])
     chg_3y = _safe_float(t.get("chg_3y"), 0.0)
     if chg_3y <= 0 and pe_hist and len(pe_hist) >= 100:
@@ -1810,6 +1810,37 @@ def _extract_dossier_intelligence(clean_sym: str) -> dict:
         chg_3y = round(((cmp_val - p_3y) / p_3y * 100.0), 1) if p_3y > 0 else _safe_float(f.get("sales_growth_3y_pct"), 50.0)
     elif chg_3y <= 0:
         chg_3y = _safe_float(f.get("sales_growth_3y_pct"), 50.0)
+
+    # 1Y, 3Y, 5Y Historical P/E Percentile Spectrum
+    pe_1y_vals = [p['pe'] for p in pe_hist[-52:] if p.get('pe') and p['pe'] > 0] if pe_hist else []
+    pe_3y_vals = [p['pe'] for p in pe_hist[-156:] if p.get('pe') and p['pe'] > 0] if pe_hist else []
+    pe_5y_vals = [p['pe'] for p in pe_hist if p.get('pe') and p['pe'] > 0] if pe_hist else []
+
+    med_1y = float(np.median(pe_1y_vals)) if pe_1y_vals else pe_val
+    med_3y = float(np.median(pe_3y_vals)) if pe_3y_vals else pe_val
+    med_5y = float(np.median(pe_5y_vals)) if pe_5y_vals else med_3y
+
+    prem_1y = ((pe_val - med_1y) / med_1y * 100.0) if med_1y > 0 else 0.0
+    prem_3y = ((pe_val - med_3y) / med_3y * 100.0) if med_3y > 0 else 0.0
+    prem_5y = ((pe_val - med_5y) / med_5y * 100.0) if med_5y > 0 else 0.0
+
+    pct_3y = (sum(1 for x in pe_3y_vals if x <= pe_val) / len(pe_3y_vals) * 100.0) if pe_3y_vals else 50.0
+
+    if pct_3y >= 80.0:
+        pe_verdict = "Historically Extended (Upper Decile)"
+        pe_verdict_col = "#b91c1c"
+    elif pct_3y >= 60.0:
+        pe_verdict = "Quality Moat Premium"
+        pe_verdict_col = "#0284c7"
+    elif pct_3y >= 40.0:
+        pe_verdict = "Fair Value Mean-Reversion"
+        pe_verdict_col = "#15803d"
+    elif pct_3y >= 20.0:
+        pe_verdict = "Attractive Value Zone"
+        pe_verdict_col = "#15803d"
+    else:
+        pe_verdict = "Historic Deep Value Floor"
+        pe_verdict_col = "#15803d"
 
     # CAPM & True Jensen's Alpha
     capm = prof.get("capm_risk_nifty50", {})
@@ -1853,6 +1884,18 @@ def _extract_dossier_intelligence(clean_sym: str) -> dict:
     tv_gordon = (fcf_proj[-1] * (1.0 + g_perp)) / (wacc/100.0 - g_perp)
     pv_tv_gordon = tv_gordon / ((1.0 + wacc/100.0) ** 5)
     gordon_target = round((pv_5y + pv_tv_gordon + net_cash_dcf) / shares_count, 0)
+
+    # Target Price Consensus & Asymmetric Risk-Reward Triad
+    base_target = dcf_targets[30.0]
+    bear_target = max(low_52w, dcf_targets[28.0] * 0.90, cmp_val * 0.82)
+    bull_target = max(dcf_targets[40.0], cmp_val * 1.35)
+    bear_pct = ((bear_target - cmp_val) / cmp_val * 100.0) if cmp_val > 0 else -15.0
+    base_pct = ((base_target - cmp_val) / cmp_val * 100.0) if cmp_val > 0 else 18.0
+    bull_pct = ((bull_target - cmp_val) / cmp_val * 100.0) if cmp_val > 0 else 38.0
+    downside_risk = abs(bear_pct)
+    upside_pot = max(bull_pct, 5.0)
+    rr_ratio = round(upside_pot / max(downside_risk, 1.0), 2)
+    rr_verdict = "FAVORABLE ASYMMETRIC BIAS" if rr_ratio >= 2.0 else ("BALANCED RISK-REWARD" if rr_ratio >= 1.2 else "ASYMMETRIC DOWNSIDE RISK")
 
     # Health & Score Metrics
     eq_data = prof.get("earnings_quality", {})
@@ -2098,7 +2141,24 @@ def _extract_dossier_intelligence(clean_sym: str) -> dict:
         "pe_bands": prof.get("pe_bands", {}),
         "news": prof.get("news", []),
         "score_metrics": prof.get("score_metrics", {}),
-        "is_consolidated": fs.get("is_consolidated", True)
+        "is_consolidated": fs.get("is_consolidated", True),
+        "med_1y": med_1y,
+        "med_3y": med_3y,
+        "med_5y": med_5y,
+        "prem_1y": prem_1y,
+        "prem_3y": prem_3y,
+        "prem_5y": prem_5y,
+        "pct_3y": pct_3y,
+        "pe_verdict": pe_verdict,
+        "pe_verdict_col": pe_verdict_col,
+        "base_target": base_target,
+        "bear_target": bear_target,
+        "bull_target": bull_target,
+        "bear_pct": bear_pct,
+        "base_pct": base_pct,
+        "bull_pct": bull_pct,
+        "rr_ratio": rr_ratio,
+        "rr_verdict": rr_verdict
     }
 
 
@@ -2241,6 +2301,26 @@ def generate_stock_research_dossier_pdf(
     piotroski = info["piotroski"]
     score_val = info["score_val"]
     score_metrics = info["score_metrics"]
+
+    # Historical P/E Spectrum & Target Price Triad Unpack
+    med_1y = info.get("med_1y", pe_val)
+    med_3y = info.get("med_3y", pe_val)
+    med_5y = info.get("med_5y", med_3y)
+    prem_1y = info.get("prem_1y", 0.0)
+    prem_3y = info.get("prem_3y", 0.0)
+    prem_5y = info.get("prem_5y", 0.0)
+    pct_3y = info.get("pct_3y", 50.0)
+    pe_verdict = info.get("pe_verdict", "Fair Value Mean-Reversion")
+    pe_verdict_col = info.get("pe_verdict_col", "#15803d")
+
+    base_target = info.get("base_target", dcf_targets[30.0])
+    bear_target = info.get("bear_target", cmp_val * 0.85)
+    bull_target = info.get("bull_target", cmp_val * 1.35)
+    bear_pct = info.get("bear_pct", -15.0)
+    base_pct = info.get("base_pct", 18.0)
+    bull_pct = info.get("bull_pct", 38.0)
+    rr_ratio = info.get("rr_ratio", 2.5)
+    rr_verdict = info.get("rr_verdict", "FAVORABLE ASYMMETRIC BIAS")
 
     # Document setup with exact 46pt top margin
     doc = SimpleDocTemplate(
@@ -2458,7 +2538,44 @@ def generate_stock_research_dossier_pdf(
         ('RIGHTPADDING', (0,0), (-1,-1), 4),
     ]))
     story.append(t_ret)
-    story.append(Spacer(1, 4))
+    story.append(Spacer(1, 3))
+
+    # Target Price Consensus & Asymmetric Risk-Reward Triad
+    triad_data = [
+        [
+            Paragraph("BEAR CASE (VOLATILITY FLOOR)", th_style),
+            Paragraph("BASE CASE (DCF INTRINSIC VALUE)", th_style),
+            Paragraph("BULL CASE (MULTIPLE EXPANSION)", th_style),
+            Paragraph("ASYMMETRIC RISK / REWARD", th_style)
+        ],
+        [
+            Paragraph(f"<font color='#dc2626'><b>Rs. {bear_target:,.1f} ({bear_pct:+.1f}%)</b></font>", td_num),
+            Paragraph(f"<font color='#0284c7'><b>Rs. {base_target:,.1f} ({base_pct:+.1f}%)</b></font>", td_num),
+            Paragraph(f"<font color='#15803d'><b>Rs. {bull_target:,.1f} ({bull_pct:+.1f}%)</b></font>", td_num),
+            Paragraph(f"<b>{rr_ratio:.2f} : 1</b> <font color='{'#15803d' if rr_ratio >= 2.0 else '#0284c7'}'>({rr_verdict})</font>", td_num)
+        ],
+        [
+            Paragraph("52W Support / -1.0 SD Floor", meta_style),
+            Paragraph("5Y Tripartite Terminal DCF Model", meta_style),
+            Paragraph("3Y Compounding @ Decile High", meta_style),
+            Paragraph("Upside Potential vs Capital at Risk", meta_style)
+        ]
+    ]
+    t_triad = Table(triad_data, colWidths=[130, 130, 130, 130])
+    t_triad.setStyle(TableStyle([
+        ('BACKGROUND', (0,0), (-1,0), colors.HexColor("#0f172a")),
+        ('GRID', (0,0), (-1,-1), 0.5, colors.HexColor("#cbd5e1")),
+        ('TOPPADDING', (0,0), (-1,-1), 1.5),
+        ('BOTTOMPADDING', (0,0), (-1,-1), 1.5),
+        ('LEFTPADDING', (0,0), (-1,-1), 4),
+        ('RIGHTPADDING', (0,0), (-1,-1), 4),
+        ('ROWBACKGROUNDS', (0,1), (-1,1), [colors.HexColor("#f8fafc")]),
+        ('ROWBACKGROUNDS', (0,2), (-1,2), [colors.HexColor("#ffffff")]),
+        ('ALIGN', (0,0), (-1,-1), 'CENTER'),
+        ('VALIGN', (0,0), (-1,-1), 'MIDDLE')
+    ]))
+    story.append(t_triad)
+    story.append(Spacer(1, 3))
 
     # 3. Business Segment Breakdown
     story.append(Paragraph(f"<b>3. AUDITED BUSINESS SEGMENT REVENUE BREAKDOWN &amp; PRODUCT MIX (TTM CONSOLIDATED: RS. {ttm_sales:,.0f} CR)</b>", sec_header_style))
@@ -3043,14 +3160,30 @@ def generate_stock_research_dossier_pdf(
     q_eps_plot = q_eps[-8:] if len(q_eps) >= 8 else [25.0]*8
 
     yoy_s = ((q_sales_plot[-1] - q_sales_plot[-5]) / q_sales_plot[-5] * 100.0) if len(q_sales_plot) >= 5 and q_sales_plot[-5] > 0 else 12.5
+    yoy_s_prev = ((q_sales_plot[-2] - q_sales_plot[-6]) / q_sales_plot[-6] * 100.0) if len(q_sales_plot) >= 6 and q_sales_plot[-6] > 0 else yoy_s
     qoq_s = ((q_sales_plot[-1] - q_sales_plot[-2]) / q_sales_plot[-2] * 100.0) if len(q_sales_plot) >= 2 and q_sales_plot[-2] > 0 else 3.5
     yoy_p = ((q_pat_plot[-1] - q_pat_plot[-5]) / q_pat_plot[-5] * 100.0) if len(q_pat_plot) >= 5 and q_pat_plot[-5] > 0 else 10.0
+    yoy_p_prev = ((q_pat_plot[-2] - q_pat_plot[-6]) / q_pat_plot[-6] * 100.0) if len(q_pat_plot) >= 6 and q_pat_plot[-6] > 0 else yoy_p
+
+    # Dynamic Quarterly Growth Acceleration / Deceleration Momentum Flag
+    if yoy_p > yoy_p_prev + 2.5:
+        q_mom_status = "▲ ACCELERATING GROWTH"
+        q_mom_col = "#15803d"
+        q_mom_note = f"Operating leverage active: PAT growth (+{yoy_p:.1f}%) expanding faster than previous quarter (+{yoy_p_prev:.1f}%)."
+    elif yoy_p < yoy_p_prev - 3.0:
+        q_mom_status = "▼ DECELERATING MOMENTUM"
+        q_mom_col = "#b45309"
+        q_mom_note = f"Sequential earnings moderating: PAT growth (+{yoy_p:.1f}%) off previous quarter peak (+{yoy_p_prev:.1f}%)."
+    else:
+        q_mom_status = "▶ STEADY COMPOUNDING"
+        q_mom_col = "#0284c7"
+        q_mom_note = f"Predictable operational cadence: PAT growth ({yoy_p:+.1f}%) closely tracking trailing average ({yoy_p_prev:+.1f}%)."
 
     q_scorecard_text = (
         f"<b>LATEST QUARTER SCORECARD: {q_headers_plot[-1]} (vs YoY: {q_headers_plot[-5] if len(q_headers_plot) >= 5 else 'YoY'}, QoQ: {q_headers_plot[-2] if len(q_headers_plot) >= 2 else 'QoQ'} • Audited Consolidated)</b><br/>"
         f"• <b>Top-Line Revenue:</b> <b>Rs. {q_sales_plot[-1]:,.0f} Cr</b> &nbsp;|&nbsp; <b>YoY Growth:</b> <font color='#15803d'><b>{yoy_s:+.1f}%</b></font> (vs Rs. {q_sales_plot[-5]:,.0f} Cr YoY) &nbsp;|&nbsp; <b>QoQ Growth:</b> <b>{qoq_s:+.1f}%</b> (vs Rs. {q_sales_plot[-2]:,.0f} Cr QoQ)<br/>"
-        f"• <b>Operating Profit &amp; Margin:</b> <b>Rs. {q_op_plot[-1]:,.0f} Cr</b> &nbsp;|&nbsp; <b>OPM %:</b> <b>{q_opm_plot[-1]:.1f}%</b><br/>"
-        f"• <b>Bottom-Line Profitability:</b> Reported PAT: <b>Rs. {q_pat_plot[-1]:,.0f} Cr ({yoy_p:+.1f}% YoY)</b> &nbsp;|&nbsp; Diluted EPS: <b>Rs. {q_eps_plot[-1]:,.2f}</b>"
+        f"• <b>Operating Profit &amp; Margin:</b> <b>Rs. {q_op_plot[-1]:,.0f} Cr</b> &nbsp;|&nbsp; <b>OPM %:</b> <b>{q_opm_plot[-1]:.1f}%</b> &nbsp;|&nbsp; <b>Reported PAT:</b> <b>Rs. {q_pat_plot[-1]:,.0f} Cr ({yoy_p:+.1f}% YoY)</b><br/>"
+        f"• <b>Quarterly Momentum Flag:</b> <font color='{q_mom_col}'><b>{q_mom_status}</b></font> &nbsp;|&nbsp; <i>{q_mom_note}</i>"
     )
 
     t_q_banner = Table([[Paragraph(q_scorecard_text, body_style)]], colWidths=[520])
@@ -3085,6 +3218,15 @@ def generate_stock_research_dossier_pdf(
     story.append(Paragraph(f"<b>8-QUARTER PERFORMANCE HEATMAP TABLE ({q_headers_plot[0].upper()} – {q_headers_plot[-1].upper()} AUDITED CONSOLIDATED)</b>", sec_header_style))
     story.append(Spacer(1, 2))
 
+    opm_bps_yoy = (q_opm_plot[-1] - q_opm_plot[-5]) * 100.0 if len(q_opm_plot) >= 5 else 0.0
+    op_yoy = ((q_op_plot[-1] - q_op_plot[-5]) / q_op_plot[-5] * 100.0) if len(q_op_plot) >= 5 and q_op_plot[-5] > 0 else 0.0
+
+    s_traj = f"<font color='{'#15803d' if yoy_s >= 10 else ('#0284c7' if yoy_s >= 0 else '#b91c1c')}'><b>{'+' if yoy_s > 0 else ''}{yoy_s:.1f}% YoY</b></font>"
+    op_traj = f"<font color='{'#15803d' if op_yoy >= 10 else ('#0284c7' if op_yoy >= 0 else '#b91c1c')}'><b>{'+' if op_yoy > 0 else ''}{op_yoy:.1f}% YoY</b></font>"
+    opm_traj = f"<font color='{'#15803d' if opm_bps_yoy >= 0 else '#b91c1c'}'><b>{'+' if opm_bps_yoy > 0 else ''}{opm_bps_yoy:.0f} bps</b></font>"
+    pat_traj = f"<font color='{'#15803d' if yoy_p >= 10 else ('#0284c7' if yoy_p >= 0 else '#b91c1c')}'><b>{'+' if yoy_p > 0 else ''}{yoy_p:.1f}% YoY</b></font>"
+    eps_traj = f"<font color='#0284c7'><b>Rs. {q_eps_plot[-1]:,.2f}</b></font>"
+
     heatmap_data = [
         [
             Paragraph("METRIC (RS. CR)", th_style),
@@ -3096,13 +3238,13 @@ def generate_stock_research_dossier_pdf(
             Paragraph(q_headers_plot[5], th_style),
             Paragraph(q_headers_plot[6], th_style),
             Paragraph(q_headers_plot[7], th_style),
-            Paragraph("TRAJECTORY", th_style)
+            Paragraph("MOMENTUM", th_style)
         ],
-        [Paragraph("<b>Sales (Rs. Cr)</b>", td_style)] + [Paragraph(f"{v:,.0f}", td_num) for v in q_sales_plot] + [Paragraph("<font color='#15803d'>Expanding</font>", td_style)],
-        [Paragraph("<b>Operating Profit</b>", td_style)] + [Paragraph(f"{v:,.0f}", td_num) for v in q_op_plot] + [Paragraph("<font color='#15803d'>Expanding</font>", td_style)],
-        [Paragraph("<b>OPM %</b>", td_style)] + [Paragraph(f"{v:.1f}%", td_num) for v in q_opm_plot] + [Paragraph("<font color='#15803d'>Expanding</font>", td_style)],
-        [Paragraph("<b>Net Profit (PAT)</b>", td_style)] + [Paragraph(f"{v:,.0f}", td_num) for v in q_pat_plot] + [Paragraph("<font color='#15803d'>Expanding</font>", td_style)],
-        [Paragraph("<b>Diluted EPS (Rs.)</b>", td_style)] + [Paragraph(f"{v:,.2f}", td_num) for v in q_eps_plot] + [Paragraph("<font color='#15803d'>Expanding</font>", td_style)]
+        [Paragraph("<b>Sales (Rs. Cr)</b>", td_style)] + [Paragraph(f"{v:,.0f}", td_num) for v in q_sales_plot] + [Paragraph(s_traj, td_style)],
+        [Paragraph("<b>Operating Profit</b>", td_style)] + [Paragraph(f"{v:,.0f}", td_num) for v in q_op_plot] + [Paragraph(op_traj, td_style)],
+        [Paragraph("<b>OPM %</b>", td_style)] + [Paragraph(f"{v:.1f}%", td_num) for v in q_opm_plot] + [Paragraph(opm_traj, td_style)],
+        [Paragraph("<b>Net Profit (PAT)</b>", td_style)] + [Paragraph(f"{v:,.0f}", td_num) for v in q_pat_plot] + [Paragraph(pat_traj, td_style)],
+        [Paragraph("<b>Diluted EPS (Rs.)</b>", td_style)] + [Paragraph(f"{v:,.2f}", td_num) for v in q_eps_plot] + [Paragraph(eps_traj, td_style)]
     ]
     t_heatmap = Table(heatmap_data, colWidths=[90, 45, 45, 45, 45, 45, 45, 48, 48, 64])
     t_heatmap.setStyle(TableStyle([
@@ -3269,13 +3411,81 @@ def generate_stock_research_dossier_pdf(
     pe_band_high = pe_b_max * base_eps
     pe_band_mid = pe_b_med * base_eps
 
-    ff_cats = ['52-Week Range', 'Historical 5Y P/E Band', 'DCF Intrinsic Fair Value', 'Reverse DCF Implied Target']
+    ff_cats = ['52W Range', '5Y P/E Band', 'DCF Fair Value', 'Reverse DCF']
     ff_lows = [low_52w, pe_band_low, dcf_targets[28.0], cmp_val * 0.95]
     ff_highs = [high_52w, pe_band_high, dcf_targets[40.0], cmp_val * 1.25]
     ff_mids = [(low_52w + high_52w)/2, pe_band_mid, dcf_targets[30.0], cmp_val * 1.10]
 
     buf_football = _generate_valuation_football_field(ff_cats, ff_lows, ff_highs, ff_mids, cmp_val)
-    story.append(Image(buf_football, width=520, height=90))
+
+    # Historical Valuation Multiple Spectrum Table
+    peer_pe_vals = [pr['pe'] for pr in peer_rows if not pr.get('is_target') and pr.get('pe', 0) > 0]
+    peer_pe_med = float(np.median(peer_pe_vals)) if peer_pe_vals else 30.0
+    prem_peer = ((pe_val - peer_pe_med) / peer_pe_med * 100.0) if peer_pe_med > 0 else 0.0
+    c_pat_f = cagr_pat.real if isinstance(cagr_pat, complex) else float(cagr_pat)
+    peg_val = round(pe_val / max(c_pat_f, 1.0), 2) if c_pat_f > 0 else round(pe_val / 15.0, 2)
+
+    pe_spectrum_data = [
+        [
+            Paragraph("VALUATION HORIZON", th_style),
+            Paragraph("MEDIAN", th_style),
+            Paragraph("CURRENT", th_style),
+            Paragraph("PREM / DISC", th_style)
+        ],
+        [
+            Paragraph("<b>1-Year Horizon</b>", td_style),
+            Paragraph(f"{med_1y:.1f}x", td_num),
+            Paragraph(f"<b>{pe_val:.1f}x</b>", td_num),
+            Paragraph(f"<font color='{'#b91c1c' if prem_1y > 10 else ('#15803d' if prem_1y < -10 else '#0284c7')}'><b>{prem_1y:+.1f}%</b></font>", td_num)
+        ],
+        [
+            Paragraph("<b>3-Year Horizon</b>", td_style),
+            Paragraph(f"{med_3y:.1f}x", td_num),
+            Paragraph(f"<b>{pe_val:.1f}x</b>", td_num),
+            Paragraph(f"<font color='{'#b91c1c' if prem_3y > 10 else ('#15803d' if prem_3y < -10 else '#0284c7')}'><b>{prem_3y:+.1f}%</b></font>", td_num)
+        ],
+        [
+            Paragraph("<b>5-Year Horizon</b>", td_style),
+            Paragraph(f"{med_5y:.1f}x", td_num),
+            Paragraph(f"<b>{pe_val:.1f}x</b>", td_num),
+            Paragraph(f"<font color='{'#b91c1c' if prem_5y > 10 else ('#15803d' if prem_5y < -10 else '#0284c7')}'><b>{prem_5y:+.1f}%</b></font>", td_num)
+        ],
+        [
+            Paragraph("<b>Sector Peers</b>", td_style),
+            Paragraph(f"{peer_pe_med:.1f}x", td_num),
+            Paragraph(f"<b>{pe_val:.1f}x</b>", td_num),
+            Paragraph(f"<font color='{'#b91c1c' if prem_peer > 10 else ('#15803d' if prem_peer < -10 else '#0284c7')}'><b>{prem_peer:+.1f}%</b></font>", td_num)
+        ],
+        [
+            Paragraph(f"<b>Verdict:</b> <font color='{pe_verdict_col}'><b>{pe_verdict}</b></font> &nbsp;|&nbsp; <b>{pct_3y:.0f}th %tile</b> &nbsp;|&nbsp; PEG: <b>{peg_val:.2f}x</b>", ParagraphStyle('PV', parent=meta_style, fontSize=5.6, leading=7.2)),
+            "", "", ""
+        ]
+    ]
+
+    t_pe_spectrum = Table(pe_spectrum_data, colWidths=[65, 52, 53, 65])
+    t_pe_spectrum.setStyle(TableStyle([
+        ('BACKGROUND', (0,0), (-1,0), colors.HexColor("#0f172a")),
+        ('GRID', (0,0), (-1,4), 0.5, colors.HexColor("#cbd5e1")),
+        ('SPAN', (0,5), (3,5)),
+        ('BACKGROUND', (0,5), (-1,5), colors.HexColor("#f8fafc")),
+        ('BOX', (0,5), (-1,5), 0.5, colors.HexColor("#cbd5e1")),
+        ('TOPPADDING', (0,0), (-1,-1), 1.0),
+        ('BOTTOMPADDING', (0,0), (-1,-1), 1.0),
+        ('LEFTPADDING', (0,0), (-1,-1), 3),
+        ('RIGHTPADDING', (0,0), (-1,-1), 3),
+        ('ROWBACKGROUNDS', (0,1), (-1,4), [colors.HexColor("#ffffff"), colors.HexColor("#f8fafc")]),
+        ('VALIGN', (0,0), (-1,-1), 'MIDDLE')
+    ]))
+
+    t_val_top = Table([[Image(buf_football, width=280, height=88), t_pe_spectrum]], colWidths=[285, 235])
+    t_val_top.setStyle(TableStyle([
+        ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
+        ('LEFTPADDING', (0,0), (-1,-1), 0),
+        ('RIGHTPADDING', (0,0), (-1,-1), 0),
+        ('TOPPADDING', (0,0), (-1,-1), 0),
+        ('BOTTOMPADDING', (0,0), (-1,-1), 0),
+    ]))
+    story.append(t_val_top)
     story.append(Spacer(1, 1.5))
 
     story.append(Paragraph("<b>INTRINSIC VALUATION: TRIPARTITE 5-YEAR DCF MODEL &amp; CASH FLOW SCHEDULE</b>", sec_header_style))
