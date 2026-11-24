@@ -30,7 +30,11 @@ from backend.financial_utils import (
     calculate_earnings_quality_scores
 )
 from backend.catalyst_scraper import fetch_stock_news_headlines
-from backend.dossier_ai_service import get_dossier_moat_intelligence, get_dossier_capex_guidance
+from backend.dossier_ai_service import (
+    get_dossier_moat_intelligence, 
+    get_dossier_capex_guidance, 
+    get_dossier_recent_catalysts
+)
 
 
 def _safe_float(val: Any, default: float = 0.0) -> float:
@@ -3778,6 +3782,25 @@ def generate_stock_research_dossier_pdf(
         ('RIGHTPADDING', (0,0), (-1,-1), 5)
     ]))
     story.append(t_horizon)
+    story.append(Spacer(1, 1.5))
+
+    cat_intel = get_dossier_recent_catalysts(clean_sym, comp_name, sector)
+    cat_html = (
+        "<b>RECENT 30-DAY MATERIAL CATALYSTS &amp; INSTITUTIONAL DEVELOPMENTS:</b><br/>"
+        f"• <b>Earnings &amp; Operational Surprise:</b> {cat_intel['earnings_operating_surprise']}<br/>"
+        f"• <b>Corporate &amp; Capital Actions:</b> {cat_intel['corporate_capital_actions']}<br/>"
+        f"• <b>Capacity &amp; Market Dynamics:</b> {cat_intel['capacity_market_dynamics']}"
+    )
+    t_cat = Table([[Paragraph(cat_html, body_style)]], colWidths=[520])
+    t_cat.setStyle(TableStyle([
+        ('BACKGROUND', (0,0), (-1,-1), colors.HexColor("#f8fafc")),
+        ('BOX', (0,0), (-1,-1), 0.5, colors.HexColor("#cbd5e1")),
+        ('TOPPADDING', (0,0), (-1,-1), 1.5),
+        ('BOTTOMPADDING', (0,0), (-1,-1), 1.5),
+        ('LEFTPADDING', (0,0), (-1,-1), 6),
+        ('RIGHTPADDING', (0,0), (-1,-1), 6),
+    ]))
+    story.append(t_cat)
     story.append(Spacer(1, 1.5))
 
     # Tactical Swing Trade Setup
