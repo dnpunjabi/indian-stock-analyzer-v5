@@ -30,6 +30,7 @@ from backend.financial_utils import (
     calculate_earnings_quality_scores
 )
 from backend.catalyst_scraper import fetch_stock_news_headlines
+from backend.dossier_ai_service import get_dossier_moat_intelligence, get_dossier_capex_guidance
 
 
 def _safe_float(val: Any, default: float = 0.0) -> float:
@@ -3301,15 +3302,16 @@ def generate_stock_research_dossier_pdf(
                 f"(Core EPS: Rs. {norm_eps:,.2f}), confirming stable underlying operational run-rates.<br/>"
             )
 
-    audit_text = (
-        "<b>EARNINGS QUALITY AUDIT &amp; STATEMENTS RECONCILIATION:</b><br/>"
-        f"• <b>Operating Performance:</b> Core Operating Profit reached <b>Rs. {q_op_plot[-1]:,.0f} Cr</b> in {q_headers_plot[-1]} (OPM: <b>{q_opm_plot[-1]:.1f}%</b>), with reported PAT of <b>Rs. {q_pat_plot[-1]:,.0f} Cr</b> (EPS: <b>Rs. {q_eps_plot[-1]:,.2f}</b>).<br/>"
-        f"• <b>Quarterly vs Audited Annual Alignment:</b> The 4 quarters of FY26 (Jun 25–Mar 26) sum to Rs. 20,035 Cr Sales, Rs. 2,650 Cr OP, and Rs. 2,773 Cr PAT, reconciling 100% to audited FY26 annual statements. The trailing 4 quarters ({q_headers_plot[-4]}–{q_headers_plot[-1]}) aggregate to Rs. {ttm_sales:,.0f} Cr Revenue, Rs. {ttm_op:,.0f} Cr OP, and Rs. {ttm_pat:,.0f} Cr PAT, reconciling 100% to trailing twelve-month (TTM) figures.<br/>"
-        f"{one_off_pat_note}"
-        f"• <b>Cash Conversion Integrity:</b> Trailing CFO/PAT cash conversion ratio stands at <b>{cfo_pat:.2f}x</b> ({cfo_pat*100:.1f}%), validating disciplined earnings realization."
+    peer_labels_clean = [p['name'] for p in peers_scatter_list] if peers_scatter_list else []
+    moat_intel = get_dossier_moat_intelligence(clean_sym, comp_name, sector, peers=peer_labels_clean)
+    moat_text = (
+        "<b>COMPETITIVE MOAT, MARKET SHARE &amp; PRICING POWER INTELLIGENCE:</b><br/>"
+        f"• <b>Market Share &amp; Industry Scale:</b> {moat_intel['market_share_scale']}<br/>"
+        f"• <b>Moat Mechanism &amp; Pricing Power:</b> {moat_intel['moat_pricing_power']}<br/>"
+        f"• <b>Earnings Quality &amp; Cash Realization:</b> Core Operating Profit reached <b>Rs. {q_op_plot[-1]:,.0f} Cr</b> (OPM: <b>{q_opm_plot[-1]:.1f}%</b>); trailing CFO/PAT cash conversion stands at <b>{cfo_pat:.2f}x</b> ({cfo_pat*100:.1f}%), confirming operational cash realization integrity."
     )
-    t_audit = Table([[Paragraph(audit_text, body_style)]], colWidths=[520])
-    t_audit.setStyle(TableStyle([
+    t_moat = Table([[Paragraph(moat_text, body_style)]], colWidths=[520])
+    t_moat.setStyle(TableStyle([
         ('BACKGROUND', (0,0), (-1,-1), colors.HexColor("#f8fafc")),
         ('BOX', (0,0), (-1,-1), 0.5, colors.HexColor("#cbd5e1")),
         ('TOPPADDING', (0,0), (-1,-1), 2),
@@ -3317,7 +3319,7 @@ def generate_stock_research_dossier_pdf(
         ('LEFTPADDING', (0,0), (-1,-1), 6),
         ('RIGHTPADDING', (0,0), (-1,-1), 6),
     ]))
-    story.append(t_audit)
+    story.append(t_moat)
 
     # ══════════════════════════════════════════════════════════════════════════
     # PAGE 5: SECTION 8 - 5-YEAR STATEMENTS & DUPONT ROE DECOMPOSITION
@@ -3438,13 +3440,14 @@ def generate_stock_research_dossier_pdf(
     else:
         conv_verdict = "disciplined cash conversion with capital allocated toward ongoing operational expansion"
 
+    capex_intel = get_dossier_capex_guidance(clean_sym, comp_name, sector)
     capex_audit_text = (
-        "<b>CAPEX PIPELINE &amp; CASH CONVERSION AUDIT:</b><br/>"
-        f"• <b>Cash Conversion &amp; Working Capital:</b> <b>{cfo_pat*100:.1f}%</b> of {y_labels_plot[-1]} net profit converted to operating cash (Rs. {y_ocf_plot[-1]:,.0f} Cr CFO / Rs. {y_pat_plot[-1]:,.0f} Cr PAT); trailing TTM cash conversion stands at <b>{(ttm_ocf_val / max(ttm_pat, 1.0) * 100.0):.1f}%</b> (Rs. {ttm_ocf_val:,.0f} Cr OCF / Rs. {ttm_pat:,.0f} Cr PAT). 5-Year cumulative cash realization stands at <b>{cum_5y_conv:.1f}%</b> (Rs. {cum_5y_ocf:,.0f} Cr CFO / Rs. {cum_5y_pat:,.0f} Cr PAT), demonstrating {conv_verdict}.<br/>"
-        f"• <b>Free Cash Flow Generation:</b> Latest Annual FCF: <b>Rs. {latest_fcf:,.0f} Cr</b> &nbsp;|&nbsp; 5-Year Cumulative FCF: <b>Rs. {cum_5y_fcf:,.0f} Cr</b>.<br/>"
-        f"• <b>Balance Sheet Strength &amp; Net Cash Bridge:</b> Debt gearing at <b>{de_val:.2f}x D/E</b>. Liquid Cash &amp; Investments stand at <b>Rs. {investments:,.0f} Cr</b> against Borrowings of <b>Rs. {borrowings:,.0f} Cr</b>, yielding {net_cash_desc}. {icr_text}.<br/>"
-        f"• <b>Standalone vs Consolidated Equity Bridge:</b> Consolidated Net Worth of <b>Rs. {consol_equity_cr:,.0f} Cr</b> (BV Rs. {consol_bv:,.0f} | {consol_pb:.1f}x P/B) reconciles to Standalone Net Worth of <b>Rs. {std_equity_cr:,.0f} Cr</b> (BV Rs. {standalone_bv:,.0f} | {standalone_pb:.1f}x P/B); the Rs. {sub_equity_cr:,.0f} Cr differential represents retained net assets of operating subsidiaries and joint ventures.<br/>"
-        f"• <i>*4Y CAGR ({y_labels_plot[0]} -> {y_labels_plot[-1]}): Sales +{cagr_sales:.1f}% | Operating Profit +{cagr_op:.1f}% | PAT +{cagr_pat:.1f}% | OCF +{cagr_ocf:.1f}%. Balance sheet gearing: {de_val:.2f}x D/E.</i>"
+        "<b>MANAGEMENT GUIDANCE, CAPEX PIPELINE &amp; CASH CONVERSION AUDIT:</b><br/>"
+        f"• <b>Audited Cash Realization Reality:</b> Over the 5-year cycle, the business generated <b>Rs. {cum_5y_ocf:,.0f} Cr</b> in operating cash flow against reported PAT of <b>Rs. {cum_5y_pat:,.0f} Cr</b> (<b>{cum_5y_conv:.1f}%</b> cumulative conversion), demonstrating {conv_verdict}. Cumulative Free Cash Flow stands at <b>Rs. {cum_5y_fcf:,.0f} Cr</b> after operational reinvestment.<br/>"
+        f"• <b>Balance Sheet Strength &amp; Capital Structure:</b> Gearing at <b>{de_val:.2f}x D/E</b>. Liquid Cash &amp; Investments stand at <b>Rs. {investments:,.0f} Cr</b> against Borrowings of <b>Rs. {borrowings:,.0f} Cr</b>, yielding {net_cash_desc}. {icr_text}. Consolidated Net Worth: <b>Rs. {consol_equity_cr:,.0f} Cr</b>.<br/>"
+        f"• <b>Strategic Capacity &amp; Volume Target:</b> {capex_intel['capacity_target']}<br/>"
+        f"• <b>Committed Capex Outlay &amp; Key Projects:</b> {capex_intel['capex_outlay']}<br/>"
+        f"• <b>Funding Strategy &amp; Margin Outlook:</b> {capex_intel['funding_margin']}"
     )
     t_capex = Table([[Paragraph(capex_audit_text, body_style)]], colWidths=[520])
     t_capex.setStyle(TableStyle([
@@ -3739,12 +3742,11 @@ def generate_stock_research_dossier_pdf(
             fwd_cagr_nom = 0.0
 
     sens_html = (
-        "<b>DUAL-TERMINAL DCF SENSITIVITY &amp; MULTI-HORIZON VALUATION MATRIX:</b><br/>"
-        f"• <b>Two-Tier Terminal Valuation Breakdown:</b> Conservative perpetuity DCF yields <b>Rs. {gordon_target:,.0f}/share</b> (perpetual floor @ 4.5% GDP terminal growth, representing {(100-scarcity_pct):.1f}% of base value). The remaining <b>Rs. {scarcity_prem:,.0f}/share</b> ({scarcity_pct:.1f}%) represents a market scarcity premium under a 30.0x exit multiple (Base Fair Value: <b>Rs. {base_target:,.0f}/share</b>; 28x Exit Floor: <b>Rs. {dcf_targets[28.0]:,.0f}</b>), which mathematically requires an implied +{g_implied:.1f}% perpetual FCFF growth rate vs. 4.5% GDP steady state. Current CMP (Rs. {cmp_val:,.0f}) trades at a <b>{prem_to_dcf:+.1f}%</b> premium to Base Fair Value (38x Exit: <b>Rs. {bull_target_low:,.0f}</b>; 40x Extended Scarcity: <b>Rs. {bull_target_high:,.0f}/share</b>).<br/>"
-        f"• <b>Exit Multiple Sensitivity Matrix (@ {wacc:.1f}% WACC):</b> 25.0x Exit: <b>Rs. {dcf_targets[25.0]:,.0f}</b> ({((dcf_targets[25.0]-cmp_val)/cmp_val*100):+.1f}% vs CMP) &nbsp;|&nbsp; 28.0x Exit: <b>Rs. {dcf_targets[28.0]:,.0f}</b> ({((dcf_targets[28.0]-cmp_val)/cmp_val*100):+.1f}%) &nbsp;|&nbsp; 30.0x Base Exit: <b>Rs. {base_target:,.0f}</b> ({((base_target-cmp_val)/cmp_val*100):+.1f}%) &nbsp;|&nbsp; 38.0x Exit: <b>Rs. {bull_target_low:,.0f}</b> ({((bull_target_low-cmp_val)/cmp_val*100):+.1f}%) &nbsp;|&nbsp; 40.0x Extended Scarcity Target: <b>Rs. {bull_target_high:,.0f}</b> ({((bull_target_high-cmp_val)/cmp_val*100):+.1f}% vs CMP).<br/>"
-        f"• <b>5-Year Forward Targets vs Hurdle Rate:</b> Bear Case (25x PE | +10.0% EPS): <b>Rs. {base_eps * ((1+0.10)**5) * 25.0:,.0f}</b> &nbsp;|&nbsp; Base Case ({term_pe:.0f}x PE | +16.0% EPS): <b>Rs. {fwd_5y:,.0f}</b> (Discounted PV: <b>Rs. {fwd_5y_pv:,.0f}</b>) &nbsp;|&nbsp; Bull Case (45x PE | +22.0% EPS): <b>Rs. {base_eps * ((1+0.22)**5) * 45.0:,.0f}</b>. At CMP (Rs. {cmp_val:,.0f}), Base Case nominal CAGR is +{fwd_cagr_nom:.1f}%/yr (+{fwd_cagr_nom + 0.7:.1f}% with dividends), which trails the {wacc:.1f}% Cost of Equity hurdle due to {pe_val:.1f}x to {term_pe:.0f}x multiple drag.<br/>"
-        f"• <b>5-Year Reverse DCF Hurdles:</b> Flat CMP Defense requires <b>0.0%</b> EPS growth at unchanged {pe_val:.1f}x P/E; a +10.0%/yr hurdle return requires <b>+10.0%/yr</b> EPS growth; Multiple Compression Defense (compression to 25.0x PE over 5Y) requires <b>+{comp_hurdle:.1f}%/yr</b> EPS CAGR over 5Y to defend current CMP (Rs. {cmp_val:,.0f}).<br/>"
-        f"• <b>Exit Multiple Sensitivity &amp; Terminal Dependence:</b> Both the 30x EV/EBITDA DCF (Rs. {base_target:,.0f}) and {term_pe:.0f}x P/E 5-year target (PV Rs. {fwd_5y_pv:,.0f}) are anchored to exit multiple assumptions (28x–35x). If terminal multiples compress to peer median bands ({peer_pe_med*0.8:.1f}x–{peer_pe_med:.1f}x), intrinsic fair value aligns to Rs. {dcf_targets[25.0]:,.0f}–{dcf_targets[28.0]:,.0f}."
+        "<b>DUAL-TERMINAL DCF SENSITIVITY &amp; EXPECTATIONS INVESTING NARRATIVE:</b><br/>"
+        f"• <b>Exit Multiple Sensitivity Matrix (@ {wacc:.1f}% WACC):</b> 25.0x Exit: <b>Rs. {dcf_targets[25.0]:,.0f}</b> ({((dcf_targets[25.0]-cmp_val)/cmp_val*100):+.1f}% vs CMP) &nbsp;|&nbsp; 28.0x Floor: <b>Rs. {dcf_targets[28.0]:,.0f}</b> ({((dcf_targets[28.0]-cmp_val)/cmp_val*100):+.1f}%) &nbsp;|&nbsp; 30.0x Base Exit: <b>Rs. {base_target:,.0f}</b> ({((base_target-cmp_val)/cmp_val*100):+.1f}%) &nbsp;|&nbsp; 38.0x Bull: <b>Rs. {bull_target_low:,.0f}</b> ({((bull_target_low-cmp_val)/cmp_val*100):+.1f}%) &nbsp;|&nbsp; 40.0x Extended Scarcity: <b>Rs. {bull_target_high:,.0f}</b> ({((bull_target_high-cmp_val)/cmp_val*100):+.1f}% vs CMP).<br/>"
+        f"• <b>What is Priced into Current CMP (Rs. {cmp_val:,.0f} | {pe_val:.1f}x P/E):</b> Current market pricing implies steady-state earnings compounding of <b>+{c_pat:.1f}%/yr</b> assuming zero valuation multiple de-rating. Base Case organic compounding (with terminal multiple normalizing to {term_pe:.0f}x) delivers a 5-year target of <b>Rs. {fwd_5y:,.0f}</b> (Discounted PV: Rs. {fwd_5y_pv:,.0f}).<br/>"
+        f"• <b>Multiple Compression Defense Hurdle:</b> If valuation multiples compress toward the peer median ({term_pe:.0f}x P/E), the business requires an annual EPS CAGR of <b>+{comp_hurdle:.1f}%/yr</b> over 5 years just to defend current CMP, making sustained volume growth mandatory.<br/>"
+        f"• <b>Institutional Margin of Safety &amp; Valuation Anchor:</b> The 28.0x DCF Exit Floor (<b>Rs. {dcf_targets[28.0]:,.0f}</b>) and 200 SMA (<b>Rs. {sma200:,.0f}</b>) represent primary structural accumulation corridors, offering favorable risk-adjusted asymmetry for multi-year capital allocators."
     )
 
     t_sens = Table([[Paragraph(sens_html, body_style)]], colWidths=[520])
