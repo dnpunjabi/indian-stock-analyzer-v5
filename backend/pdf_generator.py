@@ -1745,7 +1745,7 @@ def _extract_dossier_intelligence(clean_sym: str) -> dict:
     tot_assets = _safe_float(bs_rows.get("Total Assets", [0])[-1], 0.0) if "Total Assets" in bs_rows and _safe_float(bs_rows.get("Total Assets", [0])[-1], 0.0) > 0 else (net_worth * 1.5)
     borrowings = _safe_float(bs_rows.get("Borrowings", [0])[-1], 0.0) if "Borrowings" in bs_rows else (net_worth * de_val)
     investments = _safe_float(bs_rows.get("Investments", [0])[-1], 0.0) if "Investments" in bs_rows else (net_worth * 0.3)
-    net_cash = max(investments - borrowings, 0.0)
+    net_cash = investments - borrowings
 
     # Standalone vs Consolidated Book Value & P/B
     standalone_bv = _safe_float(f.get("book_value"), 0.0)
@@ -1877,13 +1877,13 @@ def _extract_dossier_intelligence(clean_sym: str) -> dict:
         tv = term_op * m
         pv_tv = tv / ((1.0 + wacc/100.0) ** 5)
         ev = pv_5y + pv_tv
-        eq_val = ev + net_cash_dcf
+        eq_val = max(ev + net_cash_dcf, shares_count * 10.0)
         dcf_targets[m] = round(eq_val / shares_count, 0)
 
     g_perp = 0.045
     tv_gordon = (fcf_proj[-1] * (1.0 + g_perp)) / (wacc/100.0 - g_perp)
     pv_tv_gordon = tv_gordon / ((1.0 + wacc/100.0) ** 5)
-    gordon_target = round((pv_5y + pv_tv_gordon + net_cash_dcf) / shares_count, 0)
+    gordon_target = max(round((pv_5y + pv_tv_gordon + net_cash_dcf) / shares_count, 0), 10.0)
 
     # Target Price Consensus & Asymmetric Risk-Reward Triad
     base_target = dcf_targets[30.0]
@@ -2120,7 +2120,10 @@ def _extract_dossier_intelligence(clean_sym: str) -> dict:
         "wacc": wacc,
         "growth_rate": growth_rate,
         "pv_5y": pv_5y,
+        "borrowings": borrowings,
+        "investments": investments,
         "net_cash": net_cash,
+        "net_cash_dcf": net_cash_dcf,
         "term_op": term_op,
         "scores_dict": scores_dict,
         "fcf_proj": fcf_proj,
@@ -2610,8 +2613,8 @@ def generate_stock_research_dossier_pdf(
         val_text = (
             f"<b>Valuation Stance: FULLY VALUED / TACTICAL HOLD.</b> Trading at +{prem_to_dcf:.1f}% premium to Base DCF Fair Value (Rs. {base_dcf_target:,.0f}) "
             f"and upper valuation multiples ({pe_val:.1f}x P/E, {ev_ebitda_val:.1f}x EV/EBITDA, {pb_narrative}). "
-            f"Base Case 5Y Target (Rs. {fwd_5y_nom:,.0f} at 35x PE) delivers +{fwd_5y_cagr:.1f}% nominal CAGR (+{fwd_5y_cagr + 0.7:.1f}% with dividends), "
-            f"which trails the required {wacc:.1f}% Cost of Equity hurdle due to 52.8x to 35.0x multiple drag. "
+            f"Base Case 5Y Target (Rs. {fwd_5y_nom:,.0f} at {term_pe:.0f}x PE) delivers +{fwd_5y_cagr:.1f}% nominal CAGR (+{fwd_5y_cagr + 0.7:.1f}% with dividends), "
+            f"which trails the required {wacc:.1f}% Cost of Equity hurdle due to {pe_val:.1f}x to {term_pe:.0f}x multiple drag. "
             f"Fresh institutional accumulation is restricted to the Institutional Value Buy Zone below Rs. {dcf_targets[28.0]:,.0f} [See Section 8: 5Y DCF Bridge]."
         )
     elif prem_to_dcf < -15.0:
@@ -2619,8 +2622,9 @@ def generate_stock_research_dossier_pdf(
     else:
         val_text = f"<b>Valuation Stance: FAIRLY VALUED / ACCUMULATE ON DIPS.</b> Trading within fair value range around Base DCF target (Rs. {base_dcf_target:,.0f}), balancing disciplined compounding with reasonable valuation multiples [See Section 8: 5Y DCF Bridge]."
 
+    gear_label = "virtually zero debt" if de_val < 0.1 else "prudent debt"
     thesis_verdict = (
-        f"<b>Executive Stance:</b> {comp_name} exhibits premier operating stability supported by zero debt gearing ({de_val:.2f}x D/E), consistent {roce_val:.1f}% ROCE compounding, and disciplined working capital. "
+        f"<b>Executive Stance:</b> {comp_name} exhibits premier operating stability supported by {gear_label} gearing ({de_val:.2f}x D/E), consistent {roce_val:.1f}% ROCE compounding, and disciplined working capital. "
         f"{val_text}<br/>"
         f"<i>Multi-Factor Score Breakdown: Solvency 25% ({scores_dict['solvency']:.0f}), Quality 25% ({scores_dict['quality']:.0f}), Institutional 20% ({scores_dict['institutional']:.0f}), Momentum 15% ({scores_dict['momentum']:.0f}), Growth 10% ({scores_dict['growth']:.0f}), Valuation 5% ({scores_dict['valuation']:.0f}) = {score_val:.1f}/100 ({tier_label}).</i>"
     )
@@ -3608,9 +3612,20 @@ def generate_stock_research_dossier_pdf(
     pv_5y_val = pv_5y
     ev_val = pv_5y_val + pv_tv_30x
     net_cash_val = net_cash
-    eq_val_30x = ev_val + net_cash_val
+    if borrowings > investments:
+        net_debt_cr = borrowings - investments
+        eq_val_30x = max(ev_val - net_debt_cr, shares_count * 10.0)
+        bridge_label = f"<b>Less Net Debt:</b> Rs. {net_debt_cr:,.0f} Cr (Debt Rs. {borrowings:,.0f} Cr less Cash &amp; Inv Rs. {investments:,.0f} Cr)"
+        recon_38x = pv_5y_val + tv_30x * 38.0 / 30.0 / ((1.0 + wacc/100.0)**5) - net_debt_cr
+        recon_40x = pv_5y_val + tv_30x * 40.0 / 30.0 / ((1.0 + wacc/100.0)**5) - net_debt_cr
+    else:
+        net_surplus_cr = investments - borrowings
+        eq_val_30x = ev_val + net_surplus_cr
+        bridge_label = f"<b>Add Net Cash:</b> Rs. {net_surplus_cr:,.0f} Cr (Cash &amp; Inv Rs. {investments:,.0f} Cr less Debt Rs. {borrowings:,.0f} Cr)"
+        recon_38x = pv_5y_val + tv_30x * 38.0 / 30.0 / ((1.0 + wacc/100.0)**5) + net_surplus_cr
+        recon_40x = pv_5y_val + tv_30x * 40.0 / 30.0 / ((1.0 + wacc/100.0)**5) + net_surplus_cr
 
-    recon_text = f"<i>[Reconciliation: Rs. {eq_val_30x:,.0f} Cr / {shares_count:,.4f} Cr = Rs. {base_target:,.0f}/sh (30x Base) | Rs. {pv_5y_val + tv_30x*38.0/30.0/((1.0+wacc/100.0)**5) + net_cash_val:,.0f} Cr / {shares_count:,.4f} Cr = Rs. {bull_target_low:,.0f}/sh (38x) | Rs. {bull_target_high:,.0f}/sh (40x)]</i>"
+    recon_text = f"<i>[Reconciliation: Rs. {eq_val_30x:,.0f} Cr / {shares_count:,.4f} Cr = Rs. {base_target:,.0f}/sh (30x Base) | Rs. {recon_38x:,.0f} Cr / {shares_count:,.4f} Cr = Rs. {bull_target_low:,.0f}/sh (38x) | Rs. {recon_40x:,.0f} Cr / {shares_count:,.4f} Cr = Rs. {bull_target_high:,.0f}/sh (40x)]</i>"
 
     dcf_forecast_data = [
         [
@@ -3654,7 +3669,7 @@ def generate_stock_research_dossier_pdf(
                 f"<b>PV of 5Y Cash Flows:</b> Rs. {pv_5y_val:,.0f} Cr &nbsp;|&nbsp; "
                 f"<b>PV of Terminal Value (30x Exit):</b> Rs. {pv_tv_30x:,.0f} Cr &nbsp;|&nbsp; "
                 f"<b>Enterprise Value (EV):</b> Rs. {ev_val:,.0f} Cr<br/>"
-                f"<b>Add Net Cash:</b> Rs. {net_cash_val:,.0f} Cr (Cash &amp; Inv Rs. {investments:,.0f} Cr less Debt Rs. {borrowings:,.0f} Cr) &nbsp;|&nbsp; "
+                f"{bridge_label} &nbsp;|&nbsp; "
                 f"<b>Implied Equity Value:</b> Rs. {eq_val_30x:,.0f} Cr &nbsp;|&nbsp; "
                 f"<b>Diluted Shares:</b> {shares_count:,.2f} Cr<br/>"
                 f"<b>Institutional Base Fair Value (30.0x Exit):</b> <font color='#0284c7'><b>Rs. {base_target:,.0f}</b></font> &nbsp;|&nbsp; "
@@ -3727,9 +3742,9 @@ def generate_stock_research_dossier_pdf(
         "<b>DUAL-TERMINAL DCF SENSITIVITY &amp; MULTI-HORIZON VALUATION MATRIX:</b><br/>"
         f"• <b>Two-Tier Terminal Valuation Breakdown:</b> Conservative perpetuity DCF yields <b>Rs. {gordon_target:,.0f}/share</b> (perpetual floor @ 4.5% GDP terminal growth, representing {(100-scarcity_pct):.1f}% of base value). The remaining <b>Rs. {scarcity_prem:,.0f}/share</b> ({scarcity_pct:.1f}%) represents a market scarcity premium under a 30.0x exit multiple (Base Fair Value: <b>Rs. {base_target:,.0f}/share</b>; 28x Exit Floor: <b>Rs. {dcf_targets[28.0]:,.0f}</b>), which mathematically requires an implied +{g_implied:.1f}% perpetual FCFF growth rate vs. 4.5% GDP steady state. Current CMP (Rs. {cmp_val:,.0f}) trades at a <b>{prem_to_dcf:+.1f}%</b> premium to Base Fair Value (38x Exit: <b>Rs. {bull_target_low:,.0f}</b>; 40x Extended Scarcity: <b>Rs. {bull_target_high:,.0f}/share</b>).<br/>"
         f"• <b>Exit Multiple Sensitivity Matrix (@ {wacc:.1f}% WACC):</b> 25.0x Exit: <b>Rs. {dcf_targets[25.0]:,.0f}</b> ({((dcf_targets[25.0]-cmp_val)/cmp_val*100):+.1f}% vs CMP) &nbsp;|&nbsp; 28.0x Exit: <b>Rs. {dcf_targets[28.0]:,.0f}</b> ({((dcf_targets[28.0]-cmp_val)/cmp_val*100):+.1f}%) &nbsp;|&nbsp; 30.0x Base Exit: <b>Rs. {base_target:,.0f}</b> ({((base_target-cmp_val)/cmp_val*100):+.1f}%) &nbsp;|&nbsp; 38.0x Exit: <b>Rs. {bull_target_low:,.0f}</b> ({((bull_target_low-cmp_val)/cmp_val*100):+.1f}%) &nbsp;|&nbsp; 40.0x Extended Scarcity Target: <b>Rs. {bull_target_high:,.0f}</b> ({((bull_target_high-cmp_val)/cmp_val*100):+.1f}% vs CMP).<br/>"
-        f"• <b>5-Year Forward Targets vs Hurdle Rate:</b> Bear Case (25x PE | +10.0% EPS): <b>Rs. {base_eps * ((1+0.10)**5) * 25.0:,.0f}</b> &nbsp;|&nbsp; Base Case (35x PE | +16.0% EPS): <b>Rs. {fwd_5y:,.0f}</b> (Discounted PV: <b>Rs. {fwd_5y_pv:,.0f}</b>) &nbsp;|&nbsp; Bull Case (45x PE | +22.0% EPS): <b>Rs. {base_eps * ((1+0.22)**5) * 45.0:,.0f}</b>. At CMP (Rs. {cmp_val:,.0f}), Base Case nominal CAGR is +{fwd_cagr_nom:.1f}%/yr (+{fwd_cagr_nom + 0.7:.1f}% with dividends), which trails the {wacc:.1f}% Cost of Equity hurdle due to 52.8x to 35.0x multiple drag.<br/>"
+        f"• <b>5-Year Forward Targets vs Hurdle Rate:</b> Bear Case (25x PE | +10.0% EPS): <b>Rs. {base_eps * ((1+0.10)**5) * 25.0:,.0f}</b> &nbsp;|&nbsp; Base Case ({term_pe:.0f}x PE | +16.0% EPS): <b>Rs. {fwd_5y:,.0f}</b> (Discounted PV: <b>Rs. {fwd_5y_pv:,.0f}</b>) &nbsp;|&nbsp; Bull Case (45x PE | +22.0% EPS): <b>Rs. {base_eps * ((1+0.22)**5) * 45.0:,.0f}</b>. At CMP (Rs. {cmp_val:,.0f}), Base Case nominal CAGR is +{fwd_cagr_nom:.1f}%/yr (+{fwd_cagr_nom + 0.7:.1f}% with dividends), which trails the {wacc:.1f}% Cost of Equity hurdle due to {pe_val:.1f}x to {term_pe:.0f}x multiple drag.<br/>"
         f"• <b>5-Year Reverse DCF Hurdles:</b> Flat CMP Defense requires <b>0.0%</b> EPS growth at unchanged {pe_val:.1f}x P/E; a +10.0%/yr hurdle return requires <b>+10.0%/yr</b> EPS growth; Multiple Compression Defense (compression to 25.0x PE over 5Y) requires <b>+{comp_hurdle:.1f}%/yr</b> EPS CAGR over 5Y to defend current CMP (Rs. {cmp_val:,.0f}).<br/>"
-        f"• <b>Exit Multiple Sensitivity &amp; Terminal Dependence:</b> Both the 30x EV/EBITDA DCF (Rs. {base_target:,.0f}) and 35x P/E 5-year target (PV Rs. {fwd_5y_pv:,.0f}) are anchored to exit multiple assumptions (28x–35x). If terminal multiples compress to peer median bands ({peer_pe_med*0.8:.1f}x–{peer_pe_med:.1f}x), intrinsic fair value aligns to Rs. {dcf_targets[25.0]:,.0f}–{dcf_targets[28.0]:,.0f}."
+        f"• <b>Exit Multiple Sensitivity &amp; Terminal Dependence:</b> Both the 30x EV/EBITDA DCF (Rs. {base_target:,.0f}) and {term_pe:.0f}x P/E 5-year target (PV Rs. {fwd_5y_pv:,.0f}) are anchored to exit multiple assumptions (28x–35x). If terminal multiples compress to peer median bands ({peer_pe_med*0.8:.1f}x–{peer_pe_med:.1f}x), intrinsic fair value aligns to Rs. {dcf_targets[25.0]:,.0f}–{dcf_targets[28.0]:,.0f}."
     )
 
     t_sens = Table([[Paragraph(sens_html, body_style)]], colWidths=[520])
@@ -3890,12 +3905,18 @@ def generate_stock_research_dossier_pdf(
         inv_rationale = f"Balanced risk-reward profile tracking historical earnings growth at reasonable margin of safety."
 
     # Dynamic Balance Sheet Quality
-    if de_val <= 0.05:
-        bs_quality_text = f"Virtually Zero Debt (Net Cash Surplus: Rs. {max(investments - borrowings, 0.0):,.0f} Cr | {de_val:.2f}x D/E, {roce_val:.1f}% ROCE)"
-    elif de_val <= 0.50:
-        bs_quality_text = f"Prudent Gearing (Net Debt: Rs. {max(borrowings - investments, 0.0):,.0f} Cr | {de_val:.2f}x D/E, {roce_val:.1f}% ROCE)"
+    if investments >= borrowings:
+        net_surplus_amt = investments - borrowings
+        if de_val <= 0.05:
+            bs_quality_text = f"Virtually Zero Debt (Net Cash Surplus: Rs. {net_surplus_amt:,.0f} Cr | {de_val:.2f}x D/E, {roce_val:.1f}% ROCE)"
+        else:
+            bs_quality_text = f"Cash-Rich Fortress (Net Cash Surplus: Rs. {net_surplus_amt:,.0f} Cr | {de_val:.2f}x D/E, {roce_val:.1f}% ROCE)"
     else:
-        bs_quality_text = f"Leveraged Capital Structure (Net Debt: Rs. {max(borrowings - investments, 0.0):,.0f} Cr | {de_val:.2f}x D/E, {roce_val:.1f}% ROCE)"
+        net_debt_amt = borrowings - investments
+        if de_val <= 0.50:
+            bs_quality_text = f"Prudent Gearing (Net Debt: Rs. {net_debt_amt:,.0f} Cr | {de_val:.2f}x D/E, {roce_val:.1f}% ROCE)"
+        else:
+            bs_quality_text = f"Leveraged Capital Structure (Net Debt: Rs. {net_debt_amt:,.0f} Cr | {de_val:.2f}x D/E, {roce_val:.1f}% ROCE)"
 
     strat_data = [
         [
