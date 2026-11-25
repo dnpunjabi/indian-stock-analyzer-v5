@@ -3414,8 +3414,8 @@ def generate_stock_research_dossier_pdf(
         sma200_target=sma200,
         rsi_target=rsi_val
     )
-    story.append(Image(buf_tech, width=520, height=226))
-    story.append(Spacer(1, 3))
+    story.append(Image(buf_tech, width=520, height=210))
+    story.append(Spacer(1, 2))
 
     story.append(Paragraph("<b>MOMENTUM OSCILLATORS &amp; SIMPLE MOVING AVERAGE (SMA) SPREAD SUMMARY</b>", sec_header_style))
     story.append(Spacer(1, 2))
@@ -3725,6 +3725,90 @@ def generate_stock_research_dossier_pdf(
         ('VALIGN', (0,0), (-1,-1), 'MIDDLE')
     ]))
     story.append(t_secular)
+    story.append(Spacer(1, 2))
+
+    # "Why Now?" Confluence Trigger Timeline (Last 60 Trading Days)
+    def _build_confluence_timeline(sym_name: str) -> str:
+        events = []
+        try:
+            import yfinance as yf
+            hist = yf.Ticker(f"{sym_name}.NS").history(period="1y", interval="1d")
+            if hist is not None and not hist.empty and len(hist) >= 60:
+                close = hist["Close"].astype(float)
+                open_p = hist["Open"].astype(float)
+                vol = hist["Volume"].astype(float)
+                sma50_s = close.rolling(50).mean()
+                sma200_s = close.rolling(200).mean() if len(close) >= 200 else close.rolling(100).mean()
+                vol20_s = vol.rolling(20).mean()
+
+                delta = close.diff()
+                gain = delta.clip(lower=0).rolling(14).mean()
+                loss = (-delta.clip(upper=0)).rolling(14).mean()
+                rs = gain / loss.replace(0, np.nan)
+                rsi_s = 100.0 - (100.0 / (1.0 + rs))
+
+                n = len(close)
+                win = min(60, n - 2)
+                # 1. Most recent 50 SMA cross
+                for offset in range(1, win):
+                    idx = n - offset
+                    if pd.notna(sma50_s.iloc[idx]) and pd.notna(sma50_s.iloc[idx - 1]):
+                        if close.iloc[idx] > sma50_s.iloc[idx] and close.iloc[idx - 1] <= sma50_s.iloc[idx - 1]:
+                            events.append((offset, f"<b>{offset}d ago:</b> Reclaimed 50 SMA"))
+                            break
+                        if close.iloc[idx] < sma50_s.iloc[idx] and close.iloc[idx - 1] >= sma50_s.iloc[idx - 1]:
+                            events.append((offset, f"<b>{offset}d ago:</b> Slipped below 50 SMA"))
+                            break
+
+                # 2. Highest institutional volume up-day in last 45 trading days
+                best_vol_ratio, best_vol_off = 0.0, None
+                for offset in range(1, min(45, n - 2)):
+                    idx = n - offset
+                    v20 = vol20_s.iloc[idx]
+                    if pd.notna(v20) and v20 > 0 and close.iloc[idx] >= open_p.iloc[idx]:
+                        vr = vol.iloc[idx] / v20
+                        if vr >= 1.8 and vr > best_vol_ratio:
+                            best_vol_ratio, best_vol_off = vr, offset
+                if best_vol_off is not None:
+                    events.append((best_vol_off, f"<b>{best_vol_off}d ago:</b> {best_vol_ratio:.1f}x Vol Accumulation"))
+
+                # 3. RSI momentum inflection (>55 cross or <35 oversold bounce)
+                for offset in range(1, min(45, n - 2)):
+                    idx = n - offset
+                    if pd.notna(rsi_s.iloc[idx]) and pd.notna(rsi_s.iloc[idx - 1]):
+                        if rsi_s.iloc[idx] >= 55.0 and rsi_s.iloc[idx - 1] < 55.0:
+                            events.append((offset, f"<b>{offset}d ago:</b> RSI Momentum Cross (&gt;55)"))
+                            break
+                        if rsi_s.iloc[idx] <= 35.0 and rsi_s.iloc[idx - 1] > 35.0:
+                            events.append((offset, f"<b>{offset}d ago:</b> RSI Oversold Inflection (&lt;35)"))
+                            break
+
+                # 4. 52W High proximity / recency
+                hi_idx = int(np.argmax(close.values))
+                hi_off = (n - 1) - hi_idx
+                if hi_off <= 45:
+                    events.append((max(hi_off, 1), f"<b>{max(hi_off, 1)}d ago:</b> 52W High Print"))
+        except Exception:
+            pass
+
+        events.sort(key=lambda x: x[0], reverse=True)
+        if events:
+            trail = " &nbsp;&rarr;&nbsp; ".join([e[1] for e in events[:4]])
+        else:
+            trail = f"<b>Steady Regime:</b> Price {((cmp_val-sma50)/sma50*100):+.1f}% vs 50 SMA &nbsp;|&nbsp; {((cmp_val-sma200)/sma200*100):+.1f}% vs 200 SMA &nbsp;|&nbsp; RSI {rsi_val:.1f}"
+        return f"<b>\"WHY NOW?\" CONFLUENCE TRIGGER TIMELINE (60D):</b> &nbsp;{trail}"
+
+    conf_timeline_html = _build_confluence_timeline(clean_sym)
+    t_conf_timeline = Table([[Paragraph(conf_timeline_html, ParagraphStyle('CTL', parent=body_style, fontSize=6.1, leading=7.8))]], colWidths=[520])
+    t_conf_timeline.setStyle(TableStyle([
+        ('BACKGROUND', (0,0), (-1,-1), colors.HexColor("#f1f5f9")),
+        ('BOX', (0,0), (-1,-1), 0.5, colors.HexColor("#cbd5e1")),
+        ('TOPPADDING', (0,0), (-1,-1), 2.0),
+        ('BOTTOMPADDING', (0,0), (-1,-1), 2.0),
+        ('LEFTPADDING', (0,0), (-1,-1), 5),
+        ('RIGHTPADDING', (0,0), (-1,-1), 5),
+    ]))
+    story.append(t_conf_timeline)
 
     # ══════════════════════════════════════════════════════════════════════════
     # PAGE 3: SECTION 6 - QUANT ENGINE, 11-SCREENER MATRIX & PEERS
