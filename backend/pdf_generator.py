@@ -1858,7 +1858,7 @@ def _generate_qtr_yoy_chart(
     exp_count: int
 ) -> io.BytesIO:
     """Page 4: Dual-panel 4-Quarter YoY Sales Growth (%) & YoY OPM Change (bps)."""
-    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(7.6, 0.88), dpi=160)
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(7.6, 1.18), dpi=160)
     fig.patch.set_facecolor('#ffffff')
 
     # Left: YoY Sales Growth (%)
@@ -1911,7 +1911,7 @@ def _generate_wc_capital_chart(
     div_payout: float
 ) -> io.BytesIO:
     """Page 5: Dual-panel 3Y Cash Conversion Cycle (left) + 3Y ROCE % & Earnings Reinvestment Split (right)."""
-    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(7.6, 0.96), dpi=160, gridspec_kw={'width_ratios': [1.25, 1.0]})
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(7.6, 1.28), dpi=160, gridspec_kw={'width_ratios': [1.25, 1.0]})
     fig.patch.set_facecolor('#ffffff')
 
     # Left: 3Y Working Capital Days + Net CCC line
@@ -2395,7 +2395,7 @@ def _generate_qtr_yoy_chart(
     exp_count: int
 ) -> io.BytesIO:
     """Page 4: Dual-panel 4-Quarter YoY Sales Growth (%) & YoY OPM Change (bps)."""
-    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(7.6, 0.88), dpi=160)
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(7.6, 1.18), dpi=160)
     fig.patch.set_facecolor('#ffffff')
 
     # Left: YoY Sales Growth (%)
@@ -2448,7 +2448,7 @@ def _generate_wc_capital_chart(
     div_payout: float
 ) -> io.BytesIO:
     """Page 5: Dual-panel 3Y Cash Conversion Cycle (left) + 3Y ROCE % & Earnings Reinvestment Split (right)."""
-    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(7.6, 0.96), dpi=160, gridspec_kw={'width_ratios': [1.25, 1.0]})
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(7.6, 1.28), dpi=160, gridspec_kw={'width_ratios': [1.25, 1.0]})
     fig.patch.set_facecolor('#ffffff')
 
     # Left: 3Y Working Capital Days + Net CCC line
@@ -2750,7 +2750,7 @@ def _generate_qtr_yoy_chart(
     exp_count: int
 ) -> io.BytesIO:
     """Page 4: Dual-panel 4-Quarter YoY Sales Growth (%) & YoY OPM Change (bps)."""
-    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(7.6, 0.88), dpi=160)
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(7.6, 1.18), dpi=160)
     fig.patch.set_facecolor('#ffffff')
 
     # Left: YoY Sales Growth (%)
@@ -2803,7 +2803,7 @@ def _generate_wc_capital_chart(
     div_payout: float
 ) -> io.BytesIO:
     """Page 5: Dual-panel 3Y Cash Conversion Cycle (left) + 3Y ROCE % & Earnings Reinvestment Split (right)."""
-    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(7.6, 0.96), dpi=160, gridspec_kw={'width_ratios': [1.25, 1.0]})
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(7.6, 1.28), dpi=160, gridspec_kw={'width_ratios': [1.25, 1.0]})
     fig.patch.set_facecolor('#ffffff')
 
     # Left: 3Y Working Capital Days + Net CCC line
@@ -4830,8 +4830,8 @@ def generate_stock_research_dossier_pdf(
     story.append(Spacer(1, 3))
 
     buf_quarterly = _generate_quarterly_performance_chart(q_headers_plot, q_sales_plot, q_pat_plot, q_opm_plot)
-    story.append(Image(buf_quarterly, width=520, height=110))
-    story.append(Spacer(1, 2))
+    story.append(Image(buf_quarterly, width=520, height=130))
+    story.append(Spacer(1, 3))
 
     # Dynamic Waterfall derivation
     wf_op = float(q_op_plot[-1]) if q_op_plot else 2000.0
@@ -4843,7 +4843,7 @@ def generate_stock_research_dossier_pdf(
     wf_tax = max(wf_pbt - wf_pat, 1.0)
 
     buf_waterfall = _generate_pbt_pat_waterfall_chart(wf_op, wf_oth, wf_pbt, wf_tax, wf_pat)
-    story.append(Image(buf_waterfall, width=520, height=58))
+    story.append(Image(buf_waterfall, width=520, height=72))
     story.append(Spacer(1, 2))
 
     story.append(Paragraph(f"<b>8-QUARTER PERFORMANCE HEATMAP TABLE ({q_headers_plot[0].upper()} – {q_headers_plot[-1].upper()} AUDITED CONSOLIDATED)</b>", sec_header_style))
@@ -4923,8 +4923,8 @@ def generate_stock_research_dossier_pdf(
                         yoy_opm_vals.append(bps_d)
         if yoy_s_lbls:
             buf_q_yoy = _generate_qtr_yoy_chart(yoy_s_lbls, yoy_s_vals, yoy_opm_vals, exp_count)
-            story.append(Image(buf_q_yoy, width=520, height=60))
-            story.append(Spacer(1, 2))
+            story.append(Image(buf_q_yoy, width=520, height=82))
+            story.append(Spacer(1, 3))
 
     # Dynamic Statistical Anomaly Detector for Exceptional One-Off Items
     q_other_vals = [float(v) for v in q_rows.get("Other Income", [])[-8:]] if "Other Income" in q_rows else []
@@ -4980,11 +4980,11 @@ def generate_stock_research_dossier_pdf(
     y_ocf_plot = y_ocf[-5:] if len(y_ocf) >= 5 else [1400.0]*5
 
     buf_annual = _generate_annual_compounding_chart(y_labels_plot, y_rev_plot, y_ebitda_plot, y_pat_plot, y_ocf_plot)
-    story.append(Image(buf_annual, width=520, height=120))
-    story.append(Spacer(1, 2))
+    story.append(Image(buf_annual, width=520, height=148))
+    story.append(Spacer(1, 3))
 
     story.append(Paragraph("<b>DUPONT ROE 3-FACTOR DECOMPOSITION TREE (AUDITED BENCHMARK)</b>", sec_header_style))
-    story.append(Spacer(1, 1.5))
+    story.append(Spacer(1, 2))
 
     buf_dupont = _generate_dupont_tree_chart(
         npm=dp_npm,
@@ -4996,7 +4996,7 @@ def generate_stock_research_dossier_pdf(
         tot_assets_cr=tot_assets,
         ttm_pat_cr=ttm_pat
     )
-    story.append(Image(buf_dupont, width=520, height=84))
+    story.append(Image(buf_dupont, width=520, height=94))
     story.append(Spacer(1, 3))
 
     story.append(Paragraph(f"<b>5-YEAR HISTORICAL FINANCIAL SUMMARY ({y_labels_plot[0].upper()} – {y_labels_plot[-1].upper()} AUDITED CONSOLIDATED)</b>", sec_header_style))
@@ -5130,7 +5130,7 @@ def generate_stock_research_dossier_pdf(
     retain_pct = max(100.0 - div_payout, 0.0)
 
     buf_wc_cap = _generate_wc_capital_chart(yr_lbls_wc, dso3, dio3, dpo3, ccc3, roce3, retain_pct, div_payout)
-    story.append(Image(buf_wc_cap, width=520, height=66))
+    story.append(Image(buf_wc_cap, width=520, height=92))
 
     # ══════════════════════════════════════════════════════════════════════════
     # PAGE 6: SECTION 8 - DCF FRAMEWORK & DUAL-HORIZON ACTIONABLE STRATEGY
