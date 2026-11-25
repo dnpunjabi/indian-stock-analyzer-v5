@@ -788,6 +788,12 @@ def _generate_technical_price_rsi_chart(
         rs = gain / loss.replace(0, np.nan)
         df['RSI'] = (100 - (100 / (1 + rs))).fillna(55.0)
 
+        ema12 = p_close.ewm(span=12, adjust=False).mean()
+        ema26 = p_close.ewm(span=26, adjust=False).mean()
+        df['MACD'] = ema12 - ema26
+        df['MACD_Sig'] = df['MACD'].ewm(span=9, adjust=False).mean()
+        df['MACD_Hist'] = df['MACD'] - df['MACD_Sig']
+
         df_6m = df.iloc[-n_display:].reset_index()
         if 'Date' not in df_6m.columns:
             df_6m['Date'] = pd.to_datetime(df_6m.iloc[:, 0])
@@ -854,6 +860,18 @@ def _generate_technical_price_rsi_chart(
         rs = gain / loss.replace(0, np.nan)
         df['RSI'] = (100 - (100 / (1 + rs))).fillna(55.0)
 
+        ema12 = p_close.ewm(span=12, adjust=False).mean()
+        ema26 = p_close.ewm(span=26, adjust=False).mean()
+        df['MACD'] = ema12 - ema26
+        df['MACD_Sig'] = df['MACD'].ewm(span=9, adjust=False).mean()
+        df['MACD_Hist'] = df['MACD'] - df['MACD_Sig']
+
+        ema12 = p_close.ewm(span=12, adjust=False).mean()
+        ema26 = p_close.ewm(span=26, adjust=False).mean()
+        df['MACD'] = ema12 - ema26
+        df['MACD_Sig'] = df['MACD'].ewm(span=9, adjust=False).mean()
+        df['MACD_Hist'] = df['MACD'] - df['MACD_Sig']
+
         df_6m = df.iloc[-n_display:].reset_index(drop=True)
 
         if sma200_target > 0:
@@ -866,23 +884,24 @@ def _generate_technical_price_rsi_chart(
             offset_20 = sma20_target - df_6m['EMA_20'].iloc[-1]
             df_6m['EMA_20'] = df_6m['EMA_20'] + offset_20 * np.linspace(0.8, 1.0, len(df_6m))
 
-    # Matplotlib 3-panel figure
-    fig, (ax_main, ax_vol, ax_rsi) = plt.subplots(
-        3, 1, figsize=(7.2, 2.70),
-        gridspec_kw={'height_ratios': [3.0, 0.9, 0.9]},
+    # Matplotlib 4-panel figure (Candlesticks + Volume Profile, Volume, RSI, MACD)
+    fig, (ax_main, ax_vol, ax_rsi, ax_macd) = plt.subplots(
+        4, 1, figsize=(7.2, 3.10),
+        gridspec_kw={'height_ratios': [3.0, 0.85, 0.85, 0.90]},
         dpi=150, sharex=True
     )
     fig.patch.set_facecolor('#ffffff')
-    for ax in [ax_main, ax_vol, ax_rsi]:
+    for ax in [ax_main, ax_vol, ax_rsi, ax_macd]:
         ax.set_facecolor('#ffffff')
 
-    x_idx = np.arange(len(df_6m))
+    n_candles = len(df_6m)
+    x_idx = np.arange(n_candles)
 
     # 1. Main Candlesticks Panel
     col_up = '#16a34a' # Emerald green
     col_dn = '#dc2626' # Crimson red
 
-    for i in range(len(df_6m)):
+    for i in range(n_candles):
         row = df_6m.iloc[i]
         c_val = float(row['Close'])
         o_val = float(row['Open'])
@@ -903,13 +922,48 @@ def _generate_technical_price_rsi_chart(
     ax_main.plot(x_idx, df_6m['SMA_200'], label='200 SMA', color='#f59e0b', linewidth=1.3, zorder=5)
     ax_main.fill_between(x_idx, df_6m['Boll_Dn'], df_6m['Boll_Up'], color='#0284c7', alpha=0.06, label='Bollinger (20,2)', zorder=2)
 
+    # 52W High Resistance Line
+    if high_52w > 0:
+        ax_main.axhline(high_52w, color='#dc2626', linestyle=':', linewidth=0.85, alpha=0.85, zorder=3)
+        ax_main.text(2, high_52w * 1.003, f"52W High: Rs. {high_52w:,.0f}", fontsize=5.8, fontweight='bold', color='#dc2626', va='bottom')
+
+    # Right-Margin Volume Profile (dedicated margin so bars never overlap candles)
+    vp_bins = 20
+    p_min = float(df_6m['Low'].min())
+    p_max = float(df_6m['High'].max())
+    vp_max_w = max(n_candles * 0.14, 12)
+    if p_max > p_min and n_candles > 5:
+        edges = np.linspace(p_min, p_max, vp_bins + 1)
+        vp_vols = np.zeros(vp_bins)
+        for i in range(n_candles):
+            c_v = float(df_6m['Close'].iloc[i])
+            v_v = float(df_6m['Volume'].iloc[i])
+            b_idx = min(max(int((c_v - p_min) / (p_max - p_min) * vp_bins), 0), vp_bins - 1)
+            vp_vols[b_idx] += v_v
+
+        max_vp = max(vp_vols) if max(vp_vols) > 0 else 1.0
+        poc_idx = int(np.argmax(vp_vols))
+        poc_price = (edges[poc_idx] + edges[poc_idx + 1]) / 2.0
+        vp_start_x = n_candles + 2
+        bar_h = (p_max - p_min) / vp_bins * 0.82
+        for b_i in range(vp_bins):
+            w_bar = (vp_vols[b_i] / max_vp) * vp_max_w
+            ax_main.barh(edges[b_i] + bar_h / 2, w_bar, left=vp_start_x, height=bar_h,
+                         color='#0284c7' if b_i == poc_idx else '#94a3b8',
+                         alpha=0.75 if b_i == poc_idx else 0.35, zorder=2)
+        ax_main.axhline(poc_price, color='#0284c7', linestyle='--', linewidth=0.75, alpha=0.65, zorder=3)
+        ax_main.text(vp_start_x + vp_max_w * 0.5, poc_price, f"POC\nRs.{poc_price:,.0f}",
+                     fontsize=5.4, fontweight='bold', color='#0f172a', va='center', ha='center',
+                     bbox=dict(boxstyle="round,pad=0.12", fc="#e0f2fe", ec="#0284c7", lw=0.5))
+
+    ax_main.set_xlim(-1, n_candles + vp_max_w + 4)
     ax_main.set_ylabel('Price (Rs.)', fontsize=6.8, color='#475569', fontweight='bold')
     ax_main.tick_params(axis='y', labelsize=6.2, labelcolor='#475569')
     ax_main.grid(axis='both', linestyle=':', linewidth=0.5, color='#e2e8f0')
     ax_main.legend(loc='upper left', fontsize=6.0, frameon=True, facecolor='#f8fafc', edgecolor='#cbd5e1', ncol=4)
 
     # 2. Volume Panel
-    for i in range(len(df_6m)):
+    for i in range(n_candles):
         row = df_6m.iloc[i]
         is_up = float(row['Close']) >= float(row['Open'])
         color = '#86efac' if is_up else '#fca5a5'
@@ -932,6 +986,18 @@ def _generate_technical_price_rsi_chart(
     ax_rsi.set_ylabel('RSI (14)', fontsize=6.5, color='#475569', fontweight='bold')
     ax_rsi.tick_params(axis='y', labelsize=6.0, labelcolor='#475569')
     ax_rsi.grid(axis='both', linestyle=':', linewidth=0.5, color='#e2e8f0')
+    ax_rsi.legend(loc='upper left', fontsize=5.8, frameon=True, facecolor='#f8fafc', edgecolor='#cbd5e1')
+
+    # 4. MACD (12, 26, 9) Panel
+    hist_cols = ['#16a34a' if float(v) >= 0 else '#dc2626' for v in df_6m['MACD_Hist']]
+    ax_macd.bar(x_idx, df_6m['MACD_Hist'], width=0.6, color=hist_cols, alpha=0.55, zorder=3)
+    ax_macd.plot(x_idx, df_6m['MACD'], color='#0284c7', linewidth=1.1, label='MACD (12,26)', zorder=4)
+    ax_macd.plot(x_idx, df_6m['MACD_Sig'], color='#f59e0b', linewidth=1.0, label='Signal (9)', zorder=4)
+    ax_macd.axhline(0, color='#64748b', linewidth=0.6, zorder=2)
+    ax_macd.set_ylabel('MACD', fontsize=6.5, color='#475569', fontweight='bold')
+    ax_macd.tick_params(axis='y', labelsize=5.8, labelcolor='#475569')
+    ax_macd.grid(axis='both', linestyle=':', linewidth=0.5, color='#e2e8f0')
+    ax_macd.legend(loc='upper left', fontsize=5.8, frameon=True, facecolor='#f8fafc', edgecolor='#cbd5e1', ncol=2)
 
     # Distinct Monthly Ticks (Zero duplicates!)
     month_ticks = []
@@ -945,15 +1011,15 @@ def _generate_technical_price_rsi_chart(
             month_labels.append(dt_val.strftime("%b '%y"))
             last_m = m_key
 
-    ax_rsi.set_xticks(month_ticks)
-    ax_rsi.set_xticklabels(month_labels, fontsize=6.5, color='#475569', fontweight='bold')
+    ax_macd.set_xticks(month_ticks)
+    ax_macd.set_xticklabels(month_labels, fontsize=6.5, color='#475569', fontweight='bold')
 
-    for ax in [ax_main, ax_vol, ax_rsi]:
+    for ax in [ax_main, ax_vol, ax_rsi, ax_macd]:
         for spine in ['top', 'right', 'left', 'bottom']:
             ax.spines[spine].set_color('#cbd5e1')
             ax.spines[spine].set_linewidth(0.5)
 
-    fig.subplots_adjust(top=0.96, bottom=0.10, left=0.10, right=0.96, hspace=0.12)
+    fig.subplots_adjust(top=0.96, bottom=0.09, left=0.10, right=0.96, hspace=0.12)
     buf = io.BytesIO()
     fig.savefig(buf, format='png', dpi=150, bbox_inches='tight')
     buf.seek(0)
@@ -2940,7 +3006,7 @@ def generate_stock_research_dossier_pdf(
         sma200_target=sma200,
         rsi_target=rsi_val
     )
-    story.append(Image(buf_tech, width=520, height=215))
+    story.append(Image(buf_tech, width=520, height=226))
     story.append(Spacer(1, 3))
 
     story.append(Paragraph("<b>MOMENTUM OSCILLATORS &amp; SIMPLE MOVING AVERAGE (SMA) SPREAD SUMMARY</b>", sec_header_style))
