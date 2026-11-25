@@ -3094,11 +3094,13 @@ async def get_stock_research_dossier_pdf_endpoint(
     suffix = "Executive_TearSheet.pdf" if is_tearsheet else "Institutional_Dossier.pdf"
     pdf_path = os.path.join(reports_dir, f"{clean_sym}_{suffix}")
 
-    # Check cache freshness (valid for 4 hours)
+    # Check cache freshness (5 min during NSE market hours, 4 hours off-hours)
+    from backend.pdf_generator import _is_nse_market_hours
+    cache_ttl = 300 if _is_nse_market_hours() else 14400
     needs_gen = force_refresh or not os.path.exists(pdf_path)
     if not needs_gen:
         file_age_secs = time.time() - os.path.getmtime(pdf_path)
-        if file_age_secs > 14400: # 4 hours
+        if file_age_secs > cache_ttl:
             needs_gen = True
 
     if needs_gen:

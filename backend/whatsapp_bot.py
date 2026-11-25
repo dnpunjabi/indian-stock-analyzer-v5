@@ -891,10 +891,12 @@ def handle_stock_dossier_pdf(symbol_input: str, recipient: Optional[str] = None)
         cleanup_stale_reports(reports_dir, max_age_secs=86400)
         pdf_path = os.path.join(reports_dir, f"{clean_sym}_Institutional_Dossier.pdf")
 
-        # Check freshness (< 4 hrs)
+        # Check freshness (5 min during NSE market hours, 4 hrs off-hours)
+        from backend.pdf_generator import _is_nse_market_hours
+        cache_ttl = 300 if _is_nse_market_hours() else 14400
         needs_gen = not os.path.exists(pdf_path)
         if not needs_gen:
-            if (time.time() - os.path.getmtime(pdf_path)) > 14400:
+            if (time.time() - os.path.getmtime(pdf_path)) > cache_ttl:
                 needs_gen = True
 
         if needs_gen:
@@ -923,6 +925,7 @@ def handle_stock_dossier_pdf(symbol_input: str, recipient: Optional[str] = None)
             buttons=[
                 (f"act:stock:ts:{clean_sym}", f"⚡ 1-Page Tear Sheet"),
                 (f"run:chart:{clean_sym}", f"📊 Live Chart"),
+                (f"run:stage:{clean_sym}", f"📐 Stage Setup"),
                 ("nav:menu:main", "🏠 Main Menu")
             ],
             recipient=recipient
@@ -971,7 +974,9 @@ def handle_stock_tearsheet_pdf(symbol_input: str, recipient: Optional[str] = Non
         cleanup_stale_reports(reports_dir, max_age_secs=86400)
         pdf_path = os.path.join(reports_dir, f"{clean_sym}_Executive_TearSheet.pdf")
 
-        needs_gen = not os.path.exists(pdf_path) or ((time.time() - os.path.getmtime(pdf_path)) > 14400)
+        from backend.pdf_generator import _is_nse_market_hours
+        cache_ttl = 300 if _is_nse_market_hours() else 14400
+        needs_gen = not os.path.exists(pdf_path) or ((time.time() - os.path.getmtime(pdf_path)) > cache_ttl)
         if needs_gen:
             generate_stock_tearsheet_pdf(clean_sym, pdf_path)
 

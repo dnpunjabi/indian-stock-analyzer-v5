@@ -2029,6 +2029,63 @@ def _generate_composite_score_gauge(score: float, tier_label: str) -> io.BytesIO
 # ─── MASTER PDF COMPILER FOR STOCK RESEARCH DOSSIER ──────────────────────────
 
 
+def _is_nse_market_hours() -> bool:
+    """Returns True if current IST time is within NSE trading hours (Mon-Fri 09:15-15:30 IST)."""
+    try:
+        from datetime import timezone
+        ist_now = datetime.now(timezone.utc) + timedelta(hours=5, minutes=30)
+        if ist_now.weekday() >= 5:
+            return False
+        mins = ist_now.hour * 60 + ist_now.minute
+        return (9 * 60 + 15) <= mins <= (15 * 60 + 30)
+    except Exception:
+        return False
+
+
+def _fetch_live_cmp_and_change(clean_sym: str, fallback_cmp: float) -> Tuple[float, float]:
+    """
+    Two-tier live price resolver:
+      1. During NSE market hours, checks live Angel One WebSocket tick_store (< 5m fresh).
+      2. Falls back to yfinance latest 5d daily bars for current close & 1D % change.
+      3. Falls back to cached fallback_cmp if offline.
+    """
+    # Tier 1: Live WebSocket tick_store during market hours
+    if _is_nse_market_hours():
+        try:
+            from backend.websocket_server import tick_store
+            for key in (clean_sym, f"{clean_sym}.NS"):
+                tick = tick_store.get_tick(key)
+                if tick and float(tick.get("price") or 0) > 0:
+                    ts = float(tick.get("timestamp") or 0)
+                    if (time.time() - ts) < 300:
+                        return float(tick["price"]), float(tick.get("change_pct") or 0.0)
+        except Exception:
+            pass
+
+    # Tier 2: yfinance latest quote / daily close
+    try:
+        import yfinance as yf
+        df_q = yf.download(f"{clean_sym}.NS", period="5d", interval="1d", progress=False)
+        if df_q is not None and not df_q.empty:
+            if hasattr(df_q.columns, "levels") and len(df_q.columns.levels) > 1:
+                df_q.columns = df_q.columns.get_level_values(0)
+            closes = df_q["Close"].dropna()
+            if len(closes) >= 2:
+                curr_p = float(closes.iloc[-1])
+                prev_p = float(closes.iloc[-2])
+                chg_1d = ((curr_p - prev_p) / prev_p * 100.0) if prev_p > 0 else 0.0
+                if curr_p > 0:
+                    return curr_p, round(chg_1d, 2)
+            elif len(closes) == 1:
+                curr_p = float(closes.iloc[-1])
+                if curr_p > 0:
+                    return curr_p, 0.0
+    except Exception:
+        pass
+
+    return fallback_cmp, 0.0
+
+
 def _extract_dossier_intelligence(clean_sym: str) -> dict:
     """Extracts, normalizes, and computes comprehensive equity intelligence dynamically for any NSE ticker."""
     clean_sym = clean_sym.strip().upper().replace(".NS", "").replace(".BO", "")
@@ -2115,7 +2172,19 @@ def _extract_dossier_intelligence(clean_sym: str) -> dict:
 
     shares_count = mcap_val / cmp_val if cmp_val > 0 else 1.0  # in Crores
 
+    # Refresh CMP & 1D % change from live WebSocket (market hours) or yfinance
+    cached_cmp = cmp_val
+    live_cmp, day_chg_pct = _fetch_live_cmp_and_change(clean_sym, cached_cmp)
+    if live_cmp > 0:
+        cmp_val = live_cmp
+        if shares_count > 0:
+            mcap_val = cmp_val * shares_count
+        low_52w = min(low_52w, cmp_val) if low_52w > 0 else cmp_val * 0.75
+        high_52w = max(high_52w, cmp_val) if high_52w > 0 else cmp_val * 1.15
+
     pe_val = _safe_float(f.get("pe_ratio"), 25.0)
+    if cached_cmp > 0 and live_cmp > 0 and live_cmp != cached_cmp:
+        pe_val = pe_val * (live_cmp / cached_cmp)
     roce_val = _safe_float(f.get("roce_pct") or f.get("roce"), 20.0)
     roe_val = _safe_float(f.get("roe_pct") or f.get("roe"), 18.0)
     de_val = _safe_float(f.get("debt_to_equity"), 0.01)
@@ -2504,6 +2573,7 @@ def _extract_dossier_intelligence(clean_sym: str) -> dict:
         "low_52w": low_52w,
         "high_52w": high_52w,
         "mcap_val": mcap_val,
+        "day_chg_pct": day_chg_pct,
         "shares_count": shares_count,
         "pe_val": pe_val,
         "pb_val": pb_val,
@@ -2814,9 +2884,11 @@ def generate_stock_research_dossier_pdf(
         Paragraph(f"<b>{comp_name.upper()} ({clean_sym}.NS)</b>", title_style),
         Paragraph(f"<b>Sector:</b> {sector} &nbsp; | &nbsp; <b>Industry:</b> {industry} &nbsp; | &nbsp; <b>Basis:</b> {basis_label}", meta_style)
     ]
+    day_chg_pct = float(info.get("day_chg_pct", chg_1w))
+    hdr_chg_col = "#15803d" if day_chg_pct >= 0 else "#dc2626"
     header_col_right = [
         Paragraph(f"<b>REPORT GENERATED:</b> {now_display}", meta_style),
-        Paragraph(f"<b>Rs. {cmp_val:,.2f}</b> <font color='#15803d'><b>({chg_1w:+.2f}%)</b></font>", title_style),
+        Paragraph(f"<b>Rs. {cmp_val:,.2f}</b> <font color='{hdr_chg_col}'><b>({day_chg_pct:+.2f}% 1D)</b></font>", title_style),
         Paragraph(f"<b>52W Range:</b> Rs. {low_52w:,.1f} – Rs. {high_52w:,.1f} &nbsp;|&nbsp; <b>Market Cap:</b> Rs. {mcap_val:,.0f} Cr &nbsp;|&nbsp; <b>Shares:</b> {shares_count:,.2f} Cr", meta_style)
     ]
     t_header = Table([[header_col_left, header_col_right]], colWidths=[290, 230])
@@ -4541,9 +4613,11 @@ def generate_stock_tearsheet_pdf(
         title_st
     )
     upside_col = "#15803d" if base_pct >= 0 else "#dc2626"
+    day_chg_pct = float(info.get("day_chg_pct", 0.0))
+    day_col = "#15803d" if day_chg_pct >= 0 else "#dc2626"
     hdr_right = Paragraph(
         f"<font size='7' color='#64748b'><b>CMP (NSE)</b></font><br/>"
-        f"<font size='12.5' color='#0f172a'><b>Rs. {cmp_val:,.2f}</b></font><br/>"
+        f"<font size='12' color='#0f172a'><b>Rs. {cmp_val:,.2f}</b></font> <font size='8.5' color='{day_col}'><b>({day_chg_pct:+.2f}%)</b></font><br/>"
         f"<font size='7' color='{upside_col}'><b>Base Fair Value: Rs. {base_target:,.0f} ({base_pct:+.1f}%)</b></font>",
         ParagraphStyle('TSHdrR', parent=meta_st, alignment=2, leading=11)
     )
