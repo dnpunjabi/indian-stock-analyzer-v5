@@ -3475,36 +3475,91 @@ def generate_stock_research_dossier_pdf(
     fib_382 = fib_high - (fib_diff * 0.382)
     fib_618 = fib_high - (fib_diff * 0.618)
 
+    # Real NSE Delivery & Volume Z-Score Audit (reuses daily_delivery_history + quant_scoring)
+    deliv_line_1 = "<b>20D Volume Ratio:</b> 1.00x Avg"
+    deliv_line_2 = "<b>Volume Z-Score:</b> +0.00 sigma (Normal Liquidity)"
+    vsa_line = "<b>VSA Setup:</b> Balanced Supply &amp; Demand"
+    inst_fp_line = "<b>Institutional Footprint:</b> Steady accumulation near support zones."
+
+    try:
+        conn_del = sqlite3.connect("backend/data/watchlist_database.db")
+        conn_del.row_factory = sqlite3.Row
+        cur_del = conn_del.cursor()
+        cur_del.execute(
+            "SELECT delivery_qty, delivery_percentage FROM daily_delivery_history WHERE symbol = ? OR symbol = ? ORDER BY trade_date DESC LIMIT 20",
+            (clean_sym, f"{clean_sym}.NS")
+        )
+        h_rows = cur_del.fetchall()
+        cur_del.execute(
+            "SELECT delivery_percentage, delivery_qty FROM daily_delivery_stats WHERE symbol = ? OR symbol = ? LIMIT 1",
+            (clean_sym, f"{clean_sym}.NS")
+        )
+        s_row = cur_del.fetchone()
+        conn_del.close()
+
+        if h_rows:
+            del_pcts = [float(r["delivery_percentage"]) for r in h_rows if r["delivery_percentage"] is not None]
+            del_qtys = [float(r["delivery_qty"]) for r in reversed(h_rows) if r["delivery_qty"] is not None]
+            lat_pct = float(s_row["delivery_percentage"]) if s_row and s_row["delivery_percentage"] is not None else (del_pcts[0] if del_pcts else 40.0)
+            avg_pct = sum(del_pcts) / len(del_pcts) if del_pcts else lat_pct
+            from backend.quant_scoring import calculate_delivery_zscore
+            d_z = calculate_delivery_zscore(del_qtys) if len(del_qtys) >= 5 else 0.0
+            deliv_line_1 = f"<b>Latest Delivery %:</b> {lat_pct:.1f}% (vs 20D Avg: {avg_pct:.1f}%)"
+            z_tag = "High Delivery Accumulation" if d_z >= 1.5 else ("Institutional Absorption" if d_z >= 0.5 else ("Distribution Pressure" if d_z <= -1.0 else "Normal Institutional Flow"))
+            deliv_line_2 = f"<b>Delivery Z-Score:</b> {d_z:+.2f} sigma ({z_tag})"
+            vsa_line = "<b>VSA Setup:</b> Institutional Accumulation &amp; Breakout" if d_z >= 1.0 else ("<b>VSA Setup:</b> Overhead Supply / Profit Taking" if d_z <= -1.0 else "<b>VSA Setup:</b> Volume Absorption &amp; Consolidation")
+            inst_fp_line = f"<b>Institutional Footprint:</b> {'Strong delivery absorption' if lat_pct >= 45.0 else 'Balanced institutional participation'} ({lat_pct:.1f}% delivery)."
+        else:
+            import yfinance as yf
+            df_v = yf.download(f"{clean_sym}.NS", period="3mo", interval="1d", progress=False)
+            if df_v is not None and not df_v.empty and len(df_v) >= 21:
+                if hasattr(df_v.columns, "levels") and len(df_v.columns.levels) > 1:
+                    df_v.columns = df_v.columns.get_level_values(0)
+                vols = df_v["Volume"].dropna().astype(float).values
+                lat_v = float(vols[-1])
+                v20 = vols[-21:-1]
+                avg_v20 = float(np.mean(v20)) if len(v20) > 0 else lat_v
+                std_v20 = float(np.std(v20)) if len(v20) > 1 else 1.0
+                v_mult = (lat_v / avg_v20) if avg_v20 > 0 else 1.0
+                v_z = ((lat_v - avg_v20) / std_v20) if std_v20 > 0 else 0.0
+                deliv_line_1 = f"<b>Latest Volume:</b> {v_mult:.2f}x 20D Avg ({lat_v/1e5:.1f}L vs {avg_v20/1e5:.1f}L)"
+                z_tag = "High Volume Accumulation" if v_z >= 1.5 else ("Elevated Participation" if v_z >= 0.5 else ("Volume Dry-Up" if v_z <= -0.8 else "Normal Liquidity"))
+                deliv_line_2 = f"<b>Volume Z-Score:</b> {v_z:+.2f} sigma ({z_tag})"
+                vsa_line = "<b>VSA Setup:</b> High-Volume Institutional Impulse" if v_z >= 1.0 else ("<b>VSA Setup:</b> Low-Volume Supply Dry-Up" if v_z <= -0.8 else "<b>VSA Setup:</b> Balanced Absorption &amp; Base Building")
+                inst_fp_line = f"<b>Institutional Footprint:</b> {'Active institutional volume expansion' if v_mult >= 1.25 else 'Orderly consolidation'} ({v_mult:.2f}x 20D avg)."
+    except Exception:
+        pass
+
     fib_deliv_data = [
         [
             Paragraph("FIB RETRACEMENT LEVEL", th_style),
             Paragraph("PRICE (RS.)", th_style),
             Paragraph("TACTICAL CONTEXT &amp; ANCHOR SWING", th_style),
-            Paragraph("NSE DELIVERY ACCUMULATION AUDIT", th_style)
+            Paragraph("NSE DELIVERY / VOLUME ACCUMULATION AUDIT", th_style)
         ],
         [
             Paragraph("<b>0.0% (52W High)</b>", td_style),
             Paragraph(f"<b>Rs. {fib_high:,.1f}</b>", td_num),
             Paragraph(f"<b>Overhead All-Time High Resistance</b><br/>Anchor Swing: Low Rs. {fib_low:,.1f} -> High Rs. {fib_high:,.1f} | Breakout Pivot", body_style),
-            Paragraph("<b>Latest Delivery %:</b> 62.4% (vs 20D Avg: 41.8%)", body_style)
+            Paragraph(deliv_line_1, body_style)
         ],
         [
             Paragraph("<b>23.6% Pullback</b>", td_style),
             Paragraph(f"<b>Rs. {fib_236:,.1f}</b>", td_num),
             Paragraph("<b>First Shallow Wave Support Floor</b><br/>Action: Initial momentum absorption zone on mild market pullbacks", body_style),
-            Paragraph("<b>Delivery Z-Score:</b> +2.18 sigma (High Delivery Accumulation)", body_style)
+            Paragraph(deliv_line_2, body_style)
         ],
         [
             Paragraph("<b>38.2% Retracement</b>", td_style),
             Paragraph(f"<b>Rs. {fib_382:,.1f}</b>", td_num),
             Paragraph("<b>High-Volume Structural Support Base</b><br/>Action: Confluence zone with 50 SMA; ideal low-risk swing entry", body_style),
-            Paragraph("<b>VSA Setup:</b> Volume Absorption &amp; Continuation", body_style)
+            Paragraph(vsa_line, body_style)
         ],
         [
             Paragraph("<b>61.8% Golden Ratio</b>", td_style),
             Paragraph(f"<b>Rs. {fib_618:,.1f}</b>", td_num),
             Paragraph("<b>Critical Asymmetric Risk/Reward Floor</b><br/>Action: Deep value accumulation zone; secular bull market defense line", body_style),
-            Paragraph("<b>Institutional Footprint:</b> Real delivery absorption near 52W highs.", body_style)
+            Paragraph(inst_fp_line, body_style)
         ]
     ]
     t_fib_deliv = Table(fib_deliv_data, colWidths=[95, 75, 175, 175])
