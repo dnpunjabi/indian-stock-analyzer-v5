@@ -1733,6 +1733,231 @@ def _generate_segment_breakdown_bar(segments: List[Tuple[str, float, str]], tota
     return buf
 
 
+def _generate_rs_nifty_chart(
+    sym_name: str,
+    stk_norm: List[float],
+    nfy_norm: List[float],
+    rs_pct: float,
+    horizons_data: List[Tuple[str, float]]
+) -> io.BytesIO:
+    """Page 2: Dual-panel 1Y Stock vs Nifty 50 normalized sparkline + 1M/3M/6M/12M excess alpha bars."""
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(7.6, 0.85), dpi=160, gridspec_kw={'width_ratios': [1.35, 1.0]})
+    fig.patch.set_facecolor('#ffffff')
+
+    # Left: Normalized 100-indexed performance
+    ax1.set_facecolor('#f8fafc')
+    if stk_norm and nfy_norm and len(stk_norm) == len(nfy_norm):
+        xs = np.arange(len(stk_norm))
+        ax1.plot(xs, nfy_norm, color='#94a3b8', linestyle='--', linewidth=1.0, label='Nifty 50')
+        ax1.plot(xs, stk_norm, color='#0f172a', linewidth=1.35, label=sym_name)
+        ax1.fill_between(xs, nfy_norm, stk_norm, where=[s >= n for s, n in zip(stk_norm, nfy_norm)], color='#16a34a', alpha=0.12)
+        ax1.fill_between(xs, nfy_norm, stk_norm, where=[s < n for s, n in zip(stk_norm, nfy_norm)], color='#dc2626', alpha=0.10)
+    status_lbl = f"LEADING ({rs_pct:.0f}th %ile)" if rs_pct >= 80 else (f"LAGGING ({rs_pct:.0f}th %ile)" if rs_pct <= 25 else f"IN-LINE ({rs_pct:.0f}th %ile)")
+    st_col = '#15803d' if rs_pct >= 80 else ('#b91c1c' if rs_pct <= 25 else '#0284c7')
+    ax1.set_title(f"1Y Relative Strength vs. Nifty 50  [{status_lbl}]", fontsize=6.4, fontweight='bold', color=st_col, loc='left', pad=3)
+    ax1.tick_params(axis='both', labelsize=5.2, labelcolor='#475569', length=2)
+    ax1.set_xticks([])
+    ax1.grid(axis='y', linestyle=':', linewidth=0.5, color='#e2e8f0')
+    ax1.legend(loc='upper left', fontsize=5.2, frameon=False, ncol=2)
+
+    # Right: 1M / 3M / 6M / 12M Excess Alpha bars
+    ax2.set_facecolor('#f8fafc')
+    lbls = [h[0] for h in horizons_data]
+    vals = [h[1] for h in horizons_data]
+    bar_cols = ['#16a34a' if v >= 0 else '#dc2626' for v in vals]
+    bars = ax2.bar(lbls, vals, color=bar_cols, width=0.52, edgecolor='none')
+    ax2.axhline(0, color='#64748b', linewidth=0.7)
+    mx = max([abs(v) for v in vals] + [5.0])
+    ax2.set_ylim(-mx * 1.35, mx * 1.35)
+    for b, v in zip(bars, vals):
+        va = 'bottom' if v >= 0 else 'top'
+        off = mx * 0.06 if v >= 0 else -mx * 0.06
+        ax2.text(b.get_x() + b.get_width()/2, v + off, f"{v:+.1f}%", ha='center', va=va, fontsize=5.4, fontweight='bold', color='#0f172a')
+    ax2.set_title("Multi-Horizon Excess Alpha vs. Nifty 50", fontsize=6.4, fontweight='bold', color='#0f172a', loc='left', pad=3)
+    ax2.tick_params(axis='both', labelsize=5.4, labelcolor='#475569', length=2)
+    ax2.grid(axis='y', linestyle=':', linewidth=0.5, color='#e2e8f0')
+
+    for ax in (ax1, ax2):
+        for sp in ['top', 'right', 'left', 'bottom']:
+            ax.spines[sp].set_color('#cbd5e1')
+            ax.spines[sp].set_linewidth(0.6)
+    plt.subplots_adjust(left=0.05, right=0.98, top=0.80, bottom=0.14, wspace=0.16)
+    buf = io.BytesIO()
+    fig.savefig(buf, format='png', dpi=160, bbox_inches='tight', pad_inches=0.03)
+    buf.seek(0)
+    plt.close(fig)
+    return buf
+
+
+def _generate_shareholding_flow_chart(
+    q_cols: List[str],
+    prom_v: List[float],
+    dii_v: List[float],
+    fii_v: List[float],
+    pub_v: List[float]
+) -> io.BytesIO:
+    """Page 3: Dual-panel 4-Quarter Ownership Composition (left) + FII vs DII Net Flow Delta (right)."""
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(7.6, 0.80), dpi=160, gridspec_kw={'width_ratios': [1.2, 1.0]})
+    fig.patch.set_facecolor('#ffffff')
+
+    # Left: 4Q Stacked Ownership %
+    ax1.set_facecolor('#f8fafc')
+    x = np.arange(len(q_cols))
+    w = 0.52
+    ax1.bar(x, prom_v, width=w, color='#0f172a', label='Promoters')
+    ax1.bar(x, dii_v, width=w, bottom=prom_v, color='#0284c7', label='DIIs')
+    b_fii = [p + d for p, d in zip(prom_v, dii_v)]
+    ax1.bar(x, fii_v, width=w, bottom=b_fii, color='#16a34a', label='FIIs')
+    b_pub = [bf + f for bf, f in zip(b_fii, fii_v)]
+    ax1.bar(x, pub_v, width=w, bottom=b_pub, color='#cbd5e1', label='Public')
+    ax1.set_xticks(x)
+    ax1.set_xticklabels(q_cols, fontsize=5.4, fontweight='bold', color='#334155')
+    ax1.set_ylim(0, 108)
+    ax1.set_title("4-Quarter Ownership Structure (%)", fontsize=6.4, fontweight='bold', color='#0f172a', loc='left', pad=3)
+    ax1.tick_params(axis='y', labelsize=5.2, labelcolor='#475569', length=2)
+    ax1.legend(loc='upper right', fontsize=4.8, ncol=4, frameon=True, facecolor='#ffffff', edgecolor='#cbd5e1', borderpad=0.2)
+
+    # Right: QoQ Institutional Flow Delta (FII vs DII)
+    ax2.set_facecolor('#f8fafc')
+    q_chg_lbls = q_cols[1:]
+    dii_chg = [dii_v[i] - dii_v[i - 1] for i in range(1, len(dii_v))]
+    fii_chg = [fii_v[i] - fii_v[i - 1] for i in range(1, len(fii_v))]
+    x2 = np.arange(len(q_chg_lbls))
+    w2 = 0.34
+    ax2.bar(x2 - w2/2, dii_chg, width=w2, color='#0284c7', label='DII QoQ %')
+    ax2.bar(x2 + w2/2, fii_chg, width=w2, color='#16a34a', label='FII QoQ %')
+    ax2.axhline(0, color='#64748b', linewidth=0.7)
+    mx2 = max([abs(v) for v in (dii_chg + fii_chg)] + [1.0])
+    ax2.set_ylim(-mx2 * 1.45, mx2 * 1.45)
+    for xi, dv, fv in zip(x2, dii_chg, fii_chg):
+        ax2.text(xi - w2/2, dv + (mx2*0.07 if dv >= 0 else -mx2*0.07), f"{dv:+.1f}%", ha='center', va=('bottom' if dv >= 0 else 'top'), fontsize=4.9, fontweight='bold', color='#0369a1')
+        ax2.text(xi + w2/2, fv + (mx2*0.07 if fv >= 0 else -mx2*0.07), f"{fv:+.1f}%", ha='center', va=('bottom' if fv >= 0 else 'top'), fontsize=4.9, fontweight='bold', color='#15803d')
+    ax2.set_xticks(x2)
+    ax2.set_xticklabels(q_chg_lbls, fontsize=5.4, fontweight='bold', color='#334155')
+    ax2.set_title("QoQ Institutional Flow Rotation (DII vs FII)", fontsize=6.4, fontweight='bold', color='#0f172a', loc='left', pad=3)
+    ax2.tick_params(axis='y', labelsize=5.2, labelcolor='#475569', length=2)
+    ax2.grid(axis='y', linestyle=':', linewidth=0.5, color='#e2e8f0')
+    ax2.legend(loc='upper left', fontsize=5.0, ncol=2, frameon=False)
+
+    for ax in (ax1, ax2):
+        for sp in ['top', 'right', 'left', 'bottom']:
+            ax.spines[sp].set_color('#cbd5e1')
+            ax.spines[sp].set_linewidth(0.6)
+    plt.subplots_adjust(left=0.05, right=0.98, top=0.80, bottom=0.16, wspace=0.16)
+    buf = io.BytesIO()
+    fig.savefig(buf, format='png', dpi=160, bbox_inches='tight', pad_inches=0.03)
+    buf.seek(0)
+    plt.close(fig)
+    return buf
+
+
+def _generate_qtr_yoy_chart(
+    q_lbls: List[str],
+    sales_yoy: List[float],
+    opm_bps: List[float],
+    exp_count: int
+) -> io.BytesIO:
+    """Page 4: Dual-panel 4-Quarter YoY Sales Growth (%) & YoY OPM Change (bps)."""
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(7.6, 0.88), dpi=160)
+    fig.patch.set_facecolor('#ffffff')
+
+    # Left: YoY Sales Growth (%)
+    ax1.set_facecolor('#f8fafc')
+    cols1 = ['#16a34a' if v >= 0 else '#dc2626' for v in sales_yoy]
+    b1 = ax1.bar(q_lbls, sales_yoy, color=cols1, width=0.48)
+    ax1.axhline(0, color='#64748b', linewidth=0.7)
+    mx1 = max([abs(v) for v in sales_yoy] + [10.0])
+    ax1.set_ylim(-mx1 * 0.35 if min(sales_yoy) >= 0 else -mx1 * 1.35, mx1 * 1.35)
+    for b, v in zip(b1, sales_yoy):
+        ax1.text(b.get_x() + b.get_width()/2, v + (mx1*0.06 if v >= 0 else -mx1*0.06), f"{v:+.1f}%", ha='center', va=('bottom' if v >= 0 else 'top'), fontsize=5.4, fontweight='bold', color='#0f172a')
+    ax1.set_title("4-Quarter YoY Sales Growth Trajectory (%)", fontsize=6.4, fontweight='bold', color='#0f172a', loc='left', pad=3)
+    ax1.tick_params(axis='both', labelsize=5.4, labelcolor='#475569', length=2)
+    ax1.grid(axis='y', linestyle=':', linewidth=0.5, color='#e2e8f0')
+
+    # Right: YoY OPM Change (bps)
+    ax2.set_facecolor('#f8fafc')
+    cols2 = ['#16a34a' if v >= 0 else '#dc2626' for v in opm_bps]
+    b2 = ax2.bar(q_lbls, opm_bps, color=cols2, width=0.48)
+    ax2.axhline(0, color='#64748b', linewidth=0.7)
+    mx2 = max([abs(v) for v in opm_bps] + [50.0])
+    ax2.set_ylim(-mx2 * 1.35, mx2 * 1.35)
+    for b, v in zip(b2, opm_bps):
+        ax2.text(b.get_x() + b.get_width()/2, v + (mx2*0.06 if v >= 0 else -mx2*0.06), f"{v:+.0f}", ha='center', va=('bottom' if v >= 0 else 'top'), fontsize=5.4, fontweight='bold', color='#0f172a')
+    sc_col = '#15803d' if exp_count >= 3 else ('#0284c7' if exp_count >= 2 else '#b91c1c')
+    ax2.set_title(f"YoY Operating Margin Expansion (bps)  [{exp_count}/{len(opm_bps)} Expanding]", fontsize=6.4, fontweight='bold', color=sc_col, loc='left', pad=3)
+    ax2.tick_params(axis='both', labelsize=5.4, labelcolor='#475569', length=2)
+    ax2.grid(axis='y', linestyle=':', linewidth=0.5, color='#e2e8f0')
+
+    for ax in (ax1, ax2):
+        for sp in ['top', 'right', 'left', 'bottom']:
+            ax.spines[sp].set_color('#cbd5e1')
+            ax.spines[sp].set_linewidth(0.6)
+    plt.subplots_adjust(left=0.06, right=0.98, top=0.80, bottom=0.16, wspace=0.18)
+    buf = io.BytesIO()
+    fig.savefig(buf, format='png', dpi=160, bbox_inches='tight', pad_inches=0.03)
+    buf.seek(0)
+    plt.close(fig)
+    return buf
+
+
+def _generate_wc_capital_chart(
+    yr_lbls: List[str],
+    dso3: List[float],
+    dio3: List[float],
+    dpo3: List[float],
+    ccc3: List[float],
+    roce3: List[float],
+    retain_pct: float,
+    div_payout: float
+) -> io.BytesIO:
+    """Page 5: Dual-panel 3Y Cash Conversion Cycle (left) + 3Y ROCE % & Earnings Reinvestment Split (right)."""
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(7.6, 0.96), dpi=160, gridspec_kw={'width_ratios': [1.25, 1.0]})
+    fig.patch.set_facecolor('#ffffff')
+
+    # Left: 3Y Working Capital Days + Net CCC line
+    ax1.set_facecolor('#f8fafc')
+    x = np.arange(len(yr_lbls))
+    w = 0.24
+    ax1.bar(x - w, dso3, width=w, color='#0284c7', label='Debtor Days')
+    ax1.bar(x, dio3, width=w, color='#f59e0b', label='Inv Days')
+    ax1.bar(x + w, dpo3, width=w, color='#94a3b8', label='Payable Days')
+    ax1.plot(x, ccc3, color='#0f172a', marker='o', markersize=3.5, linewidth=1.6, label='Net CCC')
+    for xi, cv in zip(x, ccc3):
+        ax1.text(xi, cv + 3.0, f"{cv:.0f}d", ha='center', va='bottom', fontsize=5.3, fontweight='bold', color='#0f172a')
+    ax1.set_xticks(x)
+    ax1.set_xticklabels(yr_lbls, fontsize=5.4, fontweight='bold', color='#334155')
+    ax1.set_title("3Y Working Capital & Cash Conversion Cycle (Days)", fontsize=6.4, fontweight='bold', color='#0f172a', loc='left', pad=3)
+    ax1.tick_params(axis='y', labelsize=5.2, labelcolor='#475569', length=2)
+    ax1.grid(axis='y', linestyle=':', linewidth=0.5, color='#e2e8f0')
+    ax1.legend(loc='upper left', fontsize=4.8, ncol=4, frameon=True, facecolor='#ffffff', edgecolor='#cbd5e1', borderpad=0.2)
+
+    # Right: 3Y ROCE % Trend + Reinvestment vs Dividend Split inset
+    ax2.set_facecolor('#f8fafc')
+    ax2.plot(x, roce3, color='#16a34a', marker='s', markersize=3.8, linewidth=1.8, label='ROCE %')
+    ax2.fill_between(x, roce3, min(roce3) * 0.85, color='#16a34a', alpha=0.10)
+    mx_r = max(roce3 + [25.0])
+    mn_r = min(roce3 + [10.0])
+    ax2.set_ylim(max(0, mn_r * 0.7), mx_r * 1.30)
+    for xi, rv in zip(x, roce3):
+        ax2.text(xi, rv + mx_r * 0.05, f"{rv:.0f}%", ha='center', va='bottom', fontsize=5.6, fontweight='bold', color='#15803d')
+    ax2.set_xticks(x)
+    ax2.set_xticklabels(yr_lbls, fontsize=5.4, fontweight='bold', color='#334155')
+    ax2.set_title(f"ROCE % Trend  |  Reinvested {retain_pct:.0f}% vs Div {div_payout:.0f}%", fontsize=6.2, fontweight='bold', color='#0f172a', loc='left', pad=3)
+    ax2.tick_params(axis='y', labelsize=5.2, labelcolor='#475569', length=2)
+    ax2.grid(axis='y', linestyle=':', linewidth=0.5, color='#e2e8f0')
+
+    for ax in (ax1, ax2):
+        for sp in ['top', 'right', 'left', 'bottom']:
+            ax.spines[sp].set_color('#cbd5e1')
+            ax.spines[sp].set_linewidth(0.6)
+    plt.subplots_adjust(left=0.05, right=0.98, top=0.80, bottom=0.16, wspace=0.18)
+    buf = io.BytesIO()
+    fig.savefig(buf, format='png', dpi=160, bbox_inches='tight', pad_inches=0.03)
+    buf.seek(0)
+    plt.close(fig)
+    return buf
+
+
 def _generate_dupont_tree_chart(
     npm: float, at: float, em: float, roe: float,
     net_worth_cr: float, ttm_sales_cr: float, tot_assets_cr: float, ttm_pat_cr: float
@@ -2041,6 +2266,232 @@ def _generate_pbt_pat_waterfall_chart(
     return buf
 
 
+
+def _generate_rs_nifty_chart(
+    sym_name: str,
+    stk_norm: List[float],
+    nfy_norm: List[float],
+    rs_pct: float,
+    horizons_data: List[Tuple[str, float]]
+) -> io.BytesIO:
+    """Page 2: Dual-panel 1Y Stock vs Nifty 50 normalized sparkline + 1M/3M/6M/12M excess alpha bars."""
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(7.6, 0.85), dpi=160, gridspec_kw={'width_ratios': [1.35, 1.0]})
+    fig.patch.set_facecolor('#ffffff')
+
+    # Left: Normalized 100-indexed performance
+    ax1.set_facecolor('#f8fafc')
+    if stk_norm and nfy_norm and len(stk_norm) == len(nfy_norm):
+        xs = np.arange(len(stk_norm))
+        ax1.plot(xs, nfy_norm, color='#94a3b8', linestyle='--', linewidth=1.0, label='Nifty 50')
+        ax1.plot(xs, stk_norm, color='#0f172a', linewidth=1.35, label=sym_name)
+        ax1.fill_between(xs, nfy_norm, stk_norm, where=[s >= n for s, n in zip(stk_norm, nfy_norm)], color='#16a34a', alpha=0.12)
+        ax1.fill_between(xs, nfy_norm, stk_norm, where=[s < n for s, n in zip(stk_norm, nfy_norm)], color='#dc2626', alpha=0.10)
+    status_lbl = f"LEADING ({rs_pct:.0f}th %ile)" if rs_pct >= 80 else (f"LAGGING ({rs_pct:.0f}th %ile)" if rs_pct <= 25 else f"IN-LINE ({rs_pct:.0f}th %ile)")
+    st_col = '#15803d' if rs_pct >= 80 else ('#b91c1c' if rs_pct <= 25 else '#0284c7')
+    ax1.set_title(f"1Y Relative Strength vs. Nifty 50  [{status_lbl}]", fontsize=6.4, fontweight='bold', color=st_col, loc='left', pad=3)
+    ax1.tick_params(axis='both', labelsize=5.2, labelcolor='#475569', length=2)
+    ax1.set_xticks([])
+    ax1.grid(axis='y', linestyle=':', linewidth=0.5, color='#e2e8f0')
+    ax1.legend(loc='upper left', fontsize=5.2, frameon=False, ncol=2)
+
+    # Right: 1M / 3M / 6M / 12M Excess Alpha bars
+    ax2.set_facecolor('#f8fafc')
+    lbls = [h[0] for h in horizons_data]
+    vals = [h[1] for h in horizons_data]
+    bar_cols = ['#16a34a' if v >= 0 else '#dc2626' for v in vals]
+    bars = ax2.bar(lbls, vals, color=bar_cols, width=0.52, edgecolor='none')
+    ax2.axhline(0, color='#64748b', linewidth=0.7)
+    mx = max([abs(v) for v in vals] + [5.0])
+    ax2.set_ylim(-mx * 1.35, mx * 1.35)
+    for b, v in zip(bars, vals):
+        va = 'bottom' if v >= 0 else 'top'
+        off = mx * 0.06 if v >= 0 else -mx * 0.06
+        ax2.text(b.get_x() + b.get_width()/2, v + off, f"{v:+.1f}%", ha='center', va=va, fontsize=5.4, fontweight='bold', color='#0f172a')
+    ax2.set_title("Multi-Horizon Excess Alpha vs. Nifty 50", fontsize=6.4, fontweight='bold', color='#0f172a', loc='left', pad=3)
+    ax2.tick_params(axis='both', labelsize=5.4, labelcolor='#475569', length=2)
+    ax2.grid(axis='y', linestyle=':', linewidth=0.5, color='#e2e8f0')
+
+    for ax in (ax1, ax2):
+        for sp in ['top', 'right', 'left', 'bottom']:
+            ax.spines[sp].set_color('#cbd5e1')
+            ax.spines[sp].set_linewidth(0.6)
+    plt.subplots_adjust(left=0.05, right=0.98, top=0.80, bottom=0.14, wspace=0.16)
+    buf = io.BytesIO()
+    fig.savefig(buf, format='png', dpi=160, bbox_inches='tight', pad_inches=0.03)
+    buf.seek(0)
+    plt.close(fig)
+    return buf
+
+
+def _generate_shareholding_flow_chart(
+    q_cols: List[str],
+    prom_v: List[float],
+    dii_v: List[float],
+    fii_v: List[float],
+    pub_v: List[float]
+) -> io.BytesIO:
+    """Page 3: Dual-panel 4-Quarter Ownership Composition (left) + FII vs DII Net Flow Delta (right)."""
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(7.6, 0.80), dpi=160, gridspec_kw={'width_ratios': [1.2, 1.0]})
+    fig.patch.set_facecolor('#ffffff')
+
+    # Left: 4Q Stacked Ownership %
+    ax1.set_facecolor('#f8fafc')
+    x = np.arange(len(q_cols))
+    w = 0.52
+    ax1.bar(x, prom_v, width=w, color='#0f172a', label='Promoters')
+    ax1.bar(x, dii_v, width=w, bottom=prom_v, color='#0284c7', label='DIIs')
+    b_fii = [p + d for p, d in zip(prom_v, dii_v)]
+    ax1.bar(x, fii_v, width=w, bottom=b_fii, color='#16a34a', label='FIIs')
+    b_pub = [bf + f for bf, f in zip(b_fii, fii_v)]
+    ax1.bar(x, pub_v, width=w, bottom=b_pub, color='#cbd5e1', label='Public')
+    ax1.set_xticks(x)
+    ax1.set_xticklabels(q_cols, fontsize=5.4, fontweight='bold', color='#334155')
+    ax1.set_ylim(0, 108)
+    ax1.set_title("4-Quarter Ownership Structure (%)", fontsize=6.4, fontweight='bold', color='#0f172a', loc='left', pad=3)
+    ax1.tick_params(axis='y', labelsize=5.2, labelcolor='#475569', length=2)
+    ax1.legend(loc='upper right', fontsize=4.8, ncol=4, frameon=True, facecolor='#ffffff', edgecolor='#cbd5e1', borderpad=0.2)
+
+    # Right: QoQ Institutional Flow Delta (FII vs DII)
+    ax2.set_facecolor('#f8fafc')
+    q_chg_lbls = q_cols[1:]
+    dii_chg = [dii_v[i] - dii_v[i - 1] for i in range(1, len(dii_v))]
+    fii_chg = [fii_v[i] - fii_v[i - 1] for i in range(1, len(fii_v))]
+    x2 = np.arange(len(q_chg_lbls))
+    w2 = 0.34
+    ax2.bar(x2 - w2/2, dii_chg, width=w2, color='#0284c7', label='DII QoQ %')
+    ax2.bar(x2 + w2/2, fii_chg, width=w2, color='#16a34a', label='FII QoQ %')
+    ax2.axhline(0, color='#64748b', linewidth=0.7)
+    mx2 = max([abs(v) for v in (dii_chg + fii_chg)] + [1.0])
+    ax2.set_ylim(-mx2 * 1.45, mx2 * 1.45)
+    for xi, dv, fv in zip(x2, dii_chg, fii_chg):
+        ax2.text(xi - w2/2, dv + (mx2*0.07 if dv >= 0 else -mx2*0.07), f"{dv:+.1f}%", ha='center', va=('bottom' if dv >= 0 else 'top'), fontsize=4.9, fontweight='bold', color='#0369a1')
+        ax2.text(xi + w2/2, fv + (mx2*0.07 if fv >= 0 else -mx2*0.07), f"{fv:+.1f}%", ha='center', va=('bottom' if fv >= 0 else 'top'), fontsize=4.9, fontweight='bold', color='#15803d')
+    ax2.set_xticks(x2)
+    ax2.set_xticklabels(q_chg_lbls, fontsize=5.4, fontweight='bold', color='#334155')
+    ax2.set_title("QoQ Institutional Flow Rotation (DII vs FII)", fontsize=6.4, fontweight='bold', color='#0f172a', loc='left', pad=3)
+    ax2.tick_params(axis='y', labelsize=5.2, labelcolor='#475569', length=2)
+    ax2.grid(axis='y', linestyle=':', linewidth=0.5, color='#e2e8f0')
+    ax2.legend(loc='upper left', fontsize=5.0, ncol=2, frameon=False)
+
+    for ax in (ax1, ax2):
+        for sp in ['top', 'right', 'left', 'bottom']:
+            ax.spines[sp].set_color('#cbd5e1')
+            ax.spines[sp].set_linewidth(0.6)
+    plt.subplots_adjust(left=0.05, right=0.98, top=0.80, bottom=0.16, wspace=0.16)
+    buf = io.BytesIO()
+    fig.savefig(buf, format='png', dpi=160, bbox_inches='tight', pad_inches=0.03)
+    buf.seek(0)
+    plt.close(fig)
+    return buf
+
+
+def _generate_qtr_yoy_chart(
+    q_lbls: List[str],
+    sales_yoy: List[float],
+    opm_bps: List[float],
+    exp_count: int
+) -> io.BytesIO:
+    """Page 4: Dual-panel 4-Quarter YoY Sales Growth (%) & YoY OPM Change (bps)."""
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(7.6, 0.88), dpi=160)
+    fig.patch.set_facecolor('#ffffff')
+
+    # Left: YoY Sales Growth (%)
+    ax1.set_facecolor('#f8fafc')
+    cols1 = ['#16a34a' if v >= 0 else '#dc2626' for v in sales_yoy]
+    b1 = ax1.bar(q_lbls, sales_yoy, color=cols1, width=0.48)
+    ax1.axhline(0, color='#64748b', linewidth=0.7)
+    mx1 = max([abs(v) for v in sales_yoy] + [10.0])
+    ax1.set_ylim(-mx1 * 0.35 if min(sales_yoy) >= 0 else -mx1 * 1.35, mx1 * 1.35)
+    for b, v in zip(b1, sales_yoy):
+        ax1.text(b.get_x() + b.get_width()/2, v + (mx1*0.06 if v >= 0 else -mx1*0.06), f"{v:+.1f}%", ha='center', va=('bottom' if v >= 0 else 'top'), fontsize=5.4, fontweight='bold', color='#0f172a')
+    ax1.set_title("4-Quarter YoY Sales Growth Trajectory (%)", fontsize=6.4, fontweight='bold', color='#0f172a', loc='left', pad=3)
+    ax1.tick_params(axis='both', labelsize=5.4, labelcolor='#475569', length=2)
+    ax1.grid(axis='y', linestyle=':', linewidth=0.5, color='#e2e8f0')
+
+    # Right: YoY OPM Change (bps)
+    ax2.set_facecolor('#f8fafc')
+    cols2 = ['#16a34a' if v >= 0 else '#dc2626' for v in opm_bps]
+    b2 = ax2.bar(q_lbls, opm_bps, color=cols2, width=0.48)
+    ax2.axhline(0, color='#64748b', linewidth=0.7)
+    mx2 = max([abs(v) for v in opm_bps] + [50.0])
+    ax2.set_ylim(-mx2 * 1.35, mx2 * 1.35)
+    for b, v in zip(b2, opm_bps):
+        ax2.text(b.get_x() + b.get_width()/2, v + (mx2*0.06 if v >= 0 else -mx2*0.06), f"{v:+.0f}", ha='center', va=('bottom' if v >= 0 else 'top'), fontsize=5.4, fontweight='bold', color='#0f172a')
+    sc_col = '#15803d' if exp_count >= 3 else ('#0284c7' if exp_count >= 2 else '#b91c1c')
+    ax2.set_title(f"YoY Operating Margin Expansion (bps)  [{exp_count}/{len(opm_bps)} Expanding]", fontsize=6.4, fontweight='bold', color=sc_col, loc='left', pad=3)
+    ax2.tick_params(axis='both', labelsize=5.4, labelcolor='#475569', length=2)
+    ax2.grid(axis='y', linestyle=':', linewidth=0.5, color='#e2e8f0')
+
+    for ax in (ax1, ax2):
+        for sp in ['top', 'right', 'left', 'bottom']:
+            ax.spines[sp].set_color('#cbd5e1')
+            ax.spines[sp].set_linewidth(0.6)
+    plt.subplots_adjust(left=0.06, right=0.98, top=0.80, bottom=0.16, wspace=0.18)
+    buf = io.BytesIO()
+    fig.savefig(buf, format='png', dpi=160, bbox_inches='tight', pad_inches=0.03)
+    buf.seek(0)
+    plt.close(fig)
+    return buf
+
+
+def _generate_wc_capital_chart(
+    yr_lbls: List[str],
+    dso3: List[float],
+    dio3: List[float],
+    dpo3: List[float],
+    ccc3: List[float],
+    roce3: List[float],
+    retain_pct: float,
+    div_payout: float
+) -> io.BytesIO:
+    """Page 5: Dual-panel 3Y Cash Conversion Cycle (left) + 3Y ROCE % & Earnings Reinvestment Split (right)."""
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(7.6, 0.96), dpi=160, gridspec_kw={'width_ratios': [1.25, 1.0]})
+    fig.patch.set_facecolor('#ffffff')
+
+    # Left: 3Y Working Capital Days + Net CCC line
+    ax1.set_facecolor('#f8fafc')
+    x = np.arange(len(yr_lbls))
+    w = 0.24
+    ax1.bar(x - w, dso3, width=w, color='#0284c7', label='Debtor Days')
+    ax1.bar(x, dio3, width=w, color='#f59e0b', label='Inv Days')
+    ax1.bar(x + w, dpo3, width=w, color='#94a3b8', label='Payable Days')
+    ax1.plot(x, ccc3, color='#0f172a', marker='o', markersize=3.5, linewidth=1.6, label='Net CCC')
+    for xi, cv in zip(x, ccc3):
+        ax1.text(xi, cv + 3.0, f"{cv:.0f}d", ha='center', va='bottom', fontsize=5.3, fontweight='bold', color='#0f172a')
+    ax1.set_xticks(x)
+    ax1.set_xticklabels(yr_lbls, fontsize=5.4, fontweight='bold', color='#334155')
+    ax1.set_title("3Y Working Capital & Cash Conversion Cycle (Days)", fontsize=6.4, fontweight='bold', color='#0f172a', loc='left', pad=3)
+    ax1.tick_params(axis='y', labelsize=5.2, labelcolor='#475569', length=2)
+    ax1.grid(axis='y', linestyle=':', linewidth=0.5, color='#e2e8f0')
+    ax1.legend(loc='upper left', fontsize=4.8, ncol=4, frameon=True, facecolor='#ffffff', edgecolor='#cbd5e1', borderpad=0.2)
+
+    # Right: 3Y ROCE % Trend + Reinvestment vs Dividend Split inset
+    ax2.set_facecolor('#f8fafc')
+    ax2.plot(x, roce3, color='#16a34a', marker='s', markersize=3.8, linewidth=1.8, label='ROCE %')
+    ax2.fill_between(x, roce3, min(roce3) * 0.85, color='#16a34a', alpha=0.10)
+    mx_r = max(roce3 + [25.0])
+    mn_r = min(roce3 + [10.0])
+    ax2.set_ylim(max(0, mn_r * 0.7), mx_r * 1.30)
+    for xi, rv in zip(x, roce3):
+        ax2.text(xi, rv + mx_r * 0.05, f"{rv:.0f}%", ha='center', va='bottom', fontsize=5.6, fontweight='bold', color='#15803d')
+    ax2.set_xticks(x)
+    ax2.set_xticklabels(yr_lbls, fontsize=5.4, fontweight='bold', color='#334155')
+    ax2.set_title(f"ROCE % Trend  |  Reinvested {retain_pct:.0f}% vs Div {div_payout:.0f}%", fontsize=6.2, fontweight='bold', color='#0f172a', loc='left', pad=3)
+    ax2.tick_params(axis='y', labelsize=5.2, labelcolor='#475569', length=2)
+    ax2.grid(axis='y', linestyle=':', linewidth=0.5, color='#e2e8f0')
+
+    for ax in (ax1, ax2):
+        for sp in ['top', 'right', 'left', 'bottom']:
+            ax.spines[sp].set_color('#cbd5e1')
+            ax.spines[sp].set_linewidth(0.6)
+    plt.subplots_adjust(left=0.05, right=0.98, top=0.80, bottom=0.16, wspace=0.18)
+    buf = io.BytesIO()
+    fig.savefig(buf, format='png', dpi=160, bbox_inches='tight', pad_inches=0.03)
+    buf.seek(0)
+    plt.close(fig)
+    return buf
+
+
 def _generate_risk_reward_bracket_chart(
     stop_loss: float, entry_low: float, entry_high: float, cmp_val: float, t1: float, t2: float
 ) -> io.BytesIO:
@@ -2162,6 +2613,232 @@ def _generate_composite_score_gauge(score: float, tier_label: str) -> io.BytesIO
     plt.subplots_adjust(left=0.01, right=0.99, top=0.98, bottom=0.02)
     buf = io.BytesIO()
     fig.savefig(buf, format='png', dpi=150, bbox_inches='tight', pad_inches=0.02)
+    buf.seek(0)
+    plt.close(fig)
+    return buf
+
+
+
+def _generate_rs_nifty_chart(
+    sym_name: str,
+    stk_norm: List[float],
+    nfy_norm: List[float],
+    rs_pct: float,
+    horizons_data: List[Tuple[str, float]]
+) -> io.BytesIO:
+    """Page 2: Dual-panel 1Y Stock vs Nifty 50 normalized sparkline + 1M/3M/6M/12M excess alpha bars."""
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(7.6, 0.85), dpi=160, gridspec_kw={'width_ratios': [1.35, 1.0]})
+    fig.patch.set_facecolor('#ffffff')
+
+    # Left: Normalized 100-indexed performance
+    ax1.set_facecolor('#f8fafc')
+    if stk_norm and nfy_norm and len(stk_norm) == len(nfy_norm):
+        xs = np.arange(len(stk_norm))
+        ax1.plot(xs, nfy_norm, color='#94a3b8', linestyle='--', linewidth=1.0, label='Nifty 50')
+        ax1.plot(xs, stk_norm, color='#0f172a', linewidth=1.35, label=sym_name)
+        ax1.fill_between(xs, nfy_norm, stk_norm, where=[s >= n for s, n in zip(stk_norm, nfy_norm)], color='#16a34a', alpha=0.12)
+        ax1.fill_between(xs, nfy_norm, stk_norm, where=[s < n for s, n in zip(stk_norm, nfy_norm)], color='#dc2626', alpha=0.10)
+    status_lbl = f"LEADING ({rs_pct:.0f}th %ile)" if rs_pct >= 80 else (f"LAGGING ({rs_pct:.0f}th %ile)" if rs_pct <= 25 else f"IN-LINE ({rs_pct:.0f}th %ile)")
+    st_col = '#15803d' if rs_pct >= 80 else ('#b91c1c' if rs_pct <= 25 else '#0284c7')
+    ax1.set_title(f"1Y Relative Strength vs. Nifty 50  [{status_lbl}]", fontsize=6.4, fontweight='bold', color=st_col, loc='left', pad=3)
+    ax1.tick_params(axis='both', labelsize=5.2, labelcolor='#475569', length=2)
+    ax1.set_xticks([])
+    ax1.grid(axis='y', linestyle=':', linewidth=0.5, color='#e2e8f0')
+    ax1.legend(loc='upper left', fontsize=5.2, frameon=False, ncol=2)
+
+    # Right: 1M / 3M / 6M / 12M Excess Alpha bars
+    ax2.set_facecolor('#f8fafc')
+    lbls = [h[0] for h in horizons_data]
+    vals = [h[1] for h in horizons_data]
+    bar_cols = ['#16a34a' if v >= 0 else '#dc2626' for v in vals]
+    bars = ax2.bar(lbls, vals, color=bar_cols, width=0.52, edgecolor='none')
+    ax2.axhline(0, color='#64748b', linewidth=0.7)
+    mx = max([abs(v) for v in vals] + [5.0])
+    ax2.set_ylim(-mx * 1.35, mx * 1.35)
+    for b, v in zip(bars, vals):
+        va = 'bottom' if v >= 0 else 'top'
+        off = mx * 0.06 if v >= 0 else -mx * 0.06
+        ax2.text(b.get_x() + b.get_width()/2, v + off, f"{v:+.1f}%", ha='center', va=va, fontsize=5.4, fontweight='bold', color='#0f172a')
+    ax2.set_title("Multi-Horizon Excess Alpha vs. Nifty 50", fontsize=6.4, fontweight='bold', color='#0f172a', loc='left', pad=3)
+    ax2.tick_params(axis='both', labelsize=5.4, labelcolor='#475569', length=2)
+    ax2.grid(axis='y', linestyle=':', linewidth=0.5, color='#e2e8f0')
+
+    for ax in (ax1, ax2):
+        for sp in ['top', 'right', 'left', 'bottom']:
+            ax.spines[sp].set_color('#cbd5e1')
+            ax.spines[sp].set_linewidth(0.6)
+    plt.subplots_adjust(left=0.05, right=0.98, top=0.80, bottom=0.14, wspace=0.16)
+    buf = io.BytesIO()
+    fig.savefig(buf, format='png', dpi=160, bbox_inches='tight', pad_inches=0.03)
+    buf.seek(0)
+    plt.close(fig)
+    return buf
+
+
+def _generate_shareholding_flow_chart(
+    q_cols: List[str],
+    prom_v: List[float],
+    dii_v: List[float],
+    fii_v: List[float],
+    pub_v: List[float]
+) -> io.BytesIO:
+    """Page 3: Dual-panel 4-Quarter Ownership Composition (left) + FII vs DII Net Flow Delta (right)."""
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(7.6, 0.80), dpi=160, gridspec_kw={'width_ratios': [1.2, 1.0]})
+    fig.patch.set_facecolor('#ffffff')
+
+    # Left: 4Q Stacked Ownership %
+    ax1.set_facecolor('#f8fafc')
+    x = np.arange(len(q_cols))
+    w = 0.52
+    ax1.bar(x, prom_v, width=w, color='#0f172a', label='Promoters')
+    ax1.bar(x, dii_v, width=w, bottom=prom_v, color='#0284c7', label='DIIs')
+    b_fii = [p + d for p, d in zip(prom_v, dii_v)]
+    ax1.bar(x, fii_v, width=w, bottom=b_fii, color='#16a34a', label='FIIs')
+    b_pub = [bf + f for bf, f in zip(b_fii, fii_v)]
+    ax1.bar(x, pub_v, width=w, bottom=b_pub, color='#cbd5e1', label='Public')
+    ax1.set_xticks(x)
+    ax1.set_xticklabels(q_cols, fontsize=5.4, fontweight='bold', color='#334155')
+    ax1.set_ylim(0, 108)
+    ax1.set_title("4-Quarter Ownership Structure (%)", fontsize=6.4, fontweight='bold', color='#0f172a', loc='left', pad=3)
+    ax1.tick_params(axis='y', labelsize=5.2, labelcolor='#475569', length=2)
+    ax1.legend(loc='upper right', fontsize=4.8, ncol=4, frameon=True, facecolor='#ffffff', edgecolor='#cbd5e1', borderpad=0.2)
+
+    # Right: QoQ Institutional Flow Delta (FII vs DII)
+    ax2.set_facecolor('#f8fafc')
+    q_chg_lbls = q_cols[1:]
+    dii_chg = [dii_v[i] - dii_v[i - 1] for i in range(1, len(dii_v))]
+    fii_chg = [fii_v[i] - fii_v[i - 1] for i in range(1, len(fii_v))]
+    x2 = np.arange(len(q_chg_lbls))
+    w2 = 0.34
+    ax2.bar(x2 - w2/2, dii_chg, width=w2, color='#0284c7', label='DII QoQ %')
+    ax2.bar(x2 + w2/2, fii_chg, width=w2, color='#16a34a', label='FII QoQ %')
+    ax2.axhline(0, color='#64748b', linewidth=0.7)
+    mx2 = max([abs(v) for v in (dii_chg + fii_chg)] + [1.0])
+    ax2.set_ylim(-mx2 * 1.45, mx2 * 1.45)
+    for xi, dv, fv in zip(x2, dii_chg, fii_chg):
+        ax2.text(xi - w2/2, dv + (mx2*0.07 if dv >= 0 else -mx2*0.07), f"{dv:+.1f}%", ha='center', va=('bottom' if dv >= 0 else 'top'), fontsize=4.9, fontweight='bold', color='#0369a1')
+        ax2.text(xi + w2/2, fv + (mx2*0.07 if fv >= 0 else -mx2*0.07), f"{fv:+.1f}%", ha='center', va=('bottom' if fv >= 0 else 'top'), fontsize=4.9, fontweight='bold', color='#15803d')
+    ax2.set_xticks(x2)
+    ax2.set_xticklabels(q_chg_lbls, fontsize=5.4, fontweight='bold', color='#334155')
+    ax2.set_title("QoQ Institutional Flow Rotation (DII vs FII)", fontsize=6.4, fontweight='bold', color='#0f172a', loc='left', pad=3)
+    ax2.tick_params(axis='y', labelsize=5.2, labelcolor='#475569', length=2)
+    ax2.grid(axis='y', linestyle=':', linewidth=0.5, color='#e2e8f0')
+    ax2.legend(loc='upper left', fontsize=5.0, ncol=2, frameon=False)
+
+    for ax in (ax1, ax2):
+        for sp in ['top', 'right', 'left', 'bottom']:
+            ax.spines[sp].set_color('#cbd5e1')
+            ax.spines[sp].set_linewidth(0.6)
+    plt.subplots_adjust(left=0.05, right=0.98, top=0.80, bottom=0.16, wspace=0.16)
+    buf = io.BytesIO()
+    fig.savefig(buf, format='png', dpi=160, bbox_inches='tight', pad_inches=0.03)
+    buf.seek(0)
+    plt.close(fig)
+    return buf
+
+
+def _generate_qtr_yoy_chart(
+    q_lbls: List[str],
+    sales_yoy: List[float],
+    opm_bps: List[float],
+    exp_count: int
+) -> io.BytesIO:
+    """Page 4: Dual-panel 4-Quarter YoY Sales Growth (%) & YoY OPM Change (bps)."""
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(7.6, 0.88), dpi=160)
+    fig.patch.set_facecolor('#ffffff')
+
+    # Left: YoY Sales Growth (%)
+    ax1.set_facecolor('#f8fafc')
+    cols1 = ['#16a34a' if v >= 0 else '#dc2626' for v in sales_yoy]
+    b1 = ax1.bar(q_lbls, sales_yoy, color=cols1, width=0.48)
+    ax1.axhline(0, color='#64748b', linewidth=0.7)
+    mx1 = max([abs(v) for v in sales_yoy] + [10.0])
+    ax1.set_ylim(-mx1 * 0.35 if min(sales_yoy) >= 0 else -mx1 * 1.35, mx1 * 1.35)
+    for b, v in zip(b1, sales_yoy):
+        ax1.text(b.get_x() + b.get_width()/2, v + (mx1*0.06 if v >= 0 else -mx1*0.06), f"{v:+.1f}%", ha='center', va=('bottom' if v >= 0 else 'top'), fontsize=5.4, fontweight='bold', color='#0f172a')
+    ax1.set_title("4-Quarter YoY Sales Growth Trajectory (%)", fontsize=6.4, fontweight='bold', color='#0f172a', loc='left', pad=3)
+    ax1.tick_params(axis='both', labelsize=5.4, labelcolor='#475569', length=2)
+    ax1.grid(axis='y', linestyle=':', linewidth=0.5, color='#e2e8f0')
+
+    # Right: YoY OPM Change (bps)
+    ax2.set_facecolor('#f8fafc')
+    cols2 = ['#16a34a' if v >= 0 else '#dc2626' for v in opm_bps]
+    b2 = ax2.bar(q_lbls, opm_bps, color=cols2, width=0.48)
+    ax2.axhline(0, color='#64748b', linewidth=0.7)
+    mx2 = max([abs(v) for v in opm_bps] + [50.0])
+    ax2.set_ylim(-mx2 * 1.35, mx2 * 1.35)
+    for b, v in zip(b2, opm_bps):
+        ax2.text(b.get_x() + b.get_width()/2, v + (mx2*0.06 if v >= 0 else -mx2*0.06), f"{v:+.0f}", ha='center', va=('bottom' if v >= 0 else 'top'), fontsize=5.4, fontweight='bold', color='#0f172a')
+    sc_col = '#15803d' if exp_count >= 3 else ('#0284c7' if exp_count >= 2 else '#b91c1c')
+    ax2.set_title(f"YoY Operating Margin Expansion (bps)  [{exp_count}/{len(opm_bps)} Expanding]", fontsize=6.4, fontweight='bold', color=sc_col, loc='left', pad=3)
+    ax2.tick_params(axis='both', labelsize=5.4, labelcolor='#475569', length=2)
+    ax2.grid(axis='y', linestyle=':', linewidth=0.5, color='#e2e8f0')
+
+    for ax in (ax1, ax2):
+        for sp in ['top', 'right', 'left', 'bottom']:
+            ax.spines[sp].set_color('#cbd5e1')
+            ax.spines[sp].set_linewidth(0.6)
+    plt.subplots_adjust(left=0.06, right=0.98, top=0.80, bottom=0.16, wspace=0.18)
+    buf = io.BytesIO()
+    fig.savefig(buf, format='png', dpi=160, bbox_inches='tight', pad_inches=0.03)
+    buf.seek(0)
+    plt.close(fig)
+    return buf
+
+
+def _generate_wc_capital_chart(
+    yr_lbls: List[str],
+    dso3: List[float],
+    dio3: List[float],
+    dpo3: List[float],
+    ccc3: List[float],
+    roce3: List[float],
+    retain_pct: float,
+    div_payout: float
+) -> io.BytesIO:
+    """Page 5: Dual-panel 3Y Cash Conversion Cycle (left) + 3Y ROCE % & Earnings Reinvestment Split (right)."""
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(7.6, 0.96), dpi=160, gridspec_kw={'width_ratios': [1.25, 1.0]})
+    fig.patch.set_facecolor('#ffffff')
+
+    # Left: 3Y Working Capital Days + Net CCC line
+    ax1.set_facecolor('#f8fafc')
+    x = np.arange(len(yr_lbls))
+    w = 0.24
+    ax1.bar(x - w, dso3, width=w, color='#0284c7', label='Debtor Days')
+    ax1.bar(x, dio3, width=w, color='#f59e0b', label='Inv Days')
+    ax1.bar(x + w, dpo3, width=w, color='#94a3b8', label='Payable Days')
+    ax1.plot(x, ccc3, color='#0f172a', marker='o', markersize=3.5, linewidth=1.6, label='Net CCC')
+    for xi, cv in zip(x, ccc3):
+        ax1.text(xi, cv + 3.0, f"{cv:.0f}d", ha='center', va='bottom', fontsize=5.3, fontweight='bold', color='#0f172a')
+    ax1.set_xticks(x)
+    ax1.set_xticklabels(yr_lbls, fontsize=5.4, fontweight='bold', color='#334155')
+    ax1.set_title("3Y Working Capital & Cash Conversion Cycle (Days)", fontsize=6.4, fontweight='bold', color='#0f172a', loc='left', pad=3)
+    ax1.tick_params(axis='y', labelsize=5.2, labelcolor='#475569', length=2)
+    ax1.grid(axis='y', linestyle=':', linewidth=0.5, color='#e2e8f0')
+    ax1.legend(loc='upper left', fontsize=4.8, ncol=4, frameon=True, facecolor='#ffffff', edgecolor='#cbd5e1', borderpad=0.2)
+
+    # Right: 3Y ROCE % Trend + Reinvestment vs Dividend Split inset
+    ax2.set_facecolor('#f8fafc')
+    ax2.plot(x, roce3, color='#16a34a', marker='s', markersize=3.8, linewidth=1.8, label='ROCE %')
+    ax2.fill_between(x, roce3, min(roce3) * 0.85, color='#16a34a', alpha=0.10)
+    mx_r = max(roce3 + [25.0])
+    mn_r = min(roce3 + [10.0])
+    ax2.set_ylim(max(0, mn_r * 0.7), mx_r * 1.30)
+    for xi, rv in zip(x, roce3):
+        ax2.text(xi, rv + mx_r * 0.05, f"{rv:.0f}%", ha='center', va='bottom', fontsize=5.6, fontweight='bold', color='#15803d')
+    ax2.set_xticks(x)
+    ax2.set_xticklabels(yr_lbls, fontsize=5.4, fontweight='bold', color='#334155')
+    ax2.set_title(f"ROCE % Trend  |  Reinvested {retain_pct:.0f}% vs Div {div_payout:.0f}%", fontsize=6.2, fontweight='bold', color='#0f172a', loc='left', pad=3)
+    ax2.tick_params(axis='y', labelsize=5.2, labelcolor='#475569', length=2)
+    ax2.grid(axis='y', linestyle=':', linewidth=0.5, color='#e2e8f0')
+
+    for ax in (ax1, ax2):
+        for sp in ['top', 'right', 'left', 'bottom']:
+            ax.spines[sp].set_color('#cbd5e1')
+            ax.spines[sp].set_linewidth(0.6)
+    plt.subplots_adjust(left=0.05, right=0.98, top=0.80, bottom=0.16, wspace=0.18)
+    buf = io.BytesIO()
+    fig.savefig(buf, format='png', dpi=160, bbox_inches='tight', pad_inches=0.03)
     buf.seek(0)
     plt.close(fig)
     return buf
@@ -3417,7 +4094,7 @@ def generate_stock_research_dossier_pdf(
         sma200_target=sma200,
         rsi_target=rsi_val
     )
-    story.append(Image(buf_tech, width=520, height=182))
+    story.append(Image(buf_tech, width=520, height=154))
     story.append(Spacer(1, 2))
 
     story.append(Paragraph("<b>MOMENTUM OSCILLATORS &amp; SIMPLE MOVING AVERAGE (SMA) SPREAD SUMMARY</b>", sec_header_style))
@@ -3814,79 +4491,35 @@ def generate_stock_research_dossier_pdf(
     story.append(t_conf_timeline)
     story.append(Spacer(1, 2))
 
-    # Option 3: Multi-Horizon Relative Strength (RS) vs. Nifty 50 Strip
-    def _build_rs_nifty_table(sym_name: str):
+    # Option 3 Visual: Multi-Horizon Relative Strength (RS) vs. Nifty 50 Chart
+    def _build_rs_nifty_chart_img(sym_name: str):
         horizons = [(21, "1M"), (63, "3M"), (126, "6M"), (240, "12M")]
-        cells = {}
-        rs_status = "NEUTRAL"
-        rs_sub = "Tracking Benchmark"
-        rs_col = "#0284c7"
+        stk_norm, nfy_norm = [], []
+        rs_pct = 50.0
+        h_data = []
         try:
             import yfinance as yf
             stk = yf.Ticker(f"{sym_name}.NS").history(period="1y", interval="1d")["Close"].dropna()
             nfy = yf.Ticker("^NSEI").history(period="1y", interval="1d")["Close"].dropna()
             df_rs = pd.concat([stk.rename("s"), nfy.rename("n")], axis=1).dropna()
             if len(df_rs) >= 30:
+                stk_norm = (df_rs["s"] / df_rs["s"].iloc[0] * 100.0).tolist()
+                nfy_norm = (df_rs["n"] / df_rs["n"].iloc[0] * 100.0).tolist()
                 for d_back, lbl in horizons:
                     idx0 = max(0, len(df_rs) - 1 - d_back)
                     s_ret = (df_rs["s"].iloc[-1] / df_rs["s"].iloc[idx0] - 1.0) * 100.0
                     n_ret = (df_rs["n"].iloc[-1] / df_rs["n"].iloc[idx0] - 1.0) * 100.0
-                    alpha = s_ret - n_ret
-                    cells[lbl] = (alpha, s_ret, n_ret)
+                    h_data.append((lbl, s_ret - n_ret))
                 rs_line = df_rs["s"] / df_rs["n"]
                 rs_pct = float((rs_line <= rs_line.iloc[-1]).mean() * 100.0)
-                if rs_pct >= 85.0:
-                    rs_status, rs_col, rs_sub = f"LEADING ({rs_pct:.0f}th %ile)", "#15803d", "RS Near 52W High vs Nifty"
-                elif rs_pct <= 25.0:
-                    rs_status, rs_col, rs_sub = f"LAGGING ({rs_pct:.0f}th %ile)", "#b91c1c", "RS Underperforming Index"
-                else:
-                    rs_status, rs_col, rs_sub = f"IN-LINE ({rs_pct:.0f}th %ile)", "#0284c7", "Mid-Range Relative Strength"
         except Exception:
             pass
+        if not h_data:
+            h_data = [("1M", chg_1m), ("3M", chg_3m), ("6M", alpha_1y * 0.5), ("12M", alpha_1y)]
+        buf_rs = _generate_rs_nifty_chart(sym_name, stk_norm, nfy_norm, rs_pct, h_data)
+        return Image(buf_rs, width=520, height=56)
 
-        if not cells:
-            cells = {
-                "1M": (chg_1m, chg_1m, 0.0),
-                "3M": (chg_3m, chg_3m, 0.0),
-                "6M": (alpha_1y * 0.5, chg_3m, 0.0),
-                "12M": (alpha_1y, chg_1y, chg_1y - alpha_1y),
-            }
-
-        rs_hdr = [
-            Paragraph("1M EXCESS ALPHA", th_style),
-            Paragraph("3M EXCESS ALPHA", th_style),
-            Paragraph("6M EXCESS ALPHA", th_style),
-            Paragraph("12M EXCESS ALPHA", th_style),
-            Paragraph("RS LINE vs NIFTY 50", th_style),
-        ]
-        rs_val_row = []
-        for _, lbl in horizons:
-            al, sr, nr = cells[lbl]
-            al_c = "#15803d" if al > 1.0 else ("#b91c1c" if al < -1.0 else "#0284c7")
-            rs_val_row.append(Paragraph(
-                f"<font color='{al_c}'><b>{al:+.1f}% vs Nifty</b></font><br/>"
-                f"<font size='5.3' color='#475569'>Stk {sr:+.1f}% | Nifty {nr:+.1f}%</font>",
-                ParagraphStyle('RSC', parent=td_num, alignment=1, fontSize=6.2, leading=7.8)
-            ))
-        rs_val_row.append(Paragraph(
-            f"<font color='{rs_col}'><b>{rs_status}</b></font><br/>"
-            f"<font size='5.3' color='#475569'>{rs_sub}</font>",
-            ParagraphStyle('RSL', parent=td_num, alignment=1, fontSize=6.2, leading=7.8)
-        ))
-        t_rs = Table([rs_hdr, rs_val_row], colWidths=[98, 98, 98, 98, 128])
-        t_rs.setStyle(TableStyle([
-            ('BACKGROUND', (0,0), (-1,0), colors.HexColor("#0f172a")),
-            ('BACKGROUND', (0,1), (-1,1), colors.HexColor("#f8fafc")),
-            ('GRID', (0,0), (-1,-1), 0.5, colors.HexColor("#cbd5e1")),
-            ('TOPPADDING', (0,0), (-1,-1), 1.5),
-            ('BOTTOMPADDING', (0,0), (-1,-1), 1.5),
-            ('LEFTPADDING', (0,0), (-1,-1), 2),
-            ('RIGHTPADDING', (0,0), (-1,-1), 2),
-            ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
-        ]))
-        return t_rs
-
-    story.append(_build_rs_nifty_table(clean_sym))
+    story.append(_build_rs_nifty_chart_img(clean_sym))
 
     # ══════════════════════════════════════════════════════════════════════════
     # PAGE 3: SECTION 6 - QUANT ENGINE, 11-SCREENER MATRIX & PEERS
@@ -4129,6 +4762,11 @@ def generate_stock_research_dossier_pdf(
     story.append(t_sh_note)
     story.append(Spacer(1, 2))
 
+    # Page 3 Visual: 4-Quarter Ownership Structure & FII/DII Flow Rotation Chart
+    buf_sh_flow = _generate_shareholding_flow_chart(q_cols, prom_v, dii_v, fii_v, pub_v)
+    story.append(Image(buf_sh_flow, width=520, height=52))
+    story.append(Spacer(1, 1))
+
     buf_sh_flow = _generate_shareholding_flow_chart(q_cols, prom_v, dii_v, fii_v, pub_v)
     story.append(Image(buf_sh_flow, width=520, height=70))
 
@@ -4187,7 +4825,7 @@ def generate_stock_research_dossier_pdf(
     story.append(Spacer(1, 3))
 
     buf_quarterly = _generate_quarterly_performance_chart(q_headers_plot, q_sales_plot, q_pat_plot, q_opm_plot)
-    story.append(Image(buf_quarterly, width=520, height=125))
+    story.append(Image(buf_quarterly, width=520, height=110))
     story.append(Spacer(1, 2))
 
     # Dynamic Waterfall derivation
@@ -4200,7 +4838,7 @@ def generate_stock_research_dossier_pdf(
     wf_tax = max(wf_pbt - wf_pat, 1.0)
 
     buf_waterfall = _generate_pbt_pat_waterfall_chart(wf_op, wf_oth, wf_pbt, wf_tax, wf_pat)
-    story.append(Image(buf_waterfall, width=520, height=66))
+    story.append(Image(buf_waterfall, width=520, height=58))
     story.append(Spacer(1, 2))
 
     story.append(Paragraph(f"<b>8-QUARTER PERFORMANCE HEATMAP TABLE ({q_headers_plot[0].upper()} – {q_headers_plot[-1].upper()} AUDITED CONSOLIDATED)</b>", sec_header_style))
@@ -4262,7 +4900,7 @@ def generate_stock_research_dossier_pdf(
             parts_q = h_txt.split()
             if len(parts_q) == 2 and parts_q[1].isdigit():
                 q_lookup[(parts_q[0][:3], int(parts_q[1]))] = (sales_al[idx_q], opm_al[idx_q], h_txt.replace(" 20", " "))
-        yoy_s_trail, yoy_opm_trail = [], []
+        yoy_s_lbls, yoy_s_vals, yoy_opm_vals = [], [], []
         exp_count = 0
         for idx_q in range(max(0, n_q_align - 4), n_q_align):
             parts_q = hdrs_al[idx_q].split()
@@ -4272,30 +4910,15 @@ def generate_stock_research_dossier_pdf(
                     ps_val, popm_val, _ = q_lookup[prev_k]
                     cs_val, copm_val = sales_al[idx_q], opm_al[idx_q]
                     if ps_val > 0:
-                        s_g = (cs_val / ps_val - 1.0) * 100.0
-                        yoy_s_trail.append(f"{parts_q[0][:3]}'{parts_q[1][-2:]}: <b>{s_g:+.1f}%</b>")
-                    bps_d = (copm_val - popm_val) * 100.0
-                    if bps_d >= 0:
-                        exp_count += 1
-                    yoy_opm_trail.append(f"{bps_d:+.0f} bps")
-        if yoy_s_trail:
-            opm_streak_col = "#15803d" if exp_count >= 3 else ("#0284c7" if exp_count >= 2 else "#b91c1c")
-            yoy_strip_html = (
-                f"<b>4-QUARTER YoY ACCELERATION &amp; MARGIN STREAK:</b> &nbsp;"
-                f"<b>Sales YoY:</b> {' &rarr; '.join(yoy_s_trail)} &nbsp;|&nbsp; "
-                f"<b>OPM YoY:</b> {' &rarr; '.join(yoy_opm_trail)} "
-                f"(<font color='{opm_streak_col}'><b>{exp_count}/{len(yoy_opm_trail)} Qtrs Expanding</b></font>)"
-            )
-            t_q_yoy_streak = Table([[Paragraph(yoy_strip_html, ParagraphStyle('QYS', parent=body_style, fontSize=5.9, leading=7.5))]], colWidths=[520])
-            t_q_yoy_streak.setStyle(TableStyle([
-                ('BACKGROUND', (0,0), (-1,-1), colors.HexColor("#f1f5f9")),
-                ('BOX', (0,0), (-1,-1), 0.5, colors.HexColor("#cbd5e1")),
-                ('TOPPADDING', (0,0), (-1,-1), 1.8),
-                ('BOTTOMPADDING', (0,0), (-1,-1), 1.8),
-                ('LEFTPADDING', (0,0), (-1,-1), 5),
-                ('RIGHTPADDING', (0,0), (-1,-1), 5),
-            ]))
-            story.append(t_q_yoy_streak)
+                        yoy_s_lbls.append(f"{parts_q[0][:3]}'{parts_q[1][-2:]}")
+                        yoy_s_vals.append((cs_val / ps_val - 1.0) * 100.0)
+                        bps_d = (copm_val - popm_val) * 100.0
+                        if bps_d >= 0:
+                            exp_count += 1
+                        yoy_opm_vals.append(bps_d)
+        if yoy_s_lbls:
+            buf_q_yoy = _generate_qtr_yoy_chart(yoy_s_lbls, yoy_s_vals, yoy_opm_vals, exp_count)
+            story.append(Image(buf_q_yoy, width=520, height=60))
             story.append(Spacer(1, 2))
 
     # Dynamic Statistical Anomaly Detector for Exceptional One-Off Items
@@ -4352,7 +4975,7 @@ def generate_stock_research_dossier_pdf(
     y_ocf_plot = y_ocf[-5:] if len(y_ocf) >= 5 else [1400.0]*5
 
     buf_annual = _generate_annual_compounding_chart(y_labels_plot, y_rev_plot, y_ebitda_plot, y_pat_plot, y_ocf_plot)
-    story.append(Image(buf_annual, width=520, height=134))
+    story.append(Image(buf_annual, width=520, height=120))
     story.append(Spacer(1, 2))
 
     story.append(Paragraph("<b>DUPONT ROE 3-FACTOR DECOMPOSITION TREE (AUDITED BENCHMARK)</b>", sec_header_style))
@@ -4477,123 +5100,32 @@ def generate_stock_research_dossier_pdf(
     story.append(t_capex)
     story.append(Spacer(1, 2))
 
-    # Option 2: Working Capital Efficiency & Cash Conversion Cycle (CCC) — 3Y Audited Trend
+    # Page 5 Visual: Working Capital CCC & Capital Efficiency Dual Chart
     rat_rows = info.get("ratios_rows", {}) or {}
     rat_hdrs = [str(h).strip() for h in (info.get("ratios_headers", []) or []) if str(h).strip()]
-    yr_span_lbl = f"{rat_hdrs[-3]}–{rat_hdrs[-1]}" if len(rat_hdrs) >= 3 else "3Y TREND"
+    yr_lbls_wc = rat_hdrs[-3:] if len(rat_hdrs) >= 3 else ["FY-2", "FY-1", "FY0"]
 
-    def _last3(lbl_candidates):
+    def _last3(lbl_candidates, default_v=0.0):
         for lk in lbl_candidates:
             vals = rat_rows.get(lk, [])
             if vals:
-                nums = [_safe_float(v, 0.0) for v in vals[-3:]]
+                nums = [_safe_float(v, default_v) for v in vals[-3:]]
                 while len(nums) < 3:
                     nums.insert(0, nums[0])
                 return nums
-        return None
+        return [default_v, default_v, default_v]
 
-    dso3 = _last3(["Debtor Days"])
-    dio3 = _last3(["Inventory Days"])
-    dpo3 = _last3(["Days Payable", "Payable Days"])
-    ccc3 = _last3(["Cash Conversion Cycle"])
-    wcd3 = _last3(["Working Capital Days"])
-
-    if ccc3 is not None or dso3 is not None:
-        def _fmt3(arr):
-            return f"{arr[0]:.0f}d &rarr; {arr[1]:.0f}d &rarr; <b>{arr[2]:.0f}d</b>" if arr else "N/A"
-        dso_diff = (dso3[2] - dso3[0]) if dso3 else 0.0
-        dso_note = f"Faster Collections ({dso_diff:+.0f}d)" if dso_diff < 0 else (f"Stretch Watch ({dso_diff:+.0f}d)" if dso_diff > 5 else "Stable Collections")
-        dso_col = "#15803d" if dso_diff <= 0 else ("#b91c1c" if dso_diff > 5 else "#0284c7")
-
-        dio_diff = (dio3[2] - dio3[0]) if dio3 else 0.0
-        dio_note = f"Leaner Stock ({dio_diff:+.0f}d)" if dio_diff < 0 else (f"Higher Inventory ({dio_diff:+.0f}d)" if dio_diff > 5 else "Steady Turns")
-        dio_col = "#15803d" if dio_diff <= 0 else ("#b45309" if dio_diff > 5 else "#0284c7")
-
-        dpo_diff = (dpo3[2] - dpo3[0]) if dpo3 else 0.0
-        dpo_note = f"Supplier Credit ({dpo_diff:+.0f}d)" if dpo3 else "Service / Low Payables"
-
-        ccc_ref = ccc3 if ccc3 is not None else wcd3
-        ccc_diff = (ccc_ref[2] - ccc_ref[0]) if ccc_ref else 0.0
-        if ccc_ref and ccc_ref[2] <= 0:
-            ccc_verdict, ccc_col = "NEGATIVE CCC (SELF-FUNDING)", "#15803d"
-        elif ccc_diff <= -3:
-            ccc_verdict, ccc_col = f"IMPROVING CASH RELEASE ({ccc_diff:+.0f}d)", "#15803d"
-        elif ccc_diff >= 8:
-            ccc_verdict, ccc_col = f"WC ABSORPTION ({ccc_diff:+.0f}d)", "#b91c1c"
-        else:
-            ccc_verdict, ccc_col = "DISCIPLINED WC CYCLE", "#0284c7"
-
-        wc_style = ParagraphStyle('WCS', parent=td_num, alignment=1, fontSize=6.1, leading=7.8)
-        wc_data = [
-            [
-                Paragraph(f"DEBTOR DAYS ({yr_span_lbl})", th_style),
-                Paragraph("INVENTORY DAYS (DIO)", th_style),
-                Paragraph("PAYABLE DAYS (DPO)", th_style),
-                Paragraph("NET CASH CONVERSION (CCC)", th_style),
-            ],
-            [
-                Paragraph(f"{_fmt3(dso3)}<br/><font size='5.3' color='{dso_col}'><b>{dso_note}</b></font>", wc_style),
-                Paragraph(f"{_fmt3(dio3)}<br/><font size='5.3' color='{dio_col}'><b>{dio_note}</b></font>", wc_style),
-                Paragraph(f"{_fmt3(dpo3)}<br/><font size='5.3' color='#0284c7'><b>{dpo_note}</b></font>", wc_style),
-                Paragraph(f"{_fmt3(ccc_ref)}<br/><font size='5.3' color='{ccc_col}'><b>{ccc_verdict}</b></font>", wc_style),
-            ]
-        ]
-        t_wc_ccc = Table(wc_data, colWidths=[124, 120, 120, 156])
-        t_wc_ccc.setStyle(TableStyle([
-            ('BACKGROUND', (0,0), (-1,0), colors.HexColor("#0f172a")),
-            ('BACKGROUND', (0,1), (-1,1), colors.HexColor("#f8fafc")),
-            ('GRID', (0,0), (-1,-1), 0.5, colors.HexColor("#cbd5e1")),
-            ('TOPPADDING', (0,0), (-1,-1), 1.5),
-            ('BOTTOMPADDING', (0,0), (-1,-1), 1.5),
-            ('LEFTPADDING', (0,0), (-1,-1), 2),
-            ('RIGHTPADDING', (0,0), (-1,-1), 2),
-            ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
-        ]))
-        story.append(t_wc_ccc)
-        story.append(Spacer(1, 2))
-
-    # 5-Year Capital Allocation, ROCE Trajectory & Reinvestment Strip
-    roce3 = None
-    for rk in ["ROCE %", "ROCE"]:
-        rvals = rat_rows.get(rk, [])
-        if rvals:
-            roce3 = [_safe_float(v, roce_val) for v in rvals[-3:]]
-            while len(roce3) < 3:
-                roce3.insert(0, roce3[0])
-            break
-    if roce3:
-        roce_str = f"{roce3[0]:.0f}% &rarr; {roce3[1]:.0f}% &rarr; <b>{roce3[2]:.0f}%</b>"
-        roce_col = "#15803d" if roce3[2] >= roce3[0] and roce3[2] >= 18.0 else ("#0284c7" if roce3[2] >= 12.0 else "#b91c1c")
-    else:
-        roce_str = f"<b>{roce_val:.1f}%</b>"
-        roce_col = "#15803d" if roce_val >= 18.0 else "#0284c7"
-
+    dso3 = _last3(["Debtor Days"], 0.0)
+    dio3 = _last3(["Inventory Days"], 0.0)
+    dpo3 = _last3(["Days Payable", "Payable Days"], 0.0)
+    ccc3 = _last3(["Cash Conversion Cycle", "Working Capital Days"], 0.0)
+    roce3 = _last3(["ROCE %", "ROCE"], roce_val)
     div_list = pl_raw.get("Dividend Payout %", [])
     div_payout = min(max(_safe_float(div_list[-1], 20.0), 0.0), 100.0) if div_list else 20.0
     retain_pct = max(100.0 - div_payout, 0.0)
-    if de_val <= 0.25 and cum_5y_conv >= 80.0:
-        fund_lbl, fund_col = "Self-Funded Compounder (Low Debt)", "#15803d"
-    elif de_val <= 0.60:
-        fund_lbl, fund_col = "Balanced Growth & Leverage", "#0284c7"
-    else:
-        fund_lbl, fund_col = "Capital-Intensive / Leveraged", "#b45309"
 
-    cap_alloc_html = (
-        f"<b>CAPITAL ALLOCATION &amp; REINVESTMENT EFFICIENCY ({yr_span_lbl}):</b> &nbsp;"
-        f"<b>ROCE Trajectory:</b> <font color='{roce_col}'>{roce_str}</font> &nbsp;|&nbsp; "
-        f"<b>Earnings Retention:</b> <b>{retain_pct:.0f}% Reinvested</b> ({div_payout:.0f}% Div Payout) &nbsp;|&nbsp; "
-        f"<b>Funding Profile:</b> <font color='{fund_col}'><b>{fund_lbl}</b></font>"
-    )
-    t_cap_alloc = Table([[Paragraph(cap_alloc_html, ParagraphStyle('CAL', parent=body_style, fontSize=5.9, leading=7.5))]], colWidths=[520])
-    t_cap_alloc.setStyle(TableStyle([
-        ('BACKGROUND', (0,0), (-1,-1), colors.HexColor("#f1f5f9")),
-        ('BOX', (0,0), (-1,-1), 0.5, colors.HexColor("#cbd5e1")),
-        ('TOPPADDING', (0,0), (-1,-1), 1.8),
-        ('BOTTOMPADDING', (0,0), (-1,-1), 1.8),
-        ('LEFTPADDING', (0,0), (-1,-1), 5),
-        ('RIGHTPADDING', (0,0), (-1,-1), 5),
-    ]))
-    story.append(t_cap_alloc)
+    buf_wc_cap = _generate_wc_capital_chart(yr_lbls_wc, dso3, dio3, dpo3, ccc3, roce3, retain_pct, div_payout)
+    story.append(Image(buf_wc_cap, width=520, height=66))
 
     # ══════════════════════════════════════════════════════════════════════════
     # PAGE 6: SECTION 8 - DCF FRAMEWORK & DUAL-HORIZON ACTIONABLE STRATEGY
