@@ -1406,6 +1406,126 @@ def _generate_pe_band_gauge(curr_pe: float, min_pe: float, med_pe: float, max_pe
     return buf
 
 
+def _generate_cycle_clock_sizing_chart(
+    clean_sym: str,
+    cmp_val: float,
+    sma200: float,
+    eps_growth_pct: float,
+    beta: float,
+    max_dd: float,
+    rr_ratio: float,
+    score_val: float,
+    prem_to_dcf: float
+) -> io.BytesIO:
+    """Renders 4-Quadrant Institutional Cycle Clock paired with Quant Position-Sizing & Risk-Budget Guide."""
+    import matplotlib.patches as patches
+
+    spread_200 = ((cmp_val - sma200) / sma200 * 100.0) if sma200 > 0 else 5.0
+    sx = min(max(spread_200 / 3.5, -8.5), 8.5)
+    sy = min(max(eps_growth_pct / 4.0, -8.5), 8.5)
+
+    # Quadrant classification & dynamic position sizing
+    if sx >= 0 and sy >= 0:
+        regime = "STAGE 2 COMPOUNDER (HIGH CONVICTION)"
+        reg_col, reg_bg, reg_ec = "#15803d", "#dcfce7", "#86efac"
+        base_wt = 5.5 if score_val >= 75 else 4.5
+        tranche_txt = "3.0% Starter @ CMP  |  2.5% on 20 EMA / 50 SMA Dip"
+    elif sx < 0 and sy >= 0:
+        regime = "TURNAROUND WATCH (EARNINGS RECOVERING)"
+        reg_col, reg_bg, reg_ec = "#0369a1", "#e0f2fe", "#7dd3fc"
+        base_wt = 3.5 if score_val >= 65 else 2.5
+        tranche_txt = "1.5% Starter @ Support  |  Add 2.0% above 200 SMA"
+    elif sx >= 0 and sy < 0:
+        regime = "LATE-CYCLE EXTENDED (TACTICAL HOLD)"
+        reg_col, reg_bg, reg_ec = "#b45309", "#fef9c3", "#fde047"
+        base_wt = 3.0 if score_val >= 65 else 2.0
+        tranche_txt = "2.0% Core Hold  |  Await Earnings Re-Acceleration"
+    else:
+        regime = "STAGE 4 CAUTION (DEFENSIVE WATCHLIST)"
+        reg_col, reg_bg, reg_ec = "#b91c1c", "#fee2e2", "#fca5a5"
+        base_wt = 1.5
+        tranche_txt = "Watchlist Only  |  Require 200 SMA Reclaim Before Entry"
+
+    # Risk-adjust weight for beta & valuation stretch
+    if beta > 1.35:
+        base_wt = max(base_wt - 0.5, 1.0)
+    if prem_to_dcf > 20.0:
+        base_wt = max(base_wt - 0.5, 1.0)
+    wt_low = round(max(base_wt - 1.0, 0.5), 1)
+    wt_high = round(min(base_wt + 0.5, 7.0), 1)
+
+    fig = plt.figure(figsize=(7.4, 1.65), dpi=150)
+    fig.patch.set_facecolor('#ffffff')
+    gs = fig.add_gridspec(1, 2, width_ratios=[1.15, 1.45], wspace=0.14)
+
+    # Left: 4-Quadrant Cycle Clock
+    ax1 = fig.add_subplot(gs[0])
+    ax1.set_xlim(-10, 10)
+    ax1.set_ylim(-10, 10)
+    ax1.set_facecolor('#ffffff')
+
+    ax1.add_patch(patches.Rectangle((0, 0), 10, 10, facecolor='#dcfce7', alpha=0.55))
+    ax1.add_patch(patches.Rectangle((-10, 0), 10, 10, facecolor='#e0f2fe', alpha=0.55))
+    ax1.add_patch(patches.Rectangle((0, -10), 10, 10, facecolor='#fef9c3', alpha=0.55))
+    ax1.add_patch(patches.Rectangle((-10, -10), 10, 10, facecolor='#fee2e2', alpha=0.55))
+
+    ax1.axhline(0, color='#64748b', linewidth=0.8, linestyle='--')
+    ax1.axvline(0, color='#64748b', linewidth=0.8, linestyle='--')
+
+    ax1.text(5, 8.4, "STAGE 2 COMPOUNDER\n(Price + EPS Aligned)", ha='center', va='top', fontsize=5.3, fontweight='bold', color='#14532d')
+    ax1.text(-5, 8.4, "TURNAROUND WATCH\n(EPS Up, Basing)", ha='center', va='top', fontsize=5.3, fontweight='bold', color='#0369a1')
+    ax1.text(5, -8.4, "LATE-CYCLE EXTENDED\n(Price Up, EPS Slow)", ha='center', va='bottom', fontsize=5.3, fontweight='bold', color='#854d0e')
+    ax1.text(-5, -8.4, "STAGE 4 CAUTION\n(Downtrend + Weak EPS)", ha='center', va='bottom', fontsize=5.3, fontweight='bold', color='#991b1b')
+
+    ax1.scatter([sx], [sy], color='#0284c7', s=85, zorder=5, edgecolor='#0f172a', linewidth=1.2)
+    off_x = -4.5 if sx >= 0 else 4.5
+    off_y = -3.8 if sy >= 0 else 3.8
+    ax1.annotate(clean_sym, xy=(sx, sy), xytext=(sx + off_x, sy + off_y),
+                 arrowprops=dict(arrowstyle="->", color='#0f172a', lw=0.8),
+                 ha='center', va='center', fontsize=5.8, fontweight='bold', color='#0f172a',
+                 bbox=dict(boxstyle="round,pad=0.15", fc="#ffffff", ec="#0284c7", lw=0.7))
+
+    ax1.set_xticks([])
+    ax1.set_yticks([])
+    ax1.set_xlabel("<- Below 200 SMA  |  Above 200 SMA ->", fontsize=5.6, fontweight='bold', color='#334155', labelpad=2)
+    ax1.set_ylabel("<- EPS Slow | EPS Accel ->", fontsize=5.6, fontweight='bold', color='#334155', labelpad=2)
+    ax1.set_title("INSTITUTIONAL CYCLE CLOCK", fontsize=6.8, fontweight='bold', color='#0f172a', pad=4)
+    for s in ['top', 'right', 'left', 'bottom']:
+        ax1.spines[s].set_color('#cbd5e1')
+        ax1.spines[s].set_linewidth(0.7)
+
+    # Right: Quant Position-Sizing & Risk-Budget Card
+    ax2 = fig.add_subplot(gs[1])
+    ax2.set_xlim(0, 10)
+    ax2.set_ylim(0, 10)
+    ax2.axis('off')
+
+    card = patches.FancyBboxPatch((0.1, 0.2), 9.8, 9.5, boxstyle="round,pad=0.2,rounding_size=0.35",
+                                  facecolor='#f8fafc', edgecolor='#cbd5e1', linewidth=0.8)
+    ax2.add_patch(card)
+
+    ax2.text(0.45, 8.75, "QUANT POSITION-SIZING & ALLOCATION GUIDE", fontsize=6.8, fontweight='bold', color='#0f172a')
+    ax2.text(0.45, 7.25, f"REGIME: {regime}", fontsize=6.0, fontweight='bold', color=reg_col,
+             bbox=dict(boxstyle="round,pad=0.20", fc=reg_bg, ec=reg_ec, lw=0.7))
+
+    ax2.text(0.45, 5.55, f"Suggested Portfolio Weight: {wt_low:.1f}% - {wt_high:.1f}% Core Allocation", fontsize=6.2, fontweight='bold', color='#0f172a')
+    ax2.add_patch(patches.Rectangle((0.45, 4.15), 9.0, 0.90, facecolor='#e2e8f0', edgecolor='#cbd5e1', lw=0.5))
+    bar_w = min((wt_high / 10.0) * 9.0, 9.0)
+    ax2.add_patch(patches.Rectangle((0.45, 4.15), bar_w, 0.90, facecolor='#0284c7', alpha=0.88))
+    ax2.text(0.45 + bar_w / 2.0, 4.60, f"{wt_low:.1f}%-{wt_high:.1f}% (Max Cap: 10%)", ha='center', va='center', fontsize=5.5, fontweight='bold', color='white')
+
+    ax2.text(0.45, 2.85, f"• Tranche Plan: {tranche_txt}", fontsize=5.8, color='#334155')
+    ax2.text(0.45, 1.65, f"• Volatility Scalar: Beta {beta:.2f}x  |  1Y Max DD: {max_dd:.1f}%  |  R:R {rr_ratio:.1f} : 1", fontsize=5.8, color='#334155')
+    ax2.text(0.45, 0.55, "• Stop-Loss Risk Budget: 0.50% max portfolio NAV risk per trade", fontsize=5.6, fontweight='bold', color='#475569')
+
+    fig.subplots_adjust(top=0.88, bottom=0.10, left=0.06, right=0.98)
+    buf = io.BytesIO()
+    fig.savefig(buf, format='png', dpi=150, bbox_inches='tight')
+    buf.seek(0)
+    plt.close(fig)
+    return buf
+
+
 def _generate_valuation_football_field(categories: List[str], lows: List[float], highs: List[float], midpoints: List[float], cmp_val: float) -> io.BytesIO:
     """Renders institutional Valuation Football Field with clean left padding and crisp typography."""
     fig, ax = plt.subplots(figsize=(4.0, 1.40), dpi=160)
@@ -3005,6 +3125,20 @@ def generate_stock_research_dossier_pdf(
         ('VALIGN', (0,0), (-1,-1), 'TOP')
     ]))
     story.append(t_thesis)
+    story.append(Spacer(1, 3))
+
+    buf_cycle_clock = _generate_cycle_clock_sizing_chart(
+        clean_sym=clean_sym,
+        cmp_val=cmp_val,
+        sma200=sma200,
+        eps_growth_pct=c_pat,
+        beta=beta,
+        max_dd=max_dd,
+        rr_ratio=rr_ratio,
+        score_val=score_val,
+        prem_to_dcf=prem_to_dcf
+    )
+    story.append(Image(buf_cycle_clock, width=520, height=82))
 
     # ══════════════════════════════════════════════════════════════════════════
     # PAGE 2: SECTION 5 - TECHNICAL ARCHITECTURE, TIMING & SUPPORT LADDERS
