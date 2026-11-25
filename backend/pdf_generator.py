@@ -2596,6 +2596,11 @@ def _extract_dossier_intelligence(clean_sym: str) -> dict:
     if inst_total <= 0.0:
         inst_total = 75.0
 
+    promoter_pledge_pct = _safe_float(
+        sh_prof.get("Promoter Pledging %") if sh_prof.get("Promoter Pledging %") is not None else sh.get("promoter_pledge_pct", 0.0),
+        0.0
+    )
+
     q_score = 92.0 if roce_val >= 20.0 else (85.0 if roce_val >= 15.0 else (75.0 if roce_val >= 10.0 else 65.0))
     v_score = 85.0 if pe_val <= 25.0 else (80.0 if pe_val <= 40.0 else (75.0 if pe_val <= 55.0 else 65.0))
     m_score = 82.0 if (cmp_val > sma20 and cmp_val > sma50) else (78.0 if cmp_val > sma50 else 68.0)
@@ -2743,6 +2748,7 @@ def _extract_dossier_intelligence(clean_sym: str) -> dict:
         "roe_val": roe_val,
         "de_val": de_val,
         "curr_rat": curr_rat,
+        "promoter_pledge_pct": promoter_pledge_pct,
         "cfo_pat": cfo_pat,
         "opm_val": opm_val,
         "npm_val": npm_val,
@@ -2908,6 +2914,7 @@ def generate_stock_research_dossier_pdf(
     ev_ebitda_val = info["ev_ebitda_val"]
     roce_val = info["roce_val"]
     roe_val = info["roe_val"]
+    promoter_pledge_pct = float(info.get("promoter_pledge_pct", 0.0))
     de_val = info["de_val"]
     curr_rat = info["curr_rat"]
     cfo_pat = info["cfo_pat"]
@@ -3848,6 +3855,16 @@ def generate_stock_research_dossier_pdf(
     fii_v = _pad_sh_list("FIIs", 15.0)
     pub_v = _pad_sh_list("Public", 70.0)
 
+    if prom_v[-1] <= 0.0:
+        pledge_table_desc = "Professionally Managed / Zero Promoter Entity (100% Public Float)"
+        pledge_badge = "Professionally Managed / No Promoter"
+    elif promoter_pledge_pct <= 0.0:
+        pledge_table_desc = "Stable Promoter Base &amp; Zero Promoter Pledge (0.0%)"
+        pledge_badge = "Zero Pledge"
+    else:
+        pledge_table_desc = f"Promoter Pledge: {promoter_pledge_pct:.2f}% of Promoter Shares"
+        pledge_badge = f"Pledged: {promoter_pledge_pct:.2f}%"
+
     sh_data = [
         [
             Paragraph("CATEGORY", th_style),
@@ -3863,7 +3880,7 @@ def generate_stock_research_dossier_pdf(
             Paragraph(f"{prom_v[1]:.2f}%", td_style),
             Paragraph(f"{prom_v[2]:.2f}%", td_style),
             Paragraph(f"{prom_v[3]:.2f}%", td_style),
-            Paragraph("Stable Promoter Base &amp; Zero Promoter Pledge (0.0%)", td_style)
+            Paragraph(pledge_table_desc, td_style)
         ],
         [
             Paragraph("<b>DII (Mutual Funds)</b>", td_style),
@@ -3888,7 +3905,7 @@ def generate_stock_research_dossier_pdf(
     resid_pub = max(tot_pub - inst_float, 0.0)
     resid_cr = mcap_val * (resid_pub / 100.0)
     sh_note_text = (
-        f"<b>SEBI Public Shareholding Breakdown:</b> Promoter Holding: <b>{prom_v[-1]:.2f}%</b> (Zero Pledge) &nbsp;|&nbsp; "
+        f"<b>SEBI Public Shareholding Breakdown:</b> Promoter Holding: <b>{prom_v[-1]:.2f}%</b> ({pledge_badge}) &nbsp;|&nbsp; "
         f"<b>Total Public Shareholding:</b> <b>{tot_pub:.2f}% (~Rs. {pub_cr:,.0f} Cr)</b> (Audited Institutional Float: <b>{inst_float:.2f}%</b> [Domestic Mutual Funds {dii_v[-1]:.2f}%, Foreign Portfolio Investors {fii_v[-1]:.2f}%], Derived Non-Institutional Public Residual: <b>{resid_pub:.2f}% (~Rs. {resid_cr:,.0f} Cr)</b> via 100% - {prom_v[-1]:.2f}% - {inst_float:.2f}%)."
     )
 
