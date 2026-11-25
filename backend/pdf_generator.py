@@ -4570,7 +4570,15 @@ def generate_stock_tearsheet_pdf(
     y_ocf = info["y_ocf"]
     cagr_sales = info["cagr_sales"].real if isinstance(info["cagr_sales"], complex) else float(info["cagr_sales"])
     cagr_pat = info["cagr_pat"].real if isinstance(info["cagr_pat"], complex) else float(info["cagr_pat"])
+    med_1y = info.get("med_1y", pe_val)
     med_3y = info.get("med_3y", pe_val)
+    med_5y = info.get("med_5y", med_3y)
+    prem_1y = info.get("prem_1y", 0.0)
+    prem_3y = info.get("prem_3y", 0.0)
+    prem_5y = info.get("prem_5y", 0.0)
+    rsi_val = info.get("rsi_val", 50.0)
+    adx_val = info.get("adx_val", 22.0)
+    wacc = info.get("wacc", 14.0)
     pe_b = info.get("pe_bands", {})
     pe_b_min = float(pe_b.get("min_pe") or (pe_val * 0.8))
     pe_b_max = float(pe_b.get("max_pe") or (pe_val * 1.2))
@@ -4789,6 +4797,65 @@ def generate_stock_tearsheet_pdf(
     dii_chg = dii_now - float(dii_arr[0]) if len(dii_arr) >= 2 else 0.0
     fii_chg = fii_now - float(fii_arr[0]) if len(fii_arr) >= 2 else 0.0
 
+    # 1Y / 3Y / 5Y P/E Valuation Spectrum Mini-Table
+    def _pe_col(prem: float) -> str:
+        return "#b91c1c" if prem > 10 else ("#15803d" if prem < -10 else "#0284c7")
+
+    pe3_data = [
+        [Paragraph("CURR P/E", th_st), Paragraph("1Y MEDIAN", th_st), Paragraph("3Y MEDIAN", th_st), Paragraph("5Y MEDIAN", th_st)],
+        [
+            Paragraph(f"<b>{pe_val:.1f}x</b>", td_num),
+            Paragraph(f"{med_1y:.1f}x <font color='{_pe_col(prem_1y)}'>({prem_1y:+.0f}%)</font>", td_num),
+            Paragraph(f"{med_3y:.1f}x <font color='{_pe_col(prem_3y)}'>({prem_3y:+.0f}%)</font>", td_num),
+            Paragraph(f"{med_5y:.1f}x <font color='{_pe_col(prem_5y)}'>({prem_5y:+.0f}%)</font>", td_num),
+        ]
+    ]
+    t_pe3 = Table(pe3_data, colWidths=[50, 65, 65, 66])
+    t_pe3.setStyle(TableStyle([
+        ('BACKGROUND', (0,0), (-1,0), colors.HexColor("#1e293b")),
+        ('GRID', (0,0), (-1,-1), 0.4, colors.HexColor("#cbd5e1")),
+        ('BACKGROUND', (0,1), (-1,1), colors.HexColor("#f8fafc")),
+        ('TOPPADDING', (0,0), (-1,-1), 1.5),
+        ('BOTTOMPADDING', (0,0), (-1,-1), 1.5),
+        ('LEFTPADDING', (0,0), (-1,-1), 2),
+        ('RIGHTPADDING', (0,0), (-1,-1), 2),
+        ('ALIGN', (0,0), (-1,-1), 'CENTER'),
+        ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
+    ]))
+
+    # Top 3 Peer Valuation Mini-Table
+    peer_ts_data = [[
+        Paragraph("PEER BENCHMARK", th_st),
+        Paragraph("CMP", th_st),
+        Paragraph("P/E", th_st),
+        Paragraph("ROCE", th_st),
+        Paragraph("3Y GR", th_st)
+    ]]
+    for pr in peer_rows[:3]:
+        p_lbl = pr.get("label", "").replace(" (Target)", "*")[:18]
+        is_tgt = pr.get("is_target", False)
+        peer_ts_data.append([
+            Paragraph(f"<b>{p_lbl}</b>" if is_tgt else p_lbl, body_st),
+            Paragraph(f"{pr.get('cmp', 0):,.0f}", td_num),
+            Paragraph(f"{pr.get('pe', 0):.1f}x", td_num),
+            Paragraph(f"{pr.get('roce', 0):.1f}%", td_num),
+            Paragraph(f"{pr.get('sales_3y', 0):+.0f}%", td_num),
+        ])
+    while len(peer_ts_data) < 4:
+        peer_ts_data.append([Paragraph("Sector Peer", body_st), Paragraph("—", td_num), Paragraph("—", td_num), Paragraph("—", td_num), Paragraph("—", td_num)])
+
+    t_peers_ts = Table(peer_ts_data, colWidths=[96, 42, 36, 39, 39])
+    t_peers_ts.setStyle(TableStyle([
+        ('BACKGROUND', (0,0), (-1,0), colors.HexColor("#0f172a")),
+        ('GRID', (0,0), (-1,-1), 0.4, colors.HexColor("#cbd5e1")),
+        ('ROWBACKGROUNDS', (0,1), (-1,-1), [colors.HexColor("#ffffff"), colors.HexColor("#f8fafc")]),
+        ('TOPPADDING', (0,0), (-1,-1), 1.5),
+        ('BOTTOMPADDING', (0,0), (-1,-1), 1.5),
+        ('LEFTPADDING', (0,0), (-1,-1), 2),
+        ('RIGHTPADDING', (0,0), (-1,-1), 2),
+        ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
+    ]))
+
     # 3. Two-Column Executive Body
     left_col = [
         Paragraph("<b>COMPETITIVE MOAT &amp; MARKET POWER</b>", sec_st),
@@ -4812,37 +4879,44 @@ def generate_stock_tearsheet_pdf(
             body_st
         ),
         Spacer(1, 4),
-        Paragraph("<b>HISTORICAL P/E SPECTRUM (CURRENT vs. 3Y MEDIAN)</b>", sec_st),
+        Paragraph("<b>HISTORICAL P/E VALUATION (1Y / 3Y / 5Y SPECTRUM)</b>", sec_st),
         Spacer(1, 1.5),
-        Image(buf_pe_gauge, width=246, height=44)
+        t_pe3,
+        Spacer(1, 2),
+        Image(buf_pe_gauge, width=246, height=38)
     ]
 
     right_col = [
-        Paragraph("<b>TACTICAL SWING LEVELS (2–8 WEEKS)</b>", sec_st),
-        Spacer(1, 2),
+        Paragraph("<b>TACTICAL SWING LEVELS &amp; MOMENTUM (2–8 WEEKS)</b>", sec_st),
+        Spacer(1, 1.5),
         Paragraph(
             f"• <b>Pullback Buy Zone:</b> <font color='#b45309'><b>Rs. {brk_el:,.0f} – {brk_eh:,.0f}</b></font> (20 EMA / 50 SMA)<br/>"
             f"• <b>Strict Stop Loss:</b> <font color='#dc2626'><b>Rs. {brk_stop:,.0f}</b></font> (-{((cmp_val-brk_stop)/cmp_val*100):.1f}% below CMP)<br/>"
-            f"• <b>Targets:</b> <font color='#15803d'><b>T1: Rs. {brk_t1:,.0f} ({((brk_t1-cmp_val)/cmp_val*100):+.1f}%) • T2: Rs. {brk_t2:,.0f} ({((brk_t2-cmp_val)/cmp_val*100):+.1f}%)</b></font>",
+            f"• <b>Targets:</b> <font color='#15803d'><b>T1: Rs. {brk_t1:,.0f} ({((brk_t1-cmp_val)/cmp_val*100):+.1f}%) • T2: Rs. {brk_t2:,.0f} ({((brk_t2-cmp_val)/cmp_val*100):+.1f}%)</b></font><br/>"
+            f"• <b>Oscillators:</b> RSI (14): <b>{rsi_val:.1f}</b> | ADX: <b>{adx_val:.1f}</b> | vs 200 SMA: <b>{spread_200:+.1f}%</b>",
             body_st
         ),
-        Spacer(1, 6),
+        Spacer(1, 4),
         Paragraph("<b>RECENT 30-DAY MATERIAL CATALYSTS (LIVE NEWS)</b>", sec_st),
-        Spacer(1, 2),
+        Spacer(1, 1.5),
         Paragraph(
             f"• <b>Earnings Pulse:</b> {cat_intel['earnings_operating_surprise']}<br/>"
             f"• <b>Corporate Actions:</b> {cat_intel['corporate_capital_actions']}<br/>"
             f"• <b>Market Reaction:</b> {cat_intel['capacity_market_dynamics']}",
             body_st
         ),
-        Spacer(1, 6),
+        Spacer(1, 4),
         Paragraph("<b>STRATEGIC CAPEX &amp; EXPANSION ROADMAP</b>", sec_st),
-        Spacer(1, 2),
+        Spacer(1, 1.5),
         Paragraph(
             f"• <b>Capacity Target:</b> {capex_intel['capacity_target']}<br/>"
             f"• <b>Capex &amp; Funding:</b> {capex_intel['capex_outlay']} {capex_intel['funding_margin']}",
             body_st
-        )
+        ),
+        Spacer(1, 4),
+        Paragraph("<b>PEER RELATIVE VALUATION SNAPSHOT (*TARGET)</b>", sec_st),
+        Spacer(1, 1.5),
+        t_peers_ts
     ]
 
     t_grid = Table([[left_col, right_col]], colWidths=[262, 268])
@@ -4862,7 +4936,7 @@ def generate_stock_tearsheet_pdf(
     # 4. Cycle Clock Verdict & Position-Sizing Strip
     verdict_html = (
         f"<b>CYCLE CLOCK REGIME &amp; POSITION-SIZING VERDICT:</b> "
-        f"<font color='{reg_col}'><b>{regime_lbl}</b></font><br/>"
+        f"<font color='{reg_col}'><b>{regime_lbl}</b></font> &nbsp;|&nbsp; <font color='#475569'>DCF Inputs: WACC {wacc:.1f}% • Term. Growth 4.5% • Base Exit 30x EV/EBITDA</font><br/>"
         f"• <b>Portfolio Allocation:</b> <b>{wt_txt}</b> | Risk Budget: 0.50% max NAV risk per trade.<br/>"
         f"• <b>Valuation Anchor &amp; Invalidation:</b> 28x DCF Floor (<b>Rs. {dcf_targets[28.0]:,.0f}</b>) &amp; 200 SMA (<b>Rs. {sma200:,.0f}</b>) | Invalidate if OPM &lt; {opm_val*0.75:.1f}% or D/E &gt; {max(de_val*2.5, 0.25):.2f}x."
     )
