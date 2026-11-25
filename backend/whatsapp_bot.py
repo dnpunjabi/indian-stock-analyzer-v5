@@ -6470,6 +6470,59 @@ def generate_layman_quarterly_summary(
     )
 
 
+def _evaluate_post_result_swing_setup(
+    lookup_ticker: str,
+    q_map: Dict[str, Any],
+    col_headers: List[str],
+    core_pbt_growth: float,
+    opm_diff: float
+) -> str:
+    """Computes Post-Result Exhaustion Trap vs. Post-Earnings Drift (PEAD) verdict for swing traders."""
+    try:
+        import yfinance as yf
+        import numpy as np
+        hist = yf.Ticker(lookup_ticker).history(period="3mo", interval="1d")
+        if hist is None or hist.empty or len(hist) < 22:
+            return ""
+        close = hist["Close"].astype(float)
+        cmp_now = float(close.iloc[-1])
+        p_30d = float(close.iloc[-22])
+        chg_30d = ((cmp_now / p_30d) - 1.0) * 100.0 if p_30d > 0 else 0.0
+
+        delta = close.diff()
+        gain = delta.clip(lower=0).rolling(14).mean()
+        loss = (-delta.clip(upper=0)).rolling(14).mean()
+        rs = gain / loss.replace(0, np.nan)
+        rsi_s = 100.0 - (100.0 / (1.0 + rs))
+        rsi14 = float(rsi_s.iloc[-1]) if not np.isnan(rsi_s.iloc[-1]) else 50.0
+
+        # TTM EPS & Reverse DCF Implied 5Y Growth
+        eps_dict = q_map.get("eps in rs", {}) or {}
+        ttm_eps = sum(float(eps_dict.get(qh) or 0.0) for qh in col_headers[-4:])
+        implied_g = None
+        if ttm_eps > 0 and cmp_now > 0:
+            pe_now = cmp_now / ttm_eps
+            from backend.valuation_expectations import solve_implied_eps_growth
+            implied_g = solve_implied_eps_growth(cmp_now, ttm_eps, discount_rate=0.115, exit_pe=max(pe_now, 5.0), years=5)
+
+        imp_txt = f" | Priced-in Growth: *{implied_g:.1f}%/yr*" if implied_g is not None else ""
+        opm_bps = opm_diff * 100.0
+
+        if chg_30d >= 12.0 and (rsi14 >= 68.0 or opm_diff < 0 or (implied_g is not None and core_pbt_growth < implied_g)):
+            verdict = "🔴 *SELL-THE-NEWS TRAP RISK*"
+            note = f"Already rallied *{chg_30d:+.1f}%* in 30D (RSI {rsi14:.0f}){imp_txt} — watch for post-result profit booking."
+        elif core_pbt_growth >= 15.0 and opm_diff >= 0.3 and chg_30d < 12.0 and rsi14 < 68.0:
+            verdict = "🟢 *POST-EARNINGS DRIFT (PEAD) SETUP*"
+            note = f"Core PBT *{core_pbt_growth:+.1f}%* + OPM *{opm_bps:+.0f} bps* without 30D overextension ({chg_30d:+.1f}%, RSI {rsi14:.0f}){imp_txt}."
+        else:
+            verdict = "🟡 *DIGESTION / WAIT FOR PULLBACK*"
+            note = f"30D Move: *{chg_30d:+.1f}%* (RSI {rsi14:.0f}){imp_txt} — wait for post-result base / 20 EMA support."
+
+        return f"🎯 *POST-RESULT SWING CHECK*:\n• {verdict}\n• {note}\n"
+    except Exception:
+        return ""
+
+
 def handle_stock_quarterly_results(symbol_input: str, recipient: Optional[str] = None) -> Dict[str, Any]:
     """
     Renders Latest Quarterly Earnings Flash Scorecard:
@@ -6674,6 +6727,15 @@ def handle_stock_quarterly_results(symbol_input: str, recipient: Optional[str] =
         ])
         if stage_catalyst_desc:
             lines.append(f"{stage_catalyst_desc}\n")
+        swing_trap_desc = _evaluate_post_result_swing_setup(
+            lookup_ticker=lookup_ticker,
+            q_map=q_map,
+            col_headers=col_headers,
+            core_pbt_growth=core_pbt_growth,
+            opm_diff=opm_diff
+        )
+        if swing_trap_desc:
+            lines.append(swing_trap_desc)
         lines.extend([
             "💰 *THE RUPEE TRANSLATION (₹100 BENCHMARK)*:",
             f"• Net Margin: Pockets *₹ {npm_val:.1f}* profit per ₹ 100 sales",
