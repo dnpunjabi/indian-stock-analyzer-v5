@@ -34,19 +34,17 @@ def _init_ai_cache_table():
                 moat_json TEXT,
                 capex_guidance_json TEXT,
                 catalysts_json TEXT,
+                risks_json TEXT,
                 updated_at REAL,
                 updated_catalysts_at REAL
             )
         """)
         # Ensure new columns exist for existing databases
-        try:
-            cur.execute("ALTER TABLE cached_dossier_ai_intelligence ADD COLUMN catalysts_json TEXT")
-        except Exception:
-            pass
-        try:
-            cur.execute("ALTER TABLE cached_dossier_ai_intelligence ADD COLUMN updated_catalysts_at REAL")
-        except Exception:
-            pass
+        for col_def in ["catalysts_json TEXT", "updated_catalysts_at REAL", "risks_json TEXT"]:
+            try:
+                cur.execute(f"ALTER TABLE cached_dossier_ai_intelligence ADD COLUMN {col_def}")
+            except Exception:
+                pass
         conn.commit()
         conn.close()
     except Exception as e:
@@ -386,6 +384,106 @@ Output only valid JSON. No markdown ticks, no preamble."""
             INSERT INTO cached_dossier_ai_intelligence (symbol, catalysts_json, updated_catalysts_at)
             VALUES (?, ?, ?)
             ON CONFLICT(symbol) DO UPDATE SET catalysts_json=excluded.catalysts_json, updated_catalysts_at=excluded.updated_catalysts_at
+        """, (clean_sym, json.dumps(result), time.time()))
+        conn.commit()
+        conn.close()
+    except Exception:
+        pass
+
+    return result
+
+
+def get_dossier_strategic_risks(
+    symbol: str,
+    comp_name: str,
+    sector: str = "",
+    pe_val: float = 25.0,
+    med_3y: float = 25.0,
+    cagr_sales: float = 15.0,
+    force_refresh: bool = False
+) -> Dict[str, str]:
+    """
+    Fetches verified company-specific Top 3 Critical Strategic Risks (Pre-Mortem Audit)
+    via SERPAPI + Gemini, cached for 7 days in SQLite.
+    """
+    clean_sym = symbol.strip().upper().replace(".NS", "").replace(".BO", "")
+    _init_ai_cache_table()
+
+    # 1. Check SQLite cache
+    if not force_refresh:
+        try:
+            conn = sqlite3.connect(DATABASE_PATH)
+            cur = conn.cursor()
+            cur.execute("SELECT risks_json, updated_at FROM cached_dossier_ai_intelligence WHERE symbol = ?", (clean_sym,))
+            row = cur.fetchone()
+            conn.close()
+            if row and row[0] and row[1] and (time.time() - row[1] < CACHE_TTL_SECS):
+                cached_obj = json.loads(row[0])
+                if cached_obj.get("risk_1_desc") and cached_obj.get("risk_2_desc") and cached_obj.get("risk_3_desc"):
+                    return cached_obj
+        except Exception:
+            pass
+
+    # 2. Query SerpApi for company-specific risks & headwinds
+    clean_co = re.sub(r"\b(?:Ltd\.?|Limited|India|Industries|Corporation)\b", "", comp_name, flags=re.IGNORECASE).strip(" .,")
+    if not clean_co:
+        clean_co = comp_name
+    query = f'"{clean_co}" key business risks headwinds margin challenges concall'
+    snippets = _query_serpapi_snippets(query, max_results=4)
+
+    # 3. LLM Synthesis
+    result = None
+    if snippets:
+        try:
+            from backend.llm_config import call_llm
+            prompt = f"""You are a Senior CFA Institutional Risk Officer conducting a Pre-Mortem Audit for {comp_name} ({sector}).
+Based on these verified search snippets:
+{chr(10).join(snippets)}
+
+Synthesize strictly 3 company-specific strategic risks (max 22 words per description, use "Rs." instead of "₹"):
+1. Core Operational / Commodity / Demand Risk (specific to {clean_co}'s business model, raw materials, or client base)
+2. Competitive / Regulatory / Execution Risk (specific to {clean_co}'s peers, capacity rollout, or policy exposure)
+3. Valuation / Margin Sensitivity (ground in current {pe_val:.1f}x P/E vs {med_3y:.1f}x 3Y median & {cagr_sales:.1f}% sales CAGR)
+
+Format strictly as JSON:
+{{
+  "risk_1_title": "<2-4 word title>",
+  "risk_1_desc": "...",
+  "risk_2_title": "<2-4 word title>",
+  "risk_2_desc": "...",
+  "risk_3_title": "<2-4 word title>",
+  "risk_3_desc": "..."
+}}
+Output only valid JSON. No markdown ticks, no preamble."""
+            res = call_llm("fast", "You are an institutional equity risk analyst. Respond only with JSON.", prompt)
+            clean_res = re.sub(r"^```json\s*|\s*```$", "", res.strip(), flags=re.MULTILINE).strip()
+            parsed = json.loads(clean_res)
+            if parsed.get("risk_1_desc") and parsed.get("risk_2_desc") and parsed.get("risk_3_desc"):
+                for k in parsed:
+                    parsed[k] = str(parsed[k]).replace("₹", "Rs. ")
+                result = parsed
+        except Exception as e:
+            print(f"[Dossier AI] Strategic Risks LLM synthesis failed for {clean_sym}: {e}")
+
+    # 4. Deterministic Fallback
+    if not result:
+        result = {
+            "risk_1_title": "Demand & Margin Sensitivity",
+            "risk_1_desc": f"Core {sector or 'sector'} demand cyclicality and input cost volatility could pressure quarterly operating margins.",
+            "risk_2_title": "Competitive & Execution Risk",
+            "risk_2_desc": f"Intensifying peer capacity additions or delays in planned capital projects may impact market share.",
+            "risk_3_title": "Multiple Compression",
+            "risk_3_desc": f"At {pe_val:.1f}x P/E (vs. {med_3y:.1f}x 3Y median), growth slowing below {cagr_sales:.1f}% CAGR risks de-rating."
+        }
+
+    # 5. Save to Cache
+    try:
+        conn = sqlite3.connect(DATABASE_PATH)
+        cur = conn.cursor()
+        cur.execute("""
+            INSERT INTO cached_dossier_ai_intelligence (symbol, risks_json, updated_at)
+            VALUES (?, ?, ?)
+            ON CONFLICT(symbol) DO UPDATE SET risks_json=excluded.risks_json, updated_at=excluded.updated_at
         """, (clean_sym, json.dumps(result), time.time()))
         conn.commit()
         conn.close()

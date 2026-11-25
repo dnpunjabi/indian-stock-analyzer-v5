@@ -33,7 +33,8 @@ from backend.catalyst_scraper import fetch_stock_news_headlines
 from backend.dossier_ai_service import (
     get_dossier_moat_intelligence, 
     get_dossier_capex_guidance, 
-    get_dossier_recent_catalysts
+    get_dossier_recent_catalysts,
+    get_dossier_strategic_risks
 )
 
 
@@ -3310,24 +3311,14 @@ def generate_stock_research_dossier_pdf(
         f"<i>Multi-Factor Score Breakdown: Solvency 25% ({scores_dict['solvency']:.0f}), Quality 25% ({scores_dict['quality']:.0f}), Institutional 20% ({scores_dict['institutional']:.0f}), Momentum 15% ({scores_dict['momentum']:.0f}), Growth 10% ({scores_dict['growth']:.0f}), Valuation 5% ({scores_dict['valuation']:.0f}) = {score_val:.1f}/100 ({tier_label}).</i>"
     )
 
-    if "auto" in sector.lower() or "auto" in industry.lower():
-        risks_text = (
-            "• <b>1. EV Transition Timeline:</b> Long-term phase-down of ICE fuel pumps over 5–10 years (counterbalanced by localized EV powertrain investments).<br/>"
-            "• <b>2. Auto OEM Cyclicality:</b> High revenue exposure to domestic commercial vehicle and passenger car build cycles.<br/>"
-            f"• <b>3. Multiple Sensitivity:</b> At {pe_val:.1f}x P/E (vs. 44.2x 3Y median), quarterly earnings hiccups could trigger short-term multiple de-rating."
-        )
-    elif "tech" in sector.lower() or "software" in industry.lower():
-        risks_text = (
-            "• <b>1. Global IT Spending:</b> Discretionary tech budget tightening across North American and European enterprise clients.<br/>"
-            "• <b>2. Margin Headwinds:</b> Wage inflation, employee attrition, and transition pricing pressure in legacy enterprise contracts.<br/>"
-            f"• <b>3. Multiple Sensitivity:</b> Valuation compression risk at {pe_val:.1f}x P/E if quarterly deal momentum decelerates."
-        )
-    else:
-        risks_text = (
-            f"• <b>1. Sector Cyclicality:</b> Revenue sensitivity to broader macroeconomic capital spending in {sector}.<br/>"
-            "• <b>2. Operating Margins:</b> Global supply chain pricing variations and wage inflation headwinds.<br/>"
-            f"• <b>3. Multiple Contraction:</b> Valuation compression risk if quarterly growth decelerates below 5Y historical CAGR ({cagr_sales:.1f}%)."
-        )
+    risk_intel = get_dossier_strategic_risks(
+        clean_sym, comp_name, sector, pe_val=pe_val, med_3y=med_3y, cagr_sales=cagr_sales
+    )
+    risks_text = (
+        f"• <b>1. {risk_intel['risk_1_title']}:</b> {risk_intel['risk_1_desc']}<br/>"
+        f"• <b>2. {risk_intel['risk_2_title']}:</b> {risk_intel['risk_2_desc']}<br/>"
+        f"• <b>3. {risk_intel['risk_3_title']}:</b> {risk_intel['risk_3_desc']}"
+    )
 
     thesis_data = [
         [
