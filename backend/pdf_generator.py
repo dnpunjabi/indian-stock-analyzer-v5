@@ -2576,10 +2576,24 @@ def _extract_dossier_intelligence(clean_sym: str) -> dict:
 
     # 6-Pillar Quant Factor Scoring Engine (Dynamic Multi-Factor Analysis)
     sh_rows = {r.get("label"): r.get("values", []) for r in sh.get("rows", [])}
-    promoter_val = _safe_float(sh_rows.get("Promoters", [0])[-1], 60.0) if "Promoters" in sh_rows else 60.0
-    fii_val = _safe_float(sh_rows.get("FIIs", [0])[-1], 15.0) if "FIIs" in sh_rows else 15.0
-    dii_val = _safe_float(sh_rows.get("DIIs", [0])[-1], 15.0) if "DIIs" in sh_rows else 15.0
+    sh_prof = prof.get("shareholding", {})
+    sh_cat_raw = sh.get("categories", {})
+
+    def _get_real_sh(key: str, default_v: float = 0.0) -> float:
+        if key in sh_rows and sh_rows[key]:
+            return _safe_float(sh_rows[key][-1], default_v)
+        if key in sh_cat_raw and sh_cat_raw[key]:
+            return _safe_float(sh_cat_raw[key][-1], default_v)
+        if key in sh_prof:
+            return _safe_float(sh_prof[key], default_v)
+        return default_v
+
+    promoter_val = _get_real_sh("Promoters", 0.0)
+    fii_val = _get_real_sh("FIIs", 0.0)
+    dii_val = _get_real_sh("DIIs", 0.0)
     inst_total = promoter_val + fii_val + dii_val
+    if inst_total <= 0.0:
+        inst_total = 75.0
 
     q_score = 92.0 if roce_val >= 20.0 else (85.0 if roce_val >= 15.0 else (75.0 if roce_val >= 10.0 else 65.0))
     v_score = 85.0 if pe_val <= 25.0 else (80.0 if pe_val <= 40.0 else (75.0 if pe_val <= 55.0 else 65.0))
