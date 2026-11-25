@@ -4745,6 +4745,7 @@ def generate_stock_tearsheet_pdf(
     q_pat = info.get("q_pat", [])
     q_opm = info.get("q_opm", [])
     sh_cats = info.get("sh_cats", {})
+    scores_dict = info.get("scores_dict", {})
 
     if not output_path:
         reports_dir = os.path.join("data", "reports", "stocks")
@@ -5167,7 +5168,43 @@ def generate_stock_tearsheet_pdf(
         ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
     ]))
     story.append(t_fwd_ts)
-    story.append(Spacer(1, 4))
+    story.append(Spacer(1, 3))
+
+    # 3d. 6-Pillar Quant Factor Scorecard Strip
+    def _sc_fmt(val: float) -> str:
+        c = "#15803d" if val >= 75 else ("#0284c7" if val >= 55 else "#b91c1c")
+        return f"<font color='{c}'><b>{val:.0f}/100</b></font>"
+
+    factor_strip = [
+        [
+            Paragraph("SOLVENCY (25%)", th_st),
+            Paragraph("QUALITY (25%)", th_st),
+            Paragraph("INSTITUTIONAL (20%)", th_st),
+            Paragraph("MOMENTUM (15%)", th_st),
+            Paragraph("GROWTH (10%)", th_st),
+            Paragraph("VALUATION (5%)", th_st),
+        ],
+        [
+            Paragraph(_sc_fmt(float(scores_dict.get("solvency", 80.0))), td_num),
+            Paragraph(_sc_fmt(float(scores_dict.get("quality", 80.0))), td_num),
+            Paragraph(_sc_fmt(float(scores_dict.get("institutional", 75.0))), td_num),
+            Paragraph(_sc_fmt(float(scores_dict.get("momentum", 70.0))), td_num),
+            Paragraph(_sc_fmt(float(scores_dict.get("growth", 75.0))), td_num),
+            Paragraph(_sc_fmt(float(scores_dict.get("valuation", 60.0))), td_num),
+        ]
+    ]
+    t_factors_ts = Table(factor_strip, colWidths=[88, 88, 96, 88, 85, 85])
+    t_factors_ts.setStyle(TableStyle([
+        ('BACKGROUND', (0,0), (-1,0), colors.HexColor("#0f172a")),
+        ('GRID', (0,0), (-1,-1), 0.4, colors.HexColor("#cbd5e1")),
+        ('BACKGROUND', (0,1), (-1,1), colors.HexColor("#ffffff")),
+        ('TOPPADDING', (0,0), (-1,-1), 1.5),
+        ('BOTTOMPADDING', (0,0), (-1,-1), 1.5),
+        ('ALIGN', (0,0), (-1,-1), 'CENTER'),
+        ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
+    ]))
+    story.append(t_factors_ts)
+    story.append(Spacer(1, 3))
 
     # 4. Cycle Clock Verdict & Position-Sizing Strip
     verdict_html = (
