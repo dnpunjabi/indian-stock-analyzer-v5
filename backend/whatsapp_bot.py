@@ -6620,6 +6620,141 @@ def handle_post_result_swing_check(symbol_input: str, recipient: Optional[str] =
         )
 
 
+def _fetch_1y_swing_technicals(lookup_ticker: str) -> Optional[Dict[str, float]]:
+    """Shared 1Y daily OHLCV technical snapshot for DIP and BREAK shortcuts."""
+    import yfinance as yf
+    import numpy as np
+    hist = yf.Ticker(lookup_ticker).history(period="1y", interval="1d")
+    if hist is None or hist.empty or len(hist) < 30:
+        return None
+    close = hist["Close"].astype(float)
+    high = hist["High"].astype(float)
+    low = hist["Low"].astype(float)
+    open_p = hist["Open"].astype(float)
+    vol = hist["Volume"].astype(float)
+
+    cmp_now = float(close.iloc[-1])
+    prev_c = float(close.iloc[-2])
+    day_chg = ((cmp_now / prev_c) - 1.0) * 100.0 if prev_c > 0 else 0.0
+    h_20d = float(high.iloc[-20:].max())
+    h_52w = float(high.max())
+    dd_20d = ((cmp_now / h_20d) - 1.0) * 100.0 if h_20d > 0 else 0.0
+    dd_52w = ((cmp_now / h_52w) - 1.0) * 100.0 if h_52w > 0 else 0.0
+
+    ema20 = float(close.ewm(span=20, adjust=False).mean().iloc[-1])
+    sma50 = float(close.rolling(50).mean().iloc[-1]) if len(close) >= 50 else float(close.mean())
+    ema100 = float(close.ewm(span=100, adjust=False).mean().iloc[-1])
+    ema200 = float(close.ewm(span=200, adjust=False).mean().iloc[-1])
+
+    delta = close.diff()
+    gain = delta.clip(lower=0).rolling(14).mean()
+    loss = (-delta.clip(upper=0)).rolling(14).mean()
+    rs = gain / loss.replace(0, np.nan)
+    rsi_s = 100.0 - (100.0 / (1.0 + rs))
+    rsi14 = float(rsi_s.iloc[-1]) if not np.isnan(rsi_s.iloc[-1]) else 50.0
+
+    vol20 = float(vol.rolling(20).mean().iloc[-1])
+    vol_ratio = (float(vol.iloc[-1]) / vol20) if vol20 > 0 else 1.0
+    red_vols = [
+        float(vol.iloc[i]) / vol20
+        for i in range(-5, 0)
+        if vol20 > 0 and close.iloc[i] < open_p.iloc[i]
+    ]
+    down_vol_5d = max(red_vols) if red_vols else 0.0
+
+    day_rng = float(high.iloc[-1] - low.iloc[-1])
+    close_pos = ((cmp_now - float(low.iloc[-1])) / day_rng * 100.0) if day_rng > 0 else 50.0
+    ext_20ema = ((cmp_now / ema20) - 1.0) * 100.0 if ema20 > 0 else 0.0
+
+    return {
+        "cmp": cmp_now, "day_chg": day_chg,
+        "dd_20d": dd_20d, "dd_52w": dd_52w,
+        "ema20": ema20, "sma50": sma50, "ema100": ema100, "ema200": ema200,
+        "rsi14": rsi14, "vol_ratio": vol_ratio, "down_vol_5d": down_vol_5d,
+        "close_pos": close_pos, "ext_20ema": ext_20ema,
+    }
+
+
+def handle_dip_check(symbol_input: str, recipient: Optional[str] = None) -> Dict[str, Any]:
+    """DIP <SYMBOL>: Evaluates Healthy Pullback vs. Falling Knife distribution."""
+    clean_sym = re.sub(r"^DIP[\s:]+", "", (symbol_input or "").strip().upper(), flags=re.IGNORECASE).strip() or "RELIANCE"
+    resolved = resolve_company_ticker(clean_sym)
+    lookup_ticker = resolved.get("yf_ticker") if resolved else f"{clean_sym}.NS"
+    b_sym = resolved.get("base_symbol") if resolved else lookup_ticker.replace(".NS", "")
+    d_name = resolved.get("name") if resolved else b_sym
+    btn_sym = b_sym[:8]
+
+    t = _fetch_1y_swing_technicals(lookup_ticker)
+    if not t:
+        return send_whatsapp_interactive_buttons(f"⚠️ *Dip Check Unavailable* for `{b_sym}`.", buttons=[("nav:menu:main", "🏠 Main Menu")], recipient=recipient)
+
+    is_dist = (t["down_vol_5d"] >= 1.6) or (t["day_chg"] < -1.0 and t["vol_ratio"] >= 1.8)
+    if t["cmp"] < t["ema200"] or is_dist:
+        verdict = "🔴 *FALLING KNIFE (AVOID)*"
+        why = "Below 200 EMA or heavy institutional selling on red days."
+    elif t["cmp"] >= t["ema200"] and t["dd_20d"] >= -12.0 and t["down_vol_5d"] < 1.5:
+        verdict = "🟢 *HEALTHY PULLBACK*"
+        why = "Primary uptrend intact (>200 EMA) with dry/controlled pullback volume."
+    else:
+        verdict = "🟡 *CAUTIOUS / WATCH SUPPORT*"
+        why = "Wait for stabilization near 50 SMA / 100 EMA before adding."
+
+    msg = (
+        f"🪂 *DIP CHECK: {d_name.upper()}* (`{b_sym}`)\n"
+        f"━━━━━━━━━━━━━━━━━━━━\n"
+        f"• *Verdict*: {verdict}\n"
+        f"• *CMP*: *₹ {t['cmp']:,.2f}* ({t['day_chg']:+.1f}% 1D) | *RSI*: {t['rsi14']:.0f}\n"
+        f"• *Drawdown*: {t['dd_20d']:+.1f}% vs 20D High | {t['dd_52w']:+.1f}% vs 52W High\n"
+        f"• *Selling Vol*: Max 5D Red Vol *{t['down_vol_5d']:.1f}x* | Today Vol *{t['vol_ratio']:.1f}x* 20D Avg\n"
+        f"• *Support Ladder*: 20 EMA *₹ {t['ema20']:,.0f}* | 50 SMA *₹ {t['sma50']:,.0f}* | 100 EMA *₹ {t['ema100']:,.0f}* | 200 EMA *₹ {t['ema200']:,.0f}*\n"
+        f"• *Note*: {why}\n"
+        f"━━━━━━━━━━━━━━━━━━━━\n"
+        f"_Shortcut: DIP <SYMBOL>_"
+    )
+    buttons = [(f"act:chart:{btn_sym}", f"📈 {btn_sym} Chart"), (f"run:stage:{btn_sym}", "🏛️ 4-Stage"), (f"act:stock:ts:{btn_sym}", f"⚡ {btn_sym} 1P PDF")]
+    return send_whatsapp_interactive_buttons(msg, buttons=buttons, recipient=recipient)
+
+
+def handle_breakout_check(symbol_input: str, recipient: Optional[str] = None) -> Dict[str, Any]:
+    """BREAK <SYMBOL>: Evaluates Real Institutional Breakout vs. Low-Volume Fakeout."""
+    clean_sym = re.sub(r"^BREAK[\s:]+", "", (symbol_input or "").strip().upper(), flags=re.IGNORECASE).strip() or "RELIANCE"
+    resolved = resolve_company_ticker(clean_sym)
+    lookup_ticker = resolved.get("yf_ticker") if resolved else f"{clean_sym}.NS"
+    b_sym = resolved.get("base_symbol") if resolved else lookup_ticker.replace(".NS", "")
+    d_name = resolved.get("name") if resolved else b_sym
+    btn_sym = b_sym[:8]
+
+    t = _fetch_1y_swing_technicals(lookup_ticker)
+    if not t:
+        return send_whatsapp_interactive_buttons(f"⚠️ *Breakout Check Unavailable* for `{b_sym}`.", buttons=[("nav:menu:main", "🏠 Main Menu")], recipient=recipient)
+
+    near_high = t["dd_20d"] >= -2.5
+    if near_high and t["vol_ratio"] >= 1.4 and t["close_pos"] >= 65.0 and t["ext_20ema"] <= 10.0:
+        verdict = "🟢 *CONFIRMED BREAKOUT*"
+        why = "Strong volume + closed near day's high without overextension above 20 EMA."
+    elif near_high and (t["ext_20ema"] > 10.0 or t["close_pos"] < 55.0):
+        verdict = "🟡 *EXTENDED / WAIT FOR RETEST*"
+        why = "Stretched >10% above 20 EMA or upper-wick rejection — wait for pullback."
+    else:
+        verdict = "🔴 *LOW-VOL FAKEOUT / NO BREAKOUT*"
+        why = "Insufficient volume expansion or still below 20D pivot resistance."
+
+    msg = (
+        f"🚀 *BREAKOUT CHECK: {d_name.upper()}* (`{b_sym}`)\n"
+        f"━━━━━━━━━━━━━━━━━━━━\n"
+        f"• *Verdict*: {verdict}\n"
+        f"• *CMP*: *₹ {t['cmp']:,.2f}* ({t['day_chg']:+.1f}% 1D) | *RSI*: {t['rsi14']:.0f}\n"
+        f"• *Pivot Proximity*: {t['dd_20d']:+.1f}% vs 20D High | {t['dd_52w']:+.1f}% vs 52W High\n"
+        f"• *Breakout Quality*: Vol *{t['vol_ratio']:.1f}x* 20D Avg | Close in Top *{100 - t['close_pos']:.0f}%* ({t['close_pos']:.0f}% range) | 20 EMA Ext *{t['ext_20ema']:+.1f}%*\n"
+        f"• *MAs*: 20 EMA *₹ {t['ema20']:,.0f}* | 50 SMA *₹ {t['sma50']:,.0f}* | 100 EMA *₹ {t['ema100']:,.0f}* | 200 EMA *₹ {t['ema200']:,.0f}*\n"
+        f"• *Note*: {why}\n"
+        f"━━━━━━━━━━━━━━━━━━━━\n"
+        f"_Shortcut: BREAK <SYMBOL>_"
+    )
+    buttons = [(f"act:chart:{btn_sym}", f"📈 {btn_sym} Chart"), (f"run:stage:{btn_sym}", "🏛️ 4-Stage"), (f"act:stock:ts:{btn_sym}", f"⚡ {btn_sym} 1P PDF")]
+    return send_whatsapp_interactive_buttons(msg, buttons=buttons, recipient=recipient)
+
+
 def handle_stock_quarterly_results(symbol_input: str, recipient: Optional[str] = None) -> Dict[str, Any]:
     """
     Renders Latest Quarterly Earnings Flash Scorecard:
@@ -9934,6 +10069,16 @@ def dispatch_incoming_whatsapp_message(text_body: str, sender: Optional[str] = N
         raw_target = re.sub(r"^(?:PR|DRIFT|TRAP|PEAD|SWINGCHECK)[\s:]+", "", cleaned, flags=re.IGNORECASE).strip()
         if raw_target:
             return handle_post_result_swing_check(raw_target, recipient=sender)
+
+    if upper.startswith("DIP ") or upper.startswith("DIP:"):
+        raw_target = re.sub(r"^DIP[\s:]+", "", cleaned, flags=re.IGNORECASE).strip()
+        if raw_target:
+            return handle_dip_check(raw_target, recipient=sender)
+
+    if upper.startswith("BREAK ") or upper.startswith("BREAK:"):
+        raw_target = re.sub(r"^BREAK[\s:]+", "", cleaned, flags=re.IGNORECASE).strip()
+        if raw_target:
+            return handle_breakout_check(raw_target, recipient=sender)
 
     if (
         upper.startswith("Q ") or upper.startswith("Q:")
