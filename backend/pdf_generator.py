@@ -2255,8 +2255,8 @@ def _extract_dossier_intelligence(clean_sym: str) -> dict:
     fs = json.loads(r_fs[0]) if r_fs else {}
     cached_view = r_fs[1] if r_fs and len(r_fs) > 1 else ""
 
-    # If the cached statement is not consolidated, or missing, fetch consolidated live
-    if not fs or cached_view != "consolidated" or not fs.get("is_consolidated"):
+    # If the cached statement is not consolidated, missing, or lacks #ratios, fetch consolidated live
+    if not fs or cached_view != "consolidated" or not fs.get("is_consolidated") or not fs.get("ratios"):
         try:
             from backend.financial_statements_scraper import scrape_financial_statements
             live_fs = scrape_financial_statements(clean_sym, view="consolidated")
@@ -2813,6 +2813,8 @@ def _extract_dossier_intelligence(clean_sym: str) -> dict:
         "y_op": y_op,
         "y_pat": y_pat,
         "y_ocf": y_ocf,
+        "ratios_rows": {r.get("label"): r.get("values", []) for r in (fs.get("ratios", {}) or {}).get("rows", [])},
+        "ratios_headers": (fs.get("ratios", {}) or {}).get("headers", []),
         "cagr_sales": cagr_sales,
         "cagr_op": cagr_op,
         "cagr_pat": cagr_pat,
@@ -3414,7 +3416,7 @@ def generate_stock_research_dossier_pdf(
         sma200_target=sma200,
         rsi_target=rsi_val
     )
-    story.append(Image(buf_tech, width=520, height=210))
+    story.append(Image(buf_tech, width=520, height=182))
     story.append(Spacer(1, 2))
 
     story.append(Paragraph("<b>MOMENTUM OSCILLATORS &amp; SIMPLE MOVING AVERAGE (SMA) SPREAD SUMMARY</b>", sec_header_style))
@@ -3809,6 +3811,81 @@ def generate_stock_research_dossier_pdf(
         ('RIGHTPADDING', (0,0), (-1,-1), 5),
     ]))
     story.append(t_conf_timeline)
+    story.append(Spacer(1, 2))
+
+    # Option 3: Multi-Horizon Relative Strength (RS) vs. Nifty 50 Strip
+    def _build_rs_nifty_table(sym_name: str):
+        horizons = [(21, "1M"), (63, "3M"), (126, "6M"), (240, "12M")]
+        cells = {}
+        rs_status = "NEUTRAL"
+        rs_sub = "Tracking Benchmark"
+        rs_col = "#0284c7"
+        try:
+            import yfinance as yf
+            stk = yf.Ticker(f"{sym_name}.NS").history(period="1y", interval="1d")["Close"].dropna()
+            nfy = yf.Ticker("^NSEI").history(period="1y", interval="1d")["Close"].dropna()
+            df_rs = pd.concat([stk.rename("s"), nfy.rename("n")], axis=1).dropna()
+            if len(df_rs) >= 30:
+                for d_back, lbl in horizons:
+                    idx0 = max(0, len(df_rs) - 1 - d_back)
+                    s_ret = (df_rs["s"].iloc[-1] / df_rs["s"].iloc[idx0] - 1.0) * 100.0
+                    n_ret = (df_rs["n"].iloc[-1] / df_rs["n"].iloc[idx0] - 1.0) * 100.0
+                    alpha = s_ret - n_ret
+                    cells[lbl] = (alpha, s_ret, n_ret)
+                rs_line = df_rs["s"] / df_rs["n"]
+                rs_pct = float((rs_line <= rs_line.iloc[-1]).mean() * 100.0)
+                if rs_pct >= 85.0:
+                    rs_status, rs_col, rs_sub = f"LEADING ({rs_pct:.0f}th %ile)", "#15803d", "RS Near 52W High vs Nifty"
+                elif rs_pct <= 25.0:
+                    rs_status, rs_col, rs_sub = f"LAGGING ({rs_pct:.0f}th %ile)", "#b91c1c", "RS Underperforming Index"
+                else:
+                    rs_status, rs_col, rs_sub = f"IN-LINE ({rs_pct:.0f}th %ile)", "#0284c7", "Mid-Range Relative Strength"
+        except Exception:
+            pass
+
+        if not cells:
+            cells = {
+                "1M": (chg_1m, chg_1m, 0.0),
+                "3M": (chg_3m, chg_3m, 0.0),
+                "6M": (alpha_1y * 0.5, chg_3m, 0.0),
+                "12M": (alpha_1y, chg_1y, chg_1y - alpha_1y),
+            }
+
+        rs_hdr = [
+            Paragraph("1M EXCESS ALPHA", th_style),
+            Paragraph("3M EXCESS ALPHA", th_style),
+            Paragraph("6M EXCESS ALPHA", th_style),
+            Paragraph("12M EXCESS ALPHA", th_style),
+            Paragraph("RS LINE vs NIFTY 50", th_style),
+        ]
+        rs_val_row = []
+        for _, lbl in horizons:
+            al, sr, nr = cells[lbl]
+            al_c = "#15803d" if al > 1.0 else ("#b91c1c" if al < -1.0 else "#0284c7")
+            rs_val_row.append(Paragraph(
+                f"<font color='{al_c}'><b>{al:+.1f}% vs Nifty</b></font><br/>"
+                f"<font size='5.3' color='#475569'>Stk {sr:+.1f}% | Nifty {nr:+.1f}%</font>",
+                ParagraphStyle('RSC', parent=td_num, alignment=1, fontSize=6.2, leading=7.8)
+            ))
+        rs_val_row.append(Paragraph(
+            f"<font color='{rs_col}'><b>{rs_status}</b></font><br/>"
+            f"<font size='5.3' color='#475569'>{rs_sub}</font>",
+            ParagraphStyle('RSL', parent=td_num, alignment=1, fontSize=6.2, leading=7.8)
+        ))
+        t_rs = Table([rs_hdr, rs_val_row], colWidths=[98, 98, 98, 98, 128])
+        t_rs.setStyle(TableStyle([
+            ('BACKGROUND', (0,0), (-1,0), colors.HexColor("#0f172a")),
+            ('BACKGROUND', (0,1), (-1,1), colors.HexColor("#f8fafc")),
+            ('GRID', (0,0), (-1,-1), 0.5, colors.HexColor("#cbd5e1")),
+            ('TOPPADDING', (0,0), (-1,-1), 1.5),
+            ('BOTTOMPADDING', (0,0), (-1,-1), 1.5),
+            ('LEFTPADDING', (0,0), (-1,-1), 2),
+            ('RIGHTPADDING', (0,0), (-1,-1), 2),
+            ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
+        ]))
+        return t_rs
+
+    story.append(_build_rs_nifty_table(clean_sym))
 
     # ══════════════════════════════════════════════════════════════════════════
     # PAGE 3: SECTION 6 - QUANT ENGINE, 11-SCREENER MATRIX & PEERS
@@ -4224,11 +4301,11 @@ def generate_stock_research_dossier_pdf(
     y_ocf_plot = y_ocf[-5:] if len(y_ocf) >= 5 else [1400.0]*5
 
     buf_annual = _generate_annual_compounding_chart(y_labels_plot, y_rev_plot, y_ebitda_plot, y_pat_plot, y_ocf_plot)
-    story.append(Image(buf_annual, width=520, height=140))
-    story.append(Spacer(1, 3))
+    story.append(Image(buf_annual, width=520, height=116))
+    story.append(Spacer(1, 2))
 
     story.append(Paragraph("<b>DUPONT ROE 3-FACTOR DECOMPOSITION TREE (AUDITED BENCHMARK)</b>", sec_header_style))
-    story.append(Spacer(1, 2))
+    story.append(Spacer(1, 1.5))
 
     buf_dupont = _generate_dupont_tree_chart(
         npm=dp_npm,
@@ -4240,7 +4317,7 @@ def generate_stock_research_dossier_pdf(
         tot_assets_cr=tot_assets,
         ttm_pat_cr=ttm_pat
     )
-    story.append(Image(buf_dupont, width=520, height=85))
+    story.append(Image(buf_dupont, width=520, height=74))
     story.append(Spacer(1, 3))
 
     story.append(Paragraph(f"<b>5-YEAR HISTORICAL FINANCIAL SUMMARY ({y_labels_plot[0].upper()} – {y_labels_plot[-1].upper()} AUDITED CONSOLIDATED)</b>", sec_header_style))
@@ -4347,6 +4424,81 @@ def generate_stock_research_dossier_pdf(
         ('RIGHTPADDING', (0,0), (-1,-1), 6),
     ]))
     story.append(t_capex)
+    story.append(Spacer(1, 2))
+
+    # Option 2: Working Capital Efficiency & Cash Conversion Cycle (CCC) — 3Y Audited Trend
+    rat_rows = info.get("ratios_rows", {}) or {}
+    rat_hdrs = [str(h).strip() for h in (info.get("ratios_headers", []) or []) if str(h).strip()]
+    yr_span_lbl = f"{rat_hdrs[-3]}–{rat_hdrs[-1]}" if len(rat_hdrs) >= 3 else "3Y TREND"
+
+    def _last3(lbl_candidates):
+        for lk in lbl_candidates:
+            vals = rat_rows.get(lk, [])
+            if vals:
+                nums = [_safe_float(v, 0.0) for v in vals[-3:]]
+                while len(nums) < 3:
+                    nums.insert(0, nums[0])
+                return nums
+        return None
+
+    dso3 = _last3(["Debtor Days"])
+    dio3 = _last3(["Inventory Days"])
+    dpo3 = _last3(["Days Payable", "Payable Days"])
+    ccc3 = _last3(["Cash Conversion Cycle"])
+    wcd3 = _last3(["Working Capital Days"])
+
+    if ccc3 is not None or dso3 is not None:
+        def _fmt3(arr):
+            return f"{arr[0]:.0f}d &rarr; {arr[1]:.0f}d &rarr; <b>{arr[2]:.0f}d</b>" if arr else "N/A"
+        dso_diff = (dso3[2] - dso3[0]) if dso3 else 0.0
+        dso_note = f"Faster Collections ({dso_diff:+.0f}d)" if dso_diff < 0 else (f"Stretch Watch ({dso_diff:+.0f}d)" if dso_diff > 5 else "Stable Collections")
+        dso_col = "#15803d" if dso_diff <= 0 else ("#b91c1c" if dso_diff > 5 else "#0284c7")
+
+        dio_diff = (dio3[2] - dio3[0]) if dio3 else 0.0
+        dio_note = f"Leaner Stock ({dio_diff:+.0f}d)" if dio_diff < 0 else (f"Higher Inventory ({dio_diff:+.0f}d)" if dio_diff > 5 else "Steady Turns")
+        dio_col = "#15803d" if dio_diff <= 0 else ("#b45309" if dio_diff > 5 else "#0284c7")
+
+        dpo_diff = (dpo3[2] - dpo3[0]) if dpo3 else 0.0
+        dpo_note = f"Supplier Credit ({dpo_diff:+.0f}d)" if dpo3 else "Service / Low Payables"
+
+        ccc_ref = ccc3 if ccc3 is not None else wcd3
+        ccc_diff = (ccc_ref[2] - ccc_ref[0]) if ccc_ref else 0.0
+        if ccc_ref and ccc_ref[2] <= 0:
+            ccc_verdict, ccc_col = "NEGATIVE CCC (SELF-FUNDING)", "#15803d"
+        elif ccc_diff <= -3:
+            ccc_verdict, ccc_col = f"IMPROVING CASH RELEASE ({ccc_diff:+.0f}d)", "#15803d"
+        elif ccc_diff >= 8:
+            ccc_verdict, ccc_col = f"WC ABSORPTION ({ccc_diff:+.0f}d)", "#b91c1c"
+        else:
+            ccc_verdict, ccc_col = "DISCIPLINED WC CYCLE", "#0284c7"
+
+        wc_style = ParagraphStyle('WCS', parent=td_num, alignment=1, fontSize=6.1, leading=7.8)
+        wc_data = [
+            [
+                Paragraph(f"DEBTOR DAYS ({yr_span_lbl})", th_style),
+                Paragraph("INVENTORY DAYS (DIO)", th_style),
+                Paragraph("PAYABLE DAYS (DPO)", th_style),
+                Paragraph("NET CASH CONVERSION (CCC)", th_style),
+            ],
+            [
+                Paragraph(f"{_fmt3(dso3)}<br/><font size='5.3' color='{dso_col}'><b>{dso_note}</b></font>", wc_style),
+                Paragraph(f"{_fmt3(dio3)}<br/><font size='5.3' color='{dio_col}'><b>{dio_note}</b></font>", wc_style),
+                Paragraph(f"{_fmt3(dpo3)}<br/><font size='5.3' color='#0284c7'><b>{dpo_note}</b></font>", wc_style),
+                Paragraph(f"{_fmt3(ccc_ref)}<br/><font size='5.3' color='{ccc_col}'><b>{ccc_verdict}</b></font>", wc_style),
+            ]
+        ]
+        t_wc_ccc = Table(wc_data, colWidths=[124, 120, 120, 156])
+        t_wc_ccc.setStyle(TableStyle([
+            ('BACKGROUND', (0,0), (-1,0), colors.HexColor("#0f172a")),
+            ('BACKGROUND', (0,1), (-1,1), colors.HexColor("#f8fafc")),
+            ('GRID', (0,0), (-1,-1), 0.5, colors.HexColor("#cbd5e1")),
+            ('TOPPADDING', (0,0), (-1,-1), 1.5),
+            ('BOTTOMPADDING', (0,0), (-1,-1), 1.5),
+            ('LEFTPADDING', (0,0), (-1,-1), 2),
+            ('RIGHTPADDING', (0,0), (-1,-1), 2),
+            ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
+        ]))
+        story.append(t_wc_ccc)
 
     # ══════════════════════════════════════════════════════════════════════════
     # PAGE 6: SECTION 8 - DCF FRAMEWORK & DUAL-HORIZON ACTIONABLE STRATEGY
