@@ -2277,6 +2277,26 @@ def _extract_dossier_intelligence(clean_sym: str) -> dict:
     r_sh = cur.fetchone()
     sh = json.loads(r_sh[0]) if r_sh else {}
 
+    if not sh or not sh.get("categories"):
+        try:
+            from backend.shareholding_scraper import scrape_shareholding_pattern
+            cur.execute("SELECT value FROM alert_settings WHERE key = 'screener_session_cookie'")
+            cookie_row = cur.fetchone()
+            sc_cookie = cookie_row[0] if cookie_row else None
+            live_sh = scrape_shareholding_pattern(clean_sym, sc_cookie, company_name=prof.get("company_name"))
+            if live_sh and not live_sh.get("error") and live_sh.get("categories"):
+                sh = live_sh
+                try:
+                    cur.execute(
+                        "INSERT OR REPLACE INTO cached_shareholdings (symbol, data_json, last_updated) VALUES (?, ?, datetime('now'))",
+                        (clean_sym, json.dumps(live_sh))
+                    )
+                    conn.commit()
+                except Exception:
+                    pass
+        except Exception:
+            pass
+
     conn.close()
 
     comp_name = prof.get("company_name") or f"{clean_sym} Limited"
@@ -2717,12 +2737,24 @@ def _extract_dossier_intelligence(clean_sym: str) -> dict:
 
     peer_rows = dedup_peers[:5]
 
-    # Extract Shareholding dynamically
+    # Extract Shareholding dynamically (never fall back to bogus 70.0% for 0%-promoter or uncached stocks)
     sh_quarters = sh.get("quarters", [])[-4:] if sh.get("quarters") else ["Sep 25", "Dec 25", "Mar 26", "Jun 26"]
+    raw_cats = sh.get("categories", {}) or {}
+    has_live_cats = bool(raw_cats)
     sh_cats = {}
     for cat_k in ["Promoters", "DIIs", "FIIs", "Public"]:
-        vals = sh.get("categories", {}).get(cat_k, [])
-        sh_cats[cat_k] = vals[-4:] if len(vals) >= 4 else [70.0, 70.0, 70.0, 70.0]
+        vals = [_safe_float(v, 0.0) for v in (raw_cats.get(cat_k, []) or [])]
+        if len(vals) >= 4:
+            sh_cats[cat_k] = vals[-4:]
+        elif len(vals) > 0:
+            sh_cats[cat_k] = [vals[0]] * (4 - len(vals)) + vals
+        elif has_live_cats:
+            # Category omitted by Screener (e.g. Promoters for 0% promoter entities like MCX/HDFCBANK)
+            sh_cats[cat_k] = [0.0, 0.0, 0.0, 0.0]
+        else:
+            curr_v = _safe_float(sh_prof.get(cat_k), 0.0)
+            prev_v = _safe_float(sh_prof.get(f"{cat_k}_prev"), curr_v)
+            sh_cats[cat_k] = [prev_v, prev_v, curr_v, curr_v]
 
     return {
         "clean_sym": clean_sym,
