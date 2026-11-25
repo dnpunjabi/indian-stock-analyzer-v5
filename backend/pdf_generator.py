@@ -751,8 +751,8 @@ def _generate_technical_price_rsi_chart(
 
     df = None
     try:
-        # Download 1 full year to calculate true 200-day and 50-day SMAs
-        df_raw = yf.download(ticker_sym, period="1y", interval="1d", progress=False)
+        # Download 2 years to ensure full 200-SMA warmup across the 1-year display window
+        df_raw = yf.download(ticker_sym, period="2y", interval="1d", progress=False)
         if df_raw is not None and not df_raw.empty and len(df_raw) > 30:
             if hasattr(df_raw.columns, "levels") and len(df_raw.columns.levels) > 1:
                 df_raw.columns = df_raw.columns.get_level_values(0)
@@ -760,14 +760,15 @@ def _generate_technical_price_rsi_chart(
     except Exception:
         df = None
 
-    n_total = 250
-    n_display = 125
+    n_total = 420
+    n_display = 250
 
     if df is not None and len(df) >= 40:
         df = df.sort_index()
         p_close = df['Close']
         df['EMA_20'] = p_close.ewm(span=20, adjust=False).mean()
         df['SMA_50'] = p_close.rolling(50, min_periods=10).mean()
+        df['SMA_100'] = p_close.rolling(100, min_periods=15).mean()
         df['SMA_200'] = p_close.rolling(200, min_periods=20).mean()
 
         roll_m = p_close.rolling(20, min_periods=5).mean()
@@ -845,12 +846,8 @@ def _generate_technical_price_rsi_chart(
         p_close = df['Close']
         df['EMA_20'] = p_close.ewm(span=20, adjust=False).mean()
         df['SMA_50'] = p_close.rolling(50, min_periods=10).mean()
+        df['SMA_100'] = p_close.rolling(100, min_periods=15).mean()
         df['SMA_200'] = p_close.rolling(200, min_periods=20).mean()
-
-        roll_m = p_close.rolling(20, min_periods=5).mean()
-        roll_s = p_close.rolling(20, min_periods=5).std().fillna(0)
-        df['Boll_Up'] = roll_m + (roll_s * 2)
-        df['Boll_Dn'] = roll_m - (roll_s * 2)
 
         df['Vol_MA20'] = df['Volume'].rolling(20, min_periods=5).mean()
 
@@ -859,12 +856,6 @@ def _generate_technical_price_rsi_chart(
         loss = (-delta.where(delta < 0, 0)).rolling(14, min_periods=5).mean()
         rs = gain / loss.replace(0, np.nan)
         df['RSI'] = (100 - (100 / (1 + rs))).fillna(55.0)
-
-        ema12 = p_close.ewm(span=12, adjust=False).mean()
-        ema26 = p_close.ewm(span=26, adjust=False).mean()
-        df['MACD'] = ema12 - ema26
-        df['MACD_Sig'] = df['MACD'].ewm(span=9, adjust=False).mean()
-        df['MACD_Hist'] = df['MACD'] - df['MACD_Sig']
 
         ema12 = p_close.ewm(span=12, adjust=False).mean()
         ema26 = p_close.ewm(span=26, adjust=False).mean()
@@ -916,11 +907,35 @@ def _generate_technical_price_rsi_chart(
         body_h = max(abs(c_val - o_val), cmp_val * 0.001)
         ax_main.bar(i, body_h, bottom=body_bot, width=0.62, color=color, edgecolor=color, linewidth=0.5, zorder=4)
 
-    # Moving Averages
-    ax_main.plot(x_idx, df_6m['EMA_20'], label='20 EMA', color='#10b981', linewidth=1.2, zorder=5)
-    ax_main.plot(x_idx, df_6m['SMA_50'], label='50 SMA', color='#0284c7', linewidth=1.2, zorder=5)
-    ax_main.plot(x_idx, df_6m['SMA_200'], label='200 SMA', color='#f59e0b', linewidth=1.3, zorder=5)
-    ax_main.fill_between(x_idx, df_6m['Boll_Dn'], df_6m['Boll_Up'], color='#0284c7', alpha=0.06, label='Bollinger (20,2)', zorder=2)
+    # Moving Averages (20 EMA, 50 SMA, 100 SMA, 200 SMA)
+    ax_main.plot(x_idx, df_6m['EMA_20'], label='20 EMA', color='#10b981', linewidth=1.1, zorder=5)
+    ax_main.plot(x_idx, df_6m['SMA_50'], label='50 SMA', color='#0284c7', linewidth=1.1, zorder=5)
+    ax_main.plot(x_idx, df_6m['SMA_100'], label='100 SMA', color='#8b5cf6', linewidth=1.1, zorder=5)
+    ax_main.plot(x_idx, df_6m['SMA_200'], label='200 SMA', color='#f59e0b', linewidth=1.2, zorder=5)
+
+    # LuxAlgo Trendlines & Breakout Signals (B / S)
+    try:
+        from backend.swing_utils import calculate_trendlines_with_breaks
+        breaks_res = calculate_trendlines_with_breaks(df_6m, length=14, atr_mult=1.0)
+        res_arr = breaks_res.get("resistance", [])
+        sup_arr = breaks_res.get("support", [])
+        bull_b = breaks_res.get("bullish_breaks", [])
+        bear_b = breaks_res.get("bearish_breaks", [])
+        if len(res_arr) == n_candles:
+            ax_main.plot(x_idx, res_arr, color='#f43f5e', linestyle='--', linewidth=0.95, alpha=0.85, label='Resistance', zorder=4)
+        if len(sup_arr) == n_candles:
+            ax_main.plot(x_idx, sup_arr, color='#16a34a', linestyle='--', linewidth=0.95, alpha=0.85, label='Support', zorder=4)
+        for idx_b in range(n_candles):
+            if idx_b < len(bull_b) and bull_b[idx_b]:
+                low_v = float(df_6m['Low'].iloc[idx_b])
+                ax_main.plot(idx_b, low_v * 0.985, marker='^', markersize=4.8, color='#16a34a', zorder=6)
+                ax_main.text(idx_b, low_v * 0.970, 'B', color='#16a34a', fontsize=5.2, fontweight='bold', ha='center', va='top', zorder=6)
+            elif idx_b < len(bear_b) and bear_b[idx_b]:
+                high_v = float(df_6m['High'].iloc[idx_b])
+                ax_main.plot(idx_b, high_v * 1.015, marker='v', markersize=4.8, color='#dc2626', zorder=6)
+                ax_main.text(idx_b, high_v * 1.030, 'S', color='#dc2626', fontsize=5.2, fontweight='bold', ha='center', va='bottom', zorder=6)
+    except Exception:
+        pass
 
     # 52W High Resistance Line
     if high_52w > 0:
@@ -960,7 +975,7 @@ def _generate_technical_price_rsi_chart(
     ax_main.set_ylabel('Price (Rs.)', fontsize=6.8, color='#475569', fontweight='bold')
     ax_main.tick_params(axis='y', labelsize=6.2, labelcolor='#475569')
     ax_main.grid(axis='both', linestyle=':', linewidth=0.5, color='#e2e8f0')
-    ax_main.legend(loc='upper left', fontsize=6.0, frameon=True, facecolor='#f8fafc', edgecolor='#cbd5e1', ncol=4)
+    ax_main.legend(loc='upper left', fontsize=5.6, frameon=True, facecolor='#f8fafc', edgecolor='#cbd5e1', ncol=6)
 
     # 2. Volume Panel
     for i in range(n_candles):
@@ -1011,8 +1026,11 @@ def _generate_technical_price_rsi_chart(
             month_labels.append(dt_val.strftime("%b '%y"))
             last_m = m_key
 
+    if len(month_ticks) > 8:
+        month_ticks = month_ticks[::2]
+        month_labels = month_labels[::2]
     ax_macd.set_xticks(month_ticks)
-    ax_macd.set_xticklabels(month_labels, fontsize=6.5, color='#475569', fontweight='bold')
+    ax_macd.set_xticklabels(month_labels, fontsize=6.3, color='#475569', fontweight='bold')
 
     for ax in [ax_main, ax_vol, ax_rsi, ax_macd]:
         for spine in ['top', 'right', 'left', 'bottom']:
