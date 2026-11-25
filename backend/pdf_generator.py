@@ -4554,17 +4554,12 @@ def generate_stock_research_dossier_pdf(
     story.append(Spacer(1, 1.5))
 
     g_implied = round((((tv_30x * (wacc/100.0) - fcf_vals[-1]) / (tv_30x + fcf_vals[-1])) * 100.0), 1)
-    comp_hurdle = 16.0
-    if base_eps > 0 and cmp_val > 0:
-        try:
-            h_ratio = (cmp_val / 25.0) / base_eps
-            if h_ratio > 0:
-                h_res = (h_ratio ** 0.2 - 1.0) * 100.0
-                comp_hurdle = float(h_res.real) if isinstance(h_res, complex) else float(h_res)
-        except Exception:
-            comp_hurdle = 16.0
-
     term_pe = min(max(round(base_target / max(base_eps, 0.1) * 0.65, 1), 28.0), 35.0)
+    try:
+        from backend.valuation_expectations import solve_implied_eps_growth
+        comp_hurdle = solve_implied_eps_growth(cmp_val, base_eps, discount_rate=max(wacc / 100.0, 0.08), exit_pe=term_pe, years=5)
+    except Exception:
+        comp_hurdle = 16.0
     c_pat = info["cagr_pat"].real if isinstance(info["cagr_pat"], complex) else float(info["cagr_pat"])
     c_sales = info["cagr_sales"].real if isinstance(info["cagr_sales"], complex) else float(info["cagr_sales"])
     proj_cagr = min(max(c_pat / 100.0, c_sales / 100.0), 0.16)
@@ -4600,8 +4595,8 @@ def generate_stock_research_dossier_pdf(
 
     sens_html = (
         "<b>DUAL-TERMINAL DCF EXPECTATIONS INVESTING NARRATIVE:</b><br/>"
-        f"• <b>What is Priced into Current CMP (Rs. {cmp_val:,.0f} | {pe_val:.1f}x P/E):</b> Market pricing implies steady-state earnings compounding of <b>+{c_pat:.1f}%/yr</b> with zero multiple de-rating. Base Case compounding (normalizing to {term_pe:.0f}x) delivers a 5Y target of <b>Rs. {fwd_5y:,.0f}</b> (PV: Rs. {fwd_5y_pv:,.0f}; 38x–40x Bull: <b>Rs. {bull_target_low:,.0f}–{bull_target_high:,.0f}</b>).<br/>"
-        f"• <b>Multiple Compression Defense Hurdle:</b> If multiples compress toward peer median ({term_pe:.0f}x P/E), the business requires an annual EPS CAGR of <b>+{comp_hurdle:.1f}%/yr</b> over 5 years just to defend current CMP.<br/>"
+        f"• <b>What is Priced into Current CMP (Rs. {cmp_val:,.0f} | {pe_val:.1f}x P/E):</b> Market pricing implies steady-state earnings compounding of <b>{implied_g_flat:+.1f}%/yr</b> with zero multiple de-rating. Base Case compounding (normalizing to {term_pe:.0f}x) delivers a 5Y target of <b>Rs. {fwd_5y:,.0f}</b> (PV: Rs. {fwd_5y_pv:,.0f}; 38x–40x Bull: <b>Rs. {bull_target_low:,.0f}–{bull_target_high:,.0f}</b>).<br/>"
+        f"• <b>Multiple Compression Defense Hurdle:</b> If multiples compress toward peer median ({term_pe:.0f}x P/E), the business requires an annual EPS CAGR of <b>{comp_hurdle:+.1f}%/yr</b> over 5 years just to defend current CMP.<br/>"
         f"• <b>Institutional Margin of Safety &amp; Valuation Anchor:</b> The 28.0x DCF Exit Floor (<b>Rs. {dcf_targets[28.0]:,.0f}</b>) and 200 SMA (<b>Rs. {sma200:,.0f}</b>) represent primary structural accumulation corridors for multi-year capital allocators."
     )
 
