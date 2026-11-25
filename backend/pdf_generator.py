@@ -1741,7 +1741,7 @@ def _generate_rs_nifty_chart(
     horizons_data: List[Tuple[str, float]]
 ) -> io.BytesIO:
     """Page 2: Dual-panel 1Y Stock vs Nifty 50 normalized sparkline + 1M/3M/6M/12M excess alpha bars."""
-    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(7.6, 0.85), dpi=160, gridspec_kw={'width_ratios': [1.35, 1.0]})
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(7.6, 1.38), dpi=160, gridspec_kw={'width_ratios': [1.35, 1.0]})
     fig.patch.set_facecolor('#ffffff')
 
     # Left: Normalized 100-indexed performance
@@ -1797,7 +1797,7 @@ def _generate_shareholding_flow_chart(
     pub_v: List[float]
 ) -> io.BytesIO:
     """Page 3: Dual-panel 4-Quarter Ownership Composition (left) + FII vs DII Net Flow Delta (right)."""
-    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(7.6, 0.80), dpi=160, gridspec_kw={'width_ratios': [1.2, 1.0]})
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(7.6, 1.50), dpi=160, gridspec_kw={'width_ratios': [1.2, 1.0]})
     fig.patch.set_facecolor('#ffffff')
 
     # Left: 4Q Stacked Ownership %
@@ -1858,7 +1858,7 @@ def _generate_qtr_yoy_chart(
     exp_count: int
 ) -> io.BytesIO:
     """Page 4: Dual-panel 4-Quarter YoY Sales Growth (%) & YoY OPM Change (bps)."""
-    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(7.6, 1.18), dpi=160)
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(7.6, 2.14), dpi=160)
     fig.patch.set_facecolor('#ffffff')
 
     # Left: YoY Sales Growth (%)
@@ -1911,7 +1911,7 @@ def _generate_wc_capital_chart(
     div_payout: float
 ) -> io.BytesIO:
     """Page 5: Dual-panel 3Y Cash Conversion Cycle (left) + 3Y ROCE % & Earnings Reinvestment Split (right)."""
-    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(7.6, 1.28), dpi=160, gridspec_kw={'width_ratios': [1.25, 1.0]})
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(7.6, 2.28), dpi=160, gridspec_kw={'width_ratios': [1.25, 1.0]})
     fig.patch.set_facecolor('#ffffff')
 
     # Left: 3Y Working Capital Days + Net CCC line
@@ -2278,7 +2278,7 @@ def _generate_rs_nifty_chart(
     horizons_data: List[Tuple[str, float]]
 ) -> io.BytesIO:
     """Page 2: Dual-panel 1Y Stock vs Nifty 50 normalized sparkline + 1M/3M/6M/12M excess alpha bars."""
-    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(7.6, 0.85), dpi=160, gridspec_kw={'width_ratios': [1.35, 1.0]})
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(7.6, 1.38), dpi=160, gridspec_kw={'width_ratios': [1.35, 1.0]})
     fig.patch.set_facecolor('#ffffff')
 
     # Left: Normalized 100-indexed performance
@@ -2334,7 +2334,7 @@ def _generate_shareholding_flow_chart(
     pub_v: List[float]
 ) -> io.BytesIO:
     """Page 3: Dual-panel 4-Quarter Ownership Composition (left) + FII vs DII Net Flow Delta (right)."""
-    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(7.6, 0.80), dpi=160, gridspec_kw={'width_ratios': [1.2, 1.0]})
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(7.6, 1.50), dpi=160, gridspec_kw={'width_ratios': [1.2, 1.0]})
     fig.patch.set_facecolor('#ffffff')
 
     # Left: 4Q Stacked Ownership %
@@ -2395,7 +2395,7 @@ def _generate_qtr_yoy_chart(
     exp_count: int
 ) -> io.BytesIO:
     """Page 4: Dual-panel 4-Quarter YoY Sales Growth (%) & YoY OPM Change (bps)."""
-    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(7.6, 1.18), dpi=160)
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(7.6, 2.14), dpi=160)
     fig.patch.set_facecolor('#ffffff')
 
     # Left: YoY Sales Growth (%)
@@ -2448,7 +2448,7 @@ def _generate_wc_capital_chart(
     div_payout: float
 ) -> io.BytesIO:
     """Page 5: Dual-panel 3Y Cash Conversion Cycle (left) + 3Y ROCE % & Earnings Reinvestment Split (right)."""
-    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(7.6, 1.28), dpi=160, gridspec_kw={'width_ratios': [1.25, 1.0]})
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(7.6, 2.28), dpi=160, gridspec_kw={'width_ratios': [1.25, 1.0]})
     fig.patch.set_facecolor('#ffffff')
 
     # Left: 3Y Working Capital Days + Net CCC line
@@ -2633,7 +2633,7 @@ def _generate_rs_nifty_chart(
     horizons_data: List[Tuple[str, float]]
 ) -> io.BytesIO:
     """Page 2: Dual-panel 1Y Stock vs Nifty 50 normalized sparkline + 1M/3M/6M/12M excess alpha bars."""
-    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(7.6, 0.85), dpi=160, gridspec_kw={'width_ratios': [1.35, 1.0]})
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(7.6, 1.38), dpi=160, gridspec_kw={'width_ratios': [1.35, 1.0]})
     fig.patch.set_facecolor('#ffffff')
 
     # Left: Normalized 100-indexed performance
@@ -2689,7 +2689,7 @@ def _generate_shareholding_flow_chart(
     pub_v: List[float]
 ) -> io.BytesIO:
     """Page 3: Dual-panel 4-Quarter Ownership Composition (left) + FII vs DII Net Flow Delta (right)."""
-    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(7.6, 0.80), dpi=160, gridspec_kw={'width_ratios': [1.2, 1.0]})
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(7.6, 1.50), dpi=160, gridspec_kw={'width_ratios': [1.2, 1.0]})
     fig.patch.set_facecolor('#ffffff')
 
     # Left: 4Q Stacked Ownership %
@@ -2750,7 +2750,7 @@ def _generate_qtr_yoy_chart(
     exp_count: int
 ) -> io.BytesIO:
     """Page 4: Dual-panel 4-Quarter YoY Sales Growth (%) & YoY OPM Change (bps)."""
-    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(7.6, 1.18), dpi=160)
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(7.6, 2.14), dpi=160)
     fig.patch.set_facecolor('#ffffff')
 
     # Left: YoY Sales Growth (%)
@@ -2803,7 +2803,7 @@ def _generate_wc_capital_chart(
     div_payout: float
 ) -> io.BytesIO:
     """Page 5: Dual-panel 3Y Cash Conversion Cycle (left) + 3Y ROCE % & Earnings Reinvestment Split (right)."""
-    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(7.6, 1.28), dpi=160, gridspec_kw={'width_ratios': [1.25, 1.0]})
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(7.6, 2.28), dpi=160, gridspec_kw={'width_ratios': [1.25, 1.0]})
     fig.patch.set_facecolor('#ffffff')
 
     # Left: 3Y Working Capital Days + Net CCC line
@@ -3950,7 +3950,7 @@ def generate_stock_research_dossier_pdf(
     story.append(Spacer(1, 2))
 
     buf_alpha = _generate_alpha_curve_chart(clean_sym, chg_1y, alpha_1y)
-    story.append(Image(buf_alpha, width=520, height=66))
+    story.append(Image(buf_alpha, width=520, height=88))
     story.append(Spacer(1, 2))
 
     # Target Price Consensus & Asymmetric Risk-Reward Triad
@@ -4083,7 +4083,7 @@ def generate_stock_research_dossier_pdf(
         score_val=score_val,
         prem_to_dcf=prem_to_dcf
     )
-    story.append(Image(buf_cycle_clock, width=520, height=82))
+    story.append(Image(buf_cycle_clock, width=520, height=104))
 
     # ══════════════════════════════════════════════════════════════════════════
     # PAGE 2: SECTION 5 - TECHNICAL ARCHITECTURE, TIMING & SUPPORT LADDERS
@@ -4103,7 +4103,7 @@ def generate_stock_research_dossier_pdf(
         sma200_target=sma200,
         rsi_target=rsi_val
     )
-    story.append(Image(buf_tech, width=520, height=154))
+    story.append(Image(buf_tech, width=520, height=268))
     story.append(Spacer(1, 2))
 
     story.append(Paragraph("<b>MOMENTUM OSCILLATORS &amp; SIMPLE MOVING AVERAGE (SMA) SPREAD SUMMARY</b>", sec_header_style))
@@ -4526,7 +4526,7 @@ def generate_stock_research_dossier_pdf(
         if not h_data:
             h_data = [("1M", chg_1m), ("3M", chg_3m), ("6M", alpha_1y * 0.5), ("12M", alpha_1y)]
         buf_rs = _generate_rs_nifty_chart(sym_name, stk_norm, nfy_norm, rs_pct, h_data)
-        return Image(buf_rs, width=520, height=56)
+        return Image(buf_rs, width=520, height=94)
 
     story.append(_build_rs_nifty_chart_img(clean_sym))
 
@@ -4656,7 +4656,7 @@ def generate_stock_research_dossier_pdf(
         ])
 
     buf_peer_scatter = _generate_peer_bubble_scatter_chart(peers_scatter_list, clean_sym)
-    story.append(Image(buf_peer_scatter, width=520, height=110))
+    story.append(Image(buf_peer_scatter, width=520, height=126))
     story.append(Spacer(1, 2))
 
     t_peers = Table(peer_data, colWidths=[110, 60, 45, 75, 52, 53, 55, 70])
@@ -4773,7 +4773,7 @@ def generate_stock_research_dossier_pdf(
 
     # Page 3 Visual: 4-Quarter Ownership Structure & FII/DII Flow Rotation Chart
     buf_sh_flow = _generate_shareholding_flow_chart(q_cols, prom_v, dii_v, fii_v, pub_v)
-    story.append(Image(buf_sh_flow, width=520, height=64))
+    story.append(Image(buf_sh_flow, width=520, height=102))
 
     # ══════════════════════════════════════════════════════════════════════════
     # PAGE 4: SECTION 7 - 8-QUARTER FINANCIAL PERFORMANCE & HEATMAP
@@ -4830,7 +4830,7 @@ def generate_stock_research_dossier_pdf(
     story.append(Spacer(1, 3))
 
     buf_quarterly = _generate_quarterly_performance_chart(q_headers_plot, q_sales_plot, q_pat_plot, q_opm_plot)
-    story.append(Image(buf_quarterly, width=520, height=130))
+    story.append(Image(buf_quarterly, width=520, height=216))
     story.append(Spacer(1, 3))
 
     # Dynamic Waterfall derivation
@@ -4843,7 +4843,7 @@ def generate_stock_research_dossier_pdf(
     wf_tax = max(wf_pbt - wf_pat, 1.0)
 
     buf_waterfall = _generate_pbt_pat_waterfall_chart(wf_op, wf_oth, wf_pbt, wf_tax, wf_pat)
-    story.append(Image(buf_waterfall, width=520, height=72))
+    story.append(Image(buf_waterfall, width=520, height=118))
     story.append(Spacer(1, 2))
 
     story.append(Paragraph(f"<b>8-QUARTER PERFORMANCE HEATMAP TABLE ({q_headers_plot[0].upper()} – {q_headers_plot[-1].upper()} AUDITED CONSOLIDATED)</b>", sec_header_style))
@@ -4923,7 +4923,7 @@ def generate_stock_research_dossier_pdf(
                         yoy_opm_vals.append(bps_d)
         if yoy_s_lbls:
             buf_q_yoy = _generate_qtr_yoy_chart(yoy_s_lbls, yoy_s_vals, yoy_opm_vals, exp_count)
-            story.append(Image(buf_q_yoy, width=520, height=82))
+            story.append(Image(buf_q_yoy, width=520, height=146))
             story.append(Spacer(1, 3))
 
     # Dynamic Statistical Anomaly Detector for Exceptional One-Off Items
@@ -4980,7 +4980,7 @@ def generate_stock_research_dossier_pdf(
     y_ocf_plot = y_ocf[-5:] if len(y_ocf) >= 5 else [1400.0]*5
 
     buf_annual = _generate_annual_compounding_chart(y_labels_plot, y_rev_plot, y_ebitda_plot, y_pat_plot, y_ocf_plot)
-    story.append(Image(buf_annual, width=520, height=148))
+    story.append(Image(buf_annual, width=520, height=218))
     story.append(Spacer(1, 3))
 
     story.append(Paragraph("<b>DUPONT ROE 3-FACTOR DECOMPOSITION TREE (AUDITED BENCHMARK)</b>", sec_header_style))
@@ -4996,7 +4996,7 @@ def generate_stock_research_dossier_pdf(
         tot_assets_cr=tot_assets,
         ttm_pat_cr=ttm_pat
     )
-    story.append(Image(buf_dupont, width=520, height=94))
+    story.append(Image(buf_dupont, width=520, height=136))
     story.append(Spacer(1, 3))
 
     story.append(Paragraph(f"<b>5-YEAR HISTORICAL FINANCIAL SUMMARY ({y_labels_plot[0].upper()} – {y_labels_plot[-1].upper()} AUDITED CONSOLIDATED)</b>", sec_header_style))
@@ -5130,7 +5130,7 @@ def generate_stock_research_dossier_pdf(
     retain_pct = max(100.0 - div_payout, 0.0)
 
     buf_wc_cap = _generate_wc_capital_chart(yr_lbls_wc, dso3, dio3, dpo3, ccc3, roce3, retain_pct, div_payout)
-    story.append(Image(buf_wc_cap, width=520, height=92))
+    story.append(Image(buf_wc_cap, width=520, height=156))
 
     # ══════════════════════════════════════════════════════════════════════════
     # PAGE 6: SECTION 8 - DCF FRAMEWORK & DUAL-HORIZON ACTIONABLE STRATEGY
