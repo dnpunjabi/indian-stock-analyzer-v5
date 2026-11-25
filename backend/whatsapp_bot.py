@@ -6536,6 +6536,90 @@ def _evaluate_post_result_swing_setup(
         return ""
 
 
+def handle_post_result_swing_check(symbol_input: str, recipient: Optional[str] = None) -> Dict[str, Any]:
+    """Fast standalone shortcut for Post-Result Swing Check (PR / DRIFT / TRAP / PEAD <SYMBOL>)."""
+    clean_sym = (symbol_input or "").strip().upper()
+    clean_sym = re.sub(r"^(?:PR|DRIFT|TRAP|PEAD|SWINGCHECK)[\s:]+", "", clean_sym, flags=re.IGNORECASE).strip()
+    if not clean_sym:
+        clean_sym = "RELIANCE"
+
+    resolved = resolve_company_ticker(clean_sym)
+    lookup_ticker = resolved.get("yf_ticker") if resolved else f"{clean_sym}.NS"
+    b_sym = resolved.get("base_symbol") if resolved else lookup_ticker.replace(".NS", "")
+    d_name = resolved.get("name") if resolved else b_sym
+    btn_sym = b_sym[:8]
+
+    try:
+        from backend.financial_statements_scraper import scrape_financial_statements
+        data = scrape_financial_statements(b_sym)
+        q_table = data.get("quarters", {})
+        raw_headers = q_table.get("headers", [])
+        col_headers = [h.strip() for h in raw_headers[1:] if h and h.strip()]
+        if not col_headers:
+            return send_whatsapp_interactive_buttons(
+                f"⚠️ *Post-Result Check Unavailable*: No quarterly data found for `{b_sym}`.",
+                buttons=[("nav:menu:main", "🏠 Main Menu")],
+                recipient=recipient
+            )
+
+        q_map = _map_financial_table_rows(q_table)
+        latest_q = col_headers[-1]
+        parts = latest_q.split()
+        yoy_q = None
+        if len(parts) == 2 and parts[1].isdigit():
+            target_yoy = f"{parts[0]} {int(parts[1]) - 1}"
+            if target_yoy in col_headers:
+                yoy_q = target_yoy
+        if not yoy_q and len(col_headers) >= 5:
+            yoy_q = col_headers[-5]
+
+        op_curr = q_map.get("operating profit", {}).get(latest_q) or 0
+        op_yoy = q_map.get("operating profit", {}).get(yoy_q) or 0
+        opm_curr = q_map.get("opm %", {}).get(latest_q) or 0.0
+        opm_yoy = q_map.get("opm %", {}).get(yoy_q) or 0.0
+        opm_diff = opm_curr - opm_yoy
+
+        depr_curr = q_map.get("depreciation", {}).get(latest_q) or 0
+        int_curr = q_map.get("interest", {}).get(latest_q) or 0
+        core_pbt_curr = op_curr - depr_curr - int_curr
+        depr_yoy = q_map.get("depreciation", {}).get(yoy_q) or 0
+        int_yoy = q_map.get("interest", {}).get(yoy_q) or 0
+        core_pbt_yoy = op_yoy - depr_yoy - int_yoy
+        core_pbt_growth = ((core_pbt_curr - core_pbt_yoy) / abs(core_pbt_yoy) * 100) if core_pbt_yoy != 0 else 0.0
+
+        swing_card = _evaluate_post_result_swing_setup(
+            lookup_ticker=lookup_ticker,
+            q_map=q_map,
+            col_headers=col_headers,
+            core_pbt_growth=core_pbt_growth,
+            opm_diff=opm_diff
+        )
+        if not swing_card:
+            swing_card = "⚠️ Insufficient recent price history to compute 30D swing setup.\n"
+
+        msg = (
+            f"⚡ *{d_name.upper()}* (`{b_sym}`) • *{latest_q}*\n"
+            f"━━━━━━━━━━━━━━━━━━━━\n"
+            f"{swing_card}"
+            f"• *Core PBT YoY*: *{core_pbt_growth:+.1f}%* | *OPM*: *{opm_curr:.1f}%* ({opm_diff:+.1f}% YoY)\n"
+            f"━━━━━━━━━━━━━━━━━━━━\n"
+            f"_Shortcuts: PR / DRIFT / TRAP / PEAD <SYMBOL>_"
+        )
+        buttons = [
+            (f"run:qtr:{btn_sym}", f"📑 {btn_sym} Result"),
+            (f"act:chart:{btn_sym}", f"📈 {btn_sym} Chart"),
+            (f"act:stock:ts:{btn_sym}", f"⚡ {btn_sym} 1P PDF"),
+        ]
+        return send_whatsapp_interactive_buttons(msg, buttons=buttons, recipient=recipient)
+    except Exception as e:
+        logger.error(f"Error in handle_post_result_swing_check for {clean_sym}: {e}", exc_info=True)
+        return send_whatsapp_interactive_buttons(
+            f"⚠️ *Post-Result Check Error* for `{clean_sym}`: {str(e)}",
+            buttons=[("nav:menu:main", "🏠 Main Menu")],
+            recipient=recipient
+        )
+
+
 def handle_stock_quarterly_results(symbol_input: str, recipient: Optional[str] = None) -> Dict[str, Any]:
     """
     Renders Latest Quarterly Earnings Flash Scorecard:
@@ -9839,6 +9923,17 @@ def dispatch_incoming_whatsapp_message(text_body: str, sender: Optional[str] = N
         sym = re.sub(r"^(?:view:qtr:|act:qtr:|run:qtr:)", "", cleaned).strip()
         if sym:
             return handle_stock_quarterly_results(sym, recipient=sender)
+
+    if (
+        upper.startswith("PR ") or upper.startswith("PR:")
+        or upper.startswith("DRIFT ") or upper.startswith("DRIFT:")
+        or upper.startswith("TRAP ") or upper.startswith("TRAP:")
+        or upper.startswith("PEAD ") or upper.startswith("PEAD:")
+        or upper.startswith("SWINGCHECK ") or upper.startswith("SWINGCHECK:")
+    ):
+        raw_target = re.sub(r"^(?:PR|DRIFT|TRAP|PEAD|SWINGCHECK)[\s:]+", "", cleaned, flags=re.IGNORECASE).strip()
+        if raw_target:
+            return handle_post_result_swing_check(raw_target, recipient=sender)
 
     if (
         upper.startswith("Q ") or upper.startswith("Q:")
