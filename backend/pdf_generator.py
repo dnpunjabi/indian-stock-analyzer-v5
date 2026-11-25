@@ -2803,6 +2803,7 @@ def _extract_dossier_intelligence(clean_sym: str) -> dict:
         "alpha_1y": alpha_1y,
         "bench_spread": bench_spread,
         "q_headers": q_headers,
+        "q_headers_full": q_headers_raw,
         "q_sales": q_sales,
         "q_pat": q_pat,
         "q_opm": q_opm,
@@ -4247,6 +4248,56 @@ def generate_stock_research_dossier_pdf(
     story.append(t_heatmap)
     story.append(Spacer(1, 2))
 
+    # 4-Quarter YoY Growth & Margin Streak Strip (matched by exact calendar quarter)
+    q_hdrs_clean = [str(h).strip() for h in (info.get("q_headers_full", info.get("q_headers", [])) or []) if str(h).strip()]
+    q_sales_all = [_safe_float(v) for v in (q_rows.get("Sales", []) or [])]
+    q_opm_all = [_safe_float(v) for v in (q_rows.get("OPM %", []) or [])]
+    n_q_align = min(len(q_hdrs_clean), len(q_sales_all), len(q_opm_all))
+    if n_q_align >= 5:
+        hdrs_al = q_hdrs_clean[-n_q_align:]
+        sales_al = q_sales_all[-n_q_align:]
+        opm_al = q_opm_all[-n_q_align:]
+        q_lookup = {}
+        for idx_q, h_txt in enumerate(hdrs_al):
+            parts_q = h_txt.split()
+            if len(parts_q) == 2 and parts_q[1].isdigit():
+                q_lookup[(parts_q[0][:3], int(parts_q[1]))] = (sales_al[idx_q], opm_al[idx_q], h_txt.replace(" 20", " "))
+        yoy_s_trail, yoy_opm_trail = [], []
+        exp_count = 0
+        for idx_q in range(max(0, n_q_align - 4), n_q_align):
+            parts_q = hdrs_al[idx_q].split()
+            if len(parts_q) == 2 and parts_q[1].isdigit():
+                prev_k = (parts_q[0][:3], int(parts_q[1]) - 1)
+                if prev_k in q_lookup:
+                    ps_val, popm_val, _ = q_lookup[prev_k]
+                    cs_val, copm_val = sales_al[idx_q], opm_al[idx_q]
+                    if ps_val > 0:
+                        s_g = (cs_val / ps_val - 1.0) * 100.0
+                        yoy_s_trail.append(f"{parts_q[0][:3]}'{parts_q[1][-2:]}: <b>{s_g:+.1f}%</b>")
+                    bps_d = (copm_val - popm_val) * 100.0
+                    if bps_d >= 0:
+                        exp_count += 1
+                    yoy_opm_trail.append(f"{bps_d:+.0f} bps")
+        if yoy_s_trail:
+            opm_streak_col = "#15803d" if exp_count >= 3 else ("#0284c7" if exp_count >= 2 else "#b91c1c")
+            yoy_strip_html = (
+                f"<b>4-QUARTER YoY ACCELERATION &amp; MARGIN STREAK:</b> &nbsp;"
+                f"<b>Sales YoY:</b> {' &rarr; '.join(yoy_s_trail)} &nbsp;|&nbsp; "
+                f"<b>OPM YoY:</b> {' &rarr; '.join(yoy_opm_trail)} "
+                f"(<font color='{opm_streak_col}'><b>{exp_count}/{len(yoy_opm_trail)} Qtrs Expanding</b></font>)"
+            )
+            t_q_yoy_streak = Table([[Paragraph(yoy_strip_html, ParagraphStyle('QYS', parent=body_style, fontSize=5.9, leading=7.5))]], colWidths=[520])
+            t_q_yoy_streak.setStyle(TableStyle([
+                ('BACKGROUND', (0,0), (-1,-1), colors.HexColor("#f1f5f9")),
+                ('BOX', (0,0), (-1,-1), 0.5, colors.HexColor("#cbd5e1")),
+                ('TOPPADDING', (0,0), (-1,-1), 1.8),
+                ('BOTTOMPADDING', (0,0), (-1,-1), 1.8),
+                ('LEFTPADDING', (0,0), (-1,-1), 5),
+                ('RIGHTPADDING', (0,0), (-1,-1), 5),
+            ]))
+            story.append(t_q_yoy_streak)
+            story.append(Spacer(1, 2))
+
     # Dynamic Statistical Anomaly Detector for Exceptional One-Off Items
     q_other_vals = [float(v) for v in q_rows.get("Other Income", [])[-8:]] if "Other Income" in q_rows else []
     one_off_pat_note = ""
@@ -4301,7 +4352,7 @@ def generate_stock_research_dossier_pdf(
     y_ocf_plot = y_ocf[-5:] if len(y_ocf) >= 5 else [1400.0]*5
 
     buf_annual = _generate_annual_compounding_chart(y_labels_plot, y_rev_plot, y_ebitda_plot, y_pat_plot, y_ocf_plot)
-    story.append(Image(buf_annual, width=520, height=116))
+    story.append(Image(buf_annual, width=520, height=134))
     story.append(Spacer(1, 2))
 
     story.append(Paragraph("<b>DUPONT ROE 3-FACTOR DECOMPOSITION TREE (AUDITED BENCHMARK)</b>", sec_header_style))
@@ -4317,7 +4368,7 @@ def generate_stock_research_dossier_pdf(
         tot_assets_cr=tot_assets,
         ttm_pat_cr=ttm_pat
     )
-    story.append(Image(buf_dupont, width=520, height=74))
+    story.append(Image(buf_dupont, width=520, height=84))
     story.append(Spacer(1, 3))
 
     story.append(Paragraph(f"<b>5-YEAR HISTORICAL FINANCIAL SUMMARY ({y_labels_plot[0].upper()} – {y_labels_plot[-1].upper()} AUDITED CONSOLIDATED)</b>", sec_header_style))
@@ -4499,6 +4550,50 @@ def generate_stock_research_dossier_pdf(
             ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
         ]))
         story.append(t_wc_ccc)
+        story.append(Spacer(1, 2))
+
+    # 5-Year Capital Allocation, ROCE Trajectory & Reinvestment Strip
+    roce3 = None
+    for rk in ["ROCE %", "ROCE"]:
+        rvals = rat_rows.get(rk, [])
+        if rvals:
+            roce3 = [_safe_float(v, roce_val) for v in rvals[-3:]]
+            while len(roce3) < 3:
+                roce3.insert(0, roce3[0])
+            break
+    if roce3:
+        roce_str = f"{roce3[0]:.0f}% &rarr; {roce3[1]:.0f}% &rarr; <b>{roce3[2]:.0f}%</b>"
+        roce_col = "#15803d" if roce3[2] >= roce3[0] and roce3[2] >= 18.0 else ("#0284c7" if roce3[2] >= 12.0 else "#b91c1c")
+    else:
+        roce_str = f"<b>{roce_val:.1f}%</b>"
+        roce_col = "#15803d" if roce_val >= 18.0 else "#0284c7"
+
+    div_list = pl_raw.get("Dividend Payout %", [])
+    div_payout = min(max(_safe_float(div_list[-1], 20.0), 0.0), 100.0) if div_list else 20.0
+    retain_pct = max(100.0 - div_payout, 0.0)
+    if de_val <= 0.25 and cum_5y_conv >= 80.0:
+        fund_lbl, fund_col = "Self-Funded Compounder (Low Debt)", "#15803d"
+    elif de_val <= 0.60:
+        fund_lbl, fund_col = "Balanced Growth & Leverage", "#0284c7"
+    else:
+        fund_lbl, fund_col = "Capital-Intensive / Leveraged", "#b45309"
+
+    cap_alloc_html = (
+        f"<b>CAPITAL ALLOCATION &amp; REINVESTMENT EFFICIENCY ({yr_span_lbl}):</b> &nbsp;"
+        f"<b>ROCE Trajectory:</b> <font color='{roce_col}'>{roce_str}</font> &nbsp;|&nbsp; "
+        f"<b>Earnings Retention:</b> <b>{retain_pct:.0f}% Reinvested</b> ({div_payout:.0f}% Div Payout) &nbsp;|&nbsp; "
+        f"<b>Funding Profile:</b> <font color='{fund_col}'><b>{fund_lbl}</b></font>"
+    )
+    t_cap_alloc = Table([[Paragraph(cap_alloc_html, ParagraphStyle('CAL', parent=body_style, fontSize=5.9, leading=7.5))]], colWidths=[520])
+    t_cap_alloc.setStyle(TableStyle([
+        ('BACKGROUND', (0,0), (-1,-1), colors.HexColor("#f1f5f9")),
+        ('BOX', (0,0), (-1,-1), 0.5, colors.HexColor("#cbd5e1")),
+        ('TOPPADDING', (0,0), (-1,-1), 1.8),
+        ('BOTTOMPADDING', (0,0), (-1,-1), 1.8),
+        ('LEFTPADDING', (0,0), (-1,-1), 5),
+        ('RIGHTPADDING', (0,0), (-1,-1), 5),
+    ]))
+    story.append(t_cap_alloc)
 
     # ══════════════════════════════════════════════════════════════════════════
     # PAGE 6: SECTION 8 - DCF FRAMEWORK & DUAL-HORIZON ACTIONABLE STRATEGY
