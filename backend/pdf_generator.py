@@ -1812,7 +1812,7 @@ def _generate_shareholding_flow_chart(
     ax1.bar(x, pub_v, width=w, bottom=b_pub, color='#cbd5e1', label='Public')
     ax1.set_xticks(x)
     ax1.set_xticklabels(q_cols, fontsize=5.4, fontweight='bold', color='#334155')
-    ax1.set_ylim(0, 108)
+    ax1.set_ylim(0, 134)
     ax1.set_title("4-Quarter Ownership Structure (%)", fontsize=6.4, fontweight='bold', color='#0f172a', loc='left', pad=3)
     ax1.tick_params(axis='y', labelsize=5.2, labelcolor='#475569', length=2)
     ax1.legend(loc='upper right', fontsize=4.8, ncol=4, frameon=True, facecolor='#ffffff', edgecolor='#cbd5e1', borderpad=0.2)
@@ -1922,14 +1922,17 @@ def _generate_wc_capital_chart(
     ax1.bar(x, dio3, width=w, color='#f59e0b', label='Inv Days')
     ax1.bar(x + w, dpo3, width=w, color='#94a3b8', label='Payable Days')
     ax1.plot(x, ccc3, color='#0f172a', marker='o', markersize=3.5, linewidth=1.6, label='Net CCC')
+    y_hi = max(dso3 + dio3 + dpo3 + ccc3 + [10.0])
+    y_lo = min(dso3 + dio3 + dpo3 + ccc3 + [0.0])
+    ax1.set_ylim(min(0.0, y_lo * 1.25), y_hi * 1.48)
     for xi, cv in zip(x, ccc3):
-        ax1.text(xi, cv + 3.0, f"{cv:.0f}d", ha='center', va='bottom', fontsize=5.3, fontweight='bold', color='#0f172a')
+        ax1.text(xi, cv + y_hi * 0.05, f"{cv:.0f}d", ha='center', va='bottom', fontsize=5.3, fontweight='bold', color='#0f172a')
     ax1.set_xticks(x)
     ax1.set_xticklabels(yr_lbls, fontsize=5.4, fontweight='bold', color='#334155')
     ax1.set_title("3Y Working Capital & Cash Conversion Cycle (Days)", fontsize=6.4, fontweight='bold', color='#0f172a', loc='left', pad=3)
     ax1.tick_params(axis='y', labelsize=5.2, labelcolor='#475569', length=2)
     ax1.grid(axis='y', linestyle=':', linewidth=0.5, color='#e2e8f0')
-    ax1.legend(loc='upper left', fontsize=4.8, ncol=4, frameon=True, facecolor='#ffffff', edgecolor='#cbd5e1', borderpad=0.2)
+    ax1.legend(loc='upper left', fontsize=4.6, ncol=4, frameon=True, facecolor='#ffffff', edgecolor='#cbd5e1', borderpad=0.2)
 
     # Right: 3Y ROCE % Trend + Reinvestment vs Dividend Split inset
     ax2.set_facecolor('#f8fafc')
@@ -2346,7 +2349,7 @@ def _generate_shareholding_flow_chart(
     ax1.bar(x, pub_v, width=w, bottom=b_pub, color='#cbd5e1', label='Public')
     ax1.set_xticks(x)
     ax1.set_xticklabels(q_cols, fontsize=5.4, fontweight='bold', color='#334155')
-    ax1.set_ylim(0, 108)
+    ax1.set_ylim(0, 134)
     ax1.set_title("4-Quarter Ownership Structure (%)", fontsize=6.4, fontweight='bold', color='#0f172a', loc='left', pad=3)
     ax1.tick_params(axis='y', labelsize=5.2, labelcolor='#475569', length=2)
     ax1.legend(loc='upper right', fontsize=4.8, ncol=4, frameon=True, facecolor='#ffffff', edgecolor='#cbd5e1', borderpad=0.2)
@@ -2456,14 +2459,17 @@ def _generate_wc_capital_chart(
     ax1.bar(x, dio3, width=w, color='#f59e0b', label='Inv Days')
     ax1.bar(x + w, dpo3, width=w, color='#94a3b8', label='Payable Days')
     ax1.plot(x, ccc3, color='#0f172a', marker='o', markersize=3.5, linewidth=1.6, label='Net CCC')
+    y_hi = max(dso3 + dio3 + dpo3 + ccc3 + [10.0])
+    y_lo = min(dso3 + dio3 + dpo3 + ccc3 + [0.0])
+    ax1.set_ylim(min(0.0, y_lo * 1.25), y_hi * 1.48)
     for xi, cv in zip(x, ccc3):
-        ax1.text(xi, cv + 3.0, f"{cv:.0f}d", ha='center', va='bottom', fontsize=5.3, fontweight='bold', color='#0f172a')
+        ax1.text(xi, cv + y_hi * 0.05, f"{cv:.0f}d", ha='center', va='bottom', fontsize=5.3, fontweight='bold', color='#0f172a')
     ax1.set_xticks(x)
     ax1.set_xticklabels(yr_lbls, fontsize=5.4, fontweight='bold', color='#334155')
     ax1.set_title("3Y Working Capital & Cash Conversion Cycle (Days)", fontsize=6.4, fontweight='bold', color='#0f172a', loc='left', pad=3)
     ax1.tick_params(axis='y', labelsize=5.2, labelcolor='#475569', length=2)
     ax1.grid(axis='y', linestyle=':', linewidth=0.5, color='#e2e8f0')
-    ax1.legend(loc='upper left', fontsize=4.8, ncol=4, frameon=True, facecolor='#ffffff', edgecolor='#cbd5e1', borderpad=0.2)
+    ax1.legend(loc='upper left', fontsize=4.6, ncol=4, frameon=True, facecolor='#ffffff', edgecolor='#cbd5e1', borderpad=0.2)
 
     # Right: 3Y ROCE % Trend + Reinvestment vs Dividend Split inset
     ax2.set_facecolor('#f8fafc')
@@ -2698,7 +2704,7 @@ def _generate_shareholding_flow_chart(
     ax1.bar(x, pub_v, width=w, bottom=b_pub, color='#cbd5e1', label='Public')
     ax1.set_xticks(x)
     ax1.set_xticklabels(q_cols, fontsize=5.4, fontweight='bold', color='#334155')
-    ax1.set_ylim(0, 108)
+    ax1.set_ylim(0, 134)
     ax1.set_title("4-Quarter Ownership Structure (%)", fontsize=6.4, fontweight='bold', color='#0f172a', loc='left', pad=3)
     ax1.tick_params(axis='y', labelsize=5.2, labelcolor='#475569', length=2)
     ax1.legend(loc='upper right', fontsize=4.8, ncol=4, frameon=True, facecolor='#ffffff', edgecolor='#cbd5e1', borderpad=0.2)
@@ -2808,14 +2814,17 @@ def _generate_wc_capital_chart(
     ax1.bar(x, dio3, width=w, color='#f59e0b', label='Inv Days')
     ax1.bar(x + w, dpo3, width=w, color='#94a3b8', label='Payable Days')
     ax1.plot(x, ccc3, color='#0f172a', marker='o', markersize=3.5, linewidth=1.6, label='Net CCC')
+    y_hi = max(dso3 + dio3 + dpo3 + ccc3 + [10.0])
+    y_lo = min(dso3 + dio3 + dpo3 + ccc3 + [0.0])
+    ax1.set_ylim(min(0.0, y_lo * 1.25), y_hi * 1.48)
     for xi, cv in zip(x, ccc3):
-        ax1.text(xi, cv + 3.0, f"{cv:.0f}d", ha='center', va='bottom', fontsize=5.3, fontweight='bold', color='#0f172a')
+        ax1.text(xi, cv + y_hi * 0.05, f"{cv:.0f}d", ha='center', va='bottom', fontsize=5.3, fontweight='bold', color='#0f172a')
     ax1.set_xticks(x)
     ax1.set_xticklabels(yr_lbls, fontsize=5.4, fontweight='bold', color='#334155')
     ax1.set_title("3Y Working Capital & Cash Conversion Cycle (Days)", fontsize=6.4, fontweight='bold', color='#0f172a', loc='left', pad=3)
     ax1.tick_params(axis='y', labelsize=5.2, labelcolor='#475569', length=2)
     ax1.grid(axis='y', linestyle=':', linewidth=0.5, color='#e2e8f0')
-    ax1.legend(loc='upper left', fontsize=4.8, ncol=4, frameon=True, facecolor='#ffffff', edgecolor='#cbd5e1', borderpad=0.2)
+    ax1.legend(loc='upper left', fontsize=4.6, ncol=4, frameon=True, facecolor='#ffffff', edgecolor='#cbd5e1', borderpad=0.2)
 
     # Right: 3Y ROCE % Trend + Reinvestment vs Dividend Split inset
     ax2.set_facecolor('#f8fafc')
@@ -4764,11 +4773,7 @@ def generate_stock_research_dossier_pdf(
 
     # Page 3 Visual: 4-Quarter Ownership Structure & FII/DII Flow Rotation Chart
     buf_sh_flow = _generate_shareholding_flow_chart(q_cols, prom_v, dii_v, fii_v, pub_v)
-    story.append(Image(buf_sh_flow, width=520, height=52))
-    story.append(Spacer(1, 1))
-
-    buf_sh_flow = _generate_shareholding_flow_chart(q_cols, prom_v, dii_v, fii_v, pub_v)
-    story.append(Image(buf_sh_flow, width=520, height=70))
+    story.append(Image(buf_sh_flow, width=520, height=64))
 
     # ══════════════════════════════════════════════════════════════════════════
     # PAGE 4: SECTION 7 - 8-QUARTER FINANCIAL PERFORMANCE & HEATMAP
