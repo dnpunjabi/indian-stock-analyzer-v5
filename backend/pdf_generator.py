@@ -4575,6 +4575,21 @@ def generate_stock_tearsheet_pdf(
     pe_b_min = float(pe_b.get("min_pe") or (pe_val * 0.8))
     pe_b_max = float(pe_b.get("max_pe") or (pe_val * 1.2))
     peer_rows = info.get("peer_rows", [])
+    roe_val = info.get("roe_val", 18.0)
+    opm_val = info.get("opm_val", 15.0)
+    altman_z = info.get("altman_z", 3.5)
+    piotroski = info.get("piotroski", 7)
+    chg_1w = info.get("chg_1w", 0.0)
+    chg_1m = info.get("chg_1m", 0.0)
+    chg_3m = info.get("chg_3m", 0.0)
+    chg_1y = info.get("chg_1y", 0.0)
+    chg_3y = info.get("chg_3y", 0.0)
+    alpha_1y = info.get("alpha_1y", 0.0)
+    q_headers = info.get("q_headers", [])
+    q_sales = info.get("q_sales", [])
+    q_pat = info.get("q_pat", [])
+    q_opm = info.get("q_opm", [])
+    sh_cats = info.get("sh_cats", {})
 
     if not output_path:
         reports_dir = os.path.join("data", "reports", "stocks")
@@ -4662,7 +4677,45 @@ def generate_stock_tearsheet_pdf(
         ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
     ]))
     story.append(t_triad)
-    story.append(Spacer(1, 5))
+    story.append(Spacer(1, 4))
+
+    # 2b. Multi-Horizon Returns & Nifty 50 Alpha Strip
+    def _ret_fmt(v: float) -> str:
+        c = "#15803d" if v >= 0 else "#dc2626"
+        return f"<font color='{c}'><b>{v:+.1f}%</b></font>"
+
+    ret_strip = [
+        [
+            Paragraph("1W RET", th_st),
+            Paragraph("1M RET", th_st),
+            Paragraph("3M RET", th_st),
+            Paragraph("1Y RET", th_st),
+            Paragraph("3Y RET", th_st),
+            Paragraph("1Y ALPHA vs NIFTY", th_st),
+            Paragraph("ALTMAN Z / F-SCORE", th_st)
+        ],
+        [
+            Paragraph(_ret_fmt(chg_1w), td_num),
+            Paragraph(_ret_fmt(chg_1m), td_num),
+            Paragraph(_ret_fmt(chg_3m), td_num),
+            Paragraph(_ret_fmt(chg_1y), td_num),
+            Paragraph(_ret_fmt(chg_3y), td_num),
+            Paragraph(_ret_fmt(alpha_1y), td_num),
+            Paragraph(f"<b>Z: {altman_z:.1f} | F: {piotroski}/9</b>", td_num)
+        ]
+    ]
+    t_ret_ts = Table(ret_strip, colWidths=[64, 64, 64, 64, 64, 105, 105])
+    t_ret_ts.setStyle(TableStyle([
+        ('BACKGROUND', (0,0), (-1,0), colors.HexColor("#1e293b")),
+        ('GRID', (0,0), (-1,-1), 0.5, colors.HexColor("#cbd5e1")),
+        ('BACKGROUND', (0,1), (-1,1), colors.HexColor("#f8fafc")),
+        ('TOPPADDING', (0,0), (-1,-1), 2),
+        ('BOTTOMPADDING', (0,0), (-1,-1), 2),
+        ('ALIGN', (0,0), (-1,-1), 'CENTER'),
+        ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
+    ]))
+    story.append(t_ret_ts)
+    story.append(Spacer(1, 4))
 
     # Fetch Cached AI Intelligence (Moat, Capex, 30-Day Catalysts)
     peer_names = [pr.get("label", "").replace(" (Target)", "") for pr in peer_rows[:3] if not pr.get("is_target")]
@@ -4704,28 +4757,64 @@ def generate_stock_tearsheet_pdf(
 
     buf_pe_gauge = _generate_pe_band_gauge(pe_val, pe_b_min, med_3y, pe_b_max)
 
+    # Latest 4-Quarter Mini-Table & Shareholding Snapshot
+    qh4 = [str(q) for q in (q_headers[-4:] if len(q_headers) >= 4 else ['Q1', 'Q2', 'Q3', 'Q4'])]
+    qs4 = q_sales[-4:] if len(q_sales) >= 4 else [1000.0]*4
+    qp4 = q_pat[-4:] if len(q_pat) >= 4 else [150.0]*4
+    qo4 = q_opm[-4:] if len(q_opm) >= 4 else [15.0]*4
+    q4_data = [
+        [Paragraph("4Q SNAPSHOT", th_st)] + [Paragraph(q.upper(), th_st) for q in qh4],
+        [Paragraph("<b>Sales (Cr)</b>", body_st)] + [Paragraph(f"{v:,.0f}", td_num) for v in qs4],
+        [Paragraph("<b>OPM %</b>", body_st)] + [Paragraph(f"{v:.1f}%", td_num) for v in qo4],
+        [Paragraph("<b>PAT (Cr)</b>", body_st)] + [Paragraph(f"{v:,.0f}", td_num) for v in qp4],
+    ]
+    t_q4 = Table(q4_data, colWidths=[66, 45, 45, 45, 45])
+    t_q4.setStyle(TableStyle([
+        ('BACKGROUND', (0,0), (-1,0), colors.HexColor("#0f172a")),
+        ('GRID', (0,0), (-1,-1), 0.4, colors.HexColor("#cbd5e1")),
+        ('ROWBACKGROUNDS', (0,1), (-1,-1), [colors.HexColor("#ffffff"), colors.HexColor("#f8fafc")]),
+        ('TOPPADDING', (0,0), (-1,-1), 1.5),
+        ('BOTTOMPADDING', (0,0), (-1,-1), 1.5),
+        ('LEFTPADDING', (0,0), (-1,-1), 2),
+        ('RIGHTPADDING', (0,0), (-1,-1), 2),
+        ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
+    ]))
+
+    prom_arr = sh_cats.get("Promoters", [0.0])
+    dii_arr = sh_cats.get("DIIs", [15.0])
+    fii_arr = sh_cats.get("FIIs", [15.0])
+    prom_now = float(prom_arr[-1]) if prom_arr else 0.0
+    dii_now = float(dii_arr[-1]) if dii_arr else 15.0
+    fii_now = float(fii_arr[-1]) if fii_arr else 15.0
+    dii_chg = dii_now - float(dii_arr[0]) if len(dii_arr) >= 2 else 0.0
+    fii_chg = fii_now - float(fii_arr[0]) if len(fii_arr) >= 2 else 0.0
+
     # 3. Two-Column Executive Body
     left_col = [
         Paragraph("<b>COMPETITIVE MOAT &amp; MARKET POWER</b>", sec_st),
-        Spacer(1, 2),
+        Spacer(1, 1.5),
         Paragraph(
             f"• <b>Market Scale:</b> {moat_intel['market_share_scale']}<br/>"
             f"• <b>Pricing Power:</b> {moat_intel['moat_pricing_power']}",
             body_st
         ),
-        Spacer(1, 6),
-        Paragraph("<b>5-YEAR COMPOUNDING &amp; BALANCE SHEET</b>", sec_st),
-        Spacer(1, 2),
+        Spacer(1, 4),
+        Paragraph("<b>LATEST 4-QUARTER EARNINGS MOMENTUM</b>", sec_st),
+        Spacer(1, 1.5),
+        t_q4,
+        Spacer(1, 4),
+        Paragraph("<b>5Y COMPOUNDING, QUALITY &amp; CAP TABLE</b>", sec_st),
+        Spacer(1, 1.5),
         Paragraph(
-            f"• <b>Growth Profile:</b> 4Y Sales CAGR: <b>{cagr_sales:+.1f}%</b> | 4Y PAT CAGR: <b>{cagr_pat:+.1f}%</b><br/>"
-            f"• <b>Cash Realization:</b> 5Y Cumulative OCF/PAT: <b>{cum_conv:.1f}%</b> (TTM: {cfo_pat:.2f}x)<br/>"
-            f"• <b>Capital Structure:</b> D/E: <b>{de_val:.2f}x</b> | {bs_desc} | 200 SMA: Rs. {sma200:,.0f}",
+            f"• <b>Growth &amp; Margins:</b> 4Y Sales: <b>{cagr_sales:+.1f}%</b> | PAT: <b>{cagr_pat:+.1f}%</b> | ROE: <b>{roe_val:.1f}%</b> | OPM: <b>{opm_val:.1f}%</b><br/>"
+            f"• <b>Cash &amp; Solvency:</b> 5Y OCF/PAT: <b>{cum_conv:.1f}%</b> | D/E: <b>{de_val:.2f}x</b> | {bs_desc}<br/>"
+            f"• <b>Smart Money (4Q):</b> Prom: <b>{prom_now:.1f}%</b> | DII: <b>{dii_now:.1f}%</b> ({dii_chg:+.1f}%) | FII: <b>{fii_now:.1f}%</b> ({fii_chg:+.1f}%)",
             body_st
         ),
-        Spacer(1, 6),
+        Spacer(1, 4),
         Paragraph("<b>HISTORICAL P/E SPECTRUM (CURRENT vs. 3Y MEDIAN)</b>", sec_st),
-        Spacer(1, 2),
-        Image(buf_pe_gauge, width=248, height=52)
+        Spacer(1, 1.5),
+        Image(buf_pe_gauge, width=246, height=44)
     ]
 
     right_col = [
@@ -4775,7 +4864,7 @@ def generate_stock_tearsheet_pdf(
         f"<b>CYCLE CLOCK REGIME &amp; POSITION-SIZING VERDICT:</b> "
         f"<font color='{reg_col}'><b>{regime_lbl}</b></font><br/>"
         f"• <b>Portfolio Allocation:</b> <b>{wt_txt}</b> | Risk Budget: 0.50% max NAV risk per trade.<br/>"
-        f"• <b>Long-Term Valuation Anchor:</b> 28x DCF Exit Floor (<b>Rs. {dcf_targets[28.0]:,.0f}</b>) &amp; 200 SMA (<b>Rs. {sma200:,.0f}</b>) mark primary structural accumulation zones."
+        f"• <b>Valuation Anchor &amp; Invalidation:</b> 28x DCF Floor (<b>Rs. {dcf_targets[28.0]:,.0f}</b>) &amp; 200 SMA (<b>Rs. {sma200:,.0f}</b>) | Invalidate if OPM &lt; {opm_val*0.75:.1f}% or D/E &gt; {max(de_val*2.5, 0.25):.2f}x."
     )
     t_verdict = Table([[Paragraph(verdict_html, body_st)]], colWidths=[530])
     t_verdict.setStyle(TableStyle([
