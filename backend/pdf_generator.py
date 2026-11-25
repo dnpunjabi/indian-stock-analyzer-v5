@@ -4347,7 +4347,7 @@ def generate_stock_research_dossier_pdf(
         ('VALIGN', (0,0), (-1,-1), 'MIDDLE')
     ]))
 
-    t_left_val = Table([[Image(buf_football, width=280, height=64)], [Image(buf_pe_gauge, width=280, height=34)]], colWidths=[280])
+    t_left_val = Table([[Image(buf_football, width=280, height=58)], [Image(buf_pe_gauge, width=280, height=30)]], colWidths=[280])
     t_left_val.setStyle(TableStyle([('LEFTPADDING',(0,0),(-1,-1),0), ('RIGHTPADDING',(0,0),(-1,-1),0), ('TOPPADDING',(0,0),(-1,-1),0), ('BOTTOMPADDING',(0,0),(-1,-1),0)]))
     t_val_top = Table([[t_left_val, t_pe_spectrum]], colWidths=[285, 235])
     t_val_top.setStyle(TableStyle([
@@ -4359,6 +4359,44 @@ def generate_stock_research_dossier_pdf(
     ]))
     story.append(t_val_top)
     story.append(Spacer(1, 1.5))
+
+    # Reverse DCF: Market-Implied 5Y Earnings Growth Strip
+    try:
+        from backend.valuation_expectations import solve_implied_eps_growth
+        disc_r = max(wacc / 100.0, 0.08)
+        implied_g_flat = solve_implied_eps_growth(cmp_val, base_eps, discount_rate=disc_r, exit_pe=max(pe_val, 5.0), years=5)
+        implied_g_med = solve_implied_eps_growth(cmp_val, base_eps, discount_rate=disc_r, exit_pe=max(med_5y, 5.0), years=5)
+    except Exception:
+        implied_g_flat = 15.0
+        implied_g_med = 15.0
+
+    exp_gap = implied_g_flat - c_pat_f
+    if exp_gap > 3.0:
+        gap_col, gap_lbl = "#b91c1c", "Priced for Acceleration"
+    elif exp_gap < -3.0:
+        gap_col, gap_lbl = "#15803d", "Conservative / Margin of Safety"
+    else:
+        gap_col, gap_lbl = "#0284c7", "Aligned w/ History"
+
+    rev_dcf_strip = [[
+        Paragraph("<b>REVERSE DCF (MARKET-IMPLIED):</b>", ParagraphStyle('RDL', parent=meta_style, fontSize=5.8, leading=7.2, textColor=colors.HexColor("#0f172a"))),
+        Paragraph(f"<b>Flat {pe_val:.1f}x P/E:</b> {implied_g_flat:.1f}% 5Y CAGR", ParagraphStyle('RD1', parent=meta_style, fontSize=5.8, leading=7.2)),
+        Paragraph(f"<b>5Y Med {med_5y:.1f}x P/E:</b> {implied_g_med:.1f}% 5Y CAGR", ParagraphStyle('RD2', parent=meta_style, fontSize=5.8, leading=7.2)),
+        Paragraph(f"<b>vs. Hist {c_pat_f:.1f}%:</b> <font color='{gap_col}'><b>{exp_gap:+.1f}% ({gap_lbl})</b></font>", ParagraphStyle('RD3', parent=meta_style, fontSize=5.8, leading=7.2)),
+    ]]
+    t_rev_dcf = Table(rev_dcf_strip, colWidths=[122, 118, 125, 155])
+    t_rev_dcf.setStyle(TableStyle([
+        ('BACKGROUND', (0,0), (-1,-1), colors.HexColor("#f1f5f9")),
+        ('BOX', (0,0), (-1,-1), 0.5, colors.HexColor("#cbd5e1")),
+        ('LINEBEFORE', (1,0), (-1,-1), 0.4, colors.HexColor("#cbd5e1")),
+        ('TOPPADDING', (0,0), (-1,-1), 1.2),
+        ('BOTTOMPADDING', (0,0), (-1,-1), 1.2),
+        ('LEFTPADDING', (0,0), (-1,-1), 4),
+        ('RIGHTPADDING', (0,0), (-1,-1), 4),
+        ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
+    ]))
+    story.append(t_rev_dcf)
+    story.append(Spacer(1, 1.0))
 
     story.append(Paragraph("<b>INTRINSIC VALUATION: TRIPARTITE 5-YEAR DCF MODEL &amp; CASH FLOW SCHEDULE</b>", sec_header_style))
     story.append(Spacer(1, 1.5))
@@ -4557,7 +4595,7 @@ def generate_stock_research_dossier_pdf(
             fwd_cagr_nom = 0.0
 
     buf_dcf_heatmap = _generate_dcf_sensitivity_heatmap(pv_5y_val, term_op_val, net_cash_val, shares_count, wacc, cmp_val)
-    story.append(Image(buf_dcf_heatmap, width=520, height=72))
+    story.append(Image(buf_dcf_heatmap, width=520, height=62))
     story.append(Spacer(1, 1.5))
 
     sens_html = (
