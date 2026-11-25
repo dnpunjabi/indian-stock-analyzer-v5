@@ -4706,8 +4706,15 @@ def generate_stock_tearsheet_pdf(
     net_cash = info["net_cash"]
     borrowings = info["borrowings"]
     investments = info["investments"]
+    y_labels = info["y_labels"]
+    y_rev = info["y_rev"]
+    y_op = info["y_op"]
     y_pat = info["y_pat"]
     y_ocf = info["y_ocf"]
+    pv_5y = info.get("pv_5y", 5000.0)
+    term_op = info.get("term_op", 2000.0)
+    shares_count = info.get("shares_count", 100.0)
+    base_eps = info.get("base_eps", 10.0)
     cagr_sales = info["cagr_sales"].real if isinstance(info["cagr_sales"], complex) else float(info["cagr_sales"])
     cagr_pat = info["cagr_pat"].real if isinstance(info["cagr_pat"], complex) else float(info["cagr_pat"])
     med_1y = info.get("med_1y", pe_val)
@@ -4875,7 +4882,7 @@ def generate_stock_tearsheet_pdf(
         sma50_target=sma50,
         sma200_target=sma200
     )
-    story.append(Image(buf_ts_1y, width=530, height=106))
+    story.append(Image(buf_ts_1y, width=530, height=120))
     story.append(Spacer(1, 3))
 
     # Fetch Cached AI Intelligence (Moat, Capex, 30-Day Catalysts)
@@ -5084,7 +5091,83 @@ def generate_stock_tearsheet_pdf(
         ('RIGHTPADDING', (0,0), (-1,-1), 7),
     ]))
     story.append(t_grid)
-    story.append(Spacer(1, 5))
+    story.append(Spacer(1, 4))
+
+    # 3b. Side-by-Side 5Y Compounding/Cash Conversion Chart & 2D DCF Sensitivity Heatmap
+    y_lbl_ts = y_labels[-5:] if len(y_labels) >= 5 else ['Yr 1', 'Yr 2', 'Yr 3', 'Yr 4', 'Yr 5']
+    y_rev_ts = y_rev[-5:] if len(y_rev) >= 5 else [10000.0]*5
+    y_op_ts = y_op[-5:] if len(y_op) >= 5 else [2000.0]*5
+    y_pat_ts = y_pat[-5:] if len(y_pat) >= 5 else [1500.0]*5
+    y_ocf_ts = y_ocf[-5:] if len(y_ocf) >= 5 else [1400.0]*5
+    buf_ts_5y = _generate_annual_compounding_chart(y_lbl_ts, y_rev_ts, y_op_ts, y_pat_ts, y_ocf_ts)
+    buf_ts_dcf = _generate_dcf_sensitivity_heatmap(pv_5y, term_op, net_cash, shares_count, wacc, cmp_val)
+
+    t_vis_strip = Table(
+        [
+            [Paragraph("5-YEAR COMPOUNDING &amp; OCF/PAT % CASH CONVERSION", th_st), Paragraph("2D DCF SENSITIVITY MATRIX (WACC vs. EXIT MULTIPLE)", th_st)],
+            [Image(buf_ts_5y, width=256, height=76), Image(buf_ts_dcf, width=262, height=76)]
+        ],
+        colWidths=[262, 268]
+    )
+    t_vis_strip.setStyle(TableStyle([
+        ('BACKGROUND', (0,0), (-1,0), colors.HexColor("#0f172a")),
+        ('BOX', (0,0), (0,-1), 0.5, colors.HexColor("#cbd5e1")),
+        ('BOX', (1,0), (1,-1), 0.5, colors.HexColor("#cbd5e1")),
+        ('BACKGROUND', (0,1), (-1,1), colors.HexColor("#ffffff")),
+        ('TOPPADDING', (0,0), (-1,-1), 1.5),
+        ('BOTTOMPADDING', (0,0), (-1,-1), 1.5),
+        ('LEFTPADDING', (0,0), (-1,-1), 2),
+        ('RIGHTPADDING', (0,0), (-1,-1), 2),
+        ('ALIGN', (0,0), (-1,-1), 'CENTER'),
+        ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
+    ]))
+    story.append(t_vis_strip)
+    story.append(Spacer(1, 4))
+
+    # 3c. Multi-Horizon Forward Price Targets (1Y / 3Y / 5Y) & Reverse DCF Hurdle
+    term_pe_ts = min(max(round(base_target / max(base_eps, 0.1) * 0.65, 1), 28.0), 35.0)
+    proj_cagr_ts = max(min(max(cagr_pat / 100.0, cagr_sales / 100.0), 0.16), -0.9)
+    pe_1y_ts = round(pe_val - (pe_val - term_pe_ts) * 0.25, 1) if pe_val > term_pe_ts else pe_val
+    pe_3y_ts = round(pe_val - (pe_val - term_pe_ts) * 0.60, 1) if pe_val > term_pe_ts else term_pe_ts
+    fwd_1y_ts = round(base_eps * (1.0 + proj_cagr_ts) * pe_1y_ts)
+    fwd_3y_ts = round(base_eps * ((1.0 + proj_cagr_ts)**3) * pe_3y_ts)
+    fwd_5y_ts = round(base_eps * ((1.0 + proj_cagr_ts)**5) * term_pe_ts)
+    fwd_5y_pv_ts = round(fwd_5y_ts / ((1.0 + wacc / 100.0)**5))
+    comp_hurdle_ts = 16.0
+    if base_eps > 0 and cmp_val > 0:
+        try:
+            hr = (cmp_val / 25.0) / base_eps
+            if hr > 0:
+                comp_hurdle_ts = float(((hr ** 0.2 - 1.0) * 100.0).real)
+        except Exception:
+            pass
+
+    fwd_strip = [
+        [
+            Paragraph(f"1Y TARGET (@ {pe_1y_ts:.0f}x PE)", th_st),
+            Paragraph(f"3Y TARGET (@ {pe_3y_ts:.0f}x PE)", th_st),
+            Paragraph(f"5Y TARGET (@ {term_pe_ts:.0f}x PE)", th_st),
+            Paragraph("REVERSE DCF HURDLE (5Y)", th_st)
+        ],
+        [
+            Paragraph(f"<b>Rs. {fwd_1y_ts:,.0f}</b> ({((fwd_1y_ts-cmp_val)/cmp_val*100):+.1f}%)", td_num),
+            Paragraph(f"<b>Rs. {fwd_3y_ts:,.0f}</b> ({((fwd_3y_ts-cmp_val)/cmp_val*100):+.1f}%)", td_num),
+            Paragraph(f"<b>Rs. {fwd_5y_ts:,.0f}</b> ({((fwd_5y_ts-cmp_val)/cmp_val*100):+.1f}% | PV: Rs. {fwd_5y_pv_ts:,.0f})", td_num),
+            Paragraph(f"Requires <b>+{comp_hurdle_ts:.1f}%/yr</b> EPS CAGR", td_num)
+        ]
+    ]
+    t_fwd_ts = Table(fwd_strip, colWidths=[115, 115, 165, 135])
+    t_fwd_ts.setStyle(TableStyle([
+        ('BACKGROUND', (0,0), (-1,0), colors.HexColor("#1e293b")),
+        ('GRID', (0,0), (-1,-1), 0.4, colors.HexColor("#cbd5e1")),
+        ('BACKGROUND', (0,1), (-1,1), colors.HexColor("#f8fafc")),
+        ('TOPPADDING', (0,0), (-1,-1), 2),
+        ('BOTTOMPADDING', (0,0), (-1,-1), 2),
+        ('ALIGN', (0,0), (-1,-1), 'CENTER'),
+        ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
+    ]))
+    story.append(t_fwd_ts)
+    story.append(Spacer(1, 4))
 
     # 4. Cycle Clock Verdict & Position-Sizing Strip
     verdict_html = (
