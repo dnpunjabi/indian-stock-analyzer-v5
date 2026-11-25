@@ -3071,15 +3071,16 @@ async def get_portfolio_catalyst_pdf(download: bool = Query(False)):
 async def get_stock_research_dossier_pdf_endpoint(
     symbol: str, 
     download: bool = Query(True), 
-    force_refresh: bool = False
+    force_refresh: bool = False,
+    format: str = Query("full")
 ):
     """
-    Generates or retrieves the 6-page Institutional Equity Research Dossier (PDF).
-    Features 6M price/RSI charts, 8Q performance heatmap, DuPont decomposition,
-    5Y valuation & reverse DCF models, SerpAPI news, and dual-horizon trade matrix.
+    Generates or retrieves the 6-page Institutional Equity Research Dossier (PDF)
+    or the 1-page Executive Tear Sheet when format=tearsheet.
     Fast L1 disk-caching serves subsequent requests in < 50ms.
     """
     clean_sym = symbol.strip().upper().replace(".NS", "").replace(".BO", "")
+    is_tearsheet = format.strip().lower() in ("tearsheet", "ts", "1page", "summary")
     reports_dir = os.path.join("data", "reports", "stocks")
     os.makedirs(reports_dir, exist_ok=True)
 
@@ -3090,7 +3091,8 @@ async def get_stock_research_dossier_pdf_endpoint(
     except Exception:
         pass
 
-    pdf_path = os.path.join(reports_dir, f"{clean_sym}_Institutional_Dossier.pdf")
+    suffix = "Executive_TearSheet.pdf" if is_tearsheet else "Institutional_Dossier.pdf"
+    pdf_path = os.path.join(reports_dir, f"{clean_sym}_{suffix}")
 
     # Check cache freshness (valid for 4 hours)
     needs_gen = force_refresh or not os.path.exists(pdf_path)
@@ -3101,8 +3103,12 @@ async def get_stock_research_dossier_pdf_endpoint(
 
     if needs_gen:
         try:
-            from backend.pdf_generator import generate_stock_research_dossier_pdf
-            await asyncio.to_thread(generate_stock_research_dossier_pdf, clean_sym, pdf_path)
+            if is_tearsheet:
+                from backend.pdf_generator import generate_stock_tearsheet_pdf
+                await asyncio.to_thread(generate_stock_tearsheet_pdf, clean_sym, pdf_path)
+            else:
+                from backend.pdf_generator import generate_stock_research_dossier_pdf
+                await asyncio.to_thread(generate_stock_research_dossier_pdf, clean_sym, pdf_path)
         except Exception as e:
             logger.error(f"[STOCK PDF ENDPOINT] Failed to generate PDF for {clean_sym}: {e}", exc_info=True)
             if not os.path.exists(pdf_path):
@@ -3113,12 +3119,27 @@ async def get_stock_research_dossier_pdf_endpoint(
 
     from fastapi.responses import FileResponse
     disposition = "attachment" if download else "inline"
-    filename = f"{clean_sym}_Institutional_Research_Dossier.pdf"
+    filename = f"{clean_sym}_{suffix}"
     return FileResponse(
         path=pdf_path,
         media_type="application/pdf",
         filename=filename,
         headers={"Content-Disposition": f'{disposition}; filename="{filename}"'}
+    )
+
+
+@app.get("/api/stocks/{symbol}/tearsheet")
+async def get_stock_tearsheet_pdf_endpoint(
+    symbol: str,
+    download: bool = Query(True),
+    force_refresh: bool = False
+):
+    """Direct Desktop/Mobile endpoint for the 1-Page Executive Tear Sheet (PDF)."""
+    return await get_stock_research_dossier_pdf_endpoint(
+        symbol=symbol,
+        download=download,
+        force_refresh=force_refresh,
+        format="tearsheet"
     )
 
 

@@ -4451,3 +4451,294 @@ def generate_stock_research_dossier_pdf(
 
     doc.build(story, canvasmaker=canvas_maker)
     return output_path
+
+
+def generate_stock_tearsheet_pdf(
+    symbol: str,
+    output_path: Optional[str] = None,
+    watermark: str = "",
+    firm_name: str = "APEXQUANT INSTITUTIONAL DESK",
+    analyst_name: str = "",
+    license_no: str = ""
+) -> str:
+    """
+    Generates a dense, mobile- & WhatsApp-friendly 1-Page Executive Tear Sheet (PDF).
+    Consolidates Valuation Triad, Moat, Capex Roadmap, 30-Day Catalysts,
+    Cycle Clock Regime & Position-Sizing, Historical P/E Gauge, and Swing Levels.
+    """
+    info = _extract_dossier_intelligence(symbol)
+    clean_sym = info["clean_sym"]
+    comp_name = info["comp_name"]
+    sector = info["sector"]
+    cmp_val = info["cmp_val"]
+    low_52w = info["low_52w"]
+    high_52w = info["high_52w"]
+    mcap_val = info["mcap_val"]
+    pe_val = info["pe_val"]
+    roce_val = info["roce_val"]
+    de_val = info["de_val"]
+    cfo_pat = info["cfo_pat"]
+    sma20 = info["sma20"]
+    sma50 = info["sma50"]
+    sma200 = info["sma200"]
+    beta = info["beta"]
+    dcf_targets = info["dcf_targets"]
+    base_target = info.get("base_target", dcf_targets[30.0])
+    bear_target = info.get("bear_target", cmp_val * 0.85)
+    bull_target = info.get("bull_target", cmp_val * 1.35)
+    bear_pct = info.get("bear_pct", -15.0)
+    base_pct = info.get("base_pct", 18.0)
+    bull_pct = info.get("bull_pct", 38.0)
+    rr_ratio = info.get("rr_ratio", 2.5)
+    score_val = info["score_val"]
+    net_cash = info["net_cash"]
+    borrowings = info["borrowings"]
+    investments = info["investments"]
+    y_pat = info["y_pat"]
+    y_ocf = info["y_ocf"]
+    cagr_sales = info["cagr_sales"].real if isinstance(info["cagr_sales"], complex) else float(info["cagr_sales"])
+    cagr_pat = info["cagr_pat"].real if isinstance(info["cagr_pat"], complex) else float(info["cagr_pat"])
+    med_3y = info.get("med_3y", pe_val)
+    pe_b = info.get("pe_bands", {})
+    pe_b_min = float(pe_b.get("min_pe") or (pe_val * 0.8))
+    pe_b_max = float(pe_b.get("max_pe") or (pe_val * 1.2))
+    peer_rows = info.get("peer_rows", [])
+
+    if not output_path:
+        reports_dir = os.path.join("data", "reports", "stocks")
+        os.makedirs(reports_dir, exist_ok=True)
+        output_path = os.path.join(reports_dir, f"{clean_sym}_Executive_TearSheet.pdf")
+
+    now_display = datetime.now().strftime("%d %b %Y")
+    doc = SimpleDocTemplate(
+        output_path,
+        pagesize=A4,
+        leftMargin=32,
+        rightMargin=32,
+        topMargin=42,
+        bottomMargin=26,
+        title=f"{clean_sym} - 1-Page Executive Tear Sheet",
+        author=analyst_name or firm_name,
+        subject=f"1-Page Executive Equity Tear Sheet - {comp_name}"
+    )
+
+    styles = getSampleStyleSheet()
+    title_st = ParagraphStyle('TSTitle', parent=styles['Normal'], fontName='Helvetica-Bold', fontSize=12.5, leading=15, textColor=colors.HexColor("#0f172a"))
+    sub_st = ParagraphStyle('TSSub', parent=styles['Normal'], fontName='Helvetica-Bold', fontSize=7.2, leading=9.5, textColor=colors.HexColor("#0284c7"))
+    meta_st = ParagraphStyle('TSMeta', parent=styles['Normal'], fontName='Helvetica', fontSize=6.5, leading=8.2, textColor=colors.HexColor("#64748b"))
+    sec_st = ParagraphStyle('TSSec', parent=styles['Normal'], fontName='Helvetica-Bold', fontSize=7.6, leading=9.8, textColor=colors.HexColor("#0f172a"))
+    body_st = ParagraphStyle('TSBody', parent=styles['Normal'], fontName='Helvetica', fontSize=6.8, leading=8.9, textColor=colors.HexColor("#334155"))
+    th_st = ParagraphStyle('TSTH', parent=styles['Normal'], fontName='Helvetica-Bold', fontSize=6.4, leading=8.2, textColor=colors.white, alignment=1)
+    td_num = ParagraphStyle('TSTDNum', parent=styles['Normal'], fontName='Helvetica', fontSize=7.2, leading=9.2, textColor=colors.HexColor("#0f172a"), alignment=1)
+
+    story = []
+
+    # 1. Executive Header Banner
+    hdr_left = Paragraph(
+        f"<b>{comp_name.upper()} ({clean_sym})</b><br/>"
+        f"<font color='#0284c7' size='7.5'><b>1-PAGE EXECUTIVE TEAR SHEET • {sector.upper()}</b></font><br/>"
+        f"<font color='#64748b' size='6.2'>M-Cap: <b>Rs. {mcap_val:,.0f} Cr</b> | P/E: <b>{pe_val:.1f}x</b> | ROCE: <b>{roce_val:.1f}%</b> | Beta: <b>{beta:.2f}x</b> | 52W: Rs. {low_52w:,.0f}–{high_52w:,.0f}</font>",
+        title_st
+    )
+    upside_col = "#15803d" if base_pct >= 0 else "#dc2626"
+    hdr_right = Paragraph(
+        f"<font size='7' color='#64748b'><b>CMP (NSE)</b></font><br/>"
+        f"<font size='12.5' color='#0f172a'><b>Rs. {cmp_val:,.2f}</b></font><br/>"
+        f"<font size='7' color='{upside_col}'><b>Base Fair Value: Rs. {base_target:,.0f} ({base_pct:+.1f}%)</b></font>",
+        ParagraphStyle('TSHdrR', parent=meta_st, alignment=2, leading=11)
+    )
+    t_hdr = Table([[hdr_left, hdr_right]], colWidths=[370, 160])
+    t_hdr.setStyle(TableStyle([
+        ('BACKGROUND', (0,0), (-1,-1), colors.HexColor("#f8fafc")),
+        ('BOX', (0,0), (-1,-1), 0.75, colors.HexColor("#cbd5e1")),
+        ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
+        ('TOPPADDING', (0,0), (-1,-1), 5),
+        ('BOTTOMPADDING', (0,0), (-1,-1), 5),
+        ('LEFTPADDING', (0,0), (-1,-1), 7),
+        ('RIGHTPADDING', (0,0), (-1,-1), 7),
+    ]))
+    story.append(t_hdr)
+    story.append(Spacer(1, 5))
+
+    # 2. Target Price Triad & Score Bar
+    triad_data = [
+        [
+            Paragraph("COMPOSITE SCORE", th_st),
+            Paragraph("BEAR FLOOR (25x)", th_st),
+            Paragraph("BASE DCF FAIR VALUE", th_st),
+            Paragraph("BULL EXPANSION", th_st),
+            Paragraph("RISK / REWARD", th_st)
+        ],
+        [
+            Paragraph(f"<font color='#0f172a'><b>{score_val:.1f} / 100</b></font>", td_num),
+            Paragraph(f"<font color='#dc2626'><b>Rs. {bear_target:,.0f} ({bear_pct:+.1f}%)</b></font>", td_num),
+            Paragraph(f"<font color='#0284c7'><b>Rs. {base_target:,.0f} ({base_pct:+.1f}%)</b></font>", td_num),
+            Paragraph(f"<font color='#15803d'><b>Rs. {bull_target:,.0f} ({bull_pct:+.1f}%)</b></font>", td_num),
+            Paragraph(f"<b>{rr_ratio:.2f} : 1</b>", td_num)
+        ]
+    ]
+    t_triad = Table(triad_data, colWidths=[95, 110, 120, 115, 90])
+    t_triad.setStyle(TableStyle([
+        ('BACKGROUND', (0,0), (-1,0), colors.HexColor("#0f172a")),
+        ('GRID', (0,0), (-1,-1), 0.5, colors.HexColor("#cbd5e1")),
+        ('BACKGROUND', (0,1), (-1,1), colors.HexColor("#ffffff")),
+        ('TOPPADDING', (0,0), (-1,-1), 3),
+        ('BOTTOMPADDING', (0,0), (-1,-1), 3),
+        ('ALIGN', (0,0), (-1,-1), 'CENTER'),
+        ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
+    ]))
+    story.append(t_triad)
+    story.append(Spacer(1, 5))
+
+    # Fetch Cached AI Intelligence (Moat, Capex, 30-Day Catalysts)
+    peer_names = [pr.get("label", "").replace(" (Target)", "") for pr in peer_rows[:3] if not pr.get("is_target")]
+    moat_intel = get_dossier_moat_intelligence(clean_sym, comp_name, sector, peers=peer_names)
+    capex_intel = get_dossier_capex_guidance(clean_sym, comp_name, sector)
+    cat_intel = get_dossier_recent_catalysts(clean_sym, comp_name, sector)
+
+    # Cash Conversion & Balance Sheet metrics
+    cum_5y_pat = sum(y_pat[-5:]) if y_pat else 5000.0
+    cum_5y_ocf = sum(y_ocf[-5:]) if y_ocf else 4500.0
+    cum_conv = (cum_5y_ocf / cum_5y_pat * 100.0) if cum_5y_pat > 0 else (cfo_pat * 100.0)
+    bs_desc = f"Net Cash: Rs. {investments - borrowings:,.0f} Cr" if investments >= borrowings else f"Net Debt: Rs. {borrowings - investments:,.0f} Cr"
+
+    # Swing Setup metrics
+    brk_el = min(sma50, sma20) if sma50 > 0 else (cmp_val * 0.96)
+    brk_eh = max(sma50, sma20) if sma20 > 0 else (cmp_val * 0.99)
+    brk_stop = round(brk_el * 0.98, 0)
+    brk_t1 = high_52w
+    brk_t2 = round(high_52w * 1.072, 0)
+
+    # Cycle Clock Regime & Position-Sizing
+    spread_200 = ((cmp_val - sma200) / sma200 * 100.0) if sma200 > 0 else 5.0
+    if spread_200 >= 0 and cagr_pat >= 0:
+        regime_lbl = "STAGE 2 COMPOUNDER (HIGH CONVICTION)"
+        reg_col = "#15803d"
+        wt_txt = "4.5%–6.0% Core Allocation (3.0% Starter @ CMP + 2.5% on 20 EMA Dip)"
+    elif spread_200 < 0 and cagr_pat >= 0:
+        regime_lbl = "TURNAROUND WATCH (EARNINGS RECOVERING)"
+        reg_col = "#0369a1"
+        wt_txt = "2.5%–4.0% Allocation (1.5% Starter @ Support + Add above 200 SMA)"
+    elif spread_200 >= 0 and cagr_pat < 0:
+        regime_lbl = "LATE-CYCLE EXTENDED (TACTICAL HOLD)"
+        reg_col = "#b45309"
+        wt_txt = "2.0%–3.5% Core Hold (Await Earnings Re-Acceleration)"
+    else:
+        regime_lbl = "STAGE 4 CAUTION (DEFENSIVE WATCHLIST)"
+        reg_col = "#b91c1c"
+        wt_txt = "0.5%–1.5% Watchlist Only (Require 200 SMA Reclaim)"
+
+    buf_pe_gauge = _generate_pe_band_gauge(pe_val, pe_b_min, med_3y, pe_b_max)
+
+    # 3. Two-Column Executive Body
+    left_col = [
+        Paragraph("<b>COMPETITIVE MOAT &amp; MARKET POWER</b>", sec_st),
+        Spacer(1, 2),
+        Paragraph(
+            f"• <b>Market Scale:</b> {moat_intel['market_share_scale']}<br/>"
+            f"• <b>Pricing Power:</b> {moat_intel['moat_pricing_power']}",
+            body_st
+        ),
+        Spacer(1, 6),
+        Paragraph("<b>5-YEAR COMPOUNDING &amp; BALANCE SHEET</b>", sec_st),
+        Spacer(1, 2),
+        Paragraph(
+            f"• <b>Growth Profile:</b> 4Y Sales CAGR: <b>{cagr_sales:+.1f}%</b> | 4Y PAT CAGR: <b>{cagr_pat:+.1f}%</b><br/>"
+            f"• <b>Cash Realization:</b> 5Y Cumulative OCF/PAT: <b>{cum_conv:.1f}%</b> (TTM: {cfo_pat:.2f}x)<br/>"
+            f"• <b>Capital Structure:</b> D/E: <b>{de_val:.2f}x</b> | {bs_desc} | 200 SMA: Rs. {sma200:,.0f}",
+            body_st
+        ),
+        Spacer(1, 6),
+        Paragraph("<b>HISTORICAL P/E SPECTRUM (CURRENT vs. 3Y MEDIAN)</b>", sec_st),
+        Spacer(1, 2),
+        Image(buf_pe_gauge, width=248, height=52)
+    ]
+
+    right_col = [
+        Paragraph("<b>TACTICAL SWING LEVELS (2–8 WEEKS)</b>", sec_st),
+        Spacer(1, 2),
+        Paragraph(
+            f"• <b>Pullback Buy Zone:</b> <font color='#b45309'><b>Rs. {brk_el:,.0f} – {brk_eh:,.0f}</b></font> (20 EMA / 50 SMA)<br/>"
+            f"• <b>Strict Stop Loss:</b> <font color='#dc2626'><b>Rs. {brk_stop:,.0f}</b></font> (-{((cmp_val-brk_stop)/cmp_val*100):.1f}% below CMP)<br/>"
+            f"• <b>Targets:</b> <font color='#15803d'><b>T1: Rs. {brk_t1:,.0f} ({((brk_t1-cmp_val)/cmp_val*100):+.1f}%) • T2: Rs. {brk_t2:,.0f} ({((brk_t2-cmp_val)/cmp_val*100):+.1f}%)</b></font>",
+            body_st
+        ),
+        Spacer(1, 6),
+        Paragraph("<b>RECENT 30-DAY MATERIAL CATALYSTS (LIVE NEWS)</b>", sec_st),
+        Spacer(1, 2),
+        Paragraph(
+            f"• <b>Earnings Pulse:</b> {cat_intel['earnings_operating_surprise']}<br/>"
+            f"• <b>Corporate Actions:</b> {cat_intel['corporate_capital_actions']}<br/>"
+            f"• <b>Market Reaction:</b> {cat_intel['capacity_market_dynamics']}",
+            body_st
+        ),
+        Spacer(1, 6),
+        Paragraph("<b>STRATEGIC CAPEX &amp; EXPANSION ROADMAP</b>", sec_st),
+        Spacer(1, 2),
+        Paragraph(
+            f"• <b>Capacity Target:</b> {capex_intel['capacity_target']}<br/>"
+            f"• <b>Capex &amp; Funding:</b> {capex_intel['capex_outlay']} {capex_intel['funding_margin']}",
+            body_st
+        )
+    ]
+
+    t_grid = Table([[left_col, right_col]], colWidths=[262, 268])
+    t_grid.setStyle(TableStyle([
+        ('VALIGN', (0,0), (-1,-1), 'TOP'),
+        ('BOX', (0,0), (0,0), 0.5, colors.HexColor("#cbd5e1")),
+        ('BOX', (1,0), (1,0), 0.5, colors.HexColor("#cbd5e1")),
+        ('BACKGROUND', (0,0), (-1,-1), colors.HexColor("#ffffff")),
+        ('TOPPADDING', (0,0), (-1,-1), 6),
+        ('BOTTOMPADDING', (0,0), (-1,-1), 6),
+        ('LEFTPADDING', (0,0), (-1,-1), 7),
+        ('RIGHTPADDING', (0,0), (-1,-1), 7),
+    ]))
+    story.append(t_grid)
+    story.append(Spacer(1, 5))
+
+    # 4. Cycle Clock Verdict & Position-Sizing Strip
+    verdict_html = (
+        f"<b>CYCLE CLOCK REGIME &amp; POSITION-SIZING VERDICT:</b> "
+        f"<font color='{reg_col}'><b>{regime_lbl}</b></font><br/>"
+        f"• <b>Portfolio Allocation:</b> <b>{wt_txt}</b> | Risk Budget: 0.50% max NAV risk per trade.<br/>"
+        f"• <b>Long-Term Valuation Anchor:</b> 28x DCF Exit Floor (<b>Rs. {dcf_targets[28.0]:,.0f}</b>) &amp; 200 SMA (<b>Rs. {sma200:,.0f}</b>) mark primary structural accumulation zones."
+    )
+    t_verdict = Table([[Paragraph(verdict_html, body_st)]], colWidths=[530])
+    t_verdict.setStyle(TableStyle([
+        ('BACKGROUND', (0,0), (-1,-1), colors.HexColor("#f0f9ff")),
+        ('BOX', (0,0), (-1,-1), 0.6, colors.HexColor("#7dd3fc")),
+        ('TOPPADDING', (0,0), (-1,-1), 4),
+        ('BOTTOMPADDING', (0,0), (-1,-1), 4),
+        ('LEFTPADDING', (0,0), (-1,-1), 7),
+        ('RIGHTPADDING', (0,0), (-1,-1), 7),
+    ]))
+    story.append(t_verdict)
+    story.append(Spacer(1, 4))
+
+    # 5. Regulatory Disclaimer
+    disc_html = (
+        f"<b>REGULATORY NOTICE:</b> Synthesized via quantitative models, audited filings, and live news feeds ({now_display}). "
+        f"For institutional research &amp; personal portfolio analysis only; not SEBI-registered investment advice."
+    )
+    t_disc = Table([[Paragraph(disc_html, meta_st)]], colWidths=[530])
+    t_disc.setStyle(TableStyle([
+        ('BACKGROUND', (0,0), (-1,-1), colors.HexColor("#f8fafc")),
+        ('BOX', (0,0), (-1,-1), 0.5, colors.HexColor("#cbd5e1")),
+        ('TOPPADDING', (0,0), (-1,-1), 3),
+        ('BOTTOMPADDING', (0,0), (-1,-1), 3),
+        ('LEFTPADDING', (0,0), (-1,-1), 6),
+        ('RIGHTPADDING', (0,0), (-1,-1), 6),
+    ]))
+    story.append(t_disc)
+
+    canvas_maker = StockDossierNumberedCanvas
+    canvas_maker.dossier_symbol = clean_sym
+    canvas_maker.dossier_cmp = f"{cmp_val:,.2f}"
+    canvas_maker.dossier_date = now_display
+    canvas_maker.dossier_watermark = watermark
+    canvas_maker.dossier_firm = firm_name
+    canvas_maker.dossier_analyst = analyst_name
+    canvas_maker.dossier_license = license_no
+
+    doc.build(story, canvasmaker=canvas_maker)
+    return output_path

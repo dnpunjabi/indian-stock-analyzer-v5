@@ -921,8 +921,8 @@ def handle_stock_dossier_pdf(symbol_input: str, recipient: Optional[str] = None)
         return send_whatsapp_interactive_buttons(
             f"⚡ *{clean_sym} Quick Follow-Ups*:",
             buttons=[
+                (f"act:stock:ts:{clean_sym}", f"⚡ 1-Page Tear Sheet"),
                 (f"run:chart:{clean_sym}", f"📊 Live Chart"),
-                (f"run:stage:{clean_sym}", f"📐 Stage Setup"),
                 ("nav:menu:main", "🏠 Main Menu")
             ],
             recipient=recipient
@@ -935,6 +935,72 @@ def handle_stock_dossier_pdf(symbol_input: str, recipient: Optional[str] = None)
             f"💡 Please check the ticker spelling or try again in a few moments."
         )
         return send_whatsapp_text(err_msg, recipient=recipient)
+
+
+def handle_stock_tearsheet_pdf(symbol_input: str, recipient: Optional[str] = None) -> Dict[str, Any]:
+    """
+    Generates and dispatches the mobile-friendly 1-Page Executive Tear Sheet (PDF)
+    directly to WhatsApp via Meta Cloud API Document endpoint.
+    """
+    clean_sym = re.sub(r"^(?:TS|TEARSHEET|QUICK|SUMMARY)[\s:\-_/]+|run:stock_ts:|act:stock:ts:", "", symbol_input, flags=re.IGNORECASE).strip().upper()
+    clean_sym = clean_sym.replace(".NS", "").replace(".BO", "")
+    try:
+        from backend.financial_utils import resolve_company_ticker
+        resolved = resolve_company_ticker(clean_sym)
+        if resolved and resolved.get("base_symbol"):
+            clean_sym = resolved["base_symbol"].replace(".NS", "").replace(".BO", "")
+    except Exception:
+        pass
+    if not clean_sym:
+        clean_sym = "RELIANCE"
+
+    try:
+        ack_body = (
+            f"⚡ *Compiling 1-Page Executive Tear Sheet for {clean_sym}...*\n"
+            f"───────────────────────────\n"
+            f"• Valuation Triad & Historical P/E Gauge\n"
+            f"• Competitive Moat, Capex Roadmap & 30-Day Live Catalysts\n"
+            f"• Cycle Clock Regime & Quant Position-Sizing\n\n"
+            f"📲 *Dispatching lightweight 1-page PDF in a moment...*"
+        )
+        send_whatsapp_text(ack_body, recipient=recipient)
+
+        from backend.pdf_generator import generate_stock_tearsheet_pdf, cleanup_stale_reports
+        reports_dir = os.path.join("data", "reports", "stocks")
+        os.makedirs(reports_dir, exist_ok=True)
+        cleanup_stale_reports(reports_dir, max_age_secs=86400)
+        pdf_path = os.path.join(reports_dir, f"{clean_sym}_Executive_TearSheet.pdf")
+
+        needs_gen = not os.path.exists(pdf_path) or ((time.time() - os.path.getmtime(pdf_path)) > 14400)
+        if needs_gen:
+            generate_stock_tearsheet_pdf(clean_sym, pdf_path)
+
+        caption = (
+            f"⚡ *APEXQUANT • {clean_sym} 1-PAGE EXECUTIVE TEAR SHEET*\n"
+            f"Mobile-Optimized Decision Cockpit (Triad, Moat, Capex, 30-Day Catalysts, Cycle Clock & Swing Levels)."
+        )
+        send_whatsapp_document(
+            file_path=pdf_path,
+            caption=caption,
+            filename=f"{clean_sym}_Executive_TearSheet.pdf",
+            recipient=recipient
+        )
+
+        return send_whatsapp_interactive_buttons(
+            f"⚡ *{clean_sym} Quick Follow-Ups*:",
+            buttons=[
+                (f"act:stock:pdf:{clean_sym}", f"📚 Full 6-Page Dossier"),
+                (f"run:chart:{clean_sym}", f"📊 Live Chart"),
+                ("nav:menu:main", "🏠 Main Menu")
+            ],
+            recipient=recipient
+        )
+    except Exception as e:
+        logger.error(f"[WHATSAPP TEARSHEET PDF] Exception for {clean_sym}: {e}", exc_info=True)
+        return send_whatsapp_text(
+            f"⚠️ *Could not compile 1-Page Tear Sheet for {clean_sym}*\n\nError: `{str(e)}`",
+            recipient=recipient
+        )
 
 
 
@@ -9216,6 +9282,19 @@ def dispatch_incoming_whatsapp_message(text_body: str, sender: Optional[str] = N
 
     if upper in ["GUIDE PDF", "PDF GUIDE", "CHEAT SHEET PDF", "COMMANDS PDF", "HELP PDF"]:
         return handle_send_guide_pdf(recipient=sender)
+
+    # 0a-bis. 1-Page Executive Tear Sheet Commands & Callbacks (e.g. TS JSWINFRA, TEARSHEET TCS, QUICK RELIANCE, act:stock:ts:BOSCHLTD)
+    if (
+        cleaned.startswith("act:stock:ts:")
+        or cleaned.startswith("run:stock_ts:")
+        or upper.startswith("TS ")
+        or upper.startswith("TEARSHEET ")
+        or upper.startswith("QUICK ")
+        or upper.startswith("SUMMARY ")
+    ):
+        raw_sym = re.sub(r"^(?:TS|TEARSHEET|QUICK|SUMMARY)[\s:]+|act:stock:ts:|run:stock_ts:", "", cleaned, flags=re.IGNORECASE).strip()
+        if raw_sym:
+            return handle_stock_tearsheet_pdf(raw_sym, recipient=sender)
 
     # 0a. Stock Research Dossier PDF Commands & Callbacks (e.g. PDF TCS, REPORT RELIANCE, act:stock:pdf:BOSCHLTD)
     if (
