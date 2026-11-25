@@ -6481,7 +6481,7 @@ def _evaluate_post_result_swing_setup(
     try:
         import yfinance as yf
         import numpy as np
-        hist = yf.Ticker(lookup_ticker).history(period="3mo", interval="1d")
+        hist = yf.Ticker(lookup_ticker).history(period="1y", interval="1d")
         if hist is None or hist.empty or len(hist) < 22:
             return ""
         close = hist["Close"].astype(float)
@@ -6498,6 +6498,8 @@ def _evaluate_post_result_swing_setup(
 
         ema20 = float(close.ewm(span=20, adjust=False).mean().iloc[-1])
         sma50 = float(close.rolling(50).mean().iloc[-1]) if len(close) >= 50 else float(close.mean())
+        ema100 = float(close.ewm(span=100, adjust=False).mean().iloc[-1])
+        ema200 = float(close.ewm(span=200, adjust=False).mean().iloc[-1])
         vol_s = hist["Volume"].astype(float)
         vol20 = float(vol_s.rolling(20).mean().iloc[-1])
         vol_ratio = (float(vol_s.iloc[-1]) / vol20) if vol20 > 0 else 1.0
@@ -6528,7 +6530,7 @@ def _evaluate_post_result_swing_setup(
             f"🎯 *POST-RESULT SWING CHECK*:\n"
             f"• {verdict}\n"
             f"• {note}\n"
-            f"• *Levels & Vol*: 20 EMA *₹ {ema20:,.0f}* | 50 SMA *₹ {sma50:,.0f}* | Vol *{vol_ratio:.1f}x* 20D Avg\n"
+            f"• *Levels & Vol*: 20 EMA *₹ {ema20:,.0f}* | 50 SMA *₹ {sma50:,.0f}* | 100 EMA *₹ {ema100:,.0f}* | 200 EMA *₹ {ema200:,.0f}* | Vol *{vol_ratio:.1f}x* 20D Avg\n"
         )
     except Exception:
         return ""
