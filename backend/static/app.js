@@ -2995,9 +2995,11 @@ function resetWorkspace() {
     const emptyState = document.getElementById('analyzer-empty-state');
     if (emptyState) emptyState.style.display = 'block';
 
-    // Disable export PDF report button
+    // Disable export PDF report buttons
     const exportBtn = document.getElementById('export-pdf-btn');
     if (exportBtn) exportBtn.setAttribute('disabled', 'true');
+    const tearsheetBtn = document.getElementById('export-tearsheet-btn');
+    if (tearsheetBtn) tearsheetBtn.setAttribute('disabled', 'true');
 
     // Clear pitchbook content pane and hide pitchbook button
     const pitchbookContentPane = document.getElementById('pitchbook-content-pane');
@@ -6883,6 +6885,11 @@ async function loadStockAnalyzer(query, force_llm = false, silent = false) {
             exportBtn.removeAttribute('disabled');
             exportBtn.style.display = 'inline-flex';
         }
+        const tearsheetBtn = document.getElementById('export-tearsheet-btn');
+        if (tearsheetBtn) {
+            tearsheetBtn.removeAttribute('disabled');
+            tearsheetBtn.style.display = 'inline-flex';
+        }
 
         // Handle AI Prospectus Upgrade Banner
         const upgradeContainer = document.getElementById('prospectus-ai-upgrade-container');
@@ -7614,6 +7621,11 @@ function renderStockDashboard(p) {
     if (exportBtn) {
         exportBtn.removeAttribute('disabled');
         exportBtn.style.display = 'inline-flex';
+    }
+    const tearsheetBtn = document.getElementById('export-tearsheet-btn');
+    if (tearsheetBtn) {
+        tearsheetBtn.removeAttribute('disabled');
+        tearsheetBtn.style.display = 'inline-flex';
     }
 
     // Explicitly align search input with active stock
@@ -16233,7 +16245,20 @@ function setupPDFExport() {
             const tickerRaw = tickerEl ? tickerEl.innerText.trim() : (window.currentActiveSymbol || 'TCS');
             const symbol = tickerRaw.replace('.NS', '').replace('.BO', '').trim();
             if (symbol) {
-                window.exportStockPDF(symbol);
+                window.exportStockPDF(symbol, 'dossier');
+            }
+        });
+    }
+
+    const tearsheetBtn = document.getElementById('export-tearsheet-btn');
+    if (tearsheetBtn) {
+        tearsheetBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            const tickerEl = document.getElementById('meta-ticker');
+            const tickerRaw = tickerEl ? tickerEl.innerText.trim() : (window.currentActiveSymbol || 'TCS');
+            const symbol = tickerRaw.replace('.NS', '').replace('.BO', '').trim();
+            if (symbol) {
+                window.exportStockPDF(symbol, 'tearsheet');
             }
         });
     }
@@ -16297,40 +16322,63 @@ function setupPDFExport() {
     }
 }
 
-window.exportStockPDF = async function(symbol) {
+window.exportStockPDF = async function(symbol, format = 'dossier') {
     const cleanSym = (symbol || window.currentActiveSymbol || 'TCS').replace('.NS', '').replace('.BO', '').trim().toUpperCase();
-    const exportBtn = document.getElementById('export-pdf-btn');
-    const originalText = exportBtn ? exportBtn.innerHTML : '📄 PDF Report';
+    const isTearsheet = (format === 'tearsheet');
+    const activeBtn = document.getElementById(isTearsheet ? 'export-tearsheet-btn' : 'export-pdf-btn');
+    const originalText = activeBtn ? activeBtn.innerHTML : (isTearsheet ? '⚡ 1-Page Tear Sheet' : '📄 PDF Dossier');
 
     try {
-        if (exportBtn) {
-            exportBtn.innerHTML = '⏳ Generating PDF...';
-            exportBtn.style.opacity = '0.75';
-            exportBtn.style.pointerEvents = 'none';
+        if (activeBtn) {
+            activeBtn.innerHTML = '⏳ Generating PDF...';
+            activeBtn.style.opacity = '0.75';
+            activeBtn.style.pointerEvents = 'none';
         }
 
         if (window.showToast) {
-            window.showToast(`📊 Compiling 6-page Institutional Dossier for ${cleanSym}...`, 'info');
+            window.showToast(
+                isTearsheet
+                    ? `⚡ Compiling 1-Page Executive Tear Sheet for ${cleanSym}...`
+                    : `📊 Compiling 6-page Institutional Dossier for ${cleanSym}...`,
+                'info'
+            );
         }
 
-        const downloadUrl = `/api/stocks/${cleanSym}/pdf?download=true`;
+        const apiPath = isTearsheet
+            ? `/api/stocks/${cleanSym}/tearsheet?download=true`
+            : `/api/stocks/${cleanSym}/pdf?download=true`;
+        const filename = isTearsheet
+            ? `${cleanSym}_Executive_TearSheet.pdf`
+            : `${cleanSym}_Institutional_Research_Dossier.pdf`;
 
-        // Mobile Capacitor Browser / File Opener or standard Web anchor download
-        if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.Browser) {
-            await window.Capacitor.Plugins.Browser.open({ url: window.location.origin + downloadUrl });
+        const response = await window.fetch(apiPath);
+        if (!response.ok) {
+            throw new Error(`Server returned HTTP ${response.status}`);
+        }
+        const blob = await response.blob();
+
+        if (window.AndroidPrint && typeof window.AndroidPrint.openPdf === 'function') {
+            const reader = new FileReader();
+            reader.onloadend = function() {
+                const base64Data = reader.result.split(',')[1];
+                window.AndroidPrint.openPdf(base64Data, filename);
+                if (window.showToast) {
+                    window.showToast(`🚀 Opening ${cleanSym} PDF in viewer...`, 'success');
+                }
+            };
+            reader.readAsDataURL(blob);
         } else {
+            const blobUrl = URL.createObjectURL(blob);
             const a = document.createElement('a');
-            a.href = downloadUrl;
-            a.download = `${cleanSym}_Institutional_Research_Dossier.pdf`;
+            a.href = blobUrl;
+            a.download = filename;
             document.body.appendChild(a);
             a.click();
             document.body.removeChild(a);
-        }
-
-        if (window.showToast) {
-            setTimeout(() => {
-                window.showToast(`✅ ${cleanSym} Institutional Research Dossier downloaded!`, 'success');
-            }, 1200);
+            setTimeout(() => URL.revokeObjectURL(blobUrl), 5000);
+            if (window.showToast) {
+                window.showToast(`✅ ${cleanSym} ${isTearsheet ? '1-Page Tear Sheet' : 'Institutional Research Dossier'} downloaded!`, 'success');
+            }
         }
     } catch (err) {
         console.error('[EXPORT PDF] Error:', err);
@@ -16338,10 +16386,10 @@ window.exportStockPDF = async function(symbol) {
             window.showToast(`⚠️ Failed to export PDF: ${err.message}`, 'error');
         }
     } finally {
-        if (exportBtn) {
-            exportBtn.innerHTML = originalText;
-            exportBtn.style.opacity = '1';
-            exportBtn.style.pointerEvents = 'auto';
+        if (activeBtn) {
+            activeBtn.innerHTML = originalText;
+            activeBtn.style.opacity = '1';
+            activeBtn.style.pointerEvents = 'auto';
         }
     }
 };
