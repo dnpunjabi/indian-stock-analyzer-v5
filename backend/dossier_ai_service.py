@@ -64,25 +64,39 @@ def _get_serpapi_keys() -> List[str]:
     return keys
 
 
-def _query_serpapi_snippets(query: str, max_results: int = 4) -> List[str]:
-    """Queries SerpApi Google search engine with key rotation."""
+def _query_serpapi_snippets(
+    query: str, 
+    max_results: int = 4, 
+    tbm: Optional[str] = None, 
+    tbs: Optional[str] = None
+) -> List[str]:
+    """Queries SerpApi Google search/news engine with key rotation and optional time/type filters."""
     keys = _get_serpapi_keys()
     if not keys:
         return []
 
     encoded = urllib.parse.quote(query)
+    extra_params = ""
+    if tbm:
+        extra_params += f"&tbm={tbm}"
+    if tbs:
+        extra_params += f"&tbs={tbs}"
+
     for sk in keys:
         try:
-            url = f"https://serpapi.com/search.json?q={encoded}&gl=in&hl=en&api_key={sk}"
+            url = f"https://serpapi.com/search.json?q={encoded}&gl=in&hl=en{extra_params}&api_key={sk}"
             r = requests.get(url, timeout=8.0)
             if r.status_code == 200:
                 data = r.json()
                 snippets = []
-                for res in data.get("organic_results", [])[:max_results]:
+                raw_items = data.get("news_results") or data.get("organic_results") or []
+                for res in raw_items[:max_results]:
                     t = res.get("title", "")
                     s = res.get("snippet", "")
+                    dt = res.get("date", "")
                     if s:
-                        snippets.append(f"{t}: {s}")
+                        prefix = f"[{dt}] " if dt else ""
+                        snippets.append(f"{prefix}{t}: {s}")
                 if snippets:
                     return snippets
             elif r.status_code in (401, 403, 429):
@@ -308,9 +322,15 @@ def get_dossier_recent_catalysts(
         except Exception:
             pass
 
-    # 2. Query SerpApi for Recent 30-Day News & Catalysts
-    query = f"{comp_name} share stock latest news developments catalysts past month earnings OR capacity OR board"
-    snippets = _query_serpapi_snippets(query, max_results=5)
+    # 2. Query SerpApi Google News (Past Month: tbm=nws&tbs=qdr:m) for genuine 30-day catalysts
+    clean_co = re.sub(r"\b(?:Ltd\.?|Limited|India|Industries|Corporation)\b", "", comp_name, flags=re.IGNORECASE).strip(" .,")
+    if not clean_co:
+        clean_co = comp_name
+    query = f'"{clean_co}"'
+    snippets = _query_serpapi_snippets(query, max_results=5, tbm="nws", tbs="qdr:m")
+    if not snippets:
+        # Fallback to Web Search Past Month if Google News has no hits for small caps
+        snippets = _query_serpapi_snippets(f"{clean_co} {clean_sym} stock news", max_results=5, tbs="qdr:m")
 
     # 3. LLM Synthesis
     result = None
@@ -318,13 +338,18 @@ def get_dossier_recent_catalysts(
         try:
             from backend.llm_config import call_llm
             prompt = f"""You are a Senior Institutional Research Analyst.
-Based on the following verified search snippets for {comp_name} (covering the past month):
+Based on the following verified 30-day news snippets for {comp_name}:
 {chr(10).join(snippets)}
 
-Synthesize strictly into 3 concise, institutional bullet points (max 26 words each):
-Bullet 1: Earnings & Operational Surprise (latest quarterly results, revenue/PAT growth, or volume/throughput records)
-Bullet 2: Corporate & Capital Actions (board approvals for fundraising, QIP, acquisitions, concessions, or dividends)
-Bullet 3: Capacity Milestones & Market Reaction (operational milestones crossed, project additions, or stock/volume dynamics)
+Synthesize strictly into 3 concise, institutional bullet points (max 26 words each).
+IMPORTANT RULES:
+- Use "Rs." instead of the "₹" symbol.
+- NEVER mention "in the provided snippets", "based on snippets", or "no details were reported".
+- If a specific category has no major event in the past 30 days, state it cleanly in institutional prose (e.g., "No material equity dilution, QIP, or M&A transactions announced in the trailing 30-day period.") or highlight product launches/strategic updates from the news.
+
+Bullet 1: Earnings & Operational Surprise (latest quarterly results, revenue/PAT growth, EBITDA, or volume records)
+Bullet 2: Corporate, Product & Capital Actions (product launches, board approvals, fundraising, QIP, acquisitions, concessions, or dividends)
+Bullet 3: Capacity Milestones & Market Reaction (operational milestones, stock price/circuit/volume reaction, or analyst targets)
 
 Format strictly as JSON:
 {{
@@ -339,6 +364,8 @@ Output only valid JSON. No markdown ticks, no preamble."""
             if (parsed.get("earnings_operating_surprise") and 
                 parsed.get("corporate_capital_actions") and 
                 parsed.get("capacity_market_dynamics")):
+                for k in parsed:
+                    parsed[k] = str(parsed[k]).replace("₹", "Rs. ")
                 result = parsed
         except Exception as e:
             print(f"[Dossier AI] Catalysts LLM synthesis failed for {clean_sym}: {e}")
