@@ -562,13 +562,18 @@ def send_whatsapp_chart(
 def generate_stock_technical_chart(
     symbol: str,
     company_name: Optional[str] = None,
-    output_path: Optional[str] = None
+    output_path: Optional[str] = None,
+    timeframe: str = "6M"
 ) -> bytes:
     """
-    Renders a 6-month dark-mode technical chart with 50/200 SMA and RSI-14.
+    Renders a dark-mode technical chart with Moving Averages and Wilder RSI-14.
+    Supports:
+      - 6M / 1Y: Daily candles with 20D EMA, 50D SMA, 200D SMA & Daily RSI-14
+      - 3Y / 5Y: Weekly candles with 10W EMA (~50D), 30W SMA (Weinstein), 40W SMA (~200D) & Weekly RSI-14
     """
     import yfinance as yf
     import pandas as pd
+    import matplotlib.dates as mdates
 
     clean_sym = symbol.strip().upper()
     if not clean_sym.endswith(".NS") and not clean_sym.endswith(".BO"):
@@ -579,11 +584,68 @@ def generate_stock_technical_chart(
     base_sym = ticker.replace(".NS", "").replace(".BO", "")
     disp_name = company_name or base_sym
 
-    # Download 6-month historical data
-    df = yf.download(ticker, period="6mo", interval="1d", progress=False)
-    if df.empty or len(df) < 15:
-        # Fallback dummy data if yfinance fails
-        dates = pd.date_range(end=datetime.now(), periods=60)
+    tf_key = (timeframe or "6M").strip().upper().replace("YR", "Y").replace("MO", "M")
+    if tf_key not in ("6M", "1Y", "3Y", "5Y"):
+        tf_key = "6M"
+
+    tf_specs = {
+        "6M": {
+            "fetch_period": "2y",
+            "interval": "1d",
+            "slice_days": 183,
+            "fallback_bars": 126,
+            "title": "6-Month Daily Trend & Momentum Analysis",
+            "chg_lbl": "1D",
+            "rsi_lbl": "RSI-14 (DAILY)",
+            "fast_p": 20, "mid_p": 50, "slow_p": 200,
+            "fast_lbl": "20-day EMA", "mid_lbl": "50-day SMA", "slow_lbl": "200-day SMA",
+        },
+        "1Y": {
+            "fetch_period": "2y",
+            "interval": "1d",
+            "slice_days": 366,
+            "fallback_bars": 252,
+            "title": "1-Year Daily Trend & Momentum Analysis",
+            "chg_lbl": "1D",
+            "rsi_lbl": "RSI-14 (DAILY)",
+            "fast_p": 20, "mid_p": 50, "slow_p": 200,
+            "fast_lbl": "20-day EMA", "mid_lbl": "50-day SMA", "slow_lbl": "200-day SMA",
+        },
+        "3Y": {
+            "fetch_period": "10y",
+            "interval": "1wk",
+            "slice_days": 365 * 3 + 1,
+            "fallback_bars": 156,
+            "title": "3-Year Weekly Trend & Momentum Analysis",
+            "chg_lbl": "1W",
+            "rsi_lbl": "RSI-14 (WEEKLY)",
+            "fast_p": 10, "mid_p": 30, "slow_p": 40,
+            "fast_lbl": "10-wk EMA (~50D)", "mid_lbl": "30-wk SMA (Stage 2)", "slow_lbl": "40-wk SMA (~200D)",
+        },
+        "5Y": {
+            "fetch_period": "10y",
+            "interval": "1wk",
+            "slice_days": 365 * 5 + 2,
+            "fallback_bars": 260,
+            "title": "5-Year Weekly Trend & Momentum Analysis",
+            "chg_lbl": "1W",
+            "rsi_lbl": "RSI-14 (WEEKLY)",
+            "fast_p": 10, "mid_p": 30, "slow_p": 40,
+            "fast_lbl": "10-wk EMA (~50D)", "mid_lbl": "30-wk SMA (Stage 2)", "slow_lbl": "40-wk SMA (~200D)",
+        },
+    }
+    spec = tf_specs[tf_key]
+
+    # Fetch warm-up history so slow SMAs (200D / 40W) are accurate from the first plotted bar
+    df = yf.download(ticker, period=spec["fetch_period"], interval=spec["interval"], progress=False)
+    if isinstance(df.columns, pd.MultiIndex):
+        df = df.xs(df.columns.levels[1][0], axis=1, level=1) if len(df.columns.levels) > 1 else df
+    if df is not None and not df.empty:
+        df = df.dropna(subset=["Close"]).sort_index()
+
+    if df is None or df.empty or len(df) < 15:
+        freq = "W-FRI" if spec["interval"] == "1wk" else "B"
+        dates = pd.date_range(end=datetime.now(), periods=60, freq=freq)
         df = pd.DataFrame({
             "Close": np.linspace(100, 120, 60),
             "High": np.linspace(101, 122, 60),
@@ -592,22 +654,35 @@ def generate_stock_technical_chart(
             "Volume": np.random.randint(100000, 500000, 60)
         }, index=dates)
 
-    # Flatten MultiIndex columns if present
-    if isinstance(df.columns, pd.MultiIndex):
-        df = df.xs(df.columns.levels[1][0], axis=1, level=1) if len(df.columns.levels) > 1 else df
+    close_col = df["Close"]
+    if isinstance(close_col, pd.DataFrame):
+        close_col = close_col.iloc[:, 0]
+    close_full = close_col.astype(float)
+    ema_fast_full = close_full.ewm(span=spec["fast_p"], adjust=False).mean()
+    sma_mid_full = close_full.rolling(spec["mid_p"], min_periods=min(spec["mid_p"], max(len(close_full), 10))).mean()
+    slow_min = spec["slow_p"] if len(close_full) >= spec["slow_p"] else min(20, len(close_full))
+    sma_slow_full = close_full.rolling(spec["slow_p"], min_periods=slow_min).mean()
 
-    close = df["Close"]
-    ema_20 = close.ewm(span=20, adjust=False).mean()
-    sma_50 = close.rolling(50, min_periods=10).mean()
-    sma_200 = close.rolling(200, min_periods=30).mean()
+    # Wilder's EMA RSI-14 across full warm-up series
+    delta = close_full.diff()
+    gain = delta.clip(lower=0.0).ewm(alpha=1.0 / 14.0, adjust=False).mean()
+    loss = (-delta.clip(upper=0.0)).ewm(alpha=1.0 / 14.0, adjust=False).mean()
+    rs = gain / loss.replace(0.0, np.nan)
+    rsi_full = (100.0 - (100.0 / (1.0 + rs))).fillna(100.0).clip(0.0, 100.0)
 
-    # Calculate RSI 14
-    delta = close.diff()
-    gain = delta.where(delta > 0, 0.0).rolling(14, min_periods=5).mean()
-    loss = (-delta.where(delta < 0, 0.0)).rolling(14, min_periods=5).mean()
-    rs = gain / (loss.replace(0, np.nan))
-    rsi = 100 - (100 / (1 + rs))
-    rsi = rsi.bfill().fillna(50.0)
+    # Slice to requested display window
+    cutoff = df.index.max() - pd.Timedelta(days=spec["slice_days"])
+    mask = pd.Series(df.index >= cutoff, index=df.index)
+    if int(mask.sum()) < 15:
+        mask = pd.Series(False, index=df.index)
+        mask.iloc[-min(spec["fallback_bars"], len(df)):] = True
+
+    df_plot = df.loc[mask]
+    close = close_full.loc[mask]
+    ema_20 = ema_fast_full.loc[mask]
+    sma_50 = sma_mid_full.loc[mask]
+    sma_200 = sma_slow_full.loc[mask]
+    rsi = rsi_full.loc[mask]
 
     curr_p = float(close.iloc[-1])
     prev_p = float(close.iloc[-2]) if len(close) >= 2 else curr_p
@@ -636,15 +711,15 @@ def generate_stock_technical_chart(
     
     ax_head.text(0.04, 0.68, f"{disp_name.upper()} ({base_sym})", color=TEXT_WHITE, 
                  fontsize=14, fontweight="bold", transform=ax_head.transAxes)
-    ax_head.text(0.04, 0.28, "6-Month Trend & Momentum Analysis", color=TEXT_MUTED, 
+    ax_head.text(0.04, 0.28, spec["title"], color=TEXT_MUTED, 
                  fontsize=9.5, transform=ax_head.transAxes)
 
     ax_head.text(0.50, 0.68, "CURRENT PRICE", color=TEXT_MUTED, fontsize=8.5, fontweight="bold", transform=ax_head.transAxes)
-    ax_head.text(0.50, 0.26, f"₹ {curr_p:,.2f} ({chg_sign}{chg_pct:.2f}%)", color=pnl_col, fontsize=13, fontweight="bold", transform=ax_head.transAxes)
+    ax_head.text(0.50, 0.26, f"₹ {curr_p:,.2f} ({chg_sign}{chg_pct:.2f}% {spec['chg_lbl']})", color=pnl_col, fontsize=13, fontweight="bold", transform=ax_head.transAxes)
 
     rsi_label = "Overbought" if latest_rsi >= 70 else ("Oversold" if latest_rsi <= 30 else "Neutral")
     rsi_color = COLOR_RED if latest_rsi >= 70 else (COLOR_GREEN if latest_rsi <= 30 else ACCENT_BLUE)
-    ax_head.text(0.80, 0.68, "RSI-14 STATUS", color=TEXT_MUTED, fontsize=8.5, fontweight="bold", transform=ax_head.transAxes)
+    ax_head.text(0.80, 0.68, spec["rsi_lbl"], color=TEXT_MUTED, fontsize=8.5, fontweight="bold", transform=ax_head.transAxes)
     ax_head.text(0.80, 0.26, f"{latest_rsi:.1f} ({rsi_label})", color=rsi_color, fontsize=13, fontweight="bold", transform=ax_head.transAxes)
 
     # 2. Main Price Chart Panel
@@ -660,15 +735,16 @@ def generate_stock_technical_chart(
     ax_price.add_patch(rect_price)
 
     # Plot Close Price line and smooth area
-    x_dates = df.index
+    x_dates = df_plot.index
     ax_price.plot(x_dates, close, color=ACCENT_BLUE, linewidth=1.8, label="Price", zorder=3)
     ax_price.fill_between(x_dates, close, close.min() * 0.98, color=ACCENT_BLUE, alpha=0.08, zorder=2)
 
-    # Moving Averages Triad (20-EMA, 50-SMA, 200-SMA)
-    ax_price.plot(x_dates, ema_20, color="#38BDF8", linewidth=1.2, linestyle="-.", label="20-day EMA", zorder=3)
-    ax_price.plot(x_dates, sma_50, color="#F59E0B", linewidth=1.4, linestyle="--", label="50-day SMA", zorder=3)
+    # Moving Averages Triad
+    ax_price.plot(x_dates, ema_20, color="#38BDF8", linewidth=1.2, linestyle="-.", label=spec["fast_lbl"], zorder=3)
+    if not sma_50.isna().all():
+        ax_price.plot(x_dates, sma_50, color="#F59E0B", linewidth=1.4, linestyle="--", label=spec["mid_lbl"], zorder=3)
     if not sma_200.isna().all():
-        ax_price.plot(x_dates, sma_200, color="#A855F7", linewidth=1.4, linestyle=":", label="200-day SMA", zorder=3)
+        ax_price.plot(x_dates, sma_200, color="#A855F7", linewidth=1.4, linestyle=":", label=spec["slow_lbl"], zorder=3)
 
     ax_price.legend(loc="upper left", facecolor=BG_DARK, edgecolor=CARD_BORDER, labelcolor=TEXT_WHITE, fontsize=8.5)
     ax_price.grid(color=GRID_COLOR, linestyle=":", alpha=0.6)
@@ -695,6 +771,8 @@ def generate_stock_technical_chart(
     ax_rsi.fill_between(x_dates, 0, 30, color=COLOR_GREEN, alpha=0.05)
     ax_rsi.set_ylim(10, 90)
     ax_rsi.set_yticks([30, 50, 70])
+    ax_rsi.xaxis.set_major_locator(mdates.AutoDateLocator(minticks=5, maxticks=8))
+    ax_rsi.xaxis.set_major_formatter(mdates.DateFormatter("%b '%y"))
     ax_rsi.tick_params(colors=TEXT_MUTED, labelsize=8)
     ax_rsi.grid(color=GRID_COLOR, linestyle=":", alpha=0.5)
     for spine in ["top", "right", "left", "bottom"]:

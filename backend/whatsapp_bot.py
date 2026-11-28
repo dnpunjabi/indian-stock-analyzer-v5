@@ -7181,12 +7181,33 @@ def handle_stock_technical_timing(
         )
 
 
-def handle_chart_query(symbol_input: str, recipient: Optional[str] = None) -> Dict[str, Any]:
-    """Generates and delivers dark-mode 6M technical chart image, followed by sticky buttons."""
+def handle_chart_query(symbol_input: str, recipient: Optional[str] = None, timeframe: Optional[str] = None) -> Dict[str, Any]:
+    """Generates and delivers dark-mode technical chart image (6M/1Y Daily or 3Y/5Y Weekly) with timeframe buttons."""
     from backend.chart_generator import generate_stock_technical_chart, send_whatsapp_chart
-    clean = symbol_input.strip().upper()
-    if clean.startswith("CHART") or clean.startswith("C "):
-        clean = clean.replace("CHART", "").replace("C ", "").strip()
+    raw = (symbol_input or "").strip().upper()
+    raw = re.sub(r"^(?:ACT:CHART:|CHART\b|C\b)\s*", "", raw, flags=re.IGNORECASE).strip()
+
+    tf_key = (timeframe or "").strip().upper().replace("YR", "Y").replace("MO", "M")
+    if raw.startswith("TF:"):
+        parts = raw.split(":", 2)
+        if len(parts) == 3:
+            tf_key = parts[1].strip().upper()
+            raw = parts[2].strip()
+    else:
+        tokens = raw.split()
+        if len(tokens) >= 2:
+            tf_map = {"6M": "6M", "6MO": "6M", "1Y": "1Y", "1YR": "1Y", "3Y": "3Y", "3YR": "3Y", "5Y": "5Y", "5YR": "5Y"}
+            kept = []
+            for tok in tokens:
+                if not tf_key and tok in tf_map:
+                    tf_key = tf_map[tok]
+                else:
+                    kept.append(tok)
+            raw = " ".join(kept).strip()
+
+    if tf_key not in ("6M", "1Y", "3Y", "5Y"):
+        tf_key = "6M"
+    clean = raw or "RELIANCE"
 
     resolved = resolve_company_ticker(clean)
     ticker = resolved.get("yf_ticker") if resolved else f"{clean}.NS"
@@ -7194,33 +7215,55 @@ def handle_chart_query(symbol_input: str, recipient: Optional[str] = None) -> Di
     base_sym = resolved.get("base_symbol") if resolved else clean.replace(".NS", "")
 
     try:
-        img_bytes = generate_stock_technical_chart(ticker, disp_name)
+        img_bytes = generate_stock_technical_chart(ticker, disp_name, timeframe=tf_key)
+        if tf_key in ("3Y", "5Y"):
+            yr_lbl = "3-Year Weekly" if tf_key == "3Y" else "5-Year Weekly"
+            legend_lines = (
+                f"📊 {yr_lbl} Trend Analysis\n"
+                "• Cyan Line: 10-week EMA (~50D)\n"
+                "• Yellow Line: 30-week SMA (Stage 2)\n"
+                "• Purple Line: 40-week SMA (~200D)\n"
+                "• Subpanel: Weekly RSI-14 Oscillator\n"
+            )
+        else:
+            mo_lbl = "6-Month Daily" if tf_key == "6M" else "1-Year Daily"
+            legend_lines = (
+                f"📊 {mo_lbl} Trend Analysis\n"
+                "• Cyan Line: 20-day EMA\n"
+                "• Yellow Line: 50-day SMA\n"
+                "• Purple Line: 200-day SMA\n"
+                "• Subpanel: Daily RSI-14 Oscillator\n"
+            )
+
         caption = (
-            f"📈 *{disp_name.upper()}* (`{base_sym}`)\n"
+            f"📈 *{disp_name.upper()}* (`{base_sym}` • *{tf_key}*)\n"
             "━━━━━━━━━━━━━━━━━━━━\n"
-            "📊 6-Month Technical Trend Analysis\n"
-            "• Yellow Line: 50-day SMA\n"
-            "• Purple Line: 200-day SMA\n"
-            "• Subpanel: RSI-14 Oscillator\n"
+            f"{legend_lines}"
             "━━━━━━━━━━━━━━━━━━━━\n"
-            "_Automated dark-mode chart delivered._"
+            f"_Shortcuts: CHART {base_sym} 1Y/3Y/5Y • VISION {base_sym} • BREAKS {base_sym} • SMC {base_sym}_"
         )
         send_whatsapp_chart(img_bytes, caption, recipient=recipient)
 
         time.sleep(0.3)  # Brief delay so buttons appear below image
 
+        tf_options = [
+            ("6M", "📅 6M Daily"),
+            ("1Y", "📅 1Y Daily"),
+            ("3Y", "📅 3Y Weekly"),
+            ("5Y", "📅 5Y Weekly"),
+        ]
         buttons = [
-            (f"act:vision:{base_sym}", "🤖 AI Pattern"),
-            (f"act:ichart:breaks:{base_sym}", "⚡ Breaks"),
-            (f"act:ichart:smc:{base_sym}", "🏛️ SMC Blocks")
+            (f"act:chart:tf:{code}:{base_sym}", label)
+            for code, label in tf_options
+            if code != tf_key
         ]
         return send_whatsapp_interactive_buttons(
-            f"⚡ *Chart Actions for {base_sym}* (Tap '🤖 AI Pattern' for Gemini Vision diagnostic):",
+            f"⏱️ *Switch Chart Timeframe for {base_sym}* (Showing: *{tf_key}*):",
             buttons=buttons,
             recipient=recipient
         )
     except Exception as e:
-        logger.error(f"Error generating chart for {clean}: {e}")
+        logger.error(f"Error generating chart ({tf_key}) for {clean}: {e}")
         return send_whatsapp_interactive_buttons(
             f"⚠️ *Error*: Failed to generate chart for `{clean}`: {str(e)}",
             buttons=[("nav:menu:main", "🏠 Main Menu")],
@@ -10277,9 +10320,9 @@ def dispatch_incoming_whatsapp_message(text_body: str, sender: Optional[str] = N
         sym = re.sub(r"^(?:act:vision:|VISION|PATTERN)[\s:]*", "", cleaned, flags=re.IGNORECASE).strip()
         return handle_chart_vision_query(sym, recipient=sender)
 
-    # Technical Chart Generation
-    elif cleaned.startswith("act:chart:") or upper.startswith("CHART") or upper.startswith("C "):
-        sym = cleaned.replace("act:chart:", "").replace("CHART", "").replace("C ", "").strip()
+    # Technical Chart Generation (6M/1Y Daily, 3Y/5Y Weekly)
+    elif cleaned.startswith("act:chart:") or upper.startswith("CHART ") or upper.startswith("CHART:") or upper.startswith("C "):
+        sym = re.sub(r"^(?:act:chart:|CHART[:\s]+|C\s+)", "", cleaned, flags=re.IGNORECASE).strip()
         return handle_chart_query(sym, recipient=sender)
 
     # Stock Details & Interactive Dossier
