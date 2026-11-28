@@ -1450,13 +1450,21 @@ def _generate_dcf_sensitivity_heatmap(
     net_cash: float,
     shares_count: float,
     base_wacc: float,
-    cmp_val: float
+    cmp_val: float,
+    figsize: Tuple[float, float] = (7.2, 1.45),
+    compact: bool = False,
 ) -> io.BytesIO:
     """Renders 2D DCF Sensitivity Heatmap across WACC steps and Terminal EV/EBITDA Exit Multiples."""
     from matplotlib.colors import LinearSegmentedColormap
     import matplotlib.patches as patches
 
-    waccs = [round(max(base_wacc - 2.0, 9.0), 1), round(max(base_wacc - 1.0, 10.0), 1), round(base_wacc, 1), round(base_wacc + 1.0, 1)]
+    # Preserve exact unrounded base_wacc at index 2 so the (Base, 30x) cell matches base_target exactly.
+    waccs = [
+        round(max(base_wacc - 2.0, 9.0), 1),
+        round(max(base_wacc - 1.0, 10.0), 1),
+        base_wacc,
+        round(base_wacc + 1.0, 1),
+    ]
     mults = [25.0, 28.0, 30.0, 35.0, 38.0]
     safe_shares = max(shares_count, 1.0)
     safe_cmp = max(cmp_val, 1.0)
@@ -1467,34 +1475,40 @@ def _generate_dcf_sensitivity_heatmap(
         for j, m in enumerate(mults):
             tv = term_op * m
             pv_tv = tv / ((1.0 + w / 100.0) ** 5)
-            # Scale pv_5y gently with wacc sensitivity
-            adj_pv5y = pv_5y * ((base_wacc / max(w, 1.0)) ** 0.35)
+            # Scale pv_5y gently with wacc sensitivity (exact 1.0 multiplier on base row)
+            adj_pv5y = pv_5y if i == 2 else pv_5y * ((base_wacc / max(w, 1.0)) ** 0.35)
             ev = adj_pv5y + pv_tv
             eq = max(ev + net_cash, safe_shares * 10.0)
             val = round(eq / safe_shares)
             grid[i, j] = val
             pct_grid[i, j] = (val - safe_cmp) / safe_cmp * 100.0
 
-    fig, ax = plt.subplots(figsize=(7.2, 1.45), dpi=150)
+    fig, ax = plt.subplots(figsize=figsize, dpi=150)
     fig.patch.set_facecolor('#ffffff')
 
     cmap = LinearSegmentedColormap.from_list("rg", ["#fee2e2", "#fef9c3", "#dcfce7", "#bbf7d0"])
     ax.imshow(pct_grid, cmap=cmap, aspect='auto', vmin=-20, vmax=50)
 
+    max_cell_val = float(np.max(np.abs(grid))) if grid.size else 0.0
+    lbl_fs = 6.0 if compact else 6.5
+    cell_fs = (5.8 if max_cell_val >= 10000 else 6.0) if compact else (5.7 if max_cell_val >= 10000 else 6.3)
+
     ax.set_xticks(range(len(mults)))
-    ax.set_xticklabels([f"{m:.0f}x EV/EBITDA" for m in mults], fontsize=6.5, fontweight='bold', color='#0f172a')
+    ax.set_xticklabels([f"{m:.0f}x EV/EBITDA" for m in mults], fontsize=lbl_fs, fontweight='bold', color='#0f172a')
     ax.set_yticks(range(len(waccs)))
-    ax.set_yticklabels([f"{w:.1f}%{' (Base)' if abs(w - base_wacc) < 0.05 else ''}" for w in waccs], fontsize=6.5, fontweight='bold', color='#0f172a')
+    ax.set_yticklabels([f"{w:.1f}%{' (Base)' if i == 2 else ''}" for i, w in enumerate(waccs)], fontsize=lbl_fs, fontweight='bold', color='#0f172a')
     ax.xaxis.tick_top()
 
     for i in range(len(waccs)):
         for j in range(len(mults)):
             val = grid[i, j]
             pct = pct_grid[i, j]
-            is_base = (abs(waccs[i] - base_wacc) < 0.05 and mults[j] == 30.0)
+            is_base = (i == 2 and mults[j] == 30.0)
             txt_color = '#14532d' if pct >= 10 else ('#854d0e' if pct >= -5 else '#991b1b')
-            ax.text(j, i, f"Rs. {val:,.0f} ({pct:+.0f}%)", ha='center', va='center',
-                    fontsize=6.3, fontweight='bold' if is_base else 'normal', color=txt_color)
+            cell_txt = f"Rs. {val:,.0f}\n({pct:+.0f}%)" if compact else f"Rs. {val:,.0f} ({pct:+.0f}%)"
+            ax.text(j, i, cell_txt, ha='center', va='center',
+                    fontsize=cell_fs, fontweight='bold' if is_base else 'normal', color=txt_color,
+                    linespacing=1.05 if compact else 1.2)
             if is_base:
                 rect = patches.Rectangle((j - 0.5, i - 0.5), 1, 1, linewidth=1.8, edgecolor='#0284c7', facecolor='none')
                 ax.add_patch(rect)
@@ -6148,21 +6162,29 @@ def generate_stock_tearsheet_pdf(
         pagesize=A4,
         leftMargin=32,
         rightMargin=32,
-        topMargin=42,
-        bottomMargin=26,
+        topMargin=38,
+        bottomMargin=22,
         title=f"{clean_sym} - 1-Page Executive Tear Sheet",
         author=analyst_name or firm_name,
         subject=f"1-Page Executive Equity Tear Sheet - {comp_name}"
     )
 
     styles = getSampleStyleSheet()
-    title_st = ParagraphStyle('TSTitle', parent=styles['Normal'], fontName='Helvetica-Bold', fontSize=12.5, leading=15, textColor=colors.HexColor("#0f172a"))
-    sub_st = ParagraphStyle('TSSub', parent=styles['Normal'], fontName='Helvetica-Bold', fontSize=7.2, leading=9.5, textColor=colors.HexColor("#0284c7"))
-    meta_st = ParagraphStyle('TSMeta', parent=styles['Normal'], fontName='Helvetica', fontSize=6.5, leading=8.2, textColor=colors.HexColor("#64748b"))
-    sec_st = ParagraphStyle('TSSec', parent=styles['Normal'], fontName='Helvetica-Bold', fontSize=7.6, leading=9.8, textColor=colors.HexColor("#0f172a"))
-    body_st = ParagraphStyle('TSBody', parent=styles['Normal'], fontName='Helvetica', fontSize=6.8, leading=8.9, textColor=colors.HexColor("#334155"))
-    th_st = ParagraphStyle('TSTH', parent=styles['Normal'], fontName='Helvetica-Bold', fontSize=6.4, leading=8.2, textColor=colors.white, alignment=1)
-    td_num = ParagraphStyle('TSTDNum', parent=styles['Normal'], fontName='Helvetica', fontSize=7.2, leading=9.2, textColor=colors.HexColor("#0f172a"), alignment=1)
+    title_st = ParagraphStyle('TSTitle', parent=styles['Normal'], fontName='Helvetica-Bold', fontSize=12.5, leading=14.5, textColor=colors.HexColor("#0f172a"))
+    sub_st = ParagraphStyle('TSSub', parent=styles['Normal'], fontName='Helvetica-Bold', fontSize=7.2, leading=9.2, textColor=colors.HexColor("#0284c7"))
+    meta_st = ParagraphStyle('TSMeta', parent=styles['Normal'], fontName='Helvetica', fontSize=6.4, leading=8.0, textColor=colors.HexColor("#64748b"))
+    sec_st = ParagraphStyle('TSSec', parent=styles['Normal'], fontName='Helvetica-Bold', fontSize=7.5, leading=9.4, textColor=colors.HexColor("#0f172a"))
+    body_st = ParagraphStyle('TSBody', parent=styles['Normal'], fontName='Helvetica', fontSize=6.7, leading=8.5, textColor=colors.HexColor("#334155"))
+    th_st = ParagraphStyle('TSTH', parent=styles['Normal'], fontName='Helvetica-Bold', fontSize=6.4, leading=8.0, textColor=colors.white, alignment=1)
+    td_num = ParagraphStyle('TSTDNum', parent=styles['Normal'], fontName='Helvetica', fontSize=7.1, leading=9.0, textColor=colors.HexColor("#0f172a"), alignment=1)
+
+    def _clip_ts(txt: Any, limit: int = 210) -> str:
+        """Caps raw AI blurb at a word boundary before XML escaping so Tear Sheet stays strictly 1 page."""
+        raw = re.sub(r"\s+", " ", str(txt or "")).strip()
+        if len(raw) > limit:
+            cut = raw[:limit - 3].rsplit(" ", 1)[0].rstrip(" ,;:-")
+            raw = f"{cut}..."
+        return _sanitize_pdf_text(raw)
 
     story = []
 
@@ -6193,7 +6215,7 @@ def generate_stock_tearsheet_pdf(
         ('RIGHTPADDING', (0,0), (-1,-1), 7),
     ]))
     story.append(t_hdr)
-    story.append(Spacer(1, 5))
+    story.append(Spacer(1, 3))
 
     # 2. Target Price Triad & Score Bar
     triad_data = [
@@ -6223,7 +6245,7 @@ def generate_stock_tearsheet_pdf(
         ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
     ]))
     story.append(t_triad)
-    story.append(Spacer(1, 4))
+    story.append(Spacer(1, 2.5))
 
     # 2b. Multi-Horizon Returns & Nifty 50 Alpha Strip
     def _ret_fmt(v: float) -> str:
@@ -6261,7 +6283,7 @@ def generate_stock_tearsheet_pdf(
         ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
     ]))
     story.append(t_ret_ts)
-    story.append(Spacer(1, 3))
+    story.append(Spacer(1, 2))
 
     # 2c. Compact 1-Year Price + 20/50/100/200 MA + LuxAlgo Signals Chart
     buf_ts_1y = _generate_tearsheet_1y_chart(
@@ -6273,8 +6295,8 @@ def generate_stock_tearsheet_pdf(
         sma50_target=sma50,
         sma200_target=sma200
     )
-    story.append(Image(buf_ts_1y, width=530, height=120))
-    story.append(Spacer(1, 3))
+    story.append(Image(buf_ts_1y, width=530, height=108))
+    story.append(Spacer(1, 2))
 
     # Fetch Cached AI Intelligence (Moat, Capex, 30-Day Catalysts)
     peer_names = [pr.get("label", "").replace(" (Target)", "") for pr in peer_rows[:3] if not pr.get("is_target")]
@@ -6393,8 +6415,6 @@ def generate_stock_tearsheet_pdf(
             Paragraph(f"{pr.get('roce', 0):.1f}%", td_num),
             Paragraph(f"{pr.get('sales_3y', 0):+.0f}%", td_num),
         ])
-    while len(peer_ts_data) < 4:
-        peer_ts_data.append([Paragraph("Sector Peer", body_st), Paragraph("—", td_num), Paragraph("—", td_num), Paragraph("—", td_num), Paragraph("—", td_num)])
 
     t_peers_ts = Table(peer_ts_data, colWidths=[96, 42, 36, 39, 39])
     t_peers_ts.setStyle(TableStyle([
@@ -6411,36 +6431,36 @@ def generate_stock_tearsheet_pdf(
     # 3. Two-Column Executive Body
     left_col = [
         Paragraph("<b>COMPETITIVE MOAT &amp; MARKET POWER</b>", sec_st),
-        Spacer(1, 1.5),
+        Spacer(1, 1.0),
         Paragraph(
-            f"• <b>Market Scale:</b> {_sanitize_pdf_text(moat_intel['market_share_scale'])}<br/>"
-            f"• <b>Pricing Power:</b> {_sanitize_pdf_text(moat_intel['moat_pricing_power'])}",
+            f"• <b>Market Scale:</b> {_clip_ts(moat_intel['market_share_scale'], 195)}<br/>"
+            f"• <b>Pricing Power:</b> {_clip_ts(moat_intel['moat_pricing_power'], 195)}",
             body_st
         ),
-        Spacer(1, 4),
+        Spacer(1, 2.5),
         Paragraph("<b>LATEST 4-QUARTER EARNINGS MOMENTUM</b>", sec_st),
-        Spacer(1, 1.5),
+        Spacer(1, 1.0),
         t_q4,
-        Spacer(1, 4),
+        Spacer(1, 2.5),
         Paragraph("<b>5Y COMPOUNDING, QUALITY &amp; CAP TABLE</b>", sec_st),
-        Spacer(1, 1.5),
+        Spacer(1, 1.0),
         Paragraph(
             f"• <b>Growth &amp; Margins:</b> 4Y Sales: <b>{cagr_sales:+.1f}%</b> | PAT: <b>{cagr_pat:+.1f}%</b> | ROE: <b>{roe_val:.1f}%</b> | OPM: <b>{opm_val:.1f}%</b><br/>"
             f"• <b>Cash &amp; Solvency:</b> 5Y OCF/PAT: <b>{cum_conv:.1f}%</b> | D/E: <b>{de_val:.2f}x</b> | {bs_desc}<br/>"
             f"• <b>Smart Money (4Q):</b> Prom: <b>{prom_now:.1f}%</b> | DII: <b>{dii_now:.1f}%</b> ({dii_chg:+.1f}%) | FII: <b>{fii_now:.1f}%</b> ({fii_chg:+.1f}%)",
             body_st
         ),
-        Spacer(1, 4),
+        Spacer(1, 2.5),
         Paragraph("<b>HISTORICAL P/E VALUATION (1Y / 3Y / 5Y SPECTRUM)</b>", sec_st),
-        Spacer(1, 1.5),
+        Spacer(1, 1.0),
         t_pe3,
-        Spacer(1, 2),
-        Image(buf_pe_gauge, width=246, height=38)
+        Spacer(1, 1.5),
+        Image(buf_pe_gauge, width=246, height=35)
     ]
 
     right_col = [
         Paragraph("<b>TACTICAL SWING LEVELS &amp; MOMENTUM (2–8 WEEKS)</b>", sec_st),
-        Spacer(1, 1.5),
+        Spacer(1, 1.0),
         Paragraph(
             f"• <b>{'Pullback Buy Zone' if sw_ts['mode'] == 'PULLBACK' else 'Reclaim Trigger Zone'}:</b> <font color='#b45309'><b>Rs. {brk_el:,.0f} – {brk_eh:,.0f}</b></font> ({'20D MA / 50 SMA' if sw_ts['mode'] == 'PULLBACK' else 'Reclaim above 20D MA'})<br/>"
             f"• <b>Strict Stop Loss:</b> <font color='#dc2626'><b>Rs. {brk_stop:,.0f}</b></font> ({((brk_stop-cmp_val)/cmp_val*100):+.1f}% vs CMP)<br/>"
@@ -6448,26 +6468,26 @@ def generate_stock_tearsheet_pdf(
             f"• <b>Oscillators:</b> RSI (14): <b>{rsi_val:.1f}</b> | ADX: <b>{adx_val:.1f}</b> | vs 200 SMA: <b>{spread_200:+.1f}%</b>",
             body_st
         ),
-        Spacer(1, 4),
+        Spacer(1, 2.5),
         Paragraph("<b>RECENT 30-DAY MATERIAL CATALYSTS (LIVE NEWS)</b>", sec_st),
-        Spacer(1, 1.5),
+        Spacer(1, 1.0),
         Paragraph(
-            f"• <b>Earnings Pulse:</b> {_sanitize_pdf_text(cat_intel['earnings_operating_surprise'])}<br/>"
-            f"• <b>Corporate Actions:</b> {_sanitize_pdf_text(cat_intel['corporate_capital_actions'])}<br/>"
-            f"• <b>Market Reaction:</b> {_sanitize_pdf_text(cat_intel['capacity_market_dynamics'])}",
+            f"• <b>Earnings Pulse:</b> {_clip_ts(cat_intel['earnings_operating_surprise'], 175)}<br/>"
+            f"• <b>Corporate Actions:</b> {_clip_ts(cat_intel['corporate_capital_actions'], 175)}<br/>"
+            f"• <b>Market Reaction:</b> {_clip_ts(cat_intel['capacity_market_dynamics'], 175)}",
             body_st
         ),
-        Spacer(1, 4),
+        Spacer(1, 2.5),
         Paragraph("<b>STRATEGIC CAPEX &amp; EXPANSION ROADMAP</b>", sec_st),
-        Spacer(1, 1.5),
+        Spacer(1, 1.0),
         Paragraph(
-            f"• <b>Capacity Target:</b> {_sanitize_pdf_text(capex_intel['capacity_target'])}<br/>"
-            f"• <b>Capex &amp; Funding:</b> {_sanitize_pdf_text(capex_intel['capex_outlay'])} {_sanitize_pdf_text(capex_intel['funding_margin'])}",
+            f"• <b>Capacity Target:</b> {_clip_ts(capex_intel['capacity_target'], 185)}<br/>"
+            f"• <b>Capex &amp; Funding:</b> {_clip_ts(str(capex_intel['capex_outlay']) + ' ' + str(capex_intel['funding_margin']), 240)}",
             body_st
         ),
-        Spacer(1, 4),
+        Spacer(1, 2.5),
         Paragraph("<b>PEER RELATIVE VALUATION SNAPSHOT (*TARGET)</b>", sec_st),
-        Spacer(1, 1.5),
+        Spacer(1, 1.0),
         t_peers_ts
     ]
 
@@ -6477,13 +6497,13 @@ def generate_stock_tearsheet_pdf(
         ('BOX', (0,0), (0,0), 0.5, colors.HexColor("#cbd5e1")),
         ('BOX', (1,0), (1,0), 0.5, colors.HexColor("#cbd5e1")),
         ('BACKGROUND', (0,0), (-1,-1), colors.HexColor("#ffffff")),
-        ('TOPPADDING', (0,0), (-1,-1), 6),
-        ('BOTTOMPADDING', (0,0), (-1,-1), 6),
+        ('TOPPADDING', (0,0), (-1,-1), 4),
+        ('BOTTOMPADDING', (0,0), (-1,-1), 4),
         ('LEFTPADDING', (0,0), (-1,-1), 7),
         ('RIGHTPADDING', (0,0), (-1,-1), 7),
     ]))
     story.append(t_grid)
-    story.append(Spacer(1, 4))
+    story.append(Spacer(1, 2.5))
 
     # 3b. Side-by-Side 5Y Compounding/Cash Conversion Chart & 2D DCF Sensitivity Heatmap
     y_lbl_ts = y_labels[-5:] if len(y_labels) >= 5 else ['Yr 1', 'Yr 2', 'Yr 3', 'Yr 4', 'Yr 5']
@@ -6492,12 +6512,14 @@ def generate_stock_tearsheet_pdf(
     y_pat_ts = y_pat[-5:] if len(y_pat) >= 5 else [1500.0]*5
     y_ocf_ts = y_ocf[-5:] if len(y_ocf) >= 5 else [1400.0]*5
     buf_ts_5y = _generate_annual_compounding_chart(y_lbl_ts, y_rev_ts, y_op_ts, y_pat_ts, y_ocf_ts)
-    buf_ts_dcf = _generate_dcf_sensitivity_heatmap(pv_5y, term_op, net_cash, shares_count, wacc, cmp_val)
+    buf_ts_dcf = _generate_dcf_sensitivity_heatmap(
+        pv_5y, term_op, net_cash, shares_count, wacc, cmp_val, figsize=(5.5, 1.55), compact=True
+    )
 
     t_vis_strip = Table(
         [
             [Paragraph("5-YEAR COMPOUNDING &amp; OCF/PAT % CASH CONVERSION", th_st), Paragraph("2D DCF SENSITIVITY MATRIX (WACC vs. EXIT MULTIPLE)", th_st)],
-            [Image(buf_ts_5y, width=256, height=76), Image(buf_ts_dcf, width=262, height=76)]
+            [Image(buf_ts_5y, width=256, height=68), Image(buf_ts_dcf, width=262, height=68, kind='proportional')]
         ],
         colWidths=[262, 268]
     )
@@ -6514,7 +6536,7 @@ def generate_stock_tearsheet_pdf(
         ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
     ]))
     story.append(t_vis_strip)
-    story.append(Spacer(1, 4))
+    story.append(Spacer(1, 2.5))
 
     # 3c. Multi-Horizon Forward Price Targets (1Y / 3Y / 5Y) & Reverse DCF Hurdle
     term_pe_ts = min(max(round(base_target / max(base_eps, 0.1) * 0.65, 1), 28.0), 35.0)
@@ -6545,7 +6567,7 @@ def generate_stock_tearsheet_pdf(
             Paragraph(f"<b>Rs. {fwd_1y_ts:,.0f}</b> ({((fwd_1y_ts-cmp_val)/cmp_val*100):+.1f}%)", td_num),
             Paragraph(f"<b>Rs. {fwd_3y_ts:,.0f}</b> ({((fwd_3y_ts-cmp_val)/cmp_val*100):+.1f}%)", td_num),
             Paragraph(f"<b>Rs. {fwd_5y_ts:,.0f}</b> ({((fwd_5y_ts-cmp_val)/cmp_val*100):+.1f}% | PV: Rs. {fwd_5y_pv_ts:,.0f})", td_num),
-            Paragraph(f"Requires <b>+{comp_hurdle_ts:.1f}%/yr</b> EPS CAGR", td_num)
+            Paragraph(f"Requires <b>{comp_hurdle_ts:+.1f}%/yr</b> EPS CAGR", td_num)
         ]
     ]
     t_fwd_ts = Table(fwd_strip, colWidths=[115, 115, 165, 135])
@@ -6559,7 +6581,7 @@ def generate_stock_tearsheet_pdf(
         ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
     ]))
     story.append(t_fwd_ts)
-    story.append(Spacer(1, 3))
+    story.append(Spacer(1, 2))
 
     # 3d. 6-Pillar Quant Factor Scorecard Strip
     def _sc_fmt(val: float) -> str:
@@ -6595,7 +6617,7 @@ def generate_stock_tearsheet_pdf(
         ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
     ]))
     story.append(t_factors_ts)
-    story.append(Spacer(1, 3))
+    story.append(Spacer(1, 2))
 
     # 4. Cycle Clock Verdict & Position-Sizing Strip
     verdict_html = (
@@ -6608,13 +6630,13 @@ def generate_stock_tearsheet_pdf(
     t_verdict.setStyle(TableStyle([
         ('BACKGROUND', (0,0), (-1,-1), colors.HexColor("#f0f9ff")),
         ('BOX', (0,0), (-1,-1), 0.6, colors.HexColor("#7dd3fc")),
-        ('TOPPADDING', (0,0), (-1,-1), 4),
-        ('BOTTOMPADDING', (0,0), (-1,-1), 4),
+        ('TOPPADDING', (0,0), (-1,-1), 3),
+        ('BOTTOMPADDING', (0,0), (-1,-1), 3),
         ('LEFTPADDING', (0,0), (-1,-1), 7),
         ('RIGHTPADDING', (0,0), (-1,-1), 7),
     ]))
     story.append(t_verdict)
-    story.append(Spacer(1, 4))
+    story.append(Spacer(1, 2.5))
 
     # 5. Regulatory Disclaimer
     disc_html = (
@@ -6625,8 +6647,8 @@ def generate_stock_tearsheet_pdf(
     t_disc.setStyle(TableStyle([
         ('BACKGROUND', (0,0), (-1,-1), colors.HexColor("#f8fafc")),
         ('BOX', (0,0), (-1,-1), 0.5, colors.HexColor("#cbd5e1")),
-        ('TOPPADDING', (0,0), (-1,-1), 3),
-        ('BOTTOMPADDING', (0,0), (-1,-1), 3),
+        ('TOPPADDING', (0,0), (-1,-1), 2.5),
+        ('BOTTOMPADDING', (0,0), (-1,-1), 2.5),
         ('LEFTPADDING', (0,0), (-1,-1), 6),
         ('RIGHTPADDING', (0,0), (-1,-1), 6),
     ]))
