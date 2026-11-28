@@ -1000,8 +1000,19 @@ async def run_background_cache_warmer():
         try:
             with get_db() as conn:
                 cursor = conn.cursor()
-                cursor.execute("SELECT symbol FROM screener_universe WHERE symbol NOT LIKE '%DUMMY%'")
-                symbols = [row["symbol"] for row in cursor.fetchall()]
+                cursor.execute("""
+                    SELECT symbol FROM screener_universe WHERE symbol NOT LIKE '%DUMMY%'
+                    UNION
+                    SELECT DISTINCT symbol FROM watchlist_items WHERE symbol IS NOT NULL AND symbol != ''
+                """)
+                raw_symbols = [row["symbol"].strip().upper() for row in cursor.fetchall() if row["symbol"]]
+                symbols = []
+                seen_syms = set()
+                for s in raw_symbols:
+                    norm_s = s if ('.' in s or s.startswith('^')) else f"{s}.NS"
+                    if norm_s not in seen_syms:
+                        seen_syms.add(norm_s)
+                        symbols.append(norm_s)
             
             print(f"Background cache warmer: starting sweep for {len(symbols)} symbols...")
             
@@ -9820,6 +9831,163 @@ async def evaluate_single_condition_bool(cond_type: str, op: str, val_str: str, 
 # In-memory deduplication cache for custom watchlist stock alerts (symbol_rule -> last_sent)
 _custom_watchlist_alerts_cache = {}
 
+
+async def _fetch_live_watchlist_quotes(symbols: List[str], now_ist: datetime) -> Dict[str, Dict[str, Any]]:
+    """
+    Fetches live intraday quotes for watchlist symbols without trusting stale cached_profiles:
+      1. Angel One / WebSocket tick_store (< 5 min fresh and timestamped today IST).
+      2. Batch yfinance 5d daily download (verified bar date == today IST).
+      3. For symbols whose daily bar hasn't printed yet (e.g. 09:16 AM IST), batch 5m intraday bars
+         from today IST compared against yesterday's close.
+    Returns Dict keyed by both full symbol (e.g. HAPPYFORGE.NS) and base symbol (HAPPYFORGE).
+    """
+    results: Dict[str, Dict[str, Any]] = {}
+    if not symbols:
+        return results
+
+    today_ist_date = now_ist.date()
+    missing_yf: List[str] = []
+    yf_to_orig: Dict[str, set] = {}
+
+    # Tier 1: Live WebSocket tick_store
+    tick_store = None
+    try:
+        from backend.websocket_server import tick_store as _ts
+        tick_store = _ts
+    except Exception:
+        tick_store = None
+
+    now_epoch = time.time()
+    for raw_sym in symbols:
+        sym = str(raw_sym or "").strip().upper()
+        if not sym:
+            continue
+        base_sym = sym.replace(".NS", "").replace(".BO", "")
+        yf_sym = sym if ('.' in sym or sym.startswith('^')) else f"{base_sym}.NS"
+
+        found_live = False
+        if tick_store is not None:
+            for k in (sym, yf_sym, base_sym):
+                tick = tick_store.get_tick(k)
+                if tick and float(tick.get("price") or 0.0) > 0.0:
+                    ts = float(tick.get("timestamp") or 0.0)
+                    if ts > 0 and (now_epoch - ts) < 300:
+                        tick_ist_date = (datetime.utcfromtimestamp(ts) + timedelta(hours=5, minutes=30)).date()
+                        if tick_ist_date == today_ist_date:
+                            entry = {
+                                "price": round(float(tick["price"]), 2),
+                                "change_pct": round(float(tick.get("change_pct") or 0.0), 2),
+                                "is_today": True,
+                                "source": "tick_store",
+                            }
+                            results[sym] = entry
+                            results[yf_sym] = entry
+                            results[base_sym] = entry
+                            found_live = True
+                            break
+        if not found_live:
+            if yf_sym not in yf_to_orig:
+                missing_yf.append(yf_sym)
+                yf_to_orig[yf_sym] = set()
+            yf_to_orig[yf_sym].update({sym, yf_sym, base_sym})
+
+    if not missing_yf:
+        return results
+
+    # Tier 2: Batch yfinance 5d daily download
+    try:
+        import yfinance as yf
+        import pandas as pd
+
+        df_daily = await asyncio.to_thread(
+            yf.download, missing_yf, period="5d", interval="1d", progress=False, threads=True
+        )
+        prev_close_fallback: Dict[str, float] = {}
+        need_intraday: List[str] = []
+
+        if df_daily is not None and not df_daily.empty:
+            is_multi = isinstance(df_daily.columns, pd.MultiIndex)
+            for yf_sym in missing_yf:
+                try:
+                    if is_multi:
+                        if yf_sym not in df_daily.columns.get_level_values(1):
+                            need_intraday.append(yf_sym)
+                            continue
+                        cs = df_daily["Close"][yf_sym].dropna()
+                    else:
+                        cs = df_daily["Close"].dropna()
+                        if isinstance(cs, pd.DataFrame):
+                            cs = cs.iloc[:, 0].dropna()
+
+                    if cs.empty:
+                        need_intraday.append(yf_sym)
+                        continue
+
+                    last_ts = pd.Timestamp(cs.index[-1])
+                    if last_ts.tzinfo is not None:
+                        last_ts = last_ts.tz_convert("Asia/Kolkata")
+                    last_bar_date = last_ts.date()
+
+                    if last_bar_date == today_ist_date and len(cs) >= 2:
+                        curr_p = float(cs.iloc[-1])
+                        prev_p = float(cs.iloc[-2])
+                        if curr_p > 0 and prev_p > 0:
+                            chg = round(((curr_p - prev_p) / prev_p) * 100.0, 2)
+                            entry = {"price": round(curr_p, 2), "change_pct": chg, "is_today": True, "source": "yf_1d"}
+                            for alias in yf_to_orig.get(yf_sym, {yf_sym}):
+                                results[alias] = entry
+                            continue
+
+                    # Daily bar is still yesterday (e.g. 09:16 AM IST): save yesterday's close for 5m comparison
+                    prev_close_fallback[yf_sym] = float(cs.iloc[-1])
+                    need_intraday.append(yf_sym)
+                except Exception:
+                    need_intraday.append(yf_sym)
+        else:
+            need_intraday = list(missing_yf)
+
+        # Tier 3: Batch 5m intraday fallback for symbols whose daily bar hasn't printed yet today
+        if need_intraday:
+            df_5m = await asyncio.to_thread(
+                yf.download, need_intraday, period="1d", interval="5m", progress=False, threads=True
+            )
+            if df_5m is not None and not df_5m.empty:
+                is_multi_5m = isinstance(df_5m.columns, pd.MultiIndex)
+                for yf_sym in need_intraday:
+                    try:
+                        if is_multi_5m:
+                            if yf_sym not in df_5m.columns.get_level_values(1):
+                                continue
+                            cs5 = df_5m["Close"][yf_sym].dropna()
+                        else:
+                            cs5 = df_5m["Close"].dropna()
+                            if isinstance(cs5, pd.DataFrame):
+                                cs5 = cs5.iloc[:, 0].dropna()
+
+                        if cs5.empty:
+                            continue
+
+                        ts5 = pd.Timestamp(cs5.index[-1])
+                        if ts5.tzinfo is not None:
+                            ts5 = ts5.tz_convert("Asia/Kolkata")
+                        if ts5.date() != today_ist_date:
+                            continue
+
+                        curr_p = float(cs5.iloc[-1])
+                        prev_p = float(prev_close_fallback.get(yf_sym) or 0.0)
+                        if curr_p > 0 and prev_p > 0:
+                            chg = round(((curr_p - prev_p) / prev_p) * 100.0, 2)
+                            entry = {"price": round(curr_p, 2), "change_pct": chg, "is_today": True, "source": "yf_5m"}
+                            for alias in yf_to_orig.get(yf_sym, {yf_sym}):
+                                results[alias] = entry
+                    except Exception:
+                        continue
+    except Exception as e:
+        logger.warning(f"Batch live watchlist quote lookup failed: {e}")
+
+    return results
+
+
 async def sweep_watchlist_custom_alerts():
     """Sweeps all custom watchlist stock alert rules and dispatches Alerts Hub & WhatsApp notifications."""
     wa_token = os.environ.get("WHATSAPP_TOKEN", "")
@@ -9835,9 +10003,13 @@ async def sweep_watchlist_custom_alerts():
     if not rows:
         return
 
+    now_ist = datetime.utcnow() + timedelta(hours=5, minutes=30)
+    live_quotes = await _fetch_live_watchlist_quotes([r["symbol"] for r in rows if r.get("symbol")], now_ist)
+
     for item in rows:
         try:
             symbol = item["symbol"].strip().upper()
+            base_sym = symbol.replace('.NS', '').replace('.BO', '')
             try:
                 cfg = json.loads(item["alert_config"])
             except Exception:
@@ -9848,19 +10020,22 @@ async def sweep_watchlist_custom_alerts():
 
             with get_db() as conn:
                 fz = get_fuzzy_summary_for_symbol(conn, symbol)
-                profile_row = conn.execute("SELECT profile_json FROM cached_profiles WHERE symbol = ? OR symbol = ?", (symbol, symbol.replace('.NS', ''))).fetchone()
+                profile_row = conn.execute("SELECT profile_json FROM cached_profiles WHERE symbol = ? OR symbol = ?", (symbol, base_sym)).fetchone()
 
             p_json = json.loads(profile_row["profile_json"]) if profile_row and profile_row["profile_json"] else {}
             tech = p_json.get("technicals", {})
             fund = p_json.get("fundamentals", {})
 
-            cp = float(tech.get("current_price") or fund.get("current_price") or 0.0)
+            live = live_quotes.get(symbol) or live_quotes.get(base_sym)
+            has_live_today = bool(live and live.get("is_today") and live.get("price", 0) > 0)
+            cp = float(live["price"]) if has_live_today else float(tech.get("current_price") or fund.get("current_price") or 0.0)
             if cp <= 0:
                 continue
 
             added_price = float(item.get("added_price") or cp)
             added_date = item.get("added_date") or ""
             trend_metrics = compute_stock_trendlyne_metrics(p_json, cp, added_price, added_date)
+            live_day_chg = float(live["change_pct"]) if has_live_today else None
 
             triggers = []
 
@@ -9885,12 +10060,11 @@ async def sweep_watchlist_custom_alerts():
                 elif pos_pct <= 2.0:
                     triggers.append(("breakout_52w", f"📉 52-Week Low Breakout: {symbol} trading at ₹{cp:.2f} (Near 52W Low)"))
 
-            # 4. Intraday Flash Dip
-            if cfg.get("flash_dip_pct") is not None and float(cfg["flash_dip_pct"]) > 0:
+            # 4. Intraday Flash Dip (strictly requires verified today live change)
+            if cfg.get("flash_dip_pct") is not None and float(cfg["flash_dip_pct"]) > 0 and live_day_chg is not None:
                 dip_thresh = float(cfg["flash_dip_pct"])
-                day_chg = float(trend_metrics.get("change_pct") if trend_metrics.get("change_pct") is not None else (trend_metrics.get("returns", {}).get("d1") or 0.0))
-                if day_chg <= -dip_thresh:
-                    triggers.append(("flash_dip", f"📊 Flash Dip Triggered: {symbol} down {day_chg:.2f}% today (Threshold: -{dip_thresh}%)"))
+                if live_day_chg <= -dip_thresh:
+                    triggers.append(("flash_dip", f"📊 Flash Dip Triggered: {symbol} down {live_day_chg:.2f}% today (Threshold: -{dip_thresh}%)"))
 
             # 5. Entry Price Drop
             if cfg.get("entry_dip_pct") is not None and float(cfg["entry_dip_pct"]) > 0:
@@ -9901,7 +10075,7 @@ async def sweep_watchlist_custom_alerts():
                 else:
                     since_chg = float(trend_metrics.get("chg_since_added") if trend_metrics.get("chg_since_added") is not None else 0.0)
 
-                day_chg_val = float(trend_metrics.get("change_pct") if trend_metrics.get("change_pct") is not None else (trend_metrics.get("returns", {}).get("d1") or 0.0))
+                day_chg_val = live_day_chg if live_day_chg is not None else 0.0
                 effective_chg = since_chg if since_chg < 0 else day_chg_val
 
                 if effective_chg <= -entry_thresh:
@@ -10153,6 +10327,24 @@ async def sweep_watchlist_dip_alerts(watchlist_id: Optional[int] = None, force_d
     if not target_watchlists:
         return {"status": "skipped", "reason": "No active watchlists found or dip alerts disabled"}
 
+    # Pre-fetch watchlist items and resolve live today quotes once in batch
+    wl_items_map: Dict[int, List[Dict[str, Any]]] = {}
+    all_symbols: List[str] = []
+    with get_db() as conn:
+        cursor = conn.cursor()
+        for wl in target_watchlists:
+            cursor.execute(
+                "SELECT symbol, name, added_price, added_date, alert_config "
+                "FROM watchlist_items WHERE watchlist_id = ?", (wl["id"],)
+            )
+            rows = [dict(r) for r in cursor.fetchall()]
+            wl_items_map[wl["id"]] = rows
+            for r in rows:
+                if r.get("symbol"):
+                    all_symbols.append(r["symbol"].strip().upper())
+
+    live_quotes = await _fetch_live_watchlist_quotes(all_symbols, now_ist) if all_symbols else {}
+
     for wl in target_watchlists:
         wl_id = wl["id"]
         wl_name = wl["name"]
@@ -10162,14 +10354,7 @@ async def sweep_watchlist_dip_alerts(watchlist_id: Optional[int] = None, force_d
         if not alerts_enabled and not force_dispatch:
             continue
 
-        with get_db() as conn:
-            cursor = conn.cursor()
-            cursor.execute(
-                "SELECT symbol, name, added_price, added_date, alert_config "
-                "FROM watchlist_items WHERE watchlist_id = ?", (wl_id,)
-            )
-            items = [dict(r) for r in cursor.fetchall()]
-
+        items = wl_items_map.get(wl_id, [])
         if not items:
             continue
 
@@ -10179,9 +10364,9 @@ async def sweep_watchlist_dip_alerts(watchlist_id: Optional[int] = None, force_d
             symbol = item["symbol"].strip().upper()
             base_sym = symbol.replace('.NS', '').replace('.BO', '')
             gt = get_stock_ground_truth(symbol)
-            cp = float(gt.get("ltp") or 0.0)
-            chg = float(gt.get("change_pct") or 0.0)
-            mos = float(gt.get("margin_of_safety") or 0.0)
+            live = live_quotes.get(symbol) or live_quotes.get(base_sym)
+            cp = float(live["price"]) if (live and live.get("price", 0) > 0) else float(gt.get("ltp") or 0.0)
+            chg = float(live["change_pct"]) if (live and live.get("is_today")) else float(gt.get("change_pct") or 0.0)
 
             test_msg = (
                 f"🧪 *APEX WATCHLIST DIP SENTINEL — LIVE VERIFICATION*\n\n"
@@ -10211,11 +10396,18 @@ async def sweep_watchlist_dip_alerts(watchlist_id: Optional[int] = None, force_d
                 logger.error(f"Failed to dispatch WhatsApp test alert: {e}")
                 return {"status": "error", "message": f"WhatsApp send failed: {str(e)}"}
 
-        # Normal sweep mode across items (Active Market Hours Only)
+        # Normal sweep mode across items (Active Market Hours Only; requires verified today live price)
         for item in items:
             symbol = item["symbol"].strip().upper()
             base_sym = symbol.replace('.NS', '').replace('.BO', '')
             try:
+                live = live_quotes.get(symbol) or live_quotes.get(base_sym)
+                if not live or not live.get("is_today") or float(live.get("price") or 0.0) <= 0.0:
+                    continue
+
+                cp = float(live["price"])
+                day_chg = float(live["change_pct"])
+
                 with get_db() as conn:
                     cursor = conn.cursor()
                     profile_row = cursor.execute(
@@ -10224,26 +10416,26 @@ async def sweep_watchlist_dip_alerts(watchlist_id: Optional[int] = None, force_d
                     ).fetchone()
 
                 p_json = json.loads(profile_row["profile_json"]) if profile_row and profile_row["profile_json"] else {}
-                tech = p_json.get("technicals", {})
-                fund = p_json.get("fundamentals", {})
-                cp = float(tech.get("current_price") or fund.get("current_price") or 0.0)
-
-                gt = None
-                if cp <= 0:
-                    gt = get_stock_ground_truth(symbol)
-                    cp = float(gt.get("ltp") or 0.0)
-
-                if cp <= 0:
-                    continue
-
                 added_price = float(item.get("added_price") or cp)
                 added_date = item.get("added_date") or ""
                 trend_metrics = compute_stock_trendlyne_metrics(p_json, cp, added_price, added_date)
 
-                day_chg = float(trend_metrics.get("change_pct") if trend_metrics.get("change_pct") is not None else (trend_metrics.get("returns", {}).get("d1") or (gt.get("change_pct") if gt else 0.0)))
-                mos_val = float(trend_metrics.get("mos_pct") if trend_metrics.get("mos_pct") is not None else (gt.get("margin_of_safety") if gt else 0.0))
+                # Recompute MOS % against live price when DCF intrinsic value is available
+                fair_val = float(trend_metrics.get("fair_value") or 0.0)
+                if fair_val > 0:
+                    mos_val = round(((fair_val - cp) / fair_val) * 100.0, 1)
+                else:
+                    mos_val = float(trend_metrics.get("mos_pct") or 0.0)
+
                 range52 = trend_metrics.get("range_52w", {})
-                pos_pct = float(range52.get("pos_pct", 50.0))
+                h52 = float(range52.get("high52") or 0.0)
+                l52 = float(range52.get("low52") or 0.0)
+                if h52 > 0 and l52 > 0 and h52 > l52:
+                    l52_eff = min(l52, cp)
+                    h52_eff = max(h52, cp)
+                    pos_pct = round(((cp - l52_eff) / (h52_eff - l52_eff)) * 100.0, 1)
+                else:
+                    pos_pct = 50.0
 
                 triggers = []
 
@@ -10351,7 +10543,6 @@ async def run_background_watchlist_dip_alerts_scheduler():
             await asyncio.sleep(sleep_secs)
         except Exception as e:
             logger.error(f"Error in Watchlist Dip Alerts scheduler loop: {e}", exc_info=True)
-            await asyncio.sleep(300)
             await asyncio.sleep(300)
 
 
