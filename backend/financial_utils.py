@@ -1428,6 +1428,8 @@ def calculate_capture_ratios(ticker_symbol: str, stock_obj=None, years=3) -> dic
         else:
             stock_close.index = stock_close.index.tz_localize(None).to_period("M")
             bench_close.index = bench_close.index.tz_localize(None).to_period("M")
+            stock_close = stock_close.groupby(level=0).last()
+            bench_close = bench_close.groupby(level=0).last()
             
         stock_returns = stock_close.pct_change().dropna() * 100.0
         bench_returns = bench_close.pct_change().dropna() * 100.0
@@ -1441,18 +1443,25 @@ def calculate_capture_ratios(ticker_symbol: str, stock_obj=None, years=3) -> dic
             
         up_months = combined[combined["bench"] > 0.0]
         down_months = combined[combined["bench"] < 0.0]
+        min_bench_move = 0.05 if is_short_term else 0.25
+
+        def _geom_mean_pct(series: pd.Series) -> float:
+            vals = (1.0 + series.astype(float) / 100.0).clip(lower=0.01)
+            return float((vals.prod() ** (1.0 / len(vals)) - 1.0) * 100.0)
         
-        if not up_months.empty:
-            avg_stock_up = up_months["stock"].mean()
-            avg_bench_up = up_months["bench"].mean()
-            if avg_bench_up != 0.0:
-                result["up_capture"] = round((avg_stock_up / avg_bench_up) * 100.0, 1)
+        if len(up_months) >= 2:
+            geo_stock_up = _geom_mean_pct(up_months["stock"])
+            geo_bench_up = _geom_mean_pct(up_months["bench"])
+            if abs(geo_bench_up) >= min_bench_move:
+                raw_up = (geo_stock_up / geo_bench_up) * 100.0
+                result["up_capture"] = round(max(min(raw_up, 400.0), -200.0), 1)
                 
-        if not down_months.empty:
-            avg_stock_down = down_months["stock"].mean()
-            avg_bench_down = down_months["bench"].mean()
-            if avg_bench_down != 0.0:
-                result["down_capture"] = round((avg_stock_down / avg_bench_down) * 100.0, 1)
+        if len(down_months) >= 2:
+            geo_stock_down = _geom_mean_pct(down_months["stock"])
+            geo_bench_down = _geom_mean_pct(down_months["bench"])
+            if abs(geo_bench_down) >= min_bench_move:
+                raw_dn = (geo_stock_down / geo_bench_down) * 100.0
+                result["down_capture"] = round(max(min(raw_dn, 400.0), -200.0), 1)
                 
     except Exception as e:
         print(f"Error calculating capture ratios for {ticker_symbol}: {e}")

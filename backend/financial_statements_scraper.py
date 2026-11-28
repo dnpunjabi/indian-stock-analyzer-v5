@@ -208,8 +208,8 @@ def scrape_financial_statements(symbol: str, view: str = "consolidated", session
 
         response = make_screener_request(url, headers=headers, cookies=cookies, timeout=4)
         
-        # Fallback if consolidated returns 404 or redirects back to the main standalone profile page
-        if view == "consolidated" and (response.status_code != 200 or len(response.history) > 0):
+        # Fallback only if consolidated failed or actually redirected away from /consolidated
+        if view == "consolidated" and (response.status_code != 200 or "/consolidated" not in response.url.lower()):
             fallback_url = f"https://www.screener.in{base_path}/"
             response = make_screener_request(fallback_url, headers=headers, cookies=cookies, timeout=4)
             
@@ -243,6 +243,10 @@ def scrape_financial_statements(symbol: str, view: str = "consolidated", session
                     peers_table_el = peers_soup.find("table")
             except Exception as e:
                 print(f"Error fetching peers API: {e}")
+        if not peers_table_el:
+            peers_sec = soup.select_one("section#peers") or soup.select_one("#peers")
+            if peers_sec:
+                peers_table_el = peers_sec.find("table")
                 
         return {
             "symbol": symbol,

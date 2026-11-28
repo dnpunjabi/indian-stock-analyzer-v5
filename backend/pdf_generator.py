@@ -55,6 +55,262 @@ def _safe_float(val: Any, default: float = 0.0) -> float:
     except Exception:
         return default
 
+
+def _sanitize_pdf_text(text: Any) -> str:
+    """Normalizes currency, dashes, signs, and unsupported Unicode glyphs for ReportLab Helvetica."""
+    if text is None:
+        return ""
+    s = str(text)
+    s = re.sub(r"₹\s*", "Rs. ", s)
+    for src, dst in (
+        ("\u2010", "-"),
+        ("\u2011", "-"),
+        ("\u2012", "-"),
+        ("\u2212", "-"),
+        ("\u2018", "'"),
+        ("\u2019", "'"),
+        ("\u201c", '"'),
+        ("\u201d", '"'),
+        ("\u2026", "..."),
+        ("\u00a0", " "),
+        ("\u2605", "[ATH]"),
+        ("\u26a1", "[TEST]"),
+        ("\u29d7", "[BASE]"),
+        ("\u26a0\ufe0f", "[ALERT]"),
+        ("\u26a0", "[ALERT]"),
+    ):
+        s = s.replace(src, dst)
+    # Strip any remaining non-WinAnsi characters except bullet \u2022, en/em dash, triangles
+    s = "".join(ch for ch in s if ord(ch) < 0x0100 or ch in "\u2013\u2014\u2022\u25b2\u25bc\u25b6\u2192")
+    # Clean accidental double-signs before numbers (+-43.3% -> -43.3%, --33.5% -> -33.5%)
+    s = re.sub(r"\+-(\d)", r"-\1", s)
+    s = re.sub(r"--(\d)", r"-\1", s)
+    # Escape XML special chars for safe ReportLab Paragraph rendering
+    s = re.sub(r"&(?!amp;|lt;|gt;|quot;|apos;|nbsp;|bull;|rarr;)", "&amp;", s)
+    s = s.replace("<", "&lt;").replace(">", "&gt;")
+    return s
+
+
+def _ordinal_suffix(n: int) -> str:
+    n_int = int(round(n))
+    if 10 <= (n_int % 100) <= 20:
+        suf = "th"
+    else:
+        suf = {1: "st", 2: "nd", 3: "rd"}.get(n_int % 10, "th")
+    return f"{n_int}{suf}"
+
+
+def _compute_swing_setup(
+    cmp_val: float,
+    sma20: float,
+    sma50: float,
+    sma200: float,
+    low_52w: float,
+    high_52w: float,
+) -> Dict[str, Any]:
+    """Branches tactical swing setup by trend regime (Pullback when CMP >= 20D MA, Reclaim when below)."""
+    is_uptrend = (sma20 > 0 and cmp_val >= sma20)
+    if is_uptrend:
+        entry_low = round(min(sma20, sma50) if (sma50 > 0 and sma50 <= cmp_val) else min(sma20, cmp_val * 0.985), 0)
+        entry_high = round(min(max(sma20, entry_low), cmp_val), 0)
+        if entry_high <= entry_low:
+            entry_high = round(cmp_val, 0)
+            entry_low = round(min(entry_low, cmp_val * 0.975), 0)
+        stop_anchor = min(entry_low, sma50 if (sma50 > 0 and sma50 < cmp_val) else entry_low)
+        stop_loss = round(min(stop_anchor * 0.98, cmp_val * 0.96), 0)
+        t1 = round(max(high_52w, cmp_val * 1.08), 0)
+        t2 = round(max(t1 * 1.072, cmp_val * 1.15), 0)
+        mode = "PULLBACK"
+        action_title = "BUY ON CONFIRMED PULLBACK (STAGE 2 MOMENTUM)" if (sma200 > 0 and cmp_val >= sma200) else "BUY ON SUPPORT PULLBACK (RECOVERY)"
+        action_col = "#15803d"
+        zone_title = "PULLBACK BUY ZONE"
+        zone_sub = "20D MA test &amp; volume dry-up"
+        cmp_sub = "Above 20D MA support" if (sma200 <= 0 or cmp_val >= sma200) else "Recovery above 20D MA"
+        trigger_txt = "Bullish reversal candle with volume dry-up on 20D MA / support test"
+        levels_txt = f"S1: Rs. {sma20:,.0f} (20D MA) | S2: Rs. {sma50:,.0f} (50 SMA)"
+        stop_sub = f"{((stop_loss - cmp_val) / cmp_val * 100):+.1f}% close below support" if cmp_val > 0 else "Below support"
+    else:
+        res1 = sma20 if sma20 > cmp_val else cmp_val * 1.02
+        res2 = sma50 if (sma50 > res1 and sma50 <= res1 * 1.15) else res1 * 1.02
+        entry_low = round(min(res1, res2), 0)
+        entry_high = round(max(res1, res2), 0)
+        swing_floor = low_52w if (0 < low_52w < cmp_val) else cmp_val * 0.92
+        stop_loss = round(max(swing_floor, cmp_val * 0.92), 0)
+        if stop_loss >= cmp_val:
+            stop_loss = round(cmp_val * 0.93, 0)
+        t1 = round(max(high_52w, entry_high * 1.08), 0)
+        t2 = round(max(high_52w * 1.072, t1 * 1.07), 0)
+        mode = "RECLAIM"
+        action_title = "WAIT FOR RECLAIM / BREAKOUT TRIGGER (BELOW 20D MA)"
+        action_col = "#b45309"
+        zone_title = "RECLAIM TRIGGER ZONE"
+        zone_sub = "Buy only above 20D / 50D MA reclaim"
+        cmp_sub = "Below 20D/50D MA (basing)"
+        trigger_txt = f"Decisive daily close above Rs. {entry_low:,.0f} (20D MA reclaim) on &gt;1.5x volume"
+        levels_txt = f"Support: Rs. {stop_loss:,.0f} (Swing/52W Floor) | Res: Rs. {entry_low:,.0f} (20D MA)"
+        stop_sub = f"{((stop_loss - cmp_val) / cmp_val * 100):+.1f}% below swing low" if cmp_val > 0 else "Below swing low"
+
+    entry_mid = (entry_low + entry_high) / 2.0
+    risk_val = max(entry_mid - stop_loss, 1.0)
+    rew1_val = max(t1 - entry_mid, 1.0)
+    rew2_val = max(t2 - entry_mid, 2.0)
+    rr_avg = (rew1_val / risk_val + rew2_val / risk_val) / 2.0
+    return {
+        "mode": mode,
+        "action_title": action_title,
+        "action_col": action_col,
+        "zone_title": zone_title,
+        "zone_sub": zone_sub,
+        "cmp_sub": cmp_sub,
+        "trigger_txt": trigger_txt,
+        "levels_txt": levels_txt,
+        "stop_sub": stop_sub,
+        "entry_low": entry_low,
+        "entry_high": entry_high,
+        "entry_mid": entry_mid,
+        "stop_loss": stop_loss,
+        "t1": t1,
+        "t2": t2,
+        "rr_avg": rr_avg,
+    }
+
+
+def _evaluate_trend_and_screeners(
+    cmp_val: float,
+    sma20: float,
+    sma50: float,
+    sma150: float,
+    sma200: float,
+    low_52w: float,
+    high_52w: float,
+    roce_val: float,
+    de_val: float,
+    alpha_1y: float,
+    rsi_val: float,
+) -> Dict[str, Any]:
+    """Single source of truth for Stage 2, Minervini, Weinstein, RSC, and 11-Screener statuses."""
+    above_20 = cmp_val >= sma20 if sma20 > 0 else False
+    above_50 = cmp_val >= sma50 if sma50 > 0 else False
+    above_150 = cmp_val >= sma150 if sma150 > 0 else False
+    above_200 = cmp_val >= sma200 if sma200 > 0 else False
+    ma_aligned = sma150 >= sma200 if (sma150 > 0 and sma200 > 0) else False
+    dist_low_pct = ((cmp_val - low_52w) / low_52w * 100.0) if low_52w > 0 else 0.0
+    dist_high_pct = ((cmp_val - high_52w) / high_52w * 100.0) if high_52w > 0 else 0.0
+    near_52h = dist_high_pct >= -25.0
+    above_52l_30 = dist_low_pct >= 30.0
+
+    minervini_pass = above_150 and above_200 and ma_aligned and near_52h and above_52l_30
+    weinstein_stage2 = above_200 and above_150 and (sma50 >= sma200 * 0.98 if sma200 > 0 else False)
+
+    if weinstein_stage2:
+        weinstein_life = "Stage 2: Mark-Up"
+        weinstein_col = "#15803d"
+        weinstein_stat = "STAGE 2 CONFIRMED"
+        weinstein_reason = "Price above rising 150/200 SMA secular floor; constructive institutional mark-up."
+    elif above_200 or (sma200 > 0 and cmp_val >= sma200 * 0.90):
+        weinstein_life = "Stage 1/3: Basing / Transition"
+        weinstein_col = "#b45309"
+        weinstein_stat = "TRANSITION / BASING"
+        weinstein_reason = f"CMP {'above' if above_200 else 'below'} 200 SMA (Rs. {sma200:,.0f}); awaiting aligned 50/150/200 SMA reclaim."
+    else:
+        weinstein_life = "Stage 4: Downtrend / Re-Anchoring"
+        weinstein_col = "#b91c1c"
+        weinstein_stat = "STAGE 4 CAUTION"
+        weinstein_reason = f"CMP {((cmp_val - sma200)/sma200*100):+.1f}% below 200 SMA (Rs. {sma200:,.0f}); capital preservation regime."
+
+    if minervini_pass:
+        min_stat = "STAGE 2 CONFIRMED" + (" (BASING)" if not above_20 else "")
+        min_col = "#15803d"
+    elif above_200:
+        min_stat = "PARTIAL TEMPLATE"
+        min_col = "#b45309"
+    else:
+        min_stat = "FAILED (BELOW 200 SMA)"
+        min_col = "#b91c1c"
+
+    op_150 = "&gt;" if above_150 else "&lt;"
+    op_200 = "&gt;" if above_200 else "&lt;"
+    op_align = "&gt;" if ma_aligned else "&lt;"
+    min_reason = (
+        f"Trend rules: CMP Rs. {cmp_val:,.1f} {op_150} 150 SMA (Rs. {sma150:,.1f}) &amp; {op_200} 200 SMA (Rs. {sma200:,.1f}); "
+        f"150 SMA {op_align} 200 SMA; CMP {dist_low_pct:+.1f}% vs 52W Low (&gt;=30% rule); "
+        f"CMP {dist_high_pct:+.1f}% vs 52W High (within -25% rule)."
+    )
+
+    moat_pass = (roce_val >= 15.0 and de_val <= 0.5)
+    moat_stat = "QUALIFIED QUALITY" if moat_pass else ("MODERATE QUALITY" if roce_val >= 10.0 else "WATCHLIST")
+    moat_col = "#15803d" if moat_pass else "#b45309"
+
+    if alpha_1y >= 5.0:
+        rsc_stat, rsc_col = "OUTPERFORMER", "#15803d"
+        rsc_reason = f"{alpha_1y:+.1f}% 1-Year Alpha vs Nifty 50; positive relative strength leadership."
+    elif alpha_1y >= -5.0:
+        rsc_stat, rsc_col = "MARKET IN-LINE", "#0284c7"
+        rsc_reason = f"{alpha_1y:+.1f}% 1-Year Alpha vs Nifty 50; tracking broader market benchmark."
+    else:
+        rsc_stat, rsc_col = "UNDERPERFORMER", "#b91c1c"
+        rsc_reason = f"{alpha_1y:+.1f}% 1-Year Alpha vs Nifty 50; lagging benchmark relative strength."
+
+    kell_stat = "BULLISH HOLD" if (above_20 and above_50) else ("CONSOLIDATING" if above_50 else "BELOW 20D/50D MA")
+    kell_col = "#15803d" if (above_20 and above_50) else ("#b45309" if above_50 else "#b91c1c")
+    kell_reason = "Price holding above 20D &amp; 50D moving averages." if (above_20 and above_50) else "Price below 20D/50D MA; awaiting moving average reclaim."
+
+    brk_triggered = dist_high_pct >= -2.0
+    brk_stat = "BREAKOUT ACTIVE" if brk_triggered else "PENDING TRIGGER"
+    brk_col = "#15803d" if brk_triggered else "#b45309"
+
+    darvas_stat = "INSIDE UPPER BOX" if above_200 else "BELOW BOX FLOOR"
+    darvas_col = "#0284c7" if above_200 else "#b91c1c"
+    darvas_reason = (
+        f"Trading inside consolidation range (Rs. {sma200:,.0f} [200 SMA] - Rs. {high_52w:,.0f} [52W High])."
+        if above_200 else
+        f"Trading below 200 SMA base (Rs. {sma200:,.0f}); overhead supply at Rs. {sma50:,.0f} - Rs. {high_52w:,.0f}."
+    )
+
+    vcp_stat = "TIGHTENING" if (above_200 and dist_high_pct >= -15.0) else ("BASING" if above_200 else "EXTENDED PULLBACK")
+    vcp_col = "#0284c7" if above_200 else "#b45309"
+
+    cup_stat = "BASE FORMING" if dist_high_pct >= -25.0 else "DEEP RETRACEMENT"
+    cup_col = "#b45309" if dist_high_pct >= -25.0 else "#b91c1c"
+
+    foundational_count = sum([1 if minervini_pass else 0, 1 if weinstein_stage2 else 0, 1 if moat_pass else 0, 1 if alpha_1y > 0 else 0])
+    momentum_count = sum([1 if (above_20 and above_50) else 0, 1 if brk_triggered else 0, 1 if (rsi_val >= 55.0 and above_50) else 0])
+
+    return {
+        "above_20": above_20,
+        "above_50": above_50,
+        "above_150": above_150,
+        "above_200": above_200,
+        "dist_low_pct": dist_low_pct,
+        "dist_high_pct": dist_high_pct,
+        "weinstein_life": weinstein_life,
+        "weinstein_col": weinstein_col,
+        "weinstein_stat": weinstein_stat,
+        "weinstein_reason": weinstein_reason,
+        "min_stat": min_stat,
+        "min_col": min_col,
+        "min_reason": min_reason,
+        "moat_stat": moat_stat,
+        "moat_col": moat_col,
+        "rsc_stat": rsc_stat,
+        "rsc_col": rsc_col,
+        "rsc_reason": rsc_reason,
+        "kell_stat": kell_stat,
+        "kell_col": kell_col,
+        "kell_reason": kell_reason,
+        "brk_stat": brk_stat,
+        "brk_col": brk_col,
+        "darvas_stat": darvas_stat,
+        "darvas_col": darvas_col,
+        "darvas_reason": darvas_reason,
+        "vcp_stat": vcp_stat,
+        "vcp_col": vcp_col,
+        "cup_stat": cup_stat,
+        "cup_col": cup_col,
+        "foundational_count": foundational_count,
+        "momentum_count": momentum_count,
+    }
+
 class NumberedCanvas(canvas.Canvas):
     """
     Two-pass canvas to dynamically compute total page count and render
@@ -1479,9 +1735,9 @@ def _generate_cycle_clock_sizing_chart(
     ax1.text(-5, -8.4, "STAGE 4 CAUTION\n(Downtrend + Weak EPS)", ha='center', va='bottom', fontsize=5.3, fontweight='bold', color='#991b1b')
 
     ax1.scatter([sx], [sy], color='#0284c7', s=85, zorder=5, edgecolor='#0f172a', linewidth=1.2)
-    off_x = -4.5 if sx >= 0 else 4.5
-    off_y = -3.8 if sy >= 0 else 3.8
-    ax1.annotate(clean_sym, xy=(sx, sy), xytext=(sx + off_x, sy + off_y),
+    box_x = min(max(sx + (3.2 if sx >= 0 else -3.2), 2.5 if sx >= 0 else -8.5), 8.5 if sx >= 0 else -2.5)
+    box_y = min(max(sy + (-3.0 if sy >= 0 else 3.0), 1.8 if sy >= 0 else -7.0), 6.2 if sy >= 0 else -1.8)
+    ax1.annotate(clean_sym, xy=(sx, sy), xytext=(box_x, box_y),
                  arrowprops=dict(arrowstyle="->", color='#0f172a', lw=0.8),
                  ha='center', va='center', fontsize=5.8, fontweight='bold', color='#0f172a',
                  bbox=dict(boxstyle="round,pad=0.15", fc="#ffffff", ec="#0284c7", lw=0.7))
@@ -2138,11 +2394,11 @@ def _generate_peer_bubble_scatter_chart(peers_data: List[Dict[str, Any]], target
             ax.scatter(x, y, s=sz * 1.3, color='#0284c7', alpha=0.35, edgecolors='#0284c7', linewidth=1.5, zorder=5)
             ax.scatter(x, y, s=sz * 0.55, color='#0369a1', alpha=0.95, edgecolors='#ffffff', linewidth=1.2, zorder=6)
 
-            if y > med_roce:
-                tgt_xytext = (0, -28)
+            if y >= med_roce:
+                tgt_xytext = (0, -26)
                 tgt_va = 'top'
             else:
-                tgt_xytext = (0, 26)
+                tgt_xytext = (0, 22)
                 tgt_va = 'bottom'
 
             tgt_ha = 'center'
@@ -2154,10 +2410,10 @@ def _generate_peer_bubble_scatter_chart(peers_data: List[Dict[str, Any]], target
                 tgt_xytext = (-10, tgt_xytext[1])
 
             ax.annotate(
-                f"TARGET: {lbl.upper()}\n{x:.1f}x P/E  |  {y:.1f}% ROCE  |  Rs. {m:,.0f} Cr",
+                f"TARGET: {target_symbol.upper()}\n{x:.1f}x P/E | {y:.1f}% ROCE | Rs. {m:,.0f} Cr",
                 xy=(x, y), xytext=tgt_xytext, textcoords="offset points",
-                ha=tgt_ha, va=tgt_va, fontsize=6.2, fontweight='bold', color='#0284c7',
-                bbox=dict(boxstyle="round,pad=0.35,rounding_size=3", fc="#ffffff", ec="#0284c7", lw=1.2, alpha=0.95),
+                ha=tgt_ha, va=tgt_va, fontsize=6.0, fontweight='bold', color='#0284c7',
+                bbox=dict(boxstyle="round,pad=0.30,rounding_size=3", fc="#ffffff", ec="#0284c7", lw=1.2, alpha=0.95),
                 arrowprops=dict(arrowstyle="->", color="#0284c7", lw=0.8, shrinkA=3, shrinkB=3),
                 zorder=8
             )
@@ -2941,17 +3197,22 @@ def _extract_dossier_intelligence(clean_sym: str) -> dict:
     fs = json.loads(r_fs[0]) if r_fs else {}
     cached_view = r_fs[1] if r_fs and len(r_fs) > 1 else ""
 
-    # If the cached statement is not consolidated, missing, or lacks #ratios, fetch consolidated live
-    if not fs or cached_view != "consolidated" or not fs.get("is_consolidated") or not fs.get("ratios"):
+    # If the cached statement is not consolidated, missing ratios, or missing peers, fetch consolidated live
+    has_cached_peers = bool((fs.get("peers") or {}).get("rows"))
+    if not fs or cached_view != "consolidated" or not fs.get("is_consolidated") or not fs.get("ratios") or not has_cached_peers:
         try:
             from backend.financial_statements_scraper import scrape_financial_statements
             live_fs = scrape_financial_statements(clean_sym, view="consolidated")
             if live_fs and not live_fs.get("error") and live_fs.get("quarters", {}).get("rows"):
+                # Preserve existing non-empty ratios/peers if live missed them
+                if not (live_fs.get("peers") or {}).get("rows") and has_cached_peers:
+                    live_fs["peers"] = fs.get("peers")
                 fs = live_fs
+                actual_view = "consolidated" if live_fs.get("is_consolidated") else "standalone"
                 try:
                     cur.execute(
                         "INSERT OR REPLACE INTO cached_financial_statements (symbol, view, data_json, last_updated) VALUES (?, ?, ?, datetime('now'))",
-                        (clean_sym, "consolidated", json.dumps(live_fs))
+                        (clean_sym, actual_view, json.dumps(live_fs))
                     )
                     conn.commit()
                 except Exception:
@@ -3106,7 +3367,8 @@ def _extract_dossier_intelligence(clean_sym: str) -> dict:
     # Balance Sheet & Equity Bases (Standalone vs Consolidated)
     bs_data = fs.get("balance_sheet", {})
     bs_rows = {r.get("label"): r.get("values", []) for r in bs_data.get("rows", [])}
-    eq_cap = _safe_float(bs_rows.get("Equity Capital", [0])[-1], 0.0) if "Equity Capital" in bs_rows else 0.0
+    eq_list = bs_rows.get("Equity Capital") or bs_rows.get("Share Capital") or [0]
+    eq_cap = _safe_float(eq_list[-1], 0.0) if eq_list else 0.0
     reserves = _safe_float(bs_rows.get("Reserves", [0])[-1], 0.0) if "Reserves" in bs_rows else 0.0
     net_worth = (eq_cap + reserves) if (eq_cap + reserves) > 0 else (mcap_val * 0.25)
     tot_assets = _safe_float(bs_rows.get("Total Assets", [0])[-1], 0.0) if "Total Assets" in bs_rows and _safe_float(bs_rows.get("Total Assets", [0])[-1], 0.0) > 0 else (net_worth * 1.5)
@@ -3225,10 +3487,18 @@ def _extract_dossier_intelligence(clean_sym: str) -> dict:
     max_dd = _safe_float(prof.get("drawdown_metrics", {}).get("max_drawdown_pct"), -27.1)
     recovery_days = int(_safe_float(prof.get("drawdown_metrics", {}).get("worst_drawdown_duration_days"), 162))
 
-    # DCF Framework
+    # DCF Framework (normalize starting FCFF against multi-year OCF margin to prevent working-capital anomalies)
     c_sales_f = cagr_sales.real if isinstance(cagr_sales, complex) else float(cagr_sales)
     growth_rate = min(max(c_sales_f / 100.0, 0.08), 0.16)
-    start_fcf = round((y_ocf[-1] * 0.9885) if (y_ocf and y_ocf[-1] > 0) else (ttm_pat * cfo_pat), 0)
+    pos_ocf_pairs = [(o, r) for o, r in zip(y_ocf, y_rev) if o > 0 and r > 0]
+    avg_ocf_margin = (sum(o for o, _ in pos_ocf_pairs) / sum(r for _, r in pos_ocf_pairs)) if pos_ocf_pairs else 0.08
+    norm_ocf_from_margin = ttm_sales * avg_ocf_margin
+    raw_last_ocf = y_ocf[-1] if (y_ocf and y_ocf[-1] > 0) else (ttm_pat * max(cfo_pat, 0.5))
+    ebitda_anchor = (y_op[-1] if y_op else ttm_op) * 0.55
+    if raw_last_ocf < max(norm_ocf_from_margin * 0.45, ebitda_anchor * 0.35):
+        start_fcf = round(max(norm_ocf_from_margin * 0.85, ebitda_anchor * 0.65), 0)
+    else:
+        start_fcf = round(raw_last_ocf * 0.9885, 0)
     fcf_proj = [round(start_fcf * ((1.0 + growth_rate)**(yr - 1)), 0) for yr in range(1, 6)]
     c_op_f = cagr_op.real if isinstance(cagr_op, complex) else float(cagr_op)
     op_growth = min(max(c_op_f / 100.0, growth_rate), 0.1628)
@@ -3390,6 +3660,84 @@ def _extract_dossier_intelligence(clean_sym: str) -> dict:
             if len(peer_rows) >= 8:
                 break
 
+    # Tier 2 fallback: use peers from cached_profiles (financial_utils.py Screener scrape)
+    if not peer_rows and prof.get("peers"):
+        for pr in prof.get("peers", []):
+            lbl = str(pr.get("Name", "")).strip()
+            if not lbl:
+                continue
+            p_pe = _safe_float(pr.get("P/E"), pe_val)
+            p_mcap = _safe_float(pr.get("Mar Cap"), mcap_val)
+            p_roce = _safe_float(pr.get("ROCE %"), roce_val)
+            p_sales3 = _safe_float(pr.get("Profit Qtr YoY %") or pr.get("Sales Qtr YoY %"), 12.0)
+            p_de = _safe_float(pr.get("Debt to Equity"), 0.05)
+            p_cmp = _safe_float(pr.get("CMP"), cmp_val if clean_sym in lbl.upper() else 0.0)
+            norm_lbl = re.sub(r'[^A-Z0-9]', '', lbl.upper().replace("LIMITED", "").replace("LTD", ""))
+            norm_sym = re.sub(r'[^A-Z0-9]', '', clean_sym.upper())
+            norm_comp = re.sub(r'[^A-Z0-9]', '', comp_name.upper().replace("LIMITED", "").replace("LTD", ""))
+            is_target = (norm_sym in norm_lbl or norm_lbl in norm_sym or (len(norm_comp) >= 4 and norm_lbl.startswith(norm_comp[:4])))
+            peer_rows.append({
+                "label": f"{comp_name} (Target)" if is_target else lbl,
+                "cmp": cmp_val if is_target else p_cmp,
+                "pe": pe_val if is_target else p_pe,
+                "mcap": mcap_val if is_target else p_mcap,
+                "roce": roce_val if is_target else p_roce,
+                "sales_3y": p_sales3,
+                "de": de_val if is_target else p_de,
+                "is_target": is_target
+            })
+            if len(peer_rows) >= 8:
+                break
+
+    # Tier 3 fallback: query cached_profiles SQLite table for same industry/sector peers
+    if len([pr for pr in peer_rows if not pr.get("is_target")]) == 0:
+        try:
+            conn_p = sqlite3.connect("backend/data/watchlist_database.db")
+            cur_p = conn_p.cursor()
+            cur_p.execute("SELECT symbol, profile_json FROM cached_profiles LIMIT 800")
+            ind_matches, sec_matches = [], []
+            for p_sym, p_json in cur_p.fetchall():
+                if not p_json:
+                    continue
+                try:
+                    po = json.loads(p_json)
+                except Exception:
+                    continue
+                p_base = str(p_sym).upper().replace(".NS", "").replace(".BO", "")
+                if p_base == clean_sym:
+                    continue
+                pf = po.get("fundamentals", {}) or {}
+                p_cmp_v = _safe_float(pf.get("current_price") or pf.get("cmp"), 0.0)
+                p_mcap_v = _safe_float(pf.get("market_cap_cr") or pf.get("market_cap"), 0.0)
+                p_pe_v = _safe_float(pf.get("pe_ratio"), 0.0)
+                p_roce_v = _safe_float(pf.get("roce_pct") or pf.get("roce"), 0.0)
+                if p_cmp_v <= 0 or p_mcap_v <= 0 or p_pe_v <= 0:
+                    continue
+                entry = {
+                    "label": po.get("company_name") or p_base,
+                    "cmp": p_cmp_v,
+                    "pe": p_pe_v,
+                    "mcap": p_mcap_v,
+                    "roce": p_roce_v,
+                    "sales_3y": _safe_float(pf.get("profit_growth_3y_pct") or pf.get("sales_growth_3y_pct"), 10.0),
+                    "de": _safe_float(pf.get("debt_to_equity"), 0.1),
+                    "is_target": False,
+                    "_mcap_diff": abs(p_mcap_v - mcap_val)
+                }
+                if industry and str(po.get("industry", "")).strip().lower() == str(industry).strip().lower():
+                    ind_matches.append(entry)
+                elif sector and str(po.get("sector", "")).strip().lower() == str(sector).strip().lower():
+                    sec_matches.append(entry)
+            conn_p.close()
+            cand_peers = sorted(ind_matches, key=lambda x: x["_mcap_diff"])[:4]
+            if len(cand_peers) < 3:
+                cand_peers += sorted(sec_matches, key=lambda x: x["_mcap_diff"])[:(4 - len(cand_peers))]
+            for cp in cand_peers:
+                cp.pop("_mcap_diff", None)
+                peer_rows.append(cp)
+        except Exception:
+            pass
+
     has_target = any(pr["is_target"] for pr in peer_rows)
     if not has_target:
         peer_rows.insert(0, {
@@ -3520,6 +3868,7 @@ def _extract_dossier_intelligence(clean_sym: str) -> dict:
         "dp_em": dp_em,
         "dp_roe": dp_roe,
         "beta": beta,
+        "capm_corr": _safe_float(capm.get("correlation"), 0.5),
         "wacc": wacc,
         "growth_rate": growth_rate,
         "pv_5y": pv_5y,
@@ -3761,6 +4110,7 @@ def generate_stock_research_dossier_pdf(
     # ══════════════════════════════════════════════════════════════════════════
     is_consol = info.get("is_consolidated", True)
     basis_label = "Consolidated Audit" if is_consol else "Standalone Audit"
+    equity_basis_lbl = "Consolidated Equity" if is_consol else "Standalone Equity"
 
     header_col_left = [
         Paragraph("<a name='page_1'/><b>APEX QUANT AI | INSTITUTIONAL EQUITIES INTELLIGENCE DOSSIER</b>", subtitle_style),
@@ -3868,7 +4218,7 @@ def generate_stock_research_dossier_pdf(
     story.append(Spacer(1, 2))
 
     rupee_rows = [
-        ("Solvency & Debt Burden", f"Owes just Rs. {de_val * 100:.1f} in total debt for every Rs. 100 of shareholders' equity (Borrowings: Rs. {borrowings:,.0f} Cr vs Consolidated Equity: Rs. {net_worth:,.0f} Cr).", f"{de_val:.2f}x Debt/Equity"),
+        ("Solvency & Debt Burden", f"Owes just Rs. {de_val * 100:.1f} in total debt for every Rs. 100 of shareholders' equity (Borrowings: Rs. {borrowings:,.0f} Cr vs {equity_basis_lbl}: Rs. {net_worth:,.0f} Cr).", f"{de_val:.2f}x Debt/Equity"),
         ("Cash Quality & Accrual Check", f"Rs. {min(cfo_pat, 2.0)*100:.1f} of every Rs. 100 in reported net profit is collected in cold, hard operating cash ({cfo_pat:.2f}x CFO/PAT).", f"{cfo_pat:.2f}x CFO/PAT"),
         ("Operating & Net Margins", f"Pockets Rs. {opm_val:.1f} in operating profit and Rs. {npm_val:.1f} in net profit out of every Rs. 100 generated in sales.", f"{opm_val:.1f}% OPM | {npm_val:.1f}% NPM"),
         ("Capital Productivity (ROCE)", f"Generates Rs. {roce_val:.1f} in operating earnings for every Rs. 100 of total capital employed in the business.", f"{roce_val:.1f}% ROCE"),
@@ -3904,6 +4254,23 @@ def generate_stock_research_dossier_pdf(
     story.append(Paragraph("<b>2. RETURNS &amp; BENCHMARK ALPHA • 12M MARKET CAPTURE AUDIT</b>", sec_header_style))
     story.append(Spacer(1, 2))
 
+    if 0.0 <= capture_dn < 85.0:
+        dn_cap_tag, dn_cap_col = "Protected Downside", "#15803d"
+    elif capture_dn < 0.0:
+        dn_cap_tag, dn_cap_col = "Inverse / Divergent Capture", "#b45309"
+    elif capture_dn <= 110.0:
+        dn_cap_tag, dn_cap_col = "Market-Matched Downside", "#0284c7"
+    else:
+        dn_cap_tag, dn_cap_col = "Elevated Downside Beta", "#b91c1c"
+
+    if alpha_1y >= 5.0 and capture_up > max(capture_dn, 0.0):
+        cap_verdict = "Asymmetric Alpha (Superior upside capture with resilient capital defense)"
+    elif alpha_1y >= 0.0:
+        cap_verdict = "Constructive Risk-Adjusted Return (Positive benchmark alpha)"
+    else:
+        cap_verdict = "Underperforming Benchmark (Lagging 12M relative strength; capital preservation focus)"
+
+    alpha_col_ret = "#15803d" if alpha_1y >= 0 else "#b91c1c"
     returns_capture_data = [
         [
             Paragraph("HORIZON", th_style),
@@ -3921,12 +4288,12 @@ def generate_stock_research_dossier_pdf(
             Paragraph(f"{chg_3m:+.2f}%", td_num),
             Paragraph(f"<b>{chg_1y:+.1f}%</b>", td_num),
             Paragraph(f"<b>{chg_3y:+.1f}%</b>", td_num),
-            Paragraph(f"<font color='#15803d'><b>{alpha_1y:+.1f}% (1-Year Alpha)</b></font>", td_num)
+            Paragraph(f"<font color='{alpha_col_ret}'><b>{alpha_1y:+.1f}% (1-Year Alpha)</b></font>", td_num)
         ],
         [
             Paragraph(
-                f"<b>12M Market Capture:</b> Up-Market: <font color='#15803d'><b>{capture_up:.1f}%</b></font> | Down-Market: <font color='#0284c7'><b>{capture_dn:.1f}% (Protected Downside)</b></font> &nbsp;|&nbsp; "
-                f"<b>Verdict:</b> Asymmetric Alpha (Superior upside capture with resilient capital defense)<br/>"
+                f"<b>12M Market Capture:</b> Up-Market: <font color='#15803d'><b>{capture_up:.1f}%</b></font> | Down-Market: <font color='{dn_cap_col}'><b>{capture_dn:.1f}% ({dn_cap_tag})</b></font> &nbsp;|&nbsp; "
+                f"<b>Verdict:</b> {cap_verdict}<br/>"
                 f"<b>Drawdown Profile:</b> Max 1Y Drawdown: <font color='#b91c1c'><b>{max_dd:.1f}%</b></font> (Peak Volatility Floor) &nbsp;|&nbsp; Worst Recovery Period: <b>{recovery_days} days</b> &nbsp;|&nbsp; "
                 f"<b>Beta-Adjusted Alpha:</b> <b>{alpha_1y:+.1f}%</b> (Benchmark Spread: <b>{bench_spread:+.1f}%</b> vs Nifty 50)",
                 body_style
@@ -4043,9 +4410,9 @@ def generate_stock_research_dossier_pdf(
         clean_sym, comp_name, sector, pe_val=pe_val, med_3y=med_3y, cagr_sales=cagr_sales
     )
     risks_text = (
-        f"• <b>1. {risk_intel['risk_1_title']}:</b> {risk_intel['risk_1_desc']}<br/>"
-        f"• <b>2. {risk_intel['risk_2_title']}:</b> {risk_intel['risk_2_desc']}<br/>"
-        f"• <b>3. {risk_intel['risk_3_title']}:</b> {risk_intel['risk_3_desc']}"
+        f"• <b>1. {_sanitize_pdf_text(risk_intel['risk_1_title'])}:</b> {_sanitize_pdf_text(risk_intel['risk_1_desc'])}<br/>"
+        f"• <b>2. {_sanitize_pdf_text(risk_intel['risk_2_title'])}:</b> {_sanitize_pdf_text(risk_intel['risk_2_desc'])}<br/>"
+        f"• <b>3. {_sanitize_pdf_text(risk_intel['risk_3_title'])}:</b> {_sanitize_pdf_text(risk_intel['risk_3_desc'])}"
     )
 
     thesis_data = [
@@ -4340,19 +4707,19 @@ def generate_stock_research_dossier_pdf(
 
     # 2. Multi-Year Base Duration & Blue-Sky Breakout Status
     if dist_52h >= -2.0:
-        base_status = "★ BLUE-SKY REGIME (ATH Discovery)"
+        base_status = "[ATH] BLUE-SKY REGIME (ATH Discovery)"
         base_status_col = "#15803d"
         overhead_text = "Zero Overhead Supply (Open Discovery Runway)"
     elif dist_52h >= -8.0:
-        base_status = "⚡ BREAKOUT TEST (Testing 52W High)"
+        base_status = "[TEST] BREAKOUT TEST (Testing 52W High)"
         base_status_col = "#0284c7"
         overhead_text = f"Major Pivot Resistance: Rs. {high_52w:,.1f}"
     elif dist_52h >= -20.0:
-        base_status = "⧗ CONSOLIDATION BASE (Mid-Range Channel)"
+        base_status = "[BASE] CONSOLIDATION BASE (Mid-Range Channel)"
         base_status_col = "#475569"
         overhead_text = f"Overhead Supply Ceiling: Rs. {high_52w:,.1f}"
     else:
-        base_status = "⚠️ DEEP RE-ANCHORING BASE (Base Defense)"
+        base_status = "[ALERT] DEEP RE-ANCHORING BASE (Base Defense)"
         base_status_col = "#b91c1c"
         overhead_text = f"Overhead Supply Ceiling: Rs. {high_52w:,.1f}"
 
@@ -4540,14 +4907,29 @@ def generate_stock_research_dossier_pdf(
 
     buf_radar = _generate_quant_radar_spider_chart(scores_dict)
 
-    dist_high_pct = (cmp_val - high_52w) / high_52w * 100.0
+    gate = _evaluate_trend_and_screeners(
+        cmp_val=cmp_val,
+        sma20=sma20,
+        sma50=sma50,
+        sma150=sma150,
+        sma200=sma200,
+        low_52w=low_52w,
+        high_52w=high_52w,
+        roce_val=roce_val,
+        de_val=de_val,
+        alpha_1y=alpha_1y,
+        rsi_val=rsi_val,
+    )
+    dist_high_pct = gate["dist_high_pct"]
+    dist_low_pct = gate["dist_low_pct"]
+    capm_corr = float(info.get("capm_corr", 0.5))
     beta_label = "Defensive / Low Volatility" if beta < 0.9 else ("Market Tracking" if beta <= 1.15 else "High Sensitivity")
     quant_summary_text = (
-        "<b>QUANT FACTOR PROFILE &amp; STAGE 2 DIAGNOSTIC:</b><br/>"
-        f"• <b>Stan Weinstein Life Cycle:</b> <font color='#15803d'><b>Stage 2: Mark-Up</b></font> (95% Confidence)<br/>"
-        f"• <b>Distance to 52W High:</b> <b>{dist_high_pct:+.1f}%</b> &nbsp;|&nbsp; <b>Distance Above 52W Low:</b> <b>+{((cmp_val-low_52w)/low_52w*100):.1f}%</b><br/>"
-        f"• <b>Active Screener Count:</b> <font color='#b45309'><b>3 Foundational Screens Active • 0/8 Momentum Breakouts Triggered</b></font><br/>"
-        f"• <b>Sharpe Ratio:</b> 1.35 &nbsp;|&nbsp; <b>Sortino Ratio:</b> 2.10 &nbsp;|&nbsp; <b>Market Beta:</b> {beta:.2f}x ({beta_label})<br/>"
+        "<b>QUANT FACTOR PROFILE &amp; TREND DIAGNOSTIC:</b><br/>"
+        f"• <b>Stan Weinstein Life Cycle:</b> <font color='{gate['weinstein_col']}'><b>{gate['weinstein_life']}</b></font><br/>"
+        f"• <b>Distance to 52W High:</b> <b>{dist_high_pct:+.1f}%</b> &nbsp;|&nbsp; <b>Distance vs 52W Low:</b> <b>{dist_low_pct:+.1f}%</b><br/>"
+        f"• <b>Active Screener Count:</b> <font color='#0284c7'><b>{gate['foundational_count']}/4 Foundational Screens Active • {gate['momentum_count']}/3 Momentum Signals Active</b></font><br/>"
+        f"• <b>1Y Return:</b> <b>{chg_1y:+.1f}%</b> &nbsp;|&nbsp; <b>Nifty Correlation:</b> <b>{capm_corr:.2f}</b> &nbsp;|&nbsp; <b>Market Beta:</b> {beta:.2f}x ({beta_label})<br/>"
         f"• <b>Jensen's Alpha:</b> {alpha_1y:+.1f}% annualized excess return vs. Nifty 50 benchmark<br/>"
         f"• <b>12M Market Capture:</b> {capture_up:.1f}% Up-Market Capture vs. {capture_dn:.1f}% Down-Market Capture<br/>"
         f"• <b>Maximum 1Y Drawdown:</b> {max_dd:.1f}% (Peak Volatility Floor | Worst Recovery: {recovery_days} days)<br/>"
@@ -4565,29 +4947,25 @@ def generate_stock_research_dossier_pdf(
     story.append(t_top_page3)
     story.append(Spacer(1, 3))
 
-    # 11-Screener Matrix
-    story.append(Paragraph("<b>11-SCREENER QUANT STATUS: 3 FOUNDATIONAL SCREENS ACTIVE • 0/8 MOMENTUM BREAKOUTS TRIGGERED</b>", sec_header_style))
+    # 11-Screener Matrix (strictly gated by single-source booleans)
+    story.append(Paragraph(
+        f"<b>11-SCREENER QUANT STATUS: {gate['foundational_count']}/4 FOUNDATIONAL SCREENS ACTIVE • {gate['momentum_count']}/3 MOMENTUM SIGNALS ACTIVE</b>",
+        sec_header_style
+    ))
     story.append(Spacer(1, 2))
 
-    minervini_reason = (
-        f"All 8 criteria evaluated: CMP Rs. {cmp_val:,.1f} > 150 SMA (Rs. {sma150:,.1f}) & 200 SMA (Rs. {sma200:,.1f}); "
-        f"150 SMA > 200 SMA; 200 SMA rising >1M; CMP +{((cmp_val-low_52w)/low_52w*100):.1f}% above 52W Low (>=30% rule); "
-        f"CMP {dist_high_pct:+.1f}% from 52W High pivot (within 25% rule). "
-        f"Consolidating in Stage 2 pre-breakout base; 0/8 immediate breakout triggers active."
-    )
-
     screener_rows = [
-        ("Mark Minervini Trend Template", "Daily / Weekly", "STAGE 2 CONFIRMED (BASING)", "#15803d", minervini_reason),
-        ("Stan Weinstein Stage 2", "Weekly", "STAGE 2 CONFIRMED", "#15803d", "30-Week MA slope positive (+5.25%); volume contraction on pullback."),
-        ("Mark Minervini VCP", "Daily", "VOLATILITY CONTRACTION", "#b45309", "Tightening volatility near upper range; awaiting volume expansion on breakout."),
-        ("Pocket Pivot (Gil Morales)", "Daily", "PENDING", "#b45309", "Daily up-day volume did not exceed highest down-day volume of last 10 days."),
-        ("Oliver Kell 10/20 EMA", "Daily", "CONSOLIDATING", "#b45309", "Price tracking along 20-day EMA support without active momentum reclaim."),
-        ("High ROCE Buffett Moat", "Annual", "QUALIFIED QUALITY", "#15803d", f"{roce_val:.1f}% ROCE, low long-term debt, and entrenched industry market share."),
-        ("High Relative Strength (RSC)", "Daily", "OUTPERFORMER", "#15803d", f"{alpha_1y:+.1f}% 1-Year Alpha vs Nifty 50; strong relative strength profile."),
-        ("Volume Shockers / Dry-Up", "Daily", "VOLUME DRIED UP", "#b45309", "Volume contracted -22% below 50-day average during base formation."),
-        ("Cup with Handle", "Weekly", "BASE FORMING", "#b45309", f"Handle forming within {abs(dist_high_pct):.1f}% of pivot; awaiting volume breakout."),
-        ("Darvas Box Breakout", "Daily", "INSIDE UPPER BOX", "#b45309", f"Consolidating inside upper Darvas consolidation box (Rs. {sma200:,.0f} [200 SMA base] – Rs. {high_52w:,.0f} [ATH pivot])."),
-        ("Multi-Year High Breakout", "Weekly", "PENDING TRIGGER", "#b45309", f"Requires decisive daily close above Rs. {high_52w:,.1f} with >1.5x volume.")
+        ("Mark Minervini Trend Template", "Daily / Weekly", gate["min_stat"], gate["min_col"], gate["min_reason"]),
+        ("Stan Weinstein Stage 2", "Weekly", gate["weinstein_stat"], gate["weinstein_col"], gate["weinstein_reason"]),
+        ("Mark Minervini VCP", "Daily", gate["vcp_stat"], gate["vcp_col"], f"Price {dist_high_pct:+.1f}% from 52W High; monitoring range contraction and volume."),
+        ("Pocket Pivot (Gil Morales)", "Daily", "ACTIVE" if (gate["above_20"] and rsi_val >= 55.0) else "PENDING", "#15803d" if (gate["above_20"] and rsi_val >= 55.0) else "#b45309", "Monitors institutional up-day volume exceeding 10-day down-day peaks."),
+        ("Oliver Kell 10/20 EMA", "Daily", gate["kell_stat"], gate["kell_col"], gate["kell_reason"]),
+        ("High ROCE Buffett Moat", "Annual", gate["moat_stat"], gate["moat_col"], f"{roce_val:.1f}% ROCE, {de_val:.2f}x D/E, and entrenched industry market share."),
+        ("High Relative Strength (RSC)", "Daily", gate["rsc_stat"], gate["rsc_col"], gate["rsc_reason"]),
+        ("Volume Shockers / Dry-Up", "Daily", "OBSERVED", "#0284c7", "Tracks 20D volume Z-score and delivery absorption vs trailing baseline."),
+        ("Cup with Handle", "Weekly", gate["cup_stat"], gate["cup_col"], f"Current drawdown {abs(dist_high_pct):.1f}% from 52W pivot (Rs. {high_52w:,.1f})."),
+        ("Darvas Box Breakout", "Daily", gate["darvas_stat"], gate["darvas_col"], gate["darvas_reason"]),
+        ("Multi-Year High Breakout", "Weekly", gate["brk_stat"], gate["brk_col"], f"Requires decisive daily close above Rs. {high_52w:,.1f} with &gt;1.5x volume.")
     ]
     screener_table_data = [[
         Paragraph("ALGORITHMIC SCREENER", th_style),
@@ -4800,11 +5178,11 @@ def generate_stock_research_dossier_pdf(
     if yoy_p > yoy_p_prev + 2.5:
         q_mom_status = "▲ ACCELERATING GROWTH"
         q_mom_col = "#15803d"
-        q_mom_note = f"Operating leverage active: PAT growth (+{yoy_p:.1f}%) expanding faster than previous quarter (+{yoy_p_prev:.1f}%)."
+        q_mom_note = f"Operating leverage active: PAT growth ({yoy_p:+.1f}%) expanding faster than previous quarter ({yoy_p_prev:+.1f}%)."
     elif yoy_p < yoy_p_prev - 3.0:
         q_mom_status = "▼ DECELERATING MOMENTUM"
         q_mom_col = "#b45309"
-        q_mom_note = f"Sequential earnings moderating: PAT growth (+{yoy_p:.1f}%) off previous quarter peak (+{yoy_p_prev:.1f}%)."
+        q_mom_note = f"Sequential earnings moderating: PAT growth ({yoy_p:+.1f}%) off previous quarter ({yoy_p_prev:+.1f}%)."
     else:
         q_mom_status = "▶ STEADY COMPOUNDING"
         q_mom_col = "#0284c7"
@@ -4950,8 +5328,8 @@ def generate_stock_research_dossier_pdf(
     moat_intel = get_dossier_moat_intelligence(clean_sym, comp_name, sector, peers=peer_labels_clean)
     moat_text = (
         "<b>COMPETITIVE MOAT, MARKET SHARE &amp; PRICING POWER INTELLIGENCE:</b><br/>"
-        f"• <b>Market Share &amp; Industry Scale:</b> {moat_intel['market_share_scale']}<br/>"
-        f"• <b>Moat Mechanism &amp; Pricing Power:</b> {moat_intel['moat_pricing_power']}<br/>"
+        f"• <b>Market Share &amp; Industry Scale:</b> {_sanitize_pdf_text(moat_intel['market_share_scale'])}<br/>"
+        f"• <b>Moat Mechanism &amp; Pricing Power:</b> {_sanitize_pdf_text(moat_intel['moat_pricing_power'])}<br/>"
         f"• <b>Earnings Quality &amp; Cash Realization:</b> Core Operating Profit reached <b>Rs. {q_op_plot[-1]:,.0f} Cr</b> (OPM: <b>{q_opm_plot[-1]:.1f}%</b>); trailing CFO/PAT cash conversion stands at <b>{cfo_pat:.2f}x</b> ({cfo_pat*100:.1f}%), confirming operational cash realization integrity."
     )
     t_moat = Table([[Paragraph(moat_text, body_style)]], colWidths=[520])
@@ -5009,6 +5387,10 @@ def generate_stock_research_dossier_pdf(
         ttm_cfo_ratio = cfo_pat
     ttm_ocf_val = round(ttm_pat * ttm_cfo_ratio, 0)
 
+    def _fmt_cagr_cell(val: float) -> Paragraph:
+        col = "#15803d" if val >= 0 else "#b91c1c"
+        return Paragraph(f"<font color='{col}'><b>{val:+.1f}%</b></font>", td_num)
+
     hist_data = [
         [
             Paragraph("METRIC (RS. CR)", th_style),
@@ -5020,10 +5402,10 @@ def generate_stock_research_dossier_pdf(
             Paragraph("TTM", th_style),
             Paragraph(cagr_col_title, th_style)
         ],
-        [Paragraph("<b>Revenue (Sales)</b>", td_style)] + [Paragraph(f"{v:,.0f}", td_num) for v in y_rev_plot] + [Paragraph(f"{ttm_sales:,.0f}", td_num), Paragraph(f"<font color='#15803d'><b>+{cagr_sales:.1f}%</b></font>", td_num)],
-        [Paragraph("<b>Operating Profit</b>", td_style)] + [Paragraph(f"{v:,.0f}", td_num) for v in y_ebitda_plot] + [Paragraph(f"{ttm_op:,.0f}", td_num), Paragraph(f"<font color='#15803d'><b>+{cagr_op:.1f}%</b></font>", td_num)],
-        [Paragraph("<b>Net Profit (PAT)</b>", td_style)] + [Paragraph(f"{v:,.0f}", td_num) for v in y_pat_plot] + [Paragraph(f"{ttm_pat:,.0f}", td_num), Paragraph(f"<font color='#15803d'><b>+{cagr_pat:.1f}%</b></font>", td_num)],
-        [Paragraph("<b>Operating Cash Flow</b>", td_style)] + [Paragraph(f"{v:,.0f}", td_num) for v in y_ocf_plot] + [Paragraph(f"{ttm_ocf_val:,.0f}", td_num), Paragraph(f"<font color='#15803d'><b>+{cagr_ocf:.1f}%</b></font>", td_num)]
+        [Paragraph("<b>Revenue (Sales)</b>", td_style)] + [Paragraph(f"{v:,.0f}", td_num) for v in y_rev_plot] + [Paragraph(f"{ttm_sales:,.0f}", td_num), _fmt_cagr_cell(cagr_sales)],
+        [Paragraph("<b>Operating Profit</b>", td_style)] + [Paragraph(f"{v:,.0f}", td_num) for v in y_ebitda_plot] + [Paragraph(f"{ttm_op:,.0f}", td_num), _fmt_cagr_cell(cagr_op)],
+        [Paragraph("<b>Net Profit (PAT)</b>", td_style)] + [Paragraph(f"{v:,.0f}", td_num) for v in y_pat_plot] + [Paragraph(f"{ttm_pat:,.0f}", td_num), _fmt_cagr_cell(cagr_pat)],
+        [Paragraph("<b>Operating Cash Flow</b>", td_style)] + [Paragraph(f"{v:,.0f}", td_num) for v in y_ocf_plot] + [Paragraph(f"{ttm_ocf_val:,.0f}", td_num), _fmt_cagr_cell(cagr_ocf)]
     ]
     t_hist = Table(hist_data, colWidths=[114, 58, 58, 58, 58, 58, 58, 58])
     t_hist.setStyle(TableStyle([
@@ -5084,14 +5466,15 @@ def generate_stock_research_dossier_pdf(
     else:
         conv_verdict = "disciplined cash conversion with capital allocated toward ongoing operational expansion"
 
+    nw_basis_lbl = "Consolidated Net Worth" if is_consol else "Standalone Net Worth"
     capex_intel = get_dossier_capex_guidance(clean_sym, comp_name, sector)
     capex_audit_text = (
         "<b>MANAGEMENT GUIDANCE, CAPEX PIPELINE &amp; CASH CONVERSION AUDIT:</b><br/>"
         f"• <b>Audited Cash Realization Reality:</b> Over the 5-year cycle, the business generated <b>Rs. {cum_5y_ocf:,.0f} Cr</b> in operating cash flow against reported PAT of <b>Rs. {cum_5y_pat:,.0f} Cr</b> (<b>{cum_5y_conv:.1f}%</b> cumulative conversion), demonstrating {conv_verdict}. Cumulative Free Cash Flow stands at <b>Rs. {cum_5y_fcf:,.0f} Cr</b> after operational reinvestment.<br/>"
-        f"• <b>Balance Sheet Strength &amp; Capital Structure:</b> Gearing at <b>{de_val:.2f}x D/E</b>. Liquid Cash &amp; Investments stand at <b>Rs. {investments:,.0f} Cr</b> against Borrowings of <b>Rs. {borrowings:,.0f} Cr</b>, yielding {net_cash_desc}. {icr_text}. Consolidated Net Worth: <b>Rs. {consol_equity_cr:,.0f} Cr</b>.<br/>"
-        f"• <b>Strategic Capacity &amp; Volume Target:</b> {capex_intel['capacity_target']}<br/>"
-        f"• <b>Committed Capex Outlay &amp; Key Projects:</b> {capex_intel['capex_outlay']}<br/>"
-        f"• <b>Funding Strategy &amp; Margin Outlook:</b> {capex_intel['funding_margin']}"
+        f"• <b>Balance Sheet Strength &amp; Capital Structure:</b> Gearing at <b>{de_val:.2f}x D/E</b>. Liquid Cash &amp; Investments stand at <b>Rs. {investments:,.0f} Cr</b> against Borrowings of <b>Rs. {borrowings:,.0f} Cr</b>, yielding {net_cash_desc}. {icr_text}. {nw_basis_lbl}: <b>Rs. {consol_equity_cr:,.0f} Cr</b>.<br/>"
+        f"• <b>Strategic Capacity &amp; Volume Target:</b> {_sanitize_pdf_text(capex_intel['capacity_target'])}<br/>"
+        f"• <b>Committed Capex Outlay &amp; Key Projects:</b> {_sanitize_pdf_text(capex_intel['capex_outlay'])}<br/>"
+        f"• <b>Funding Strategy &amp; Margin Outlook:</b> {_sanitize_pdf_text(capex_intel['funding_margin'])}"
     )
     t_capex = Table([[Paragraph(capex_audit_text, body_style)]], colWidths=[520])
     t_capex.setStyle(TableStyle([
@@ -5195,7 +5578,7 @@ def generate_stock_research_dossier_pdf(
             Paragraph(f"<font color='{'#b91c1c' if prem_peer > 10 else ('#15803d' if prem_peer < -10 else '#0284c7')}'><b>{prem_peer:+.1f}%</b></font>", td_num)
         ],
         [
-            Paragraph(f"<b>Verdict:</b> <font color='{pe_verdict_col}'><b>{pe_verdict}</b></font> &nbsp;|&nbsp; <b>{pct_3y:.0f}th %tile</b> &nbsp;|&nbsp; PEG: <b>{peg_val:.2f}x</b>", ParagraphStyle('PV', parent=meta_style, fontSize=5.6, leading=7.2)),
+            Paragraph(f"<b>Verdict:</b> <font color='{pe_verdict_col}'><b>{pe_verdict}</b></font> &nbsp;|&nbsp; <b>{_ordinal_suffix(pct_3y)} %tile</b> &nbsp;|&nbsp; PEG: <b>{peg_val:.2f}x</b>", ParagraphStyle('PV', parent=meta_style, fontSize=5.6, leading=7.2)),
             "", "", ""
         ]
     ]
@@ -5215,7 +5598,7 @@ def generate_stock_research_dossier_pdf(
         ('VALIGN', (0,0), (-1,-1), 'MIDDLE')
     ]))
 
-    t_left_val = Table([[Image(buf_football, width=280, height=58)], [Image(buf_pe_gauge, width=280, height=30)]], colWidths=[280])
+    t_left_val = Table([[Image(buf_football, width=280, height=52)], [Image(buf_pe_gauge, width=280, height=27)]], colWidths=[280])
     t_left_val.setStyle(TableStyle([('LEFTPADDING',(0,0),(-1,-1),0), ('RIGHTPADDING',(0,0),(-1,-1),0), ('TOPPADDING',(0,0),(-1,-1),0), ('BOTTOMPADDING',(0,0),(-1,-1),0)]))
     t_val_top = Table([[t_left_val, t_pe_spectrum]], colWidths=[285, 235])
     t_val_top.setStyle(TableStyle([
@@ -5458,8 +5841,8 @@ def generate_stock_research_dossier_pdf(
             fwd_cagr_nom = 0.0
 
     buf_dcf_heatmap = _generate_dcf_sensitivity_heatmap(pv_5y_val, term_op_val, net_cash_val, shares_count, wacc, cmp_val)
-    story.append(Image(buf_dcf_heatmap, width=520, height=62))
-    story.append(Spacer(1, 1.5))
+    story.append(Image(buf_dcf_heatmap, width=520, height=55))
+    story.append(Spacer(1, 1.0))
 
     sens_html = (
         "<b>DUAL-TERMINAL DCF EXPECTATIONS INVESTING NARRATIVE:</b><br/>"
@@ -5472,70 +5855,67 @@ def generate_stock_research_dossier_pdf(
     t_sens.setStyle(TableStyle([
         ('BACKGROUND', (0,0), (-1,-1), colors.HexColor("#f8fafc")),
         ('BOX', (0,0), (-1,-1), 0.5, colors.HexColor("#cbd5e1")),
-        ('TOPPADDING', (0,0), (-1,-1), 1.5),
-        ('BOTTOMPADDING', (0,0), (-1,-1), 1.5),
+        ('TOPPADDING', (0,0), (-1,-1), 1.2),
+        ('BOTTOMPADDING', (0,0), (-1,-1), 1.2),
         ('LEFTPADDING', (0,0), (-1,-1), 6),
         ('RIGHTPADDING', (0,0), (-1,-1), 6),
     ]))
     story.append(t_sens)
-    story.append(Spacer(1, 2.5))
+    story.append(Spacer(1, 1.5))
 
     story.append(Paragraph("<b>DUAL-HORIZON ACTIONABLE VERDICTS: SWING TRADING vs LONG-TERM INVESTMENT</b>", sec_header_style))
-    story.append(Spacer(1, 1))
+    story.append(Spacer(1, 0.8))
 
     horizon_note = (
-        "<b>HORIZON SEPARATION NOTICE:</b> The Swing Trade is a short-term tactical momentum setup (2–8 weeks) exploiting dynamic 20 EMA "
-        "mean-reversion support, completely independent of the 1–3 year Fundamental Valuation."
+        "<b>HORIZON SEPARATION NOTICE:</b> The Swing Trade is a short-term tactical momentum setup (2–8 weeks) exploiting dynamic moving-average "
+        "triggers, completely independent of the 1–3 year Fundamental Valuation."
     )
-    t_horizon = Table([[Paragraph(horizon_note, ParagraphStyle('HNote', parent=meta_style, fontSize=6.2, leading=7.8, textColor=colors.HexColor("#475569")))]], colWidths=[520])
+    t_horizon = Table([[Paragraph(horizon_note, ParagraphStyle('HNote', parent=meta_style, fontSize=6.0, leading=7.4, textColor=colors.HexColor("#475569")))]], colWidths=[520])
     t_horizon.setStyle(TableStyle([
         ('BACKGROUND', (0,0), (-1,-1), colors.HexColor("#f1f5f9")),
         ('BOX', (0,0), (-1,-1), 0.5, colors.HexColor("#cbd5e1")),
-        ('TOPPADDING', (0,0), (-1,-1), 1.5),
-        ('BOTTOMPADDING', (0,0), (-1,-1), 1.5),
+        ('TOPPADDING', (0,0), (-1,-1), 1.0),
+        ('BOTTOMPADDING', (0,0), (-1,-1), 1.0),
         ('LEFTPADDING', (0,0), (-1,-1), 5),
         ('RIGHTPADDING', (0,0), (-1,-1), 5)
     ]))
     story.append(t_horizon)
-    story.append(Spacer(1, 1.5))
+    story.append(Spacer(1, 1.0))
 
     cat_intel = get_dossier_recent_catalysts(clean_sym, comp_name, sector)
     cat_html = (
         "<b>RECENT 30-DAY MATERIAL CATALYSTS &amp; INSTITUTIONAL DEVELOPMENTS:</b><br/>"
-        f"• <b>Earnings &amp; Operational Surprise:</b> {cat_intel['earnings_operating_surprise']}<br/>"
-        f"• <b>Corporate &amp; Capital Actions:</b> {cat_intel['corporate_capital_actions']}<br/>"
-        f"• <b>Capacity &amp; Market Dynamics:</b> {cat_intel['capacity_market_dynamics']}"
+        f"• <b>Earnings &amp; Operational Surprise:</b> {_sanitize_pdf_text(cat_intel['earnings_operating_surprise'])}<br/>"
+        f"• <b>Corporate &amp; Capital Actions:</b> {_sanitize_pdf_text(cat_intel['corporate_capital_actions'])}<br/>"
+        f"• <b>Capacity &amp; Market Dynamics:</b> {_sanitize_pdf_text(cat_intel['capacity_market_dynamics'])}"
     )
     t_cat = Table([[Paragraph(cat_html, body_style)]], colWidths=[520])
     t_cat.setStyle(TableStyle([
         ('BACKGROUND', (0,0), (-1,-1), colors.HexColor("#f8fafc")),
         ('BOX', (0,0), (-1,-1), 0.5, colors.HexColor("#cbd5e1")),
-        ('TOPPADDING', (0,0), (-1,-1), 1.5),
-        ('BOTTOMPADDING', (0,0), (-1,-1), 1.5),
+        ('TOPPADDING', (0,0), (-1,-1), 1.2),
+        ('BOTTOMPADDING', (0,0), (-1,-1), 1.2),
         ('LEFTPADDING', (0,0), (-1,-1), 6),
         ('RIGHTPADDING', (0,0), (-1,-1), 6),
     ]))
     story.append(t_cat)
-    story.append(Spacer(1, 1.5))
+    story.append(Spacer(1, 1.0))
 
-    # Tactical Swing Trade Setup
-    brk_el = min(sma50, sma20) if sma50 > 0 else (cmp_val * 0.96)
-    brk_eh = max(sma50, sma20) if sma20 > 0 else (cmp_val * 0.99)
-    brk_stop = round(brk_el * 0.98, 0)
-    brk_t1 = high_52w
-    brk_t2 = round(high_52w * 1.072, 0)
-
-    entry_mid = (brk_el + brk_eh) / 2.0
-    risk_val = max(entry_mid - brk_stop, 1.0)
-    rew1_val = max(brk_t1 - entry_mid, 1.0)
-    rew2_val = max(brk_t2 - entry_mid, 2.0)
-    rr_avg = (rew1_val / risk_val + rew2_val / risk_val) / 2.0
+    # Tactical Swing Trade Setup (regime-branched: Pullback if CMP >= 20D MA, Reclaim if below)
+    sw = _compute_swing_setup(cmp_val, sma20, sma50, sma200, low_52w, high_52w)
+    brk_el = sw["entry_low"]
+    brk_eh = sw["entry_high"]
+    brk_stop = sw["stop_loss"]
+    brk_t1 = sw["t1"]
+    brk_t2 = sw["t2"]
+    entry_mid = sw["entry_mid"]
+    rr_avg = sw["rr_avg"]
 
     stat_bar_data = [
         [
-            Paragraph("<font color='#b91c1c' size='6'><b>STOP LOSS (STRICT)</b></font><br/><font color='#dc2626' size='8'><b>Rs. " + f"{brk_stop:,.0f}" + "</b></font><br/><font color='#64748b' size='5.2'>-" + f"{((cmp_val-brk_stop)/cmp_val*100):.1f}" + "% close below 50 SMA</font>", ParagraphStyle('SB1', parent=meta_style, fontName='Helvetica', alignment=1, leading=8)),
-            Paragraph("<font color='#854d0e' size='6'><b>PULLBACK BUY ZONE</b></font><br/><font color='#b45309' size='8'><b>Rs. " + f"{brk_el:,.0f} – {brk_eh:,.0f}" + "</b></font><br/><font color='#64748b' size='5.2'>20 EMA test &amp; volume dry-up</font>", ParagraphStyle('SB2', parent=meta_style, fontName='Helvetica', alignment=1, leading=8)),
-            Paragraph("<font color='#0f172a' size='6'><b>CURRENT PRICE (CMP)</b></font><br/><font color='#0f172a' size='8'><b>Rs. " + f"{cmp_val:,.0f}" + "</b></font><br/><font color='#64748b' size='5.2'>Stage 2 consolidation base</font>", ParagraphStyle('SB3', parent=meta_style, fontName='Helvetica', alignment=1, leading=8)),
+            Paragraph(f"<font color='#b91c1c' size='6'><b>STOP LOSS (STRICT)</b></font><br/><font color='#dc2626' size='8'><b>Rs. {brk_stop:,.0f}</b></font><br/><font color='#64748b' size='5.2'>{sw['stop_sub']}</font>", ParagraphStyle('SB1', parent=meta_style, fontName='Helvetica', alignment=1, leading=8)),
+            Paragraph(f"<font color='#854d0e' size='6'><b>{sw['zone_title']}</b></font><br/><font color='#b45309' size='8'><b>Rs. {brk_el:,.0f} – {brk_eh:,.0f}</b></font><br/><font color='#64748b' size='5.2'>{sw['zone_sub']}</font>", ParagraphStyle('SB2', parent=meta_style, fontName='Helvetica', alignment=1, leading=8)),
+            Paragraph(f"<font color='#0f172a' size='6'><b>CURRENT PRICE (CMP)</b></font><br/><font color='#0f172a' size='8'><b>Rs. {cmp_val:,.0f}</b></font><br/><font color='#64748b' size='5.2'>{sw['cmp_sub']}</font>", ParagraphStyle('SB3', parent=meta_style, fontName='Helvetica', alignment=1, leading=8)),
             Paragraph("<font color='#047857' size='6'><b>TARGETS (R:R 1 : " + f"{rr_avg:.1f}" + ")</b></font><br/><font color='#15803d' size='7.5'><b>T1: Rs. " + f"{brk_t1:,.0f}" + " &bull; T2: Rs. " + f"{brk_t2:,.0f}" + "</b></font><br/><font color='#64748b' size='5.2'>T1: +" + f"{((brk_t1-entry_mid)/entry_mid*100):.1f}" + "% (ATH) | T2: +" + f"{((brk_t2-entry_mid)/entry_mid*100):.1f}" + "%</font>", ParagraphStyle('SB4', parent=meta_style, fontName='Helvetica', alignment=1, leading=8))
         ]
     ]
@@ -5551,13 +5931,13 @@ def generate_stock_research_dossier_pdf(
         ('BOX', (2,0), (2,0), 0.5, colors.HexColor("#cbd5e1")),
         ('BOX', (3,0), (3,0), 0.5, colors.HexColor("#86efac")),
         ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
-        ('TOPPADDING', (0,0), (-1,-1), 2),
-        ('BOTTOMPADDING', (0,0), (-1,-1), 2),
+        ('TOPPADDING', (0,0), (-1,-1), 1.5),
+        ('BOTTOMPADDING', (0,0), (-1,-1), 1.5),
         ('LEFTPADDING', (0,0), (-1,-1), 3),
         ('RIGHTPADDING', (0,0), (-1,-1), 3),
     ]))
     story.append(t_stat_bar)
-    story.append(Spacer(1, 1.5))
+    story.append(Spacer(1, 1.0))
 
     if prem_to_dcf > 15.0:
         inv_title = "FULLY VALUED / HOLD CORE (ACCUMULATE ON DEEP DIPS)"
@@ -5601,12 +5981,12 @@ def generate_stock_research_dossier_pdf(
         ],
         [
             Paragraph(
-                "<b>TACTICAL ACTION:</b> <font color='#15803d'><b>BUY ON CONFIRMED PULLBACK (STAGE 2 MOMENTUM)</b></font><br/>"
-                f"• <b>Tactical Pullback Zone:</b> Rs. {brk_el:,.0f} – Rs. {brk_eh:,.0f} [See Section 4: Technical Timing]<br/>"
-                "• <b>Entry Trigger:</b> Bullish reversal candle with volume dry-up on 20 EMA test<br/>"
-                f"• <b>Tactical Supports:</b> S1: Rs. {sma20:,.0f} (20 EMA) | S2: Rs. {sma50:,.0f} (50 SMA)<br/>"
+                f"<b>TACTICAL ACTION:</b> <font color='{sw['action_col']}'><b>{sw['action_title']}</b></font><br/>"
+                f"• <b>{'Tactical Pullback Zone' if sw['mode'] == 'PULLBACK' else 'Reclaim Trigger Zone'}:</b> Rs. {brk_el:,.0f} – Rs. {brk_eh:,.0f} [See Section 4: Technical Timing]<br/>"
+                f"• <b>Entry Trigger:</b> {sw['trigger_txt']}<br/>"
+                f"• <b>Tactical Levels:</b> {sw['levels_txt']}<br/>"
                 f"• <b>Tactical Targets:</b> T1: Rs. {brk_t1:,.0f} ({((brk_t1-cmp_val)/cmp_val*100):+.1f}% from CMP) | T2: Rs. {brk_t2:,.0f} ({((brk_t2-cmp_val)/cmp_val*100):+.1f}%)<br/>"
-                f"• <b>Strict Invalidation Stop:</b> Rs. {brk_stop:,.0f} (-{((cmp_val-brk_stop)/cmp_val*100):.1f}% from CMP; close below 50 SMA)<br/>"
+                f"• <b>Strict Invalidation Stop:</b> Rs. {brk_stop:,.0f} ({((brk_stop-cmp_val)/cmp_val*100):+.1f}% from CMP; {'close below support' if sw['mode'] == 'PULLBACK' else 'below swing low'})<br/>"
                 f"• <b>Tranche-Weighted R:R:</b> 1 : {rr_avg:.1f} from Midpoint Entry (Rs. {entry_mid:,.0f})",
                 body_style
             ),
@@ -5636,7 +6016,7 @@ def generate_stock_research_dossier_pdf(
         ('VALIGN', (0,0), (-1,-1), 'TOP')
     ]))
     story.append(t_strat)
-    story.append(Spacer(1, 1.5))
+    story.append(Spacer(1, 1.0))
 
     # Regulatory Disclaimer & Analyst Certification
     disclaimer_text = (
@@ -5654,8 +6034,8 @@ def generate_stock_research_dossier_pdf(
     t_disc.setStyle(TableStyle([
         ('BACKGROUND', (0,0), (-1,-1), colors.HexColor("#f8fafc")),
         ('BOX', (0,0), (-1,-1), 0.5, colors.HexColor("#cbd5e1")),
-        ('TOPPADDING', (0,0), (-1,-1), 1.5),
-        ('BOTTOMPADDING', (0,0), (-1,-1), 1.5),
+        ('TOPPADDING', (0,0), (-1,-1), 1.0),
+        ('BOTTOMPADDING', (0,0), (-1,-1), 1.0),
         ('LEFTPADDING', (0,0), (-1,-1), 6),
         ('RIGHTPADDING', (0,0), (-1,-1), 6),
     ]))
@@ -5908,12 +6288,13 @@ def generate_stock_tearsheet_pdf(
     cum_conv = (cum_5y_ocf / cum_5y_pat * 100.0) if cum_5y_pat > 0 else (cfo_pat * 100.0)
     bs_desc = f"Net Cash: Rs. {investments - borrowings:,.0f} Cr" if investments >= borrowings else f"Net Debt: Rs. {borrowings - investments:,.0f} Cr"
 
-    # Swing Setup metrics
-    brk_el = min(sma50, sma20) if sma50 > 0 else (cmp_val * 0.96)
-    brk_eh = max(sma50, sma20) if sma20 > 0 else (cmp_val * 0.99)
-    brk_stop = round(brk_el * 0.98, 0)
-    brk_t1 = high_52w
-    brk_t2 = round(high_52w * 1.072, 0)
+    # Swing Setup metrics (regime-branched)
+    sw_ts = _compute_swing_setup(cmp_val, sma20, sma50, sma200, low_52w, high_52w)
+    brk_el = sw_ts["entry_low"]
+    brk_eh = sw_ts["entry_high"]
+    brk_stop = sw_ts["stop_loss"]
+    brk_t1 = sw_ts["t1"]
+    brk_t2 = sw_ts["t2"]
 
     # Cycle Clock Regime & Position-Sizing
     spread_200 = ((cmp_val - sma200) / sma200 * 100.0) if sma200 > 0 else 5.0
@@ -6032,8 +6413,8 @@ def generate_stock_tearsheet_pdf(
         Paragraph("<b>COMPETITIVE MOAT &amp; MARKET POWER</b>", sec_st),
         Spacer(1, 1.5),
         Paragraph(
-            f"• <b>Market Scale:</b> {moat_intel['market_share_scale']}<br/>"
-            f"• <b>Pricing Power:</b> {moat_intel['moat_pricing_power']}",
+            f"• <b>Market Scale:</b> {_sanitize_pdf_text(moat_intel['market_share_scale'])}<br/>"
+            f"• <b>Pricing Power:</b> {_sanitize_pdf_text(moat_intel['moat_pricing_power'])}",
             body_st
         ),
         Spacer(1, 4),
@@ -6061,8 +6442,8 @@ def generate_stock_tearsheet_pdf(
         Paragraph("<b>TACTICAL SWING LEVELS &amp; MOMENTUM (2–8 WEEKS)</b>", sec_st),
         Spacer(1, 1.5),
         Paragraph(
-            f"• <b>Pullback Buy Zone:</b> <font color='#b45309'><b>Rs. {brk_el:,.0f} – {brk_eh:,.0f}</b></font> (20 EMA / 50 SMA)<br/>"
-            f"• <b>Strict Stop Loss:</b> <font color='#dc2626'><b>Rs. {brk_stop:,.0f}</b></font> (-{((cmp_val-brk_stop)/cmp_val*100):.1f}% below CMP)<br/>"
+            f"• <b>{'Pullback Buy Zone' if sw_ts['mode'] == 'PULLBACK' else 'Reclaim Trigger Zone'}:</b> <font color='#b45309'><b>Rs. {brk_el:,.0f} – {brk_eh:,.0f}</b></font> ({'20D MA / 50 SMA' if sw_ts['mode'] == 'PULLBACK' else 'Reclaim above 20D MA'})<br/>"
+            f"• <b>Strict Stop Loss:</b> <font color='#dc2626'><b>Rs. {brk_stop:,.0f}</b></font> ({((brk_stop-cmp_val)/cmp_val*100):+.1f}% vs CMP)<br/>"
             f"• <b>Targets:</b> <font color='#15803d'><b>T1: Rs. {brk_t1:,.0f} ({((brk_t1-cmp_val)/cmp_val*100):+.1f}%) • T2: Rs. {brk_t2:,.0f} ({((brk_t2-cmp_val)/cmp_val*100):+.1f}%)</b></font><br/>"
             f"• <b>Oscillators:</b> RSI (14): <b>{rsi_val:.1f}</b> | ADX: <b>{adx_val:.1f}</b> | vs 200 SMA: <b>{spread_200:+.1f}%</b>",
             body_st
@@ -6071,17 +6452,17 @@ def generate_stock_tearsheet_pdf(
         Paragraph("<b>RECENT 30-DAY MATERIAL CATALYSTS (LIVE NEWS)</b>", sec_st),
         Spacer(1, 1.5),
         Paragraph(
-            f"• <b>Earnings Pulse:</b> {cat_intel['earnings_operating_surprise']}<br/>"
-            f"• <b>Corporate Actions:</b> {cat_intel['corporate_capital_actions']}<br/>"
-            f"• <b>Market Reaction:</b> {cat_intel['capacity_market_dynamics']}",
+            f"• <b>Earnings Pulse:</b> {_sanitize_pdf_text(cat_intel['earnings_operating_surprise'])}<br/>"
+            f"• <b>Corporate Actions:</b> {_sanitize_pdf_text(cat_intel['corporate_capital_actions'])}<br/>"
+            f"• <b>Market Reaction:</b> {_sanitize_pdf_text(cat_intel['capacity_market_dynamics'])}",
             body_st
         ),
         Spacer(1, 4),
         Paragraph("<b>STRATEGIC CAPEX &amp; EXPANSION ROADMAP</b>", sec_st),
         Spacer(1, 1.5),
         Paragraph(
-            f"• <b>Capacity Target:</b> {capex_intel['capacity_target']}<br/>"
-            f"• <b>Capex &amp; Funding:</b> {capex_intel['capex_outlay']} {capex_intel['funding_margin']}",
+            f"• <b>Capacity Target:</b> {_sanitize_pdf_text(capex_intel['capacity_target'])}<br/>"
+            f"• <b>Capex &amp; Funding:</b> {_sanitize_pdf_text(capex_intel['capex_outlay'])} {_sanitize_pdf_text(capex_intel['funding_margin'])}",
             body_st
         ),
         Spacer(1, 4),

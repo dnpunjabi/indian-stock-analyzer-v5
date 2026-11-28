@@ -12,6 +12,7 @@ import json
 import time
 import sqlite3
 import urllib.parse
+from datetime import datetime
 from typing import Dict, Any, List, Optional
 import requests
 from dotenv import load_dotenv
@@ -21,6 +22,38 @@ load_dotenv()
 DATABASE_DIR = os.environ.get("DATABASE_DIR", os.path.join(os.path.dirname(__file__), "data"))
 DATABASE_PATH = os.path.join(DATABASE_DIR, "watchlist_database.db")
 CACHE_TTL_SECS = 7 * 86400  # 7 days cache
+AI_CACHE_VERSION = 2
+
+
+def _sanitize_ai_text(text: Any) -> str:
+    """Normalizes currency/punctuation characters so ReportLab Helvetica never renders missing-glyph boxes."""
+    if text is None:
+        return ""
+    s = str(text)
+    s = re.sub(r"₹\s*", "Rs. ", s)
+    for src, dst in (
+        ("\u2010", "-"),
+        ("\u2011", "-"),
+        ("\u2012", "-"),
+        ("\u2212", "-"),
+        ("\u2013", "-"),
+        ("\u2014", " - "),
+        ("\u2018", "'"),
+        ("\u2019", "'"),
+        ("\u201c", '"'),
+        ("\u201d", '"'),
+        ("\u2026", "..."),
+        ("\u00a0", " "),
+    ):
+        s = s.replace(src, dst)
+    # Strip emojis / symbols outside Latin-1 / WinAnsi printable range
+    s = "".join(ch for ch in s if ord(ch) < 0x0100 or ch in "\u2022")
+    s = re.sub(r"\s{2,}", " ", s).strip()
+    return s
+
+
+def _sanitize_ai_dict(obj: Dict[str, Any]) -> Dict[str, Any]:
+    return {k: (_sanitize_ai_text(v) if isinstance(v, str) else v) for k, v in obj.items()}
 
 
 def _init_ai_cache_table():
@@ -132,14 +165,19 @@ def get_dossier_moat_intelligence(
             conn.close()
             if row and row[0] and (time.time() - row[1] < CACHE_TTL_SECS):
                 cached_obj = json.loads(row[0])
-                if cached_obj.get("market_share_scale") and cached_obj.get("moat_pricing_power"):
-                    return cached_obj
+                if (
+                    cached_obj.get("_v") == AI_CACHE_VERSION
+                    and cached_obj.get("market_share_scale")
+                    and cached_obj.get("moat_pricing_power")
+                    and "₹" not in str(cached_obj)
+                ):
+                    return _sanitize_ai_dict(cached_obj)
         except Exception:
             pass
 
     # 2. Query SerpApi for Moat & Market Share
     peer_str = " ".join(peers[:2]) if peers else ""
-    query = f"{comp_name} market share competitive advantage pricing power moat vs {peer_str}"
+    query = f"{comp_name} {clean_sym} market share competitive advantage pricing power moat vs {peer_str}"
     snippets = _query_serpapi_snippets(query, max_results=4)
 
     # 3. LLM Synthesis
@@ -148,12 +186,17 @@ def get_dossier_moat_intelligence(
         try:
             from backend.llm_config import call_llm
             prompt = f"""You are a Senior CFA Equity Research Director.
-Based on the following research snippets about {comp_name}'s market share and competitive advantage:
+Based on the following research snippets about {comp_name} ({clean_sym})'s market share and competitive advantage:
 {chr(10).join(snippets)}
 
-Synthesize strictly into 2 concise, institutional bullet points (max 28 words each):
-Bullet 1: Market Share & Scale / Industry Rank (concrete % or rank if available)
-Bullet 2: Moat Mechanism & Pricing Power (concessions, captive volume, customer stickiness)
+Synthesize strictly into 2 concise, institutional bullet points (max 28 words each).
+RULES:
+- Use "Rs." instead of the "₹" symbol and ASCII hyphens "-" instead of special dashes.
+- Focus on structural market share, industry rank, and moat/pricing mechanisms.
+- Do NOT quote market capitalization, stock price, or ROE % numbers from snippets (those are printed separately from live audited filings).
+
+Bullet 1: Market Share & Scale / Industry Rank (concrete % share or rank if available)
+Bullet 2: Moat Mechanism & Pricing Power (concessions, captive volume, customer stickiness, backward integration)
 
 Format strictly as JSON:
 {{
@@ -165,13 +208,15 @@ Output only valid JSON. No markdown ticks, no preamble."""
             clean_res = re.sub(r"^```json\s*|\s*```$", "", res.strip(), flags=re.MULTILINE).strip()
             parsed = json.loads(clean_res)
             if parsed.get("market_share_scale") and parsed.get("moat_pricing_power"):
-                result = parsed
+                result = _sanitize_ai_dict(parsed)
+                result["_v"] = AI_CACHE_VERSION
         except Exception as e:
             print(f"[Dossier AI] Moat LLM synthesis failed for {clean_sym}: {e}")
 
     # 4. Deterministic Fallback if SERPAPI/LLM not available
     if not result:
         result = {
+            "_v": AI_CACHE_VERSION,
             "market_share_scale": f"{comp_name} holds an established tier-1 market footprint within the domestic {sector or 'core'} industry with competitive scale advantages.",
             "moat_pricing_power": f"Moat anchored by high customer switching costs, strategic operating concessions, and entrenched long-term client relationships."
         }
@@ -221,27 +266,40 @@ def get_dossier_capex_guidance(
             conn.close()
             if row and row[0] and (time.time() - row[1] < CACHE_TTL_SECS):
                 cached_obj = json.loads(row[0])
-                if cached_obj.get("capacity_target") and cached_obj.get("capex_outlay"):
-                    return cached_obj
+                if (
+                    cached_obj.get("_v") == AI_CACHE_VERSION
+                    and cached_obj.get("capacity_target")
+                    and cached_obj.get("capex_outlay")
+                    and "₹" not in str(cached_obj)
+                ):
+                    return _sanitize_ai_dict(cached_obj)
         except Exception:
             pass
 
-    # 2. Query SerpApi for Capex & Expansion Plans
-    query = f"{comp_name} long-term capex expansion plans capacity guidance concall transcript"
-    snippets = _query_serpapi_snippets(query, max_results=4)
+    # 2. Query SerpApi for recent Capex & Expansion Plans (last 12 months first)
+    now_dt = datetime.now()
+    curr_fy = (now_dt.year % 100) + (1 if now_dt.month >= 4 else 0)
+    query = f"{comp_name} {clean_sym} capex expansion plans capacity guidance concall transcript FY{curr_fy} OR FY{curr_fy+1}"
+    snippets = _query_serpapi_snippets(query, max_results=4, tbs="qdr:y")
+    if not snippets:
+        snippets = _query_serpapi_snippets(f"{comp_name} {clean_sym} capex expansion plans capacity guidance", max_results=4)
 
     # 3. LLM Synthesis
     result = None
     if snippets:
         try:
             from backend.llm_config import call_llm
-            prompt = f"""You are a Senior CFA Equity Research Director.
-Based on the following search snippets about {comp_name} long-term capex & expansion plans:
+            prompt = f"""You are a Senior CFA Equity Research Director writing on {now_dt.strftime('%B %Y')} (Indian Fiscal Year FY{curr_fy}).
+Based on the following search snippets about {comp_name} ({clean_sym}) capex & expansion plans:
 {chr(10).join(snippets)}
 
-Synthesize strictly into 3 concise, institutional bullet points (max 28 words each):
-Bullet 1: Capacity Target & Scale (volume/throughput/capacity goals over 3-5 years)
-Bullet 2: Committed Capex Outlay & Projects (budgeted multi-year capex figure and key projects)
+Synthesize strictly into 3 concise, institutional bullet points (max 28 words each).
+IMPORTANT RULES:
+- Use "Rs." instead of the "₹" symbol and standard ASCII hyphens "-".
+- Today is {now_dt.strftime('%B %Y')} (FY{curr_fy}). Refer to any FY{curr_fy-3}/FY{curr_fy-2}/FY{curr_fy-1} capacity figures strictly in past tense as completed/installed capacity, NEVER as future targets. Only frame FY{curr_fy}/FY{curr_fy+1}+ plans as forward targets.
+
+Bullet 1: Capacity Target & Scale (current installed capacity and forward volume/throughput goals for FY{curr_fy}–FY{curr_fy+3})
+Bullet 2: Committed Capex Outlay & Projects (budgeted multi-year capex figure in Rs. and key ongoing projects)
 Bullet 3: Funding & Margin Outlook (operating cash flow self-funding, D/E discipline, EBITDA margin expectations)
 
 Format strictly as JSON:
@@ -255,13 +313,15 @@ Output only valid JSON. No markdown ticks, no preamble."""
             clean_res = re.sub(r"^```json\s*|\s*```$", "", res.strip(), flags=re.MULTILINE).strip()
             parsed = json.loads(clean_res)
             if parsed.get("capacity_target") and parsed.get("capex_outlay") and parsed.get("funding_margin"):
-                result = parsed
+                result = _sanitize_ai_dict(parsed)
+                result["_v"] = AI_CACHE_VERSION
         except Exception as e:
             print(f"[Dossier AI] Capex LLM synthesis failed for {clean_sym}: {e}")
 
     # 4. Deterministic Fallback if SERPAPI/LLM not available
     if not result:
         result = {
+            "_v": AI_CACHE_VERSION,
             "capacity_target": f"Operational strategy focuses on systematic capacity expansion across key domestic and export infrastructure corridors.",
             "capex_outlay": f"Multi-year capital expenditure directed toward greenfield concessions, brownfield debottlenecking, and technology automation.",
             "funding_margin": f"Capex structured to be predominantly funded through internal operating cash flows, maintaining healthy balance sheet leverage."
@@ -315,35 +375,42 @@ def get_dossier_recent_catalysts(
             conn.close()
             if row and row[0] and row[1] and (time.time() - row[1] < CATALYSTS_TTL_SECS):
                 cached_obj = json.loads(row[0])
-                if cached_obj.get("earnings_operating_surprise") and cached_obj.get("corporate_capital_actions"):
-                    return cached_obj
+                if (
+                    cached_obj.get("_v") == AI_CACHE_VERSION
+                    and cached_obj.get("earnings_operating_surprise")
+                    and cached_obj.get("corporate_capital_actions")
+                    and "₹" not in str(cached_obj)
+                ):
+                    return _sanitize_ai_dict(cached_obj)
         except Exception:
             pass
 
-    # 2. Query SerpApi Google News (Past Month: tbm=nws&tbs=qdr:m) for genuine 30-day catalysts
+    # 2. Query SerpApi Google News (Past Month: tbm=nws&tbs=qdr:m) anchored to NSE/Indian listed stock
     clean_co = re.sub(r"\b(?:Ltd\.?|Limited|India|Industries|Corporation)\b", "", comp_name, flags=re.IGNORECASE).strip(" .,")
     if not clean_co:
         clean_co = comp_name
-    query = f'"{clean_co}"'
+    query = f'"{clean_co}" (NSE OR BSE OR {clean_sym} OR shares OR quarterly results)'
     snippets = _query_serpapi_snippets(query, max_results=5, tbm="nws", tbs="qdr:m")
     if not snippets:
         # Fallback to Web Search Past Month if Google News has no hits for small caps
-        snippets = _query_serpapi_snippets(f"{clean_co} {clean_sym} stock news", max_results=5, tbs="qdr:m")
+        snippets = _query_serpapi_snippets(f"{clean_co} {clean_sym} NSE stock news", max_results=5, tbs="qdr:m")
 
     # 3. LLM Synthesis
     result = None
     if snippets:
         try:
             from backend.llm_config import call_llm
-            prompt = f"""You are a Senior Institutional Research Analyst.
-Based on the following verified 30-day news snippets for {comp_name}:
+            prompt = f"""You are a Senior Institutional Research Analyst covering Indian listed equities.
+Based on the following verified 30-day news snippets for {comp_name} (NSE: {clean_sym}):
 {chr(10).join(snippets)}
 
 Synthesize strictly into 3 concise, institutional bullet points (max 26 words each).
 IMPORTANT RULES:
-- Use "Rs." instead of the "₹" symbol.
+- Use "Rs." instead of the "₹" symbol and ASCII hyphens "-".
+- ONLY report corporate actions, splits, bonuses, M&A, or earnings explicitly verified for {comp_name} ({clean_sym}) in India.
+- Strictly ignore snippets about other companies, global parent entities, or unverified market rumors unless officially confirmed in exchange filings.
 - NEVER mention "in the provided snippets", "based on snippets", or "no details were reported".
-- If a specific category has no major event in the past 30 days, state it cleanly in institutional prose (e.g., "No material equity dilution, QIP, or M&A transactions announced in the trailing 30-day period.") or highlight product launches/strategic updates from the news.
+- If a specific category has no major event in the past 30 days, state it cleanly in institutional prose (e.g., "No material equity dilution, QIP, or M&A transactions announced in the trailing 30-day period.").
 
 Bullet 1: Earnings & Operational Surprise (latest quarterly results, revenue/PAT growth, EBITDA, or volume records)
 Bullet 2: Corporate, Product & Capital Actions (product launches, board approvals, fundraising, QIP, acquisitions, concessions, or dividends)
@@ -362,15 +429,15 @@ Output only valid JSON. No markdown ticks, no preamble."""
             if (parsed.get("earnings_operating_surprise") and 
                 parsed.get("corporate_capital_actions") and 
                 parsed.get("capacity_market_dynamics")):
-                for k in parsed:
-                    parsed[k] = str(parsed[k]).replace("₹", "Rs. ")
-                result = parsed
+                result = _sanitize_ai_dict(parsed)
+                result["_v"] = AI_CACHE_VERSION
         except Exception as e:
             print(f"[Dossier AI] Catalysts LLM synthesis failed for {clean_sym}: {e}")
 
     # 4. Deterministic Fallback if SERPAPI/LLM not available
     if not result:
         result = {
+            "_v": AI_CACHE_VERSION,
             "earnings_operating_surprise": f"{comp_name} demonstrated resilient operating momentum in latest audited filings, sustaining steady EBITDA generation and pricing power across core operations.",
             "corporate_capital_actions": f"Active board oversight continues with strategic capital expenditure commitments, liquidity maintenance, and institutional governance reviews.",
             "capacity_market_dynamics": f"Trading volume and delivery patterns indicate long-term structural institutional accumulation near key technical moving average supports."
@@ -419,8 +486,14 @@ def get_dossier_strategic_risks(
             conn.close()
             if row and row[0] and row[1] and (time.time() - row[1] < CACHE_TTL_SECS):
                 cached_obj = json.loads(row[0])
-                if cached_obj.get("risk_1_desc") and cached_obj.get("risk_2_desc") and cached_obj.get("risk_3_desc"):
-                    return cached_obj
+                if (
+                    cached_obj.get("_v") == AI_CACHE_VERSION
+                    and cached_obj.get("risk_1_desc")
+                    and cached_obj.get("risk_2_desc")
+                    and cached_obj.get("risk_3_desc")
+                    and "₹" not in str(cached_obj)
+                ):
+                    return _sanitize_ai_dict(cached_obj)
         except Exception:
             pass
 
@@ -459,15 +532,15 @@ Output only valid JSON. No markdown ticks, no preamble."""
             clean_res = re.sub(r"^```json\s*|\s*```$", "", res.strip(), flags=re.MULTILINE).strip()
             parsed = json.loads(clean_res)
             if parsed.get("risk_1_desc") and parsed.get("risk_2_desc") and parsed.get("risk_3_desc"):
-                for k in parsed:
-                    parsed[k] = str(parsed[k]).replace("₹", "Rs. ")
-                result = parsed
+                result = _sanitize_ai_dict(parsed)
+                result["_v"] = AI_CACHE_VERSION
         except Exception as e:
             print(f"[Dossier AI] Strategic Risks LLM synthesis failed for {clean_sym}: {e}")
 
     # 4. Deterministic Fallback
     if not result:
         result = {
+            "_v": AI_CACHE_VERSION,
             "risk_1_title": "Demand & Margin Sensitivity",
             "risk_1_desc": f"Core {sector or 'sector'} demand cyclicality and input cost volatility could pressure quarterly operating margins.",
             "risk_2_title": "Competitive & Execution Risk",
